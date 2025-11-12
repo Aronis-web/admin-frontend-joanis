@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "PanelAdminGrit",
+    "slug": "panel-admin-grit",
+    "scheme": "panel-admin-grit",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.paneladmin.grit",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Esta app necesita acceso a tu ubicación para seleccionar la sede en el mapa."
+      }
+    },
+    "android": {
+      "package": "com.paneladmin.grit",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      }
+    },
+    "extra": {
+      "apiUrl": "@env:API_URL"
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}

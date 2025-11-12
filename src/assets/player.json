@@ -1,0 +1,14 @@
+{
+  "cell": 32,
+  "cols": 4,
+  "rows": 3,
+  "anchor": {"x": 16, "y": 31},
+  "anims": {
+    "idle": {"frames": [0,1], "fps": 6, "randomBlinkSec": [2,3]},
+    "walk": {"frames": [2,3,4,3], "fps": 10},
+    "jump": {"frames": [5], "fps": 1},
+    "land": {"frames": [6], "fps": 8},
+    "turn": {"frames": [7], "fps": 8}
+  },
+  "hitbox": {"wRel": 0.6, "hRel": 0.9}
+}

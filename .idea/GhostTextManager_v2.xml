@@ -1,0 +1,1245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GhostTextManager">
+    <option name="inputs">
+      <map>
+        <entry key="// Obtener todos los productos públicos (solo activos)&#10;GET /catalog/products?page=1&amp;limit=20&amp;categoryId=uuid&amp;q=search&#10;&#10;// Obtener un producto específico con info de stock&#10;GET /catalog/products/:id&#10;&#10;// CRUD completo para administradores&#10;GET /admin/products?page=1&amp;limit=20&amp;categoryId=uuid&amp;status=active&amp;q=search&#10;GET /admin/products/:id&#10;GET /admin/products/sku/:sku&#10;POST /admin/products&#10;PATCH /admin/products/:id&#10;DELETE /admin/products/:id">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760591570647" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="1. Does the /users endpoint have the same JWT middleware as /auth/login?&#10;No, they have different middleware configurations:&#10;/auth/login:&#10;❌ No JWT guards - It's a public endpoint&#10;❌ No AppContextMiddleware - Explicitly excluded in app.module.ts&#10;✅ Public route - Listed in ConditionalPermissionsGuard public routes&#10;// app.module.ts - AppContextMiddleware exclusions&#10;{ path: 'auth/login', method: RequestMethod.POST },&#10;&#10;// ConditionalPermissionsGuard - public routes&#10;{ path: '/auth/login', method: 'POST' },&#10;&#10;/users:&#10;✅ Has JWT guards - @&lt;file_name&gt;&#10;✅ Has AppContextMiddleware - Applied to all routes except exclusions&#10;✅ Route-specific guards - Listed in ConditionalPermissionsGuard specific guards&#10;// users.controller.ts&#10;@&lt;file_name&gt;&#10;&#10;// ConditionalPermissionsGuard - routes with specific guards&#10;'/users',&#10;2. Are all endpoints using the same JWT secret and validation logic?&#10;No, there are TWO different JWT configurations:&#10;Admin JWT (for /users, /auth endpoints):&#10;// auth.module.ts&#10;secret: config.jwtSecret,  // JWT_SECRET env var&#10;signOptions: { algorithm: 'HS256' }&#10;&#10;// jwt-access.strategy.ts  &#10;jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken()&#10;3. Is there a different authentication configuration for the /users route?&#10;Yes, significantly different:&#10;Middleware Stack for /users:&#10;LoggerMiddleware (all routes)&#10;AppContextMiddleware (requires X-App-Id + authenticated user)&#10;JwtAuthGuard (validates Bearer token)&#10;PermissionsGuard (checks specific permissions)&#10;Middleware Stack for /auth/login:&#10;LoggerMiddleware (all routes)&#10;No AppContextMiddleware (excluded)&#10;No JWT guards (public endpoint)&#10;No PermissionsGuard (public route)&#10;Key Differences Summary:&#10;Aspect&#10;/auth/login&#10;/users&#10;JWT Guard&#10;❌ No&#10;✅ JwtAuthGuard&#10;AppContextMiddleware&#10;❌ Excluded&#10;✅ Required&#10;Permissions&#10;❌ Public&#10;✅ Required&#10;X-App-Id Header&#10;❌ Not required&#10;✅ Required&#10;JWT Secret&#10;N/A (no validation)&#10;JWT_SECRET&#10;The root cause is confirmed: /users requires a valid JWT Bearer token in the Authorization header, while /auth/login is completely public and doesn't validate any tokens.">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761119409613" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="2. Respuesta del Login Exitoso&#10;{&#10;  &quot;access_token&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;,&#10;  &quot;refresh_token&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;,&#10;  &quot;expires_in&quot;: 900,&#10;  &quot;user&quot;: {&#10;    &quot;id&quot;: &quot;6f3c5eca-133f-4dd5-8346-54f873a09908&quot;,&#10;    &quot;email&quot;: &quot;admin@&lt;file_name&gt;&#10;    &quot;name&quot;: &quot;Admin User&quot;,&#10;    &quot;roles&quot;: [&quot;SUPERADMIN&quot;],&#10;    &quot;permissions&quot;: [&quot;areas.create&quot;, &quot;areas.delete&quot;, ...]&#10;  }&#10;}&#10;3. Acceder a Rutas Protegidas (GET /users)&#10;Para acceder a rutas protegidas, necesitas enviar el access_token en el header:&#10;&#10;Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&#10;Headers completos para rutas protegidas:&#10;&#10;Authorization: Bearer &lt;access_token_del_login&gt;&#10;Content-Type: application/json&#10;X-App-Id: e28208b8-89b4-4682-80dc-925059424b1f&#10;Puntos Importantes&#10;Access Token: Dura 15 minutos (900 segundos)&#10;Refresh Token: Se guarda en una cookie para renovar el access token&#10;X-App-Id: Header requerido para identificar la aplicación&#10;Permisos: El usuario admin tiene el rol SUPERADMIN con 63 permisos">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761111664029" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="4) Componentes UI&#10;&#10;KawaiiBackground.tsx&#10;&#10;Prop variant: 'turquoise' | 'lilac' para cambiar el fondo.&#10;&#10;Dibuja con react-native-svg:&#10;&#10;Dos arcoíris (izq arriba, der arriba) con nubecitas.&#10;&#10;Estrellitas y nubes pequeñas dispersas.&#10;&#10;Animaciones sutiles con moti (flotar 4–6 px en y; duración 3–4 s; easing in-out; delay escalonado).&#10;&#10;KawaiiCharacters.tsx&#10;&#10;Franja inferior con personajes simples (oso, conejito, robot, perritos) como shapes básicos (círculos/rounded rects) o imágenes SVG locales si prefieres placeholders.&#10;&#10;No bloquea inputs; ocupa ~20% de alto con pointerEvents=&quot;none&quot;.&#10;&#10;FormTextInput.tsx&#10;&#10;Label arriba (obligatorio): “Correo electrónico”.&#10;&#10;Caja redondeada radius.lg, borde colors.outline, padding horizontal 16, vertical 12.&#10;&#10;Estado error: borde pink, helper text rojo suave bajo el campo.&#10;&#10;PasswordInput.tsx&#10;&#10;Igual a FormTextInput, label: “Contraseña”.&#10;&#10;Botón ojo a la derecha: ícono 18–20px, toque de 32–36px (hit-slop), discreto (opacidad 0.6 → 1 on-press). No debe “romper” el campo ni agrandar la altura. Cambia a “ojo tachado” cuando está visible.&#10;&#10;5) Pantalla LoginScreen.tsx&#10;&#10;Layout&#10;&#10;SafeAreaView.&#10;&#10;KawaiiBackground variant seleccionable por feature flag/env (LOGIN_BG=lilac|turquoise, default turquesa).&#10;&#10;Centro: tarjeta invisible (sin fondo) con los dos inputs y acciones.&#10;&#10;Botón primario grande “Ingresar” (height 52, radius.xl, full width, sombra leve).&#10;&#10;Links secundarios: “Crear cuenta” y “Olvidé mi contraseña” como texto con subrayado suave.&#10;&#10;Espaciado vertical generoso (8-pt system).&#10;&#10;Validación (Yup)&#10;&#10;email: requerido + formato válido.&#10;&#10;password: requerido (≥8).&#10;&#10;Estados&#10;&#10;Loading: botón muestra spinner, deshabilitado.&#10;&#10;Éxito: navegar a /(tabs) o la ruta que use la app tras login.&#10;&#10;Error:&#10;&#10;400/401: “Correo o contraseña no válidos”.&#10;&#10;429: “Demasiados intentos. Intenta en unos minutos.”&#10;&#10;5xx / Network: “No pudimos conectar. Revisa tu internet e inténtalo de nuevo.”&#10;&#10;Mostrar como toast superior o helper bajo el campo; no usar alert bloqueante.&#10;&#10;Accesibilidad&#10;&#10;accessibilityLabel en inputs y botón.&#10;&#10;returnKeyType=&quot;next&quot;/&quot;done&quot;, foco salta de email→password.&#10;&#10;Soporte teclado (view desplaza inputs; usar KeyboardAvoidingView).&#10;&#10;Micro-interacciones&#10;&#10;Al enfocar un input: leve “lift” (sombra +1), borde cambia a blue.&#10;&#10;Al éxito: personajes hacen “bounce” suave (escala 1→1.05→1).">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760521402655" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundled 127ms node_modules\expo\AppEntry.js (1 module)&#10; ERROR  Each child in a list should have a unique &quot;key&quot; prop.%s%s See https://react.dev/link/warning-keys for more information. &#10;&#10;Check the render method of `RolesPermissionsScreen`&#10;se presenta este error, en ver permisos y crear rol no se puede hacer scroll a los permisos">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760692546749" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundled 2ms src\utils\jwt.ts (1 module)&#10; LOG  Token payload: {&quot;exp&quot;: 1761115406, &quot;iat&quot;: 1761114506, &quot;sub&quot;: &quot;6f3c5eca-133f-4dd5-8346-54f873a09908&quot;}&#10;Android Bundled 12ms src\services\api\auth.ts (1 module)&#10; LOG  Token expired: false&#10; LOG  Attempting to refresh access token...&#10; LOG  API Request: {&quot;Authorization&quot;: &quot;Bearer [REDACTED]&quot;, &quot;X-App-Id&quot;: &quot;e28208b8-89b4-4682-80dc-925059424b1f&quot;, &quot;headers&quot;: {&quot;Accept&quot;: &quot;application/json, text/plain, */*&quot;, &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ZjNjNWVjYS0xMzNmLTRkZDUtODM0Ni01NGY4NzNhMDk5MDgiLCJpYXQiOjE3NjExMTQ1MDYsImV4cCI6MTc2MTExNTQwNn0.FvNaHSNu5MvrqMeIILAj5xVWCBXdrvaj7eoVIJeEPzs&quot;, &quot;Content-Type&quot;: &quot;application/json&quot;, &quot;X-App-Id&quot;: &quot;e28208b8-89b4-4682-80dc-925059424b1f&quot;}, &quot;method&quot;: &quot;post&quot;, &quot;url&quot;: &quot;/auth/refresh&quot;}&#10; LOG  API Response: {&quot;data&quot;: {&quot;accessToken&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ZjNjNWVjYS0xMzNmLTRkZDUtODM0Ni01NGY4NzNhMDk5MDgiLCJpYXQiOjE3NjExMTQ2NjMsImV4cCI6MTc2MTExNTU2M30.4Wox8eQ0nbSeEN5_KC9yyeIVzhhfSxAKtrxpcofn9iQ&quot;, &quot;accessTokenExpiresIn&quot;: 900, &quot;refreshToken&quot;: &quot;DNzF_RQ5KIoCG-ID7VBYti7c7mIzXN9nqf5mjJLr17MvZFv7vEn7ZBM06O1Z-tKCaKQOHPnoOqR1qdPv3ipGHA&quot;}, &quot;method&quot;: &quot;post&quot;, &quot;status&quot;: 201, &quot;url&quot;: &quot;/auth/refresh&quot;}&#10; LOG  Refresh token response: {&quot;accessToken&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ZjNjNWVjYS0xMzNmLTRkZDUtODM0Ni01NGY4NzNhMDk5MDgiLCJpYXQiOjE3NjExMTQ2NjMsImV4cCI6MTc2MTExNTU2M30.4Wox8eQ0nbSeEN5_KC9yyeIVzhhfSxAKtrxpcofn9iQ&quot;, &quot;accessTokenExpiresIn&quot;: 900, &quot;refreshToken&quot;: &quot;DNzF_RQ5KIoCG-ID7VBYti7c7mIzXN9nqf5mjJLr17MvZFv7vEn7ZBM06O1Z-tKCaKQOHPnoOqR1qdPv3ipGHA&quot;}&#10; LOG  Token refreshed successfully&#10; LOG  API Request: {&quot;Authorization&quot;: &quot;Bearer [REDACTED]&quot;, &quot;X-App-Id&quot;: &quot;e28208b8-89b4-4682-80dc-925059424b1f&quot;, &quot;headers&quot;: {&quot;Accept&quot;: &quot;application/json, text/plain, */*&quot;, &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ZjNjNWVjYS0xMzNmLTRkZDUtODM0Ni01NGY4NzNhMDk5MDgiLCJpYXQiOjE3NjExMTQ2NjMsImV4cCI6MTc2MTExNTU2M30.4Wox8eQ0nbSeEN5_KC9yyeIVzhhfSxAKtrxpcofn9iQ&quot;, &quot;Content-Type&quot;: &quot;application/json&quot;, &quot;X-App-Id&quot;: &quot;e28208b8-89b4-4682-80dc-925059424b1f&quot;}, &quot;method&quot;: &quot;get&quot;, &quot;url&quot;: &quot;/users?page=1&amp;limit=20&amp;sortBy=created_at&amp;sortOrder=DESC&quot;}&#10; LOG  API Error: {&quot;authorization&quot;: &quot;Present&quot;, &quot;headers&quot;: {&quot;Accept&quot;: &quot;application/json, text/plain, */*&quot;, &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ZjNjNWVjYS0xMzNmLTRkZDUtODM0Ni01NGY4NzNhMDk5MDgiLCJpYXQiOjE3NjExMTQ2NjMsImV4cCI6MTc2MTExNTU2M30.4Wox8eQ0nbSeEN5_KC9yyeIVzhhfSxAKtrxpcofn9iQ&quot;, &quot;Content-Type&quot;: &quot;application/json&quot;, &quot;X-App-Id&quot;: &quot;e28208b8-89b4-4682-80dc-925059424b1f&quot;}, &quot;message&quot;: &quot;User not authenticated&quot;, &quot;method&quot;: &quot;get&quot;, &quot;status&quot;: 401, &quot;url&quot;: &quot;/users?page=1&amp;limit=20&amp;sortBy=created_at&amp;sortOrder=DESC&quot;}&#10; LOG  Token present, checking validity...&#10; LOG  Token payload: {&quot;exp&quot;: 1761115563, &quot;iat&quot;: 1761114663, &quot;sub&quot;: &quot;6f3c5eca-133f-4dd5-8346-54f873a09908&quot;}&#10; LOG  Token expired: false&#10; ERROR  Error loading users: [AxiosError: Request failed with status code 401]">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761114707405" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundled 3895ms node_modules\expo\AppEntry.js (938 modules)&#10; ERROR  Error saving auth data: [Error: [AsyncStorage] Passing null/undefined as value is not supported. If you want to remove value, Use .removeItem method instead.&#10;Passed value: undefined&#10;Passed key: @&lt;file_name&gt;&#10;]&#10; LOG  Login successful">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760481602224" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundled 3935ms node_modules\expo\AppEntry.js (939 modules)&#10; LOG  Login response: {&quot;accessToken&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NzlmMDZiOS1mNzE0LTRlMmMtOTU4Ni1lMTNhZDM2MjRmNDEiLCJpYXQiOjE3NjA0ODIwNzcsImV4cCI6MTc2MDQ4Mjk3N30.rWbJHEFhGqRuj4gYZT9EK_50jMRaYpD9Zj0OUCOVedk&quot;, &quot;accessTokenExpiresIn&quot;: 900, &quot;refreshToken&quot;: &quot;t8umNK16F43Hf-x6GUnAmRh0i13YG_Nku1sPatQV3HbhA6Spls906NXGl5_sjbteiGUR8GgbpSpWOCBhOIemCA&quot;}&#10; LOG  Response accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NzlmMDZiOS1mNzE0LTRlMmMtOTU4Ni1lMTNhZDM2MjRmNDEiLCJpYXQiOjE3NjA0ODIwNzcsImV4cCI6MTc2MDQ4Mjk3N30.rWbJHEFhGqRuj4gYZT9EK_50jMRaYpD9Zj0OUCOVedk&#10; LOG  Response user: undefined&#10; ERROR  Text strings must be rendered within a &lt;Text&gt; component.&#10; ERROR  Text strings must be rendered within a &lt;Text&gt; component.&#10; ERROR  [Invariant Violation: View config getter callback for component `span` must be a function (received `undefined`). Make sure to start component names with a capital letter.]&#10; LOG  Login successful">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760482098774" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundled 4547ms node_modules\expo\AppEntry.js (1798 modules)&#10; WARN  SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/th3rdwave/react-native-safe-area-context&#10; ERROR  [Invariant Violation: Transform with key of &quot;scale&quot; must be a number: {&quot;scale&quot;:1}]">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760589201070" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundled 86ms node_modules\expo\AppEntry.js (1 module)&#10; WARN  SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/th3rdwave/react-native-safe-area-context&#10; ERROR  [Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.&#10;&#10;Check the render method of `BottomNavigation`.]">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760695949268" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundling failed 2443ms node_modules\expo\AppEntry.js (1 module)&#10;Unable to resolve &quot;react-native-svg&quot; from &quot;src\components\ui\KawaiiBackground.tsx&quot;&#10;&#10;undefined">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760564376034" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundling failed 3066ms node_modules\expo\AppEntry.js (1 module)&#10;Unable to resolve &quot;react-native-svg&quot; from &quot;src\components\ui\KawaiiBackground.tsx&quot;&#10;&#10;undefined">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760587065280" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundling failed 3071ms node_modules\expo\AppEntry.js (1 module)&#10;Unable to resolve &quot;@&lt;file_name&gt;&#10;  1 | import React from 'react';&#10;  2 | import { View } from 'react-native';&#10;&gt; 3 | import Player from '@&lt;file_name&gt;&#10;    |                     ^&#10;  4 |&#10;  5 | export function LoginFooterCharacter() {&#10;  6 |   return (&#10;&#10;Import stack:&#10;&#10; src\components\LoginFooterCharacter.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\screens\Auth\LoginScreen.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\navigation\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\app\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; App.tsx&#10; | import &quot;./src/app&quot;&#10;&#10; node_modules\expo\AppEntry.js&#10; | import &quot;../../App&quot;&#10;&#10; &#10; | import &quot;./node_modules/expo/AppEntry&quot;">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760635161317" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundling failed 5382ms node_modules\expo\AppEntry.js (1686 modules)&#10;Unable to resolve &quot;@&lt;file_name&gt;&#10;   5 | // Importar metadatos y spritesheet&#10;   6 | const meta = require('@&lt;file_name&gt;&#10;&gt;  7 | const sheet = require('@&lt;file_name&gt;&#10;     |                        ^&#10;   8 |&#10;   9 | export function LoginFooterCharacter() {&#10;  10 |   return (&#10;&#10;Import stack:&#10;&#10; src\components\LoginFooterCharacter.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\screens\Auth\LoginScreen.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\navigation\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\app\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; App.tsx&#10; | import &quot;./src/app&quot;&#10;&#10; node_modules\expo\AppEntry.js&#10; | import &quot;../../App&quot;&#10;&#10; &#10; | import &quot;./node_modules/expo/AppEntry&quot;">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760609263849" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Android Bundling failed 9780ms node_modules\expo\AppEntry.js (1 module)&#10;Unable to resolve &quot;../util&quot; from &quot;node_modules\react-native-svg\src\lib\extract\extractProps.ts&quot;&#10;  4 | import extractResponder from './extractResponder';&#10;  5 | import extractOpacity from './extractOpacity';&#10;&gt; 6 | import { idPattern } from '../util';&#10;    |                            ^&#10;  7 | import type {&#10;  8 |   ClipProps,&#10;  9 |   ColorProps,&#10;&#10;Import stack:&#10;&#10; node_modules\react-native-svg\src\lib\extract\extractProps.ts&#10; | import &quot;../util&quot;&#10;&#10; node_modules\react-native-svg\src\elements\Circle.tsx&#10; | import &quot;../lib/extract/extractProps&quot;&#10;&#10; node_modules\react-native-svg\src\elements.ts&#10; | import &quot;./elements/Circle&quot;&#10;&#10; node_modules\react-native-svg\src\ReactNativeSVG.ts&#10; | import &quot;./elements&quot;&#10;&#10; node_modules\react-native-svg\src\index.ts&#10; | import &quot;./ReactNativeSVG&quot;&#10;&#10; src\components\ui\KawaiiBackground.tsx&#10; | import &quot;react-native-svg&quot;&#10;&#10; src\screens\Auth\LoginScreen.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\navigation\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\app\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; App.tsx&#10; | import &quot;./src/app&quot;&#10;&#10; node_modules\expo\AppEntry.js&#10; | import &quot;../../App&quot;&#10;&#10; &#10; | import &quot;./node_modules/expo/AppEntry&quot;">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760588117185" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...&#10; LOG  Attempting to refresh access token...">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761115538668" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Bootstrap Expo TS y completar dependencias según SWEEP_TASKS.md">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760293380419" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="ELIMINA LOS LOGS ACTUALES Y AGREGA LOG PARA VER POR QUE NO SE PUEDEN CREAR ROLES">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760688699651" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="ERROR  VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760690780462" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Endpoint para Asignar Permisos a un Rol&#10;PUT /iam/roles/:id/permissions&#10;Requisitos:&#10;Autenticación JWT (JwtAuthGuard)&#10;Permiso roles.assign (PermissionsGuard)&#10;Cuerpo de la Petición (DTO)&#10;// SetRolePermissionsDto&#10;{&#10;  &quot;permissionKeys&quot;: [&#10;    &quot;users.read&quot;,&#10;    &quot;users.create&quot;, &#10;    &quot;roles.update&quot;,&#10;    &quot;products.delete&quot;&#10;  ]&#10;}&#10;Validaciones:&#10;permissionKeys debe ser un array&#10;Flujo Completo:&#10;Obtener ID del rol: Primero lista los roles con GET /iam/roles&#10;Verificar permisos existentes: GET /iam/permissions para ver todos los disponibles&#10;Asignar permisos: PUT /iam/roles/:id/permissions con el array de permisos&#10;Verificar resultado: GET /iam/roles/:id/permissions para confirmar la asignación&#10;&#10;No puede estar vacío (ArrayNotEmpty)&#10;Cada elemento debe ser un string (IsString)">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760694360643" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Estructura de Datos de Productos&#10;1. Listado de Productos ejemplo (GET /catalog/products)&#10;{&#10;  &quot;products&quot;: [&#10;    {&#10;      &quot;id&quot;: &quot;uuid-del-producto&quot;,&#10;      &quot;title&quot;: &quot;Agua Mineral 500ml&quot;,&#10;      &quot;description&quot;: &quot;Agua purificada en botella de 500ml&quot;,&#10;      &quot;sku&quot;: &quot;AGUA500-UN&quot;,&#10;      &quot;barcode&quot;: &quot;7750123456789&quot;,&#10;      &quot;categoryId&quot;: &quot;uuid-categoria&quot;,&#10;      &quot;status&quot;: &quot;active&quot;,&#10;      &quot;taxType&quot;: &quot;GRAVADO&quot;,&#10;      &quot;priceCents&quot;: 150,&#10;      &quot;currency&quot;: &quot;PEN&quot;,&#10;      &quot;minStockAlert&quot;: 24,&#10;      &quot;createdAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;,&#10;      &quot;updatedAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;,&#10;      &quot;deletedAt&quot;: null,&#10;      &quot;category&quot;: {&#10;        &quot;id&quot;: &quot;uuid-categoria&quot;,&#10;        &quot;name&quot;: &quot;Bebidas&quot;,&#10;        &quot;slug&quot;: &quot;bebidas&quot;,&#10;        &quot;parentId&quot;: null,&#10;        &quot;position&quot;: 1,&#10;        &quot;isActive&quot;: true,&#10;        &quot;createdAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;,&#10;        &quot;updatedAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;&#10;      },&#10;      &quot;presentations&quot;: [&#10;        {&#10;          &quot;productId&quot;: &quot;uuid-del-producto&quot;,&#10;          &quot;presentationId&quot;: &quot;uuid-presentacion&quot;,&#10;          &quot;isBase&quot;: true,&#10;          &quot;factorToBase&quot;: 1,&#10;          &quot;minOrderQty&quot;: 1,&#10;          &quot;orderStep&quot;: 1,&#10;          &quot;presentation&quot;: {&#10;            &quot;id&quot;: &quot;uuid-presentacion&quot;,&#10;            &quot;code&quot;: &quot;UN&quot;,&#10;            &quot;name&quot;: &quot;Unidad&quot;,&#10;            &quot;isBase&quot;: true,&#10;            &quot;createdAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;,&#10;            &quot;updatedAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;&#10;          }&#10;        }&#10;      ]&#10;    }&#10;  ],&#10;  &quot;total&quot;: 1,&#10;  &quot;page&quot;: 1,&#10;  &quot;limit&quot;: 20,&#10;  &quot;totalPages&quot;: 1&#10;}">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760516483425" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Estructura de Datos de Productos&#10;1. Listado de Productos ejemplo (GET /catalog/products)&#10;{&#10;  &quot;products&quot;: [&#10;    {&#10;      &quot;id&quot;: &quot;uuid-del-producto&quot;,&#10;      &quot;title&quot;: &quot;Agua Mineral 500ml&quot;,&#10;      &quot;description&quot;: &quot;Agua purificada en botella de 500ml&quot;,&#10;      &quot;sku&quot;: &quot;AGUA500-UN&quot;,&#10;      &quot;barcode&quot;: &quot;7750123456789&quot;,&#10;      &quot;categoryId&quot;: &quot;uuid-categoria&quot;,&#10;      &quot;status&quot;: &quot;active&quot;,&#10;      &quot;taxType&quot;: &quot;GRAVADO&quot;,&#10;      &quot;priceCents&quot;: 150,&#10;      &quot;currency&quot;: &quot;PEN&quot;,&#10;      &quot;minStockAlert&quot;: 24,&#10;      &quot;createdAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;,&#10;      &quot;updatedAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;,&#10;      &quot;deletedAt&quot;: null,&#10;      &quot;category&quot;: {&#10;        &quot;id&quot;: &quot;uuid-categoria&quot;,&#10;        &quot;name&quot;: &quot;Bebidas&quot;,&#10;        &quot;slug&quot;: &quot;bebidas&quot;,&#10;        &quot;parentId&quot;: null,&#10;        &quot;position&quot;: 1,&#10;        &quot;isActive&quot;: true,&#10;        &quot;createdAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;,&#10;        &quot;updatedAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;&#10;      },&#10;      &quot;presentations&quot;: [&#10;        {&#10;          &quot;productId&quot;: &quot;uuid-del-producto&quot;,&#10;          &quot;presentationId&quot;: &quot;uuid-presentacion&quot;,&#10;          &quot;isBase&quot;: true,&#10;          &quot;factorToBase&quot;: 1,&#10;          &quot;minOrderQty&quot;: 1,&#10;          &quot;orderStep&quot;: 1,&#10;          &quot;presentation&quot;: {&#10;            &quot;id&quot;: &quot;uuid-presentacion&quot;,&#10;            &quot;code&quot;: &quot;UN&quot;,&#10;            &quot;name&quot;: &quot;Unidad&quot;,&#10;            &quot;isBase&quot;: true,&#10;            &quot;createdAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;,&#10;            &quot;updatedAt&quot;: &quot;2024-01-01T00:00:00.000Z&quot;&#10;          }&#10;        }&#10;      ]&#10;    }&#10;  ],&#10;  &quot;total&quot;: 1,&#10;  &quot;page&quot;: 1,&#10;  &quot;limit&quot;: 20,&#10;  &quot;totalPages&quot;: 1&#10;}&#10;&#10;2. Detalle de Producto con Stock (GET /catalog/products/:id)&#10;{&#10;  &quot;id&quot;: &quot;uuid-del-producto&quot;,&#10;  &quot;title&quot;: &quot;Agua Mineral 500ml&quot;,&#10;  &quot;sku&quot;: &quot;AGUA500-UN&quot;,&#10;  &quot;priceCentsBase&quot;: 150,&#10;  &quot;currency&quot;: &quot;PEN&quot;,&#10;  &quot;category&quot;: {&#10;    &quot;id&quot;: &quot;uuid-categoria&quot;,&#10;    &quot;name&quot;: &quot;Bebidas&quot;&#10;  },&#10;  &quot;presentations&quot;: [&#10;    {&#10;      &quot;code&quot;: &quot;UN&quot;,&#10;      &quot;name&quot;: &quot;Unidad&quot;,&#10;      &quot;factor&quot;: 1,&#10;      &quot;priceCents&quot;: 150,&#10;      &quot;available&quot;: 128&#10;    },&#10;    {&#10;      &quot;code&quot;: &quot;PK&quot;,&#10;      &quot;name&quot;: &quot;Pack&quot;,&#10;      &quot;factor&quot;: 6,&#10;      &quot;priceCents&quot;: 900,&#10;      &quot;available&quot;: 21&#10;    },&#10;    {&#10;      &quot;code&quot;: &quot;CJ&quot;,&#10;      &quot;name&quot;: &quot;Caja&quot;,&#10;      &quot;factor&quot;: 12,&#10;      &quot;priceCents&quot;: 1800,&#10;      &quot;available&quot;: 10&#10;    }&#10;  ]&#10;}&#10; Ejemplos de Consumo&#10;JavaScript/TypeScript&#10;// Interface para el producto&#10;interface Product {&#10;  id: string;&#10;  title: string;&#10;  sku: string;&#10;  priceCentsBase: number;&#10;  currency: string;&#10;  category?: {&#10;    id: string;&#10;    name: string;&#10;  };&#10;  presentations: Array&lt;{&#10;    code: string;&#10;    name: string;&#10;    factor: number;&#10;    priceCents: number;&#10;    available: number;&#10;  }&gt;;&#10;}&#10;&#10;// Interface para la respuesta paginada&#10;interface ProductListResponse {&#10;  products: Product[];&#10;  total: number;&#10;  page: number;&#10;  limit: number;&#10;  totalPages: number;&#10;}&#10;&#10;// Función para obtener productos&#10;async function getProducts(params?: {&#10;  page?: number;&#10;  limit?: number;&#10;  categoryId?: string;&#10;  q?: string;&#10;}): Promise&lt;ProductListResponse&gt; {&#10;  const queryParams = new URLSearchParams();&#10;  &#10;  if (params?.page) queryParams.append('page', params.page.toString());&#10;  if (params?.limit) queryParams.append('limit', params.limit.toString());&#10;  if (params?.categoryId) queryParams.append('categoryId', params.categoryId);&#10;  if (params?.q) queryParams.append('q', params.q);&#10;&#10;  const response = await fetch(&#10;    `http://localhost:3000/catalog/products?${queryParams}`&#10;  );&#10;  &#10;  if (!response.ok) {&#10;    throw new Error(`HTTP error! status: ${response.status}`);&#10;  }&#10;  &#10;  return response.json();&#10;}&#10;&#10;// Función para obtener detalle de producto&#10;async function getProduct(id: string): Promise&lt;Product&gt; {&#10;  const response = await fetch(`http://localhost:3000/catalog/products/${id}`);&#10;  &#10;  if (!response.ok) {&#10;    throw new Error(`HTTP error! status: ${response.status}`);&#10;  }&#10;  &#10;  return response.json();&#10;}&#10;&#10;// Ejemplo de uso&#10;async function main() {&#10;  try {&#10;    // Obtener lista de productos&#10;    const productList = await getProducts({&#10;      page: 1,&#10;      limit: 10,&#10;      q: 'agua'&#10;    });&#10;    &#10;    console.log('Productos encontrados:', productList.total);&#10;    console.log('Primer producto:', productList.products[0]);&#10;    &#10;    // Obtener detalle de un producto específico&#10;    const productDetail = await getProduct(productList.products[0].id);&#10;    console.log('Presentaciones disponibles:', productDetail.presentations);&#10;    &#10;  } catch (error) {&#10;    console.error('Error:', error);&#10;  }&#10;}&#10;cURL Examples&#10;# Listar todos los productos&#10;curl -X GET &quot;http://localhost:3000/catalog/products&quot;&#10;&#10;# Listar productos con paginación y búsqueda&#10;curl -X GET &quot;http://localhost:3000/catalog/products?page=1&amp;limit=10&amp;q=agua&quot;&#10;&#10;# Listar productos por categoría&#10;curl -X GET &quot;http://localhost:3000/catalog/products?categoryId=uuid-categoria&quot;&#10;&#10;# Obtener detalle de producto específico&#10;curl -X GET &quot;http://localhost:3000/catalog/products/uuid-del-producto&quot;">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760516549266" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Import can be shortened, tengo este error en todo el src">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760334651455" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="LOG  API Request: {&quot;Authorization&quot;: &quot;None&quot;, &quot;X-App-Id&quot;: &quot;e28208b8-89b4-4682-80dc-925059424b1f&quot;, &quot;headers&quot;: {&quot;Accept&quot;: &quot;application/json, text/plain, */*&quot;, &quot;Content-Type&quot;: &quot;application/json&quot;, &quot;X-App-Id&quot;: &quot;e28208b8-89b4-4682-80dc-925059424b1f&quot;}, &quot;method&quot;: &quot;post&quot;, &quot;url&quot;: &quot;/auth/login&quot;}&#10; LOG  API Response: {&quot;method&quot;: &quot;post&quot;, &quot;status&quot;: 200, &quot;url&quot;: &quot;/auth/login&quot;}">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761112629861" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="LOG  API Request: {&quot;Authorization&quot;: &quot;None&quot;, &quot;X-App-Id&quot;: &quot;e28208b8-89b4-4682-80dc-925059424b1f&quot;, &quot;headers&quot;: {&quot;Accept&quot;: &quot;application/json, text/plain, */*&quot;, &quot;Content-Type&quot;: &quot;application/json&quot;, &quot;X-App-Id&quot;: &quot;e28208b8-89b4-4682-80dc-925059424b1f&quot;}, &quot;method&quot;: &quot;post&quot;, &quot;url&quot;: &quot;/auth/login&quot;}&#10; LOG  API Response: {&quot;method&quot;: &quot;post&quot;, &quot;status&quot;: 200, &quot;url&quot;: &quot;/auth/login&quot;}&#10;&#10;&#10;LOGS DEL BACKEND">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761112980355" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Logs for your project will appear below. Press Ctrl+C to exit.&#10;Android Bundled 3961ms node_modules\expo\AppEntry.js (938 modules)&#10; LOG  Login response: {&quot;accessToken&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NzlmMDZiOS1mNzE0LTRlMmMtOTU4Ni1lMTNhZDM2MjRmNDEiLCJpYXQiOjE3NjA0ODE4MzYsImV4cCI6MTc2MDQ4MjczNn0.XiPBNC1sI_YpK8z12SNOj28BcrfnZWQT20SQ7TqsOKg&quot;, &quot;accessTokenExpiresIn&quot;: 900, &quot;refreshToken&quot;: &quot;B8v2DlXkbKhHZURKDZKxZs6Tc0yx8L8qoPlHszXLBB8ovojwW9aZzBvIcP94ah5rUxhCrLKpWkPsUWRvHJyfFg&quot;}&#10; LOG  Response token: undefined&#10; LOG  Response user: undefined&#10; LOG  Login error: Login failed. Please try again.">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760481861535" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="PS C:\Users\aaron\IdeaProjects\admin-frontend-joanis\admin-frontend-joanis&gt; npx expo start --clear --tunnel --port 8084&#10;env: load .env&#10;env: export API_URL PUBLIC_ASSETS_PREFIX EXPO_PUBLIC_API_URL EXPO_PUBLIC_PUBLIC_ASSETS_PREFIX EXPO_PUBLIC_ENV&#10;Starting project at C:\Users\aaron\IdeaProjects\admin-frontend-joanis\admin-frontend-joanis&#10;Using src/app as the root directory for Expo Router.&#10;Starting Metro Bundler&#10;warning: Bundler cache is empty, rebuilding (this may take a minute)&#10;Tunnel connected.&#10;Tunnel ready.&#10;The following packages should be updated for best compatibility with the installed expo version:&#10;  @&lt;file_name&gt;&#10;  expo@&lt;file_name&gt;&#10;  react-native@&lt;file_name&gt;&#10;Your project may not work correctly until you install the expected versions of the packages.">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1762278288738" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Reemplaza tu PlayerSpec.ts por este idle en 24×24 con outline y proporciones “stout”. Si te gusta, clonamos al walk/jump.&#10;&#10;// src/pixel/PlayerSpec.ts (versión mínima para validar &quot;idle&quot;)&#10;// Mapa: . transp | K outline | S piel | s sombra piel&#10;// W blanco | G gris claro | L lentes (negro)&#10;// H hoodie | h luz hoodie | P pantalón | B bota | U suela&#10;export const palette = [&#10;  'transparent', '#1B1B1B', '#A06B4B', '#7C533B',&#10;  '#FFFFFF', '#D9D9D9', '#21242C', '#2C313C',&#10;  '#2A4669', '#121212', '#101010', '#BFBFBF'&#10;]; // [0..11] =&gt; . K S s W G H h P B L U&#10;&#10;const KEY: Record&lt;string, number&gt; = {&#10;  '.':0, K:1, S:2, s:3, W:4, G:5, H:6, h:7, P:8, B:9, L:10, U:11&#10;};&#10;const toGrid = (rows: string[]) =&gt;&#10;  rows.map(r =&gt; r.trim().split('').map(ch =&gt; KEY[ch] ?? 0));&#10;&#10;// ===== IDLE 24x24 (frente 3/4 derecha) =====&#10;export const idle = toGrid([&#10;  '..........KKKKKK..........',&#10;  '........KKWWWWWWKK........',&#10;  '.......KWWWWGWWW WK.......',&#10;  '......KWWWWWWWWWWWK.......',&#10;  '.....KWWWWWKKK WWWWK......',&#10;  '.....KWW LLL SS LWWK......', // lentes negros&#10;  '.....KWW LLL SS LWWK......',&#10;  '.....KWWW   SS  WWWK......',&#10;  '......KWWWW SSW WWWK......',&#10;  '.......KWWW SSW WWK.......',&#10;  '........KWWWKKWWWK........',&#10;  '.........KHHHHHHK.........',&#10;  '........KHHHhhHHHK........',&#10;  '........KHHHHHHHHK........',&#10;  '........K HPPPPH K........',&#10;  '........K HPPPPH K........',&#10;  '.........KPP..PPK.........',&#10;  '.........KPP..PPK.........',&#10;  '.........KBB..BBK.........',&#10;  '.........KUU..UUK.........',&#10;  '..........KK..KK..........',&#10;  '..........................',&#10;  '..........................',&#10;  '..........................',&#10;]);&#10;&#10;export const anims = {&#10;  idle: { frames: [idle], fps: 1 },&#10;  walk: { frames: [idle], fps: 1 },&#10;  jump: { frames: [idle], fps: 1 }&#10;};&#10;&#10;Colócalo así&#10;// &lt;Player anim=&quot;idle&quot; scale={4} /&gt;&#10;// Asegura que el contenedor tenga la misma baseline que tus otros personajes.&#10;&#10;Si ahora sí “se ve Mario-like”&#10;&#10;Te paso enseguida los walk1 / walk2 / jump sobre el mismo 24×24, con:&#10;&#10;Walk: brazos alternados + piernas cruzadas, botas claras.&#10;&#10;Jump: puño blanco arriba, visera marcada (2 px), cuerpo compacto.">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760636476724" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Reloading apps&#10;iOS Bundling failed 1134ms node_modules\expo\AppEntry.js (1 module)&#10;Unable to resolve &quot;react-native-reanimated&quot; from &quot;node_modules\moti\build\core\motify.js&quot;&#10;  2 | import { usePresence, PresenceContext } from 'framer-motion';&#10;  3 | import { forwardRef, useContext, } from 'react';&#10;&gt; 4 | import Animated from 'react-native-reanimated';&#10;    |                       ^&#10;  5 | import { useMotify } from './use-motify';&#10;  6 | export default function motify(ComponentWithoutAnimation) {&#10;  7 |     const Component = Animated.createAnimatedComponent(ComponentWithoutAnimation);&#10;&#10;Import stack:&#10;&#10; node_modules\moti\build\core\motify.js&#10; | import &quot;react-native-reanimated&quot;&#10;&#10; node_modules\moti\build\core\index.js&#10; | import &quot;./motify&quot;&#10;&#10; node_modules\moti\build\index.js&#10; | import &quot;./core&quot;&#10;&#10; src\components\ui\KawaiiBackground.tsx&#10; | import &quot;moti&quot;&#10;&#10; src\screens\Auth\LoginScreen.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\navigation\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\app\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; App.tsx&#10; | import &quot;./src/app&quot;&#10;&#10; node_modules\expo\AppEntry.js&#10; | import &quot;../../App&quot;&#10;&#10; &#10; | import &quot;./node_modules/expo/AppEntry&quot;&#10;&#10;Android Bundling failed 3161ms node_modules\expo\AppEntry.js (1461 modules)&#10;Unable to resolve &quot;react-native-reanimated&quot; from &quot;node_modules\moti\build\core\motify.js&quot;&#10;  2 | import { usePresence, PresenceContext } from 'framer-motion';&#10;  3 | import { forwardRef, useContext, } from 'react';&#10;&gt; 4 | import Animated from 'react-native-reanimated';&#10;    |                       ^&#10;  5 | import { useMotify } from './use-motify';&#10;  6 | export default function motify(ComponentWithoutAnimation) {&#10;  7 |     const Component = Animated.createAnimatedComponent(ComponentWithoutAnimation);&#10;&#10;Import stack:&#10;&#10; node_modules\moti\build\core\motify.js&#10; | import &quot;react-native-reanimated&quot;&#10;&#10; node_modules\moti\build\core\index.js&#10; | import &quot;./motify&quot;&#10;&#10; node_modules\moti\build\index.js&#10; | import &quot;./core&quot;&#10;&#10; src\components\ui\KawaiiCharacters.tsx&#10; | import &quot;moti&quot;&#10;&#10; src\screens\Auth\LoginScreen.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\navigation\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\app\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; App.tsx&#10; | import &quot;./src/app&quot;&#10;&#10; node_modules\expo\AppEntry.js&#10; | import &quot;../../App&quot;&#10;&#10; &#10; | import &quot;./node_modules/expo/AppEntry&quot;">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760522210985" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="Se debe enviar un app id en cada consulta api&#10;El app id de esta app es &quot;e28208b8-89b4-4682-80dc-925059424b1f&quot;&#10;*Ejemplo de frontend ----&gt;&gt;&gt;&#10;// api-service.js&#10;class ApiService {&#10;  constructor() {&#10;    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3000';&#10;    this.adminAppId = '770e8400-e29b-41d4-a716-446655440001'; // Tu ID real&#10;  }&#10;&#10;  // Obtener headers comunes&#10;  getHeaders() {&#10;    const token = localStorage.getItem('token');&#10;    return {&#10;      'Content-Type': 'application/json',&#10;      'Authorization': token ? `Bearer ${token}` : '',&#10;      'X-App-Id': this.adminAppId&#10;    };&#10;  }&#10;&#10;  // Request genérico&#10;  async request(endpoint, options = {}) {&#10;    const url = `${this.baseURL}${endpoint}`;&#10;    const config = {&#10;      ...options,&#10;      headers: {&#10;        ...this.getHeaders(),&#10;        ...options.headers&#10;      }&#10;    };&#10;&#10;    const response = await fetch(url, config);&#10;    &#10;    if (!response.ok) {&#10;      const error = await response.json();&#10;      throw new Error(error.message || `HTTP ${response.status}`);&#10;    }&#10;&#10;    return response.json();&#10;  }&#10;&#10;  // Métodos específicos para usuarios&#10;  async getUsers(params = {}) {&#10;    const queryString = new URLSearchParams(params).toString();&#10;    return this.request(`/users?${queryString}`);&#10;  }&#10;&#10;  async createUser(userData) {&#10;    return this.request('/users', {&#10;      method: 'POST',&#10;      body: JSON.stringify(userData)&#10;    });&#10;  }&#10;&#10;  async updateUser(userId, userData) {&#10;    return this.request(`/users/${userId}`, {&#10;      method: 'PUT',&#10;      body: JSON.stringify(userData)&#10;    });&#10;  }&#10;&#10;  async deleteUser(userId) {&#10;    return this.request(`/users/${userId}`, {&#10;      method: 'DELETE'&#10;    });&#10;  }&#10;}&#10;&#10;// Exportar instancia única&#10;export const apiService = new ApiService();&#10; Puntos Clave a Recordar:&#10;Header Obligatorio: Siempre incluye X-App-Id en TODAS las requests&#10;Token JWT: También necesitas Authorization: Bearer &lt;token&gt;&#10;Consistencia: Usa el mismo App ID para todas las operaciones admin&#10;Manejo de Errores: Verifica siempre los errores 400 (missing headers) y 401 (unauthorized)">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="2.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761093573991" />
+                  <option value="1761093244164" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="agregalo">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760335911296" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="ahora el problema es al entrar a users">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761113629669" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="ahora mira que el color de las criaturas del login concuerde con el nuevo estilo vivo, dale animacion a las criaturas">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760593369283" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="ahora no aparece la caricatura">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760603616546" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="ahora tengo ese problema">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760314357579" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="al hacer login se debe dirigir a la pagina de home">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760480660736" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="aun no se puede hacer login, ten em cuenta que estoy usando argo2 en el backend">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760481306257" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="cambia la caricatura del perro po la de una persona con el mismo estilo de animacion, esta persona que sea morena, use lentes y gorra">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760601538723" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="centra el formulario verticalmente, el robot ponlo plateado. el texto aun no es blanco">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760599243691" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="como esta configurado axios ?">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760334945494" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="continua con los siguientes puntos">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760294030565" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="dale un estilo mas corporativo, serio y moderno a la pantalla de login, menu inferior y menu">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761087062352" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="debo instalar algo en el servidor para que funcione ?">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760423678317" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="donde reeplazo mi api key  ?">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1762964116002" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el boton para abrir el menu debe estar inserado en el menu inferior, el menu debe abrirse en pantalla completa. el menu inferior debe tener un diseño mas colorido y amigable. menu inferior y menu principal tiene iconos muy anticuados, usa iconos mas modernos y amigables">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760695404913" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el cuerpo debe ser mas alargado, debe llevar gorra, no sombrero y esta junto con los lentes deben ir mas arriba, los lentes ponlos mas grandes y quita la nariz y boca">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760603801695" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el error es que no se muestran los productos">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760591805992" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el fondo turquesa - lila que tenga colores mas  vivos. ponle texto blanco al boton &quot;Iniciar Sesion&quot;">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760594559982" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el formulario no esta centrado, no se aprecioan bien las nubes. el texto del boton aun no es blando. el robot debe ser un gris mas claro">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760598660962" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el formulario se perdio y hay una franja blanca en el medio">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760597575192" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el formulario y titulo centralos en el medio de la pantalla, el color superior debe ser lila, se ve rosado">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760597339985" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el login lo quiero kawai pero elegante, usa colores pasteles.  quita los emojis">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760520238339" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el robot del login ponlo gris, el texto sigue sin ser blanco">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760598266010" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el src esta vacio">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760304249256" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="el texto no se ve blanco, revisa e invierte los colores del fondo arriba lila y abajo turquesa, si puedes ponlos mas vivos">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760596895831" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="elimina lo que acabas de hacer y realiza esta animacion">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760634169342" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="elimina los logs de la pagina de roles, tambien elimina la seccion de &quot;permisos disponibles&quot;, estos solo se deben listar al crear o editar un rol">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760691125672" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="elimina los personajes actuales y">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760608720167" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="en el login ponle el color de fondo degradado de turquesa a lila">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760592806605" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="en la pagina de inicio agrega el listado de todos los productos ordenador por orden de creacion y crea la pagina del producto.">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760517065648" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="en la pagina de roles y permisos, el boton &quot;ver permisos&quot; muestra el error &quot;cannot read property map or undefined&quot;">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760690407077" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="escribe el readme con todo lo implementado hasta ahora">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760296793997" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="estas enviando el header tambien en el login ? si no es asi, aplicalo">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761109006978" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="genera la pantalla de gestion de usuarios&#10;Endpoints Creados para Gestión de Usuarios&#10; Archivos Creados/Modificados:&#10;DTOs (Data Transfer Objects):&#10;dto/create-user.dto.ts - Para crear usuarios&#10;dto/update-user.dto.ts - Para actualizar usuarios&#10;dto/query-users.dto.ts - Para consultas con filtros y paginación&#10;Controller:&#10;users.controller.ts - Endpoints REST con documentación Swagger&#10;Service:&#10;users.service.ts - Lógica de negocio extendida con CRUD&#10;Repository:&#10;users.repository.ts - Métodos de base de datos extendidos&#10;Module:&#10;users.module.ts - Actualizado con el nuevo controller&#10; &#10; Endpoints Disponibles:&#10;➕ Crear Usuario&#10;POST /users&#10;Content-Type: application/json&#10;Authorization: Bearer &lt;jwt&gt;&#10;X-App-Id: &lt;app-uuid&gt;&#10;&#10;{&#10;  &quot;username&quot;: &quot;johndoe&quot;,&#10;  &quot;email&quot;: &quot;john.doe@&lt;file_name&gt;&#10;  &quot;password&quot;: &quot;Password123!&quot;,&#10;  &quot;first_name&quot;: &quot;John&quot;,&#10;  &quot;last_name&quot;: &quot;Doe&quot;,&#10;  &quot;is_active&quot;: true&#10;}&#10;&#10; Listar Usuarios (con paginación y filtros)&#10;GET /users?search=john&amp;is_active=true&amp;page=1&amp;limit=10&amp;sortBy=created_at&amp;sortOrder=DESC&#10;Authorization: Bearer &lt;jwt&gt;&#10;X-App-Id: &lt;app-uuid&gt;&#10;&#10; Obtener Usuario por ID&#10;GET /users/:id&#10;Authorization: Bearer &lt;jwt&gt;&#10;X-App-Id: &lt;app-uuid&gt;&#10;&#10; Obtener Usuario por Email&#10;GET /users/email/:email&#10;Authorization: Bearer &lt;jwt&gt;&#10;X-App-Id: &lt;app-uuid&gt;&#10;✏️ Actualizar Usuario (PUT - reemplaza todo&#10;PUT /users/:id&#10;Content-Type: application/json&#10;Authorization: Bearer &lt;jwt&gt;&#10;X-App-Id: &lt;app-uuid&gt;&#10;&#10;{&#10;  &quot;username&quot;: &quot;johndoe_updated&quot;,&#10;  &quot;email&quot;: &quot;john.updated@&lt;file_name&gt;&#10;  &quot;first_name&quot;: &quot;John Updated&quot;&#10;}&#10;&#10; Actualizar Parcialmente Usuario (PATCH)&#10;&#10;PATCH /users/:id&#10;Content-Type: application/json&#10;Authorization: Bearer &lt;jwt&gt;&#10;X-App-Id: &lt;app-uuid&gt;&#10;&#10;{&#10;  &quot;first_name&quot;: &quot;John Updated&quot;&#10;}&#10;&#10;️ Eliminar Usuario&#10;&#10;DELETE /users/:id&#10;Authorization: Bearer &lt;jwt&gt;&#10;X-App-Id: &lt;app-uuid&gt;&#10;&#10;✅ Activar/Desactivar Usuario&#10;PATCH /users/:id/activate&#10;PATCH /users/:id/deactivate&#10;Authorization: Bearer &lt;jwt&gt;&#10;X-App-Id: &lt;app-uuid&gt;&#10;&#10; Resetear Contraseña&#10;POST /users/:id/reset-password&#10;Content-Type: application/json&#10;Authorization: Bearer &lt;jwt&gt;&#10;X-App-Id: &lt;app-uuid&gt;&#10;&#10;{&#10;  &quot;newPassword&quot;: &quot;NewPassword123!&quot;&#10;}&#10;&#10; Permisos Requeridos:&#10;users.create - Para crear usuarios&#10;users.read - Para leer/consultar usuarios&#10;users.update - Para actualizar usuarios&#10;users.delete - Para eliminar usuarios&#10; &#10; Características Implementadas:&#10;✅ Seguridad:&#10;Validación de datos con class-validator&#10;Hasheo automático de contraseñas con Argon2&#10;Verificación de duplicados (username, email)&#10;Protección con permisos y JWT&#10;✅ Funcionalidades:&#10;Paginación completa&#10;Búsqueda por múltiples campos&#10;Ordenamiento configurable&#10;Filtros por estado y email&#10;Soporte para modo desarrollo (sin DB)&#10;✅ Documentación:&#10;OpenAPI/Swagger completo&#10;Ejemplos en cada endpoint&#10;Códigos de error documentados&#10;✅ Estructura de Datos:&#10;Basado en tu tabla users:&#10;&#10;id | username | email | password_hash | first_name | last_name | is_active | created_at | updated_at | last_login&#10;&#10; &#10; Ejemplo de Uso desde Frontend:&#10;&#10;// Crear usuario&#10;const createUser = async (userData) =&gt; {&#10;  const response = await fetch('/users', {&#10;    method: 'POST',&#10;    headers: {&#10;      'Content-Type': 'application/json',&#10;      'Authorization': `Bearer ${token}`,&#10;      'X-App-Id': appId&#10;    },&#10;    body: JSON.stringify(userData)&#10;  });&#10;  return response.json();&#10;};&#10;&#10;// Listar usuarios con filtros&#10;const getUsers = async (filters) =&gt; {&#10;  const params = new URLSearchParams(filters);&#10;  const response = await fetch(`/users?${params}`, {&#10;    headers: {&#10;      'Authorization': `Bearer ${token}`,&#10;      'X-App-Id': appId&#10;    }&#10;  });&#10;  return response.json();&#10;};">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761089870474" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="genera una pagina de login colorido, amigable, kawai y moderno. quita el boton de  prueba del backend y cambia la parte de &quot;no tienes cuenta, registrate&quot; por un boton grande y vistoso que se llame &quot;Vuelvete Socia&quot;. los colores principales son turquesa y lila bb">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="2.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760518659299" />
+                  <option value="1760518646266" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="la pagina de home debe ser una pagina de perfil visual(sin edicion de nada) pon una barra de menu inferior, en el medio pon el boton flotante y a los laterales la opcion de chat y notificaciones">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760694742326" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="las partes de la persona no se arman correctamente, estan deformadas">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760602728808" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="los archivos del src estan vacios">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760301105287" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="me esta saliendo errada la contraseña aunque se ponga la correcta con el hash correcto, agrega logs para debuguear&#10;&#10; Controller login attempt: { email: 'admin@&lt;file_name&gt;&#10; Calling auth service...&#10;✅ Password verification result: false&#10;❌ Login failed - invalid credentials&#10;❌ Controller caught error: Credenciales inválidas&#10;Error type: UnauthorizedException&#10;[Nest] 9616  - 15/10/2025, 1:25:00 p. m.   ERROR [AllExceptionsFilter] reqId=634e54e3-d083-4866-a63f-0e7fff6fa1c0 status=401 msg=Credenciales inválidas">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760552819954" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="me parece que el home, menu inferior y principal se ven muy anticuados. dale un formato mas moderno, corporativo pero amigable">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761088003441" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="me parece que se ve muy anticuado, hazlo mas moderno y corporativo, pero amigable">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761087669457" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="me sale este error">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760591623217" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="minimalista, limpio, kawai, moderno. sin emojis.&#10; bgTurquoise: '#1ECAD0',   // turquesa base&#10;  bgLilac:     '#DCC8FF',   // lila bebé">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760521034609" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="no quedo como queria&#10;Concepto general&#10;&#10;Estilo: kawaii/chibi, proporciones 2.5 cabezas, líneas limpias, sin texturas ni degradados (solo colores planos).&#10;&#10;Lienzo: 1:1 (768×768 px). Fondo lila bebé #EBD9FF (sólido).&#10;&#10;Sombra al suelo: elipse suave rgba(0,0,0,.08) bajo los pies (ancho 40% del lienzo, alto 4%).&#10;&#10;Paleta principal&#10;&#10;Piel (morena): #A86E4E (base) / contorno #5E3B2A (2 px).&#10;&#10;Gorra: paneles #FFFFFF, visera #F2F2F2, contorno #2E2E2E (2 px).&#10;&#10;Lentes (marco): negro #101010, cristales sin transparencia (relleno #101010) para un look “lentes negros”.&#10;&#10;Sudadera/hoodie: #2B2B2B, cordones #EAEAEA, bolsillo canguro #262626 (sin costuras internas).&#10;&#10;Pantalón: azul oscuro #274060.&#10;&#10;Zapatillas: blanco #FFFFFF con suela #D9D9D9.&#10;&#10;Boca/ojos: trazos #1C1C1C.&#10;&#10;Geometría y proporciones (para SVG/Canvas)&#10;&#10;Cabeza: círculo/óvalo (ancho 56% del ancho del cuerpo; alto 52%).&#10;&#10;Posición: centro x=50%, y=33% del lienzo.&#10;&#10;Contorno 2 px, color #5E3B2A.&#10;&#10;Gorra: semicúpula sobre la cabeza (arco superior) con ligera inclinación 5° a la derecha. Visera rectangular con esquinas 8 px, sobresaliendo 14% del ancho de la cabeza.&#10;&#10;Orejas: círculos 12% del alto de la cabeza, centradas verticalmente, medio ocultas por la gorra.&#10;&#10;Ojos: “smile eyes” (arcos) de 26 px de ancho, separados 22% del ancho de la cabeza; altura a 58% del alto de la cabeza. Trazo 4 px #1C1C1C.&#10;&#10;Lentes: rectángulos con radio 8 px; ancho 32% de la cabeza cada uno; puente de 10 px; patillas no visibles. Relleno y contorno #101010.&#10;&#10;Boca: curva corta (∩ invertida), 32 px, a 75% del alto de la cabeza, trazo 4 px #1C1C1C.&#10;&#10;Cuerpo: torso chibi (ancho 52% de la cabeza, alto 70% de la cabeza). Sin cuello (cabeza “flota” 2 px sobre el hoodie).&#10;&#10;Brazos: cilindros simples pegados al costado; manos en “mitón” (semicírculo).&#10;&#10;Piernas: rectángulos 40% del alto del torso; separación 12 px.&#10;&#10;Zapatillas: óvalos con punta suave; altura 12% de la altura total de la figura.&#10;&#10;Capas (z-order)&#10;&#10;Fondo.&#10;&#10;Sombra del suelo.&#10;&#10;Piernas y zapatillas.&#10;&#10;Torso/hoodie (incl. bolsillo y cordones).&#10;&#10;Cabeza y orejas.&#10;&#10;Gorra (paneles) y visera.&#10;&#10;Ojos → Lentes (marco y cristales) → Boca.&#10;&#10;Simplificaciones “minimal”&#10;&#10;Sin brillos, sin degradados, sin líneas de costura extra.&#10;&#10;Una sombra elíptica al suelo; sin sombras internas en ropa.&#10;&#10;Detalle de gorra en un solo panel superior (no segmentar costuras).">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760602211196" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="no se abre la pagina de gestion de usuarios">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761093993055" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="no se parece nada a mario y esta echado">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760636888012" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="no se ve la caricatura">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760605191154" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="no se ve la nueva animacion, quita las demas y solo deja la nueva">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760606553985" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="para editar los permisos organizalos por modulo, las cartillas con los modulos disponibles tiene un switch para prender o apagar todos los permisos de ese modulo y un moton para abrir una edicion personalizada. usa la descripcion como nombre principal del permiso.">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760693323242" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="pon los colores de fondo mucho mas intensos. el robot debe ser plateado intenso, agranda las nubes al triple de su tamaño actual">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760599602820" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="pon un mensaje claro sin necesidad de iniciar sesion, si la conexion falla tambien muetralo">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760336088443" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="puedes agregar un mensaje de confirmacion de comunicacion con el backend en el login ?">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760335779165" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="puedes poner una  prueba de la conexion con el backend en el login ?">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="2.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760335654094" />
+                  <option value="1760335515661" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="quita los logs de autenticacion y del menu, deja solo los logs de roles">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760689192640" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="regresalos a los colores anteriores, solo que mas vivos">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760593809956" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="revisa como se crean los roles, me sale ste error&#10;&#10;[Nest] 12628  - 17/10/2025, 4:36:36 a. m.   ERROR [AllExceptionsFilter] reqId=3fc92325-05fa-4f51-b6ad-a03f24451be8 status=400 msg=property permissions should not exist">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760693830710" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="revisa ese error al correr el app">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="2.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760481071970" />
+                  <option value="1760313776763" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="se sigue viendo el cuerpo comprimido, deberia ser de la altura de las otras caricaturas, la gorra se sigue viendo como sombrero y estan junto con los lentes muy abajo del rostro">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760604146738" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="se siguen viendo las demas animaciones y no la nueva estilo pixel">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760606733479" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="se ve solo lila, usa un turquesa y lila vivos">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="2.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760593148644" />
+                  <option value="1760593004368" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="sigue">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="7.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760607703923" />
+                  <option value="1760586225935" />
+                  <option value="1760558096919" />
+                  <option value="1760524195036" />
+                  <option value="1760520111297" />
+                  <option value="1760519421782" />
+                  <option value="1760335630624" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="sigue desarmado el personaje">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760603263262" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="sigue habiendo bastantes logs">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760691869230" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="te muestro referencias del estilo de la pagina para que puedas hacer un login acorde al estilo y colores">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760520753393" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="te paso las referencias">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760520844114" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="› Reloading apps&#10;Android Bundled 3250ms node_modules\expo\AppEntry.js (1 module)&#10; WARN  SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/th3rdwave/react-native-safe-area-context&#10; ERROR  [Invariant Violation: Transform with key of &quot;scale&quot; must be a number: {&quot;scale&quot;:1}">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760589824776" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="› Reloading apps&#10;Android Bundled 5110ms node_modules\expo\AppEntry.js (1 module)&#10; WARN  SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/th3rdwave/react-native-safe-area-context&#10; ERROR  [Invariant Violation: Transform with key of &quot;scale&quot; must be a number: {&quot;scale&quot;:1}]">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760590407784" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="› Reloading apps&#10;Android Bundled 73ms node_modules\expo\AppEntry.js (1 module)&#10; ERROR  [ReferenceError: Property 'LinearGradientView' doesn't exist]">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1761089329327" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="› Reloading apps&#10;Android Bundling failed 2720ms node_modules\expo\AppEntry.js (1 module)&#10;Unable to resolve &quot;./fabric&quot; from &quot;node_modules\react-native-svg\src\ReactNativeSVG.ts&quot;&#10;  50 |   RNSVGTSpan,&#10;  51 |   RNSVGUse,&#10;&gt; 52 | } from './fabric';&#10;     |         ^&#10;  53 |&#10;  54 | export {&#10;  55 |   inlineStyles,&#10;&#10;Import stack:&#10;&#10; node_modules\react-native-svg\src\ReactNativeSVG.ts&#10; | import &quot;./fabric&quot;&#10;&#10; node_modules\react-native-svg\src\index.ts&#10; | import &quot;./ReactNativeSVG&quot;&#10;&#10; src\pixel\PixelSprite.tsx&#10; | import &quot;react-native-svg&quot;&#10;&#10; src\pixel\Player.tsx&#10; | import &quot;./PixelSprite&quot;&#10;&#10; src\components\LoginFooterCharacter.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\screens\Auth\LoginScreen.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\navigation\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\app\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; App.tsx&#10; | import &quot;./src/app&quot;&#10;&#10; node_modules\expo\AppEntry.js&#10; | import &quot;../../App&quot;&#10;&#10; &#10; | import &quot;./node_modules/expo/AppEntry&quot;">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760635294163" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="› Reloading apps&#10;Android Bundling failed 3130ms node_modules\expo\AppEntry.js (1 module)&#10;Unable to resolve &quot;react-native-svg&quot; from &quot;src\components\ui\KawaiiBackground.tsx&quot;&#10;&#10;undefined">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760586590835" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="› Reloading apps&#10;Android Bundling failed 6671ms node_modules\expo\AppEntry.js (1 module)&#10;Unable to resolve &quot;react-native-svg&quot; from &quot;src\components\ui\KawaiiBackground.tsx&quot;&#10;  1 | import React from 'react';&#10;  2 | import { View, StyleSheet, Dimensions } from 'react-native';&#10;&gt; 3 | import Svg, { Circle, Ellipse } from 'react-native-svg';&#10;    |                                       ^&#10;  4 | import { LinearGradient as LinearGradientView } from 'expo-linear-gradient';&#10;  5 | import { MotiView } from 'moti';&#10;  6 | import { theme } from '@&lt;file_name&gt;&#10;&#10;Import stack:&#10;&#10; src\components\ui\KawaiiBackground.tsx&#10; | import &quot;react-native-svg&quot;&#10;&#10; src\screens\Auth\LoginScreen.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\navigation\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\app\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; App.tsx&#10; | import &quot;./src/app&quot;&#10;&#10; node_modules\expo\AppEntry.js&#10; | import &quot;../../App&quot;&#10;&#10; &#10; | import &quot;./node_modules/expo/AppEntry&quot;&#10;&#10;Android Bundling failed 2599ms node_modules\expo\AppEntry.js (1 module)&#10;Unable to resolve &quot;react-native-svg&quot; from &quot;src\components\ui\KawaiiBackground.tsx&quot;&#10;  1 | import React from 'react';&#10;  2 | import { View, StyleSheet, Dimensions } from 'react-native';&#10;&gt; 3 | import Svg, { Circle, Ellipse } from 'react-native-svg';&#10;    |                                       ^&#10;  4 | import { LinearGradient as LinearGradientView } from 'expo-linear-gradient';&#10;  5 | import { MotiView } from 'moti';&#10;  6 | import { theme } from '@&lt;file_name&gt;&#10;&#10;Import stack:&#10;&#10; src\components\ui\KawaiiBackground.tsx&#10; | import &quot;react-native-svg&quot;&#10;&#10; src\screens\Auth\LoginScreen.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\navigation\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; src\app\index.tsx&#10; | import &quot;@&lt;file_name&gt;&#10;&#10; App.tsx&#10; | import &quot;./src/app&quot;&#10;&#10; node_modules\expo\AppEntry.js&#10; | import &quot;../../App&quot;&#10;&#10; &#10; | import &quot;./node_modules/expo/AppEntry&quot;">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="1.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760586298447" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+        <entry key="› Reloading apps&#10;iOS Bundling failed 1520ms node_modules\expo\AppEntry.js (1 module)&#10; ERROR  src\screens\Auth\LoginScreen.tsx: [BABEL]: Cannot find module 'react-native-worklets/plugin'&#10;Require stack:&#10;- C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\react-native-reanimated\plugin\index.js&#10;- C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\@&lt;file_name&gt;&#10;- C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\@&lt;file_name&gt;&#10;- C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\@&lt;file_name&gt;&#10;- C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\@&lt;file_name&gt;&#10;- C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\@&lt;file_name&gt;&#10;- C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\@&lt;file_name&gt;&#10;- C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\metro\src\DeltaBundler\Worker.flow.js&#10;- C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\metro\src\DeltaBundler\Worker.js&#10;- C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\jest-worker\build\workers\processChild.js (While processing: C:\Users\aaron\IdeaProjects\frontend-app-joanis\frontend-app-joanis\node_modules\react-native-reanimated\plugin\index.js)">
+          <value>
+            <GhostTextMetaData>
+              <option name="count" value="2.0" />
+              <option name="timestamps">
+                <list>
+                  <option value="1760523421657" />
+                  <option value="1760523405865" />
+                </list>
+              </option>
+            </GhostTextMetaData>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
