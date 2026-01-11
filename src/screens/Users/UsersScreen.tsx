@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   TextInput,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
@@ -16,8 +17,9 @@ import { usersApi, User, GetUsersParams } from '@/services/api';
 import { CreateUserModal } from '@/components/users/CreateUserModal';
 import { UserDetailModal } from '@/components/users/UserDetailModal';
 import { EditUserModal } from '@/components/users/EditUserModal';
-import { BottomNavigation } from '@/components/Navigation/BottomNavigation';
-import { MainMenu } from '@/components/Menu/MainMenu';
+
+import { useMenuNavigation } from '@/hooks/useMenuNavigation';
+import { AddButton } from '@/components/Navigation/AddButton';
 
 interface UsersScreenProps {
   navigation: any;
@@ -43,6 +45,8 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [chatBadge] = useState(3);
   const [notificationsBadge] = useState(7);
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   useEffect(() => {
     loadUsers();
@@ -80,6 +84,12 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
       // Ensure response.data is an array before setting
       const usersData = Array.isArray(response.data) ? response.data : [];
+      console.log('UsersScreen - Loaded users:', usersData);
+      if (usersData.length > 0) {
+        console.log('UsersScreen - First user:', usersData[0]);
+        console.log('UsersScreen - First user status:', usersData[0]?.status);
+        console.log('UsersScreen - First user is_active:', usersData[0]?.is_active);
+      }
       setUsers(usersData);
       setFilteredUsers(usersData);
       setPagination(response.pagination);
@@ -103,8 +113,25 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
   const handleUserPress = async (userId: string) => {
     try {
-      const userDetails = await usersApi.getUserById(userId);
-      setSelectedUser(userDetails);
+      // Fetch user details and roles separately
+      const [userDetails, userRoles] = await Promise.all([
+        usersApi.getUserById(userId),
+        usersApi.getUserRoles(userId),
+      ]);
+
+      console.log('UsersScreen - User details from API:', userDetails);
+      console.log('UsersScreen - User roles from API:', userRoles);
+      console.log('UsersScreen - User details is_active:', userDetails.is_active);
+      console.log('UsersScreen - User details status:', userDetails.status);
+
+      // Merge roles into user object
+      const userWithRoles = {
+        ...userDetails,
+        roles: userRoles,
+      };
+
+      console.log('UsersScreen - User with roles merged:', userWithRoles);
+      setSelectedUser(userWithRoles);
       setShowDetailModal(true);
     } catch (error: any) {
       console.error('Error loading user details:', error);
@@ -150,27 +177,12 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
     setIsMenuVisible(false);
   };
 
+  // Use the shared navigation hook for consistent menu navigation
+  const navigateFromMenu = useMenuNavigation(navigation);
+
   const handleMenuSelect = (menuId: string) => {
     setIsMenuVisible(false);
-    switch (menuId) {
-      case 'roles-permisos':
-        navigation.navigate('RolesPermissions');
-        break;
-      case 'usuarios':
-        // Ya estamos en usuarios
-        break;
-      case 'gestion-apps':
-        navigation.navigate('Apps');
-        break;
-      case 'sedes':
-        navigation.navigate('Sites');
-        break;
-      case 'debug-permissions':
-        navigation.navigate('PermissionsDebug');
-        break;
-      default:
-        break;
-    }
+    navigateFromMenu(menuId);
   };
 
   const handleLogout = async () => {
@@ -194,37 +206,43 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
     return status === 'active' ? 'Activo' : 'Inactivo';
   };
 
-  const renderUserItem = (user: User) => (
-    <TouchableOpacity
-      key={user.id}
-      style={styles.userItem}
-      onPress={() => handleUserPress(user.id)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.userInfo}>
-        <View style={styles.userAvatar}>
-          <Text style={styles.avatarText}>
-            {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+  const renderUserItem = (user: User) => {
+    // Determine status from either status field or is_active field
+    const userStatus = user.status || (user.is_active ? 'active' : 'inactive');
+    console.log(`User ${user.email} - status: ${user.status}, is_active: ${user.is_active}, computed: ${userStatus}`);
+
+    return (
+      <TouchableOpacity
+        key={user.id}
+        style={styles.userItem}
+        onPress={() => handleUserPress(user.id)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.userInfo}>
+          <View style={styles.userAvatar}>
+            <Text style={styles.avatarText}>
+              {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.userDetails}>
+            <Text style={styles.userName}>{user.name || user.email}</Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
+            {user.roles && Array.isArray(user.roles) && user.roles.length > 0 && (
+              <Text style={styles.userRoles}>
+                {user.roles.map(role => role.name).join(', ')}
+              </Text>
+            )}
+          </View>
+        </View>
+        <View style={styles.userStatus}>
+          <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(userStatus) }]} />
+          <Text style={[styles.statusText, { color: getStatusColor(userStatus) }]}>
+            {getStatusText(userStatus)}
           </Text>
         </View>
-        <View style={styles.userDetails}>
-          <Text style={styles.userName}>{user.name || user.email}</Text>
-          <Text style={styles.userEmail}>{user.email}</Text>
-          {user.roles && Array.isArray(user.roles) && user.roles.length > 0 && (
-            <Text style={styles.userRoles}>
-              {user.roles.map(role => role.name).join(', ')}
-            </Text>
-          )}
-        </View>
-      </View>
-      <View style={styles.userStatus}>
-        <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(user.status) }]} />
-        <Text style={[styles.statusText, { color: getStatusColor(user.status) }]}>
-          {getStatusText(user.status)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -251,11 +269,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestión de Usuarios</Text>
-        <ProtectedElement requiredPermissions={['users.create']} fallback={<View style={styles.placeholder} />}>
-          <TouchableOpacity onPress={handleCreateUser} style={styles.addButton}>
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
-        </ProtectedElement>
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* Search Bar */}
@@ -271,7 +285,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
       {/* Users List */}
       <ScrollView
-        style={styles.usersList}
+        style={[styles.usersList, isLandscape && styles.usersListLandscape]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
@@ -295,23 +309,6 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
         </Text>
       </View>
 
-      {/* Bottom Navigation */}
-      <BottomNavigation
-        onChatPress={handleChatPress}
-        onNotificationsPress={handleNotificationsPress}
-        onMenuPress={handleMenuToggle}
-        chatBadge={chatBadge}
-        notificationsBadge={notificationsBadge}
-      />
-
-      {/* Main Menu */}
-      <MainMenu
-        isVisible={isMenuVisible}
-        onClose={handleMenuClose}
-        onMenuSelect={handleMenuSelect}
-        onLogout={handleLogout}
-      />
-
       {/* Create User Modal */}
       <CreateUserModal
         visible={showCreateModal}
@@ -334,6 +331,11 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
         onClose={handleCloseEditModal}
         onUserUpdated={handleUserUpdated}
       />
+
+      {/* Add Button */}
+      <ProtectedElement requiredPermissions={['users.create']} fallback={null}>
+        <AddButton onPress={handleCreateUser} icon="👥" />
+      </ProtectedElement>
     </SafeAreaView>
   );
 };
@@ -371,22 +373,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E293B',
   },
-  placeholder: {
+  headerSpacer: {
     width: 40,
-    height: 40,
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#3B82F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,
@@ -417,6 +405,10 @@ const styles = StyleSheet.create({
   usersList: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
+  usersListLandscape: {
+    paddingBottom: 70,
   },
   userItem: {
     flexDirection: 'row',

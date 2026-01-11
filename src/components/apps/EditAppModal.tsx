@@ -11,7 +11,7 @@ import {
   Switch,
 } from 'react-native';
 import { FormTextInput } from '@/components/ui/FormTextInput';
-import { appsApi, UpdateAppDto, App, AppType } from '@/services/api/apps';
+import { appsApi, UpdateAppDto, App } from '@/services/api/apps';
 
 interface EditAppModalProps {
   visible: boolean;
@@ -28,7 +28,7 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<UpdateAppDto>({
     name: '',
-    appType: AppType.INTERNAL,
+    description: '',
     isActive: true,
   });
 
@@ -39,7 +39,7 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
     if (app) {
       setFormData({
         name: app.name,
-        appType: app.appType,
+        description: app.description || '',
         isActive: app.isActive,
       });
     }
@@ -74,8 +74,8 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
         appData.name = formData.name.trim();
       }
 
-      if (formData.appType !== app.appType) {
-        appData.appType = formData.appType;
+      if (formData.description !== undefined && formData.description.trim() !== (app.description || '')) {
+        appData.description = formData.description.trim();
       }
 
       if (formData.isActive !== app.isActive) {
@@ -117,7 +117,7 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
     onClose();
   };
 
-  const updateField = (field: keyof UpdateAppDto, value: string | boolean | AppType) => {
+  const updateField = (field: keyof UpdateAppDto, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
@@ -166,30 +166,26 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
               />
             </View>
 
-            {/* App Type */}
+            {/* Description */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Descripción</Text>
+              <FormTextInput
+                value={formData.description}
+                onChangeText={(value) => updateField('description', value)}
+                placeholder="Descripción de la aplicación (opcional)"
+                error={errors.description}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            {/* App Type (Read-only) */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Tipo de App</Text>
-              <View style={styles.appTypeContainer}>
-                {Object.values(AppType).map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.appTypeButton,
-                      formData.appType === type && styles.appTypeButtonActive,
-                    ]}
-                    onPress={() => updateField('appType', type)}
-                  >
-                    <Text
-                      style={[
-                        styles.appTypeButtonText,
-                        formData.appType === type && styles.appTypeButtonTextActive,
-                      ]}
-                    >
-                      {getAppTypeLabel(type)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.readOnlyField}>
+                <Text style={styles.readOnlyText}>{app.appType}</Text>
               </View>
+              <Text style={styles.hint}>El tipo de app no se puede modificar</Text>
             </View>
 
             {/* Is Active */}
@@ -237,17 +233,6 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
       </View>
     </Modal>
   );
-};
-
-// Helper function to get app type labels
-const getAppTypeLabel = (type: AppType): string => {
-  const labels: Record<AppType, string> = {
-    [AppType.SALES]: '💰 Ventas',
-    [AppType.POS]: '🏪 Punto de Venta',
-    [AppType.ADMIN]: '⚙️ Administración',
-    [AppType.INTERNAL]: '🔧 Interno',
-  };
-  return labels[type] || type;
 };
 
 const styles = StyleSheet.create({

@@ -14,37 +14,75 @@ export interface App {
   code: string;
   name: string;
   appType: AppType;
+  description?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  permissions?: AppPermission[];
+  scopes?: Scope[];
 }
 
 export interface Scope {
   id: string;
-  name: string;
-  description?: string;
   appId: string;
+  companyId?: string;
+  siteId?: string;
+  warehouseId?: string;
+  areaId?: string;
+  level?: 'COMPANY' | 'SITE' | 'WAREHOUSE' | 'AREA';
+  canRead: boolean;
+  canWrite: boolean;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
+  // Relaciones opcionales
+  warehouse?: {
+    id: string;
+    name: string;
+    siteId: string;
+    createdAt?: string;
+  };
+  area?: {
+    id: string;
+    code: string;
+    name: string;
+  };
 }
 
 export interface AppPermission {
-  id: string;
-  key: string;
-  name: string;
-  description?: string;
   appId: string;
-  createdAt: string;
-  updatedAt: string;
+  permissionKey: string;
+  description?: string;
+  createdAt?: string;
 }
 
 export interface UserAppRole {
-  id: string;
   userId: string;
   appId: string;
   roleId: string;
-  createdAt: string;
-  updatedAt: string;
+  assignedAt: string;
+}
+
+export interface AppUser {
+  userId: string;
+  username: string;
+  email: string;
+  roleId: string;
+  roleCode: string;
+  roleName: string;
+  assignedAt: string;
+}
+
+export interface UserRole {
+  appId: string;
+  appCode: string;
+  appName: string;
+  roleId: string;
+  roleCode: string;
+  roleName: string;
+  companyId?: string;
+  siteId?: string;
+  warehouseId?: string;
+  assignedAt: string;
 }
 
 // DTOs para crear/actualizar
@@ -52,30 +90,45 @@ export interface CreateAppDto {
   code: string;
   name: string;
   appType: AppType;
+  description?: string;
   isActive?: boolean;
 }
 
 export interface UpdateAppDto {
   name?: string;
-  appType?: AppType;
+  description?: string;
   isActive?: boolean;
 }
 
 export interface CreateScopeDto {
-  name: string;
-  description?: string;
+  companyId?: string;
+  siteId?: string;
+  warehouseId?: string;
+  areaId?: string;
+  level?: 'COMPANY' | 'SITE' | 'WAREHOUSE' | 'AREA';
+  canRead?: boolean;
+  canWrite?: boolean;
 }
 
-export interface CreateAppPermissionDto {
-  key: string;
-  name: string;
-  description?: string;
+export interface CreateAppPermissionsDto {
+  appId?: string; // Opcional para cuando se envía en la URL, pero el backend lo requiere en el body
+  permissionKeys: string[];
 }
 
 export interface AssignUserRoleDto {
   userId: string;
   appId: string;
   roleId: string;
+  companyId?: string;
+  siteId?: string;
+  warehouseId?: string;
+}
+
+export interface UpdateUserRoleDto {
+  roleId?: string;
+  companyId?: string;
+  siteId?: string;
+  warehouseId?: string;
 }
 
 // Respuestas paginadas
@@ -245,18 +298,8 @@ export const scopesApi = {
   /**
    * 📋 Listar scopes de una app
    */
-  async getAppScopes(appId: string, params: GetScopesParams = {}): Promise<ScopesResponse> {
-    const { page = 1, limit = 20 } = params;
-
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
-
-    const queryString = queryParams.toString();
-    const url = `/apps/${appId}/scopes${queryString ? `?${queryString}` : ''}`;
-
-    return apiClient.get<ScopesResponse>(url);
+  async getAppScopes(appId: string): Promise<Scope[]> {
+    return apiClient.get<Scope[]>(`/apps/${appId}/scopes`);
   },
 
   /**
@@ -281,25 +324,20 @@ export const appPermissionsApi = {
   /**
    * 📋 Listar permisos de una app
    */
-  async getAppPermissions(appId: string, params: GetPermissionsParams = {}): Promise<PermissionsResponse> {
-    const { page = 1, limit = 20 } = params;
-
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
-
-    const queryString = queryParams.toString();
-    const url = `/apps/${appId}/permissions${queryString ? `?${queryString}` : ''}`;
-
-    return apiClient.get<PermissionsResponse>(url);
+  async getAppPermissions(appId: string): Promise<AppPermission[]> {
+    return apiClient.get<AppPermission[]>(`/apps/${appId}/permissions`);
   },
 
   /**
-   * 🆕 Configurar permisos de una app
+   * 🆕 Definir permisos de una app (reemplaza los existentes)
    */
-  async createPermission(appId: string, permissionData: CreateAppPermissionDto): Promise<AppPermission> {
-    return apiClient.post<AppPermission>(`/apps/${appId}/permissions`, permissionData);
+  async setAppPermissions(appId: string, permissionData: CreateAppPermissionsDto): Promise<{ created: AppPermission[] }> {
+    // Incluir appId en el body como lo requiere el backend
+    const requestData = {
+      ...permissionData,
+      appId,
+    };
+    return apiClient.post<{ created: AppPermission[] }>(`/apps/${appId}/permissions`, requestData);
   },
 };
 
@@ -308,24 +346,50 @@ export const appPermissionsApi = {
  */
 export const userAppRolesApi = {
   /**
-   * 📋 Ver roles de un usuario
+   * 📋 Ver roles de un usuario en todas las apps
    */
-  async getUserRoles(userId: string): Promise<UserAppRole[]> {
-    return apiClient.get<UserAppRole[]>(`/apps/users/${userId}/roles`);
+  async getUserRoles(userId: string, params?: { companyId?: string }): Promise<UserRole[]> {
+    const queryParams = new URLSearchParams();
+    if (params?.companyId) {
+      queryParams.append('companyId', params.companyId);
+    }
+    const queryString = queryParams.toString();
+    const url = `/apps/users/${userId}/roles${queryString ? `?${queryString}` : ''}`;
+    return apiClient.get<UserRole[]>(url);
   },
 
   /**
-   * 🆕 Asignar rol a usuario en una app
+   * 📋 Listar usuarios de una app
+   */
+  async getAppUsers(appId: string): Promise<AppUser[]> {
+    return apiClient.get<AppUser[]>(`/apps/${appId}/users`);
+  },
+
+  /**
+   * 🆕 Asignar rol a usuario en una app con scope
    */
   async assignUserRole(roleData: AssignUserRoleDto): Promise<UserAppRole> {
     return apiClient.post<UserAppRole>('/apps/user-role', roleData);
   },
 
   /**
-   * 🗑️ Remover rol de usuario
+   * ✏️ Actualizar rol/scope de usuario en una app
    */
-  async removeUserRole(userId: string, appId: string): Promise<void> {
-    return apiClient.delete<void>(`/apps/users/${userId}/apps/${appId}`);
+  async updateUserRole(userId: string, appId: string, updateData: UpdateUserRoleDto): Promise<UserAppRole> {
+    return apiClient.patch<UserAppRole>(`/apps/users/${userId}/apps/${appId}`, updateData);
+  },
+
+  /**
+   * 🗑️ Remover acceso de usuario a una app
+   */
+  async removeUserRole(userId: string, appId: string, params?: { companyId?: string; siteId?: string; warehouseId?: string }): Promise<void> {
+    const queryParams = new URLSearchParams();
+    if (params?.companyId) queryParams.append('companyId', params.companyId);
+    if (params?.siteId) queryParams.append('siteId', params.siteId);
+    if (params?.warehouseId) queryParams.append('warehouseId', params.warehouseId);
+    const queryString = queryParams.toString();
+    const url = `/apps/users/${userId}/apps/${appId}${queryString ? `?${queryString}` : ''}`;
+    return apiClient.delete<void>(url);
   },
 };
 

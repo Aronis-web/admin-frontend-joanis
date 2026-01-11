@@ -11,6 +11,13 @@ export type {
   ProductFilters,
   Review,
   ReviewsResponse,
+  ProductListResponse,
+  CreateProductDto,
+  UpdateProductDto,
+  ProductPresentation,
+  ProductDetail,
+  ProductPresentationDetail,
+  Category,
 } from './products';
 
 export { filesApi } from './files';
@@ -46,17 +53,16 @@ export {
   appsApi,
   scopesApi,
   appPermissionsApi,
-  userAppRolesApi
+  userAppRolesApi,
+  AppType
 } from './apps';
 export type {
   App,
   Scope,
   AppPermission,
-  UserAppRole,
   CreateAppDto,
   UpdateAppDto,
   CreateScopeDto,
-  CreateAppPermissionDto,
   AssignUserRoleDto,
   AppsResponse,
   ScopesResponse,
@@ -65,10 +71,31 @@ export type {
   GetScopesParams,
   GetPermissionsParams as GetAppPermissionsParams
 } from './apps';
-// Note: AppType enum should be imported directly from './apps' to avoid issues
+
+// Companies exports (Multi-Tenancy)
+export { companiesApi } from './companies';
+export type {
+  Company,
+  UserCompany,
+  UserCompanySite,
+  CompaniesResponse,
+  CreateCompanyRequest,
+  UpdateCompanyRequest,
+  GetCompaniesParams,
+  AssignUserToCompanyRequest,
+  AssignUserToSitesRequest,
+  UserCompaniesResponse,
+  UserSitesResponse,
+  UserCompanyStatus,
+  AppScopeLevel,
+  AppScope,
+  TenantContext,
+  TenantHeaders
+} from '@/types/companies';
 
 // Sites exports
 export { sitesApi } from './sites';
+export { sitesService } from './sites';
 export type {
   Site,
   SiteAdmin,
@@ -78,3 +105,225 @@ export type {
   GetSitesParams,
   AddAdminRequest
 } from '@/types/sites';
+
+// Warehouses exports
+export { warehousesApi, warehouseAreasApi } from './warehouses';
+export { accessApi } from './access';
+
+// Inventory API
+export { inventoryApi } from './inventory';
+export type {
+  StockItem,
+  StockAdjustmentReason,
+  AdjustStockDto,
+  TransferStockDto,
+  StockResponse,
+  StockByProductResponse,
+  StockByWarehouseResponse,
+} from './inventory';
+export type {
+  Warehouse,
+  WarehouseArea,
+  CreateWarehouseRequest,
+  UpdateWarehouseRequest,
+  CreateWarehouseAreaRequest,
+  UpdateWarehouseAreaRequest,
+  WarehousesResponse,
+  WarehouseAreasResponse
+} from '@/types/warehouses';
+
+export type {
+  CheckScopeParams,
+  CheckScopeResponse,
+  UserAccessibleScope,
+  UserScopesResponse
+} from './access';
+
+// Price Profiles exports
+export { priceProfilesApi } from './price-profiles';
+export type {
+  PriceProfile,
+  ProductSalePrice,
+  PriceProfilesResponse,
+  CreatePriceProfileRequest,
+  UpdatePriceProfileRequest,
+  GetPriceProfilesParams,
+  UpdateSalePriceRequest,
+  ProductSalePricesResponse,
+  RecalculatePricesResponse
+} from '@/types/price-profiles';
+
+// Presentations exports
+export { presentationsApi } from './presentations';
+export type {
+  Presentation,
+  PresentationsResponse,
+  CreatePresentationDto,
+  UpdatePresentationDto,
+  GetPresentationsParams
+} from './presentations';
+
+// Suppliers exports
+export { suppliersService, paymentMethodsService } from './suppliers';
+export type {
+  Supplier,
+  SupplierLegalEntity,
+  SupplierContact,
+  SupplierBankAccount,
+  SupplierCompanyDebt,
+  SupplierUnassignedBalance,
+  SupplierDebtTransaction,
+  SupplierPayment,
+  PaymentMethod,
+  SuppliersResponse,
+  CreateSupplierRequest,
+  UpdateSupplierRequest,
+  QuerySuppliersParams,
+  CreateSupplierLegalEntityDto,
+  UpdateLegalEntityRequest,
+  CreateSupplierContactDto,
+  UpdateContactRequest,
+  CreateBankAccountRequest,
+  UpdateBankAccountRequest,
+  CreateDebtTransactionRequest,
+  AssignCompanyRequest,
+  CreatePaymentRequest,
+  SupplierDebtSummaryResponse,
+  DebtByCompany,
+  TransactionsResponse,
+  PaymentsResponse,
+  QueryTransactionsParams,
+  QueryPaymentsParams,
+  CreatePaymentMethodRequest,
+  UpdatePaymentMethodRequest,
+  LocationAccuracy,
+  LocationSource,
+  BankAccountType,
+  TransactionType,
+  PaymentStatus
+} from '@/types/suppliers';
+
+// Purchases exports
+export { purchasesService } from './purchases';
+export type { OcrScanResponse, OcrScannedItem } from '@/types/purchases';
+export type {
+  Purchase,
+  PurchaseProduct,
+  PurchaseStatusHistory,
+  PurchaseProductValidation,
+  PurchasesResponse,
+  CreatePurchaseRequest,
+  UpdatePurchaseRequest,
+  AddProductRequest,
+  UpdateProductRequest,
+  ValidateProductRequest,
+  ValidatedPresentationConfig,
+  RejectProductRequest,
+  AssignDebtRequest,
+  QueryPurchasesParams,
+  PurchaseSummaryResponse,
+  ValidationStatusResponse,
+  PurchaseStatus,
+  PurchaseProductStatus,
+  GuideType,
+  GuideFile,
+  PurchaseStatusLabels,
+  PurchaseProductStatusLabels,
+  GuideTypeLabels,
+  PurchaseStatusColors,
+  PurchaseProductStatusColors
+} from '@/types/purchases';
+
+// Expenses exports
+export { expensesService } from './expenses';
+export type {
+  Expense,
+  ExpenseCategory,
+  ExpenseProject,
+  ExpenseRecurrence,
+  ExpenseInstance,
+  ExpensePayment,
+  ExpenseAlertConfig,
+  ExpenseAlertContact,
+  ExpenseAlertLog,
+  ExpensePaymentInfo,
+  ExpenseAttachment,
+  ExpensesResponse,
+  ExpenseCategoriesResponse,
+  ExpenseProjectsResponse,
+  CreateExpenseRequest,
+  UpdateExpenseRequest,
+  CreateExpenseCategoryRequest,
+  UpdateExpenseCategoryRequest,
+  CreateExpenseProjectRequest,
+  UpdateExpenseProjectRequest,
+  CreateExpenseRecurrenceRequest,
+  UpdateExpenseRecurrenceRequest,
+  CreateExpensePaymentRequest,
+  UpdateExpensePaymentRequest,
+  CreateExpenseAlertConfigRequest,
+  UpdateExpenseAlertConfigRequest,
+  CreateExpenseAlertContactRequest,
+  UpdateExpenseAlertContactRequest,
+  CreateExpensePaymentInfoRequest,
+  UpdateExpensePaymentInfoRequest,
+  QueryExpensesParams,
+  QueryExpenseProjectsParams,
+  ExpenseSummaryResponse,
+  ProjectSummaryResponse,
+  ExpenseType,
+  CostType,
+  ExpenseStatus,
+  PaymentMethod,
+  RecurrenceType,
+  RecurrenceFrequency,
+  ProjectStatus,
+  PaymentStatus,
+  ExpenseTypeLabels,
+  CostTypeLabels,
+  ExpenseStatusLabels,
+  PaymentMethodLabels,
+  RecurrenceFrequencyLabels,
+  ProjectStatusLabels,
+  PaymentStatusLabels,
+  ExpenseStatusColors,
+  ProjectStatusColors,
+  PaymentStatusColors
+} from '@/types/expenses';
+
+// Campaigns exports
+export { campaignsService } from './campaigns';
+export type {
+  Campaign,
+  CampaignParticipant,
+  CampaignProduct,
+  CampaignCustomDistribution,
+  CampaignCustomDistributionItem,
+  CampaignsResponse,
+  CreateCampaignRequest,
+  UpdateCampaignRequest,
+  AddParticipantRequest,
+  UpdateParticipantRequest,
+  AddProductRequest,
+  AddProductsFromPurchaseRequest,
+  UpdateProductRequest,
+  SetCustomDistributionRequest,
+  DistributionPreviewResponse,
+  DistributionPreviewItem,
+  DistributionResultResponse,
+  DistributionResultDetail,
+  QueryCampaignsParams,
+  CampaignStatus,
+  ParticipantType,
+  DistributionType,
+  ProductStatus,
+  ProductSourceType,
+  CampaignStatusLabels,
+  ParticipantTypeLabels,
+  DistributionTypeLabels,
+  ProductStatusLabels,
+  ProductSourceTypeLabels,
+  CampaignStatusColors,
+  ProductStatusColors,
+  DistributionTypeDescriptions
+} from '@/types/campaigns';

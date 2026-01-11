@@ -9,6 +9,9 @@ import {
   Alert,
   Platform,
   Keyboard,
+  TextInput,
+  FlatList,
+  ScrollView,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -57,6 +60,12 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   const [addressInfo, setAddressInfo] = useState<LocationData | null>(null);
   const mapRef = useRef<MapView>(null);
   const autocompleteRef = useRef<any>(null);
+
+  // Custom autocomplete states
+  const [searchText, setSearchText] = useState('');
+  const [predictions, setPredictions] = useState<any[]>([]);
+  const [showPredictions, setShowPredictions] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     console.log('🎬 [LocationPicker] useEffect - visible cambió a:', visible);
@@ -202,16 +211,125 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     }
   };
 
-  const handlePlaceSelected = async (data: any, details: any) => {
+  // Custom autocomplete search function
+  const searchPlaces = async (text: string) => {
+    if (text.length < 2) {
+      setPredictions([]);
+      setShowPredictions(false);
+      return;
+    }
+
     try {
-      console.log('🔍 [LocationPicker] handlePlaceSelected - data:', data);
-      console.log('🔍 [LocationPicker] handlePlaceSelected - details:', details);
+      const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBWLYNj3GR7rtyYlenKw3Bvyg6_bUce3BA';
+      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${apiKey}&language=es&components=country:pe`;
+
+      console.log('🔍 [LocationPicker] Buscando lugares:', text);
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.predictions) {
+        console.log('✅ [LocationPicker] Predicciones encontradas:', data.predictions.length);
+        setPredictions(data.predictions);
+        setShowPredictions(true);
+      }
+    } catch (error) {
+      console.error('❌ [LocationPicker] Error buscando lugares:', error);
+    }
+  };
+
+  // Handle text input change with debounce
+  const handleSearchTextChange = (text: string) => {
+    setSearchText(text);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      searchPlaces(text);
+    }, 400);
+  };
+
+  // Handle prediction selection
+  const handlePredictionPress = async (placeId: string, description: string) => {
+    try {
+      console.log('🎯 [LocationPicker] Predicción seleccionada:', description);
+      setSearchText(description);
+      setShowPredictions(false);
+      setPredictions([]);
+      Keyboard.dismiss();
+
+      // Get place details
+      const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBWLYNj3GR7rtyYlenKw3Bvyg6_bUce3BA';
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${apiKey}&language=es`;
+
+      console.log('🔍 [LocationPicker] Obteniendo detalles del lugar...');
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.result?.geometry?.location) {
+        const { lat, lng } = data.result.geometry.location;
+        console.log('✅ [LocationPicker] Coordenadas obtenidas:', { lat, lng });
+
+        const newLocation = {
+          latitude: lat,
+          longitude: lng,
+        };
+
+        setSelectedLocation(newLocation);
+
+        // Animate map to new location
+        if (mapRef.current) {
+          console.log('🔍 [LocationPicker] Animando mapa a nueva ubicación');
+          mapRef.current.animateToRegion({
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }, 1000);
+        }
+
+        await reverseGeocode(lat, lng);
+      }
+    } catch (error) {
+      console.error('❌ [LocationPicker] Error obteniendo detalles del lugar:', error);
+      Alert.alert('Error', 'No se pudieron obtener los detalles del lugar');
+    }
+  };
+
+  const handlePlaceSelected = async (data: any, details: any = null) => {
+    try {
+      console.log('🔍 [LocationPicker] handlePlaceSelected LLAMADO');
+      console.log('🔍 [LocationPicker] handlePlaceSelected - data:', JSON.stringify(data, null, 2));
+      console.log('🔍 [LocationPicker] handlePlaceSelected - details:', JSON.stringify(details, null, 2));
       console.log('🔍 [LocationPicker] handlePlaceSelected - geometry:', details?.geometry);
       console.log('🔍 [LocationPicker] handlePlaceSelected - location:', details?.geometry?.location);
 
+      // Intentar obtener coordenadas de diferentes formatos posibles
+      let lat: number | null = null;
+      let lng: number | null = null;
+
+      // Formato 1: details.geometry.location (Google Places API estándar)
       if (details?.geometry?.location) {
-        const { lat, lng } = details.geometry.location;
-        console.log('🔍 [LocationPicker] handlePlaceSelected - coordenadas:', { lat, lng });
+        lat = details.geometry.location.lat;
+        lng = details.geometry.location.lng;
+        console.log('✅ [LocationPicker] Coordenadas obtenidas de geometry.location');
+      }
+      // Formato 2: details.geometry.location con funciones lat() y lng()
+      else if (details?.geometry?.location && typeof details.geometry.location.lat === 'function') {
+        lat = details.geometry.location.lat();
+        lng = details.geometry.location.lng();
+        console.log('✅ [LocationPicker] Coordenadas obtenidas de geometry.location (funciones)');
+      }
+      // Formato 3: details directamente con lat/lng
+      else if (details?.lat && details?.lng) {
+        lat = details.lat;
+        lng = details.lng;
+        console.log('✅ [LocationPicker] Coordenadas obtenidas de details directamente');
+      }
+
+      if (lat !== null && lng !== null) {
+        console.log('🔍 [LocationPicker] handlePlaceSelected - coordenadas finales:', { lat, lng });
 
         const newLocation = {
           latitude: lat,
@@ -223,7 +341,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
         // Animate map to new location
         if (mapRef.current) {
-          console.log('🔍 [LocationPicker] Animando mapa a nueva ubicación');
+          console.log('🔍 [LocationPicker] Animando mapa a nueva ubicación:', newLocation);
           mapRef.current.animateToRegion({
             latitude: lat,
             longitude: lng,
@@ -236,12 +354,22 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
         await reverseGeocode(lat, lng);
       } else {
-        console.log('⚠️ [LocationPicker] No se encontró geometry.location en details');
+        console.log('⚠️ [LocationPicker] No se pudieron extraer coordenadas');
+        console.log('⚠️ [LocationPicker] data completo:', data);
+        console.log('⚠️ [LocationPicker] details completo:', details);
+
+        // Fallback: Si no hay details, mostrar alerta
+        Alert.alert(
+          'Información',
+          'No se pudieron obtener las coordenadas del lugar seleccionado. Por favor, intenta con otro lugar o selecciona directamente en el mapa.',
+          [{ text: 'OK' }]
+        );
       }
     } catch (error) {
       console.error('❌ [LocationPicker] Error en handlePlaceSelected:', error);
       console.error('❌ [LocationPicker] Error tipo:', typeof error);
       console.error('❌ [LocationPicker] Error mensaje:', error instanceof Error ? error.message : 'Unknown error');
+      Alert.alert('Error', 'Ocurrió un error al seleccionar el lugar');
     }
   };
 
@@ -287,78 +415,24 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Google Places Autocomplete Search */}
+        {/* Custom Google Places Autocomplete Search */}
         <View style={styles.searchContainer}>
-          <GooglePlacesAutocomplete
-            ref={autocompleteRef}
-            placeholder="Buscar lugares, negocios, direcciones..."
-            onPress={handlePlaceSelected}
-            query={{
-              key: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBWLYNj3GR7rtyYlenKw3Bvyg6_bUce3BA',
-              language: 'es',
-              components: 'country:pe', // Limitar a Perú, cambiar según necesidad
-            }}
-            fetchDetails={true}
-            enablePoweredByContainer={false}
-            listViewDisplayed={false}
-            styles={{
-              container: {
-                flex: 1,
-              },
-              textInputContainer: {
-                backgroundColor: '#F1F5F9',
-                borderRadius: 12,
-                paddingHorizontal: 12,
-                height: 44,
-              },
-              textInput: {
-                height: 44,
-                fontSize: 15,
-                color: '#1E293B',
-                backgroundColor: 'transparent',
-                paddingVertical: 0,
-              },
-              listView: {
-                backgroundColor: '#FFFFFF',
-                borderRadius: 8,
-                marginTop: 4,
-                elevation: 3,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-              },
-              row: {
-                backgroundColor: '#FFFFFF',
-                padding: 13,
-                minHeight: 44,
-                flexDirection: 'row',
-                alignItems: 'center',
-              },
-              separator: {
-                height: 1,
-                backgroundColor: '#F1F5F9',
-              },
-              description: {
-                fontSize: 14,
-                color: '#1E293B',
-              },
-              predefinedPlacesDescription: {
-                color: '#3B82F6',
-              },
-              poweredContainer: {
-                display: 'none',
-              },
-            }}
-            textInputProps={{
-              placeholderTextColor: '#94A3B8',
-              returnKeyType: 'search',
-              leftIcon: { type: 'font-awesome', name: 'search' },
-            }}
-            renderLeftButton={() => (
+          <View style={styles.customAutocompleteContainer}>
+            <View style={styles.searchInputWrapper}>
               <Text style={styles.searchIcon}>🔍</Text>
-            )}
-            renderRightButton={() => (
+              <TextInput
+                style={styles.customSearchInput}
+                placeholder="Buscar lugares, negocios, direcciones..."
+                placeholderTextColor="#94A3B8"
+                value={searchText}
+                onChangeText={handleSearchTextChange}
+                onFocus={() => {
+                  if (predictions.length > 0) {
+                    setShowPredictions(true);
+                  }
+                }}
+                returnKeyType="search"
+              />
               <TouchableOpacity
                 onPress={getCurrentLocation}
                 style={styles.currentLocationButton}
@@ -370,16 +444,28 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                   <Text style={styles.currentLocationIcon}>📍</Text>
                 )}
               </TouchableOpacity>
+            </View>
+            {showPredictions && predictions.length > 0 && (
+              <View style={styles.predictionsContainer}>
+                <FlatList
+                  data={predictions}
+                  keyExtractor={(item) => item.place_id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.predictionItem}
+                      onPress={() => handlePredictionPress(item.place_id, item.description)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.predictionText}>{item.description}</Text>
+                    </TouchableOpacity>
+                  )}
+                  ItemSeparatorComponent={() => <View style={styles.predictionSeparator} />}
+                  style={styles.predictionsList}
+                  keyboardShouldPersistTaps="handled"
+                />
+              </View>
             )}
-            debounce={300}
-            minLength={2}
-            nearbyPlacesAPI="GooglePlacesSearch"
-            GooglePlacesSearchQuery={{
-              rankby: 'distance',
-            }}
-            filterReverseGeocodingByTypes={[]}
-            predefinedPlaces={[]}
-          />
+          </View>
         </View>
 
         {/* Map */}
@@ -633,7 +719,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+  },
+  customAutocompleteContainer: {
+    position: 'relative',
     zIndex: 1000,
+  },
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  customSearchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: 15,
+    color: '#1E293B',
+    paddingVertical: 0,
   },
   searchIcon: {
     fontSize: 16,
@@ -648,6 +752,39 @@ const styles = StyleSheet.create({
   },
   currentLocationIcon: {
     fontSize: 18,
+  },
+  predictionsContainer: {
+    position: 'absolute',
+    top: 48,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    marginTop: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+    maxHeight: 300,
+    zIndex: 1001,
+  },
+  predictionsList: {
+    borderRadius: 8,
+  },
+  predictionItem: {
+    backgroundColor: '#FFFFFF',
+    padding: 13,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  predictionText: {
+    fontSize: 14,
+    color: '#1E293B',
+  },
+  predictionSeparator: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
   },
 });
 

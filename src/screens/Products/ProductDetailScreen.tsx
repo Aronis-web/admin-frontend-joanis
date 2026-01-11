@@ -29,6 +29,7 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPresentation, setSelectedPresentation] = useState<ProductPresentationDetail | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { addItem } = useCartStore();
 
   useEffect(() => {
@@ -66,9 +67,9 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
       productId: product.id,
       name: `${product.title} (${selectedPresentation.name})`,
       price: selectedPresentation.priceCents / 100,
-      image: 'https://via.placeholder.com/200',
+      image: productImages.length > 0 ? productImages[0] : 'https://via.placeholder.com/200',
       quantity: quantity,
-      presentation: selectedPresentation,
+      variant: selectedPresentation.name,
     });
 
     Alert.alert('Éxito', `${quantity} ${selectedPresentation.name}(s) agregado(s) al carrito`, [
@@ -95,6 +96,22 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   const basePrice = product.priceCentsBase / 100;
   const selectedPrice = selectedPresentation ? selectedPresentation.priceCents / 100 : basePrice;
 
+  // Get all product images
+  const productImages: string[] = [];
+  if (product.imageUrl) {
+    productImages.push(product.imageUrl);
+  }
+  if (product.imageUrls && product.imageUrls.length > 0) {
+    product.imageUrls.forEach((url: string) => {
+      if (url !== product.imageUrl) {
+        productImages.push(url);
+      }
+    });
+  }
+
+  // Use placeholder if no images
+  const displayImages = productImages.length > 0 ? productImages : ['https://via.placeholder.com/400'];
+
   return (
     <View style={styles.container}>
       <Header
@@ -106,11 +123,35 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
       <ScrollView style={styles.scrollView}>
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: 'https://via.placeholder.com/400' }}
+            source={{ uri: displayImages[selectedImageIndex] }}
             style={styles.mainImage}
             resizeMode="cover"
           />
         </View>
+
+        {/* Image Thumbnails */}
+        {displayImages.length > 1 && (
+          <View style={styles.thumbnailContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {displayImages.map((imageUrl, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.thumbnail,
+                    selectedImageIndex === index && styles.thumbnailActive,
+                  ]}
+                  onPress={() => setSelectedImageIndex(index)}
+                >
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.thumbnailImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         <View style={styles.contentContainer}>
           <Text style={styles.productName}>{product.title}</Text>

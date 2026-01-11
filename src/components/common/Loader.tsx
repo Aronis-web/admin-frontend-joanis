@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet, ViewStyle } from 'react-native';
 import { theme } from '@/theme';
+import { SplashScreen } from './SplashScreen';
 
 interface LoaderProps {
   size?: 'small' | 'large';
@@ -17,7 +18,12 @@ export const Loader: React.FC<LoaderProps> = ({
   fullScreen = false,
   style,
 }) => {
-  const containerStyle = fullScreen ? styles.fullScreen : styles.container;
+  // Use the modern splash screen for full-screen loading
+  if (fullScreen) {
+    return <SplashScreen text={text} />;
+  }
+
+  const containerStyle = styles.container;
 
   return (
     <View style={[containerStyle, style]}>
@@ -32,12 +38,6 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  fullScreen: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.background,
   },
   text: {
     marginTop: theme.spacing.md,

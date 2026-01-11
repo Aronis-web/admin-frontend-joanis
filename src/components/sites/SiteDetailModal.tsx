@@ -9,9 +9,14 @@ import {
   Alert,
 } from 'react-native';
 import { Site } from '@/types/sites';
+import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { sitesApi } from '@/services/api';
 import { ManageAdminsModal } from './ManageAdminsModal';
+import { WarehousesModal } from './WarehousesModal';
+import { WarehouseFormModal } from './WarehouseFormModal';
+import { WarehouseDetailModal } from './WarehouseDetailModal';
+import { WarehouseAreaFormModal } from './WarehouseAreaFormModal';
 
 interface SiteDetailModalProps {
   visible: boolean;
@@ -31,6 +36,12 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
   onSiteUpdated,
 }) => {
   const [showManageAdminsModal, setShowManageAdminsModal] = useState(false);
+  const [showWarehousesModal, setShowWarehousesModal] = useState(false);
+  const [showWarehouseFormModal, setShowWarehouseFormModal] = useState(false);
+  const [showWarehouseDetailModal, setShowWarehouseDetailModal] = useState(false);
+  const [showAreaFormModal, setShowAreaFormModal] = useState(false);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
+  const [selectedArea, setSelectedArea] = useState<WarehouseArea | null>(null);
 
   if (!site) return null;
 
@@ -174,6 +185,25 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
               </>
             )}
 
+            {/* Warehouses */}
+            <ProtectedElement requiredPermissions={['inventory.warehouses.list']} fallback={null}>
+              {renderSection(
+                'Almacenes',
+                <>
+                  <TouchableOpacity
+                    style={styles.manageButton}
+                    onPress={() => setShowWarehousesModal(true)}
+                  >
+                    <Text style={styles.manageButtonIcon}>📦</Text>
+                    <Text style={styles.manageButtonText}>Gestionar Almacenes</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.sectionHint}>
+                    Administra los almacenes y áreas de esta sede
+                  </Text>
+                </>
+              )}
+            </ProtectedElement>
+
             {/* Administrators */}
             <ProtectedElement requiredPermissions={['sites.admins.list']} fallback={null}>
               {renderSection(
@@ -281,6 +311,98 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
           if (onSiteUpdated) {
             onSiteUpdated();
           }
+        }}
+      />
+
+      {/* Warehouses Modal */}
+      <WarehousesModal
+        visible={showWarehousesModal}
+        site={site}
+        onClose={() => setShowWarehousesModal(false)}
+        onWarehousePress={(warehouse) => {
+          setSelectedWarehouse(warehouse);
+          setShowWarehousesModal(false);
+          setShowWarehouseDetailModal(true);
+        }}
+        onCreateWarehouse={() => {
+          setSelectedWarehouse(null);
+          setShowWarehousesModal(false);
+          setShowWarehouseFormModal(true);
+        }}
+      />
+
+      {/* Warehouse Form Modal */}
+      <WarehouseFormModal
+        visible={showWarehouseFormModal}
+        site={site}
+        warehouse={selectedWarehouse}
+        onClose={() => {
+          setShowWarehouseFormModal(false);
+          setSelectedWarehouse(null);
+        }}
+        onWarehouseCreated={() => {
+          setShowWarehouseFormModal(false);
+          setShowWarehousesModal(true);
+        }}
+        onWarehouseUpdated={() => {
+          setShowWarehouseFormModal(false);
+          setShowWarehouseDetailModal(true);
+        }}
+      />
+
+      {/* Warehouse Detail Modal */}
+      <WarehouseDetailModal
+        visible={showWarehouseDetailModal}
+        warehouse={selectedWarehouse}
+        onClose={() => {
+          setShowWarehouseDetailModal(false);
+          setSelectedWarehouse(null);
+          setShowWarehousesModal(true);
+        }}
+        onEdit={(warehouse) => {
+          setSelectedWarehouse(warehouse);
+          setShowWarehouseDetailModal(false);
+          setShowWarehouseFormModal(true);
+        }}
+        onWarehouseDeleted={() => {
+          setShowWarehouseDetailModal(false);
+          setSelectedWarehouse(null);
+          setShowWarehousesModal(true);
+        }}
+        onWarehouseUpdated={() => {
+          // Reload warehouse details if needed
+        }}
+        onCreateArea={(warehouse) => {
+          setSelectedWarehouse(warehouse);
+          setSelectedArea(null);
+          setShowWarehouseDetailModal(false);
+          setShowAreaFormModal(true);
+        }}
+        onEditArea={(area) => {
+          setSelectedArea(area);
+          setShowWarehouseDetailModal(false);
+          setShowAreaFormModal(true);
+        }}
+      />
+
+      {/* Warehouse Area Form Modal */}
+      <WarehouseAreaFormModal
+        visible={showAreaFormModal}
+        warehouse={selectedWarehouse}
+        area={selectedArea}
+        onClose={() => {
+          setShowAreaFormModal(false);
+          setSelectedArea(null);
+        }}
+        onAreaCreated={() => {
+          setShowAreaFormModal(false);
+          setSelectedArea(null);
+          setShowWarehouseDetailModal(true);
+        }}
+        onAreaUpdated={() => {
+          setShowAreaFormModal(false);
+          setSelectedArea(null);
+          setShowWarehouseDetailModal(true);
         }}
       />
     </Modal>
@@ -458,6 +580,30 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     paddingVertical: 12,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  manageButtonIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  manageButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  sectionHint: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
   },
   manageAdminsButton: {
     backgroundColor: '#3B82F6',

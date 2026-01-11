@@ -4,9 +4,11 @@
     "slug": "panel-admin-grit",
     "scheme": "panel-admin-grit",
     "version": "0.0.1",
-    "orientation": "portrait",
+    "orientation": "default",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -30,19 +32,27 @@
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "INTERNET",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "CAMERA"
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+          "apiKey": "AIzaSyBWLYNj3GR7rtyYlenKw3Bvyg6_bUce3BA"
         }
       }
     },
     "extra": {
-      "apiUrl": "@env:API_URL"
+      "apiUrl": "@env:API_URL",
+      "eas": {
+        "projectId": "891f6ea2-255a-4cc8-a15d-8db18fbc6461"
+      }
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ]
   }
 }

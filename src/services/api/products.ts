@@ -34,6 +34,45 @@ export interface Category {
   updatedAt: string;
 }
 
+// Product Sale Price (for product responses)
+export interface ProductSalePrice {
+  productId: string;
+  presentationId: string;
+  profileId: string;
+  priceCents: number;
+  currency: string;
+  isOverridden: boolean;
+  profile?: {
+    id: string;
+    code: string;
+    name: string;
+    factorToCost: number;
+  };
+  presentation?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+}
+
+// Stock Item (for product responses)
+export interface StockItem {
+  productId: string;
+  warehouseId: string;
+  areaId: string | null;
+  quantityBase: number;
+  updatedAt: string;
+  warehouse?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  area?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
 // Product entity for list endpoint
 export interface Product {
   id: string;
@@ -42,16 +81,21 @@ export interface Product {
   sku: string;
   barcode: string;
   categoryId: string;
-  status: 'active' | 'inactive' | 'discontinued';
-  taxType: 'GRAVADO' | 'EXONERADO' | 'INAFECTO';
-  priceCents: number;
+  status: 'active' | 'inactive' | 'discontinued' | 'draft' | 'archived';
+  taxType: 'GRAVADO' | 'EXONERADO' | 'INAFECTO' | 'GRATUITO';
+  costCents: number; // Changed from priceCents to costCents (cost of product)
+  priceCents?: number; // Deprecated - kept for backward compatibility
   currency: string;
   minStockAlert: number;
+  imageUrl?: string; // Main product image URL
+  imageUrls?: string[]; // Multiple product images
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-  category: Category;
-  presentations: ProductPresentation[];
+  category?: Category;
+  presentations?: ProductPresentation[];
+  salePrices?: ProductSalePrice[];
+  stockItems?: StockItem[];
 }
 
 // Product entity for detail endpoint (simplified)
@@ -61,6 +105,8 @@ export interface ProductDetail {
   sku: string;
   priceCentsBase: number;
   currency: string;
+  imageUrl?: string;
+  imageUrls?: string[];
   category: {
     id: string;
     name: string;
@@ -91,6 +137,7 @@ export interface ProductFilters {
   limit?: number;
   categoryId?: string;
   q?: string;
+  include?: string;
 }
 
 // Legacy interfaces for backward compatibility
@@ -135,7 +182,121 @@ export interface ReviewsResponse {
   averageRating: number;
 }
 
+// Create/Update product DTOs
+export interface CreateProductDto {
+  title: string;
+  description?: string;
+  sku: string;
+  barcode?: string;
+  categoryId?: string;
+  status: 'draft' | 'active' | 'archived';
+  taxType: 'GRAVADO' | 'EXONERADO' | 'INAFECTO' | 'GRATUITO';
+  costCents: number; // Cost of the product (base for price calculations)
+  currency?: string;
+  minStockAlert?: number;
+  presentations: {
+    presentationIdOrCode: string;
+    isBase: boolean;
+    factorToBase: number;
+    minOrderQty: number;
+    orderStep: number;
+  }[];
+  salePrices?: {
+    presentationIdOrCode: string;
+    profileIdOrCode: string;
+    priceCents: number;
+  }[];
+}
+
+export interface UpdateProductDto {
+  title?: string;
+  description?: string;
+  sku?: string;
+  barcode?: string;
+  categoryId?: string;
+  status?: 'draft' | 'active' | 'archived';
+  taxType?: 'GRAVADO' | 'EXONERADO' | 'INAFECTO' | 'GRATUITO';
+  costCents?: number; // Cost of the product
+  currency?: string;
+  minStockAlert?: number;
+  presentations?: {
+    presentationIdOrCode: string;
+    isBase: boolean;
+    factorToBase: number;
+    minOrderQty: number;
+    orderStep: number;
+  }[];
+  salePrices?: {
+    presentationIdOrCode: string;
+    profileIdOrCode: string;
+    priceCents: number;
+  }[];
+}
+
 export const productsApi = {
+  // ========== ADMIN ENDPOINTS (Require authentication and permissions) ==========
+
+  // Get all products (admin) - GET /admin/products
+  getAllProducts: async (filters?: ProductFilters): Promise<ProductListResponse> => {
+    const params = {
+      ...filters,
+      limit: filters?.limit || config.PAGINATION.DEFAULT_PAGE_SIZE,
+    };
+    return apiClient.get<ProductListResponse>('/admin/products', { params });
+  },
+
+  // Get product by ID (admin) - GET /admin/products/:id
+  getProductById: async (id: string): Promise<Product> => {
+    return apiClient.get<Product>(`/admin/products/${id}`);
+  },
+
+  // Get product by SKU (admin) - GET /admin/products/sku/:sku
+  getProductBySku: async (sku: string): Promise<Product> => {
+    return apiClient.get<Product>(`/admin/products/sku/${sku}`);
+  },
+
+  // Create product - POST /admin/products
+  createProduct: async (productData: CreateProductDto): Promise<Product> => {
+    return apiClient.post<Product>('/admin/products', productData);
+  },
+
+  // Update product - PATCH /admin/products/:id
+  updateProduct: async (id: string, productData: UpdateProductDto): Promise<Product> => {
+    return apiClient.patch<Product>(`/admin/products/${id}`, productData);
+  },
+
+  // Delete product (soft delete) - DELETE /admin/products/:id
+  deleteProduct: async (id: string): Promise<void> => {
+    return apiClient.delete<void>(`/admin/products/${id}`);
+  },
+
+  // ========== PRICE MANAGEMENT ENDPOINTS ==========
+
+  // Get all sale prices for a product - GET /admin/products/:id/sale-prices
+  getProductSalePrices: async (productId: string): Promise<any> => {
+    return apiClient.get<any>(`/admin/products/${productId}/sale-prices`);
+  },
+
+  // Update a specific sale price - PUT /admin/products/:id/sale-price
+  updateProductSalePrice: async (
+    productId: string,
+    priceData: {
+      productId: string;
+      presentationId?: string | null;
+      profileId: string;
+      priceCents: number;
+    }
+  ): Promise<any> => {
+    return apiClient.put<any>(`/admin/products/${productId}/sale-price`, priceData);
+  },
+
+  // Recalculate all non-overridden sale prices - POST /admin/products/:id/recalculate-prices
+  recalculateProductPrices: async (productId: string): Promise<any> => {
+    return apiClient.post<any>(`/admin/products/${productId}/recalculate-prices`, {});
+  },
+
+  // ========== PUBLIC ENDPOINTS (No authentication required) ==========
+
   // Get products list (GET /catalog/products)
   getProducts: async (filters?: ProductFilters): Promise<ProductListResponse> => {
     const params = {
@@ -186,6 +347,22 @@ export const productsApi = {
 
   getRelatedProducts: async (productId: string): Promise<Product[]> => {
     return apiClient.get<Product[]>(`/products/${productId}/related`);
+  },
+
+  // ========== PRODUCT IMAGES ENDPOINTS ==========
+
+  // Get product images - GET /files/products/:productId/images
+  getProductImages: async (productId: string): Promise<{
+    success: boolean;
+    productId: string;
+    count: number;
+    images: Array<{
+      filename: string;
+      url: string;
+      path: string;
+    }>;
+  }> => {
+    return apiClient.get(`/files/products/${productId}/images`);
   },
 };
 

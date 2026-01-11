@@ -12,7 +12,9 @@ import {
 } from '@expo-google-fonts/baloo-2';
 import { Navigation } from '@/navigation';
 import { useAuthStore } from '@/store/auth';
+import { useTenantStore } from '@/store/tenant';
 import { Loader } from '@/components/common/Loader';
+import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
 
 export const App = () => {
   const [fontsLoaded] = useFonts({
@@ -22,10 +24,31 @@ export const App = () => {
   });
 
   const { initAuth, isLoading: authLoading } = useAuthStore();
+  const { initTenantContext } = useTenantStore();
 
   useEffect(() => {
     const initialize = async () => {
-      await initAuth();
+      try {
+        // Set a timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.error('⏰ App initialization timeout - forcing loading to false');
+          // Force loading to false after 10 seconds
+          const { setLoading } = useAuthStore.getState();
+          setLoading(false);
+        }, 10000);
+
+        await Promise.all([
+          initAuth(),
+          initTenantContext(),
+        ]);
+
+        clearTimeout(timeoutId);
+      } catch (error) {
+        console.error('❌ App initialization error:', error);
+        // Ensure loading is set to false even if there's an error
+        const { setLoading } = useAuthStore.getState();
+        setLoading(false);
+      }
     };
 
     initialize();
@@ -36,10 +59,12 @@ export const App = () => {
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" />
-      <Navigation />
-    </SafeAreaProvider>
+    <GlobalErrorBoundary>
+      <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" />
+        <Navigation />
+      </SafeAreaProvider>
+    </GlobalErrorBoundary>
   );
 };
 

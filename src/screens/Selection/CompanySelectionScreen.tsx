@@ -1,0 +1,404 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthStore } from '@/store/auth';
+import { companiesApi, Company } from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { config } from '@/utils/config';
+
+interface CompanySelectionScreenProps {
+  navigation: any;
+}
+
+export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ navigation }) => {
+  const { user, logout, setCurrentCompany } = useAuthStore();
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadUserCompanies();
+  }, []);
+
+  const loadUserCompanies = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Usuario no autenticado');
+      logout();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const userCompanies = await companiesApi.getUserCompanies(user.id);
+
+      if (userCompanies.length === 0) {
+        Alert.alert(
+          'Sin Empresas',
+          'No tienes acceso a ninguna empresa. Contacta al administrador.',
+          [{ text: 'OK', onPress: logout }]
+        );
+        return;
+      }
+
+      setCompanies(userCompanies);
+
+      // If user has only one company, auto-select it and proceed to site selection
+      if (userCompanies.length === 1) {
+        await handleCompanySelect(userCompanies[0]);
+      }
+    } catch (error: any) {
+      console.error('Error loading companies:', error);
+      const errorMessage = error.response?.data?.message || 'No se pudieron cargar las empresas';
+      Alert.alert('Error', errorMessage, [
+        { text: 'Reintentar', onPress: loadUserCompanies },
+        { text: 'Cerrar Sesión', onPress: logout, style: 'destructive' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompanySelect = async (company: Company) => {
+    try {
+      setSelectedCompanyId(company.id);
+
+      // Prepare company data
+      const companyData = {
+        id: company.id,
+        name: company.name,
+        ruc: company.ruc,
+        isActive: company.isActive,
+      };
+
+      console.log('🏢 Seleccionando empresa:', companyData);
+
+      // Save selected company to AsyncStorage
+      await AsyncStorage.setItem(config.STORAGE_KEYS.CURRENT_COMPANY, JSON.stringify(companyData));
+
+      console.log('💾 Empresa guardada en AsyncStorage');
+
+      // Update the auth store with the selected company
+      setCurrentCompany(companyData);
+
+      console.log('✅ Empresa actualizada en store');
+
+      // Navigate to site selection
+      navigation.replace('SiteSelection', { companyId: company.id, companyName: company.name });
+    } catch (error) {
+      console.error('❌ Error selecting company:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la empresa');
+      setSelectedCompanyId(null);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que deseas cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: logout,
+        },
+      ]
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#667eea" />
+          <Text style={styles.loadingText}>Cargando empresas...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>🏢 Seleccionar Empresa</Text>
+          <Text style={styles.headerSubtitle}>
+            Hola, {user?.name || user?.email}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <Text style={styles.logoutButtonText}>Salir</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.infoCard}>
+          <Text style={styles.infoIcon}>ℹ️</Text>
+          <Text style={styles.infoText}>
+            Selecciona la empresa con la que deseas trabajar
+          </Text>
+        </View>
+
+        <View style={styles.companiesContainer}>
+          {companies.map((company) => (
+            <TouchableOpacity
+              key={company.id}
+              style={[
+                styles.companyCard,
+                selectedCompanyId === company.id && styles.companyCardSelected,
+              ]}
+              onPress={() => handleCompanySelect(company)}
+              activeOpacity={0.7}
+              disabled={selectedCompanyId === company.id}
+            >
+              <View style={styles.companyCardContent}>
+                <View style={styles.companyIconContainer}>
+                  <Text style={styles.companyIcon}>🏢</Text>
+                </View>
+                <View style={styles.companyInfo}>
+                  <Text style={styles.companyName}>{company.name}</Text>
+                  {company.ruc && (
+                    <Text style={styles.companyRuc}>RUC: {company.ruc}</Text>
+                  )}
+                  <View style={styles.companyFooter}>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        company.isActive ? styles.statusActive : styles.statusInactive,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.statusDot,
+                          company.isActive ? styles.statusDotActive : styles.statusDotInactive,
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.statusText,
+                          company.isActive ? styles.statusTextActive : styles.statusTextInactive,
+                        ]}
+                      >
+                        {company.isActive ? 'Activa' : 'Inactiva'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                {selectedCompanyId === company.id && (
+                  <View style={styles.loadingIndicator}>
+                    <ActivityIndicator size="small" color="#667eea" />
+                  </View>
+                )}
+              </View>
+              <View style={styles.arrowContainer}>
+                <Text style={styles.arrow}>→</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {companies.length} {companies.length === 1 ? 'empresa disponible' : 'empresas disponibles'}
+          </Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerContent: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  logoutButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+  },
+  logoutButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 15,
+    color: '#64748B',
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  infoCard: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  infoIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1E40AF',
+    lineHeight: 20,
+  },
+  companiesContainer: {
+    gap: 12,
+  },
+  companyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  companyCardSelected: {
+    borderColor: '#667eea',
+    backgroundColor: '#F5F7FF',
+  },
+  companyCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  companyIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  companyIcon: {
+    fontSize: 28,
+  },
+  companyInfo: {
+    flex: 1,
+  },
+  companyName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  companyRuc: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 8,
+    fontFamily: 'monospace',
+  },
+  companyFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  statusActive: {
+    backgroundColor: '#D1FAE5',
+  },
+  statusInactive: {
+    backgroundColor: '#FEE2E2',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  statusDotActive: {
+    backgroundColor: '#10B981',
+  },
+  statusDotInactive: {
+    backgroundColor: '#EF4444',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  statusTextActive: {
+    color: '#059669',
+  },
+  statusTextInactive: {
+    color: '#DC2626',
+  },
+  loadingIndicator: {
+    marginLeft: 12,
+  },
+  arrowContainer: {
+    marginTop: 12,
+    alignItems: 'flex-end',
+  },
+  arrow: {
+    fontSize: 24,
+    color: '#667eea',
+  },
+  footer: {
+    marginTop: 24,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+});
+
+export default CompanySelectionScreen;

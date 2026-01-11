@@ -13,6 +13,17 @@ import {
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { appsApi, CreateAppDto, AppType } from '@/services/api/apps';
 
+// Helper function to get app type labels
+const getAppTypeLabel = (type: AppType): string => {
+  const labels: Record<AppType, string> = {
+    [AppType.SALES]: '💰 Ventas',
+    [AppType.POS]: '🏪 Punto de Venta',
+    [AppType.ADMIN]: '⚙️ Administración',
+    [AppType.INTERNAL]: '🔧 Interno',
+  };
+  return labels[type] || type;
+};
+
 interface CreateAppModalProps {
   visible: boolean;
   onClose: () => void;
@@ -27,6 +38,7 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
   const [formData, setFormData] = useState<CreateAppDto>({
     code: '',
     name: '',
+    description: '',
     appType: AppType.INTERNAL,
     isActive: true,
   });
@@ -67,6 +79,7 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
       const appData: CreateAppDto = {
         code: formData.code.trim().toUpperCase(),
         name: formData.name.trim(),
+        description: formData.description?.trim() || undefined,
         appType: formData.appType,
         isActive: formData.isActive,
       };
@@ -99,6 +112,7 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
     setFormData({
       code: '',
       name: '',
+      description: '',
       appType: AppType.INTERNAL,
       isActive: true,
     });
@@ -160,6 +174,19 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
                 onChangeText={(value) => updateField('name', value)}
                 placeholder="Ej: Sistema de Ventas"
                 error={errors.name}
+              />
+            </View>
+
+            {/* Description */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Descripción</Text>
+              <FormTextInput
+                value={formData.description}
+                onChangeText={(value) => updateField('description', value)}
+                placeholder="Descripción de la aplicación (opcional)"
+                error={errors.description}
+                multiline
+                numberOfLines={3}
               />
             </View>
 
@@ -236,17 +263,6 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
       </View>
     </Modal>
   );
-};
-
-// Helper function to get app type labels
-const getAppTypeLabel = (type: AppType): string => {
-  const labels: Record<AppType, string> = {
-    [AppType.SALES]: '💰 Ventas',
-    [AppType.POS]: '🏪 Punto de Venta',
-    [AppType.ADMIN]: '⚙️ Administración',
-    [AppType.INTERNAL]: '🔧 Interno',
-  };
-  return labels[type] || type;
 };
 
 const styles = StyleSheet.create({

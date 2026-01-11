@@ -10,6 +10,7 @@ import {
   Modal,
   ActivityIndicator,
   Switch,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -24,9 +25,10 @@ import {
 } from '@/services/api/roles';
 import { ProtectedRoute, ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { usePermissions } from '@/hooks/usePermissions';
-import { BottomNavigation } from '@/components/Navigation/BottomNavigation';
-import { MainMenu } from '@/components/Menu/MainMenu';
+
 import { useAuthStore } from '@/store/auth';
+import { useMenuNavigation } from '@/hooks/useMenuNavigation';
+import { AddButton } from '@/components/Navigation/AddButton';
 
 interface RolesPermissionsScreenProps {
   navigation: any;
@@ -35,6 +37,7 @@ interface RolesPermissionsScreenProps {
 export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ navigation }) => {
   const { hasAnyPermission } = usePermissions();
   const { logout } = useAuthStore();
+  const navigateFromMenu = useMenuNavigation(navigation);
 
   // All useState hooks must be declared before any early returns to follow Rules of Hooks
   const [roles, setRoles] = useState<Role[]>([]);
@@ -64,6 +67,8 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
 
 
   const [roleSearchQuery, setRoleSearchQuery] = useState('');
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   // Bottom navigation states
   const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -271,22 +276,32 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
       // Ensure selectedPermissions is an array before filtering
       const selectedPermsArray = Array.isArray(selectedPermissions) ? selectedPermissions : [];
 
-      // Calcular permisos a agregar y a quitar
+      // Calcular cambios para mostrar al usuario
       const toAdd = selectedPermsArray.filter(p => !currentPerms.includes(p));
       const toRemove = currentPerms.filter(p => !selectedPermsArray.includes(p));
 
-      // Realizar cambios
-      if (toAdd.length > 0) {
-        await rolePermissionsApi.assignPermissionsToRole(selectedRole.id, toAdd);
-      }
-      if (toRemove.length > 0) {
-        await rolePermissionsApi.revokePermissionsFromRole(selectedRole.id, toRemove);
+      console.log('🔄 Actualizando permisos del rol:', selectedRole.name);
+      console.log('  📊 Permisos actuales:', currentPerms.length);
+      console.log('  ✅ Permisos seleccionados:', selectedPermsArray.length);
+      console.log('  ➕ Nuevos:', toAdd.length);
+      console.log('  ➖ A eliminar:', toRemove.length);
+
+      // En lugar de usar DELETE (que no existe en el backend),
+      // usamos PUT para reemplazar TODOS los permisos
+      if (selectedPermsArray.length > 0) {
+        await rolePermissionsApi.assignPermissionsToRole(selectedRole.id, selectedPermsArray);
+        console.log('✅ Permisos actualizados correctamente');
+      } else {
+        // Si no hay permisos seleccionados, enviar array vacío
+        await rolePermissionsApi.assignPermissionsToRole(selectedRole.id, []);
+        console.log('✅ Todos los permisos eliminados');
       }
 
       Alert.alert('Éxito', 'Permisos del rol actualizados correctamente');
       setShowRolePermissionsModal(false);
       resetForm();
     } catch (error: any) {
+      console.error('❌ Error al actualizar permisos:', error);
       Alert.alert('Error', error.message);
     } finally {
       setIsUpdatingPermissions(false);
@@ -310,25 +325,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
 
   const handleMenuSelect = (menuId: string) => {
     setIsMenuVisible(false);
-    switch (menuId) {
-      case 'roles-permisos':
-        // Ya estamos en roles y permisos
-        break;
-      case 'usuarios':
-        navigation.navigate('Users');
-        break;
-      case 'gestion-apps':
-        navigation.navigate('Apps');
-        break;
-      case 'sedes':
-        navigation.navigate('Sites');
-        break;
-      case 'debug-permissions':
-        navigation.navigate('PermissionsDebug');
-        break;
-      default:
-        break;
-    }
+    navigateFromMenu(menuId);
   };
 
   const handleLogout = async () => {
@@ -587,20 +584,10 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Roles y Permisos</Text>
-          <ProtectedElement requiredPermissions={['roles.create']}>
-            <TouchableOpacity
-              onPress={async () => {
-                await loadPermissions();
-                setShowCreateModal(true);
-              }}
-              style={styles.addButton}
-            >
-              <Text style={styles.addButtonText}>+ Nuevo Rol</Text>
-            </TouchableOpacity>
-          </ProtectedElement>
+          <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={[styles.content, isLandscape && styles.contentLandscape]} showsVerticalScrollIndicator={false}>
           {/* Roles Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Roles Existentes</Text>
@@ -636,23 +623,6 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
 
 
         </ScrollView>
-
-        {/* Bottom Navigation */}
-        <BottomNavigation
-          onChatPress={handleChatPress}
-          onNotificationsPress={handleNotificationsPress}
-          onMenuPress={handleMenuToggle}
-          chatBadge={chatBadge}
-          notificationsBadge={notificationsBadge}
-        />
-
-        {/* Main Menu */}
-        <MainMenu
-          isVisible={isMenuVisible}
-          onClose={handleMenuClose}
-          onMenuSelect={handleMenuSelect}
-          onLogout={handleLogout}
-        />
 
         {/* Create Role Modal */}
         <Modal
@@ -809,6 +779,17 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
             </ScrollView>
           </SafeAreaView>
         </Modal>
+
+        {/* Add Button */}
+        <ProtectedElement requiredPermissions={['roles.create']}>
+          <AddButton
+            onPress={async () => {
+              await loadPermissions();
+              setShowCreateModal(true);
+            }}
+            icon="🔐"
+          />
+        </ProtectedElement>
       </SafeAreaView>
     </ProtectedRoute>
   );
@@ -847,20 +828,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F2937',
   },
-  addButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#4F46E5',
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+  headerSpacer: {
+    width: 40,
   },
   content: {
     flex: 1,
     padding: 20,
+    paddingBottom: 100,
+  },
+  contentLandscape: {
+    paddingBottom: 70,
   },
   section: {
     marginBottom: 32,

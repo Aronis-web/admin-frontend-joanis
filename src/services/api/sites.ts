@@ -11,9 +11,11 @@ import {
 export const sitesApi = {
   /**
    * Get sites with pagination and filtering
+   * Supports multi-tenancy via companyId parameter or X-Company-Id header
    */
   async getSites(params: GetSitesParams = {}): Promise<SitesResponse> {
     const {
+      companyId,
       q,
       isActive,
       district,
@@ -31,6 +33,10 @@ export const sitesApi = {
       orderBy,
       orderDir,
     });
+
+    if (companyId) {
+      queryParams.append('companyId', companyId);
+    }
 
     if (q) {
       queryParams.append('q', q);
@@ -103,9 +109,10 @@ export const sitesApi = {
 
   /**
    * Get all active sites (helper method)
+   * Optionally filter by company
    */
-  async getActiveSites(): Promise<Site[]> {
-    const response = await this.getSites({ isActive: true, limit: 100 });
+  async getActiveSites(companyId?: string): Promise<Site[]> {
+    const response = await this.getSites({ companyId, isActive: true, limit: 100 });
     return response.data;
   },
 
@@ -117,5 +124,8 @@ export const sitesApi = {
     return response.data;
   },
 };
+
+// Alias for backward compatibility
+export const sitesService = sitesApi;
 
 export default sitesApi;

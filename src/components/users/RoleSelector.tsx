@@ -30,6 +30,10 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
     loadRoles();
   }, []);
 
+  useEffect(() => {
+    console.log('RoleSelector - selectedRoleIds changed:', selectedRoleIds);
+  }, [selectedRoleIds]);
+
   const loadRoles = async () => {
     try {
       setLoading(true);

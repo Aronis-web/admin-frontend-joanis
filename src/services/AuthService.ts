@@ -5,7 +5,8 @@ import {
   LoginResponse,
   RefreshTokenResponse,
   User,
-  AuthError
+  AuthError,
+  AuthErrorData
 } from '@/types/auth';
 
 /**
@@ -44,6 +45,37 @@ class AuthService {
       }
 
       const data: LoginResponse = await response.json();
+
+      // If user doesn't have permissions, fetch them
+      if (data.user && (!data.user.permissions || data.user.permissions.length === 0)) {
+        try {
+          console.log('Fetching user permissions after login...');
+          const permissionsResponse = await fetch(
+            `${this.baseUrl}/iam/users/${data.user.id}/effective-permissions`,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${data.accessToken}`,
+                'X-App-Id': this.appId,
+              },
+            }
+          );
+
+          if (permissionsResponse.ok) {
+            const permissions = await permissionsResponse.json();
+            if (Array.isArray(permissions)) {
+              data.user.permissions = permissions;
+              console.log('User permissions loaded:', permissions.length, 'permissions');
+            }
+          } else {
+            console.warn('Failed to fetch permissions:', permissionsResponse.status);
+            data.user.permissions = [];
+          }
+        } catch (permError) {
+          console.warn('Error fetching permissions during login:', permError);
+          data.user.permissions = [];
+        }
+      }
 
       // Store tokens and user data
       await this.storeAuthData(data);
@@ -310,7 +342,7 @@ class AuthService {
    * Create standardized auth error
    */
   private createAuthError(status: number, message: string): AuthError {
-    let code: AuthError['code'] = 'SERVER_ERROR';
+    let code: AuthErrorData['code'] = 'SERVER_ERROR';
 
     switch (status) {
       case 400:
@@ -327,11 +359,7 @@ class AuthService {
         break;
     }
 
-    return {
-      code,
-      message,
-      status,
-    };
+    return new AuthError(code, message, status);
   }
 }
 

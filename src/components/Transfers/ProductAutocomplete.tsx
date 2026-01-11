@@ -1,0 +1,276 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
+import { Product } from '@/services/api/products';
+
+interface ProductAutocompleteProps {
+  products: Product[];
+  selectedProductId: string;
+  warehouseId?: string;
+  onSelectProduct: (product: Product) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
+  products,
+  selectedProductId,
+  warehouseId,
+  onSelectProduct,
+  placeholder = 'Buscar producto...',
+  disabled = false,
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+
+  const selectedProduct = products.find((p) => p.id === selectedProductId);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredProducts([]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = products.filter(
+      (product) =>
+        product.title.toLowerCase().includes(query) ||
+        product.sku.toLowerCase().includes(query) ||
+        product.barcode?.toLowerCase().includes(query)
+    );
+
+    setFilteredProducts(filtered.slice(0, 10)); // Limit to 10 results
+  }, [searchQuery, products]);
+
+  const handleSelectProduct = (product: Product) => {
+    onSelectProduct(product);
+    setSearchQuery('');
+    setShowDropdown(false);
+  };
+
+  const getProductStock = (product: Product): number => {
+    if (!warehouseId || !product.stockItems) {
+      return 0;
+    }
+
+    const stockItem = product.stockItems.find((item) => item.warehouseId === warehouseId);
+    return stockItem?.quantityBase || 0;
+  };
+
+  return (
+    <View style={styles.container}>
+      {selectedProduct ? (
+        <View style={styles.selectedContainer}>
+          <View style={styles.selectedInfo}>
+            <Text style={styles.selectedTitle} numberOfLines={1}>
+              {selectedProduct.title}
+            </Text>
+            <Text style={styles.selectedSku}>SKU: {selectedProduct.sku}</Text>
+            {warehouseId && (
+              <Text style={styles.selectedStock}>
+                Stock disponible: {getProductStock(selectedProduct).toFixed(2)}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={() => onSelectProduct({ id: '' } as Product)}
+            style={styles.clearButton}
+            disabled={disabled}
+          >
+            <Text style={styles.clearButtonText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <TextInput
+            style={[styles.input, disabled && styles.inputDisabled]}
+            placeholder={placeholder}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => setShowDropdown(true)}
+            editable={!disabled}
+            placeholderTextColor="#94A3B8"
+          />
+
+          {showDropdown && filteredProducts.length > 0 && (
+            <View style={styles.dropdown}>
+              <ScrollView
+                style={styles.dropdownList}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled={true}
+              >
+                {filteredProducts.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.dropdownItem}
+                    onPress={() => handleSelectProduct(item)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.productInfo}>
+                      <Text style={styles.productTitle} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.productSku}>SKU: {item.sku}</Text>
+                    </View>
+                    <View style={styles.stockInfo}>
+                      <Text style={[styles.stockText, getProductStock(item) === 0 && styles.stockTextZero]}>
+                        Stock: {getProductStock(item).toFixed(2)}
+                      </Text>
+                      {getProductStock(item) === 0 && <Text style={styles.noStockBadge}>Sin stock</Text>}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {showDropdown && searchQuery.trim() !== '' && filteredProducts.length === 0 && (
+            <View style={styles.dropdown}>
+              <Text style={styles.noResultsText}>No se encontraron productos</Text>
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'relative',
+    zIndex: 1,
+  },
+  input: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#1E293B',
+  },
+  inputDisabled: {
+    backgroundColor: '#F1F5F9',
+    color: '#94A3B8',
+  },
+  selectedContainer: {
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectedInfo: {
+    flex: 1,
+  },
+  selectedTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0C4A6E',
+    marginBottom: 2,
+  },
+  selectedSku: {
+    fontSize: 12,
+    color: '#0369A1',
+    marginBottom: 2,
+  },
+  selectedStock: {
+    fontSize: 12,
+    color: '#0284C7',
+    fontWeight: '500',
+  },
+  clearButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  clearButtonText: {
+    fontSize: 16,
+    color: '#0369A1',
+    fontWeight: 'bold',
+  },
+  dropdown: {
+    position: 'absolute',
+    top: 48,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    maxHeight: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1000,
+  },
+  dropdownList: {
+    maxHeight: 250,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  productInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  productTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  productSku: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  stockInfo: {
+    alignItems: 'flex-end',
+  },
+  stockText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  stockTextZero: {
+    color: '#EF4444',
+  },
+  noStockBadge: {
+    fontSize: 10,
+    color: '#EF4444',
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 2,
+  },
+  noResultsText: {
+    padding: 16,
+    textAlign: 'center',
+    color: '#64748B',
+    fontSize: 14,
+  },
+});

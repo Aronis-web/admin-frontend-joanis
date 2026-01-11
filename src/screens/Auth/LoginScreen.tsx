@@ -9,15 +9,25 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
 
-export const LoginScreen = () => {
+interface LoginScreenProps {
+  navigation: any;
+}
+
+export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { width, height } = useWindowDimensions();
 
-  const { login, isLoading, error, isAuthenticated } = useAuthStore();
+  const { loginWithCredentials, isLoading, error, isAuthenticated } = useAuthStore();
+
+  // Determine if device is tablet based on width (works for both portrait and landscape)
+  const isTablet = width >= 768 || height >= 768;
+  const isLandscape = width > height;
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -26,12 +36,14 @@ export const LoginScreen = () => {
     }
 
     try {
-      const success = await login(email, password);
+      const success = await loginWithCredentials(email, password);
 
       if (!success) {
         Alert.alert('Error', error || 'Credenciales incorrectas');
       }
       // La navegación se maneja automáticamente por el cambio de estado de autenticación
+      // El Navigation component detectará que isAuthenticated=true pero no hay company/site
+      // y mostrará el AuthStack con la pantalla de CompanySelection
     } catch (error) {
       Alert.alert('Error', 'No se pudo conectar al servidor');
     }
@@ -49,23 +61,55 @@ export const LoginScreen = () => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.content}>
-          <View style={styles.header}>
+        <View style={[
+          styles.content,
+          isTablet && styles.contentTablet,
+          isTablet && isLandscape && styles.contentTabletLandscape
+        ]}>
+          <View style={[styles.header, isTablet && isLandscape && styles.headerLandscape]}>
             <View style={styles.logoContainer}>
-              <View style={styles.logoInner}>
-                <Text style={styles.logo}>PG</Text>
+              <View style={[
+                styles.logoInner,
+                isTablet && styles.logoInnerTablet,
+                isTablet && isLandscape && styles.logoInnerLandscape
+              ]}>
+                <Text style={[
+                  styles.logo,
+                  isTablet && styles.logoTablet,
+                  isTablet && isLandscape && styles.logoLandscape
+                ]}>PG</Text>
               </View>
             </View>
-            <Text style={styles.title}>Bienvenido</Text>
-            <Text style={styles.subtitle}>Inicia sesión para acceder a tu panel</Text>
+            <Text style={[
+              styles.title,
+              isTablet && styles.titleTablet,
+              isTablet && isLandscape && styles.titleLandscape
+            ]}>Bienvenido</Text>
+            <Text style={[
+              styles.subtitle,
+              isTablet && styles.subtitleTablet,
+              isTablet && isLandscape && styles.subtitleLandscape
+            ]}>Inicia sesión para acceder a tu panel</Text>
           </View>
 
-          <View style={styles.form}>
+          <View style={[
+            styles.form,
+            isTablet && styles.formTablet,
+            isTablet && isLandscape && styles.formLandscape
+          ]}>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Correo electrónico</Text>
-              <View style={styles.inputWrapper}>
+              <Text style={[styles.inputLabel, isTablet && styles.inputLabelTablet]}>Correo electrónico</Text>
+              <View style={[
+                styles.inputWrapper,
+                isTablet && styles.inputWrapperTablet,
+                isTablet && isLandscape && styles.inputWrapperLandscape
+              ]}>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    isTablet && styles.inputTablet,
+                    isTablet && isLandscape && styles.inputLandscape
+                  ]}
                   placeholder="correo@empresa.com"
                   placeholderTextColor="#94A3B8"
                   value={email}
@@ -78,10 +122,18 @@ export const LoginScreen = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Contraseña</Text>
-              <View style={styles.inputWrapper}>
+              <Text style={[styles.inputLabel, isTablet && styles.inputLabelTablet]}>Contraseña</Text>
+              <View style={[
+                styles.inputWrapper,
+                isTablet && styles.inputWrapperTablet,
+                isTablet && isLandscape && styles.inputWrapperLandscape
+              ]}>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    isTablet && styles.inputTablet,
+                    isTablet && isLandscape && styles.inputLandscape
+                  ]}
                   placeholder="Ingresa tu contraseña"
                   placeholderTextColor="#94A3B8"
                   value={password}
@@ -93,7 +145,12 @@ export const LoginScreen = () => {
             </View>
 
             <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
+              style={[
+                styles.button,
+                isLoading && styles.buttonDisabled,
+                isTablet && styles.buttonTablet,
+                isTablet && isLandscape && styles.buttonLandscape
+              ]}
               onPress={handleLogin}
               disabled={isLoading}
               activeOpacity={0.9}
@@ -102,14 +159,14 @@ export const LoginScreen = () => {
                 {isLoading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.buttonText}>Iniciar Sesión</Text>
+                  <Text style={[styles.buttonText, isTablet && styles.buttonTextTablet]}>Iniciar Sesión</Text>
                 )}
               </View>
             </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>© 2024 Panel Admin Grit</Text>
+            <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>© 2024 Panel Admin Grit</Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -271,6 +328,92 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94A3B8',
     fontWeight: '500',
+  },
+  // Tablet-specific styles
+  contentTablet: {
+    maxWidth: 500,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  logoInnerTablet: {
+    width: 100,
+    height: 100,
+    borderRadius: 28,
+  },
+  logoTablet: {
+    fontSize: 40,
+  },
+  titleTablet: {
+    fontSize: 38,
+  },
+  subtitleTablet: {
+    fontSize: 18,
+  },
+  formTablet: {
+    marginBottom: 48,
+  },
+  inputLabelTablet: {
+    fontSize: 16,
+  },
+  inputWrapperTablet: {
+    borderRadius: 14,
+  },
+  inputTablet: {
+    height: 60,
+    fontSize: 18,
+    paddingHorizontal: 20,
+  },
+  buttonTablet: {
+    height: 60,
+    borderRadius: 14,
+  },
+  buttonTextTablet: {
+    fontSize: 18,
+  },
+  footerTextTablet: {
+    fontSize: 14,
+  },
+  // Landscape-specific styles for tablets
+  contentTabletLandscape: {
+    maxWidth: 700,
+    paddingVertical: 10,
+    justifyContent: 'center',
+  },
+  headerLandscape: {
+    marginBottom: 12,
+    paddingTop: 0,
+  },
+  logoInnerLandscape: {
+    width: 70,
+    height: 70,
+    borderRadius: 20,
+  },
+  logoLandscape: {
+    fontSize: 30,
+  },
+  titleLandscape: {
+    fontSize: 28,
+    marginTop: 12,
+  },
+  subtitleLandscape: {
+    fontSize: 15,
+    marginTop: 6,
+  },
+  formLandscape: {
+    marginBottom: 20,
+  },
+  inputWrapperLandscape: {
+    borderRadius: 12,
+  },
+  inputLandscape: {
+    height: 50,
+    fontSize: 16,
+    paddingHorizontal: 18,
+  },
+  buttonLandscape: {
+    height: 50,
+    borderRadius: 12,
+    marginTop: 16,
   },
 });
 

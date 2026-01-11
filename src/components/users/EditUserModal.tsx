@@ -36,25 +36,39 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     roleIds: [],
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof UpdateUserRequest, string>>>({});
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
+
+  const [errors, setErrors] = useState<Partial<Record<keyof UpdateUserRequest | 'password' | 'confirmPassword', string>>>({});
   const [loading, setLoading] = useState(false);
 
-  // Initialize form data when user changes
+  // Initialize form data when user changes or modal becomes visible
   useEffect(() => {
-    if (user) {
+    if (user && visible) {
+      console.log('EditUserModal - Initializing form with user:', user);
+      console.log('EditUserModal - User roles:', user.roles);
+      const roleIds = user.roles ? user.roles.map(role => role.id) : [];
+      console.log('EditUserModal - Extracted roleIds:', roleIds);
+
       setFormData({
         username: user.username || '',
         email: user.email || '',
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         is_active: user.is_active !== undefined ? user.is_active : user.status === 'active',
-        roleIds: user.roles ? user.roles.map(role => role.id) : [],
+        roleIds: roleIds,
       });
+      
+      // Reset password fields
+      setPassword('');
+      setConfirmPassword('');
+      setShowPasswordFields(false);
     }
-  }, [user]);
+  }, [user, visible]);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof UpdateUserRequest, string>> = {};
+    const newErrors: Partial<Record<keyof UpdateUserRequest | 'password' | 'confirmPassword', string>> = {};
 
     // Username validation (optional but if provided must be valid)
     if (formData.username && formData.username.trim().length > 0 && formData.username.trim().length < 3) {
@@ -65,6 +79,21 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     if (formData.email && formData.email.trim().length > 0) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
         newErrors.email = 'El email no es válido';
+      }
+    }
+
+    // Password validation (only if changing password)
+    if (showPasswordFields) {
+      if (!password || password.trim().length === 0) {
+        newErrors.password = 'La contraseña es requerida';
+      } else if (password.length < 6) {
+        newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+      }
+
+      if (!confirmPassword || confirmPassword.trim().length === 0) {
+        newErrors.confirmPassword = 'Debes confirmar la contraseña';
+      } else if (password !== confirmPassword) {
+        newErrors.confirmPassword = 'Las contraseñas no coinciden';
       }
     }
 
@@ -108,6 +137,11 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         userData.roleIds = formData.roleIds;
       }
 
+      // Send password if changing
+      if (showPasswordFields && password.trim()) {
+        userData.password = password.trim();
+      }
+
       await usersApi.updateUser(user.id, userData);
 
       Alert.alert(
@@ -134,6 +168,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
   const handleClose = () => {
     setErrors({});
+    setPassword('');
+    setConfirmPassword('');
+    setShowPasswordFields(false);
     onClose();
   };
 
@@ -221,6 +258,61 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               onChangeText={(text) => updateField('last_name', text)}
               editable={!loading}
             />
+
+            {/* Password Section */}
+            <View style={styles.passwordSection}>
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowPasswordFields(!showPasswordFields)}
+                disabled={loading}
+              >
+                <Text style={styles.passwordToggleText}>
+                  {showPasswordFields ? '🔒 Cancelar cambio de contraseña' : '🔑 Cambiar contraseña'}
+                </Text>
+              </TouchableOpacity>
+
+              {showPasswordFields && (
+                <View style={styles.passwordFields}>
+                  <FormTextInput
+                    label="Nueva Contraseña"
+                    placeholder="Mínimo 6 caracteres"
+                    value={password}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      if (errors.password) {
+                        setErrors(prev => ({ ...prev, password: undefined }));
+                      }
+                    }}
+                    error={errors.password}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+
+                  <FormTextInput
+                    label="Confirmar Contraseña"
+                    placeholder="Repite la contraseña"
+                    value={confirmPassword}
+                    onChangeText={(text) => {
+                      setConfirmPassword(text);
+                      if (errors.confirmPassword) {
+                        setErrors(prev => ({ ...prev, confirmPassword: undefined }));
+                      }
+                    }}
+                    error={errors.confirmPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+
+                  <View style={styles.passwordWarning}>
+                    <Text style={styles.passwordWarningText}>
+                      ⚠️ El usuario deberá usar esta nueva contraseña en su próximo inicio de sesión
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
 
             <View style={styles.switchContainer}>
               <View style={styles.switchLabelContainer}>
@@ -419,6 +511,38 @@ const styles = StyleSheet.create({
     borderColor: '#FDE68A',
   },
   rolesWarningText: {
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
+  },
+  passwordSection: {
+    marginBottom: 16,
+  },
+  passwordToggle: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  passwordToggleText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  passwordFields: {
+    marginTop: 12,
+  },
+  passwordWarning: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  passwordWarningText: {
     fontSize: 13,
     color: '#92400E',
     lineHeight: 18,

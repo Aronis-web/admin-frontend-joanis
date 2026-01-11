@@ -324,23 +324,34 @@ export const rolePermissionsApi = {
     }
   },
 
-  // Asignar permisos a un rol
+  // Asignar permisos a un rol (reemplaza todos los permisos existentes)
   assignPermissionsToRole: async (roleId: string, permissionKeys: string[]): Promise<void> => {
     try {
-      // Validar que el array no esté vacío
-      if (!permissionKeys || permissionKeys.length === 0) {
-        throw new Error('La lista de permisos no puede estar vacía');
+      // Permitir array vacío para eliminar todos los permisos
+      if (!Array.isArray(permissionKeys)) {
+        throw new Error('La lista de permisos debe ser un array');
       }
 
-      // Validar que todos los elementos sean strings
-      if (!permissionKeys.every(key => typeof key === 'string' && key.trim().length > 0)) {
-        throw new Error('Todos los permisos deben ser strings válidos');
-      }
+      // Filtrar y validar permisos
+      const validPermissions = permissionKeys.filter(key =>
+        typeof key === 'string' && key.trim().length > 0
+      );
 
-      await apiClient.put(`/iam/roles/${roleId}/permissions`, {
-        permissionKeys: permissionKeys.filter(key => key.trim().length > 0)
+      console.log('📤 Enviando permisos al backend:', {
+        roleId,
+        count: validPermissions.length,
+        permissions: validPermissions
       });
+
+      // PUT reemplaza todos los permisos del rol
+      await apiClient.put(`/iam/roles/${roleId}/permissions`, {
+        permissionKeys: validPermissions
+      });
+
+      console.log('✅ Permisos asignados correctamente al rol');
     } catch (error: any) {
+      console.error('❌ Error al asignar permisos:', error);
+
       if (error.response?.status === 403) {
         throw new Error('No tienes permisos para asignar permisos a este rol (roles.assign requerido)');
       }
@@ -361,8 +372,20 @@ export const rolePermissionsApi = {
     }
   },
 
-  // Revocar permisos de un rol
+  // ⚠️ DEPRECADO: Este endpoint no existe en el backend
+  // En su lugar, usa assignPermissionsToRole con todos los permisos que quieres mantener
+  // El método PUT reemplaza todos los permisos del rol
   revokePermissionsFromRole: async (roleId: string, permissionKeys: string[]): Promise<void> => {
+    console.warn('⚠️ revokePermissionsFromRole está deprecado. El backend no soporta DELETE /iam/roles/{roleId}/permissions');
+    console.warn('💡 Usa assignPermissionsToRole con todos los permisos que quieres mantener');
+
+    throw new Error(
+      'Este método está deprecado. El backend no soporta la eliminación individual de permisos. ' +
+      'Usa assignPermissionsToRole con todos los permisos que deseas mantener.'
+    );
+
+    // Código original comentado para referencia
+    /*
     try {
       await apiClient.delete(`/iam/roles/${roleId}/permissions`, { data: { permissionKeys } });
     } catch (error: any) {
@@ -377,6 +400,7 @@ export const rolePermissionsApi = {
       }
       throw new Error('Error al revocar permisos del rol. Inténtalo nuevamente');
     }
+    */
   },
 };
 

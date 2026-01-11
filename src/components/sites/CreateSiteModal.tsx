@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,14 +18,17 @@ interface CreateSiteModalProps {
   visible: boolean;
   onClose: () => void;
   onSiteCreated: () => void;
+  companyId: string; // Required company ID - sites must belong to a company
 }
 
 export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
   visible,
   onClose,
   onSiteCreated,
+  companyId,
 }) => {
   const [formData, setFormData] = useState<CreateSiteRequest>({
+    companyId: companyId, // Required - sites must belong to a company
     code: '',
     name: '',
     isActive: true,
@@ -46,8 +49,22 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
+  // Update companyId when prop changes
+  useEffect(() => {
+    if (companyId) {
+      setFormData(prev => ({ ...prev, companyId }));
+    }
+  }, [companyId]);
+
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof CreateSiteRequest, string>> = {};
+
+    // Company ID validation (required for multi-tenancy)
+    if (!formData.companyId || !formData.companyId.trim()) {
+      newErrors.companyId = 'El ID de la empresa es requerido';
+      Alert.alert('Error', 'Debe seleccionar una empresa antes de crear una sede');
+      return false;
+    }
 
     // Code validation
     if (!formData.code.trim()) {
@@ -94,6 +111,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
     try {
       // Prepare data - only send non-empty optional fields
       const siteData: CreateSiteRequest = {
+        companyId: formData.companyId.trim(), // Required for multi-tenancy
         code: formData.code.trim().toUpperCase(),
         name: formData.name.trim(),
         isActive: formData.isActive,
@@ -169,6 +187,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
 
   const handleClose = () => {
     setFormData({
+      companyId: companyId, // Reset to initial companyId (required)
       code: '',
       name: '',
       isActive: true,

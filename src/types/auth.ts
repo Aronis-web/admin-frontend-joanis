@@ -4,15 +4,18 @@ export interface Role {
   id: string;
   code: string;
   name: string;
+  description?: string;
 }
 
 export interface User {
   id: string;
   email: string;
-  username: string;
+  username?: string;
   name: string;
-  roles: Role[];
-  permissions: string[];
+  phone?: string;
+  avatar?: string;
+  roles?: Role[];
+  permissions?: string[];
 }
 
 export interface LoginRequest {
@@ -37,10 +40,27 @@ export interface RefreshTokenResponse {
   refreshToken: string;
 }
 
-export interface AuthError {
+export interface AuthErrorData {
   code: 'INVALID_CREDENTIALS' | 'TOKEN_EXPIRED' | 'TOKEN_INVALID' | 'NETWORK_ERROR' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'SERVER_ERROR';
   message: string;
   status?: number;
+}
+
+export class AuthError extends Error {
+  code: AuthErrorData['code'];
+  status?: number;
+
+  constructor(code: AuthErrorData['code'], message: string, status?: number) {
+    super(message);
+    this.name = 'AuthError';
+    this.code = code;
+    this.status = status;
+
+    // Maintains proper stack trace for where our error was thrown (only available on V8)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, AuthError);
+    }
+  }
 }
 
 export interface AuthState {

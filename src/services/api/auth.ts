@@ -28,7 +28,25 @@ export interface RefreshTokenResponse {
 
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
-    return apiClient.post<AuthResponse>('/auth/login', credentials);
+    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+
+    // If user doesn't have permissions array, fetch them
+    if (response.user && (!response.user.permissions || response.user.permissions.length === 0)) {
+      try {
+        // Import userPermissionsApi to get effective permissions
+        const { userPermissionsApi } = await import('./roles');
+        const effectivePermissions = await userPermissionsApi.getUserEffectivePermissions(response.user.id);
+
+        // Add permissions to user object
+        response.user.permissions = effectivePermissions;
+      } catch (error) {
+        console.warn('Failed to fetch user permissions during login:', error);
+        // Set empty array to avoid undefined
+        response.user.permissions = [];
+      }
+    }
+
+    return response;
   },
 
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
@@ -45,7 +63,25 @@ export const authApi = {
 
   getCurrentUser: async (): Promise<User> => {
     console.log('Testing /auth/me endpoint with current token...');
-    return apiClient.get<User>('/auth/me');
+    const user = await apiClient.get<User>('/auth/me');
+
+    // If user doesn't have permissions array, fetch them
+    if (user && (!user.permissions || user.permissions.length === 0)) {
+      try {
+        // Import userPermissionsApi to get effective permissions
+        const { userPermissionsApi } = await import('./roles');
+        const effectivePermissions = await userPermissionsApi.getUserEffectivePermissions(user.id);
+
+        // Add permissions to user object
+        user.permissions = effectivePermissions;
+      } catch (error) {
+        console.warn('Failed to fetch user permissions for current user:', error);
+        // Set empty array to avoid undefined
+        user.permissions = [];
+      }
+    }
+
+    return user;
   },
 
   updateProfile: async (data: Partial<User>): Promise<User> => {

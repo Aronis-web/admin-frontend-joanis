@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
@@ -18,8 +19,11 @@ import { AppType } from '@/services/api/apps';
 import { CreateAppModal } from '@/components/apps/CreateAppModal';
 import { AppDetailModal } from '@/components/apps/AppDetailModal';
 import { EditAppModal } from '@/components/apps/EditAppModal';
+import { ScopesManagementModal } from '@/components/apps/ScopesManagementModal';
+import { PermissionsManagementModal } from '@/components/apps/PermissionsManagementModal';
+import { UsersManagementModal } from '@/components/apps/UsersManagementModal';
 import { BottomNavigation } from '@/components/Navigation/BottomNavigation';
-import { MainMenu } from '@/components/Menu/MainMenu';
+import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 
 interface AppsScreenProps {
   navigation: any;
@@ -35,6 +39,9 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showScopesModal, setShowScopesModal] = useState(false);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [showUsersModal, setShowUsersModal] = useState(false);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -45,6 +52,8 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [chatBadge] = useState(3);
   const [notificationsBadge] = useState(7);
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   useEffect(() => {
     loadApps();
@@ -109,6 +118,21 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
     setShowEditModal(true);
   };
 
+  const handleManageScopes = () => {
+    setShowDetailModal(false);
+    setShowScopesModal(true);
+  };
+
+  const handleManagePermissions = () => {
+    setShowDetailModal(false);
+    setShowPermissionsModal(true);
+  };
+
+  const handleManageUsers = () => {
+    setShowDetailModal(false);
+    setShowUsersModal(true);
+  };
+
   const handleDelete = () => {
     if (!selectedApp) return;
 
@@ -149,27 +173,12 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
     setIsMenuVisible(false);
   };
 
+  // Use the shared navigation hook for consistent menu navigation
+  const navigateFromMenu = useMenuNavigation(navigation);
+
   const handleMenuSelect = (menuId: string) => {
     setIsMenuVisible(false);
-    switch (menuId) {
-      case 'roles-permisos':
-        navigation.navigate('RolesPermissions');
-        break;
-      case 'usuarios':
-        navigation.navigate('Users');
-        break;
-      case 'gestion-apps':
-        // Ya estamos en gestión de apps
-        break;
-      case 'sedes':
-        navigation.navigate('Sites');
-        break;
-      case 'debug-permissions':
-        navigation.navigate('PermissionsDebug');
-        break;
-      default:
-        console.log('Menu item selected:', menuId);
-    }
+    navigateFromMenu(menuId);
   };
 
   const handleLogout = async () => {
@@ -298,7 +307,7 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
 
       {/* Content */}
       <ScrollView
-        style={styles.content}
+        style={[styles.content, isLandscape && styles.contentLandscape]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
@@ -329,7 +338,7 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
       </ScrollView>
 
       {/* Floating Action Button */}
-      <ProtectedElement requiredPermissions={['settings.read']}>
+      <ProtectedElement requiredPermissions={['apps.manage']}>
         <TouchableOpacity
           style={styles.fab}
           onPress={() => setShowCreateModal(true)}
@@ -338,21 +347,6 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
           <Text style={styles.fabIcon}>+</Text>
         </TouchableOpacity>
       </ProtectedElement>
-
-      {/* Bottom Navigation */}
-      <BottomNavigation
-        chatBadge={chatBadge}
-        notificationsBadge={notificationsBadge}
-        onMenuPress={handleMenuToggle}
-      />
-
-      {/* Main Menu */}
-      <MainMenu
-        isVisible={isMenuVisible}
-        onClose={handleMenuClose}
-        onMenuSelect={handleMenuSelect}
-        onLogout={handleLogout}
-      />
 
       {/* Modals */}
       <CreateAppModal
@@ -373,6 +367,9 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
         }}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onManageScopes={handleManageScopes}
+        onManagePermissions={handleManagePermissions}
+        onManageUsers={handleManageUsers}
       />
 
       <EditAppModal
@@ -386,6 +383,36 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
           loadApps();
         }}
       />
+
+      {/* Scopes Management Modal */}
+      {selectedApp && (
+        <ScopesManagementModal
+          visible={showScopesModal}
+          appId={selectedApp.id}
+          appName={selectedApp.name}
+          onClose={() => setShowScopesModal(false)}
+        />
+      )}
+
+      {/* Permissions Management Modal */}
+      {selectedApp && (
+        <PermissionsManagementModal
+          visible={showPermissionsModal}
+          appId={selectedApp.id}
+          appName={selectedApp.name}
+          onClose={() => setShowPermissionsModal(false)}
+        />
+      )}
+
+      {/* Users Management Modal */}
+      {selectedApp && (
+        <UsersManagementModal
+          visible={showUsersModal}
+          appId={selectedApp.id}
+          appName={selectedApp.name}
+          onClose={() => setShowUsersModal(false)}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -465,6 +492,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    paddingBottom: 100,
+  },
+  contentLandscape: {
+    paddingBottom: 70,
   },
   loadingContainer: {
     flex: 1,

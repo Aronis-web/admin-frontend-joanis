@@ -2,7 +2,8 @@
 
 export interface Site {
   id: string;
-  code: string;
+  companyId: string; // FK to companies - Multi-tenancy support
+  code: string; // Unique per company
   name: string;
   isActive: boolean;
   phone?: string;
@@ -20,6 +21,11 @@ export interface Site {
   createdAt: string;
   updatedAt: string;
   admins?: SiteAdmin[];
+  company?: {
+    id: string;
+    name: string;
+    ruc?: string;
+  };
 }
 
 export interface SiteAdmin {
@@ -36,6 +42,7 @@ export interface SiteAdmin {
 }
 
 export interface CreateSiteRequest {
+  companyId: string; // Required for multi-tenancy
   code: string;
   name: string;
   isActive?: boolean;
@@ -71,6 +78,7 @@ export interface UpdateSiteRequest {
 }
 
 export interface GetSitesParams {
+  companyId?: string; // Filter by company (optional, may be set via headers)
   q?: string; // Search in name and fullAddress
   isActive?: boolean;
   district?: string;
@@ -84,9 +92,12 @@ export interface GetSitesParams {
 
 export interface SitesResponse {
   data: Site[];
-  total: number;
-  page: number;
-  limit: number;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export interface AddAdminRequest {

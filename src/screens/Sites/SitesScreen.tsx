@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   TextInput,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
@@ -16,14 +17,20 @@ import { sitesApi, Site, GetSitesParams } from '@/services/api';
 import { CreateSiteModal } from '@/components/sites/CreateSiteModal';
 import { SiteDetailModal } from '@/components/sites/SiteDetailModal';
 import { EditSiteModal } from '@/components/sites/EditSiteModal';
-import { BottomNavigation } from '@/components/Navigation/BottomNavigation';
-import { MainMenu } from '@/components/Menu/MainMenu';
+
+import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 
 interface SitesScreenProps {
   navigation: any;
+  route?: {
+    params?: {
+      companyId?: string;
+      companyName?: string;
+    };
+  };
 }
 
-export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation }) => {
+export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) => {
   const { user, logout } = useAuthStore();
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,10 +49,16 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation }) => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [chatBadge] = useState(3);
   const [notificationsBadge] = useState(7);
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+
+  // Get company filter from route params
+  const companyId = route?.params?.companyId;
+  const companyName = route?.params?.companyName;
 
   useEffect(() => {
     loadSites();
-  }, []);
+  }, [companyId]);
 
   useEffect(() => {
     if (!sites) {
@@ -74,15 +87,16 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation }) => {
         limit: 20,
         orderBy: 'name',
         orderDir: 'ASC',
+        companyId: companyId, // Filter by company if provided
         ...params,
       });
 
       setSites(response.data);
       setFilteredSites(response.data);
       setPagination({
-        page: response.page,
-        limit: response.limit,
-        total: response.total,
+        page: response.meta.page,
+        limit: response.meta.limit,
+        total: response.meta.total,
       });
     } catch (error: any) {
       console.error('Error loading sites:', error);
@@ -166,27 +180,12 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation }) => {
     setIsMenuVisible(false);
   };
 
+  // Use the shared navigation hook for consistent menu navigation
+  const navigateFromMenu = useMenuNavigation(navigation);
+
   const handleMenuSelect = (menuId: string) => {
     setIsMenuVisible(false);
-    switch (menuId) {
-      case 'roles-permisos':
-        navigation.navigate('RolesPermissions');
-        break;
-      case 'usuarios':
-        navigation.navigate('Users');
-        break;
-      case 'gestion-apps':
-        navigation.navigate('Apps');
-        break;
-      case 'sedes':
-        // Ya estamos en sedes
-        break;
-      case 'debug-permissions':
-        navigation.navigate('PermissionsDebug');
-        break;
-      default:
-        break;
-    }
+    navigateFromMenu(menuId);
   };
 
   const handleLogout = async () => {
@@ -219,7 +218,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation }) => {
     >
       <View style={styles.siteInfo}>
         <View style={styles.siteIcon}>
-          <Text style={styles.iconText}>🏢</Text>
+          <Text style={styles.iconText}>ðŸ¢</Text>
         </View>
         <View style={styles.siteDetails}>
           <View style={styles.siteHeader}>
@@ -230,11 +229,11 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation }) => {
           </View>
           {site.fullAddress && (
             <Text style={styles.siteAddress} numberOfLines={1}>
-              📍 {site.fullAddress}
+              ðŸ“ {site.fullAddress}
             </Text>
           )}
           {site.phone && (
-            <Text style={styles.sitePhone}>📞 {site.phone}</Text>
+            <Text style={styles.sitePhone}>ðŸ“ž {site.phone}</Text>
           )}
         </View>
       </View>
@@ -247,14 +246,48 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation }) => {
     </TouchableOpacity>
   );
 
+  // Si no hay companyId, mostrar mensaje de error
+  if (!companyId) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Text style={styles.backButtonText}>â†</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>GestiÃ³n de Sedes</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <View style={styles.emptyStateContainer}>
+          <Text style={styles.emptyStateIcon}>ðŸ­</Text>
+          <Text style={styles.emptyStateTitle}>Empresa no seleccionada</Text>
+          <Text style={styles.emptyStateMessage}>
+            Las sedes deben crearse dentro de una empresa.
+          </Text>
+          <Text style={styles.emptyStateMessage}>
+            Por favor, ve a "Empresas y Sedes" y selecciona una empresa primero.
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={() => navigation.navigate('Companies')}
+          >
+            <Text style={styles.emptyStateButtonText}>Ir a Empresas</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
+            <Text style={styles.backButtonText}>â†</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Gestión de Sedes</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>GestiÃ³n de Sedes</Text>
+            {companyName && <Text style={styles.headerSubtitle}>ðŸ­ {companyName}</Text>}
+          </View>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
@@ -269,9 +302,12 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={styles.backButtonText}>â†</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestión de Sedes</Text>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>GestiÃ³n de Sedes</Text>
+          {companyName && <Text style={styles.headerSubtitle}>ðŸ­ {companyName}</Text>}
+        </View>
         <ProtectedElement requiredPermissions={['sites.create']} fallback={<View style={styles.placeholder} />}>
           <TouchableOpacity onPress={handleCreateSite} style={styles.addButton}>
             <Text style={styles.addButtonText}>+</Text>
@@ -292,7 +328,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation }) => {
 
       {/* Sites List */}
       <ScrollView
-        style={styles.sitesList}
+        style={[styles.sitesList, isLandscape && styles.sitesListLandscape]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
@@ -316,28 +352,12 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation }) => {
         </Text>
       </View>
 
-      {/* Bottom Navigation */}
-      <BottomNavigation
-        onChatPress={handleChatPress}
-        onNotificationsPress={handleNotificationsPress}
-        onMenuPress={handleMenuToggle}
-        chatBadge={chatBadge}
-        notificationsBadge={notificationsBadge}
-      />
-
-      {/* Main Menu */}
-      <MainMenu
-        isVisible={isMenuVisible}
-        onClose={handleMenuClose}
-        onMenuSelect={handleMenuSelect}
-        onLogout={handleLogout}
-      />
-
       {/* Create Site Modal */}
       <CreateSiteModal
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSiteCreated={handleSiteCreated}
+        companyId={companyId} // Pass companyId from route params
       />
 
       {/* Site Detail Modal */}
@@ -389,10 +409,19 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '600',
   },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#1E293B',
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
   },
   placeholder: {
     width: 40,
@@ -440,6 +469,10 @@ const styles = StyleSheet.create({
   sitesList: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
+  sitesListLandscape: {
+    paddingBottom: 70,
   },
   siteItem: {
     flexDirection: 'row',
@@ -532,6 +565,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748B',
     textAlign: 'center',
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyStateIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emptyStateMessage: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  emptyStateButton: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  emptyStateButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   statsFooter: {
     paddingHorizontal: 20,

@@ -8,6 +8,8 @@ export const config = {
     USER: '@joanis:user',
     TOKEN_EXPIRES_AT: '@joanis:token_expires_at',
     CART: '@joanis:cart',
+    CURRENT_COMPANY: '@joanis:current_company',
+    CURRENT_SITE: '@joanis:current_site',
   },
   PAGINATION: {
     DEFAULT_PAGE_SIZE: 20,

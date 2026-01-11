@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { App, AppType } from '@/services/api/apps';
+import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 
 interface AppDetailModalProps {
   visible: boolean;
@@ -15,6 +16,9 @@ interface AppDetailModalProps {
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onManageScopes: () => void;
+  onManagePermissions: () => void;
+  onManageUsers: () => void;
 }
 
 export const AppDetailModal: React.FC<AppDetailModalProps> = ({
@@ -23,6 +27,9 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   onClose,
   onEdit,
   onDelete,
+  onManageScopes,
+  onManagePermissions,
+  onManageUsers,
 }) => {
   if (!app) return null;
 
@@ -160,18 +167,68 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 <Text style={styles.infoValue}>{formatDate(app.updatedAt)}</Text>
               </View>
             </View>
+
+            {/* Management Actions */}
+            <ProtectedElement requiredPermissions={['apps.manage']}>
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>Gestión Avanzada</Text>
+                </View>
+
+                <TouchableOpacity style={styles.actionButton} onPress={onManageScopes}>
+                  <View style={styles.actionButtonContent}>
+                    <Text style={styles.actionButtonIcon}>🎯</Text>
+                    <View style={styles.actionButtonInfo}>
+                      <Text style={styles.actionButtonTitle}>Gestionar Scopes</Text>
+                      <Text style={styles.actionButtonSubtitle}>
+                        Define a qué datos puede acceder esta app
+                      </Text>
+                    </View>
+                    <Text style={styles.actionButtonArrow}>→</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionButton} onPress={onManagePermissions}>
+                  <View style={styles.actionButtonContent}>
+                    <Text style={styles.actionButtonIcon}>🔐</Text>
+                    <View style={styles.actionButtonInfo}>
+                      <Text style={styles.actionButtonTitle}>Gestionar Permisos</Text>
+                      <Text style={styles.actionButtonSubtitle}>
+                        Configura qué acciones están disponibles
+                      </Text>
+                    </View>
+                    <Text style={styles.actionButtonArrow}>→</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionButton} onPress={onManageUsers}>
+                  <View style={styles.actionButtonContent}>
+                    <Text style={styles.actionButtonIcon}>👥</Text>
+                    <View style={styles.actionButtonInfo}>
+                      <Text style={styles.actionButtonTitle}>Gestionar Usuarios</Text>
+                      <Text style={styles.actionButtonSubtitle}>
+                        Asigna usuarios y roles a esta app
+                      </Text>
+                    </View>
+                    <Text style={styles.actionButtonArrow}>→</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </ProtectedElement>
           </ScrollView>
 
           {/* Footer Actions */}
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-              <Text style={styles.deleteButtonText}>🗑️ Eliminar</Text>
-            </TouchableOpacity>
+          <ProtectedElement requiredPermissions={['apps.manage']}>
+            <View style={styles.footer}>
+              <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+                <Text style={styles.deleteButtonText}>🗑️ Eliminar</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.editButton} onPress={onEdit}>
-              <Text style={styles.editButtonText}>✏️ Editar</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity style={styles.editButton} onPress={onEdit}>
+                <Text style={styles.editButtonText}>✏️ Editar</Text>
+              </TouchableOpacity>
+            </View>
+          </ProtectedElement>
         </View>
       </View>
     </Modal>
@@ -367,6 +424,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  actionButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  actionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButtonIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  actionButtonInfo: {
+    flex: 1,
+  },
+  actionButtonTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  actionButtonSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  actionButtonArrow: {
+    fontSize: 20,
+    color: '#94A3B8',
+    fontWeight: '600',
   },
 });
 

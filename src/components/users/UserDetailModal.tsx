@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { User } from '@/services/api/users';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import { UserScopesModal } from './UserScopesModal';
 
 interface UserDetailModalProps {
   visible: boolean;
@@ -23,7 +24,14 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   onClose,
   onEdit,
 }) => {
+  const [showScopesModal, setShowScopesModal] = useState(false);
+
   if (!user) return null;
+
+  console.log('UserDetailModal - Rendering with user:', user);
+  console.log('UserDetailModal - User roles:', user.roles);
+  console.log('UserDetailModal - User is_active:', user.is_active);
+  console.log('UserDetailModal - User status:', user.status);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -43,6 +51,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const getStatusText = (status: string) => {
     return status === 'active' ? 'Activo' : 'Inactivo';
   };
+
+  // Determine status from either status field or is_active field
+  const userStatus = user.status || (user.is_active ? 'active' : 'inactive');
 
   const renderInfoRow = (label: string, value: string | undefined, icon?: string) => {
     if (!value) return null;
@@ -88,9 +99,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   {user.username || user.name || user.email}
                 </Text>
                 <View style={styles.statusBadge}>
-                  <View style={[styles.statusDot, { backgroundColor: getStatusColor(user.status) }]} />
-                  <Text style={[styles.statusText, { color: getStatusColor(user.status) }]}>
-                    {getStatusText(user.status)}
+                  <View style={[styles.statusDot, { backgroundColor: getStatusColor(userStatus) }]} />
+                  <Text style={[styles.statusText, { color: getStatusColor(userStatus) }]}>
+                    {getStatusText(userStatus)}
                   </Text>
                 </View>
               </View>
@@ -163,15 +174,32 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
             <ProtectedElement requiredPermissions={['users.update']}>
               <TouchableOpacity
+                style={[styles.button, styles.secondaryButton]}
+                onPress={() => setShowScopesModal(true)}
+              >
+                <Text style={styles.secondaryButtonText}>🎯 Gestionar Scopes</Text>
+              </TouchableOpacity>
+            </ProtectedElement>
+
+            <ProtectedElement requiredPermissions={['users.update']}>
+              <TouchableOpacity
                 style={[styles.button, styles.editButton]}
                 onPress={() => onEdit(user)}
               >
-                <Text style={styles.editButtonText}>Editar Usuario</Text>
+                <Text style={styles.editButtonText}>✏️ Editar</Text>
               </TouchableOpacity>
             </ProtectedElement>
           </View>
         </View>
       </View>
+
+      {/* User Scopes Modal */}
+      <UserScopesModal
+        visible={showScopesModal}
+        userId={user.id}
+        userName={user.username || user.name || user.email}
+        onClose={() => setShowScopesModal(false)}
+      />
     </Modal>
   );
 };
@@ -316,7 +344,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingTop: 20,
-    gap: 12,
+    gap: 8,
   },
   button: {
     flex: 1,
@@ -329,17 +357,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    flex: 0.8,
   },
   closeActionButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#64748B',
+  },
+  secondaryButton: {
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#667eea',
   },
   editButton: {
     backgroundColor: '#3B82F6',
   },
   editButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
   },

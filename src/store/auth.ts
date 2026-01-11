@@ -3,22 +3,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '@/utils/config';
 import { authService } from '@/services/AuthService';
 import { PermissionCheck, Permission } from '@/types/auth';
+import type { User, Role } from '@/types/auth';
+import { Company } from '@/types/companies';
 
-export interface Role {
+export interface CurrentCompany {
+  id: string;
+  name: string;
+  ruc?: string;
+  isActive: boolean;
+}
+
+export interface CurrentSite {
   id: string;
   code: string;
   name: string;
-  description: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  phone?: string;
-  avatar?: string;
-  roles?: Role[];
-  permissions?: string[];
+  companyId: string;
 }
 
 interface AuthState extends PermissionCheck {
@@ -29,13 +28,18 @@ interface AuthState extends PermissionCheck {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  currentCompany: CurrentCompany | null;
+  currentSite: CurrentSite | null;
 
   // Actions
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   setRefreshToken: (refreshToken: string | null) => void;
   setTokenExpiresAt: (expiresAt: number | null) => void;
-  login: (email: string, password: string) => Promise<boolean>;
+  setCurrentCompany: (company: CurrentCompany | null) => void;
+  setCurrentSite: (site: CurrentSite | null) => void;
+  login: (user: User, accessToken: string) => Promise<void>;
+  loginWithCredentials: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   setLoading: (isLoading: boolean) => void;
@@ -62,8 +66,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
   error: null,
+  currentCompany: null,
+  currentSite: null,
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
+
+  setCurrentCompany: (company) => {
+    console.log('🔧 setCurrentCompany called with:', company);
+    set({ currentCompany: company });
+    console.log('✅ Store updated with currentCompany');
+  },
+
+  setCurrentSite: (site) => {
+    console.log('🔧 setCurrentSite called with:', site);
+    set({ currentSite: site });
+    console.log('✅ Store updated with currentSite');
+  },
 
   setToken: (token) => {
     if (token === undefined) {
@@ -89,7 +107,48 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ tokenExpiresAt: expiresAt });
   },
 
-  login: async (email, password) => {
+  login: async (user, accessToken) => {
+    try {
+      console.log('🔐 Store login called with user:', user?.id, 'token length:', accessToken?.length);
+
+      // Validate user data
+      if (!user || !user.id) {
+        console.error('❌ Store validation failed - user:', user);
+        throw new Error('Invalid user data');
+      }
+
+      // Ensure permissions array exists (even if empty)
+      if (!user.permissions) {
+        user.permissions = [];
+      }
+
+      // Ensure roles array exists (even if empty)
+      if (!user.roles) {
+        user.roles = [];
+      }
+
+      console.log('💾 Storing user in AsyncStorage...');
+      // Store in AsyncStorage
+      await AsyncStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, accessToken);
+      await AsyncStorage.setItem(config.STORAGE_KEYS.USER, JSON.stringify(user));
+
+      console.log('✅ Setting auth state...');
+      set({
+        user: user as any,
+        token: accessToken,
+        isAuthenticated: true,
+        error: null,
+      });
+
+      console.log('✅ Login completed successfully');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      console.error('❌ Login error in store:', errorMessage, error);
+      throw error;
+    }
+  },
+
+  loginWithCredentials: async (email, password) => {
     try {
       set({ isLoading: true, error: null });
 
@@ -99,6 +158,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!response.user || !response.user.id) {
         throw new Error('Invalid user data received from server');
       }
+
+      // Ensure permissions array exists (even if empty)
+      if (!response.user.permissions) {
+        response.user.permissions = [];
+      }
+
+      // Ensure roles array exists (even if empty)
+      if (!response.user.roles) {
+        response.user.roles = [];
+      }
+
+      console.log('Login successful - User permissions:', response.user.permissions);
+      console.log('Login successful - User roles:', response.user.roles);
 
       // Store in AsyncStorage
       await AsyncStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, response.accessToken);
@@ -114,7 +186,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       set({
-        user: response.user,
+        user: response.user as any,
         token: response.accessToken,
         refreshToken: response.refreshToken,
         tokenExpiresAt: expiresAt,
@@ -126,6 +198,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      console.error('Login error:', errorMessage);
       set({ error: errorMessage, isLoading: false });
       return false;
     }
@@ -139,6 +212,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Continue with local logout even if server call fails
       await get().clearInvalidAuth();
     }
+    // Clear company and site selection
+    set({ currentCompany: null, currentSite: null });
+    await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_COMPANY);
+    await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_SITE);
   },
 
   updateUser: (userData) => {
@@ -160,59 +237,94 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initAuth: async () => {
     try {
       set({ isLoading: true });
+      console.log('🔐 Starting auth initialization...');
+
       const token = await AsyncStorage.getItem(config.STORAGE_KEYS.AUTH_TOKEN);
       const refreshToken = await AsyncStorage.getItem(config.STORAGE_KEYS.REFRESH_TOKEN);
       const userJson = await AsyncStorage.getItem(config.STORAGE_KEYS.USER);
       const tokenExpiresAtStr = await AsyncStorage.getItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
+      const companyJson = await AsyncStorage.getItem(config.STORAGE_KEYS.CURRENT_COMPANY);
+      const siteJson = await AsyncStorage.getItem(config.STORAGE_KEYS.CURRENT_SITE);
+
+      console.log('📦 Loaded data from storage:', {
+        hasToken: !!token,
+        hasRefreshToken: !!refreshToken,
+        hasUser: !!userJson,
+        hasCompany: !!companyJson,
+        hasSite: !!siteJson,
+      });
 
       if (token && userJson) {
-        const user = JSON.parse(userJson);
+        let user;
+        try {
+          user = JSON.parse(userJson);
+        } catch (parseError) {
+          console.error('❌ Failed to parse user JSON:', parseError);
+          await get().clearInvalidAuth();
+          return;
+        }
+
         const tokenExpiresAt = tokenExpiresAtStr ? parseInt(tokenExpiresAtStr, 10) : null;
 
         // Validate user data
         if (!user || !user.id || user.id === 'temp-id') {
-          await AsyncStorage.removeItem(config.STORAGE_KEYS.AUTH_TOKEN);
-          await AsyncStorage.removeItem(config.STORAGE_KEYS.REFRESH_TOKEN);
-          await AsyncStorage.removeItem(config.STORAGE_KEYS.USER);
-          await AsyncStorage.removeItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
-          set({ user: null, token: null, refreshToken: null, tokenExpiresAt: null, isAuthenticated: false });
+          console.warn('⚠️ Invalid user data, clearing auth');
+          await get().clearInvalidAuth();
           return;
         }
 
         // Check if token is expired
         if (tokenExpiresAt && Date.now() >= tokenExpiresAt) {
+          console.log('⏰ Token expired, attempting refresh...');
           // Token is expired, try to refresh
           if (refreshToken) {
             try {
               const refreshed = await get().refreshAccessToken();
               if (!refreshed) {
                 // Refresh failed, clear auth
+                console.warn('⚠️ Token refresh failed, clearing auth');
                 await get().clearInvalidAuth();
                 return;
               }
+              console.log('✅ Token refreshed successfully');
             } catch (error) {
+              console.error('❌ Token refresh error:', error);
               await get().clearInvalidAuth();
               return;
             }
           } else {
             // No refresh token, clear auth
+            console.warn('⚠️ No refresh token, clearing auth');
             await get().clearInvalidAuth();
             return;
           }
         }
 
-        set({ user, token, refreshToken, tokenExpiresAt, isAuthenticated: true });
+        // Load company and site if available
+        let currentCompany = null;
+        let currentSite = null;
+
+        try {
+          currentCompany = companyJson ? JSON.parse(companyJson) : null;
+          currentSite = siteJson ? JSON.parse(siteJson) : null;
+        } catch (parseError) {
+          console.error('❌ Failed to parse company/site JSON:', parseError);
+          // Continue without company/site
+        }
+
+        set({ user, token, refreshToken, tokenExpiresAt, isAuthenticated: true, currentCompany, currentSite });
+        console.log('✅ Auth initialized successfully');
+      } else {
+        console.log('ℹ️ No stored auth data found');
       }
     } catch (error) {
+      console.error('❌ Auth initialization error:', error);
       set({ error: 'Failed to initialize authentication' });
       // Clear potentially corrupted data
-      await AsyncStorage.removeItem(config.STORAGE_KEYS.AUTH_TOKEN);
-      await AsyncStorage.removeItem(config.STORAGE_KEYS.REFRESH_TOKEN);
-      await AsyncStorage.removeItem(config.STORAGE_KEYS.USER);
-      await AsyncStorage.removeItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
-      set({ user: null, token: null, refreshToken: null, tokenExpiresAt: null, isAuthenticated: false });
+      await get().clearInvalidAuth();
     } finally {
       set({ isLoading: false });
+      console.log('🏁 Auth initialization completed');
     }
   },
 
@@ -241,7 +353,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.removeItem(config.STORAGE_KEYS.REFRESH_TOKEN);
       await AsyncStorage.removeItem(config.STORAGE_KEYS.USER);
       await AsyncStorage.removeItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
-      set({ user: null, token: null, refreshToken: null, tokenExpiresAt: null, isAuthenticated: false, error: null });
+      await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_COMPANY);
+      await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_SITE);
+      set({ user: null, token: null, refreshToken: null, tokenExpiresAt: null, isAuthenticated: false, error: null, currentCompany: null, currentSite: null });
     } catch (error) {
       // Error clearing auth data - continuing anyway
     }
