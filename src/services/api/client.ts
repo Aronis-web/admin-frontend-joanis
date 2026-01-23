@@ -338,7 +338,9 @@ class ApiClient {
     // For FormData in React Native, use fetch directly to avoid axios Content-Type issues
     if (isFormData) {
       console.log('📦 Using fetch for FormData upload to bypass axios Content-Type issues');
-      return this.postFormDataWithFetch<T>(url, data, config);
+      // Check if this is an OCR request to use unlimited timeout
+      const isOcrRequest = url.includes('/ocr/scan');
+      return this.postFormDataWithFetch<T>(url, data, config, isOcrRequest);
     }
 
     const response: AxiosResponse<T> = await this.client.post(url, data, config);
@@ -352,7 +354,8 @@ class ApiClient {
   private async postFormDataWithFetch<T = any>(
     url: string,
     formData: FormData,
-    requestConfig?: AxiosRequestConfig
+    requestConfig?: AxiosRequestConfig,
+    isOcrRequest: boolean = false
   ): Promise<T> {
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
@@ -405,13 +408,23 @@ class ApiClient {
     const fullUrl = `${this.client.defaults.baseURL}${url}`;
     console.log('🌐 Fetch URL:', fullUrl);
 
+    if (isOcrRequest) {
+      console.log('⏱️ OCR Request detected - Using unlimited timeout for document scanning');
+    }
+
     try {
-      // No timeout - OCR processing can take several minutes
-      const response = await fetch(fullUrl, {
+      // For OCR requests: No timeout - OCR processing can take several minutes or hours
+      // For other requests: Use default fetch behavior
+      const fetchOptions: RequestInit = {
         method: 'POST',
         headers,
         body: formData,
-      });
+      };
+
+      // Note: fetch in React Native doesn't have a built-in timeout option
+      // The timeout is controlled by the underlying network stack
+      // Setting signal to undefined ensures no AbortController timeout is applied
+      const response = await fetch(fullUrl, fetchOptions);
 
       console.log('🌐 Fetch response status:', response.status);
 
