@@ -24,6 +24,7 @@ import {
   DistributionTypeDescriptions,
 } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { config } from '@/utils/config';
 
 interface AddProductScreenProps {
   navigation: any;
@@ -391,6 +392,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
         {
           headers: {
             'Content-Type': 'application/json',
+            'X-App-Id': config.APP_ID,
           },
         }
       );
