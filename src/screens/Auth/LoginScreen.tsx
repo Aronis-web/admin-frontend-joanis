@@ -40,10 +40,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
       if (!success) {
         Alert.alert('Error', error || 'Credenciales incorrectas');
+        return;
       }
-      // La navegación se maneja automáticamente por el cambio de estado de autenticación
-      // El Navigation component detectará que isAuthenticated=true pero no hay company/site
-      // y mostrará el AuthStack con la pantalla de CompanySelection
+
+      // Navegar a la pantalla de selección de empresa después del login exitoso
+      navigation.replace('CompanySelection');
     } catch (error) {
       Alert.alert('Error', 'No se pudo conectar al servidor');
     }
