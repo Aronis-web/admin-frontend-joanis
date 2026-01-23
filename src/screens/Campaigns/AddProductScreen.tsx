@@ -406,7 +406,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
     });
 
     if (!productSearchQuery.trim()) {
-      return products;
+      return [];
     }
     const query = productSearchQuery.toLowerCase();
     const filtered = products.filter(product =>
