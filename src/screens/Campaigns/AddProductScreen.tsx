@@ -25,6 +25,7 @@ import {
 } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { config } from '@/utils/config';
+import { authService } from '@/services/AuthService';
 
 interface AddProductScreenProps {
   navigation: any;
@@ -387,11 +388,20 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
       setIsSearching(true);
       console.log('🔍 Searching products with query:', query);
 
+      // Get the access token from authService
+      const token = authService.getAccessToken();
+      if (!token) {
+        console.error('❌ No token available for autocomplete request');
+        Alert.alert('Error', 'No estás autenticado. Por favor inicia sesión nuevamente.');
+        return;
+      }
+
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_API_URL}/catalog/products/autocomplete?q=${encodeURIComponent(query)}&limit=20`,
         {
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
             'X-App-Id': config.APP_ID,
           },
         }
