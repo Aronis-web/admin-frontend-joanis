@@ -1,9 +1,9 @@
 // IMPORTANT: This must be imported FIRST before any other imports that use crypto/uuid
 import 'react-native-get-random-values';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar } from 'react-native';
+import { StatusBar, AppState, AppStateStatus } from 'react-native';
 import {
   useFonts,
   Baloo2_700Bold,
@@ -25,6 +25,7 @@ export const App = () => {
 
   const { initAuth, isLoading: authLoading } = useAuthStore();
   const { initTenantContext } = useTenantStore();
+  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
     const initialize = async () => {
@@ -52,6 +53,34 @@ export const App = () => {
     };
 
     initialize();
+  }, []);
+
+  // Handle app state changes (background/foreground)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        console.log('📱 App has come to the foreground!');
+        // App has come to the foreground - refresh auth if needed
+        const { shouldRefreshToken, refreshAccessToken, isAuthenticated } = useAuthStore.getState();
+
+        if (isAuthenticated && shouldRefreshToken()) {
+          console.log('🔄 Refreshing token on app foreground...');
+          refreshAccessToken().catch((error) => {
+            console.error('❌ Failed to refresh token on foreground:', error);
+          });
+        }
+      } else if (nextAppState.match(/inactive|background/)) {
+        console.log('📱 App has gone to the background');
+        // App is going to background - state is already persisted by navigation
+      }
+
+      appState.current = nextAppState;
+      console.log('AppState:', appState.current);
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   if (!fontsLoaded || authLoading) {

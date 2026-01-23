@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/store/auth';
 
 // Type Definitions
@@ -715,9 +716,13 @@ const MainStack = React.memo(() => {
   );
 });
 
+const NAVIGATION_PERSISTENCE_KEY = 'NAVIGATION_STATE_V1';
+
 export const Navigation = () => {
   const { isAuthenticated, currentCompany, currentSite } = useAuthStore();
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [initialState, setInitialState] = useState();
 
   // Validate that site has valid data (not just an empty object)
   const hasValidSite = !!(currentSite && currentSite.id && currentSite.name);
@@ -737,8 +742,41 @@ export const Navigation = () => {
     siteData: currentSite,
   });
 
+  // Load persisted navigation state
+  useEffect(() => {
+    const restoreState = async () => {
+      try {
+        const savedStateString = await AsyncStorage.getItem(NAVIGATION_PERSISTENCE_KEY);
+        const state = savedStateString ? JSON.parse(savedStateString) : undefined;
+
+        if (state !== undefined) {
+          setInitialState(state);
+        }
+      } catch (e) {
+        console.warn('Failed to restore navigation state:', e);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    if (!isReady) {
+      restoreState();
+    }
+  }, [isReady]);
+
+  // Don't render until we've restored state
+  if (!isReady) {
+    return null;
+  }
+
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      initialState={initialState}
+      onStateChange={(state) => {
+        // Save navigation state whenever it changes
+        AsyncStorage.setItem(NAVIGATION_PERSISTENCE_KEY, JSON.stringify(state));
+      }}
+    >
       <View style={{ flex: 1 }}>
         {showMainStack ? <MainStack /> : <AuthStack />}
         {showMainStack && (

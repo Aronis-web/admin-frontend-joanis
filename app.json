@@ -42,7 +42,9 @@
         "googleMaps": {
           "apiKey": "AIzaSyBWLYNj3GR7rtyYlenKw3Bvyg6_bUce3BA"
         }
-      }
+      },
+      "softwareKeyboardLayoutMode": "pan",
+      "userInterfaceStyle": "automatic"
     },
     "extra": {
       "apiUrl": "@env:API_URL",
