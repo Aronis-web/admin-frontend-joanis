@@ -52,14 +52,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       // Limpiar el contexto de tenant (empresa/sede) de sesiones anteriores
       await clearTenantContext();
 
-      console.log('🧭 Navegando a CompanySelection...');
-      // Navegar a la pantalla de selección de empresa después del login exitoso
-      // Usar reset en lugar de replace para asegurar que la navegación funcione
-      navigation.reset({
-        index: 0,
-        routes: [{ name: AUTH_ROUTES.COMPANY_SELECTION as never }],
-      });
-      console.log('✅ Navegación ejecutada');
+      console.log('✅ Login completado - La navegación se manejará automáticamente');
+      // La navegación a CompanySelection se maneja automáticamente en Navigation.tsx
+      // mediante el useEffect que detecta cambios en isAuthenticated y currentCompany
     } catch (error) {
       console.error('❌ Error en handleLogin:', error);
       Alert.alert('Error', 'No se pudo conectar al servidor');

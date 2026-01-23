@@ -723,6 +723,7 @@ export const Navigation = () => {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [initialState, setInitialState] = useState();
+  const navigationRef = useRef<any>(null);
 
   // Validate that site has valid data (not just an empty object)
   const hasValidSite = !!(currentSite && currentSite.id && currentSite.name);
@@ -764,6 +765,28 @@ export const Navigation = () => {
     }
   }, [isReady]);
 
+  // Handle navigation based on auth state changes
+  useEffect(() => {
+    if (!isReady || !navigationRef.current) return;
+
+    // Si está autenticado pero no tiene empresa válida, navegar a CompanySelection
+    if (isAuthenticated && !hasValidCompany && !showMainStack) {
+      console.log('🔄 Auto-navegando a CompanySelection (desde Navigation useEffect)');
+      navigationRef.current?.reset({
+        index: 0,
+        routes: [{ name: AUTH_ROUTES.COMPANY_SELECTION }],
+      });
+    }
+    // Si está autenticado, tiene empresa pero no sede válida, navegar a SiteSelection
+    else if (isAuthenticated && hasValidCompany && !hasValidSite && !showMainStack) {
+      console.log('🔄 Auto-navegando a SiteSelection (desde Navigation useEffect)');
+      navigationRef.current?.reset({
+        index: 0,
+        routes: [{ name: AUTH_ROUTES.SITE_SELECTION }],
+      });
+    }
+  }, [isAuthenticated, hasValidCompany, hasValidSite, showMainStack, isReady]);
+
   // Don't render until we've restored state
   if (!isReady) {
     return null;
@@ -771,6 +794,7 @@ export const Navigation = () => {
 
   return (
     <NavigationContainer
+      ref={navigationRef}
       initialState={initialState}
       onStateChange={(state) => {
         // Save navigation state whenever it changes
