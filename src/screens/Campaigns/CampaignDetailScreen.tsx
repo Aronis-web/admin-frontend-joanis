@@ -9,13 +9,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { campaignsService } from '@/services/api';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
-import { productsApi } from '@/services/api';
+import { productsApi, priceProfilesApi } from '@/services/api';
 import logger from '@/utils/logger';
 import {
   Campaign,
@@ -27,6 +28,7 @@ import {
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { Product } from '@/services/api/products';
+import { PriceProfile, ProductSalePrice } from '@/types/price-profiles';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
 
@@ -56,6 +58,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [products, setProducts] = useState<Record<string, Product>>({});
   const [selectedProduct, setSelectedProduct] = useState<CampaignProduct | null>(null);
   const [showBannerModal, setShowBannerModal] = useState(false);
+  const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
+  const [productSalePrices, setProductSalePrices] = useState<Record<string, ProductSalePrice[]>>({});
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
+  const [editingPrice, setEditingPrice] = useState<{productId: string, profileId: string, value: string} | null>(null);
+  const [editingCost, setEditingCost] = useState<{productId: string, value: string} | null>(null);
+  const [savingPrice, setSavingPrice] = useState(false);
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
@@ -64,6 +72,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     try {
       const data = await campaignsService.getCampaign(campaignId);
       setCampaign(data);
+
+      // Load price profiles
+      try {
+        const profiles = await priceProfilesApi.getActivePriceProfiles();
+        setPriceProfiles(profiles);
+      } catch (error) {
+        logger.error('Error loading price profiles:', error);
+      }
 
       // Load companies and sites for participants
       if (data.participants && data.participants.length > 0) {
@@ -125,6 +141,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               }
             });
             setProducts(productsMap);
+
+            // Load sale prices for each product
+            const salePricesMap: Record<string, ProductSalePrice[]> = {};
+            await Promise.all(
+              productIds.map(async (productId) => {
+                try {
+                  const salePricesResponse = await priceProfilesApi.getProductSalePrices(productId);
+                  salePricesMap[productId] = salePricesResponse.salePrices || [];
+                } catch (error) {
+                  logger.error(`Error loading sale prices for product ${productId}:`, error);
+                  salePricesMap[productId] = [];
+                }
+              })
+            );
+            setProductSalePrices(salePricesMap);
           } catch (error) {
             logger.error('Error loading products:', error);
           }
@@ -577,6 +608,84 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     loadCampaign(); // Refresh to get updated data
   };
 
+  const toggleProductExpanded = (productId: string) => {
+    setExpandedProducts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleStartEditCost = (productId: string, currentCost: number) => {
+    setEditingCost({
+      productId,
+      value: (currentCost / 100).toFixed(2),
+    });
+  };
+
+  const handleStartEditPrice = (productId: string, profileId: string, currentPrice: number) => {
+    setEditingPrice({
+      productId,
+      profileId,
+      value: (currentPrice / 100).toFixed(2),
+    });
+  };
+
+  const handleSaveCost = async (productId: string) => {
+    if (!editingCost || editingCost.productId !== productId) return;
+
+    try {
+      setSavingPrice(true);
+      const costCents = Math.round(parseFloat(editingCost.value) * 100);
+
+      await productsApi.updateProduct(productId, { costCents });
+
+      setEditingCost(null);
+      Alert.alert('Éxito', 'Costo actualizado correctamente');
+      loadCampaign(); // Refresh to get updated data
+    } catch (error: any) {
+      logger.error('Error saving cost:', error);
+      Alert.alert('Error', error.message || 'No se pudo actualizar el costo');
+    } finally {
+      setSavingPrice(false);
+    }
+  };
+
+  const handleSavePrice = async (productId: string, profileId: string) => {
+    if (!editingPrice || editingPrice.productId !== productId || editingPrice.profileId !== profileId) return;
+
+    try {
+      setSavingPrice(true);
+      const priceCents = Math.round(parseFloat(editingPrice.value) * 100);
+
+      await priceProfilesApi.updateSalePrice(productId, {
+        productId,
+        presentationId: null,
+        profileId,
+        priceCents,
+      });
+
+      setEditingPrice(null);
+      Alert.alert('Éxito', 'Precio actualizado correctamente');
+      loadCampaign(); // Refresh to get updated data
+    } catch (error: any) {
+      logger.error('Error saving price:', error);
+      Alert.alert('Error', error.message || 'No se pudo actualizar el precio');
+    } finally {
+      setSavingPrice(false);
+    }
+  };
+
+  const getSalePriceForProfile = (productId: string, profileId: string): number => {
+    const prices = productSalePrices[productId] || [];
+    const priceEntry = prices.find(p => p.profileId === profileId && p.presentationId === null);
+    return priceEntry?.priceCents || 0;
+  };
+
   const renderProducts = () => {
     if (!campaign) return null;
 
@@ -609,7 +718,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             campaign.products.map((product) => {
               const productDetails = product.product || products[product.productId];
               const costCents = productDetails?.costCents || 0;
-              const priceCents = productDetails?.priceCents || 0;
+              const isExpanded = expandedProducts.has(product.id);
 
               return (
                 <View
@@ -631,9 +740,6 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       </Text>
                       <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
                         SKU: {productDetails?.sku || 'N/A'} | Cantidad: {product.totalQuantityBase}
-                      </Text>
-                      <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
-                        Costo: S/ {(costCents / 100).toFixed(2)} | Precio: S/ {(priceCents / 100).toFixed(2)}
                       </Text>
                       <View style={styles.productBadges}>
                         <View
@@ -661,10 +767,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   {/* Action buttons */}
                   <View style={styles.productCardActions}>
                     <TouchableOpacity
+                      style={[styles.productActionButton, styles.productExpandButton]}
+                      onPress={() => toggleProductExpanded(product.id)}
+                    >
+                      <Text style={styles.productActionButtonText}>
+                        {isExpanded ? '▼ Ocultar Precios' : '▶ Ver Precios'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
                       style={[styles.productActionButton, styles.productBannerButton]}
                       onPress={() => handleShowBanner(product)}
                     >
-                      <Text style={styles.productActionButtonText}>📊 Ver Detalles</Text>
+                      <Text style={styles.productActionButtonText}>📊 Banner</Text>
                     </TouchableOpacity>
 
                     {(campaign.status === CampaignStatus.DRAFT || campaign.status === CampaignStatus.ACTIVE) && (
@@ -672,10 +787,110 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         style={[styles.productActionButton, styles.productDeleteButton]}
                         onPress={() => handleDeleteProduct(product)}
                       >
-                        <Text style={styles.productDeleteButtonText}>🗑️ Eliminar</Text>
+                        <Text style={styles.productDeleteButtonText}>🗑️</Text>
                       </TouchableOpacity>
                     )}
                   </View>
+
+                  {/* Expanded price details */}
+                  {isExpanded && (
+                    <View style={styles.priceDetailsContainer}>
+                      {/* Cost row */}
+                      <View style={styles.priceRow}>
+                        <Text style={styles.priceLabel}>Costo:</Text>
+                        {editingCost?.productId === product.productId ? (
+                          <View style={styles.priceEditRow}>
+                            <Text style={styles.currencySymbol}>S/</Text>
+                            <TextInput
+                              style={styles.priceInput}
+                              value={editingCost.value}
+                              onChangeText={(text) => setEditingCost({...editingCost, value: text})}
+                              keyboardType="decimal-pad"
+                              autoFocus
+                            />
+                            <TouchableOpacity
+                              style={styles.saveButton}
+                              onPress={() => handleSaveCost(product.productId)}
+                              disabled={savingPrice}
+                            >
+                              {savingPrice ? (
+                                <ActivityIndicator size="small" color="#10B981" />
+                              ) : (
+                                <Text style={styles.saveButtonText}>✓</Text>
+                              )}
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.cancelButton}
+                              onPress={() => setEditingCost(null)}
+                            >
+                              <Text style={styles.cancelButtonText}>✕</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <View style={styles.priceDisplayRow}>
+                            <Text style={styles.priceValue}>S/ {(costCents / 100).toFixed(2)}</Text>
+                            <TouchableOpacity
+                              style={styles.editButton}
+                              onPress={() => handleStartEditCost(product.productId, costCents)}
+                            >
+                              <Text style={styles.editButtonText}>✏️</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Price profiles rows */}
+                      {priceProfiles.map((profile) => {
+                        const priceCents = getSalePriceForProfile(product.productId, profile.id);
+                        const isEditingThis = editingPrice?.productId === product.productId && editingPrice?.profileId === profile.id;
+
+                        return (
+                          <View key={profile.id} style={styles.priceRow}>
+                            <Text style={styles.priceLabel}>{profile.name}:</Text>
+                            {isEditingThis ? (
+                              <View style={styles.priceEditRow}>
+                                <Text style={styles.currencySymbol}>S/</Text>
+                                <TextInput
+                                  style={styles.priceInput}
+                                  value={editingPrice.value}
+                                  onChangeText={(text) => setEditingPrice({...editingPrice, value: text})}
+                                  keyboardType="decimal-pad"
+                                  autoFocus
+                                />
+                                <TouchableOpacity
+                                  style={styles.saveButton}
+                                  onPress={() => handleSavePrice(product.productId, profile.id)}
+                                  disabled={savingPrice}
+                                >
+                                  {savingPrice ? (
+                                    <ActivityIndicator size="small" color="#10B981" />
+                                  ) : (
+                                    <Text style={styles.saveButtonText}>✓</Text>
+                                  )}
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.cancelButton}
+                                  onPress={() => setEditingPrice(null)}
+                                >
+                                  <Text style={styles.cancelButtonText}>✕</Text>
+                                </TouchableOpacity>
+                              </View>
+                            ) : (
+                              <View style={styles.priceDisplayRow}>
+                                <Text style={styles.priceValue}>S/ {(priceCents / 100).toFixed(2)}</Text>
+                                <TouchableOpacity
+                                  style={styles.editButton}
+                                  onPress={() => handleStartEditPrice(product.productId, profile.id, priceCents)}
+                                >
+                                  <Text style={styles.editButtonText}>✏️</Text>
+                                </TouchableOpacity>
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
                 </View>
               );
             })
@@ -1142,6 +1357,98 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#EF4444',
+  },
+  productExpandButton: {
+    borderRightWidth: 1,
+    borderRightColor: '#E2E8F0',
+  },
+  priceDetailsContainer: {
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  priceLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+    flex: 1,
+  },
+  priceDisplayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  priceValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  priceEditRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  currencySymbol: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  priceInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#6366F1',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    minWidth: 80,
+  },
+  editButton: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  editButtonText: {
+    fontSize: 14,
+    color: '#3B82F6',
+  },
+  saveButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  cancelButton: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   footer: {
     flexDirection: 'row',
