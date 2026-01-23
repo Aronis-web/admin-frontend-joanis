@@ -20,6 +20,7 @@ import {
   TemplateExpenseType,
   TemplateExpenseTypeLabels,
   CreateExpenseTemplateRequest,
+  UpdateExpenseTemplateRequest,
 } from '@/types/expenses';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { useAuthStore } from '@/store/auth';
@@ -68,7 +69,10 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
 
   useEffect(() => {
     loadData();
-  }, []);
+    if (route?.params?.templateId) {
+      loadTemplateData(route.params.templateId);
+    }
+  }, [route?.params?.templateId]);
 
   const loadData = async () => {
     try {
@@ -94,6 +98,48 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
       }
 
       Alert.alert('Error', 'No se pudieron cargar los datos necesarios');
+    }
+  };
+
+  const loadTemplateData = async (templateId: string) => {
+    try {
+      setLoading(true);
+      console.log('📦 Loading template data for editing:', templateId);
+
+      const template = await expensesService.getTemplate(templateId);
+      console.log('📦 Template loaded:', template);
+
+      // Populate form fields with template data
+      setCode(template.code || '');
+      setName(template.name || '');
+      setDescription(template.description || '');
+      setSiteId(template.site?.id || '');
+      setTemplateExpenseType(template.templateExpenseType || TemplateExpenseType.RECURRENT);
+      setRecurrenceType(template.recurrenceType || RecurrenceType.REGULAR);
+      setFrequency(template.frequency || TemplateFrequency.MONTHLY);
+      setDayOfWeek(template.dayOfWeek);
+      setDayOfMonth(template.dayOfMonth);
+      setStartDate(template.startDate || '');
+      setEndDate(template.endDate || '');
+      setOccurrences(template.occurrences ? String(template.occurrences) : '');
+      setIsActive(template.isActive ?? true);
+      setCategoryId(template.category?.id || '');
+      setAmount(template.amountCents ? String(template.amountCents / 100) : '');
+      setCurrency(template.currency || 'PEN');
+
+      console.log('✅ Template data loaded successfully');
+    } catch (error: any) {
+      console.error('❌ Error loading template:', error);
+
+      if (handlePermissionError(error)) {
+        showPermissionAlert(error);
+        return;
+      }
+
+      Alert.alert('Error', 'No se pudo cargar la plantilla para editar');
+      navigation.goBack();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -154,40 +200,76 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
 
     setLoading(true);
     try {
-      const data: CreateExpenseTemplateRequest = {
-        code: code.trim(),
-        companyId: currentCompany.id,
-        siteId: siteId, // Required - sede must be selected manually
-        name: name.trim(),
-        description: description.trim() || undefined,
-        templateExpenseType, // REQUIRED: RECURRENT or SEMI_RECURRENT
-        amountCents: amount ? Math.round(parseFloat(amount) * 100) : undefined,
-        currency,
-        recurrenceType,
-        frequency: recurrenceType === RecurrenceType.REGULAR ? frequency : undefined,
-        dayOfWeek,
-        dayOfMonth,
-        startDate: startDate, // Send as YYYY-MM-DD string
-        endDate: endDate || undefined, // Send as YYYY-MM-DD string
-        occurrences: occurrences ? parseInt(occurrences) : undefined,
-        isActive,
-        categoryId,
-        createdBy: user.id,
-      };
+      const templateId = route?.params?.templateId;
 
-      const newTemplate = await expensesService.createTemplate(data);
-      Alert.alert(
-        'Éxito',
-        'Plantilla de gasto recurrente creada correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+      if (templateId) {
+        // Update existing template
+        const updateData: UpdateExpenseTemplateRequest = {
+          code: code.trim(),
+          name: name.trim(),
+          description: description.trim() || undefined,
+          templateExpenseType,
+          baseAmount: amount ? parseFloat(amount) : undefined,
+          currency,
+          recurrenceType,
+          frequency: recurrenceType === RecurrenceType.REGULAR ? frequency : undefined,
+          dayOfWeek,
+          dayOfMonth,
+          startDate: startDate,
+          endDate: endDate || undefined,
+          occurrences: occurrences ? parseInt(occurrences) : undefined,
+          isActive,
+          categoryId,
+        };
+
+        await expensesService.updateTemplate(templateId, updateData);
+        Alert.alert(
+          'Éxito',
+          'Plantilla de gasto recurrente actualizada correctamente',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+      } else {
+        // Create new template
+        const createData: CreateExpenseTemplateRequest = {
+          code: code.trim(),
+          companyId: currentCompany.id,
+          siteId: siteId,
+          name: name.trim(),
+          description: description.trim() || undefined,
+          templateExpenseType,
+          amountCents: amount ? Math.round(parseFloat(amount) * 100) : undefined,
+          currency,
+          recurrenceType,
+          frequency: recurrenceType === RecurrenceType.REGULAR ? frequency : undefined,
+          dayOfWeek,
+          dayOfMonth,
+          startDate: startDate,
+          endDate: endDate || undefined,
+          occurrences: occurrences ? parseInt(occurrences) : undefined,
+          isActive,
+          categoryId,
+          createdBy: user.id,
+        };
+
+        await expensesService.createTemplate(createData);
+        Alert.alert(
+          'Éxito',
+          'Plantilla de gasto recurrente creada correctamente',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+      }
     } catch (error: any) {
-      console.error('Error creating template:', error);
+      console.error('Error saving template:', error);
 
       if (handlePermissionError(error)) {
         showPermissionAlert(error);
@@ -196,7 +278,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
 
       Alert.alert(
         'Error',
-        error.response?.data?.message || 'No se pudo crear la plantilla'
+        error.response?.data?.message || `No se pudo ${route?.params?.templateId ? 'actualizar' : 'crear'} la plantilla`
       );
     } finally {
       setLoading(false);
@@ -348,7 +430,9 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1E293B" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gastos Recurrentes</Text>
+        <Text style={styles.headerTitle}>
+          {route?.params?.templateId ? 'Editar Plantilla' : 'Gastos Recurrentes'}
+        </Text>
         <TouchableOpacity
           onPress={handleSave}
           style={[styles.saveButton, loading && styles.saveButtonDisabled]}

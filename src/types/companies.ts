@@ -15,6 +15,7 @@ export interface Company {
   id: string;
   ruc?: string; // RUC único (opcional)
   name: string;
+  alias?: string; // Alias de la empresa (opcional)
   companyType: CompanyType; // Tipo de empresa (INTERNAL/EXTERNAL)
   isActive: boolean;
   createdAt: string;
@@ -117,6 +118,7 @@ export interface UserAppRole {
 export interface CreateCompanyRequest {
   ruc?: string;
   name: string;
+  alias?: string;
   companyType?: CompanyType;
   isActive?: boolean;
 }
@@ -127,6 +129,7 @@ export interface CreateCompanyRequest {
 export interface UpdateCompanyRequest {
   ruc?: string;
   name?: string;
+  alias?: string;
   companyType?: CompanyType;
   isActive?: boolean;
 }

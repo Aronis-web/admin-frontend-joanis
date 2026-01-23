@@ -11,6 +11,7 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { companiesApi } from '@/services/api';
 import { Company, CompanyType, CreateCompanyRequest, UpdateCompanyRequest } from '@/types/companies';
 
@@ -37,6 +38,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
   const [formData, setFormData] = useState({
     ruc: '',
     name: '',
+    alias: '',
     companyType: CompanyType.EXTERNAL,
     isActive: true,
   });
@@ -84,6 +86,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
       const createData: CreateCompanyRequest = {
         name: formData.name.trim(),
         ruc: formData.ruc.trim() || undefined,
+        alias: formData.alias.trim() || undefined,
         companyType: formData.companyType,
         isActive: formData.isActive,
       };
@@ -111,6 +114,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
       const updateData: UpdateCompanyRequest = {
         name: formData.name.trim(),
         ruc: formData.ruc.trim() || undefined,
+        alias: formData.alias.trim() || undefined,
         companyType: formData.companyType,
         isActive: formData.isActive,
       };
@@ -155,6 +159,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
     setFormData({
       ruc: company.ruc || '',
       name: company.name,
+      alias: company.alias || '',
       companyType: company.companyType,
       isActive: company.isActive,
     });
@@ -165,6 +170,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
     setFormData({
       ruc: '',
       name: '',
+      alias: '',
       companyType: CompanyType.EXTERNAL,
       isActive: true,
     });
@@ -196,7 +202,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
     <View style={styles.companyCard}>
       <View style={styles.companyHeader}>
         <View style={styles.companyInfo}>
-          <Text style={styles.companyName}>{item.name}</Text>
+          <Text style={styles.companyName}>{item.alias || item.name}</Text>
           {item.ruc && <Text style={styles.companyRuc}>RUC: {item.ruc}</Text>}
         </View>
         <View style={[styles.statusBadge, item.isActive ? styles.statusActive : styles.statusInactive]}>
@@ -263,6 +269,16 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
             </View>
 
             <View style={styles.formGroup}>
+              <Text style={styles.label}>Alias (Opcional)</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.alias}
+                onChangeText={(text) => setFormData({ ...formData, alias: text })}
+                placeholder="Ej: ACME"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
               <Text style={styles.label}>Tipo de Empresa</Text>
               <View style={styles.radioGroup}>
                 <TouchableOpacity
@@ -318,7 +334,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -388,7 +404,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
         }}
         icon="🏛️"
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

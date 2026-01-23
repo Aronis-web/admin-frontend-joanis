@@ -184,7 +184,7 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({
 
   if (loadingSuppliers) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
           <Text style={styles.loadingText}>Cargando...</Text>
@@ -194,7 +194,7 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, isTablet && styles.headerTablet]}>
         <TouchableOpacity
@@ -603,3 +603,4 @@ const styles = StyleSheet.create({
 });
 
 export default CreatePurchaseScreen;
+

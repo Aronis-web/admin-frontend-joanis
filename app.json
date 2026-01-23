@@ -52,7 +52,15 @@
     },
     "plugins": [
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Permitir que $(PRODUCT_NAME) acceda a tus fotos.",
+          "savePhotosPermission": "Permitir que $(PRODUCT_NAME) guarde fotos y archivos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
     ]
   }
 }

@@ -341,12 +341,9 @@ export interface QuerySuppliersParams {
  */
 export interface SuppliersResponse {
   data: Supplier[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+  total: number;
+  page: number;
+  limit: number;
 }
 
 /**

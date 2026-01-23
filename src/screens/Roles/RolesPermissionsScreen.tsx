@@ -567,7 +567,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4F46E5" />
           <Text style={styles.loadingText}>Cargando roles y permisos...</Text>
@@ -578,7 +578,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
 
   return (
     <ProtectedRoute requiredPermissions={['roles.read', 'permissions.read']} requireAll={false}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={styles.backButtonText}>←</Text>

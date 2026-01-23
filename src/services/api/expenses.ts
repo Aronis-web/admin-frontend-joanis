@@ -180,6 +180,40 @@ class ExpensesService {
   }
 
   /**
+   * Create a payment with file attachment
+   */
+  async createPaymentWithFile(
+    expenseId: string,
+    data: CreateExpensePaymentRequest,
+    fileUri: string,
+    filename: string,
+    mimeType: string = 'image/jpeg'
+  ): Promise<any> {
+    const formData = new FormData();
+
+    // Append file
+    formData.append('file', {
+      uri: fileUri,
+      type: mimeType,
+      name: filename,
+    } as any);
+
+    // Append payment data
+    formData.append('amountCents', data.amountCents.toString());
+    formData.append('paymentMethod', data.paymentMethod);
+    formData.append('paymentDate', data.paymentDate);
+
+    if (data.currency) formData.append('currency', data.currency);
+    if (data.bankName) formData.append('bankName', data.bankName);
+    if (data.accountNumber) formData.append('accountNumber', data.accountNumber);
+    if (data.transactionReference) formData.append('transactionReference', data.transactionReference);
+    if (data.notes) formData.append('notes', data.notes);
+
+    // Don't set Content-Type manually - let axios set it with the boundary
+    return apiClient.post(`${this.basePath}/${expenseId}/payments/with-file`, formData);
+  }
+
+  /**
    * Register a partial payment
    */
   async registerPartialPayment(expenseId: string, data: PartialPaymentRequest): Promise<any> {
@@ -187,10 +221,48 @@ class ExpensesService {
   }
 
   /**
+   * Register a partial payment with file attachment
+   */
+  async registerPartialPaymentWithFile(
+    expenseId: string,
+    data: PartialPaymentRequest,
+    fileUri: string,
+    filename: string,
+    mimeType: string = 'image/jpeg'
+  ): Promise<any> {
+    const formData = new FormData();
+
+    // Append file
+    formData.append('file', {
+      uri: fileUri,
+      type: mimeType,
+      name: filename,
+    } as any);
+
+    // Append payment data
+    formData.append('amountCents', data.amountCents.toString());
+    formData.append('paymentMethod', data.paymentMethod);
+    formData.append('paymentDate', data.paymentDate);
+
+    if (data.transactionReference) formData.append('transactionReference', data.transactionReference);
+    if (data.notes) formData.append('notes', data.notes);
+
+    // Don't set Content-Type manually - let axios set it with the boundary
+    return apiClient.post(`${this.basePath}/${expenseId}/payments/partial/with-file`, formData);
+  }
+
+  /**
    * Reconcile actual amount
    */
   async reconcileAmount(expenseId: string, data: ReconcileAmountRequest): Promise<any> {
     return apiClient.post(`${this.basePath}/${expenseId}/payments/reconcile`, data);
+  }
+
+  /**
+   * Get all payments for an expense
+   */
+  async getPayments(expenseId: string): Promise<any[]> {
+    return apiClient.get(`${this.basePath}/${expenseId}/payments`);
   }
 
   /**
@@ -280,15 +352,8 @@ class ExpensesService {
   }
 
   // ============================================
-  // Expense Projections
+  // Expense Projections (Legacy - Old API)
   // ============================================
-
-  /**
-   * Get all expense projections with optional filters
-   */
-  async getProjections(params?: QueryExpenseProjectionsParams): Promise<ExpenseProjectionsResponse> {
-    return apiClient.get<ExpenseProjectionsResponse>(this.projectionsPath, { params });
-  }
 
   /**
    * Get projections by period
@@ -387,6 +452,202 @@ class ExpensesService {
    */
   async deleteProject(id: string): Promise<void> {
     return apiClient.delete<void>(`${this.projectsPath}/${id}`);
+  }
+
+  // ============================================
+  // New Summary Endpoints (8 Endpoints)
+  // ============================================
+
+  /**
+   * 1. Get Total Expenses Summary
+   * GET /admin/expenses/summary/total
+   */
+  async getTotalExpensesSummary(params: import('@/types/expenses').SummaryQueryParams): Promise<import('@/types/expenses').TotalExpensesSummaryResponse> {
+    return apiClient.get<import('@/types/expenses').TotalExpensesSummaryResponse>(`${this.basePath}/summary/total`, { params });
+  }
+
+  /**
+   * 2. Get Recurring Expenses Summary
+   * GET /admin/expenses/summary/recurring
+   */
+  async getRecurringExpensesSummary(params: import('@/types/expenses').SummaryQueryParams): Promise<import('@/types/expenses').RecurringExpensesSummaryResponse> {
+    return apiClient.get<import('@/types/expenses').RecurringExpensesSummaryResponse>(`${this.basePath}/summary/recurring`, { params });
+  }
+
+  /**
+   * 3. Get Summary by Category and Currency
+   * GET /admin/expenses/summary/by-category-currency
+   */
+  async getSummaryByCategoryAndCurrency(params: Partial<import('@/types/expenses').SummaryQueryParams>): Promise<import('@/types/expenses').SummaryByCategoryResponse> {
+    return apiClient.get<import('@/types/expenses').SummaryByCategoryResponse>(`${this.basePath}/summary/by-category-currency`, { params });
+  }
+
+  /**
+   * 4. Get Summary by Site
+   * GET /admin/expenses/summary/by-site
+   */
+  async getSummaryBySite(params: Partial<import('@/types/expenses').SummaryQueryParams>): Promise<import('@/types/expenses').SummaryBySiteResponse> {
+    return apiClient.get<import('@/types/expenses').SummaryBySiteResponse>(`${this.basePath}/summary/by-site`, { params });
+  }
+
+  /**
+   * 5. Compare Periods
+   * GET /admin/expenses/summary/compare
+   */
+  async comparePeriods(params: import('@/types/expenses').ComparisonQueryParams): Promise<import('@/types/expenses').PeriodComparisonResponse> {
+    return apiClient.get<import('@/types/expenses').PeriodComparisonResponse>(`${this.basePath}/summary/compare`, { params });
+  }
+
+  /**
+   * 6. Get Trends
+   * GET /admin/expenses/summary/trends
+   */
+  async getTrends(params: import('@/types/expenses').TrendsQueryParams): Promise<import('@/types/expenses').TrendsResponse> {
+    return apiClient.get<import('@/types/expenses').TrendsResponse>(`${this.basePath}/summary/trends`, { params });
+  }
+
+  /**
+   * 7. Get Projections
+   * GET /admin/expenses/summary/projections
+   */
+  async getExpenseProjections(params?: import('@/types/expenses').ProjectionsQueryParams): Promise<import('@/types/expenses').ProjectionsResponse> {
+    return apiClient.get<import('@/types/expenses').ProjectionsResponse>(`${this.basePath}/summary/projections`, { params });
+  }
+
+  /**
+   * 8. Get Dashboard
+   * GET /admin/expenses/summary/dashboard
+   */
+  async getDashboard(params: { startDate: string; endDate: string }): Promise<import('@/types/expenses').DashboardResponse> {
+    return apiClient.get<import('@/types/expenses').DashboardResponse>(`${this.basePath}/summary/dashboard`, { params });
+  }
+
+  // ============================================
+  // Legacy Report Methods (for backward compatibility)
+  // ============================================
+
+  /**
+   * @deprecated Use getDashboard instead
+   */
+  async getSummaryReport(params?: any): Promise<any> {
+    // Legacy method - redirect to new dashboard
+    const today = new Date();
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
+    const endOfYear = new Date(today.getFullYear(), 11, 31);
+
+    return this.getDashboard({
+      startDate: params?.startDate || startOfYear.toISOString().split('T')[0],
+      endDate: params?.endDate || endOfYear.toISOString().split('T')[0],
+    });
+  }
+
+  /**
+   * @deprecated Use getSummaryByCategoryAndCurrency instead
+   */
+  async getByCategoryReport(params?: any): Promise<any> {
+    const today = new Date();
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
+    const endOfYear = new Date(today.getFullYear(), 11, 31);
+
+    return this.getSummaryByCategoryAndCurrency({
+      startDate: params?.startDate || startOfYear.toISOString().split('T')[0],
+      endDate: params?.endDate || endOfYear.toISOString().split('T')[0],
+      ...params,
+    });
+  }
+
+  /**
+   * @deprecated Use getDashboard instead
+   */
+  async getByProjectReport(params?: any): Promise<any> {
+    return this.getSummaryReport(params);
+  }
+
+  /**
+   * @deprecated Use getSummaryBySite instead
+   */
+  async getBySiteReport(params?: any): Promise<any> {
+    const today = new Date();
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
+    const endOfYear = new Date(today.getFullYear(), 11, 31);
+
+    return this.getSummaryBySite({
+      startDate: params?.startDate || startOfYear.toISOString().split('T')[0],
+      endDate: params?.endDate || endOfYear.toISOString().split('T')[0],
+      ...params,
+    });
+  }
+
+  /**
+   * @deprecated Use getDashboard instead
+   */
+  async getBySupplierReport(params?: any): Promise<any> {
+    return this.getSummaryReport(params);
+  }
+
+  /**
+   * @deprecated Use getDashboard instead
+   */
+  async getByTypeReport(params?: any): Promise<any> {
+    return this.getSummaryReport(params);
+  }
+
+  /**
+   * @deprecated Use getTrends instead
+   */
+  async getByMonthReport(params?: any): Promise<any> {
+    const today = new Date();
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
+    const endOfYear = new Date(today.getFullYear(), 11, 31);
+
+    return this.getTrends({
+      startDate: params?.startDate || startOfYear.toISOString().split('T')[0],
+      endDate: params?.endDate || endOfYear.toISOString().split('T')[0],
+      groupBy: 'month',
+    });
+  }
+
+  /**
+   * @deprecated Use getTrends instead
+   */
+  async getByYearReport(params?: any): Promise<any> {
+    const today = new Date();
+    const startOfYear = new Date(today.getFullYear() - 5, 0, 1);
+    const endOfYear = new Date(today.getFullYear(), 11, 31);
+
+    return this.getTrends({
+      startDate: params?.startDate || startOfYear.toISOString().split('T')[0],
+      endDate: params?.endDate || endOfYear.toISOString().split('T')[0],
+      groupBy: 'year',
+    });
+  }
+
+  /**
+   * @deprecated Use getExpenseProjections instead
+   */
+  async getProjections(params?: any): Promise<any> {
+    return this.getExpenseProjections({
+      months: params?.monthsToProject || 12,
+    });
+  }
+
+  /**
+   * @deprecated Use getExpenseProjections instead
+   */
+  async getProjectionsReport(params?: any): Promise<any> {
+    return this.getExpenseProjections({
+      months: params?.monthsToProject || 12,
+    });
+  }
+
+  /**
+   * @deprecated Use getDashboard instead
+   */
+  async getCashFlowReport(params?: any): Promise<any> {
+    return this.getDashboard({
+      startDate: params?.startDate,
+      endDate: params?.endDate,
+    });
   }
 }
 

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { MAIN_ROUTES } from '@/constants/routes';
+import { MAIN_ROUTES, AUTH_ROUTES } from '@/constants/routes';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -93,20 +93,28 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
-  // Campañas - Sin submenú
+  // Campaña - Con submenú (Campañas y Repartos)
   {
-    id: 'campaigns',
-    title: 'Campañas',
+    id: 'campana',
+    title: 'Campaña',
     icon: '🎯',
     color: '#10B981',
     items: [
       {
         id: 'campaigns',
-        icon: '🎯',
+        icon: '📋',
         label: 'Campañas',
         route: MAIN_ROUTES.CAMPAIGNS,
         color: '#10B981',
         requiredPermissions: ['campaigns.read', 'campaigns.create', 'campaigns.update'],
+      },
+      {
+        id: 'repartos',
+        icon: '🚚',
+        label: 'Repartos',
+        route: MAIN_ROUTES.REPARTOS,
+        color: '#059669',
+        requiredPermissions: ['campaigns.read', 'campaigns.create'],
       },
     ],
   },
@@ -143,6 +151,48 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // Balances
+  {
+    id: 'balances',
+    title: 'Balances',
+    icon: '⚖️',
+    color: '#0EA5E9',
+    items: [
+      {
+        id: 'balances',
+        icon: '📊',
+        label: 'Balances',
+        route: MAIN_ROUTES.BALANCES,
+        color: '#0EA5E9',
+        requiredPermissions: ['balances.read', 'balances.create', 'balances.update'],
+      },
+      {
+        id: 'balance-operations',
+        icon: '🔄',
+        label: 'Operaciones',
+        route: MAIN_ROUTES.ALL_BALANCE_OPERATIONS,
+        color: '#38BDF8',
+        requiredPermissions: ['balances.operations.read', 'balances.operations.create', 'balances.operations.update'],
+      },
+    ],
+  },
+  // Transmisiones - Sin submenú
+  {
+    id: 'transmisiones',
+    title: 'Transmisiones',
+    icon: '📡',
+    color: '#8B5CF6',
+    items: [
+      {
+        id: 'transmisiones',
+        icon: '📡',
+        label: 'Transmisiones',
+        route: MAIN_ROUTES.TRANSMISIONES,
+        color: '#8B5CF6',
+        requiredPermissions: ['transmisiones.read', 'transmisiones.create', 'transmisiones.update'],
+      },
+    ],
+  },
   // Gastos
   {
     id: 'expenses',
@@ -150,6 +200,14 @@ const menuCategories: MenuCategory[] = [
     icon: '💰',
     color: '#DC2626',
     items: [
+      {
+        id: 'expenses-reports',
+        icon: '📈',
+        label: 'Reportes',
+        route: MAIN_ROUTES.EXPENSES_REPORTS,
+        color: '#F59E0B',
+        requiredPermissions: ['expenses.reports.view'],
+      },
       {
         id: 'expenses-templates',
         icon: '🔄',
@@ -173,22 +231,6 @@ const menuCategories: MenuCategory[] = [
         route: MAIN_ROUTES.EXPENSES_PROJECTS,
         color: '#F87171',
         requiredPermissions: ['expenses.projects.read'],
-      },
-      {
-        id: 'expenses-categories',
-        icon: '🏷️',
-        label: 'Categorías',
-        route: MAIN_ROUTES.EXPENSES_CATEGORIES,
-        color: '#FCA5A5',
-        requiredPermissions: ['expenses.categories.read'],
-      },
-      {
-        id: 'expenses-reports',
-        icon: '📈',
-        label: 'Reportes',
-        route: MAIN_ROUTES.EXPENSES_REPORTS,
-        color: '#F59E0B',
-        requiredPermissions: ['expenses.reports.view'],
       },
     ],
   },
@@ -246,6 +288,15 @@ const menuCategories: MenuCategory[] = [
         label: 'Perfiles de Precio',
         route: MAIN_ROUTES.PRICE_PROFILES,
         color: '#14B8A6',
+      },
+      // Gastos Config
+      {
+        id: 'expenses-categories',
+        icon: '🏷️',
+        label: 'Categorías de Gastos',
+        route: MAIN_ROUTES.EXPENSES_CATEGORIES,
+        color: '#FCA5A5',
+        requiredPermissions: ['expenses.categories.read'],
       },
       // Apps
       {
@@ -313,8 +364,8 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
   const handleSiteChange = () => {
     onClose();
     setTimeout(() => {
-      // Navigate to companies screen to manage sites
-      navigation.navigate(MAIN_ROUTES.COMPANIES as never);
+      // Navigate to site selection screen to change the current site
+      navigation.navigate(AUTH_ROUTES.SITE_SELECTION as never);
     }, 300);
   };
 

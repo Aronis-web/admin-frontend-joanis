@@ -131,6 +131,7 @@ export interface PurchaseProduct {
   // Datos preliminares
   sku: string;
   name: string;
+  correlativeNumber?: number;  // Número correlativo del producto
   costCents: number;
   preliminaryStock: number;
   preliminaryPresentationQuantity?: number;  // Cantidad de presentaciones (preliminar)
@@ -251,6 +252,8 @@ export interface PurchaseProductValidation {
   previousPresentationId?: string; // Presentación previa (historial)
   photosAdded: string[];
   barcodeAdded?: string;
+  photoUrl?: string;        // URL de la foto de validación
+  signatureUrl?: string;    // URL de la firma de validación
   notes?: string;
   validatedByUser?: {
     id: string;
@@ -353,6 +356,8 @@ export interface ValidateProductRequest {
   presentations: ValidatedPresentationConfig[];  // OBLIGATORIO: Array de presentaciones validadas
   barcode?: string;
   productPhotos?: string[];
+  photoUrl?: string;                   // OPCIONAL: URL de la foto de validación
+  signatureUrl?: string;               // OPCIONAL: URL de la firma de validación
   validationNotes?: string;
 }
 
@@ -426,6 +431,19 @@ export interface ValidationStatusResponse {
 }
 
 /**
+ * Purchase Total Sum Response
+ */
+export interface PurchaseTotalSumResponse {
+  purchaseId: string;
+  purchaseCode: string;
+  totalUnvalidatedCents: number;
+  totalValidatedCents: number;
+  differenceCents: number;
+  totalProducts: number;
+  validatedProducts: number;
+}
+
+/**
  * Status Labels for UI
  */
 export const PurchaseStatusLabels: Record<PurchaseStatus, string> = {
@@ -488,28 +506,32 @@ export const PurchaseProductStatusColors: Record<PurchaseProductStatus, string> 
 // ============================================
 
 /**
- * OCR Scanned Item
+ * OCR Scanned Item (Updated for new batch OCR)
  */
 export interface OcrScannedItem {
-  sku: string;
+  sku: string | null;              // Can be null if not found
   nombre: string;
-  cajas: number;
-  unidades_por_caja: number;
-  cantidad_total: number;
-  precio_unitario: number;
-  origen_precio_unitario: string;
-  subtotal_fila: number;
+  cajas: number;                   // Cantidad de presentaciones
+  unidades_por_caja: number;       // Factor de conversión
+  cantidad_total: number;          // Total unidades base
+  precio_unitario: number | null;  // Precio por unidad base (can be null)
+  subtotal_fila: number | null;    // Total de la línea (can be null)
 }
 
 /**
- * OCR Scan Response
+ * OCR Scan Response (Updated for new batch OCR)
  */
 export interface OcrScanResponse {
   items: OcrScannedItem[];
-  incluye_igv_en_precios: boolean;
-  subtotal_documento_impreso: number | null;
-  igv_impreso: number | null;
-  total_documento_impreso: number | null;
-  subtotal_documento_calculado: number;
-  diferencia_subtotal: number | null;
+  total_estimado: number;          // Suma de todos los subtotales
+  archivos_procesados: number;     // Cantidad de archivos procesados
+  observaciones?: string;          // Observaciones si se enviaron
+
+  // Legacy fields (deprecated but kept for backward compatibility)
+  incluye_igv_en_precios?: boolean;
+  subtotal_documento_impreso?: number | null;
+  igv_impreso?: number | null;
+  total_documento_impreso?: number | null;
+  subtotal_documento_calculado?: number;
+  diferencia_subtotal?: number | null;
 }

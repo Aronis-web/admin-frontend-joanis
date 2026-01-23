@@ -61,6 +61,8 @@ export interface StockItem {
   warehouseId: string;
   areaId: string | null;
   quantityBase: number;
+  reservedQuantityBase?: number;
+  availableQuantityBase?: number;
   updatedAt: string;
   warehouse?: {
     id: string;
@@ -76,9 +78,10 @@ export interface StockItem {
 // Product entity for list endpoint
 export interface Product {
   id: string;
+  correlativeNumber: number; // ✅ NUEVO - Número único auto-generado
   title: string;
   description: string;
-  sku: string;
+  sku: string; // Ahora permite duplicados
   barcode: string;
   categoryId: string;
   status: 'active' | 'inactive' | 'discontinued' | 'draft' | 'archived';
@@ -101,8 +104,9 @@ export interface Product {
 // Product entity for detail endpoint (simplified)
 export interface ProductDetail {
   id: string;
+  correlativeNumber: number; // ✅ NUEVO - Número único auto-generado
   title: string;
-  sku: string;
+  sku: string; // Ahora permite duplicados
   priceCentsBase: number;
   currency: string;
   imageUrl?: string;
@@ -138,6 +142,7 @@ export interface ProductFilters {
   categoryId?: string;
   q?: string;
   include?: string;
+  status?: string;
 }
 
 // Legacy interfaces for backward compatibility
@@ -363,6 +368,95 @@ export const productsApi = {
     }>;
   }> => {
     return apiClient.get(`/files/products/${productId}/images`);
+  },
+
+  // ========== BULK UPLOAD ENDPOINTS ==========
+
+  // Download bulk upload template - GET /admin/products/bulk/template
+  downloadBulkTemplate: async (): Promise<Blob> => {
+    return apiClient.get('/admin/products/bulk/template', {
+      responseType: 'blob',
+    });
+  },
+
+  // Upload bulk products file - POST /admin/products/bulk/upload
+  uploadBulkProducts: async (file: File | Blob | any): Promise<{
+    successCount: number;
+    errorCount: number;
+    totalRows: number;
+    errors: Array<{
+      row: number;
+      error: string;
+      sku?: string;
+    }>;
+    createdProductIds: string[];
+  }> => {
+    const formData = new FormData();
+
+    // In React Native, file can be an object with { uri, type, name }
+    // In web, it's a File or Blob object
+    formData.append('file', file);
+
+    // Don't set Content-Type manually - let the interceptor handle it
+    return apiClient.post('/admin/products/bulk/upload', formData);
+  },
+
+  // Get bulk upload history - GET /admin/products/bulk/history
+  getBulkUploadHistory: async (params?: {
+    page?: number;
+    limit?: number;
+    userId?: string;
+  }): Promise<{
+    history: Array<{
+      id: string;
+      filename: string;
+      uploadedBy: string;
+      uploadedByName: string;
+      uploadedByEmail: string;
+      status: 'in_progress' | 'completed' | 'completed_with_errors' | 'failed';
+      totalRows: number;
+      successCount: number;
+      errorCount: number;
+      createdProductIds: string[];
+      errors: Array<{
+        row: number;
+        error: string;
+        sku?: string;
+      }>;
+      processingDurationMs: number;
+      createdAt: string;
+      completedAt: string;
+    }>;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> => {
+    return apiClient.get('/admin/products/bulk/history', { params });
+  },
+
+  // Get bulk upload history detail - GET /admin/products/bulk/history/:id
+  getBulkUploadHistoryDetail: async (id: string): Promise<{
+    id: string;
+    filename: string;
+    uploadedBy: string;
+    uploadedByName: string;
+    uploadedByEmail: string;
+    status: 'in_progress' | 'completed' | 'completed_with_errors' | 'failed';
+    totalRows: number;
+    successCount: number;
+    errorCount: number;
+    createdProductIds: string[];
+    errors: Array<{
+      row: number;
+      error: string;
+      sku?: string;
+    }>;
+    processingDurationMs: number;
+    createdAt: string;
+    completedAt: string;
+  }> => {
+    return apiClient.get(`/admin/products/bulk/history/${id}`);
   },
 };
 

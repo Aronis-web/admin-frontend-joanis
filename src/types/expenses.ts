@@ -299,11 +299,22 @@ export interface ExpenseProject {
 /**
  * Expense Payment - Kept for compatibility
  */
+export interface PaymentAttachment {
+  id: string;
+  fileId: string;
+  fileName: string;
+  fileType: 'RECEIPT' | 'INVOICE' | 'OTHER';
+  description?: string;
+  url?: string;
+  mimeType?: string;
+  createdAt: string;
+}
+
 export interface ExpensePayment {
   id: string;
   expenseId?: string;
   code: string;
-  amountCents: number;
+  amountCents: number | string; // Backend puede enviar string o number
   paymentMethod: PaymentMethod;
   bankName?: string;
   accountNumber?: string;
@@ -312,6 +323,15 @@ export interface ExpensePayment {
   status: PaymentStatus;
   notes?: string;
   receiptUrl?: string;
+  attachmentFileId?: string; // ID del archivo adjunto (legacy)
+  attachmentFile?: {
+    id: string;
+    fileName: string;
+    fileType: string;
+    url: string;
+    mimeType?: string;
+  };
+  attachments?: PaymentAttachment[]; // Nuevo formato: array de archivos adjuntos
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -1050,6 +1070,253 @@ export interface ReportByYear {
 }
 
 /**
+ * Report by Type
+ */
+export interface ReportByType {
+  expenseType: string;
+  totalExpenses: number;
+  totalAmount: number;
+  paidAmount: number;
+  pendingAmount: number;
+  overdueAmount: number;
+  percentage: number;
+}
+
+// ============================================
+// New Summary API Types (8 Endpoints)
+// ============================================
+
+/**
+ * Currency Summary Item - Used across all summary endpoints
+ */
+export interface CurrencySummary {
+  currency: string;
+  totalAmountCents: number;
+  totalAmount: number;
+  expenseCount: number;
+}
+
+/**
+ * Summary Filters - Common filters for summary endpoints
+ */
+export interface SummaryFilters {
+  startDate: string;
+  endDate: string;
+  siteId?: string | null;
+  categoryId?: string | null;
+  supplierId?: string | null;
+  projectId?: string | null;
+  status?: string | null;
+  minAmountCents?: number | null;
+  maxAmountCents?: number | null;
+}
+
+/**
+ * 1. Total Expenses Summary Response
+ * GET /admin/expenses/summary/total
+ */
+export interface TotalExpensesSummaryResponse {
+  byCurrency: CurrencySummary[];
+  totalExpenseCount: number;
+  filters: SummaryFilters;
+}
+
+/**
+ * 2. Recurring Expenses Summary Response
+ * GET /admin/expenses/summary/recurring
+ */
+export interface RecurringExpensesSummaryResponse {
+  byCurrency: CurrencySummary[];
+  totalExpenseCount: number;
+  filters: SummaryFilters;
+}
+
+/**
+ * 3. Summary by Category and Currency
+ * GET /admin/expenses/summary/by-category-currency
+ */
+export interface CategoryCurrencySummary {
+  categoryId: string;
+  categoryName: string;
+  byCurrency: CurrencySummary[];
+  totalExpenseCount: number;
+}
+
+export interface SummaryByCategoryResponse {
+  categories: CategoryCurrencySummary[];
+  totalExpenseCount: number;
+  filters: Partial<SummaryFilters>;
+}
+
+/**
+ * 4. Summary by Site
+ * GET /admin/expenses/summary/by-site
+ */
+export interface SiteCurrencySummary {
+  siteId: string;
+  siteName: string;
+  byCurrency: CurrencySummary[];
+  totalExpenseCount: number;
+}
+
+export interface SummaryBySiteResponse {
+  sites: SiteCurrencySummary[];
+  totalExpenseCount: number;
+  filters: Partial<SummaryFilters>;
+}
+
+/**
+ * 5. Period Comparison
+ * GET /admin/expenses/summary/compare
+ */
+export interface PeriodComparisonCurrency {
+  currency: string;
+  period1AmountCents: number;
+  period1Amount: number;
+  period1Count: number;
+  period2AmountCents: number;
+  period2Amount: number;
+  period2Count: number;
+  differenceAmountCents: number;
+  differenceAmount: number;
+  differenceCount: number;
+  percentageChange: number;
+}
+
+export interface PeriodComparisonResponse {
+  byCurrency: PeriodComparisonCurrency[];
+  period1: TotalExpensesSummaryResponse;
+  period2: TotalExpensesSummaryResponse;
+}
+
+/**
+ * 6. Trends Response
+ * GET /admin/expenses/summary/trends
+ */
+export interface TrendPeriod {
+  period: string;
+  startDate: string;
+  endDate: string;
+  totalAmountCents: number;
+  totalAmount: number;
+  expenseCount: number;
+}
+
+export interface TrendCurrency {
+  currency: string;
+  periods: TrendPeriod[];
+}
+
+export interface TrendsResponse {
+  byCurrency: TrendCurrency[];
+  filters: {
+    startDate: string;
+    endDate: string;
+    groupBy: 'month' | 'quarter' | 'year';
+  };
+}
+
+/**
+ * 7. Projections Response
+ * GET /admin/expenses/summary/projections
+ */
+export interface ProjectionMonthSummary {
+  month: string;
+  projectedAmountCents: number;
+  projectedAmount: number;
+  expectedCount: number;
+  currency: string;
+}
+
+export interface ProjectionsResponse {
+  projections: ProjectionMonthSummary[];
+  totalProjectedAmountCents: number;
+  totalProjectedAmount: number;
+  currency: string;
+  monthsProjected: number;
+  basedOnExpenseCount: number;
+}
+
+/**
+ * 8. Dashboard Response
+ * GET /admin/expenses/summary/dashboard
+ */
+export interface DashboardStatusSummary {
+  status: string;
+  currency: string;
+  totalAmountCents: number;
+  totalAmount: number;
+  expenseCount: number;
+}
+
+export interface DashboardTopExpense {
+  id: string;
+  code: string;
+  name: string;
+  amountCents: number;
+  amount: number;
+  currency: string;
+  dueDate: string;
+  status: string;
+  categoryName: string;
+}
+
+export interface DashboardResponse {
+  totalExpenses: TotalExpensesSummaryResponse;
+  recurringExpenses: RecurringExpensesSummaryResponse;
+  byCategory: CategoryCurrencySummary[];
+  bySite: SiteCurrencySummary[];
+  byStatus: DashboardStatusSummary[];
+  topExpenses: DashboardTopExpense[];
+  overdueExpenses: TotalExpensesSummaryResponse;
+  filters: {
+    startDate: string;
+    endDate: string;
+  };
+}
+
+/**
+ * Query Parameters for Summary Endpoints
+ */
+export interface SummaryQueryParams {
+  startDate: string;
+  endDate: string;
+  siteId?: string;
+  categoryId?: string;
+  supplierId?: string;
+  projectId?: string;
+  status?: string;
+  minAmountCents?: number;
+  maxAmountCents?: number;
+}
+
+/**
+ * Query Parameters for Period Comparison
+ */
+export interface ComparisonQueryParams {
+  period1Start: string;
+  period1End: string;
+  period2Start: string;
+  period2End: string;
+}
+
+/**
+ * Query Parameters for Trends
+ */
+export interface TrendsQueryParams {
+  startDate: string;
+  endDate: string;
+  groupBy?: 'month' | 'quarter' | 'year';
+}
+
+/**
+ * Query Parameters for Projections
+ */
+export interface ProjectionsQueryParams {
+  months?: number;
+}
+
+/**
  * Detailed Expense Report Item
  */
 export interface DetailedExpenseReport {
@@ -1081,11 +1348,11 @@ export interface DetailedExpenseReport {
 }
 
 /**
- * Projection Month
+ * Projection Month Detail (Legacy - for detailed projections)
  */
-export interface ProjectionMonth {
+export interface ProjectionMonthDetail {
   year: number;
-  month: number;
+  monthIndex: number;
   monthName: string;
   totalProjected: number;
   recurrentExpenses: number;
@@ -1114,7 +1381,7 @@ export interface ProjectionMonth {
 }
 
 /**
- * Expense Projections Report
+ * Expense Projections Report (Legacy)
  */
 export interface ExpenseProjectionsReport {
   period: ProjectionPeriod;
@@ -1126,7 +1393,7 @@ export interface ExpenseProjectionsReport {
   semiRecurrentTotal: number;
   paidTotal: number;
   pendingTotal: number;
-  months: ProjectionMonth[];
+  months: ProjectionMonthDetail[];
   byCategory?: ReportByCategory[];
   byProject?: ReportByProject[];
   bySite?: ReportBySite[];

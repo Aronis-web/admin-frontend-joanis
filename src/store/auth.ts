@@ -9,6 +9,7 @@ import { Company } from '@/types/companies';
 export interface CurrentCompany {
   id: string;
   name: string;
+  alias?: string;
   ruc?: string;
   isActive: boolean;
 }
@@ -89,6 +90,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return;
     }
     set({ token });
+    // Sync with AuthService
+    authService.setAccessToken(token);
   },
 
   setRefreshToken: (refreshToken) => {
@@ -131,6 +134,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Store in AsyncStorage
       await AsyncStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, accessToken);
       await AsyncStorage.setItem(config.STORAGE_KEYS.USER, JSON.stringify(user));
+
+      // Sync with AuthService
+      authService.setAccessToken(accessToken);
 
       console.log('✅ Setting auth state...');
       set({
@@ -184,6 +190,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (expiresAt) {
         await AsyncStorage.setItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT, expiresAt.toString());
       }
+
+      // Note: AuthService already has the token from the login call
+      // No need to call authService.setAccessToken here
 
       set({
         user: response.user as any,
@@ -336,6 +345,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (newToken) {
         // Update store with new token from authService
         set({ token: newToken });
+        console.log('✅ Token refreshed and synced with store');
         return true;
       }
 
@@ -356,6 +366,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_COMPANY);
       await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_SITE);
       set({ user: null, token: null, refreshToken: null, tokenExpiresAt: null, isAuthenticated: false, error: null, currentCompany: null, currentSite: null });
+      // Clear AuthService token
+      authService.setAccessToken(null);
     } catch (error) {
       // Error clearing auth data - continuing anyway
     }

@@ -10,6 +10,7 @@ import {
   RefreshControl,
   useWindowDimensions,
   Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -24,6 +25,7 @@ import {
   PurchaseProductStatusLabels,
   PurchaseProductStatusColors,
   GuideTypeLabels,
+  PurchaseTotalSumResponse,
 } from '@/types/purchases';
 import { OcrScannerModal } from '@/components/Purchases/OcrScannerModal';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -48,12 +50,14 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const { purchaseId } = route.params;
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [products, setProducts] = useState<PurchaseProduct[]>([]);
+  const [totalSum, setTotalSum] = useState<PurchaseTotalSumResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [selectedProductForInfo, setSelectedProductForInfo] = useState<PurchaseProduct | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -61,12 +65,14 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
   const loadPurchase = useCallback(async () => {
     try {
-      const [purchaseData, productsData] = await Promise.all([
+      const [purchaseData, productsData, totalSumData] = await Promise.all([
         purchasesService.getPurchase(purchaseId),
         purchasesService.getPurchaseProducts(purchaseId),
+        purchasesService.getPurchaseTotalSum(purchaseId).catch(() => null), // Don't fail if endpoint not available yet
       ]);
       setPurchase(purchaseData);
       setProducts(productsData);
+      setTotalSum(totalSumData);
     } catch (error: any) {
       console.error('Error loading purchase:', error);
       Alert.alert('Error', 'No se pudo cargar la compra');
@@ -127,49 +133,148 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       // Use the first available presentation (same as manual form does)
       const defaultPresentation = presentations[0];
 
-      // Add all products from OCR scan
-      for (const product of ocrProducts) {
-        // Build presentations array from OCR data
-        const productPresentations = [];
+      // Process products in batches to handle large quantities
+      const BATCH_SIZE = 5; // Reduced batch size for better stability on tablets
+      const totalProducts = ocrProducts.length;
+      let successCount = 0;
+      let errorCount = 0;
+      const errors: string[] = [];
 
-        // If product has boxes/packages (cajas > 1 or unidades_por_caja > 1)
-        if (product.cajas > 1 || product.unidades_por_caja > 1) {
-          // Add the presentation with the factor from OCR
-          productPresentations.push({
-            presentationId: defaultPresentation.id,
-            factorToBase: product.unidades_por_caja,
-            notes: `${product.cajas} caja(s) x ${product.unidades_por_caja} unidades (OCR)`,
-          });
-        } else {
-          // Single unit presentation
-          productPresentations.push({
-            presentationId: defaultPresentation.id,
-            factorToBase: 1,
-            notes: 'Unidad individual (OCR)',
-          });
-        }
+      console.log(`📦 Procesando ${totalProducts} productos del OCR en lotes de ${BATCH_SIZE}...`);
 
-        // Calculate loose units (remainder after dividing by factor)
-        const looseUnits = product.cantidad_total % product.unidades_por_caja;
+      // Process in batches
+      for (let i = 0; i < totalProducts; i += BATCH_SIZE) {
+        const batch = ocrProducts.slice(i, i + BATCH_SIZE);
+        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(totalProducts / BATCH_SIZE);
 
-        await purchasesService.addProduct(purchaseId, {
-          sku: product.sku,
-          name: product.nombre,
-          costCents: Math.round(product.precio_unitario * 100),
-          preliminaryStock: product.cantidad_total,
-          preliminaryPresentationQuantity: product.cajas,
-          preliminaryLooseUnits: looseUnits,
-          presentations: productPresentations,
+        console.log(`📦 Procesando lote ${batchNumber}/${totalBatches} (${batch.length} productos)...`);
+
+        // Process batch in parallel
+        const batchPromises = batch.map(async (product, index) => {
+          try {
+            // Validate product data to prevent NaN crashes
+            if (!product.sku || !product.nombre) {
+              throw new Error('Producto sin SKU o nombre');
+            }
+
+            // Ensure all numeric values are valid and safe
+            const cajas = (isFinite(product.cajas) && !isNaN(product.cajas) && product.cajas > 0) ? Math.max(1, Math.floor(product.cajas)) : 1;
+            const unidadesPorCaja = (isFinite(product.unidades_por_caja) && !isNaN(product.unidades_por_caja) && product.unidades_por_caja > 0) ? Math.max(1, Math.floor(product.unidades_por_caja)) : 1;
+            const cantidadTotal = (isFinite(product.cantidad_total) && !isNaN(product.cantidad_total) && product.cantidad_total > 0) ? Math.max(1, Math.floor(product.cantidad_total)) : 0;
+            const precioUnitario = (isFinite(product.precio_unitario) && !isNaN(product.precio_unitario) && product.precio_unitario > 0) ? Math.max(0.01, product.precio_unitario) : 0;
+
+            if (cantidadTotal <= 0) {
+              throw new Error('Cantidad inválida o cero');
+            }
+
+            if (precioUnitario <= 0) {
+              throw new Error('Precio inválido o cero');
+            }
+
+            // Build presentations array from OCR data
+            const productPresentations = [];
+
+            // If product has boxes/packages (cajas > 1 or unidades_por_caja > 1)
+            if (cajas > 1 || unidadesPorCaja > 1) {
+              // Add the presentation with the factor from OCR
+              productPresentations.push({
+                presentationId: defaultPresentation.id,
+                factorToBase: unidadesPorCaja,
+                notes: `${cajas} caja(s) x ${unidadesPorCaja} unidades (OCR)`,
+              });
+            } else {
+              // Single unit presentation
+              productPresentations.push({
+                presentationId: defaultPresentation.id,
+                factorToBase: 1,
+                notes: 'Unidad individual (OCR)',
+              });
+            }
+
+            // Calculate loose units (remainder after dividing by factor)
+            const looseUnits = cantidadTotal % unidadesPorCaja;
+
+            // Ensure costCents is a valid integer (safe conversion)
+            const costCents = Math.max(1, Math.round(precioUnitario * 100));
+            if (!isFinite(costCents) || isNaN(costCents) || costCents <= 0) {
+              throw new Error('Precio inválido al convertir a centavos');
+            }
+
+            // Validate all values one more time before sending
+            if (!isFinite(cantidadTotal) || !isFinite(cajas) || !isFinite(looseUnits) || !isFinite(costCents)) {
+              throw new Error('Valores numéricos inválidos detectados');
+            }
+
+            await purchasesService.addProduct(purchaseId, {
+              sku: product.sku,
+              name: product.nombre,
+              costCents: costCents,
+              preliminaryStock: cantidadTotal,
+              preliminaryPresentationQuantity: cajas,
+              preliminaryLooseUnits: looseUnits,
+              presentations: productPresentations,
+            });
+
+            return { success: true, product };
+          } catch (error: any) {
+            console.error(`❌ Error agregando producto ${product.sku}:`, error);
+            return {
+              success: false,
+              product,
+              error: error.message || 'Error desconocido'
+            };
+          }
         });
+
+        // Wait for batch to complete
+        const batchResults = await Promise.all(batchPromises);
+
+        // Count successes and errors
+        batchResults.forEach(result => {
+          if (result.success) {
+            successCount++;
+          } else {
+            errorCount++;
+            errors.push(`${result.product.sku}: ${result.error}`);
+          }
+        });
+
+        console.log(`✅ Lote ${batchNumber}/${totalBatches} completado. Éxitos: ${successCount}, Errores: ${errorCount}`);
+
+        // Add a small delay between batches to prevent overwhelming the system on tablets
+        if (i + BATCH_SIZE < totalProducts) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
 
-      Alert.alert(
-        'Éxito',
-        `Se agregaron ${ocrProducts.length} producto${ocrProducts.length !== 1 ? 's' : ''} correctamente`
-      );
+      // Show results
+      if (errorCount === 0) {
+        Alert.alert(
+          'Éxito',
+          `Se agregaron ${successCount} producto${successCount !== 1 ? 's' : ''} correctamente`
+        );
+      } else if (successCount > 0) {
+        Alert.alert(
+          'Completado con errores',
+          `Se agregaron ${successCount} producto${successCount !== 1 ? 's' : ''} correctamente.\n\n` +
+          `${errorCount} producto${errorCount !== 1 ? 's' : ''} no se pudieron agregar:\n` +
+          errors.slice(0, 5).join('\n') +
+          (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          `No se pudo agregar ningún producto.\n\nErrores:\n` +
+          errors.slice(0, 5).join('\n') +
+          (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
+        );
+      }
 
-      // Reload purchase data
-      await loadPurchase();
+      // Reload purchase data if at least one product was added
+      if (successCount > 0) {
+        await loadPurchase();
+      }
     } catch (error: any) {
       console.error('Error adding OCR products:', error);
       Alert.alert('Error', error.message || 'No se pudieron agregar los productos');
@@ -193,10 +298,13 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const handleProductPress = (product: PurchaseProduct) => {
-    if (product.status === PurchaseProductStatus.PRELIMINARY) {
+    // Allow editing for PRELIMINARY and IN_VALIDATION statuses
+    if (
+      product.status === PurchaseProductStatus.PRELIMINARY ||
+      product.status === PurchaseProductStatus.IN_VALIDATION
+    ) {
       navigation.navigate('EditPurchaseProduct', { purchaseId, productId: product.id });
     } else if (
-      product.status === PurchaseProductStatus.IN_VALIDATION ||
       product.status === PurchaseProductStatus.VALIDATED ||
       product.status === PurchaseProductStatus.REJECTED
     ) {
@@ -325,7 +433,22 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     );
   };
 
+  // Filter products based on search query (minimum 2 characters)
+  const filteredProducts = products.filter((product) => {
+    const trimmedQuery = searchQuery.trim();
 
+    // Show all products if search query is empty or less than 2 characters
+    if (trimmedQuery.length < 2) {
+      return true;
+    }
+
+    const query = trimmedQuery.toLowerCase();
+    const matchesSku = product.sku.toLowerCase().includes(query);
+    const matchesName = product.name.toLowerCase().includes(query);
+    const matchesCorrelative = product.correlativeNumber?.toString().includes(query);
+
+    return matchesSku || matchesName || matchesCorrelative;
+  });
 
   const canAssignDebts = () => {
     return purchase?.status === PurchaseStatus.VALIDATED;
@@ -365,7 +488,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                 {product.name}
               </Text>
               <Text style={[styles.productSku, isTablet && styles.productSkuTablet]}>
-                SKU: {product.sku}
+                {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku}
               </Text>
             </View>
             <View style={styles.productHeaderRight}>
@@ -468,10 +591,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           </View>
         )}
         {product.status === PurchaseProductStatus.IN_VALIDATION && (
-          <View style={[styles.productActionHint, styles.productActionHintValidate]}>
-            <Text style={[styles.productActionHintText, styles.productActionHintTextValidate]}>
-              ✓ Toca para validar
-            </Text>
+          <View style={styles.productActionHint}>
+            <Text style={styles.productActionHintText}>✏️ Toca para editar</Text>
           </View>
         )}
         {product.status === PurchaseProductStatus.VALIDATED && (
@@ -514,7 +635,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
           <Text style={styles.loadingText}>Cargando compra...</Text>
@@ -530,7 +651,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const stats = getProductStats();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, isTablet && styles.headerTablet]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -699,11 +820,83 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           </View>
         </View>
 
+        {/* Total Sum Card */}
+        {totalSum && (
+          <View style={[styles.totalSumCard, isTablet && styles.totalSumCardTablet]}>
+            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+              💰 Totales de la Compra
+            </Text>
+
+            <View style={styles.totalSumGrid}>
+              <View style={styles.totalSumRow}>
+                <View style={styles.totalSumItem}>
+                  <Text style={[styles.totalSumLabel, isTablet && styles.totalSumLabelTablet]}>
+                    Total Sin Validar
+                  </Text>
+                  <Text style={[styles.totalSumValue, isTablet && styles.totalSumValueTablet, styles.totalSumUnvalidated]}>
+                    {formatCurrency(totalSum.totalUnvalidatedCents)}
+                  </Text>
+                  <Text style={[styles.totalSumSubtext, isTablet && styles.totalSumSubtextTablet]}>
+                    {totalSum.totalProducts} producto{totalSum.totalProducts !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+
+                <View style={styles.totalSumItem}>
+                  <Text style={[styles.totalSumLabel, isTablet && styles.totalSumLabelTablet]}>
+                    Total Validado
+                  </Text>
+                  <Text style={[styles.totalSumValue, isTablet && styles.totalSumValueTablet, styles.totalSumValidated]}>
+                    {formatCurrency(totalSum.totalValidatedCents)}
+                  </Text>
+                  <Text style={[styles.totalSumSubtext, isTablet && styles.totalSumSubtextTablet]}>
+                    {totalSum.validatedProducts} validado{totalSum.validatedProducts !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+              </View>
+
+              {totalSum.differenceCents !== 0 && (
+                <View style={[styles.totalSumDifference, totalSum.differenceCents > 0 ? styles.totalSumDifferencePositive : styles.totalSumDifferenceNegative]}>
+                  <Text style={[styles.totalSumDifferenceLabel, isTablet && styles.totalSumDifferenceLabelTablet]}>
+                    Diferencia:
+                  </Text>
+                  <Text style={[styles.totalSumDifferenceValue, isTablet && styles.totalSumDifferenceValueTablet]}>
+                    {totalSum.differenceCents > 0 ? '+' : ''}{formatCurrency(totalSum.differenceCents)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Products List */}
         <View style={styles.productsSection}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
             Productos ({products.length})
           </Text>
+
+          {/* Search Bar */}
+          {products.length > 0 && (
+            <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
+              <Text style={styles.searchIcon}>🔍</Text>
+              <TextInput
+                style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Buscar por SKU, nombre o #correlativo (mín. 2 letras)..."
+                placeholderTextColor="#94A3B8"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearSearchButton}
+                  onPress={() => setSearchQuery('')}
+                >
+                  <Text style={styles.clearSearchText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {canAddProducts() && (
             <View style={[styles.headerActionsContainer, isTablet && styles.headerActionsContainerTablet]}>
@@ -738,8 +931,23 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                 No hay productos agregados
               </Text>
             </View>
+          ) : filteredProducts.length === 0 && searchQuery.trim().length >= 2 ? (
+            <View style={styles.emptyProducts}>
+              <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>🔍</Text>
+              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+                No se encontraron productos que coincidan con "{searchQuery}"
+              </Text>
+              <TouchableOpacity
+                style={[styles.clearSearchButtonLarge, isTablet && styles.clearSearchButtonLargeTablet]}
+                onPress={() => setSearchQuery('')}
+              >
+                <Text style={[styles.clearSearchButtonLargeText, isTablet && styles.clearSearchButtonLargeTextTablet]}>
+                  Limpiar búsqueda
+                </Text>
+              </TouchableOpacity>
+            </View>
           ) : (
-            products.map(renderProductCard)
+            filteredProducts.map(renderProductCard)
           )}
         </View>
 
@@ -881,7 +1089,7 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                 📝 Datos Preliminares (Registro Inicial)
               </Text>
               <View style={modalStyles.card}>
-                <InfoRow label="SKU" value={product.sku} isTablet={isTablet} />
+                <InfoRow label="SKU" value={`${product.correlativeNumber ? `#${product.correlativeNumber} | ` : ''}${product.sku}`} isTablet={isTablet} />
                 <InfoRow label="Nombre" value={product.name} isTablet={isTablet} />
                 <InfoRow
                   label="Costo Unitario"
@@ -1331,8 +1539,166 @@ const styles = StyleSheet.create({
   statLabelTablet: {
     fontSize: 13,
   },
+  totalSumCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  totalSumCardTablet: {
+    padding: 24,
+    borderRadius: 18,
+  },
+  totalSumGrid: {
+    gap: 16,
+  },
+  totalSumRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  totalSumItem: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  totalSumLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  totalSumLabelTablet: {
+    fontSize: 14,
+  },
+  totalSumValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  totalSumValueTablet: {
+    fontSize: 28,
+  },
+  totalSumUnvalidated: {
+    color: '#F59E0B',
+  },
+  totalSumValidated: {
+    color: '#10B981',
+  },
+  totalSumSubtext: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  totalSumSubtextTablet: {
+    fontSize: 13,
+  },
+  totalSumDifference: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  totalSumDifferencePositive: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  totalSumDifferenceNegative: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  totalSumDifferenceLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  totalSumDifferenceLabelTablet: {
+    fontSize: 15,
+  },
+  totalSumDifferenceValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  totalSumDifferenceValueTablet: {
+    fontSize: 20,
+  },
   productsSection: {
     marginBottom: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  searchContainerTablet: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  searchIcon: {
+    fontSize: 18,
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1E293B',
+    padding: 0,
+  },
+  searchInputTablet: {
+    fontSize: 17,
+  },
+  clearSearchButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  clearSearchText: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  clearSearchButtonLarge: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+  },
+  clearSearchButtonLargeTablet: {
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+  },
+  clearSearchButtonLargeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  clearSearchButtonLargeTextTablet: {
+    fontSize: 16,
   },
   headerActionsContainer: {
     backgroundColor: '#F8FAFC',
@@ -1909,3 +2275,4 @@ const modalStyles = StyleSheet.create({
 });
 
 export default PurchaseDetailScreen;
+

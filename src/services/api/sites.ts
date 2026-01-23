@@ -16,6 +16,7 @@ export const sitesApi = {
   async getSites(params: GetSitesParams = {}): Promise<SitesResponse> {
     const {
       companyId,
+      userId,
       q,
       isActive,
       district,
@@ -36,6 +37,10 @@ export const sitesApi = {
 
     if (companyId) {
       queryParams.append('companyId', companyId);
+    }
+
+    if (userId) {
+      queryParams.append('userId', userId);
     }
 
     if (q) {

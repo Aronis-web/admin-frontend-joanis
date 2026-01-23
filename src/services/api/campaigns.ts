@@ -15,8 +15,11 @@ import {
   SetCustomDistributionRequest,
   CampaignCustomDistribution,
   DistributionPreviewResponse,
+  DistributionPreviewRequest,
   DistributionResultResponse,
+  GenerateDistributionRequest,
 } from '@/types/campaigns';
+import { ParticipantTotalsResponse } from '@/types/participant-totals';
 
 /**
  * Campaigns API Service
@@ -38,12 +41,9 @@ class CampaignsService {
     if (Array.isArray(response)) {
       return {
         data: response,
-        meta: {
-          total: response.length,
-          page: 1,
-          limit: response.length,
-          totalPages: 1,
-        },
+        total: response.length,
+        page: 1,
+        limit: response.length,
       };
     }
 
@@ -56,7 +56,7 @@ class CampaignsService {
   async getCampaign(id: string): Promise<Campaign> {
     return apiClient.get<Campaign>(`${this.basePath}/${id}`, {
       params: {
-        include: 'participants.company,participants.site,products.product',
+        include: 'participants.company,participants.site,participants.priceProfile,products.product,products.customDistributions.items',
       },
     });
   }
@@ -246,30 +246,129 @@ class CampaignsService {
   }
 
   // ============================================
+  // Participant Products
+  // ============================================
+
+  /**
+   * Get products assigned to a participant (from generated repartos)
+   */
+  async getParticipantProducts(campaignId: string, participantId: string): Promise<any[]> {
+    return apiClient.get<any[]>(
+      `${this.basePath}/${campaignId}/participants/${participantId}/products`
+    );
+  }
+
+  /**
+   * Get preview of products a participant would receive (before generating)
+   */
+  async getParticipantProductsPreview(campaignId: string, participantId: string): Promise<any[]> {
+    return apiClient.get<any[]>(
+      `${this.basePath}/${campaignId}/participants/${participantId}/products/preview`
+    );
+  }
+
+  /**
+   * Get participant totals (purchase, sale, margin) for all participants in a campaign
+   */
+  async getParticipantTotals(campaignId: string): Promise<ParticipantTotalsResponse> {
+    return apiClient.get<ParticipantTotalsResponse>(
+      `${this.basePath}/${campaignId}/participant-totals`
+    );
+  }
+
+  /**
+   * Export participant totals as PDF
+   */
+  async exportParticipantTotalsPdf(campaignId: string): Promise<Blob> {
+    return apiClient.get<Blob>(
+      `${this.basePath}/${campaignId}/participant-totals/export-pdf`,
+      { responseType: 'blob' }
+    );
+  }
+
+  // ============================================
   // Distribution Preview & Generation
   // ============================================
 
   /**
    * Get distribution preview for a product
+   * @param campaignId - Campaign ID
+   * @param productId - Product ID
+   * @param data - Optional participant preferences for rounding factors
    */
   async getDistributionPreview(
     campaignId: string,
-    productId: string
+    productId: string,
+    data?: DistributionPreviewRequest
   ): Promise<DistributionPreviewResponse> {
-    return apiClient.get<DistributionPreviewResponse>(
-      `${this.basePath}/${campaignId}/products/${productId}/preview`
+    return apiClient.post<DistributionPreviewResponse>(
+      `${this.basePath}/${campaignId}/products/${productId}/preview`,
+      data || {}
     );
   }
 
   /**
    * Generate distribution for a product
+   * @param campaignId - Campaign ID
+   * @param productId - Product ID
+   * @param data - Distribution data with exact quantities per participant
    */
   async generateDistribution(
     campaignId: string,
-    productId: string
+    productId: string,
+    data: GenerateDistributionRequest
   ): Promise<DistributionResultResponse> {
     return apiClient.post<DistributionResultResponse>(
-      `${this.basePath}/${campaignId}/products/${productId}/generate`
+      `${this.basePath}/${campaignId}/products/${productId}/generate`,
+      data
+    );
+  }
+
+  // ============================================
+  // Campaign Participants (for Repartos)
+  // ============================================
+
+  /**
+   * Add participant to campaign (for repartos)
+   * This is used when creating repartos to add users as participants
+   */
+  async addCampaignParticipant(
+    campaignId: string,
+    data: {
+      userId: string;
+      role: 'COORDINATOR' | 'DISTRIBUTOR' | 'SUPERVISOR' | 'VOLUNTEER';
+      assignedZone?: string;
+      notes?: string;
+    }
+  ): Promise<any> {
+    return apiClient.post<any>(
+      `${this.basePath}/${campaignId}/participants`,
+      data
+    );
+  }
+
+  // ============================================
+  // Custom Distributions (for Repartos planning)
+  // ============================================
+
+  /**
+   * Create custom distribution for planning (does not reserve stock)
+   */
+  async createCustomDistribution(
+    campaignId: string,
+    data: {
+      name: string;
+      description?: string;
+      products: Array<{
+        productId: string;
+        quantity: number;
+        notes?: string;
+      }>;
+    }
+  ): Promise<any> {
+    return apiClient.post<any>(
+      `${this.basePath}/${campaignId}/custom-distributions`,
+      data
     );
   }
 }

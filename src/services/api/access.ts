@@ -1,11 +1,14 @@
 import { apiClient } from './client';
+import { scopesApi, CheckAccessResponse, ResolvedScope } from './scopes';
 
 /**
  * API para validación de acceso y scopes
  *
  * Implementa los endpoints de validación mencionados en la documentación:
- * - GET /access/check-scope - Verificar si un usuario tiene acceso a un scope específico
- * - GET /access/users/:userId/scopes/:appId - Listar scopes accesibles de un usuario
+ * - POST /scopes/check-access - Verificar si un usuario tiene acceso a un scope específico
+ * - GET /scopes/users/:userId/apps/:appId/resolved - Listar scopes accesibles de un usuario
+ *
+ * Esta API ahora utiliza el módulo de scopes como base.
  */
 
 /**
@@ -18,21 +21,8 @@ export interface CheckScopeParams {
   siteId?: string;
   warehouseId?: string;
   areaId?: string;
-}
-
-/**
- * Respuesta de verificación de scope
- */
-export interface CheckScopeResponse {
-  hasAccess: boolean;
-  message?: string;
-  scope?: {
-    companyId?: string;
-    siteId?: string;
-    warehouseId?: string;
-    areaId?: string;
-    level: 'GLOBAL' | 'COMPANY' | 'SITE' | 'WAREHOUSE' | 'AREA';
-  };
+  canRead?: boolean;
+  canWrite?: boolean;
 }
 
 /**
@@ -64,7 +54,7 @@ export const accessApi = {
   /**
    * 🔍 Verificar si un usuario tiene acceso a un scope específico
    *
-   * Endpoint: GET /access/check-scope
+   * Endpoint: POST /scopes/check-access
    *
    * Ejemplo de uso:
    * ```typescript
@@ -79,26 +69,23 @@ export const accessApi = {
    * }
    * ```
    */
-  async checkScope(params: CheckScopeParams): Promise<CheckScopeResponse> {
-    const queryParams = new URLSearchParams();
+  async checkScope(params: CheckScopeParams): Promise<CheckAccessResponse> {
+    const { userId, appId, companyId, siteId, warehouseId, areaId, canRead = true, canWrite = false } = params;
 
-    // Agregar parámetros no nulos
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        queryParams.append(key, value);
-      }
+    return scopesApi.checkAccess(userId, appId, {
+      companyId,
+      siteId,
+      warehouseId,
+      areaId,
+      canRead,
+      canWrite,
     });
-
-    const queryString = queryParams.toString();
-    const url = `/access/check-scope${queryString ? `?${queryString}` : ''}`;
-
-    return apiClient.get<CheckScopeResponse>(url);
   },
 
   /**
    * 📋 Listar todos los scopes accesibles de un usuario en una app
    *
-   * Endpoint: GET /access/users/:userId/scopes/:appId
+   * Endpoint: GET /scopes/users/:userId/apps/:appId/resolved
    *
    * Ejemplo de uso:
    * ```typescript
@@ -107,7 +94,24 @@ export const accessApi = {
    * ```
    */
   async getUserScopes(userId: string, appId: string): Promise<UserScopesResponse> {
-    return apiClient.get<UserScopesResponse>(`/access/users/${userId}/scopes/${appId}`);
+    const resolvedScopes = await scopesApi.getUserResolvedScopes(userId, appId);
+
+    // Convertir ResolvedScope a UserAccessibleScope
+    const scopes: UserAccessibleScope[] = resolvedScopes.map(scope => ({
+      companyId: scope.companyId,
+      siteId: scope.siteId,
+      warehouseId: scope.warehouseId,
+      areaId: scope.areaId,
+      level: scope.level as any,
+      canRead: scope.canRead,
+      canWrite: scope.canWrite,
+    }));
+
+    return {
+      userId,
+      appId,
+      scopes,
+    };
   },
 
   /**
@@ -209,7 +213,7 @@ export const accessApi = {
       }
 
       // Ordenar por nivel de acceso (GLOBAL > COMPANY > SITE > WAREHOUSE > AREA)
-      const levelPriority = {
+      const levelPriority: Record<string, number> = {
         'GLOBAL': 0,
         'COMPANY': 1,
         'SITE': 2,

@@ -17,7 +17,7 @@ export const PermissionsDebugScreen: React.FC<PermissionsDebugScreenProps> = ({ 
   const { user } = useAuthStore();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
@@ -296,3 +296,4 @@ const styles = StyleSheet.create({
 });
 
 export default PermissionsDebugScreen;
+

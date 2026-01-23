@@ -50,7 +50,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.backgroundPattern}>
         <View style={styles.circle1} />
         <View style={styles.circle2} />

@@ -92,12 +92,27 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
         if (product.presentationHistory && product.presentationHistory.length > 0) {
           const preliminaryPresentations = product.presentationHistory
             .filter((ph: any) => ph.type === 'PRELIMINARY')
-            .map((p: any) => ({
-              presentationId: p.presentationId,
-              factorToBase: p.factorToBase,
-              notes: p.notes || '',
-              quantityOfPresentations: 0, // Inicializar en 0
-            }));
+            .map((p: any) => {
+              const factor = Number(p.factorToBase);
+              // Validate factorToBase
+              if (!isFinite(factor) || isNaN(factor) || factor < 1) {
+                console.error('❌ Invalid factorToBase in presentation history:', p);
+                // Default to 1 if invalid
+                return {
+                  presentationId: p.presentationId,
+                  factorToBase: 1,
+                  notes: p.notes || '',
+                  quantityOfPresentations: 0,
+                };
+              }
+              return {
+                presentationId: p.presentationId,
+                factorToBase: factor,
+                notes: p.notes || '',
+                quantityOfPresentations: 0, // Inicializar en 0
+              };
+            });
+          console.log('📦 Loaded presentations from history:', preliminaryPresentations);
           setProductPresentations(preliminaryPresentations);
 
           // If there's a saved presentation quantity, restore it
@@ -129,8 +144,8 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
 
   const handleAddPresentation = (presentationId: string, factorToBase: string, presentationNotes: string) => {
     const factor = parseFloat(factorToBase);
-    if (isNaN(factor) || factor <= 0) {
-      Alert.alert('Error', 'El factor de conversión debe ser un número válido mayor a 0');
+    if (isNaN(factor) || !isFinite(factor) || factor < 1) {
+      Alert.alert('Error', 'El factor de conversión debe ser un número válido mayor o igual a 1');
       return;
     }
 
@@ -225,6 +240,22 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
       }
     }
 
+    // Validate presentations before sending
+    const validPresentations = productPresentations.map(p => {
+      const factor = Number(p.factorToBase);
+      if (!isFinite(factor) || isNaN(factor) || factor < 1) {
+        console.error('❌ Invalid factorToBase detected:', p);
+        throw new Error(`Presentación inválida: el factor de conversión debe ser >= 1 (valor actual: ${p.factorToBase})`);
+      }
+      return {
+        presentationId: p.presentationId,
+        factorToBase: factor,
+        notes: p.notes,
+      };
+    });
+
+    console.log('📦 Updating product with presentations:', validPresentations);
+
     setLoading(true);
     try {
       await purchasesService.updateProduct(purchaseId, productId, {
@@ -234,11 +265,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
         preliminaryStock: totalStock,
         preliminaryLooseUnits: looseUnitsValue,
         preliminaryPresentationQuantity: preliminaryPresentationQuantity,
-        presentations: productPresentations.map(p => ({
-          presentationId: p.presentationId,
-          factorToBase: p.factorToBase,
-          notes: p.notes,
-        })),
+        presentations: validPresentations,
         notes: notes.trim() || undefined,
       });
 
@@ -255,7 +282,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
 
   if (initialLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
           <Text style={styles.loadingText}>Cargando producto...</Text>
@@ -265,7 +292,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, isTablet && styles.headerTablet]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -1328,3 +1355,4 @@ const modalStyles = StyleSheet.create({
 });
 
 export default EditPurchaseProductScreen;
+

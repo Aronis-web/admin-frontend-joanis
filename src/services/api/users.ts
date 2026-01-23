@@ -15,6 +15,21 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   status: 'active' | 'inactive';
+
+  // Worker Profile Fields
+  document_type?: 'DNI' | 'CE' | 'PASAPORTE';
+  document_number?: string;
+  birth_date?: string;
+  gender?: 'M' | 'F' | 'OTRO';
+  nationality?: string;
+  marital_status?: 'SOLTERO' | 'CASADO' | 'DIVORCIADO' | 'VIUDO' | 'CONVIVIENTE';
+  address?: string;
+  ubigeo?: string;
+  emergency_contact_name?: string;
+  emergency_contact_relationship?: string;
+  emergency_contact_phone?: string;
+  photo_url?: string;
+  epp_size?: string;
 }
 
 export interface UsersResponse {
@@ -46,6 +61,22 @@ export interface CreateUserRequest {
   is_active?: boolean;     // Optional - default: true
   roleIds?: string[];      // Optional - Array of role UUIDs
   roleCodes?: string[];    // Optional - Array of role codes (e.g., ['ADMIN', 'USER'])
+
+  // Worker Profile Fields (all optional)
+  document_type?: 'DNI' | 'CE' | 'PASAPORTE';
+  document_number?: string;
+  birth_date?: string;     // ISO 8601 format (YYYY-MM-DD)
+  gender?: 'M' | 'F' | 'OTRO';
+  nationality?: string;
+  marital_status?: 'SOLTERO' | 'CASADO' | 'DIVORCIADO' | 'VIUDO' | 'CONVIVIENTE';
+  address?: string;
+  ubigeo?: string;
+  phone?: string;
+  emergency_contact_name?: string;
+  emergency_contact_relationship?: string;
+  emergency_contact_phone?: string;
+  photo_url?: string;
+  epp_size?: string;
 }
 
 export interface UpdateUserRequest {
@@ -56,6 +87,23 @@ export interface UpdateUserRequest {
   is_active?: boolean;
   roleIds?: string[];      // Optional - Array of role UUIDs (replaces all existing roles)
   roleCodes?: string[];    // Optional - Array of role codes (replaces all existing roles)
+  password?: string;       // Optional - For changing password
+
+  // Worker Profile Fields (all optional)
+  document_type?: 'DNI' | 'CE' | 'PASAPORTE';
+  document_number?: string;
+  birth_date?: string;     // ISO 8601 format (YYYY-MM-DD)
+  gender?: 'M' | 'F' | 'OTRO';
+  nationality?: string;
+  marital_status?: 'SOLTERO' | 'CASADO' | 'DIVORCIADO' | 'VIUDO' | 'CONVIVIENTE';
+  address?: string;
+  ubigeo?: string;
+  phone?: string;
+  emergency_contact_name?: string;
+  emergency_contact_relationship?: string;
+  emergency_contact_phone?: string;
+  photo_url?: string;
+  epp_size?: string;
 }
 
 export interface GetUsersParams {

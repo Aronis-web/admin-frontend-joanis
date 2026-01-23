@@ -9,25 +9,24 @@ import {
   Alert,
   ActivityIndicator,
   useWindowDimensions,
-  Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { expensesService } from '@/services/api';
 import {
-  ReportType,
-  GeneralExpenseReport,
-  ExpenseProjectionsReport,
-  CashFlowReport,
-  ReportByCategory,
-  ReportByProject,
-  ReportBySite,
-  ReportBySupplier,
-  ReportByType,
-  ReportByMonth,
-  ReportByYear,
-  ProjectionPeriod,
+  DashboardResponse,
+  TotalExpensesSummaryResponse,
+  RecurringExpensesSummaryResponse,
+  SummaryByCategoryResponse,
+  SummaryBySiteResponse,
+  PeriodComparisonResponse,
+  TrendsResponse,
+  ProjectionsResponse,
+  CurrencySummary,
+  CategoryCurrencySummary,
+  SiteCurrencySummary,
 } from '@/types/expenses';
 import { useAuthStore } from '@/store/auth';
 
@@ -35,439 +34,383 @@ interface ExpenseReportsScreenProps {
   navigation: any;
 }
 
-type ReportTab = 'summary' | 'byCategory' | 'byProject' | 'bySite' | 'bySupplier' | 'byType' | 'byMonth' | 'byYear' | 'projections' | 'cashFlow';
+type ReportView = 'dashboard' | 'total' | 'recurring' | 'byCategory' | 'bySite' | 'comparison' | 'trends' | 'projections';
 
 export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<ReportTab>('summary');
-  const [reportData, setReportData] = useState<GeneralExpenseReport | null>(null);
-  const [projectionData, setProjectionData] = useState<ExpenseProjectionsReport | null>(null);
-  const [cashFlowData, setCashFlowData] = useState<CashFlowReport | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<any>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [activeView, setActiveView] = useState<ReportView>('dashboard');
   const { width, height } = useWindowDimensions();
   const { currentCompany, currentSite } = useAuthStore();
+
+  // Data states
+  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
+  const [totalData, setTotalData] = useState<TotalExpensesSummaryResponse | null>(null);
+  const [recurringData, setRecurringData] = useState<RecurringExpensesSummaryResponse | null>(null);
+  const [categoryData, setCategoryData] = useState<SummaryByCategoryResponse | null>(null);
+  const [siteData, setSiteData] = useState<SummaryBySiteResponse | null>(null);
+  const [comparisonData, setComparisonData] = useState<PeriodComparisonResponse | null>(null);
+  const [trendsData, setTrendsData] = useState<TrendsResponse | null>(null);
+  const [projectionsData, setProjectionsData] = useState<ProjectionsResponse | null>(null);
+
+  // Filter states
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    return new Date(date.getFullYear(), 0, 1).toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date();
+    return new Date(date.getFullYear(), 11, 31).toISOString().split('T')[0];
+  });
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [selectedSiteId, setSelectedSiteId] = useState<string>('');
 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  const loadReport = useCallback(async (tab: ReportTab) => {
+  const loadData = useCallback(async (view: ReportView) => {
     try {
       setLoading(true);
-      const params: any = {};
-      if (currentCompany?.id) params.companyId = currentCompany.id;
-      if (currentSite?.id) params.siteId = currentSite.id;
 
-      switch (tab) {
-        case 'summary':
-          const summaryData = await expensesService.getSummaryReport(params);
-          setReportData(summaryData);
+      const baseParams = {
+        startDate,
+        endDate,
+        ...(selectedStatus && { status: selectedStatus }),
+        ...(selectedCategoryId && { categoryId: selectedCategoryId }),
+        ...(selectedSiteId && { siteId: selectedSiteId }),
+      };
+
+      switch (view) {
+        case 'dashboard':
+          const dashboard = await expensesService.getDashboard({ startDate, endDate });
+          setDashboardData(dashboard);
           break;
+
+        case 'total':
+          const total = await expensesService.getTotalExpensesSummary(baseParams);
+          setTotalData(total);
+          break;
+
+        case 'recurring':
+          const recurring = await expensesService.getRecurringExpensesSummary(baseParams);
+          setRecurringData(recurring);
+          break;
+
         case 'byCategory':
-          const categoryData = await expensesService.getByCategoryReport(params);
-          setReportData(categoryData);
+          const category = await expensesService.getSummaryByCategoryAndCurrency(baseParams);
+          setCategoryData(category);
           break;
-        case 'byProject':
-          const projectData = await expensesService.getByProjectReport(params);
-          setReportData(projectData);
-          break;
+
         case 'bySite':
-          const siteData = await expensesService.getBySiteReport(params);
-          setReportData(siteData);
+          const site = await expensesService.getSummaryBySite(baseParams);
+          setSiteData(site);
           break;
-        case 'bySupplier':
-          const supplierData = await expensesService.getBySupplierReport(params);
-          setReportData(supplierData);
-          break;
-        case 'byType':
-          const typeData = await expensesService.getByTypeReport(params);
-          setReportData(typeData);
-          break;
-        case 'byMonth':
-          const monthData = await expensesService.getByMonthReport(params);
-          setReportData(monthData);
-          break;
-        case 'byYear':
-          const yearData = await expensesService.getByYearReport(params);
-          setReportData(yearData);
-          break;
-        case 'projections':
-          const projData = await expensesService.getProjections({ ...params, monthsToProject: 12 });
-          setProjectionData(projData);
-          break;
-        case 'cashFlow':
-          const today = new Date();
-          const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-          const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-          const cfData = await expensesService.getCashFlowReport({
-            startDate: startOfMonth.toISOString().split('T')[0],
-            endDate: endOfMonth.toISOString().split('T')[0],
-            ...params,
+
+        case 'comparison':
+          const midYear = new Date(new Date(startDate).getFullYear(), 5, 30);
+          const comparison = await expensesService.comparePeriods({
+            period1Start: startDate,
+            period1End: midYear.toISOString().split('T')[0],
+            period2Start: new Date(midYear.getTime() + 86400000).toISOString().split('T')[0],
+            period2End: endDate,
           });
-          setCashFlowData(cfData);
+          setComparisonData(comparison);
+          break;
+
+        case 'trends':
+          const trends = await expensesService.getTrends({
+            startDate,
+            endDate,
+            groupBy: 'month',
+          });
+          setTrendsData(trends);
+          break;
+
+        case 'projections':
+          const projections = await expensesService.getExpenseProjections({ months: 6 });
+          setProjectionsData(projections);
           break;
       }
     } catch (error: any) {
-      console.error('Error loading report:', error);
-      Alert.alert('Error', error.message || 'Error al cargar el reporte');
+      console.error('Error loading data:', error);
+      Alert.alert('Error', error.message || 'Error al cargar los datos');
     } finally {
       setLoading(false);
     }
-  }, [currentCompany, currentSite]);
+  }, [startDate, endDate, selectedStatus, selectedCategoryId, selectedSiteId]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadReport(activeTab);
+    await loadData(activeView);
     setRefreshing(false);
-  }, [activeTab, loadReport]);
+  }, [activeView, loadData]);
 
   useFocusEffect(
     useCallback(() => {
-      loadReport(activeTab);
-    }, [activeTab, loadReport])
+      loadData(activeView);
+    }, [activeView, loadData])
   );
 
-  const formatCurrency = (amount: number, currency: string = 'PEN') => {
-    return `S/ ${(amount / 100).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatCurrency = (amountCents: number, currency: string = 'PEN') => {
+    const symbol = currency === 'PEN' ? 'S/' : currency === 'USD' ? '$' : currency;
+    return `${symbol} ${(amountCents / 100).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const renderSummaryCard = (title: string, amount: number, color: string, subtitle?: string) => (
-    <View style={[styles.summaryCard, { borderLeftColor: color }]}>
-      <Text style={styles.summaryCardTitle}>{title}</Text>
-      <Text style={[styles.summaryCardAmount, { color }]}>{formatCurrency(amount)}</Text>
-      {subtitle && <Text style={styles.summaryCardSubtitle}>{subtitle}</Text>}
+  const renderCurrencyCard = (item: CurrencySummary, title: string, color: string) => (
+    <View key={item.currency} style={[styles.currencyCard, { borderLeftColor: color }]}>
+      <Text style={styles.currencyCardTitle}>{title}</Text>
+      <Text style={[styles.currencyCardAmount, { color }]}>
+        {formatCurrency(item.totalAmountCents, item.currency)}
+      </Text>
+      <Text style={styles.currencyCardSubtitle}>
+        {item.expenseCount} gasto{item.expenseCount !== 1 ? 's' : ''} • {item.currency}
+      </Text>
     </View>
   );
 
-  const renderSummary = () => {
-    if (!reportData?.summary) return null;
-
-    const { summary } = reportData;
+  const renderDashboard = () => {
+    if (!dashboardData) return null;
 
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Resumen General</Text>
-        <View style={styles.summaryGrid}>
-          {renderSummaryCard('Total Gastos', summary.totalAmount, '#4F46E5', `${summary.totalExpenses} gastos`)}
-          {renderSummaryCard('Pagado', summary.paidAmount, '#10B981', `${summary.paidCount} pagados`)}
-          {renderSummaryCard('Pendiente', summary.pendingAmount, '#F59E0B', `${summary.pendingCount} pendientes`)}
-          {renderSummaryCard('Vencido', summary.overdueAmount, '#EF4444', `${summary.overdueCount} vencidos`)}
+        <Text style={styles.sectionTitle}>📊 Dashboard Consolidado</Text>
+
+        {/* Total Expenses */}
+        <View style={styles.subsection}>
+          <Text style={styles.subsectionTitle}>Gastos Totales</Text>
+          <View style={styles.cardGrid}>
+            {dashboardData.totalExpenses.byCurrency.map((item) =>
+              renderCurrencyCard(item, 'Total', '#4F46E5')
+            )}
+          </View>
+          <Text style={styles.infoText}>
+            Total: {dashboardData.totalExpenses.totalExpenseCount} gastos
+          </Text>
         </View>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Promedio</Text>
-            <Text style={styles.statValue}>{formatCurrency(summary.averageAmount)}</Text>
+
+        {/* Recurring Expenses */}
+        <View style={styles.subsection}>
+          <Text style={styles.subsectionTitle}>Gastos Recurrentes</Text>
+          <View style={styles.cardGrid}>
+            {dashboardData.recurringExpenses.byCurrency.map((item) =>
+              renderCurrencyCard(item, 'Recurrentes', '#10B981')
+            )}
           </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Mínimo</Text>
-            <Text style={styles.statValue}>{formatCurrency(summary.minAmount)}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Máximo</Text>
-            <Text style={styles.statValue}>{formatCurrency(summary.maxAmount)}</Text>
-          </View>
+          <Text style={styles.infoText}>
+            Total: {dashboardData.recurringExpenses.totalExpenseCount} gastos recurrentes
+          </Text>
         </View>
+
+        {/* By Status */}
+        <View style={styles.subsection}>
+          <Text style={styles.subsectionTitle}>Por Estado</Text>
+          {dashboardData.byStatus.map((item, index) => (
+            <View key={index} style={styles.listItem}>
+              <View style={styles.listItemContent}>
+                <Text style={styles.listItemTitle}>{item.status}</Text>
+                <Text style={styles.listItemSubtitle}>{item.expenseCount} gastos</Text>
+              </View>
+              <Text style={styles.listItemAmount}>
+                {formatCurrency(item.totalAmountCents, item.currency)}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Top Expenses */}
+        <View style={styles.subsection}>
+          <Text style={styles.subsectionTitle}>Gastos Principales</Text>
+          {dashboardData.topExpenses.map((expense) => (
+            <View key={expense.id} style={styles.listItem}>
+              <View style={styles.listItemContent}>
+                <Text style={styles.listItemTitle}>{expense.name}</Text>
+                <Text style={styles.listItemSubtitle}>
+                  {expense.code} • {expense.categoryName}
+                </Text>
+              </View>
+              <View style={styles.listItemRight}>
+                <Text style={styles.listItemAmount}>
+                  {formatCurrency(expense.amountCents, expense.currency)}
+                </Text>
+                <Text style={[styles.statusBadge, getStatusStyle(expense.status)]}>
+                  {expense.status}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Overdue Expenses */}
+        {dashboardData.overdueExpenses.totalExpenseCount > 0 && (
+          <View style={styles.subsection}>
+            <Text style={styles.subsectionTitle}>⚠️ Gastos Vencidos</Text>
+            <View style={styles.cardGrid}>
+              {dashboardData.overdueExpenses.byCurrency.map((item) =>
+                renderCurrencyCard(item, 'Vencidos', '#EF4444')
+              )}
+            </View>
+            <Text style={styles.warningText}>
+              {dashboardData.overdueExpenses.totalExpenseCount} gastos vencidos requieren atención
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderTotal = () => {
+    if (!totalData) return null;
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>💰 Resumen de Gastos Totales</Text>
+        <View style={styles.cardGrid}>
+          {totalData.byCurrency.map((item) =>
+            renderCurrencyCard(item, 'Total', '#4F46E5')
+          )}
+        </View>
+        <Text style={styles.infoText}>
+          Total de gastos: {totalData.totalExpenseCount}
+        </Text>
+
+        {/* Filters Applied */}
+        <View style={styles.filtersApplied}>
+          <Text style={styles.filtersTitle}>Filtros aplicados:</Text>
+          <Text style={styles.filterText}>Período: {totalData.filters.startDate} - {totalData.filters.endDate}</Text>
+          {totalData.filters.status && (
+            <Text style={styles.filterText}>Estado: {totalData.filters.status}</Text>
+          )}
+          {totalData.filters.categoryId && (
+            <Text style={styles.filterText}>Categoría seleccionada</Text>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const renderRecurring = () => {
+    if (!recurringData) return null;
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🔄 Gastos Recurrentes</Text>
+        <View style={styles.cardGrid}>
+          {recurringData.byCurrency.map((item) =>
+            renderCurrencyCard(item, 'Recurrentes', '#10B981')
+          )}
+        </View>
+        <Text style={styles.infoText}>
+          Total de gastos recurrentes: {recurringData.totalExpenseCount}
+        </Text>
       </View>
     );
   };
 
   const renderByCategory = () => {
-    if (!reportData?.byCategory) return null;
+    if (!categoryData) return null;
 
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Gastos por Categoría</Text>
-        {reportData.byCategory.map((item: ReportByCategory, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.listItem}
-            onPress={() => {
-              setSelectedDetail(item);
-              setShowDetailModal(true);
-            }}
-          >
-            <View style={styles.listItemContent}>
-              <Text style={styles.listItemTitle}>{item.categoryName}</Text>
-              <Text style={styles.listItemSubtitle}>{item.totalExpenses} gastos</Text>
+        <Text style={styles.sectionTitle}>📁 Gastos por Categoría</Text>
+        {categoryData.categories.map((category) => (
+          <View key={category.categoryId} style={styles.categorySection}>
+            <Text style={styles.categoryTitle}>{category.categoryName}</Text>
+            <View style={styles.categoryContent}>
+              {category.byCurrency.map((item) => (
+                <View key={item.currency} style={styles.categoryItem}>
+                  <Text style={styles.categoryAmount}>
+                    {formatCurrency(item.totalAmountCents, item.currency)}
+                  </Text>
+                  <Text style={styles.categorySubtitle}>
+                    {item.expenseCount} gastos • {item.currency}
+                  </Text>
+                </View>
+              ))}
             </View>
-            <View style={styles.listItemRight}>
-              <Text style={styles.listItemAmount}>{formatCurrency(item.totalAmount)}</Text>
-              <Text style={styles.listItemPercentage}>{item.percentage.toFixed(1)}%</Text>
-            </View>
-          </TouchableOpacity>
+            <Text style={styles.categoryTotal}>
+              Total: {category.totalExpenseCount} gastos
+            </Text>
+          </View>
         ))}
-      </View>
-    );
-  };
-
-  const renderByProject = () => {
-    if (!reportData?.byProject) return null;
-
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Gastos por Proyecto</Text>
-        {reportData.byProject.map((item: ReportByProject, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.listItem}
-            onPress={() => {
-              setSelectedDetail(item);
-              setShowDetailModal(true);
-            }}
-          >
-            <View style={styles.listItemContent}>
-              <Text style={styles.listItemTitle}>{item.projectName}</Text>
-              <Text style={styles.listItemSubtitle}>{item.totalExpenses} gastos</Text>
-            </View>
-            <View style={styles.listItemRight}>
-              <Text style={styles.listItemAmount}>{formatCurrency(item.totalAmount)}</Text>
-              <Text style={styles.listItemPercentage}>{item.percentage.toFixed(1)}%</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.infoText}>
+          Total general: {categoryData.totalExpenseCount} gastos
+        </Text>
       </View>
     );
   };
 
   const renderBySite = () => {
-    if (!reportData?.bySite) return null;
+    if (!siteData) return null;
 
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Gastos por Sitio</Text>
-        {reportData.bySite.map((item: ReportBySite, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.listItem}
-            onPress={() => {
-              setSelectedDetail(item);
-              setShowDetailModal(true);
-            }}
-          >
-            <View style={styles.listItemContent}>
-              <Text style={styles.listItemTitle}>{item.siteName}</Text>
-              <Text style={styles.listItemSubtitle}>{item.totalExpenses} gastos</Text>
+        <Text style={styles.sectionTitle}>📍 Gastos por Sede</Text>
+        {siteData.sites.map((site) => (
+          <View key={site.siteId} style={styles.categorySection}>
+            <Text style={styles.categoryTitle}>{site.siteName}</Text>
+            <View style={styles.categoryContent}>
+              {site.byCurrency.map((item) => (
+                <View key={item.currency} style={styles.categoryItem}>
+                  <Text style={styles.categoryAmount}>
+                    {formatCurrency(item.totalAmountCents, item.currency)}
+                  </Text>
+                  <Text style={styles.categorySubtitle}>
+                    {item.expenseCount} gastos • {item.currency}
+                  </Text>
+                </View>
+              ))}
             </View>
-            <View style={styles.listItemRight}>
-              <Text style={styles.listItemAmount}>{formatCurrency(item.totalAmount)}</Text>
-              <Text style={styles.listItemPercentage}>{item.percentage.toFixed(1)}%</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  };
-
-  const renderBySupplier = () => {
-    if (!reportData?.bySupplier) return null;
-
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Gastos por Proveedor</Text>
-        {reportData.bySupplier.map((item: ReportBySupplier, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.listItem}
-            onPress={() => {
-              setSelectedDetail(item);
-              setShowDetailModal(true);
-            }}
-          >
-            <View style={styles.listItemContent}>
-              <Text style={styles.listItemTitle}>{item.supplierName}</Text>
-              <Text style={styles.listItemSubtitle}>{item.totalExpenses} gastos</Text>
-            </View>
-            <View style={styles.listItemRight}>
-              <Text style={styles.listItemAmount}>{formatCurrency(item.totalAmount)}</Text>
-              <Text style={styles.listItemPercentage}>{item.percentage.toFixed(1)}%</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  };
-
-  const renderByType = () => {
-    if (!reportData?.byType) return null;
-
-    const typeLabels: Record<string, string> = {
-      RECURRENT: 'Recurrente',
-      SEMI_RECURRENT: 'Semi-recurrente',
-      UNIQUE: 'Único',
-    };
-
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Gastos por Tipo</Text>
-        {reportData.byType.map((item: ReportByType, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.listItem}
-            onPress={() => {
-              setSelectedDetail(item);
-              setShowDetailModal(true);
-            }}
-          >
-            <View style={styles.listItemContent}>
-              <Text style={styles.listItemTitle}>{typeLabels[item.expenseType] || item.expenseType}</Text>
-              <Text style={styles.listItemSubtitle}>{item.totalExpenses} gastos</Text>
-            </View>
-            <View style={styles.listItemRight}>
-              <Text style={styles.listItemAmount}>{formatCurrency(item.totalAmount)}</Text>
-              <Text style={styles.listItemPercentage}>{item.percentage.toFixed(1)}%</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  };
-
-  const renderByMonth = () => {
-    if (!reportData?.byMonth) return null;
-
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Gastos por Mes</Text>
-        {reportData.byMonth.map((item: ReportByMonth, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.listItem}
-            onPress={() => {
-              setSelectedDetail(item);
-              setShowDetailModal(true);
-            }}
-          >
-            <View style={styles.listItemContent}>
-              <Text style={styles.listItemTitle}>{item.monthName} {item.year}</Text>
-              <Text style={styles.listItemSubtitle}>{item.totalExpenses} gastos</Text>
-            </View>
-            <View style={styles.listItemRight}>
-              <Text style={styles.listItemAmount}>{formatCurrency(item.totalAmount)}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  };
-
-  const renderByYear = () => {
-    if (!reportData?.byYear) return null;
-
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Gastos por Año</Text>
-        {reportData.byYear.map((item: ReportByYear, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.listItem}
-            onPress={() => {
-              setSelectedDetail(item);
-              setShowDetailModal(true);
-            }}
-          >
-            <View style={styles.listItemContent}>
-              <Text style={styles.listItemTitle}>{item.year}</Text>
-              <Text style={styles.listItemSubtitle}>{item.totalExpenses} gastos</Text>
-            </View>
-            <View style={styles.listItemRight}>
-              <Text style={styles.listItemAmount}>{formatCurrency(item.totalAmount)}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  };
-
-  const renderProjections = () => {
-    if (!projectionData) return null;
-
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Proyecciones de Gastos</Text>
-        <View style={styles.projectionSummary}>
-          <View style={styles.projectionStat}>
-            <Text style={styles.projectionStatLabel}>Total Proyectado</Text>
-            <Text style={styles.projectionStatValue}>{formatCurrency(projectionData.totalProjected)}</Text>
-          </View>
-          <View style={styles.projectionStat}>
-            <Text style={styles.projectionStatLabel}>Promedio Mensual</Text>
-            <Text style={styles.projectionStatValue}>{formatCurrency(projectionData.monthlyAverage)}</Text>
-          </View>
-        </View>
-        <View style={styles.projectionBreakdown}>
-          <View style={styles.breakdownItem}>
-            <View style={[styles.breakdownDot, { backgroundColor: '#4F46E5' }]} />
-            <Text style={styles.breakdownLabel}>Recurrentes: {formatCurrency(projectionData.recurrentTotal)}</Text>
-          </View>
-          <View style={styles.breakdownItem}>
-            <View style={[styles.breakdownDot, { backgroundColor: '#F59E0B' }]} />
-            <Text style={styles.breakdownLabel}>Semi-recurrentes: {formatCurrency(projectionData.semiRecurrentTotal)}</Text>
-          </View>
-        </View>
-        <Text style={styles.subsectionTitle}>Por Mes</Text>
-        {projectionData.months.map((month: any, index: number) => (
-          <View key={index} style={styles.monthCard}>
-            <View style={styles.monthHeader}>
-              <Text style={styles.monthTitle}>{month.monthName} {month.year}</Text>
-              <Text style={styles.monthTotal}>{formatCurrency(month.totalProjected)}</Text>
-            </View>
-            <View style={styles.monthDetails}>
-              <Text style={styles.monthDetail}>Recurrentes: {formatCurrency(month.recurrentExpenses)}</Text>
-              <Text style={styles.monthDetail}>Semi-recurrentes: {formatCurrency(month.semiRecurrentExpenses)}</Text>
-              <Text style={styles.monthDetail}>Pagado: {formatCurrency(month.paidAmount)}</Text>
-              <Text style={styles.monthDetail}>Pendiente: {formatCurrency(month.pendingAmount)}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  const renderCashFlow = () => {
-    if (!cashFlowData) return null;
-
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Flujo de Caja</Text>
-        <View style={styles.cashFlowSummary}>
-          <View style={styles.cashFlowStat}>
-            <Text style={styles.cashFlowStatLabel}>Proyectado</Text>
-            <Text style={[styles.cashFlowStatValue, { color: '#4F46E5' }]}>
-              {formatCurrency(cashFlowData.totalProjectedOutflow)}
+            <Text style={styles.categoryTotal}>
+              Total: {site.totalExpenseCount} gastos
             </Text>
           </View>
-          <View style={styles.cashFlowStat}>
-            <Text style={styles.cashFlowStatLabel}>Actual</Text>
-            <Text style={[styles.cashFlowStatValue, { color: '#10B981' }]}>
-              {formatCurrency(cashFlowData.totalActualOutflow)}
-            </Text>
-          </View>
-          <View style={styles.cashFlowStat}>
-            <Text style={styles.cashFlowStatLabel}>Diferencia</Text>
-            <Text style={[
-              styles.cashFlowStatValue,
-              { color: cashFlowData.totalDifference >= 0 ? '#10B981' : '#EF4444' }
-            ]}>
-              {formatCurrency(Math.abs(cashFlowData.totalDifference))}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.subsectionTitle}>Por Día</Text>
-        {cashFlowData.dailyProjections.map((day: any, index: number) => (
-          <View key={index} style={styles.dayCard}>
-            <View style={styles.dayHeader}>
-              <Text style={styles.dayDate}>{new Date(day.date).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}</Text>
-              <Text style={styles.dayTotal}>{formatCurrency(day.projectedOutflow)}</Text>
+        ))}
+        <Text style={styles.infoText}>
+          Total general: {siteData.totalExpenseCount} gastos
+        </Text>
+      </View>
+    );
+  };
+
+  const renderComparison = () => {
+    if (!comparisonData) return null;
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📊 Comparación de Períodos</Text>
+        {comparisonData.byCurrency.map((item) => (
+          <View key={item.currency} style={styles.comparisonCard}>
+            <Text style={styles.comparisonCurrency}>{item.currency}</Text>
+
+            <View style={styles.comparisonRow}>
+              <View style={styles.comparisonPeriod}>
+                <Text style={styles.comparisonLabel}>Período 1</Text>
+                <Text style={styles.comparisonAmount}>
+                  {formatCurrency(item.period1AmountCents, item.currency)}
+                </Text>
+                <Text style={styles.comparisonCount}>{item.period1Count} gastos</Text>
+              </View>
+
+              <View style={styles.comparisonPeriod}>
+                <Text style={styles.comparisonLabel}>Período 2</Text>
+                <Text style={styles.comparisonAmount}>
+                  {formatCurrency(item.period2AmountCents, item.currency)}
+                </Text>
+                <Text style={styles.comparisonCount}>{item.period2Count} gastos</Text>
+              </View>
             </View>
-            <View style={styles.dayDetails}>
-              <Text style={styles.dayDetail}>Proyectado: {formatCurrency(day.projectedOutflow)}</Text>
-              <Text style={styles.dayDetail}>Actual: {formatCurrency(day.actualOutflow)}</Text>
+
+            <View style={styles.comparisonDifference}>
+              <Text style={styles.comparisonDiffLabel}>Diferencia</Text>
               <Text style={[
-                styles.dayDetail,
-                { color: day.difference >= 0 ? '#10B981' : '#EF4444' }
+                styles.comparisonDiffAmount,
+                { color: item.percentageChange >= 0 ? '#EF4444' : '#10B981' }
               ]}>
-                Diferencia: {formatCurrency(Math.abs(day.difference))}
+                {item.percentageChange >= 0 ? '+' : ''}{item.percentageChange.toFixed(1)}%
+              </Text>
+              <Text style={styles.comparisonDiffValue}>
+                {formatCurrency(Math.abs(item.differenceAmountCents), item.currency)}
               </Text>
             </View>
           </View>
@@ -476,13 +419,84 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
     );
   };
 
-  const renderTabButton = (tab: ReportTab, label: string, icon: string) => (
+  const renderTrends = () => {
+    if (!trendsData) return null;
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📈 Tendencias Temporales</Text>
+        {trendsData.byCurrency.map((currencyTrend) => (
+          <View key={currencyTrend.currency} style={styles.trendSection}>
+            <Text style={styles.trendCurrency}>{currencyTrend.currency}</Text>
+            {currencyTrend.periods.map((period, index) => (
+              <View key={index} style={styles.trendItem}>
+                <View style={styles.trendItemHeader}>
+                  <Text style={styles.trendPeriod}>{period.period}</Text>
+                  <Text style={styles.trendAmount}>
+                    {formatCurrency(period.totalAmountCents, currencyTrend.currency)}
+                  </Text>
+                </View>
+                <Text style={styles.trendCount}>{period.expenseCount} gastos</Text>
+                <Text style={styles.trendDates}>
+                  {period.startDate} - {period.endDate}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderProjections = () => {
+    if (!projectionsData) return null;
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🔮 Proyecciones de Gastos</Text>
+
+        <View style={styles.projectionSummary}>
+          <View style={styles.projectionStat}>
+            <Text style={styles.projectionLabel}>Total Proyectado</Text>
+            <Text style={styles.projectionValue}>
+              {formatCurrency(projectionsData.totalProjectedAmountCents, projectionsData.currency)}
+            </Text>
+          </View>
+          <View style={styles.projectionStat}>
+            <Text style={styles.projectionLabel}>Meses</Text>
+            <Text style={styles.projectionValue}>{projectionsData.monthsProjected}</Text>
+          </View>
+          <View style={styles.projectionStat}>
+            <Text style={styles.projectionLabel}>Basado en</Text>
+            <Text style={styles.projectionValue}>{projectionsData.basedOnExpenseCount} gastos</Text>
+          </View>
+        </View>
+
+        <Text style={styles.subsectionTitle}>Proyección Mensual</Text>
+        {projectionsData.projections.map((projection, index) => (
+          <View key={index} style={styles.projectionItem}>
+            <View style={styles.projectionItemHeader}>
+              <Text style={styles.projectionMonth}>{projection.month}</Text>
+              <Text style={styles.projectionAmount}>
+                {formatCurrency(projection.projectedAmountCents, projection.currency)}
+              </Text>
+            </View>
+            <Text style={styles.projectionCount}>
+              {projection.expectedCount} gastos esperados
+            </Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderTabButton = (view: ReportView, label: string, icon: string) => (
     <TouchableOpacity
-      key={tab}
-      style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
-      onPress={() => setActiveTab(tab)}
+      key={view}
+      style={[styles.tabButton, activeView === view && styles.tabButtonActive]}
+      onPress={() => setActiveView(view)}
     >
-      <Text style={[styles.tabButtonText, activeTab === tab && styles.tabButtonTextActive]}>
+      <Text style={[styles.tabButtonText, activeView === view && styles.tabButtonTextActive]}>
         {icon} {label}
       </Text>
     </TouchableOpacity>
@@ -493,79 +507,81 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
       return (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#4F46E5" />
-          <Text style={styles.loadingText}>Cargando reporte...</Text>
+          <Text style={styles.loadingText}>Cargando datos...</Text>
         </View>
       );
     }
 
-    switch (activeTab) {
-      case 'summary':
-        return renderSummary();
+    switch (activeView) {
+      case 'dashboard':
+        return renderDashboard();
+      case 'total':
+        return renderTotal();
+      case 'recurring':
+        return renderRecurring();
       case 'byCategory':
         return renderByCategory();
-      case 'byProject':
-        return renderByProject();
       case 'bySite':
         return renderBySite();
-      case 'bySupplier':
-        return renderBySupplier();
-      case 'byType':
-        return renderByType();
-      case 'byMonth':
-        return renderByMonth();
-      case 'byYear':
-        return renderByYear();
+      case 'comparison':
+        return renderComparison();
+      case 'trends':
+        return renderTrends();
       case 'projections':
         return renderProjections();
-      case 'cashFlow':
-        return renderCashFlow();
       default:
         return null;
     }
   };
 
-  const renderDetailModal = () => {
-    if (!selectedDetail) return null;
-
-    return (
-      <Modal
-        visible={showDetailModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowDetailModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Detalles</Text>
-              <TouchableOpacity onPress={() => setShowDetailModal(false)} style={styles.modalCloseButton}>
-                <Text style={styles.modalCloseButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.modalBody}>
-              {Object.entries(selectedDetail).map(([key, value]) => {
-                if (key === 'categoryId' || key === 'projectId' || key === 'siteId' || key === 'supplierId' || key === 'expenseType') {
-                  return null;
-                }
-                return (
-                  <View key={key} style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>{key}:</Text>
-                    <Text style={styles.detailValue}>
-                      {typeof value === 'number' && key.toLowerCase().includes('amount') ? formatCurrency(value) : String(value)}
-                    </Text>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    );
+  const getStatusStyle = (status: string) => {
+    const styles: any = {
+      ACTIVE: { backgroundColor: '#DBEAFE', color: '#1E40AF' },
+      PAID: { backgroundColor: '#D1FAE5', color: '#065F46' },
+      OVERDUE: { backgroundColor: '#FEE2E2', color: '#991B1B' },
+      CANCELLED: { backgroundColor: '#F3F4F6', color: '#4B5563' },
+    };
+    return styles[status] || styles.ACTIVE;
   };
+
+  const renderFilters = () => (
+    <View style={styles.filtersContainer}>
+      <Text style={styles.filtersTitle}>Filtros</Text>
+
+      <View style={styles.filterRow}>
+        <View style={styles.filterItem}>
+          <Text style={styles.filterLabel}>Fecha Inicio</Text>
+          <TextInput
+            style={styles.filterInput}
+            value={startDate}
+            onChangeText={setStartDate}
+            placeholder="YYYY-MM-DD"
+          />
+        </View>
+
+        <View style={styles.filterItem}>
+          <Text style={styles.filterLabel}>Fecha Fin</Text>
+          <TextInput
+            style={styles.filterInput}
+            value={endDate}
+            onChangeText={setEndDate}
+            placeholder="YYYY-MM-DD"
+          />
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.applyButton}
+        onPress={() => loadData(activeView)}
+      >
+        <Text style={styles.applyButtonText}>Aplicar Filtros</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <ProtectedRoute requiredPermissions={['expenses.read']}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={styles.backButtonText}>←</Text>
@@ -574,22 +590,22 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
           <View style={styles.headerSpacer} />
         </View>
 
+        {renderFilters()}
+
         <View style={styles.tabsContainer}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tabsContent}
           >
-            {renderTabButton('summary', 'Resumen', '📊')}
-            {renderTabButton('byCategory', 'Categoría', '📁')}
-            {renderTabButton('byProject', 'Proyecto', '🏗️')}
-            {renderTabButton('bySite', 'Sitio', '📍')}
-            {renderTabButton('bySupplier', 'Proveedor', '🏢')}
-            {renderTabButton('byType', 'Tipo', '🏷️')}
-            {renderTabButton('byMonth', 'Mes', '📅')}
-            {renderTabButton('byYear', 'Año', '📆')}
-            {renderTabButton('projections', 'Proyecciones', '📈')}
-            {renderTabButton('cashFlow', 'Flujo', '💰')}
+            {renderTabButton('dashboard', 'Dashboard', '📊')}
+            {renderTabButton('total', 'Total', '💰')}
+            {renderTabButton('recurring', 'Recurrentes', '🔄')}
+            {renderTabButton('byCategory', 'Categorías', '📁')}
+            {renderTabButton('bySite', 'Sedes', '📍')}
+            {renderTabButton('comparison', 'Comparar', '⚖️')}
+            {renderTabButton('trends', 'Tendencias', '📈')}
+            {renderTabButton('projections', 'Proyecciones', '🔮')}
           </ScrollView>
         </View>
 
@@ -602,8 +618,6 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
         >
           {renderContent()}
         </ScrollView>
-
-        {renderDetailModal()}
       </SafeAreaView>
     </ProtectedRoute>
   );
@@ -644,6 +658,53 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
+  },
+  filtersContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  filtersTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  filterItem: {
+    flex: 1,
+  },
+  filterLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  filterInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+  },
+  applyButton: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 8,
+    paddingVertical: 10,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   tabsContainer: {
     backgroundColor: '#FFFFFF',
@@ -694,24 +755,27 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1F2937',
     marginBottom: 16,
+  },
+  subsection: {
+    marginBottom: 20,
   },
   subsectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#374151',
-    marginTop: 16,
     marginBottom: 12,
   },
-  summaryGrid: {
+  cardGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    marginBottom: 12,
   },
-  summaryCard: {
+  currencyCard: {
     flex: 1,
     minWidth: '45%',
     backgroundColor: '#FFFFFF',
@@ -724,47 +788,31 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  summaryCardTitle: {
+  currencyCardTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
     marginBottom: 8,
   },
-  summaryCardAmount: {
+  currencyCardAmount: {
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 4,
   },
-  summaryCardSubtitle: {
+  currencyCardSubtitle: {
     fontSize: 12,
     color: '#9CA3AF',
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+  infoText: {
+    fontSize: 14,
     color: '#6B7280',
-    marginBottom: 4,
+    marginTop: 8,
   },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
+  warningText: {
+    fontSize: 14,
+    color: '#DC2626',
+    fontWeight: '500',
+    marginTop: 8,
   },
   listItem: {
     flexDirection: 'row',
@@ -802,9 +850,175 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 4,
   },
-  listItemPercentage: {
+  statusBadge: {
+    fontSize: 11,
+    fontWeight: '600',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  filtersApplied: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 16,
+  },
+  filterText: {
+    fontSize: 13,
+    color: '#4B5563',
+    marginTop: 4,
+  },
+  categorySection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  categoryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  categoryContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 8,
+  },
+  categoryItem: {
+    flex: 1,
+    minWidth: '45%',
+  },
+  categoryAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#4F46E5',
+    marginBottom: 4,
+  },
+  categorySubtitle: {
     fontSize: 12,
     color: '#6B7280',
+  },
+  categoryTotal: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  comparisonCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  comparisonCurrency: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  comparisonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  comparisonPeriod: {
+    alignItems: 'center',
+  },
+  comparisonLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  comparisonAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  comparisonCount: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  comparisonDifference: {
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  comparisonDiffLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  comparisonDiffAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  comparisonDiffValue: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  trendSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  trendCurrency: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  trendItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  trendItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  trendPeriod: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  trendAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  trendCount: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  trendDates: {
+    fontSize: 12,
+    color: '#9CA3AF',
   },
   projectionSummary: {
     flexDirection: 'row',
@@ -822,41 +1036,18 @@ const styles = StyleSheet.create({
   projectionStat: {
     alignItems: 'center',
   },
-  projectionStatLabel: {
+  projectionLabel: {
     fontSize: 12,
     fontWeight: '600',
     color: '#6B7280',
     marginBottom: 4,
   },
-  projectionStatValue: {
+  projectionValue: {
     fontSize: 18,
     fontWeight: '700',
     color: '#1F2937',
   },
-  projectionBreakdown: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  breakdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  breakdownDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  breakdownLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  monthCard: {
+  projectionItem: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
@@ -867,149 +1058,25 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  monthHeader: {
+  projectionItemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  monthTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  monthTotal: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
-  monthDetails: {
-    gap: 4,
-  },
-  monthDetail: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  cashFlowSummary: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  cashFlowStat: {
-    alignItems: 'center',
-  },
-  cashFlowStatLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
     marginBottom: 4,
   },
-  cashFlowStatValue: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  dayCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  dayHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  dayDate: {
-    fontSize: 16,
+  projectionMonth: {
+    fontSize: 15,
     fontWeight: '600',
     color: '#1F2937',
   },
-  dayTotal: {
+  projectionAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#4F46E5',
+    color: '#10B981',
   },
-  dayDetails: {
-    gap: 4,
-  },
-  dayDetail: {
-    fontSize: 14,
+  projectionCount: {
+    fontSize: 13,
     color: '#6B7280',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    width: '100%',
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  modalCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalCloseButtonText: {
-    fontSize: 18,
-    color: '#6B7280',
-    fontWeight: '600',
-  },
-  modalBody: {
-    padding: 16,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  detailLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-    flex: 1,
-  },
-  detailValue: {
-    fontSize: 14,
-    color: '#1F2937',
-    flex: 1,
-    textAlign: 'right',
   },
 });
 

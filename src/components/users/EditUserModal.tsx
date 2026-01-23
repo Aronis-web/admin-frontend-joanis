@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { RoleSelector } from '@/components/users/RoleSelector';
+import { WorkerProfileFields } from '@/components/users/WorkerProfileFields';
 import { usersApi, User, UpdateUserRequest } from '@/services/api/users';
 
 interface EditUserModalProps {
@@ -34,6 +35,21 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     last_name: '',
     is_active: true,
     roleIds: [],
+    // Worker profile fields
+    document_type: undefined,
+    document_number: '',
+    birth_date: undefined,
+    gender: undefined,
+    nationality: '',
+    marital_status: undefined,
+    address: '',
+    ubigeo: '',
+    phone: '',
+    emergency_contact_name: '',
+    emergency_contact_relationship: '',
+    emergency_contact_phone: '',
+    photo_url: '',
+    epp_size: undefined,
   });
 
   const [password, setPassword] = useState('');
@@ -58,6 +74,21 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         last_name: user.last_name || '',
         is_active: user.is_active !== undefined ? user.is_active : user.status === 'active',
         roleIds: roleIds,
+        // Worker profile fields
+        document_type: user.document_type,
+        document_number: user.document_number || '',
+        birth_date: user.birth_date,
+        gender: user.gender,
+        nationality: user.nationality || '',
+        marital_status: user.marital_status,
+        address: user.address || '',
+        ubigeo: user.ubigeo || '',
+        phone: user.phone || '',
+        emergency_contact_name: user.emergency_contact_name || '',
+        emergency_contact_relationship: user.emergency_contact_relationship || '',
+        emergency_contact_phone: user.emergency_contact_phone || '',
+        photo_url: user.photo_url || '',
+        epp_size: user.epp_size,
       });
       
       // Reset password fields
@@ -141,6 +172,40 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       if (showPasswordFields && password.trim()) {
         userData.password = password.trim();
       }
+
+      // Add worker profile fields if provided
+      if (formData.document_type !== undefined) userData.document_type = formData.document_type;
+      if (formData.document_number !== undefined && formData.document_number?.trim()) {
+        userData.document_number = formData.document_number.trim();
+      }
+      if (formData.birth_date !== undefined) userData.birth_date = formData.birth_date;
+      if (formData.gender !== undefined) userData.gender = formData.gender;
+      if (formData.nationality !== undefined && formData.nationality?.trim()) {
+        userData.nationality = formData.nationality.trim();
+      }
+      if (formData.marital_status !== undefined) userData.marital_status = formData.marital_status;
+      if (formData.address !== undefined && formData.address?.trim()) {
+        userData.address = formData.address.trim();
+      }
+      if (formData.ubigeo !== undefined && formData.ubigeo?.trim()) {
+        userData.ubigeo = formData.ubigeo.trim();
+      }
+      if (formData.phone !== undefined && formData.phone?.trim()) {
+        userData.phone = formData.phone.trim();
+      }
+      if (formData.emergency_contact_name !== undefined && formData.emergency_contact_name?.trim()) {
+        userData.emergency_contact_name = formData.emergency_contact_name.trim();
+      }
+      if (formData.emergency_contact_relationship !== undefined && formData.emergency_contact_relationship?.trim()) {
+        userData.emergency_contact_relationship = formData.emergency_contact_relationship.trim();
+      }
+      if (formData.emergency_contact_phone !== undefined && formData.emergency_contact_phone?.trim()) {
+        userData.emergency_contact_phone = formData.emergency_contact_phone.trim();
+      }
+      if (formData.photo_url !== undefined && formData.photo_url?.trim()) {
+        userData.photo_url = formData.photo_url.trim();
+      }
+      if (formData.epp_size !== undefined) userData.epp_size = formData.epp_size;
 
       await usersApi.updateUser(user.id, userData);
 
@@ -343,6 +408,14 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                 ⚠️ Los roles seleccionados reemplazarán todos los roles existentes del usuario
               </Text>
             </View>
+
+            {/* Worker Profile Fields */}
+            <WorkerProfileFields
+              formData={formData}
+              onFieldChange={updateField}
+              errors={errors}
+              disabled={loading}
+            />
 
             <View style={styles.userIdContainer}>
               <Text style={styles.userIdLabel}>ID del Usuario</Text>

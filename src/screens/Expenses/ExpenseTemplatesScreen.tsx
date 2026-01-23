@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -11,11 +11,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { ExpenseTemplate, TemplateFrequencyLabels } from '@/types/expenses';
 import { expensesService } from '@/services/api/expenses';
 import { TemplateCard } from '@/components/Expenses/TemplateCard';
 import { AddButton } from '@/components/Navigation/AddButton';
+import { ExpenseReportModal } from '@/components/Expenses/ExpenseReportModal';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -30,34 +32,58 @@ export const ExpenseTemplatesScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showInactive, setShowInactive] = useState(false); // Filter state: false = active only, true = show all
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
 
   // Check permissions
   const canUpdate = hasPermission('expenses.templates.update');
   const canDelete = hasPermission('expenses.templates.delete');
   const canGenerate = hasPermission('expenses.templates.generate');
 
-  const loadTemplates = async () => {
+  const loadTemplates = async (page: number = 1) => {
     try {
+      setLoading(true);
+
       if (!selectedSite?.id) {
         Alert.alert('Error', 'No hay una sede seleccionada');
         return;
       }
 
-      // Backend returns an array directly
-      const templates = await expensesService.getTemplates({
-        page: 1,
-        limit: 100,
+      // Backend returns array directly (no pagination support yet)
+      const response = await expensesService.getTemplates({
         includeInactive: showInactive, // true = show all, false/undefined = active only
       });
 
-      console.log('Templates loaded:', {
-        count: templates.length,
-        showInactive,
-        includeInactive: showInactive,
-        templates: templates
-      });
+      // Handle array response and implement client-side pagination
+      if (Array.isArray(response)) {
+        const allTemplates = response;
+        const total = allTemplates.length;
+        const totalPages = Math.ceil(total / pagination.limit);
+        const startIndex = (page - 1) * pagination.limit;
+        const endIndex = startIndex + pagination.limit;
+        const paginatedTemplates = allTemplates.slice(startIndex, endIndex);
 
-      setTemplates(templates);
+        setTemplates(paginatedTemplates);
+        setPagination({
+          page,
+          limit: pagination.limit,
+          total,
+          totalPages,
+        });
+      } else {
+        setTemplates([]);
+        setPagination({
+          page: 1,
+          limit: pagination.limit,
+          total: 0,
+          totalPages: 0,
+        });
+      }
     } catch (error) {
       console.error('Error loading templates:', error);
       Alert.alert('Error', 'No se pudieron cargar las plantillas de gastos');
@@ -73,33 +99,49 @@ export const ExpenseTemplatesScreen: React.FC = () => {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadTemplates();
+    loadTemplates(1);
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.page > 1) {
+      loadTemplates(pagination.page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) {
+      loadTemplates(pagination.page + 1);
+    }
   };
 
   const handleCreateTemplate = () => {
     navigation.navigate(MAIN_ROUTES.CREATE_EXPENSE_TEMPLATE as never);
   };
 
+  const handleOpenReportModal = () => {
+    setReportModalVisible(true);
+  };
+
   const handleTemplatePress = (template: ExpenseTemplate) => {
     // Navigate to view expenses generated from this template
-    navigation.navigate(MAIN_ROUTES.TEMPLATE_EXPENSES as never, {
+    (navigation as any).navigate(MAIN_ROUTES.TEMPLATE_EXPENSES, {
       templateId: template.id,
       templateName: template.name,
-    } as never);
+    });
   };
 
   const handleGenerateExpense = (template: ExpenseTemplate) => {
     // Navigate to create expense with template data
-    navigation.navigate(MAIN_ROUTES.CREATE_EXPENSE as never, {
+    (navigation as any).navigate(MAIN_ROUTES.CREATE_EXPENSE, {
       templateId: template.id,
-    } as never);
+    });
   };
 
   const handleEditTemplate = (template: ExpenseTemplate) => {
     // Navigate to edit template screen
-    // For now, just log the template
-    console.log('Edit template:', template);
-    Alert.alert('Editar', `Editar plantilla: ${template.name}`);
+    (navigation as any).navigate(MAIN_ROUTES.EDIT_EXPENSE_TEMPLATE, {
+      templateId: template.id,
+    });
   };
 
   const handleDeleteTemplate = (template: ExpenseTemplate) => {
@@ -139,16 +181,6 @@ export const ExpenseTemplatesScreen: React.FC = () => {
         <Text style={styles.createButtonText}>Crear Plantilla</Text>
       </TouchableOpacity>
     </View>
-  );
-
-  const renderTemplate = ({ item }: { item: ExpenseTemplate }) => (
-    <TemplateCard
-      template={item}
-      onPress={handleTemplatePress}
-      onGenerate={canGenerate ? handleGenerateExpense : undefined}
-      onEdit={canUpdate ? handleEditTemplate : undefined}
-      onDelete={canDelete ? handleDeleteTemplate : undefined}
-    />
   );
 
   if (loading) {
@@ -193,19 +225,97 @@ export const ExpenseTemplatesScreen: React.FC = () => {
       </View>
 
       {/* Templates List */}
-      <FlatList
-        data={templates}
-        renderItem={renderTemplate}
-        keyExtractor={(item) => item.id}
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
-        ListEmptyComponent={renderEmptyState}
-      />
+      >
+        {templates.length === 0 ? (
+          renderEmptyState()
+        ) : (
+          templates.map((template) => (
+            <TemplateCard
+              key={template.id}
+              template={template}
+              onPress={handleTemplatePress}
+              onGenerate={canGenerate ? handleGenerateExpense : undefined}
+              onEdit={canUpdate ? handleEditTemplate : undefined}
+              onDelete={canDelete ? handleDeleteTemplate : undefined}
+            />
+          ))
+        )}
+      </ScrollView>
+
+      {/* Pagination Controls */}
+      {pagination.total > 0 && (
+        <View style={styles.paginationContainer}>
+          <TouchableOpacity
+            style={[
+              styles.paginationButton,
+              pagination.page === 1 && styles.paginationButtonDisabled,
+            ]}
+            onPress={handlePreviousPage}
+            disabled={pagination.page === 1}
+          >
+            <Text
+              style={[
+                styles.paginationButtonText,
+                pagination.page === 1 && styles.paginationButtonTextDisabled,
+              ]}
+            >
+              ← Anterior
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.paginationInfo}>
+            <Text style={styles.paginationText}>
+              Pág. {pagination.page}/{pagination.totalPages}
+            </Text>
+            <Text style={styles.paginationSubtext}>
+              {templates.length} de {pagination.total}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.paginationButton,
+              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
+            ]}
+            onPress={handleNextPage}
+            disabled={pagination.page >= pagination.totalPages}
+          >
+            <Text
+              style={[
+                styles.paginationButtonText,
+                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
+              ]}
+            >
+              Siguiente →
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Download Report Button - Above Add Button */}
+      <TouchableOpacity
+        style={styles.downloadButton}
+        onPress={handleOpenReportModal}
+        activeOpacity={0.9}
+      >
+        <Ionicons name="download" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
 
       {/* Floating Action Button */}
       <AddButton onPress={handleCreateTemplate} icon="🔄" />
+
+      {/* Report Modal */}
+      <ExpenseReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        isRecurrent={true}
+      />
     </SafeAreaView>
   );
 };
@@ -256,8 +366,12 @@ const styles = StyleSheet.create({
   filterTabTextActive: {
     color: '#FFFFFF',
   },
+  scrollView: {
+    flex: 1,
+  },
   listContent: {
     padding: 16,
+    paddingBottom: 80,
     flexGrow: 1,
   },
   loadingContainer: {
@@ -303,6 +417,70 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  paginationContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 60,
+  },
+  paginationInfo: {
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  paginationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  paginationButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#6366F1',
+    minWidth: 110,
+    alignItems: 'center',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  paginationButtonTextDisabled: {
+    color: '#94A3B8',
+  },
+  downloadButton: {
+    position: 'absolute',
+    bottom: 160, // Above the Add button (90px) + 70px spacing
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#6366F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    zIndex: 9997,
   },
 });
 

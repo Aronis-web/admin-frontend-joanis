@@ -733,7 +733,7 @@ export const SupplierDetailScreen = ({
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#667eea" />
           <Text style={[styles.loadingText, isTablet && styles.loadingTextTablet]}>
@@ -1344,3 +1344,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+

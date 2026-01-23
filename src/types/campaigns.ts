@@ -6,6 +6,8 @@
 export enum CampaignStatus {
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
+  COMPLETED = 'COMPLETED',
   CLOSED = 'CLOSED',
   CANCELLED = 'CANCELLED',
 }
@@ -30,14 +32,12 @@ export enum DistributionType {
 
 /**
  * Product Status in Campaign
- * - PENDING: Product added to campaign but not yet distributed
- * - PARTIALLY_DISTRIBUTED: Some quantities distributed, some pending
- * - DISTRIBUTED: All quantities fully distributed to participants
+ * - ACTIVE: Product ready to generate distribution
+ * - PRELIMINARY: Product in planning, cannot be distributed yet
  */
 export enum ProductStatus {
-  PENDING = 'PENDING',
-  PARTIALLY_DISTRIBUTED = 'PARTIALLY_DISTRIBUTED',
-  DISTRIBUTED = 'DISTRIBUTED',
+  ACTIVE = 'ACTIVE',
+  PRELIMINARY = 'PRELIMINARY',
 }
 
 /**
@@ -65,6 +65,10 @@ export interface Campaign {
   status: CampaignStatus;
   startDate?: string;
   endDate?: string;
+  remainderSiteId?: string;
+  budget?: number;
+  targetAudience?: string;
+  goals?: string;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -81,8 +85,15 @@ export interface Campaign {
     name?: string;
     email: string;
   };
+  remainderSite?: {
+    id: string;
+    code: string;
+    name: string;
+  };
   participants?: CampaignParticipant[];
   products?: CampaignProduct[];
+  customDistributions?: CampaignCustomDistribution[];
+  repartos?: any[]; // Repartos relacionados
 }
 
 /**
@@ -96,17 +107,26 @@ export interface CampaignParticipant {
   siteId?: string;
   assignedAmountCents: number;
   currency: string;
+  priceProfileId?: string;
   createdAt: string;
   updatedAt: string;
   company?: {
     id: string;
     name: string;
+    alias?: string;
     ruc?: string;
   };
   site?: {
     id: string;
     code: string;
     name: string;
+  };
+  priceProfile?: {
+    id: string;
+    name: string;
+    code: string;
+    costFactor: number;
+    isActive: boolean;
   };
 }
 
@@ -128,9 +148,22 @@ export interface CampaignProduct {
   updatedAt: string;
   product?: {
     id: string;
+    correlativeNumber?: number;
     title: string;
     sku: string;
     status: string;
+    presentations?: Array<{
+      id: string;
+      presentationId: string;
+      factorToBase: number;
+      isBase: boolean;
+      presentation: {
+        id: string;
+        code: string;
+        name: string;
+        isBase: boolean;
+      };
+    }>;
   };
   purchase?: {
     id: string;
@@ -182,7 +215,12 @@ export interface CreateCampaignRequest {
   description?: string;
   startDate?: string;
   endDate?: string;
+  status?: CampaignStatus;
+  budget?: number;
+  targetAudience?: string;
+  goals?: string;
   notes?: string;
+  remainderSiteId?: string;
 }
 
 /**
@@ -193,7 +231,11 @@ export interface UpdateCampaignRequest {
   description?: string;
   startDate?: string;
   endDate?: string;
+  budget?: number;
+  targetAudience?: string;
+  goals?: string;
   notes?: string;
+  remainderSiteId?: string;
 }
 
 /**
@@ -203,8 +245,9 @@ export interface AddParticipantRequest {
   participantType: ParticipantType;
   companyId?: string;
   siteId?: string;
-  assignedAmount: number;
+  assignedAmount?: number;
   currency?: string;
+  priceProfileId?: string;
 }
 
 /**
@@ -213,6 +256,7 @@ export interface AddParticipantRequest {
 export interface UpdateParticipantRequest {
   assignedAmount?: number;
   currency?: string;
+  priceProfileId?: string;
 }
 
 /**
@@ -261,6 +305,41 @@ export interface SetCustomDistributionRequest {
 }
 
 /**
+ * Participant Preference for Preview
+ */
+export interface ParticipantPreference {
+  participantId: string;
+  roundingFactor: number; // 1=unidades, 12=cajas, etc.
+}
+
+/**
+ * Distribution Preview Request
+ */
+export interface DistributionPreviewRequest {
+  participantPreferences?: ParticipantPreference[];
+}
+
+/**
+ * Distribution Item for Generate Request
+ */
+export interface DistributionGenerateItem {
+  participantId: string;
+  quantityBase: number;
+  roundingFactor?: number;
+  presentationId?: string;
+  quantityPresentation?: number;
+  notes?: string;
+}
+
+/**
+ * Generate Distribution Request
+ */
+export interface GenerateDistributionRequest {
+  distributions: DistributionGenerateItem[];
+  notes?: string;
+}
+
+/**
  * Distribution Preview Item
  */
 export interface DistributionPreviewItem {
@@ -270,6 +349,11 @@ export interface DistributionPreviewItem {
   assignedAmount: number;
   percentage: number;
   calculatedQuantity: number;
+  roundingFactor: number; // Factor de redondeo (1=unidades, 12=cajas, etc.)
+  // Presentation fields
+  presentationId?: string;
+  quantityPresentation?: number;
+  factorToBase?: number;
 }
 
 /**
@@ -280,6 +364,35 @@ export interface DistributionPreviewResponse {
   productName: string;
   totalQuantity: number;
   distributionType: DistributionType;
+  isPreliminary: boolean;
+  distributionDescription?: string;
+  currency: string;
+  totalAssignedAmount?: number;
+  totalDistributed: number;
+  remainder: number;
+  totalParticipants: number;
+  remainderAssignedTo?: {
+    participantId: string;
+    participantName: string;
+    remainderQuantity: number;
+  };
+  remainderSite?: {
+    id: string;
+    name: string;
+  };
+  presentationInfo?: {
+    hasPresentations: boolean;
+    largestFactor: number;
+    largestPresentation?: {
+      id: string;
+      name: string;
+      factorToBase: number;
+      description?: string;
+    };
+    totalPresentations: number;
+    roundingApplied: boolean;
+    roundingMethod?: string;
+  };
   preview: DistributionPreviewItem[];
 }
 
@@ -290,6 +403,10 @@ export interface DistributionResultDetail {
   participantId: string;
   participantName: string;
   quantity: number;
+  // Presentation fields
+  presentationId?: string;
+  quantityPresentation?: number;
+  factorToBase?: number;
 }
 
 /**
@@ -304,6 +421,11 @@ export interface DistributionResultResponse {
   distributionType: DistributionType;
   distributionsCreated: number;
   details: DistributionResultDetail[];
+  repartoCode?: string;
+  // Presentation fields
+  presentationId?: string;
+  quantityPresentation?: number;
+  factorToBase?: number;
 }
 
 /**
@@ -325,12 +447,9 @@ export interface QueryCampaignsParams {
  */
 export interface CampaignsResponse {
   data: Campaign[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+  total: number;
+  page: number;
+  limit: number;
 }
 
 // ============================================
@@ -343,6 +462,8 @@ export interface CampaignsResponse {
 export const CampaignStatusLabels: Record<CampaignStatus, string> = {
   [CampaignStatus.DRAFT]: 'Borrador',
   [CampaignStatus.ACTIVE]: 'Activa',
+  [CampaignStatus.PAUSED]: 'Pausada',
+  [CampaignStatus.COMPLETED]: 'Completada',
   [CampaignStatus.CLOSED]: 'Cerrada',
   [CampaignStatus.CANCELLED]: 'Cancelada',
 };
@@ -369,9 +490,8 @@ export const DistributionTypeLabels: Record<DistributionType, string> = {
  * Product Status Labels for UI
  */
 export const ProductStatusLabels: Record<ProductStatus, string> = {
-  [ProductStatus.PENDING]: 'Pendiente',
-  [ProductStatus.PARTIALLY_DISTRIBUTED]: 'Parcialmente Distribuido',
-  [ProductStatus.DISTRIBUTED]: 'Distribuido',
+  [ProductStatus.ACTIVE]: 'Activo',
+  [ProductStatus.PRELIMINARY]: 'Preliminar',
 };
 
 /**
@@ -388,6 +508,8 @@ export const ProductSourceTypeLabels: Record<ProductSourceType, string> = {
 export const CampaignStatusColors: Record<CampaignStatus, string> = {
   [CampaignStatus.DRAFT]: '#94A3B8',
   [CampaignStatus.ACTIVE]: '#10B981',
+  [CampaignStatus.PAUSED]: '#F59E0B',
+  [CampaignStatus.COMPLETED]: '#6366F1',
   [CampaignStatus.CLOSED]: '#6366F1',
   [CampaignStatus.CANCELLED]: '#EF4444',
 };
@@ -396,9 +518,8 @@ export const CampaignStatusColors: Record<CampaignStatus, string> = {
  * Product Status Colors for UI
  */
 export const ProductStatusColors: Record<ProductStatus, string> = {
-  [ProductStatus.PENDING]: '#F59E0B', // Orange - waiting for distribution
-  [ProductStatus.PARTIALLY_DISTRIBUTED]: '#3B82F6', // Blue - in progress
-  [ProductStatus.DISTRIBUTED]: '#10B981', // Green - completed
+  [ProductStatus.ACTIVE]: '#10B981', // Green - ready to distribute
+  [ProductStatus.PRELIMINARY]: '#F59E0B', // Orange - in planning
 };
 
 /**

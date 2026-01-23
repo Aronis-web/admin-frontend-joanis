@@ -36,6 +36,7 @@ interface ReceptionsScreenProps {
 interface ItemValidation {
   transferItemId: string;
   quantityReceived: string;
+  notes: string;
   damageNotes: string;
 }
 
@@ -85,22 +86,77 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
       setLoading(true);
       const currentSiteId = effectiveSite?.id;
 
-      // Cargar recepciones pendientes usando el nuevo endpoint
-      const pendingResponse = await transfersApi.getPendingReceptions({
+      console.log('🔍 Loading receptions for site:', currentSiteId);
+      console.log('📍 Site name:', effectiveSite?.name);
+
+      // Probar con destinationSiteId primero
+      const inTransitFiltersDestination = {
+        destinationSiteId: currentSiteId,
+        status: TransferStatus.IN_TRANSIT,
+        page: 1,
+        limit: 100
+      };
+      console.log('🔧 Testing with destinationSiteId:', inTransitFiltersDestination);
+      const inTransitResponseDest = await transfersApi.getTransfers(inTransitFiltersDestination);
+      console.log('📦 Results with destinationSiteId:', inTransitResponseDest.data?.length || 0);
+
+      // Probar con currentSiteId
+      const inTransitFiltersCurrent = {
+        currentSiteId: currentSiteId,
+        status: TransferStatus.IN_TRANSIT,
+        page: 1,
+        limit: 100
+      };
+      console.log('🔧 Testing with currentSiteId:', inTransitFiltersCurrent);
+      const inTransitResponseCurrent = await transfersApi.getTransfers(inTransitFiltersCurrent);
+      console.log('📦 Results with currentSiteId:', inTransitResponseCurrent.data?.length || 0);
+
+      // Usar el que tenga resultados
+      const inTransitResponse = inTransitResponseDest.data?.length > 0
+        ? inTransitResponseDest
+        : inTransitResponseCurrent;
+
+      console.log('✅ Using response with', inTransitResponse.data?.length || 0, 'transfers');
+      if (inTransitResponse.data && inTransitResponse.data.length > 0) {
+        console.log('📋 First transfer:', {
+          id: inTransitResponse.data[0].id,
+          number: inTransitResponse.data[0].transferNumber,
+          origin: inTransitResponse.data[0].originSite?.name,
+          destination: inTransitResponse.data[0].destinationSite?.name,
+        });
+      }
+
+      // Cargar traslados recibidos pero no completados
+      const receivedResponse = await transfersApi.getTransfers({
+        destinationSiteId: currentSiteId,
+        status: TransferStatus.RECEIVED,
+        page: 1,
+        limit: 100
+      });
+
+      console.log('📥 RECEIVED transfers found:', receivedResponse.data?.length || 0);
+
+      // Combinar traslados en tránsito y recibidos para la pestaña de pendientes
+      const allPendingTransfers = [
+        ...(inTransitResponse.data || []),
+        ...(receivedResponse.data || [])
+      ];
+
+      console.log('📊 Total pending transfers:', allPendingTransfers.length);
+
+      // Cargar recepciones completadas recientes
+      const recentReceptionsResponse = await transfersApi.getPendingReceptions({
         currentSiteId: currentSiteId,
         page: 1,
         limit: 100
       });
 
-      // Extraer los transfers de las recepciones pendientes
-      const pendingTransfersFromReceptions = pendingResponse.data
-        .filter(reception => reception.transfer)
-        .map(reception => reception.transfer!);
+      console.log('✅ Recent receptions found:', recentReceptionsResponse.data?.length || 0);
 
-      setPendingTransfers(pendingTransfersFromReceptions);
-      setRecentReceptions(pendingResponse.data || []);
+      setPendingTransfers(allPendingTransfers);
+      setRecentReceptions(recentReceptionsResponse.data || []);
     } catch (error: any) {
-      console.error('Error loading receptions:', error);
+      console.error('❌ Error loading receptions:', error);
       Alert.alert('Error', error.message || 'No se pudieron cargar las recepciones');
     } finally {
       setLoading(false);
@@ -114,9 +170,28 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   };
 
   const handleReceiveTransfer = (transfer: Transfer) => {
-    setSelectedTransfer(transfer);
-    setShowReceiveModal(true);
-    setReceptionNotes('');
+    // Si el traslado ya tiene una recepción pendiente, ir directo a validación
+    if (transfer.reception && transfer.reception.status === 'PENDING') {
+      console.log('📦 Transfer already has pending reception, going to validation...');
+      setSelectedTransfer(transfer);
+      setCurrentReception(transfer.reception);
+
+      // Initialize item validations with shipped quantities
+      const validations = transfer.items?.map(item => ({
+        transferItemId: item.id,
+        quantityReceived: item.quantityShipped?.toString() || '0',
+        notes: '',
+        damageNotes: '',
+      })) || [];
+      setItemValidations(validations);
+
+      setShowValidateModal(true);
+    } else {
+      // Si no tiene recepción, mostrar modal para iniciar recepción
+      setSelectedTransfer(transfer);
+      setShowReceiveModal(true);
+      setReceptionNotes('');
+    }
   };
 
   const handleInitiateReception = async () => {
@@ -133,7 +208,11 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         return;
       }
 
-      const updatedTransfer = await transfersApi.receiveTransfer(selectedTransfer.id, userId);
+      const updatedTransfer = await transfersApi.receiveTransfer(
+        selectedTransfer.id,
+        userId,
+        receptionNotes || undefined
+      );
 
       Alert.alert(
         'Recepción Iniciada',
@@ -150,6 +229,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
               const validations = updatedTransfer.items?.map(item => ({
                 transferItemId: item.id,
                 quantityReceived: item.quantityShipped?.toString() || '0',
+                notes: '',
                 damageNotes: '',
               })) || [];
               setItemValidations(validations);
@@ -185,6 +265,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         items: itemValidations.map(validation => ({
           transferItemId: validation.transferItemId,
           quantityReceived: parseFloat(validation.quantityReceived) || 0,
+          notes: validation.notes || undefined,
           damageNotes: validation.damageNotes || undefined,
         })),
       };
@@ -225,6 +306,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
             try {
               const completeDto: CompleteReceptionDto = {
                 receptionId: currentReception.id,
+                qualityCheckNotes: qualityCheckNotes || undefined,
               };
 
               await transfersApi.completeReception(selectedTransfer.id, completeDto);
@@ -313,7 +395,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                 <View style={styles.receptionInfo}>
                   <Text style={styles.receptionNumber}>{displayNumber}</Text>
                   {transfer && (
-                    <Text style={styles.transferInfo}>
+                    <Text style={styles.transferInfoText}>
                       {transfer.originSite?.name} → {transfer.destinationSite?.name}
                     </Text>
                   )}
@@ -528,11 +610,24 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
               Ingresa la cantidad real recibida para cada producto
             </Text>
 
+            <View style={styles.qualityCheckSection}>
+              <Text style={styles.label}>Notas de Control de Calidad (Opcional)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Ej: Todos los productos inspeccionados y en buen estado..."
+                value={qualityCheckNotes}
+                onChangeText={setQualityCheckNotes}
+                multiline
+                numberOfLines={3}
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
+
             {selectedTransfer?.items?.map((item, index) => (
               <View key={item.id} style={styles.validateItemCard}>
                 <View style={styles.validateItemHeader}>
                   <Text style={styles.validateItemTitle}>{item.product?.title}</Text>
-                  <Text style={styles.validateItemSku}>SKU: {item.product?.sku}</Text>
+                  <Text style={styles.validateItemSku}>{item.product?.correlativeNumber && `#${item.product.correlativeNumber} | `}SKU: {item.product?.sku}</Text>
                 </View>
 
                 <View style={styles.quantityInfo}>
@@ -553,6 +648,17 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                   keyboardType="numeric"
                   value={itemValidations[index]?.quantityReceived || ''}
                   onChangeText={(value) => updateItemValidation(index, 'quantityReceived', value)}
+                  placeholderTextColor="#94A3B8"
+                />
+
+                <Text style={styles.label}>Notas del Item (Opcional)</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Ej: Producto en buen estado..."
+                  value={itemValidations[index]?.notes || ''}
+                  onChangeText={(value) => updateItemValidation(index, 'notes', value)}
+                  multiline
+                  numberOfLines={2}
                   placeholderTextColor="#94A3B8"
                 />
 
@@ -731,7 +837,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
   },
-  transferInfo: {
+  transferInfoText: {
     fontSize: 13,
     color: '#475569',
     marginVertical: 2,
@@ -993,6 +1099,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#1E293B',
+  },
+  qualityCheckSection: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
   },
   differenceBox: {
     backgroundColor: '#FEF3C7',

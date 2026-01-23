@@ -25,6 +25,7 @@ export interface Site {
     id: string;
     name: string;
     ruc?: string;
+    companyType?: string;
   };
 }
 
@@ -79,6 +80,7 @@ export interface UpdateSiteRequest {
 
 export interface GetSitesParams {
   companyId?: string; // Filter by company (optional, may be set via headers)
+  userId?: string; // Filter sites of a specific user
   q?: string; // Search in name and fullAddress
   isActive?: boolean;
   district?: string;

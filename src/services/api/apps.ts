@@ -293,29 +293,11 @@ export const appsApi = {
 
 /**
  * API para gestión de Scopes (ámbitos de acceso)
+ *
+ * @deprecated Importar desde @/services/api/scopes en su lugar
+ * Este export se mantiene por compatibilidad con código existente.
  */
-export const scopesApi = {
-  /**
-   * 📋 Listar scopes de una app
-   */
-  async getAppScopes(appId: string): Promise<Scope[]> {
-    return apiClient.get<Scope[]>(`/apps/${appId}/scopes`);
-  },
-
-  /**
-   * 🆕 Crear scope para una app
-   */
-  async createScope(appId: string, scopeData: CreateScopeDto): Promise<Scope> {
-    return apiClient.post<Scope>(`/apps/${appId}/scopes`, scopeData);
-  },
-
-  /**
-   * 🗑️ Eliminar un scope
-   */
-  async deleteScope(scopeId: string): Promise<void> {
-    return apiClient.delete<void>(`/apps/scopes/${scopeId}`);
-  },
-};
+export { scopesApi } from './scopes';
 
 /**
  * API para gestión de Permisos de Apps

@@ -222,6 +222,14 @@ class AuthService {
   }
 
   /**
+   * Manually set access token (for syncing with auth store)
+   */
+  setAccessToken(token: string | null): void {
+    this.accessToken = token;
+    console.log('🔐 AuthService: Token manually set, length:', token?.length);
+  }
+
+  /**
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {
@@ -254,6 +262,8 @@ class AuthService {
     this.tokenExpiresAt = data.accessTokenExpiresIn
       ? Date.now() + (data.accessTokenExpiresIn * 1000)
       : null;
+
+    console.log('🔐 AuthService: Storing auth data, token length:', this.accessToken?.length);
 
     try {
       await AsyncStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, data.accessToken);
@@ -317,20 +327,28 @@ class AuthService {
       const refreshToken = await AsyncStorage.getItem(config.STORAGE_KEYS.REFRESH_TOKEN);
       const tokenExpiresAtStr = await AsyncStorage.getItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
 
+      console.log('🔐 AuthService: Restoring auth from storage, has token:', !!token);
+
       if (token) {
         this.accessToken = token;
         this.refreshTokenValue = refreshToken;
         this.tokenExpiresAt = tokenExpiresAtStr ? parseInt(tokenExpiresAtStr, 10) : null;
 
+        console.log('🔐 AuthService: Token restored, length:', this.accessToken?.length);
+
         // Check if token is expired and refresh if needed
         if (this.isTokenExpired() && this.refreshTokenValue) {
           try {
+            console.log('🔐 AuthService: Token expired, attempting refresh...');
             await this.refreshToken();
           } catch (error) {
             // Refresh failed, clear auth
+            console.error('🔐 AuthService: Token refresh failed, clearing auth:', error);
             await this.clearAuthData();
           }
         }
+      } else {
+        console.log('🔐 AuthService: No token found in storage');
       }
     } catch (error) {
       console.error('Failed to restore auth:', error);

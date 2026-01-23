@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { campaignsService } from '@/services/api';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
 import { productsApi } from '@/services/api';
+import logger from '@/utils/logger';
 import {
   Campaign,
   CampaignStatus,
@@ -82,7 +83,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             });
             setCompanies(companiesMap);
           } catch (error) {
-            console.error('Error loading companies:', error);
+            logger.error('Error loading companies:', error);
           }
         }
 
@@ -98,7 +99,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             });
             setSites(sitesMap);
           } catch (error) {
-            console.error('Error loading sites:', error);
+            logger.error('Error loading sites:', error);
           }
         }
       }
@@ -121,12 +122,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             });
             setProducts(productsMap);
           } catch (error) {
-            console.error('Error loading products:', error);
+            logger.error('Error loading products:', error);
           }
         }
       }
     } catch (error: any) {
-      console.error('Error loading campaign:', error);
+      logger.error('Error loading campaign:', error);
       Alert.alert('Error', 'No se pudo cargar la campaña');
       navigation.goBack();
     } finally {
@@ -151,7 +152,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
     Alert.alert(
       'Activar Campaña',
-      '¿Estás seguro de activar esta campaña? No podrás modificar participantes ni productos después.',
+      '¿Estás seguro de activar esta campaña? Podrás seguir editando y eliminando participantes y productos hasta que cierres la campaña.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -479,7 +480,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
               Participantes ({campaign.participants?.length || 0})
             </Text>
-            {campaign.status === CampaignStatus.DRAFT && (
+            {(campaign.status === CampaignStatus.DRAFT || campaign.status === CampaignStatus.ACTIVE) && (
               <TouchableOpacity
                 style={[styles.addButton, isTablet && styles.addButtonTablet]}
                 onPress={() =>
@@ -544,7 +545,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
               Productos ({campaign.products?.length || 0})
             </Text>
-            {campaign.status === CampaignStatus.DRAFT && (
+            {(campaign.status === CampaignStatus.DRAFT || campaign.status === CampaignStatus.ACTIVE) && (
               <TouchableOpacity
                 style={[styles.addButton, isTablet && styles.addButtonTablet]}
                 onPress={() =>

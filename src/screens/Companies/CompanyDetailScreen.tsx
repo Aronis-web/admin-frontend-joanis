@@ -54,6 +54,7 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
   const [companyForm, setCompanyForm] = useState({
     name: '',
     ruc: '',
+    alias: '',
     companyType: CompanyType.EXTERNAL,
     isActive: true,
   });
@@ -104,6 +105,7 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
       setCompanyForm({
         name: data.name,
         ruc: data.ruc || '',
+        alias: data.alias || '',
         companyType: data.companyType,
         isActive: data.isActive,
       });
@@ -140,6 +142,7 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
       await companiesApi.updateCompany(companyId, {
         name: companyForm.name,
         ruc: companyForm.ruc || undefined,
+        alias: companyForm.alias || undefined,
         companyType: companyForm.companyType,
         isActive: companyForm.isActive,
       });
@@ -344,6 +347,12 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
           <Text style={styles.infoLabel}>Nombre:</Text>
           <Text style={styles.infoValue}>{company?.name}</Text>
         </View>
+        {company?.alias && (
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Alias:</Text>
+            <Text style={styles.infoValue}>{company.alias}</Text>
+          </View>
+        )}
         {company?.ruc && (
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>RUC:</Text>
@@ -394,12 +403,26 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
                 <Text style={styles.statusText}>{item.isActive ? 'Activo' : 'Inactivo'}</Text>
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => handleDeleteSite(item)}
-            >
-              <Text style={styles.deleteButtonText}>🗑️ Eliminar</Text>
-            </TouchableOpacity>
+            <View style={styles.itemActions}>
+              <TouchableOpacity
+                style={styles.warehousesButton}
+                onPress={() => navigation.navigate('Warehouses', {
+                  companyId: companyId,
+                  companyName: company?.alias || company?.name || '',
+                  siteId: item.id,
+                  siteName: item.name,
+                  siteCode: item.code,
+                })}
+              >
+                <Text style={styles.warehousesButtonText}>📦 Almacenes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDeleteSite(item)}
+              >
+                <Text style={styles.deleteButtonText}>🗑️ Eliminar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
         ListEmptyComponent={
@@ -505,7 +528,7 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{company?.name}</Text>
+        <Text style={styles.headerTitle}>{company?.alias || company?.name}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -566,6 +589,16 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
                   onChangeText={(text) => setCompanyForm({ ...companyForm, ruc: text })}
                   keyboardType="numeric"
                   maxLength={11}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Alias</Text>
+                <TextInput
+                  style={styles.input}
+                  value={companyForm.alias}
+                  onChangeText={(text) => setCompanyForm({ ...companyForm, alias: text })}
+                  placeholder="Ej: ACME"
                 />
               </View>
 
@@ -1070,6 +1103,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#DC2626',
+  },
+  warehousesButton: {
+    flex: 1,
+    backgroundColor: '#DBEAFE',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  warehousesButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
   },
   accountsContainer: {
     marginTop: 8,

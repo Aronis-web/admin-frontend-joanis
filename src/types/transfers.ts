@@ -187,6 +187,7 @@ export interface TransferItem {
   // Relations (populated)
   product?: {
     id: string;
+    correlativeNumber?: number;
     title: string;
     sku: string;
     barcode?: string;
@@ -249,6 +250,7 @@ export interface TransferDiscrepancy {
   // Relations (populated)
   product?: {
     id: string;
+    correlativeNumber?: number;
     title: string;
     sku: string;
   };
@@ -303,6 +305,7 @@ export interface StockMovement {
   // Relations (populated)
   product?: {
     id: string;
+    correlativeNumber?: number;
     title: string;
     sku: string;
   };
@@ -400,6 +403,7 @@ export interface ValidateItemsDto {
   items: {
     transferItemId: string;
     quantityReceived: number;
+    notes?: string;
     damageNotes?: string;
   }[];
 }
@@ -407,6 +411,7 @@ export interface ValidateItemsDto {
 // Complete Reception
 export interface CompleteReceptionDto {
   receptionId: string;
+  qualityCheckNotes?: string;
 }
 
 // Cancel Transfer

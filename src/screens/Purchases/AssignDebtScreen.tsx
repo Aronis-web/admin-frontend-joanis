@@ -169,7 +169,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
           <Text style={styles.loadingText}>Cargando datos...</Text>
@@ -180,7 +180,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({
 
   if (products.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backButtonText}>‹</Text>
@@ -202,7 +202,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({
   const debtsByLegalEntity = getDebtByLegalEntity();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, isTablet && styles.headerTablet]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -329,7 +329,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({
                     {product.name}
                   </Text>
                   <Text style={[styles.productSku, isTablet && styles.productSkuTablet]}>
-                    SKU: {product.sku}
+                    {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku}
                   </Text>
                 </View>
               </View>
@@ -885,3 +885,4 @@ const styles = StyleSheet.create({
 });
 
 export default AssignDebtScreen;
+

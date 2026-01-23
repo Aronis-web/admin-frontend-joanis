@@ -81,8 +81,12 @@ export type MainStackParamList = {
   ExpensesReports: undefined;
   ExpenseTemplates: undefined;
   CreateExpenseTemplate: undefined;
-  CreateExpensePayment: {
-    expenseId: string;
+  EditExpenseTemplate: {
+    templateId: string;
+  };
+  TemplateExpenses: {
+    templateId: string;
+    templateName: string;
   };
 
   // Transfers
@@ -124,6 +128,19 @@ export type MainStackParamList = {
     productId: string;
   };
 
+  // Repartos
+  Repartos: undefined;
+  RepartoCampaignDetail: {
+    campaignId: string;
+  };
+  RepartoParticipantDetail: {
+    campaignId: string;
+    participantId: string;
+  };
+  RepartoDetail: {
+    repartoId: string;
+  };
+
   // Users & Permissions
   Users: undefined;
   RolesPermissions: undefined;
@@ -137,6 +154,25 @@ export type MainStackParamList = {
   Sites: {
     companyId?: string;
     companyName?: string;
+  };
+
+  // Warehouses & Areas
+  Warehouses: {
+    companyId: string;
+    companyName: string;
+    siteId: string;
+    siteName: string;
+    siteCode: string;
+  };
+  WarehouseAreas: {
+    companyId: string;
+    companyName: string;
+    siteId: string;
+    siteName: string;
+    siteCode: string;
+    warehouseId: string;
+    warehouseName: string;
+    warehouseCode: string;
   };
 
   // Configuration

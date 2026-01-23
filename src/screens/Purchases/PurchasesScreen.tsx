@@ -32,17 +32,43 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<PurchaseStatus | 'ALL'>('ALL');
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+
   const { currentCompany, currentSite } = useAuthStore();
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  const loadPurchases = useCallback(async () => {
+  const loadPurchases = useCallback(async (page: number = 1) => {
     try {
-      const params = selectedStatus !== 'ALL' ? { status: selectedStatus } : {};
+      setLoading(true);
+
+      const params: any = {
+        page,
+        limit: pagination.limit,
+      };
+
+      if (selectedStatus !== 'ALL') {
+        params.status = selectedStatus;
+      }
+
       const response = await purchasesService.getPurchases(params);
       setPurchases(response.data);
+
+      // Update pagination info - API returns flat structure
+      const totalPages = Math.ceil(response.total / response.limit);
+      setPagination({
+        page: response.page,
+        limit: response.limit,
+        total: response.total,
+        totalPages: totalPages,
+      });
     } catch (error: any) {
       console.error('Error loading purchases:', error);
       Alert.alert('Error', 'No se pudieron cargar las compras');
@@ -50,7 +76,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedStatus]);
+  }, [selectedStatus, pagination.limit]);
 
   // Auto-reload purchases when screen comes into focus
   useFocusEffect(
@@ -63,7 +89,19 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadPurchases();
+    loadPurchases(1);
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.page > 1) {
+      loadPurchases(pagination.page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) {
+      loadPurchases(pagination.page + 1);
+    }
   };
 
   const handleCreatePurchase = () => {
@@ -227,7 +265,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
           <Text style={styles.loadingText}>Cargando compras...</Text>
@@ -238,7 +276,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
   return (
     <ScreenLayout navigation={navigation}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <View>
@@ -281,6 +319,56 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Pagination Controls */}
+      {pagination.total > 0 && (
+        <View style={styles.paginationContainer}>
+          <TouchableOpacity
+            style={[
+              styles.paginationButton,
+              pagination.page === 1 && styles.paginationButtonDisabled,
+            ]}
+            onPress={handlePreviousPage}
+            disabled={pagination.page === 1}
+          >
+            <Text
+              style={[
+                styles.paginationButtonText,
+                pagination.page === 1 && styles.paginationButtonTextDisabled,
+              ]}
+            >
+              ← Anterior
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.paginationInfo}>
+            <Text style={styles.paginationText}>
+              Pág. {pagination.page}/{pagination.totalPages}
+            </Text>
+            <Text style={styles.paginationSubtext}>
+              {purchases.length} de {pagination.total}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.paginationButton,
+              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
+            ]}
+            onPress={handleNextPage}
+            disabled={pagination.page >= pagination.totalPages}
+          >
+            <Text
+              style={[
+                styles.paginationButtonText,
+                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
+              ]}
+            >
+              Siguiente →
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
         {/* Add Button */}
         <AddButton onPress={handleCreatePurchase} icon="+" />
@@ -524,6 +612,51 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 100,
+  },
+  paginationContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 60,
+  },
+  paginationInfo: {
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  paginationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  paginationButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#6366F1',
+    minWidth: 110,
+    alignItems: 'center',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  paginationButtonTextDisabled: {
+    color: '#94A3B8',
   },
 });
 

@@ -51,6 +51,7 @@ export const MAIN_ROUTES = {
   EXPENSES_REPORTS: 'ExpensesReports',
   EXPENSE_TEMPLATES: 'ExpenseTemplates',
   CREATE_EXPENSE_TEMPLATE: 'CreateExpenseTemplate',
+  EDIT_EXPENSE_TEMPLATE: 'EditExpenseTemplate',
   TEMPLATE_EXPENSES: 'TemplateExpenses',
 
   // Transfers
@@ -73,6 +74,10 @@ export const MAIN_ROUTES = {
   CAMPAIGN_PRODUCT_DETAIL: 'CampaignProductDetail',
   MANAGE_CUSTOM_DISTRIBUTION: 'ManageCustomDistribution',
 
+  // Repartos
+  REPARTOS: 'Repartos',
+  REPARTO_DETAIL: 'RepartoDetail',
+
   // Users & Permissions
   USERS: 'Users',
   ROLES_PERMISSIONS: 'RolesPermissions',
@@ -87,6 +92,19 @@ export const MAIN_ROUTES = {
   APPS: 'Apps',
   PRICE_PROFILES: 'PriceProfiles',
   PRESENTATIONS: 'Presentations',
+
+  // Balances
+  BALANCES: 'Balances',
+  BALANCE_DETAIL: 'BalanceDetail',
+  BALANCE_OPERATIONS: 'BalanceOperations',
+  ALL_BALANCE_OPERATIONS: 'AllBalanceOperations',
+  CREATE_BALANCE: 'CreateBalance',
+  CREATE_BALANCE_OPERATION: 'CreateBalanceOperation',
+
+  // Transmisiones
+  TRANSMISIONES: 'Transmisiones',
+  CREATE_TRANSMISION: 'CreateTransmision',
+  TRANSMISION_DETAIL: 'TransmisionDetail',
 } as const;
 
 /**
@@ -124,6 +142,7 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
   'perfiles-precio': 'PRICE_PROFILES',
   'presentaciones': 'PRESENTATIONS',
   'debug-permissions': 'PERMISSIONS_DEBUG',
+  'transmisiones': 'TRANSMISIONES',
 };
 
 /**
@@ -176,6 +195,10 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   ADD_CAMPAIGN_PRODUCT: 'campaigns.products.create',
   CAMPAIGN_PRODUCT_DETAIL: 'campaigns.products.read',
 
+  // Repartos
+  REPARTOS: 'campaigns.read',
+  REPARTO_DETAIL: 'campaigns.read',
+
   // Users & Permissions
   USERS: 'users.read',
   ROLES_PERMISSIONS: 'roles.manage',
@@ -189,6 +212,19 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   APPS: 'apps.manage',
   PRICE_PROFILES: 'price_profiles.read',
   PRESENTATIONS: 'presentations.read',
+
+  // Balances
+  BALANCES: 'balances.read',
+  BALANCE_DETAIL: 'balances.read',
+  BALANCE_OPERATIONS: 'balances.operations.read',
+  ALL_BALANCE_OPERATIONS: 'balances.operations.read',
+  CREATE_BALANCE: 'balances.create',
+  CREATE_BALANCE_OPERATION: 'balances.operations.create',
+
+  // Transmisiones
+  TRANSMISIONES: 'transmisiones.read',
+  CREATE_TRANSMISION: 'transmisiones.create',
+  TRANSMISION_DETAIL: 'transmisiones.read',
 };
 
 /**

@@ -12,6 +12,7 @@ interface ExpenseCardProps {
   onDelete?: (expense: Expense) => void;
   onAddPayment?: (expense: Expense) => void;
   onReconcileAmount?: (expense: Expense) => void;
+  onViewPayments?: (expense: Expense) => void;
 }
 
 export const ExpenseCard: React.FC<ExpenseCardProps> = ({
@@ -22,6 +23,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
   onDelete,
   onAddPayment,
   onReconcileAmount,
+  onViewPayments,
 }) => {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
@@ -156,7 +158,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
           </View>
         )}
 
-        {(onEdit || onDelete || onAddPayment || onReconcileAmount) && (
+        {(onEdit || onDelete || onAddPayment || onReconcileAmount || onViewPayments) && (
           <View style={styles.actionButtons}>
             {onAddPayment && remainingAmount > 0 && (
               <TouchableOpacity
@@ -168,6 +170,20 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
               >
                 <Ionicons name="cash-outline" size={16} color="#10B981" />
                 <Text style={[styles.actionButtonText, { color: '#10B981' }]}>Pagar</Text>
+              </TouchableOpacity>
+            )}
+            {onViewPayments && (expense.paymentsCount && expense.paymentsCount > 0 || expense.totalPaidCents && expense.totalPaidCents > 0 || expense.status === 'PAID') && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.viewPaymentsButton]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onViewPayments(expense);
+                }}
+              >
+                <Ionicons name="list-outline" size={16} color="#6366F1" />
+                <Text style={[styles.actionButtonText, { color: '#6366F1' }]}>
+                  Ver Pagos {expense.paymentsCount ? `(${expense.paymentsCount})` : ''}
+                </Text>
               </TouchableOpacity>
             )}
             {onReconcileAmount && !expense.actualAmountCents && (
@@ -182,7 +198,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 <Text style={[styles.actionButtonText, { color: '#6366F1' }]}>Monto Real</Text>
               </TouchableOpacity>
             )}
-            {onEdit && remainingAmount > 0 && (
+            {onEdit && (
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={(e) => {
@@ -448,6 +464,11 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: '#EF4444',
+  },
+  viewPaymentsButton: {
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
   },
 });
 

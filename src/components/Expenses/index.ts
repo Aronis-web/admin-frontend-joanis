@@ -9,3 +9,5 @@ export { PaymentStatusBadge } from './PaymentStatusBadge';
 export { ProjectStatusBadge } from './ProjectStatusBadge';
 
 export { ReconcileAmountModal } from './ReconcileAmountModal';
+
+export { ExpenseReportModal } from './ExpenseReportModal';

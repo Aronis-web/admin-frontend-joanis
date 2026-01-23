@@ -31,6 +31,8 @@ export interface StockItem {
   warehouseId: string;
   areaId?: string;
   quantityBase: number;
+  reservedQuantityBase?: number;
+  availableQuantityBase?: number;
   updatedAt: string;
   // Populated fields
   productTitle?: string;
@@ -69,10 +71,13 @@ export interface StockResponse {
 
 // Response from backend for stock queries (matches backend structure)
 export interface StockItemResponse {
+  id?: string;
   productId: string;
   warehouseId: string;
   areaId: string | null;
   quantityBase: number;
+  reservedQuantityBase: number;
+  availableQuantityBase: number;
   updatedAt: string;
   product?: {
     id: string;
@@ -156,6 +161,11 @@ export const inventoryApi = {
   // Get warehouse by ID - GET /admin/inventory/warehouses/:id
   getWarehouseById: async (warehouseId: string): Promise<Warehouse> => {
     return apiClient.get<Warehouse>(`/admin/inventory/warehouses/${warehouseId}`);
+  },
+
+  // Get areas of a specific warehouse - GET /admin/inventory/warehouses/:warehouseId/areas
+  getWarehouseAreas: async (warehouseId: string): Promise<WarehouseArea[]> => {
+    return apiClient.get<WarehouseArea[]>(`/admin/inventory/warehouses/${warehouseId}/areas`);
   },
 
   // Delete stock item - DELETE /admin/inventory/stock

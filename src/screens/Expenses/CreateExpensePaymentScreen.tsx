@@ -8,9 +8,11 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { expensesService } from '@/services/api';
 import { PaymentMethod, PaymentMethodLabels } from '@/types/expenses';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
@@ -40,6 +42,13 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
   const [transactionReference, setTransactionReference] = useState('');
   const [paymentDate, setPaymentDate] = useState('');
   const [notes, setNotes] = useState('');
+
+  // File attachment
+  const [attachedFile, setAttachedFile] = useState<{
+    uri: string;
+    filename: string;
+    mimeType: string;
+  } | null>(null);
 
   // Date picker states
   const [showPaymentDatePicker, setShowPaymentDatePicker] = useState(false);
@@ -86,6 +95,65 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
     loadExpense();
   }, [loadExpense]);
 
+  const handlePickFile = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permiso Requerido', 'Se necesita permiso para acceder a las fotos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setAttachedFile({
+          uri: asset.uri,
+          filename: asset.fileName || `comprobante_${Date.now()}.${asset.uri.split('.').pop()}`,
+          mimeType: asset.mimeType || (asset.uri.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+        });
+      }
+    } catch (error) {
+      console.error('Error picking file:', error);
+      Alert.alert('Error', 'No se pudo seleccionar el archivo');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permiso Requerido', 'Se necesita permiso para usar la cámara.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setAttachedFile({
+          uri: asset.uri,
+          filename: asset.fileName || `comprobante_${Date.now()}.jpg`,
+          mimeType: asset.mimeType || 'image/jpeg',
+        });
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'No se pudo tomar la foto');
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setAttachedFile(null);
+  };
+
   const handleSave = async () => {
     if (!amount) {
       Alert.alert('Error', 'El monto es requerido');
@@ -122,7 +190,19 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
         notes: notes.trim() || undefined,
       };
 
-      await expensesService.createPayment(expenseId, data);
+      // Use the appropriate method based on whether a file is attached
+      if (attachedFile) {
+        await expensesService.createPaymentWithFile(
+          expenseId,
+          data,
+          attachedFile.uri,
+          attachedFile.filename,
+          attachedFile.mimeType
+        );
+      } else {
+        await expensesService.createPayment(expenseId, data);
+      }
+
       Alert.alert('Éxito', 'Pago registrado correctamente');
       navigation.goBack();
     } catch (error: any) {
@@ -327,6 +407,58 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
             'default',
             'document-text'
           )}
+
+          {/* File Attachment Section */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Comprobante de Pago (opcional)</Text>
+
+            {!attachedFile ? (
+              <View style={styles.fileButtonsContainer}>
+                <TouchableOpacity
+                  style={styles.fileButton}
+                  onPress={handlePickFile}
+                >
+                  <Ionicons name="document-attach" size={20} color="#6366F1" />
+                  <Text style={styles.fileButtonText}>Adjuntar Archivo</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.fileButton}
+                  onPress={handleTakePhoto}
+                >
+                  <Ionicons name="camera" size={20} color="#6366F1" />
+                  <Text style={styles.fileButtonText}>Tomar Foto</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.attachedFileContainer}>
+                {attachedFile.mimeType.startsWith('image/') ? (
+                  <Image
+                    source={{ uri: attachedFile.uri }}
+                    style={styles.attachedImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.pdfPreview}>
+                    <Ionicons name="document-text" size={48} color="#EF4444" />
+                    <Text style={styles.pdfText}>PDF</Text>
+                  </View>
+                )}
+                <View style={styles.fileInfo}>
+                  <Text style={styles.fileName} numberOfLines={1}>
+                    {attachedFile.filename}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.removeFileButton}
+                    onPress={handleRemoveFile}
+                  >
+                    <Ionicons name="close-circle" size={24} color="#EF4444" />
+                    <Text style={styles.removeFileText}>Eliminar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Action Buttons */}
@@ -542,5 +674,76 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  fileButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fileButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#6366F1',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  fileButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  attachedFileContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    gap: 12,
+  },
+  attachedImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+  },
+  pdfPreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pdfText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#EF4444',
+    marginTop: 8,
+  },
+  fileInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  fileName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E293B',
+    marginRight: 12,
+  },
+  removeFileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  removeFileText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EF4444',
   },
 });

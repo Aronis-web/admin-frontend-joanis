@@ -11,12 +11,15 @@ import {
   useWindowDimensions,
   Modal,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { ProductFormModal } from '@/components/Inventory/ProductFormModal';
+import { ProductImagesModal } from '@/components/Inventory/ProductImagesModal';
+import { ProductPriceProfilesModal } from '@/components/Inventory/ProductPriceProfilesModal';
 import { productsApi, Product } from '@/services/api/products';
 import { AddButton } from '@/components/Navigation/AddButton';
 
@@ -30,6 +33,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState<'all' | 'sku' | 'correlative'>('all');
   const [statusFilter, setStatusFilter] = useState<string>('active'); // Default to 'active'
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isProductModalVisible, setIsProductModalVisible] = useState(false);
@@ -37,24 +41,36 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
+  const [isImagesModalVisible, setIsImagesModalVisible] = useState(false);
+  const [selectedProductForImages, setSelectedProductForImages] = useState<Product | null>(null);
+  const [isPriceProfilesModalVisible, setIsPriceProfilesModalVisible] = useState(false);
+  const [selectedProductForPrices, setSelectedProductForPrices] = useState<Product | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  const loadProducts = async () => {
+  const loadProducts = async (page: number = 1) => {
     try {
       setLoading(true);
 
       // Try admin endpoint first
       let productsData: any[] = [];
+      let responseData: any;
       try {
-        const response = await productsApi.getAllProducts({ page: 1, limit: 100 });
-        productsData = response.products || [];
+        responseData = await productsApi.getAllProducts({ page, limit: pagination.limit });
+        productsData = responseData.products || [];
       } catch (adminError: any) {
         // If admin endpoint fails (403), try public catalog endpoint
         if (adminError.response?.status === 403) {
           console.log('Admin endpoint forbidden, trying public catalog...');
-          const response = await productsApi.getProducts({ page: 1, limit: 100 });
-          productsData = response.products || [];
+          responseData = await productsApi.getProducts({ page, limit: pagination.limit });
+          productsData = responseData.products || [];
         } else {
           throw adminError;
         }
@@ -81,10 +97,17 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       );
 
       console.log('🔍 Products loaded:', productsWithImages.length);
-      console.log('🔍 First product data:', JSON.stringify(productsWithImages[0], null, 2));
 
       setProducts(productsWithImages);
-      setFilteredProducts(productsWithImages);
+
+      // Update pagination info - API returns flat structure
+      const totalPages = Math.ceil(responseData.total / responseData.limit);
+      setPagination({
+        page: responseData.page,
+        limit: responseData.limit,
+        total: responseData.total,
+        totalPages: totalPages,
+      });
     } catch (error: any) {
       console.error('Error loading products:', error);
       const errorMessage = error.response?.data?.message || error.message || 'No se pudieron cargar los productos';
@@ -119,11 +142,24 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
     // Filter by search query
     if (searchQuery.trim() !== '') {
-      filtered = filtered.filter(
-        (product) =>
-          (product.title && product.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (product.sku && product.sku.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+      filtered = filtered.filter((product) => {
+        const query = searchQuery.toLowerCase();
+
+        if (searchType === 'correlative') {
+          // Búsqueda por número correlativo
+          return product.correlativeNumber && product.correlativeNumber.toString().includes(searchQuery);
+        } else if (searchType === 'sku') {
+          // Búsqueda solo por SKU
+          return product.sku && product.sku.toLowerCase().includes(query);
+        } else {
+          // Búsqueda en todos los campos (all)
+          return (
+            (product.title && product.title.toLowerCase().includes(query)) ||
+            (product.sku && product.sku.toLowerCase().includes(query)) ||
+            (product.correlativeNumber && product.correlativeNumber.toString().includes(searchQuery))
+          );
+        }
+      });
     }
 
     setFilteredProducts(filtered);
@@ -131,8 +167,20 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadProducts();
+    await loadProducts(1);
     setRefreshing(false);
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.page > 1) {
+      loadProducts(pagination.page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) {
+      loadProducts(pagination.page + 1);
+    }
   };
 
   const handleLogout = async () => {
@@ -178,6 +226,25 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     }
   };
 
+  // Detectar SKUs duplicados
+  const getDuplicateSKUs = () => {
+    const skuCount = new Map<string, number>();
+    products.forEach(p => {
+      if (p.sku) {
+        skuCount.set(p.sku, (skuCount.get(p.sku) || 0) + 1);
+      }
+    });
+    return Array.from(skuCount.entries())
+      .filter(([_, count]) => count > 1)
+      .map(([sku]) => sku);
+  };
+
+  const hasDuplicateSKU = (sku: string) => {
+    return getDuplicateSKUs().includes(sku);
+  };
+
+  const duplicateSKUs = getDuplicateSKUs();
+
   const handleCreateProduct = () => {
     setSelectedProduct(null);
     setModalMode('create');
@@ -211,6 +278,16 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     setIsProductModalVisible(true);
   };
 
+  const handleManageImages = (product: Product) => {
+    setSelectedProductForImages(product);
+    setIsImagesModalVisible(true);
+  };
+
+  const handleManagePrices = (product: Product) => {
+    setSelectedProductForPrices(product);
+    setIsPriceProfilesModalVisible(true);
+  };
+
   const handleDeleteProduct = (product: Product) => {
     Alert.alert(
       'Eliminar Producto',
@@ -241,7 +318,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={styles.backButtonText}>←</Text>
@@ -257,7 +334,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -272,10 +349,17 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={styles.searchInput}
-          placeholder="Buscar por nombre o SKU..."
+          placeholder={
+            searchType === 'correlative'
+              ? 'Buscar por #correlativo...'
+              : searchType === 'sku'
+              ? 'Buscar por SKU...'
+              : 'Buscar por nombre, SKU o #correlativo...'
+          }
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#94A3B8"
+          keyboardType={searchType === 'correlative' ? 'numeric' : 'default'}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -283,6 +367,50 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Search Type Filter */}
+      <View style={styles.filterContainer}>
+        <Text style={styles.filterLabel}>Buscar por:</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          <TouchableOpacity
+            style={[styles.filterChip, searchType === 'all' && styles.filterChipActive]}
+            onPress={() => setSearchType('all')}
+          >
+            <Text style={[styles.filterChipText, searchType === 'all' && styles.filterChipTextActive]}>
+              Todos
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, searchType === 'sku' && styles.filterChipActive]}
+            onPress={() => setSearchType('sku')}
+          >
+            <Text style={[styles.filterChipText, searchType === 'sku' && styles.filterChipTextActive]}>
+              SKU
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, searchType === 'correlative' && styles.filterChipActive]}
+            onPress={() => setSearchType('correlative')}
+          >
+            <Text style={[styles.filterChipText, searchType === 'correlative' && styles.filterChipTextActive]}>
+              #Correlativo
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+
+      {/* Duplicate SKUs Warning */}
+      {duplicateSKUs.length > 0 && (
+        <View style={styles.warningBanner}>
+          <Text style={styles.warningIcon}>⚠️</Text>
+          <View style={styles.warningContent}>
+            <Text style={styles.warningTitle}>SKUs Duplicados Detectados</Text>
+            <Text style={styles.warningText}>
+              Hay {duplicateSKUs.length} SKU(s) con productos duplicados. Usa el número correlativo para identificarlos de forma única.
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Status Filter */}
       <View style={styles.filterContainer}>
@@ -407,7 +535,17 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                     })()}
                     <View style={styles.productInfo}>
                       <Text style={styles.productTitle}>{product.title}</Text>
-                      <Text style={styles.productSku}>SKU: {product.sku}</Text>
+                      <View style={styles.productMetaRow}>
+                        {product.correlativeNumber && (
+                          <Text style={styles.productCorrelative}>#{product.correlativeNumber}</Text>
+                        )}
+                        <Text style={styles.productSku}>SKU: {product.sku}</Text>
+                        {hasDuplicateSKU(product.sku) && (
+                          <View style={styles.duplicateBadge}>
+                            <Text style={styles.duplicateBadgeText}>⚠️ Duplicado</Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
                     <View
                       style={[
@@ -463,6 +601,20 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                     <Text style={[styles.actionButtonText, styles.viewButtonText]}>👁️ Ver</Text>
                   </TouchableOpacity>
 
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.imagesButton]}
+                    onPress={() => handleManageImages(product)}
+                  >
+                    <Text style={[styles.actionButtonText, styles.imagesButtonText]}>📸 Fotos</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.pricesButton]}
+                    onPress={() => handleManagePrices(product)}
+                  >
+                    <Text style={[styles.actionButtonText, styles.pricesButtonText]}>💰 Precios</Text>
+                  </TouchableOpacity>
+
                   <ProtectedElement
                     requiredPermissions={['products.update']}
                     requireAll={false}
@@ -497,6 +649,56 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         )}
       </ScrollView>
 
+      {/* Pagination Controls */}
+      {!loading && pagination.total > 0 && !searchQuery && (
+        <View style={styles.paginationContainer}>
+          <TouchableOpacity
+            style={[
+              styles.paginationButton,
+              pagination.page === 1 && styles.paginationButtonDisabled,
+            ]}
+            onPress={handlePreviousPage}
+            disabled={pagination.page === 1}
+          >
+            <Text
+              style={[
+                styles.paginationButtonText,
+                pagination.page === 1 && styles.paginationButtonTextDisabled,
+              ]}
+            >
+              ← Anterior
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.paginationInfo}>
+            <Text style={styles.paginationText}>
+              Pág. {pagination.page}/{pagination.totalPages}
+            </Text>
+            <Text style={styles.paginationSubtext}>
+              {filteredProducts.length} de {pagination.total}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.paginationButton,
+              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
+            ]}
+            onPress={handleNextPage}
+            disabled={pagination.page >= pagination.totalPages}
+          >
+            <Text
+              style={[
+                styles.paginationButtonText,
+                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
+              ]}
+            >
+              Siguiente →
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Product Form Modal */}
       <ProductFormModal
         visible={isProductModalVisible}
@@ -504,6 +706,24 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         onSuccess={handleProductSuccess}
         product={selectedProduct}
         mode={modalMode}
+      />
+
+      {/* Product Images Modal */}
+      {selectedProductForImages && (
+        <ProductImagesModal
+          visible={isImagesModalVisible}
+          onClose={() => setIsImagesModalVisible(false)}
+          onSuccess={handleProductSuccess}
+          product={selectedProductForImages}
+        />
+      )}
+
+      {/* Product Price Profiles Modal */}
+      <ProductPriceProfilesModal
+        visible={isPriceProfilesModalVisible}
+        onClose={() => setIsPriceProfilesModalVisible(false)}
+        onSuccess={handleProductSuccess}
+        product={selectedProductForPrices}
       />
 
       {/* Product View Modal */}
@@ -572,9 +792,24 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                   <Text style={styles.viewLabel}>Título:</Text>
                   <Text style={styles.viewValue}>{viewProduct.title}</Text>
                 </View>
+                {viewProduct.correlativeNumber && (
+                  <View style={styles.viewRow}>
+                    <Text style={styles.viewLabel}>#Correlativo:</Text>
+                    <Text style={[styles.viewValue, styles.correlativeHighlight]}>
+                      {viewProduct.correlativeNumber}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.viewRow}>
                   <Text style={styles.viewLabel}>SKU:</Text>
-                  <Text style={styles.viewValue}>{viewProduct.sku}</Text>
+                  <View style={styles.viewValueRow}>
+                    <Text style={styles.viewValue}>{viewProduct.sku}</Text>
+                    {hasDuplicateSKU(viewProduct.sku) && (
+                      <View style={styles.duplicateBadgeSmall}>
+                        <Text style={styles.duplicateBadgeTextSmall}>⚠️ SKU Duplicado</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
                 {viewProduct.barcode && (
                   <View style={styles.viewRow}>
@@ -707,7 +942,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                       <View style={styles.viewRow}>
                         <Text style={styles.viewLabel}>Cantidad:</Text>
                         <Text style={[styles.viewValue, styles.stockQuantityHighlight]}>
-                          {stock.quantityBase} unidades
+                          {stock.availableQuantityBase ?? stock.quantityBase} unidades disponibles
                         </Text>
                       </View>
                     </View>
@@ -974,9 +1209,34 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginBottom: 4,
   },
+  productMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  productCorrelative: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6366F1',
+    fontFamily: 'monospace',
+  },
   productSku: {
     fontSize: 13,
     color: '#64748B',
+  },
+  duplicateBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  duplicateBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#D97706',
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -987,6 +1247,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF3C7',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  warningIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  warningText: {
+    fontSize: 12,
+    color: '#78350F',
+    lineHeight: 16,
   },
   productDetails: {
     borderTopWidth: 1,
@@ -1063,6 +1351,18 @@ const styles = StyleSheet.create({
   viewButtonText: {
     color: '#667eea',
   },
+  imagesButton: {
+    backgroundColor: '#FEF3C7',
+  },
+  imagesButtonText: {
+    color: '#D97706',
+  },
+  pricesButton: {
+    backgroundColor: '#DCFCE7',
+  },
+  pricesButtonText: {
+    color: '#16A34A',
+  },
   modalContainer: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -1131,6 +1431,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 2,
     textAlign: 'right',
+  },
+  viewValueRow: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  correlativeHighlight: {
+    color: '#6366F1',
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+  },
+  duplicateBadgeSmall: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  duplicateBadgeTextSmall: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#D97706',
   },
   viewStatusBadge: {
     paddingHorizontal: 10,
@@ -1228,7 +1554,51 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+  },
+  paginationContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 60,
+  },
+  paginationInfo: {
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  paginationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  paginationButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#6366F1',
+    minWidth: 110,
+    alignItems: 'center',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  paginationButtonTextDisabled: {
+    color: '#94A3B8',
   },
 });
 

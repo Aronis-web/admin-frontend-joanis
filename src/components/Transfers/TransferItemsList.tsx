@@ -25,7 +25,12 @@ export const TransferItemsList: React.FC<TransferItemsListProps> = ({
             <Text style={styles.itemTitle} numberOfLines={2}>
               {item.product?.title || 'Producto sin nombre'}
             </Text>
-            <Text style={styles.itemSku}>SKU: {item.product?.sku || 'N/A'}</Text>
+            <View style={styles.itemMetaRow}>
+              {item.product?.correlativeNumber && (
+                <Text style={styles.itemCorrelative}>#{item.product.correlativeNumber}</Text>
+              )}
+              <Text style={styles.itemSku}>SKU: {item.product?.sku || 'N/A'}</Text>
+            </View>
           </View>
         </View>
 
@@ -119,6 +124,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1E293B',
     marginBottom: 4,
+  },
+  itemMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  itemCorrelative: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6366F1',
+    fontFamily: 'monospace',
   },
   itemSku: {
     fontSize: 12,

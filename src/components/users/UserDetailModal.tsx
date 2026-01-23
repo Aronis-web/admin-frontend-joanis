@@ -10,6 +10,11 @@ import {
 import { User } from '@/services/api/users';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { UserScopesModal } from './UserScopesModal';
+import {
+  DOCUMENT_TYPE_OPTIONS,
+  GENDER_OPTIONS,
+  MARITAL_STATUS_OPTIONS,
+} from '@/constants/userProfile';
 
 interface UserDetailModalProps {
   visible: boolean;
@@ -42,6 +47,34 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const formatBirthDate = (dateString?: string) => {
+    if (!dateString) return undefined;
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const getDocumentTypeLabel = (type?: string) => {
+    if (!type) return undefined;
+    const option = DOCUMENT_TYPE_OPTIONS.find(opt => opt.value === type);
+    return option ? option.label : type;
+  };
+
+  const getGenderLabel = (gender?: string) => {
+    if (!gender) return undefined;
+    const option = GENDER_OPTIONS.find(opt => opt.value === gender);
+    return option ? option.label : gender;
+  };
+
+  const getMaritalStatusLabel = (status?: string) => {
+    if (!status) return undefined;
+    const option = MARITAL_STATUS_OPTIONS.find(opt => opt.value === status);
+    return option ? option.label : status;
   };
 
   const getStatusColor = (status: string) => {
@@ -128,6 +161,49 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </>
             ))}
 
+            {/* Worker Profile - Identification */}
+            {(user.document_type || user.document_number) && renderSection('Identificación', (
+              <>
+                {renderInfoRow('Tipo de Documento', getDocumentTypeLabel(user.document_type))}
+                {renderInfoRow('Número de Documento', user.document_number)}
+              </>
+            ))}
+
+            {/* Worker Profile - Personal Data */}
+            {(user.birth_date || user.gender || user.nationality || user.marital_status) && renderSection('Datos Personales', (
+              <>
+                {renderInfoRow('Fecha de Nacimiento', formatBirthDate(user.birth_date))}
+                {renderInfoRow('Género', getGenderLabel(user.gender))}
+                {renderInfoRow('Nacionalidad', user.nationality)}
+                {renderInfoRow('Estado Civil', getMaritalStatusLabel(user.marital_status))}
+              </>
+            ))}
+
+            {/* Worker Profile - Contact Information */}
+            {(user.address || user.ubigeo) && renderSection('Información de Contacto', (
+              <>
+                {renderInfoRow('Dirección', user.address)}
+                {renderInfoRow('Ubigeo', user.ubigeo)}
+              </>
+            ))}
+
+            {/* Worker Profile - Emergency Contact */}
+            {(user.emergency_contact_name || user.emergency_contact_relationship || user.emergency_contact_phone) && renderSection('Contacto de Emergencia', (
+              <>
+                {renderInfoRow('Nombre', user.emergency_contact_name)}
+                {renderInfoRow('Relación', user.emergency_contact_relationship)}
+                {renderInfoRow('Teléfono', user.emergency_contact_phone)}
+              </>
+            ))}
+
+            {/* Worker Profile - Additional Information */}
+            {(user.photo_url || user.epp_size) && renderSection('Información Adicional', (
+              <>
+                {renderInfoRow('URL de Foto', user.photo_url)}
+                {renderInfoRow('Talla de EPP', user.epp_size)}
+              </>
+            ))}
+
             {/* Roles */}
             {user.roles && user.roles.length > 0 && renderSection('Roles', (
               <View style={styles.tagsContainer}>
@@ -174,10 +250,10 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
             <ProtectedElement requiredPermissions={['users.update']}>
               <TouchableOpacity
-                style={[styles.button, styles.secondaryButton]}
+                style={[styles.button, styles.scopesButton]}
                 onPress={() => setShowScopesModal(true)}
               >
-                <Text style={styles.secondaryButtonText}>🎯 Gestionar Scopes</Text>
+                <Text style={styles.scopesButtonText}>🎯 Scopes</Text>
               </TouchableOpacity>
             </ProtectedElement>
 
@@ -373,6 +449,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#667eea',
+  },
+  scopesButton: {
+    backgroundColor: '#8B5CF6',
+    borderWidth: 1,
+    borderColor: '#7C3AED',
+  },
+  scopesButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   editButton: {
     backgroundColor: '#3B82F6',

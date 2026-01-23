@@ -333,7 +333,12 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
 
   const calculatePaidAmount = (expense: Expense) => {
     if (!expensePayments || expensePayments.length === 0) return 0;
-    return expensePayments.reduce((sum, payment) => sum + payment.amountCents, 0);
+    return expensePayments.reduce((sum, payment) => {
+      const amountCents = typeof payment.amountCents === 'string'
+        ? parseInt(payment.amountCents, 10)
+        : payment.amountCents;
+      return sum + amountCents;
+    }, 0);
   };
 
   const renderStatusActions = () => {
@@ -897,7 +902,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                       <View style={styles.paymentAmountRow}>
                         <Text style={styles.paymentCardAmountLabel}>Monto:</Text>
                         <Text style={styles.paymentAmount}>
-                          S/ {(payment.amountCents / 100).toFixed(2)}
+                          S/ {((typeof payment.amountCents === 'string' ? parseInt(payment.amountCents, 10) : payment.amountCents) / 100).toFixed(2)}
                         </Text>
                       </View>
                       <View style={styles.paymentMethodRow}>

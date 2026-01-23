@@ -72,6 +72,28 @@ export type {
   GetPermissionsParams as GetAppPermissionsParams
 } from './apps';
 
+// Scopes exports (nuevo módulo de scopes)
+export { scopesApi as scopesApiV2 } from './scopes';
+export type {
+  Scope as ScopeV2,
+  ResolvedScope,
+  CreateScopeDto as CreateScopeDtoV2,
+  UpdateScopeDto,
+  GetScopesParams as GetScopesParamsV2,
+  ScopesPaginatedResponse,
+  TargetScope,
+  CheckAccessResponse,
+  AppScopeStats,
+  CacheStats,
+  ScopesMetrics,
+  ScopeLevel,
+  AccessType,
+  UserScope,
+  AssignUserScopeDto,
+  UpdateUserScopeDto,
+  UserScopesPaginatedResponse
+} from './scopes';
+
 // Companies exports (Multi-Tenancy)
 export { companiesApi } from './companies';
 export type {
@@ -310,8 +332,12 @@ export type {
   SetCustomDistributionRequest,
   DistributionPreviewResponse,
   DistributionPreviewItem,
+  DistributionPreviewRequest,
+  ParticipantPreference,
   DistributionResultResponse,
   DistributionResultDetail,
+  GenerateDistributionRequest,
+  DistributionGenerateItem,
   QueryCampaignsParams,
   CampaignStatus,
   ParticipantType,
@@ -327,3 +353,70 @@ export type {
   ProductStatusColors,
   DistributionTypeDescriptions
 } from '@/types/campaigns';
+
+// Repartos exports
+export { repartosService } from './repartos';
+export type {
+  Reparto,
+  RepartoParticipante,
+  RepartoProducto,
+  ValidacionSalida,
+  RepartosResponse,
+  CreateRepartoRequest,
+  UpdateRepartoRequest,
+  ValidarSalidaRequest,
+  QueryRepartosParams,
+  RepartoStatus,
+  RepartoProductoStatus,
+  RepartoProductoValidationStatus,
+  RepartoStatusLabels,
+  RepartoProductoStatusLabels,
+  RepartoProductoValidationStatusLabels,
+  RepartoStatusColors,
+  RepartoProductoStatusColors,
+  RepartoProductoValidationStatusColors
+} from '@/types/repartos';
+
+// Balances exports
+export { balancesApi } from './balances';
+export type {
+  Balance,
+  BalanceOperation,
+  BalanceSummary,
+  EmitterSummary,
+  CreateBalanceRequest,
+  UpdateBalanceRequest,
+  QueryBalanceRequest,
+  CreateBalanceOperationRequest,
+  UpdateBalanceOperationRequest,
+  QueryBalanceOperationRequest,
+  PaginatedResponse,
+  BalanceType,
+  BalanceStatus,
+  OperationType
+} from '@/types/balances';
+
+
+// Transmisiones exports
+export { transmisionesApi } from './transmisiones';
+export type {
+  Transmision,
+  TransmisionProduct,
+  TransmisionWithProducts,
+  CreateTransmisionRequest,
+  UpdateTransmisionRequest,
+  AddProductToTransmisionRequest,
+  QuickEditPricesRequest,
+  ValidationCheckResult,
+  UpdateProductDataResult,
+  QueryTransmisionesRequest,
+  PaginatedTransmisionesResponse,
+  PaginatedTransmisionProductsResponse,
+  TransmisionStatus,
+  ProductStatus,
+  TransmisionStatusLabels,
+  TransmisionStatusColors,
+  ProductStatusLabels,
+  ProductStatusColors
+} from '@/types/transmisiones';
+

@@ -246,13 +246,13 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Gestión de Usuarios</Text>
-          <View style={styles.placeholder} />
+          <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Cargando usuarios...</Text>
@@ -262,7 +262,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>

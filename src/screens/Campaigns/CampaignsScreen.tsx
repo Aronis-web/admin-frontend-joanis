@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,10 +18,12 @@ import {
   CampaignStatus,
   CampaignStatusLabels,
   CampaignStatusColors,
+  ProductStatus,
 } from '@/types/campaigns';
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { AddButton } from '@/components/Navigation/AddButton';
+import logger from '@/utils/logger';
 
 interface CampaignsScreenProps {
   navigation: any;
@@ -32,30 +34,56 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL'>('ALL');
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+
   const { currentCompany, currentSite } = useAuthStore();
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  const loadCampaigns = useCallback(async () => {
+  const loadCampaigns = useCallback(async (page: number = 1) => {
     try {
-      const params = selectedStatus !== 'ALL' ? { status: selectedStatus } : {};
+      setLoading(true);
+
+      const params: any = {
+        page,
+        limit: pagination.limit,
+      };
+
+      if (selectedStatus !== 'ALL') {
+        params.status = selectedStatus;
+      }
+
       const response = await campaignsService.getCampaigns(params);
       setCampaigns(response.data);
+
+      // Update pagination info - API returns flat structure
+      const totalPages = Math.ceil(response.total / response.limit);
+      setPagination({
+        page: response.page,
+        limit: response.limit,
+        total: response.total,
+        totalPages: totalPages,
+      });
     } catch (error: any) {
-      console.error('Error loading campaigns:', error);
+      logger.error('Error loading campaigns:', error);
       Alert.alert('Error', 'No se pudieron cargar las campañas');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedStatus]);
+  }, [selectedStatus, pagination.limit]);
 
   // Auto-reload campaigns when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('📱 CampaignsScreen focused - reloading campaigns...');
+      logger.debug('📱 CampaignsScreen focused - reloading campaigns...');
       setLoading(true);
       loadCampaigns();
     }, [loadCampaigns])
@@ -63,7 +91,19 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadCampaigns();
+    loadCampaigns(1);
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.page > 1) {
+      loadCampaigns(pagination.page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) {
+      loadCampaigns(pagination.page + 1);
+    }
   };
 
   const handleCreateCampaign = () => {
@@ -139,11 +179,11 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
     );
   };
 
-  const renderCampaignCard = (campaign: Campaign) => {
+  const renderCampaignCard = useCallback((campaign: Campaign) => {
     const totalParticipants = campaign.participants?.length || 0;
     const totalProducts = campaign.products?.length || 0;
     const activeProducts =
-      campaign.products?.filter((p) => p.productStatus === 'ACTIVE').length || 0;
+      campaign.products?.filter((p) => p.productStatus === ProductStatus.ACTIVE).length || 0;
     const generatedProducts =
       campaign.products?.filter((p) => p.distributionGenerated).length || 0;
 
@@ -259,11 +299,11 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [isTablet, handleCampaignPress, formatDate]);
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
           <Text style={styles.loadingText}>Cargando campañas...</Text>
@@ -274,7 +314,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
 
   return (
     <ScreenLayout navigation={navigation}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <View>
@@ -314,6 +354,56 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
             campaigns.map((campaign) => renderCampaignCard(campaign))
           )}
         </ScrollView>
+
+        {/* Pagination Controls */}
+        {pagination.total > 0 && (
+          <View style={styles.paginationContainer}>
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                pagination.page === 1 && styles.paginationButtonDisabled,
+              ]}
+              onPress={handlePreviousPage}
+              disabled={pagination.page === 1}
+            >
+              <Text
+                style={[
+                  styles.paginationButtonText,
+                  pagination.page === 1 && styles.paginationButtonTextDisabled,
+                ]}
+              >
+                ← Anterior
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.paginationInfo}>
+              <Text style={styles.paginationText}>
+                Pág. {pagination.page}/{pagination.totalPages}
+              </Text>
+              <Text style={styles.paginationSubtext}>
+                {campaigns.length} de {pagination.total}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
+              ]}
+              onPress={handleNextPage}
+              disabled={pagination.page >= pagination.totalPages}
+            >
+              <Text
+                style={[
+                  styles.paginationButtonText,
+                  pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
+                ]}
+              >
+                Siguiente →
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </SafeAreaView>
       <AddButton onPress={handleCreateCampaign} />
     </ScreenLayout>
@@ -579,5 +669,50 @@ const styles = StyleSheet.create({
   },
   emptySubtextTablet: {
     fontSize: 16,
+  },
+  paginationContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 60,
+  },
+  paginationInfo: {
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  paginationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  paginationButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#6366F1',
+    minWidth: 110,
+    alignItems: 'center',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  paginationButtonTextDisabled: {
+    color: '#94A3B8',
   },
 });

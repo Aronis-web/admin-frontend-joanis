@@ -45,7 +45,8 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
       (product) =>
         product.title.toLowerCase().includes(query) ||
         product.sku.toLowerCase().includes(query) ||
-        product.barcode?.toLowerCase().includes(query)
+        product.barcode?.toLowerCase().includes(query) ||
+        (product.correlativeNumber && product.correlativeNumber.toString().includes(searchQuery))
     );
 
     setFilteredProducts(filtered.slice(0, 10)); // Limit to 10 results
@@ -74,7 +75,12 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
             <Text style={styles.selectedTitle} numberOfLines={1}>
               {selectedProduct.title}
             </Text>
-            <Text style={styles.selectedSku}>SKU: {selectedProduct.sku}</Text>
+            <View style={styles.selectedMetaRow}>
+              {selectedProduct.correlativeNumber && (
+                <Text style={styles.selectedCorrelative}>#{selectedProduct.correlativeNumber}</Text>
+              )}
+              <Text style={styles.selectedSku}>SKU: {selectedProduct.sku}</Text>
+            </View>
             {warehouseId && (
               <Text style={styles.selectedStock}>
                 Stock disponible: {getProductStock(selectedProduct).toFixed(2)}
@@ -119,7 +125,12 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                       <Text style={styles.productTitle} numberOfLines={1}>
                         {item.title}
                       </Text>
-                      <Text style={styles.productSku}>SKU: {item.sku}</Text>
+                      <View style={styles.productMetaRow}>
+                        {item.correlativeNumber && (
+                          <Text style={styles.productCorrelative}>#{item.correlativeNumber}</Text>
+                        )}
+                        <Text style={styles.productSku}>SKU: {item.sku}</Text>
+                      </View>
                     </View>
                     <View style={styles.stockInfo}>
                       <Text style={[styles.stockText, getProductStock(item) === 0 && styles.stockTextZero]}>
@@ -181,10 +192,33 @@ const styles = StyleSheet.create({
     color: '#0C4A6E',
     marginBottom: 2,
   },
+  selectedMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  selectedCorrelative: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6366F1',
+    fontFamily: 'monospace',
+  },
   selectedSku: {
     fontSize: 12,
     color: '#0369A1',
     marginBottom: 2,
+  },
+  productMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  productCorrelative: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6366F1',
+    fontFamily: 'monospace',
   },
   selectedStock: {
     fontSize: 12,

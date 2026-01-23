@@ -13,6 +13,7 @@ import {
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { RoleSelector } from '@/components/users/RoleSelector';
+import { WorkerProfileFields } from '@/components/users/WorkerProfileFields';
 import { usersApi, CreateUserRequest } from '@/services/api/users';
 
 interface CreateUserModalProps {
@@ -34,6 +35,21 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     last_name: '',
     is_active: true,
     roleIds: [],
+    // Worker profile fields
+    document_type: undefined,
+    document_number: '',
+    birth_date: undefined,
+    gender: undefined,
+    nationality: '',
+    marital_status: undefined,
+    address: '',
+    ubigeo: '',
+    phone: '',
+    emergency_contact_name: '',
+    emergency_contact_relationship: '',
+    emergency_contact_phone: '',
+    photo_url: '',
+    epp_size: undefined,
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof CreateUserRequest, string>>>({});
@@ -95,6 +111,22 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
         userData.roleIds = formData.roleIds;
       }
 
+      // Add worker profile fields if provided
+      if (formData.document_type) userData.document_type = formData.document_type;
+      if (formData.document_number?.trim()) userData.document_number = formData.document_number.trim();
+      if (formData.birth_date) userData.birth_date = formData.birth_date;
+      if (formData.gender) userData.gender = formData.gender;
+      if (formData.nationality?.trim()) userData.nationality = formData.nationality.trim();
+      if (formData.marital_status) userData.marital_status = formData.marital_status;
+      if (formData.address?.trim()) userData.address = formData.address.trim();
+      if (formData.ubigeo?.trim()) userData.ubigeo = formData.ubigeo.trim();
+      if (formData.phone?.trim()) userData.phone = formData.phone.trim();
+      if (formData.emergency_contact_name?.trim()) userData.emergency_contact_name = formData.emergency_contact_name.trim();
+      if (formData.emergency_contact_relationship?.trim()) userData.emergency_contact_relationship = formData.emergency_contact_relationship.trim();
+      if (formData.emergency_contact_phone?.trim()) userData.emergency_contact_phone = formData.emergency_contact_phone.trim();
+      if (formData.photo_url?.trim()) userData.photo_url = formData.photo_url.trim();
+      if (formData.epp_size) userData.epp_size = formData.epp_size;
+
       await usersApi.createUser(userData);
 
       Alert.alert(
@@ -128,6 +160,21 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       last_name: '',
       is_active: true,
       roleIds: [],
+      // Reset worker profile fields
+      document_type: undefined,
+      document_number: '',
+      birth_date: undefined,
+      gender: undefined,
+      nationality: '',
+      marital_status: undefined,
+      address: '',
+      ubigeo: '',
+      phone: '',
+      emergency_contact_name: '',
+      emergency_contact_relationship: '',
+      emergency_contact_phone: '',
+      photo_url: '',
+      epp_size: undefined,
     });
     setErrors({});
     onClose();
@@ -229,6 +276,14 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             <RoleSelector
               selectedRoleIds={formData.roleIds || []}
               onRolesChange={(roleIds) => updateField('roleIds', roleIds)}
+              disabled={loading}
+            />
+
+            {/* Worker Profile Fields */}
+            <WorkerProfileFields
+              formData={formData}
+              onFieldChange={updateField}
+              errors={errors}
               disabled={loading}
             />
 

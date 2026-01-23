@@ -218,7 +218,7 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={styles.backButtonText}>←</Text>
@@ -234,7 +234,7 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -839,3 +839,4 @@ const styles = StyleSheet.create({
 });
 
 export default PresentationsScreen;
+

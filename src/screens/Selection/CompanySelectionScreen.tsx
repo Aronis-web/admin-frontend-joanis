@@ -30,8 +30,18 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
 
   const loadUserCompanies = async () => {
     if (!user?.id) {
-      Alert.alert('Error', 'Usuario no autenticado');
-      logout();
+      Alert.alert('Error', 'Usuario no autenticado', [
+        {
+          text: 'OK',
+          onPress: async () => {
+            await logout();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          }
+        }
+      ]);
       return;
     }
 
@@ -43,7 +53,18 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
         Alert.alert(
           'Sin Empresas',
           'No tienes acceso a ninguna empresa. Contacta al administrador.',
-          [{ text: 'OK', onPress: logout }]
+          [
+            {
+              text: 'OK',
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Login' }],
+                });
+              }
+            }
+          ]
         );
         return;
       }
@@ -59,7 +80,17 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
       const errorMessage = error.response?.data?.message || 'No se pudieron cargar las empresas';
       Alert.alert('Error', errorMessage, [
         { text: 'Reintentar', onPress: loadUserCompanies },
-        { text: 'Cerrar Sesión', onPress: logout, style: 'destructive' },
+        {
+          text: 'Cerrar Sesión',
+          onPress: async () => {
+            await logout();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          },
+          style: 'destructive',
+        },
       ]);
     } finally {
       setLoading(false);
@@ -74,6 +105,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
       const companyData = {
         id: company.id,
         name: company.name,
+        alias: company.alias,
         ruc: company.ruc,
         isActive: company.isActive,
       };
@@ -91,7 +123,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
       console.log('✅ Empresa actualizada en store');
 
       // Navigate to site selection
-      navigation.replace('SiteSelection', { companyId: company.id, companyName: company.name });
+      navigation.replace('SiteSelection', { companyId: company.id, companyName: company.alias || company.name });
     } catch (error) {
       console.error('❌ Error selecting company:', error);
       Alert.alert('Error', 'No se pudo seleccionar la empresa');
@@ -99,7 +131,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert(
       'Cerrar Sesión',
       '¿Estás seguro de que deseas cerrar sesión?',
@@ -108,7 +140,14 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
         {
           text: 'Cerrar Sesión',
           style: 'destructive',
-          onPress: logout,
+          onPress: async () => {
+            await logout();
+            // Navigate to login screen after logout
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          },
         },
       ]
     );
@@ -116,7 +155,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#667eea" />
           <Text style={styles.loadingText}>Cargando empresas...</Text>
@@ -126,7 +165,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -166,7 +205,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
                   <Text style={styles.companyIcon}>🏢</Text>
                 </View>
                 <View style={styles.companyInfo}>
-                  <Text style={styles.companyName}>{company.name}</Text>
+                  <Text style={styles.companyName}>{company.alias || company.name}</Text>
                   {company.ruc && (
                     <Text style={styles.companyRuc}>RUC: {company.ruc}</Text>
                   )}
@@ -402,3 +441,4 @@ const styles = StyleSheet.create({
 });
 
 export default CompanySelectionScreen;
+

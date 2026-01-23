@@ -34,19 +34,55 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
   const { expenseId, action } = route.params;
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'payments'>('details');
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  const paymentsRef = React.useRef<View>(null);
 
   const loadExpense = useCallback(async () => {
     try {
       setLoading(true);
       const data = await expensesService.getExpense(expenseId);
+      console.log('📊 Expense loaded:', {
+        id: data.id,
+        code: data.code,
+        hasPayments: !!(data as any).payments,
+        paymentsArray: (data as any).payments,
+        paymentsCount: data.paymentsCount,
+        totalPaidCents: data.totalPaidCents,
+      });
       setExpense(data);
+
+      // If expense has payments but they're not in the response, fetch them separately
+      if (data.paymentsCount && data.paymentsCount > 0 && !(data as any).payments) {
+        console.log('🔄 Payments exist but not loaded, fetching separately...');
+        loadPayments();
+      } else if ((data as any).payments && Array.isArray((data as any).payments)) {
+        // If payments are included in the response, use them
+        setPayments((data as any).payments);
+      }
     } catch (error: any) {
       console.error('Error loading expense:', error);
       Alert.alert('Error', 'No se pudo cargar el gasto');
       navigation.goBack();
     } finally {
       setLoading(false);
+    }
+  }, [expenseId]);
+
+  const loadPayments = useCallback(async () => {
+    try {
+      setLoadingPayments(true);
+      console.log('📥 Fetching payments for expense:', expenseId);
+      const paymentsData = await expensesService.getPayments(expenseId);
+      console.log('✅ Payments loaded:', paymentsData.length);
+      setPayments(paymentsData);
+    } catch (error: any) {
+      console.error('❌ Error loading payments:', error);
+      Alert.alert('Error', 'No se pudieron cargar los pagos');
+    } finally {
+      setLoadingPayments(false);
     }
   }, [expenseId]);
 
@@ -63,14 +99,33 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
       setTimeout(() => {
         handleAddPayment();
       }, 500);
-    } else if (action === 'view_payments') {
-      // Scroll to payments section
-      setTimeout(() => {
-        // Scroll to payments section would be implemented here
-        console.log('Scroll to payments section');
-      }, 500);
+    } else if (action === 'view_payments' && expense) {
+      // Load payments if not already loaded, then scroll
+      console.log('🔍 View payments action triggered');
+      console.log('📊 Expense has payments:', {
+        hasPaymentsArray: payments.length > 0,
+        paymentsLength: payments.length,
+        paymentsCount: expense.paymentsCount,
+        totalPaidCents: expense.totalPaidCents,
+        status: expense.status,
+      });
+
+      // If payments aren't loaded yet but should exist, load them
+      if (payments.length === 0 && expense.paymentsCount && expense.paymentsCount > 0) {
+        console.log('🔄 Loading payments before scrolling...');
+        loadPayments().then(() => {
+          setTimeout(() => {
+            scrollToPayments();
+          }, 500);
+        });
+      } else {
+        // Payments already loaded or don't exist, just scroll
+        setTimeout(() => {
+          scrollToPayments();
+        }, 800);
+      }
     }
-  }, [action, expense]);
+  }, [action, expense, payments]);
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return '-';
@@ -125,6 +180,34 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
 
   const handleAddPaymentInfo = () => {
     navigation.navigate('AddPaymentInfo', { expenseId });
+  };
+
+  const scrollToPayments = () => {
+    console.log('📜 Attempting to scroll to payments section');
+    if (paymentsRef.current && scrollViewRef.current) {
+      console.log('✅ Refs are available, measuring layout...');
+      paymentsRef.current.measureLayout(
+        scrollViewRef.current as any,
+        (x, y) => {
+          console.log('📍 Payments section position:', { x, y });
+          scrollViewRef.current?.scrollTo({ y: y - 20, animated: true });
+        },
+        () => {
+          console.log('❌ Failed to measure layout');
+          // Fallback: scroll to bottom
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }
+      );
+    } else {
+      console.log('⚠️ Refs not available:', {
+        hasPaymentsRef: !!paymentsRef.current,
+        hasScrollViewRef: !!scrollViewRef.current,
+      });
+      // Fallback: try to scroll to end
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollToEnd({ animated: true });
+      }
+    }
   };
 
   if (loading) {
@@ -184,7 +267,11 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
         <Text style={styles.headerTitle}>{expense.code}</Text>
         <View style={styles.headerRight} />
       </View>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
         {/* Header Card */}
         <View style={styles.card}>
           <View style={styles.headerRow}>
@@ -309,20 +396,95 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
           </View>
         )}
 
-        {/* Payments Section */}
-        {(expense as any).payments && Array.isArray((expense as any).payments) && (expense as any).payments.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Pagos Registrados</Text>
-            {(expense as any).payments.map((payment: any) => (
-              <PaymentCard key={payment.id} payment={payment} />
-            ))}
-          </View>
-        )}
+        {/* Payments Section - Show if there are payments OR if expense is PAID or has payment indicators */}
+        {(() => {
+          const hasPaymentsArray = payments && Array.isArray(payments) && payments.length > 0;
+          const hasPaymentIndicators = expense.paymentsCount && expense.paymentsCount > 0;
+          const isPaid = expense.status === 'PAID';
+          const hasTotalPaid = expense.totalPaidCents && expense.totalPaidCents > 0;
+
+          const shouldShowPayments = hasPaymentsArray || hasPaymentIndicators || isPaid || hasTotalPaid;
+
+          if (!shouldShowPayments) return null;
+
+          // Case 1: Payments loaded successfully
+          if (hasPaymentsArray) {
+            return (
+              <View ref={paymentsRef} style={styles.card}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Pagos Registrados ({payments.length})</Text>
+                  <TouchableOpacity
+                    style={styles.viewAllPaymentsButton}
+                    onPress={() => {
+                      Alert.alert(
+                        'Historial de Pagos',
+                        `Este gasto tiene ${payments.length} pago(s) registrado(s).`,
+                        [{ text: 'OK' }]
+                      );
+                    }}
+                  >
+                    <Ionicons name="eye-outline" size={18} color="#6366F1" />
+                    <Text style={styles.viewAllPaymentsText}>Ver Todo</Text>
+                  </TouchableOpacity>
+                </View>
+                {payments.map((payment: any) => (
+                  <PaymentCard key={payment.id} payment={payment} />
+                ))}
+              </View>
+            );
+          }
+
+          // Case 2: Payments exist but not loaded - show reload option
+          const paymentCount = expense.paymentsCount || '?';
+          const totalPaid = expense.totalPaidCents ? (expense.totalPaidCents / 100).toFixed(2) : '0.00';
+
+          return (
+            <View ref={paymentsRef} style={styles.card}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Pagos Registrados ({paymentCount})</Text>
+                <TouchableOpacity
+                  style={styles.viewAllPaymentsButton}
+                  onPress={() => loadPayments()}
+                  disabled={loadingPayments}
+                >
+                  <Ionicons
+                    name={loadingPayments ? "hourglass-outline" : "refresh-outline"}
+                    size={18}
+                    color="#6366F1"
+                  />
+                  <Text style={styles.viewAllPaymentsText}>
+                    {loadingPayments ? 'Cargando...' : 'Cargar Pagos'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.paymentSummaryBox}>
+                <Ionicons name="information-circle" size={24} color="#6366F1" />
+                <View style={styles.paymentSummaryContent}>
+                  <Text style={styles.paymentSummaryTitle}>
+                    {isPaid ? 'Gasto Pagado' : 'Pagos Registrados'}
+                  </Text>
+                  <Text style={styles.paymentSummaryText}>
+                    Total pagado: S/ {totalPaid}
+                  </Text>
+                  {hasPaymentIndicators && (
+                    <Text style={styles.paymentSummaryText}>
+                      Número de pagos: {expense.paymentsCount}
+                    </Text>
+                  )}
+                  <Text style={styles.paymentSummaryHint}>
+                    Toca "Cargar Pagos" para ver los detalles
+                  </Text>
+                </View>
+              </View>
+            </View>
+          );
+        })()}
 
         {/* Action Buttons */}
         <View style={styles.actionsContainer}>
           {expense.status === 'ACTIVE' && (
             <TouchableOpacity style={styles.primaryButton} onPress={handleAddPayment}>
+              <Ionicons name="cash" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
               <Text style={styles.primaryButtonText}>Registrar Pago</Text>
             </TouchableOpacity>
           )}
@@ -441,6 +603,64 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginBottom: 12,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  viewAllPaymentsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  viewAllPaymentsText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  emptyPaymentsText: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+  paymentSummaryBox: {
+    flexDirection: 'row',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  paymentSummaryContent: {
+    flex: 1,
+    gap: 4,
+  },
+  paymentSummaryTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  paymentSummaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  paymentSummaryHint: {
+    fontSize: 12,
+    color: '#6366F1',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
   amountContainer: {
     backgroundColor: '#F8FAFC',
     borderRadius: 8,
@@ -544,6 +764,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   primaryButtonText: {
     fontSize: 16,

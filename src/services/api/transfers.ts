@@ -127,7 +127,7 @@ export const transfersApi = {
    * Receive transfer (initiate reception)
    * POST /api/transfers/:id/receive
    */
-  receiveTransfer: async (id: string, receivedBy?: string): Promise<Transfer> => {
+  receiveTransfer: async (id: string, receivedBy?: string, notes?: string): Promise<Transfer> => {
     const payload = receivedBy ? {
       receivedBy,
       received_by: receivedBy,
@@ -135,7 +135,8 @@ export const transfersApi = {
       changed_by: receivedBy,
       userId: receivedBy,
       user_id: receivedBy,
-    } : {};
+      notes,
+    } : { notes };
 
     console.log('🔧 Receive transfer payload:', payload);
     return apiClient.post<Transfer>(`/transfers/${id}/receive`, payload);

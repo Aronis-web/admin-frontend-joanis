@@ -10,9 +10,7 @@ import {
   Alert,
   Switch,
   ActivityIndicator,
-  Image,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { productsApi, CreateProductDto, UpdateProductDto, Product } from '@/services/api/products';
 import { presentationsApi, Presentation } from '@/services/api/presentations';
 import { inventoryApi } from '@/services/api/inventory';
@@ -20,10 +18,8 @@ import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { priceProfilesApi } from '@/services/api/price-profiles';
 import { PriceProfile } from '@/types/price-profiles';
-import { filesApi } from '@/services/api/files';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
-import { fileToBase64, validateImageFile, validateFileSize, formatFileSize, getFileSizeInMB } from '@/utils/fileHelpers';
 
 interface ProductFormModalProps {
   visible: boolean;
@@ -80,9 +76,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     areaId: '',
     initialStock: '',
   });
-
-  // Product images state
-  const [productImages, setProductImages] = useState<Array<{ uri: string; base64?: string; filename: string }>>([]);
 
   // Presentaciones del producto
   // IMPORTANTE: Las presentaciones son GLOBALES (catálogo compartido: UN, PK, CJ, BX)
@@ -277,26 +270,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         );
       }
 
-      // Load existing images
-      const existingImages: Array<{ uri: string; base64?: string; filename: string }> = [];
-      if (product.imageUrl) {
-        existingImages.push({
-          uri: product.imageUrl,
-          filename: product.imageUrl.split('/').pop() || 'image.jpg',
-        });
-      }
-      if (product.imageUrls && product.imageUrls.length > 0) {
-        product.imageUrls.forEach((url) => {
-          // Avoid duplicates if imageUrl is also in imageUrls
-          if (url !== product.imageUrl) {
-            existingImages.push({
-              uri: url,
-              filename: url.split('/').pop() || 'image.jpg',
-            });
-          }
-        });
-      }
-      setProductImages(existingImages);
     } else {
       resetForm();
     }
@@ -327,111 +300,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         orderStep: 1,
       },
     ]);
-    setProductImages([]);
-  };
-
-  // Request camera roll permissions
-  const requestPermissions = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso Requerido', 'Se necesita permiso para acceder a las fotos.');
-      return false;
-    }
-    return true;
-  };
-
-  // Pick images from gallery
-  const handlePickImages = async () => {
-    const hasPermission = await requestPermissions();
-    if (!hasPermission) return;
-
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: true,
-        quality: 0.8,
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets) {
-        const newImages = result.assets.map((asset) => ({
-          uri: asset.uri,
-          base64: asset.base64,
-          filename: asset.uri.split('/').pop() || `image_${Date.now()}.jpg`,
-        }));
-
-        // Validate images
-        for (const img of newImages) {
-          if (!validateImageFile(img.filename)) {
-            Alert.alert('Error', `El archivo ${img.filename} no es una imagen válida`);
-            return;
-          }
-          if (img.base64 && !validateFileSize(img.base64, 5)) {
-            Alert.alert('Error', `La imagen ${img.filename} excede el tamaño máximo de 5MB`);
-            return;
-          }
-        }
-
-        setProductImages([...productImages, ...newImages]);
-      }
-    } catch (error) {
-      console.error('Error picking images:', error);
-      Alert.alert('Error', 'No se pudieron seleccionar las imágenes');
-    }
-  };
-
-  // Take photo with camera
-  const handleTakePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso Requerido', 'Se necesita permiso para usar la cámara.');
-      return;
-    }
-
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        quality: 0.8,
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        const newImage = {
-          uri: asset.uri,
-          base64: asset.base64,
-          filename: `photo_${Date.now()}.jpg`,
-        };
-
-        if (newImage.base64 && !validateFileSize(newImage.base64, 5)) {
-          Alert.alert('Error', 'La foto excede el tamaño máximo de 5MB');
-          return;
-        }
-
-        setProductImages([...productImages, newImage]);
-      }
-    } catch (error) {
-      console.error('Error taking photo:', error);
-      Alert.alert('Error', 'No se pudo tomar la foto');
-    }
-  };
-
-  // Remove image
-  const handleRemoveImage = (index: number) => {
-    Alert.alert(
-      'Eliminar Imagen',
-      '¿Estás seguro de que deseas eliminar esta imagen?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => {
-            const newImages = productImages.filter((_, i) => i !== index);
-            setProductImages(newImages);
-          },
-        },
-      ]
-    );
   };
 
   const validateForm = (): boolean => {
@@ -542,34 +410,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
         console.log('✅ Product created successfully:', createdProduct.id);
 
-        // Upload product images if any
-        if (productImages.length > 0) {
-          try {
-            console.log('📸 Uploading product images...');
-            const imagesToUpload = productImages.filter(img => img.base64);
-
-            if (imagesToUpload.length > 0) {
-              // Upload each image individually using the specific endpoint
-              const uploadPromises = imagesToUpload.map(img =>
-                filesApi.uploadProductImage(
-                  img.base64!,
-                  createdProduct.id,
-                  img.filename
-                )
-              );
-              await Promise.all(uploadPromises);
-              console.log(`✅ Uploaded ${imagesToUpload.length} product images to productos/imagenes/${createdProduct.id}`);
-            }
-          } catch (imageError: any) {
-            console.error('❌ Error uploading images:', imageError);
-            // Don't fail the whole operation if images fail
-            Alert.alert(
-              'Advertencia',
-              'El producto se creó correctamente, pero hubo un error al subir las imágenes. Puedes agregarlas después editando el producto.'
-            );
-          }
-        }
-
         // Si se especificó stock inicial, crearlo automáticamente
         if (formData.warehouseId && formData.initialStock && parseFloat(formData.initialStock) > 0) {
           try {
@@ -622,30 +462,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         };
 
         await productsApi.updateProduct(product!.id, updateData);
-
-        // Upload new product images if any
-        const newImages = productImages.filter(img => img.base64);
-        if (newImages.length > 0) {
-          try {
-            console.log('📸 Uploading new product images...');
-            // Upload each image individually using the specific endpoint
-            const uploadPromises = newImages.map(img =>
-              filesApi.uploadProductImage(
-                img.base64!,
-                product!.id,
-                img.filename
-              )
-            );
-            await Promise.all(uploadPromises);
-            console.log(`✅ Uploaded ${newImages.length} new product images to productos/imagenes/${product!.id}`);
-          } catch (imageError: any) {
-            console.error('❌ Error uploading images:', imageError);
-            Alert.alert(
-              'Advertencia',
-              'El producto se actualizó correctamente, pero hubo un error al subir las nuevas imágenes.'
-            );
-          }
-        }
 
         Alert.alert('Éxito', 'Producto actualizado correctamente. Los precios de venta se recalcularon automáticamente.');
         onSuccess();
@@ -885,6 +701,19 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               />
             </View>
 
+            {/* Mostrar correlativo en modo edición */}
+            {mode === 'edit' && product?.correlativeNumber && (
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>#Correlativo (Auto-generado)</Text>
+                <View style={styles.correlativeDisplay}>
+                  <Text style={styles.correlativeText}>#{product.correlativeNumber}</Text>
+                  <Text style={styles.correlativeHint}>
+                    Número único e inmutable del producto
+                  </Text>
+                </View>
+              </View>
+            )}
+
             <View style={styles.formRow}>
               <View style={[styles.formGroup, styles.formGroupHalf]}>
                 <Text style={styles.label}>
@@ -898,6 +727,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   placeholderTextColor="#94A3B8"
                   editable={mode === 'create'}
                 />
+                {mode === 'create' && (
+                  <Text style={styles.hint}>
+                    ℹ️ Los SKUs duplicados están permitidos
+                  </Text>
+                )}
               </View>
 
               <View style={[styles.formGroup, styles.formGroupHalf]}>
@@ -1018,55 +852,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </View>
           </View>
 
-          {/* Product Images Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>📸 Imágenes del Producto</Text>
-              <View style={styles.imageButtonsContainer}>
-                <TouchableOpacity onPress={handlePickImages} style={styles.imageButton}>
-                  <Text style={styles.imageButtonText}>📁 Galería</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleTakePhoto} style={styles.imageButton}>
-                  <Text style={styles.imageButtonText}>📷 Cámara</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
+          {/* Info about images */}
+          <View style={styles.infoSection}>
+            <Text style={styles.infoTitle}>📸 Gestión de Imágenes</Text>
             <Text style={styles.infoText}>
-              🖼️ {mode === 'edit'
-                ? 'Puedes agregar o eliminar imágenes del producto. La primera imagen será la principal.'
-                : 'Puedes agregar múltiples imágenes del producto. La primera imagen será la principal.'}
+              Las imágenes del producto se gestionan por separado. Después de crear o editar el producto,
+              puedes usar el botón "📸 Fotos" en la lista de productos para agregar, ver o eliminar imágenes.
             </Text>
-
-            {productImages.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScrollView}>
-                <View style={styles.imagesContainer}>
-                  {productImages.map((image, index) => (
-                    <View key={index} style={styles.imagePreviewContainer}>
-                      <Image source={{ uri: image.uri }} style={styles.imagePreview} resizeMode="cover" />
-                      <TouchableOpacity
-                        style={styles.removeImageButton}
-                        onPress={() => handleRemoveImage(index)}
-                      >
-                        <Text style={styles.removeImageButtonText}>✕</Text>
-                      </TouchableOpacity>
-                      {index === 0 && (
-                        <View style={styles.mainImageBadge}>
-                          <Text style={styles.mainImageBadgeText}>Principal</Text>
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            )}
-
-            {productImages.length === 0 && (
-              <View style={styles.noImagesContainer}>
-                <Text style={styles.noImagesText}>📦 No hay imágenes agregadas</Text>
-                <Text style={styles.noImagesSubtext}>Toca los botones de arriba para agregar fotos</Text>
-              </View>
-            )}
           </View>
 
           {/* Stock Inicial (solo en modo crear) */}
@@ -1512,6 +1304,25 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginBottom: 16,
   },
+  infoSection: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  infoTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#92400E',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#78350F',
+    lineHeight: 20,
+  },
   formGroup: {
     marginBottom: 16,
   },
@@ -1564,10 +1375,30 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 4,
   },
-  infoText: {
+  hint: {
     fontSize: 11,
-    color: '#667eea',
-    marginTop: 6,
+    color: '#6366F1',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  correlativeDisplay: {
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  correlativeText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6366F1',
+    fontFamily: 'monospace',
+    marginBottom: 4,
+  },
+  correlativeHint: {
+    fontSize: 11,
+    color: '#6366F1',
     fontStyle: 'italic',
   },
   switchContainer: {
@@ -1697,91 +1528,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#10B981',
-  },
-  imageButtonsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  imageButton: {
-    backgroundColor: '#667eea',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  imageButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  imagesScrollView: {
-    marginTop: 12,
-  },
-  imagesContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 8,
-  },
-  imagePreviewContainer: {
-    position: 'relative',
-    width: 120,
-    height: 120,
-  },
-  imagePreview: {
-    width: 120,
-    height: 120,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-  },
-  removeImageButton: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: '#EF4444',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  removeImageButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  mainImageBadge: {
-    position: 'absolute',
-    bottom: 4,
-    left: 4,
-    backgroundColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  mainImageBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  noImagesContainer: {
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderStyle: 'dashed',
-    marginTop: 12,
-  },
-  noImagesText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  noImagesSubtext: {
-    fontSize: 12,
-    color: '#94A3B8',
   },
 });
 

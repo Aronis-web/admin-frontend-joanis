@@ -69,9 +69,12 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
 
   const getTotalStock = () => {
     return stockItems.reduce((sum, item) => {
-      const quantity = typeof item.quantityBase === 'string'
-        ? parseFloat(item.quantityBase)
-        : (item.quantityBase || 0);
+      // Use availableQuantityBase (stock disponible) instead of quantityBase (stock total)
+      const quantity = typeof item.availableQuantityBase === 'number'
+        ? item.availableQuantityBase
+        : (typeof item.quantityBase === 'string'
+          ? parseFloat(item.quantityBase)
+          : (item.quantityBase || 0));
       return sum + quantity;
     }, 0);
   };
@@ -151,7 +154,7 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
               <>
                 {/* Total Stock Summary */}
                 <View style={[styles.summaryCard, { marginHorizontal: 20, marginBottom: 16 }]}>
-                  <Text style={styles.summaryLabel}>Stock Total</Text>
+                  <Text style={styles.summaryLabel}>Stock Disponible</Text>
                   <Text style={styles.summaryValue}>
                     {getTotalStock().toFixed(2)} unidades
                   </Text>
@@ -165,9 +168,12 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                   const warehouseName = items[0].warehouse?.name || 'Almacén desconocido';
                   const warehouseCode = items[0].warehouse?.code || 'N/A';
                   const warehouseTotal = items.reduce((sum, item) => {
-                    const quantity = typeof item.quantityBase === 'string'
-                      ? parseFloat(item.quantityBase)
-                      : (item.quantityBase || 0);
+                    // Use availableQuantityBase (stock disponible)
+                    const quantity = typeof item.availableQuantityBase === 'number'
+                      ? item.availableQuantityBase
+                      : (typeof item.quantityBase === 'string'
+                        ? parseFloat(item.quantityBase)
+                        : (item.quantityBase || 0));
                     return sum + quantity;
                   }, 0);
 
@@ -198,9 +204,12 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
 
                       {/* Areas within this warehouse */}
                       {items.map((item, index) => {
-                        const quantity = typeof item.quantityBase === 'string'
-                          ? parseFloat(item.quantityBase)
-                          : (item.quantityBase || 0);
+                        // Use availableQuantityBase (stock disponible)
+                        const quantity = typeof item.availableQuantityBase === 'number'
+                          ? item.availableQuantityBase
+                          : (typeof item.quantityBase === 'string'
+                            ? parseFloat(item.quantityBase)
+                            : (item.quantityBase || 0));
 
                         console.log('🎨 Rendering area:', item.area?.code || 'unknown', 'quantity:', quantity);
 

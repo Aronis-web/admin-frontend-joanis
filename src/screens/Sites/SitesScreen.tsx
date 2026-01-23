@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -218,7 +218,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
     >
       <View style={styles.siteInfo}>
         <View style={styles.siteIcon}>
-          <Text style={styles.iconText}>ðŸ¢</Text>
+          <Text style={styles.iconText}>🏢</Text>
         </View>
         <View style={styles.siteDetails}>
           <View style={styles.siteHeader}>
@@ -229,11 +229,11 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
           </View>
           {site.fullAddress && (
             <Text style={styles.siteAddress} numberOfLines={1}>
-              ðŸ“ {site.fullAddress}
+              📍 {site.fullAddress}
             </Text>
           )}
           {site.phone && (
-            <Text style={styles.sitePhone}>ðŸ“ž {site.phone}</Text>
+            <Text style={styles.sitePhone}>📞 {site.phone}</Text>
           )}
         </View>
       </View>
@@ -249,16 +249,16 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
   // Si no hay companyId, mostrar mensaje de error
   if (!companyId) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>â†</Text>
+            <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>GestiÃ³n de Sedes</Text>
+          <Text style={styles.headerTitle}>Gestión de Sedes</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.emptyStateContainer}>
-          <Text style={styles.emptyStateIcon}>ðŸ­</Text>
+          <Text style={styles.emptyStateIcon}>🏭</Text>
           <Text style={styles.emptyStateTitle}>Empresa no seleccionada</Text>
           <Text style={styles.emptyStateMessage}>
             Las sedes deben crearse dentro de una empresa.
@@ -279,14 +279,14 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>â†</Text>
+            <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>GestiÃ³n de Sedes</Text>
-            {companyName && <Text style={styles.headerSubtitle}>ðŸ­ {companyName}</Text>}
+            <Text style={styles.headerTitle}>Gestión de Sedes</Text>
+            {companyName && <Text style={styles.headerSubtitle}>🏭 {companyName}</Text>}
           </View>
           <View style={styles.placeholder} />
         </View>
@@ -298,15 +298,15 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>â†</Text>
+          <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>GestiÃ³n de Sedes</Text>
-          {companyName && <Text style={styles.headerSubtitle}>ðŸ­ {companyName}</Text>}
+          <Text style={styles.headerTitle}>Gestión de Sedes</Text>
+          {companyName && <Text style={styles.headerSubtitle}>🏭 {companyName}</Text>}
         </View>
         <ProtectedElement requiredPermissions={['sites.create']} fallback={<View style={styles.placeholder} />}>
           <TouchableOpacity onPress={handleCreateSite} style={styles.addButton}>
@@ -618,3 +618,4 @@ const styles = StyleSheet.create({
 });
 
 export default SitesScreen;
+

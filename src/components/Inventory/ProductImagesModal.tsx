@@ -1,0 +1,1351 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Image,
+  Dimensions,
+  Share,
+  Platform,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Product } from '@/services/api/products';
+import { filesApi } from '@/services/api/files';
+import { productsApi } from '@/services/api/products';
+import { priceProfilesApi } from '@/services/api/price-profiles';
+import { validateImageFile } from '@/utils/fileHelpers';
+
+// Conditional imports for optional features
+let ViewShot: any = null;
+let FileSystem: any = null;
+
+try {
+  ViewShot = require('react-native-view-shot').default;
+} catch (e) {
+  console.log('react-native-view-shot not installed');
+}
+
+try {
+  FileSystem = require('expo-file-system');
+} catch (e) {
+  console.log('expo-file-system not installed');
+}
+
+interface ProductImagesModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  product: Product;
+}
+
+interface ProductImage {
+  filename: string;
+  url: string;
+  path: string;
+}
+
+export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
+  visible,
+  onClose,
+  onSuccess,
+  product,
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
+  const [newImages, setNewImages] = useState<Array<{ uri: string; filename: string; mimeType?: string }>>([]);
+  const [generatingPromo, setGeneratingPromo] = useState(false);
+  const [showPromoPreview, setShowPromoPreview] = useState(false);
+  const [selectedImageForPromo, setSelectedImageForPromo] = useState<ProductImage | null>(null);
+  const [salePrices, setSalePrices] = useState<any[]>([]);
+  const [priceProfiles, setPriceProfiles] = useState<any[]>([]);
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
+  const [imageScale, setImageScale] = useState(1);
+  const [containerSize, setContainerSize] = useState(0);
+  const viewShotRef = useRef<any>(null);
+
+  // Load product images and prices when modal opens
+  useEffect(() => {
+    if (visible && product?.id) {
+      loadProductImages();
+      loadSalePrices();
+    }
+  }, [visible, product?.id]);
+
+  const loadSalePrices = async () => {
+    try {
+      // Load both sale prices and profiles
+      const [salePricesResponse, profilesResponse]: [any, any] = await Promise.all([
+        priceProfilesApi.getProductSalePrices(product.id),
+        priceProfilesApi.getActivePriceProfiles(),
+      ]);
+
+      const salePricesArray = salePricesResponse.salePrices || salePricesResponse.data || [];
+
+      // Enrich sale prices with profile names
+      const enrichedPrices = salePricesArray.map((price: any) => {
+        const profile = profilesResponse.find((p: any) => p.id === price.profileId);
+        return {
+          ...price,
+          profileName: profile?.name || price.profile?.name || 'Precio',
+          profileCode: profile?.code || price.profile?.code || '',
+        };
+      });
+
+      setSalePrices(enrichedPrices);
+      setPriceProfiles(profilesResponse);
+    } catch (error) {
+      console.error('Error loading sale prices:', error);
+      setSalePrices([]);
+      setPriceProfiles([]);
+    }
+  };
+
+  const loadProductImages = async () => {
+    try {
+      setLoading(true);
+      console.log('📸 Loading images for product:', product.id);
+
+      const response = await productsApi.getProductImages(product.id);
+
+      if (response.success && response.images) {
+        setProductImages(response.images);
+        console.log(`✅ Loaded ${response.images.length} images for product ${product.id}`);
+      } else {
+        setProductImages([]);
+      }
+    } catch (error: any) {
+      console.error('❌ Error loading product images:', error);
+      Alert.alert('Error', 'No se pudieron cargar las imágenes del producto');
+      setProductImages([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Request camera roll permissions
+  const requestPermissions = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso Requerido', 'Se necesita permiso para acceder a las fotos.');
+      return false;
+    }
+    return true;
+  };
+
+  // Pick images from gallery
+  const handlePickImages = async () => {
+    const hasPermission = await requestPermissions();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets) {
+        const selectedImages = result.assets.map((asset) => ({
+          uri: asset.uri,
+          filename: asset.fileName || asset.uri.split('/').pop() || `image_${Date.now()}.jpg`,
+          mimeType: asset.mimeType || 'image/jpeg',
+        }));
+
+        // Validate images
+        for (const img of selectedImages) {
+          if (!validateImageFile(img.filename)) {
+            Alert.alert('Error', `El archivo ${img.filename} no es una imagen válida`);
+            return;
+          }
+        }
+
+        setNewImages([...newImages, ...selectedImages]);
+      }
+    } catch (error) {
+      console.error('Error picking images:', error);
+      Alert.alert('Error', 'No se pudieron seleccionar las imágenes');
+    }
+  };
+
+  // Take photo with camera
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso Requerido', 'Se necesita permiso para usar la cámara.');
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        const newImage = {
+          uri: asset.uri,
+          filename: `photo_${Date.now()}.jpg`,
+          mimeType: asset.mimeType || 'image/jpeg',
+        };
+
+        setNewImages([...newImages, newImage]);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'No se pudo tomar la foto');
+    }
+  };
+
+  // Remove new image (not yet uploaded)
+  const handleRemoveNewImage = (index: number) => {
+    Alert.alert(
+      'Eliminar Imagen',
+      '¿Estás seguro de que deseas eliminar esta imagen?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            const updatedImages = newImages.filter((_, i) => i !== index);
+            setNewImages(updatedImages);
+          },
+        },
+      ]
+    );
+  };
+
+  // Delete existing image from server
+  const handleDeleteImage = async (image: ProductImage) => {
+    Alert.alert(
+      'Eliminar Imagen',
+      '¿Estás seguro de que deseas eliminar esta imagen del servidor?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setDeleting(image.filename);
+              console.log('🗑️ Deleting image:', image.filename);
+
+              // DELETE /files/public/catalog/productos/imagenes/{productId}/{filename}
+              const deletePath = `catalog/productos/imagenes/${product.id}/${image.filename}`;
+              await filesApi.deletePublicFile(deletePath);
+
+              console.log('✅ Image deleted successfully:', image.filename);
+
+              // Reload images to verify deletion
+              await loadProductImages();
+
+              Alert.alert('Éxito', 'Imagen eliminada correctamente');
+              onSuccess();
+            } catch (error: any) {
+              console.error('❌ Error deleting image:', error);
+              Alert.alert('Error', error.message || 'No se pudo eliminar la imagen');
+            } finally {
+              setDeleting(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Upload new images
+  const handleUploadImages = async () => {
+    if (newImages.length === 0) {
+      Alert.alert('Info', 'No hay imágenes nuevas para subir');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      console.log(`📸 Uploading ${newImages.length} new images...`);
+
+      // Upload each image individually
+      const uploadPromises = newImages.map(img =>
+        filesApi.uploadProductImage(
+          img.uri,
+          product.id,
+          img.filename,
+          img.mimeType
+        )
+      );
+
+      await Promise.all(uploadPromises);
+      console.log(`✅ Uploaded ${newImages.length} images successfully`);
+
+      // Clear new images and reload product images
+      setNewImages([]);
+      await loadProductImages();
+
+      Alert.alert('Éxito', `${newImages.length} imagen(es) subida(s) correctamente`);
+      onSuccess();
+    } catch (error: any) {
+      console.error('❌ Error uploading images:', error);
+      Alert.alert('Error', error.message || 'No se pudieron subir las imágenes');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Generate promotional image with prices
+  const handleGeneratePromoImage = async (image: ProductImage) => {
+    if (!ViewShot || !MediaLibrary) {
+      Alert.alert(
+        'Funcionalidad no disponible',
+        'Para usar esta función, instala las dependencias:\n\nnpx expo install expo-media-library react-native-view-shot'
+      );
+      return;
+    }
+
+    if (salePrices.length === 0) {
+      Alert.alert('Info', 'Este producto no tiene precios configurados');
+      return;
+    }
+
+    // Calculate square size based on screen width
+    const screenWidth = Dimensions.get('window').width;
+    const size = Math.min(screenWidth - 80, 600); // Max 600px, with 80px padding
+    setContainerSize(size);
+
+    // Reset image position and scale
+    setImagePosition({ x: 0, y: 0 });
+    setImageScale(1);
+    setSelectedImageForPromo(image);
+    setShowPromoPreview(true);
+  };
+
+  const handleScaleChange = (value: number) => {
+    setImageScale(value);
+  };
+
+  const handlePositionChange = (axis: 'x' | 'y', value: number) => {
+    setImagePosition(prev => ({
+      ...prev,
+      [axis]: value,
+    }));
+  };
+
+  // Capture and save promotional image
+  const handleSavePromoImage = async () => {
+    if (!ViewShot || !FileSystem) {
+      Alert.alert('Error', 'Dependencias no instaladas. Instala: expo-file-system y react-native-view-shot');
+      return;
+    }
+
+    try {
+      setGeneratingPromo(true);
+
+      // Capture the view as image
+      if (viewShotRef.current) {
+        const uri = await viewShotRef.current.capture();
+
+        // Create a permanent file path
+        const fileName = `promo_${product.sku}_${Date.now()}.jpg`;
+        const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+
+        // Copy the captured image to a permanent location
+        await FileSystem.copyAsync({
+          from: uri,
+          to: fileUri,
+        });
+
+        // Share the image (user can save to gallery from share menu)
+        const shareResult = await Share.share({
+          url: fileUri,
+          message: `Imagen promocional de ${product.title}`,
+        });
+
+        if (shareResult.action === Share.sharedAction) {
+          Alert.alert('Éxito', 'Imagen compartida. Puedes guardarla desde el menú de compartir.');
+        }
+
+        setShowPromoPreview(false);
+        setSelectedImageForPromo(null);
+      }
+    } catch (error: any) {
+      console.error('Error generating promo image:', error);
+      Alert.alert('Error', error.message || 'No se pudo generar la imagen promocional');
+    } finally {
+      setGeneratingPromo(false);
+    }
+  };
+
+  const formatPrice = (priceCents: number, currency: string = 'PEN'): string => {
+    const amount = priceCents / 100;
+    const symbol = currency === 'PEN' ? 'S/' : currency === 'USD' ? '$' : currency;
+    return `${symbol} ${amount.toFixed(2)}`;
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent={false}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Gestionar Imágenes</Text>
+          <View style={styles.closeButton} />
+        </View>
+
+        <ScrollView style={styles.content}>
+          {/* Product Info */}
+          <View style={styles.productInfo}>
+            <Text style={styles.productTitle}>{product.title}</Text>
+            <Text style={styles.productSku}>SKU: {product.sku}</Text>
+          </View>
+
+          {/* Existing Images Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              📸 Imágenes del Producto ({productImages.length})
+            </Text>
+
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#3B82F6" />
+                <Text style={styles.loadingText}>Cargando imágenes...</Text>
+              </View>
+            ) : productImages.length === 0 ? (
+              <View style={styles.noImagesContainer}>
+                <Text style={styles.noImagesText}>📦 No hay imágenes</Text>
+                <Text style={styles.noImagesSubtext}>
+                  Este producto no tiene imágenes guardadas
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.imagesGrid}>
+                {productImages.map((image, index) => (
+                  <View key={image.filename} style={styles.imageCard}>
+                    <Image
+                      source={{ uri: image.url }}
+                      style={styles.image}
+                      resizeMode="cover"
+                    />
+                    {index === 0 && (
+                      <View style={styles.mainImageBadge}>
+                        <Text style={styles.mainImageBadgeText}>Principal</Text>
+                      </View>
+                    )}
+                    <View style={styles.imageActions}>
+                      <TouchableOpacity
+                        style={styles.promoButton}
+                        onPress={() => handleGeneratePromoImage(image)}
+                      >
+                        <Text style={styles.promoButtonText}>🎨</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.deleteButton, deleting === image.filename && styles.deleteButtonDisabled]}
+                        onPress={() => handleDeleteImage(image)}
+                        disabled={deleting === image.filename}
+                      >
+                        <Text style={styles.deleteButtonText}>
+                          {deleting === image.filename ? '⏳' : '🗑️'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.imageFilename} numberOfLines={1}>
+                      {image.filename}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* New Images Section */}
+          {newImages.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>
+                  📷 Nuevas Imágenes ({newImages.length})
+                </Text>
+                <TouchableOpacity
+                  onPress={handleUploadImages}
+                  style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]}
+                  disabled={uploading}
+                >
+                  <Text style={styles.uploadButtonText}>
+                    {uploading ? '⏳ Subiendo...' : '☁️ Subir Todo'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.imagesGrid}>
+                {newImages.map((image, index) => (
+                  <View key={index} style={styles.imageCard}>
+                    <Image
+                      source={{ uri: image.uri }}
+                      style={styles.image}
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => handleRemoveNewImage(index)}
+                    >
+                      <Text style={styles.deleteButtonText}>✕</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.imageFilename} numberOfLines={1}>
+                      {image.filename}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Add Images Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>➕ Agregar Imágenes</Text>
+
+            <View style={styles.imageButtonsContainer}>
+              <TouchableOpacity onPress={handlePickImages} style={styles.imageButton}>
+                <Text style={styles.imageButtonText}>📁 Galería</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleTakePhoto} style={styles.imageButton}>
+                <Text style={styles.imageButtonText}>📷 Cámara</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.infoText}>
+              💡 Selecciona imágenes de la galería o toma fotos con la cámara.
+              Las imágenes seleccionadas aparecerán en la sección "Nuevas Imágenes"
+              y deberás subirlas manualmente.
+            </Text>
+          </View>
+        </ScrollView>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButtonBottom}>
+            <Text style={styles.closeButtonBottomText}>Cerrar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Promotional Image Preview Modal */}
+      <Modal visible={showPromoPreview} animationType="fade" transparent={true}>
+        <View style={styles.promoModalOverlay}>
+          <View style={styles.promoModalContainer}>
+            <View style={styles.promoModalHeader}>
+              <Text style={styles.promoModalTitle}>Vista Previa - Imagen Promocional</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowPromoPreview(false);
+                  setSelectedImageForPromo(null);
+                }}
+                style={styles.promoCloseButton}
+              >
+                <Text style={styles.promoCloseButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.promoModalContentScroll}
+              contentContainerStyle={styles.promoModalContent}
+            >
+              {ViewShot ? (
+                <View style={[
+                  styles.promoPreviewContainer,
+                  containerSize > 0 && {
+                    width: containerSize,
+                    height: containerSize,
+                  }
+                ]}>
+                  <View style={styles.promoImageContainer}>
+                    <ViewShot
+                      ref={viewShotRef}
+                      options={{ format: 'jpg', quality: 0.9 }}
+                      style={{
+                        width: containerSize,
+                        height: containerSize,
+                        overflow: 'hidden',
+                        borderRadius: 9,
+                      }}
+                    >
+                      <View style={{
+                        width: containerSize,
+                        height: containerSize,
+                        backgroundColor: '#000',
+                      }}>
+                        {selectedImageForPromo && (
+                          <Image
+                            source={{ uri: selectedImageForPromo.url }}
+                            style={[
+                              styles.promoImage,
+                              {
+                                transform: [
+                                  { scale: imageScale },
+                                  { translateX: imagePosition.x },
+                                  { translateY: imagePosition.y },
+                                ],
+                              },
+                            ]}
+                            resizeMode="cover"
+                          />
+                        )}
+
+                        {/* Branding - Top */}
+                        <View style={styles.promoBrandingTop}>
+                          <View style={styles.promoBranding}>
+                            <Text style={styles.promoBrandingText}>
+                              🔥 ¡OFERTA ESPECIAL!
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Overlay compacto y colorido */}
+                        <View style={styles.promoOverlay}>
+                          {/* Product Title */}
+                          <View style={styles.promoTitleContainer}>
+                            <Text style={styles.promoProductTitle} numberOfLines={2}>{product.title}</Text>
+                            <Text style={styles.promoProductSku}>SKU: {product.sku}</Text>
+                          </View>
+
+                          {/* Prices Section - Pills horizontales */}
+                          <View style={styles.promoPricesContainer}>
+                            {salePrices.map((price: any, index: number) => (
+                              <View key={index} style={styles.promoPriceCard}>
+                                <Text style={styles.promoPriceLabel}>
+                                  {price.profileName}:
+                                </Text>
+                                <Text style={styles.promoPriceValue}>
+                                  {formatPrice(price.priceCents, product.currency)}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      </View>
+                    </ViewShot>
+                  </View>
+
+                  {/* Crop Guide - Shows the square area that will be captured */}
+                  <View style={styles.cropGuide}>
+                    <View style={[styles.cropCorner, styles.cropCornerTopLeft]} />
+                    <View style={[styles.cropCorner, styles.cropCornerTopRight]} />
+                    <View style={[styles.cropCorner, styles.cropCornerBottomLeft]} />
+                    <View style={[styles.cropCorner, styles.cropCornerBottomRight]} />
+                  </View>
+                </View>
+              ) : (
+                <View style={[
+                  styles.promoPreviewContainer,
+                  containerSize > 0 && {
+                    width: containerSize,
+                    height: containerSize,
+                  }
+                ]}>
+                  <View style={styles.promoImageContainer}>
+                    {selectedImageForPromo && (
+                      <Image
+                        source={{ uri: selectedImageForPromo.url }}
+                        style={[
+                          styles.promoImage,
+                          {
+                            transform: [
+                              { scale: imageScale },
+                              { translateX: imagePosition.x },
+                              { translateY: imagePosition.y },
+                            ],
+                          },
+                        ]}
+                        resizeMode="cover"
+                      />
+                    )}
+                    {/* Branding - Top */}
+                    <View style={styles.promoBrandingTop}>
+                      <View style={styles.promoBranding}>
+                        <Text style={styles.promoBrandingText}>
+                          🔥 ¡OFERTA ESPECIAL!
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.promoOverlay}>
+                      <View style={styles.promoTitleContainer}>
+                        <Text style={styles.promoProductTitle} numberOfLines={2}>{product.title}</Text>
+                        <Text style={styles.promoProductSku}>SKU: {product.sku}</Text>
+                      </View>
+                      <View style={styles.promoPricesContainer}>
+                        {salePrices.map((price: any, index: number) => (
+                          <View key={index} style={styles.promoPriceCard}>
+                            <Text style={styles.promoPriceLabel}>
+                              {price.profileName}:
+                            </Text>
+                            <Text style={styles.promoPriceValue}>
+                              {formatPrice(price.priceCents, product.currency)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Crop Guide - Shows the square area that will be captured */}
+                  <View style={styles.cropGuide}>
+                    <View style={[styles.cropCorner, styles.cropCornerTopLeft]} />
+                    <View style={[styles.cropCorner, styles.cropCornerTopRight]} />
+                    <View style={[styles.cropCorner, styles.cropCornerBottomLeft]} />
+                    <View style={[styles.cropCorner, styles.cropCornerBottomRight]} />
+                  </View>
+                </View>
+              )}
+
+              {/* Image Adjustment Controls */}
+              <View style={styles.imageControls}>
+                <Text style={styles.controlsTitle}>Ajustar Imagen</Text>
+
+                {/* Scale Control */}
+                <View style={styles.controlRow}>
+                  <Text style={styles.controlLabel}>Zoom:</Text>
+                  <View style={styles.controlButtons}>
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={() => handleScaleChange(Math.max(0.5, imageScale - 0.1))}
+                    >
+                      <Text style={styles.controlButtonText}>−</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.controlValue}>{imageScale.toFixed(1)}x</Text>
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={() => handleScaleChange(Math.min(3, imageScale + 0.1))}
+                    >
+                      <Text style={styles.controlButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Horizontal Position Control */}
+                <View style={styles.controlRow}>
+                  <Text style={styles.controlLabel}>Horizontal:</Text>
+                  <View style={styles.controlButtons}>
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={() => handlePositionChange('x', imagePosition.x - 10)}
+                    >
+                      <Text style={styles.controlButtonText}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.controlValue}>{imagePosition.x}</Text>
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={() => handlePositionChange('x', imagePosition.x + 10)}
+                    >
+                      <Text style={styles.controlButtonText}>→</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Vertical Position Control */}
+                <View style={styles.controlRow}>
+                  <Text style={styles.controlLabel}>Vertical:</Text>
+                  <View style={styles.controlButtons}>
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={() => handlePositionChange('y', imagePosition.y - 10)}
+                    >
+                      <Text style={styles.controlButtonText}>↑</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.controlValue}>{imagePosition.y}</Text>
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={() => handlePositionChange('y', imagePosition.y + 10)}
+                    >
+                      <Text style={styles.controlButtonText}>↓</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Reset Button */}
+                <TouchableOpacity
+                  style={styles.resetControlsButton}
+                  onPress={() => {
+                    setImageScale(1);
+                    setImagePosition({ x: 0, y: 0 });
+                  }}
+                >
+                  <Text style={styles.resetControlsButtonText}>↻ Restablecer</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.helpContainer}>
+                <View style={styles.helpBadge}>
+                  <Text style={styles.helpBadgeText}>📐 ÁREA DE CAPTURA</Text>
+                </View>
+                <Text style={styles.promoHelpText}>
+                  El borde morado muestra el área cuadrada que se guardará. Ajusta la imagen para que quede centrada dentro del cuadrado.
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={styles.promoModalFooter}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowPromoPreview(false);
+                  setSelectedImageForPromo(null);
+                }}
+                style={styles.promoCancelButton}
+              >
+                <Text style={styles.promoCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSavePromoImage}
+                style={[styles.promoSaveButton, generatingPromo && styles.promoSaveButtonDisabled]}
+                disabled={generatingPromo}
+              >
+                {generatingPromo ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.promoSaveButtonText}>💾 Guardar en Galería</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 24,
+    color: '#1E293B',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  productInfo: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  productTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  productSku: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  loadingContainer: {
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748B',
+  },
+  noImagesContainer: {
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  noImagesText: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  noImagesSubtext: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  imagesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
+  },
+  imageCard: {
+    width: '48%',
+    marginHorizontal: '1%',
+    marginBottom: 12,
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: 150,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  mainImageBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  mainImageBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  imageActions: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 4,
+  },
+  promoButton: {
+    backgroundColor: '#8B5CF6',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  promoButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  deleteButton: {
+    backgroundColor: '#EF4444',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  deleteButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  imageFilename: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  // Promotional Image Styles
+  promoModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+  },
+  promoModalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  promoModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  promoModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    flex: 1,
+  },
+  promoCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  promoCloseButtonText: {
+    fontSize: 20,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  promoModalContentScroll: {
+    flex: 1,
+  },
+  promoModalContent: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  promoPreviewContainer: {
+    position: 'relative',
+    alignSelf: 'center',
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: '#8B5CF6',
+    overflow: 'visible', // Allow image to overflow while adjusting
+    backgroundColor: '#000',
+  },
+  promoImageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    overflow: 'visible', // Allow image to overflow
+  },
+  promoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cropGuide: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: 2,
+    borderColor: 'rgba(139, 92, 246, 0.8)',
+    borderStyle: 'dashed',
+    pointerEvents: 'none',
+  },
+  cropCorner: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderColor: '#8B5CF6',
+    borderWidth: 3,
+  },
+  cropCornerTopLeft: {
+    top: -2,
+    left: -2,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+  },
+  cropCornerTopRight: {
+    top: -2,
+    right: -2,
+    borderLeftWidth: 0,
+    borderBottomWidth: 0,
+  },
+  cropCornerBottomLeft: {
+    bottom: -2,
+    left: -2,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
+  },
+  cropCornerBottomRight: {
+    bottom: -2,
+    right: -2,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+  },
+  promoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  promoTitleContainer: {
+    backgroundColor: 'rgba(139, 92, 246, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  promoProductTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  promoProductSku: {
+    fontSize: 12,
+    color: '#E9D5FF',
+  },
+  promoPricesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  promoPricesTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FCD34D',
+    marginBottom: 6,
+    width: '100%',
+  },
+  promoPriceCard: {
+    backgroundColor: 'rgba(16, 185, 129, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  promoPriceLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  promoPriceValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  promoBrandingTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: 'flex-start',
+  },
+  promoBranding: {
+    backgroundColor: 'rgba(252, 211, 77, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  promoBrandingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#78350F',
+    textAlign: 'center',
+  },
+  imageControls: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  controlsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  controlRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  controlLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    flex: 1,
+  },
+  controlButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  controlButton: {
+    backgroundColor: '#3B82F6',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  controlButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  controlValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  resetControlsButton: {
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  resetControlsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  helpContainer: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  helpBadge: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  helpBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  promoHelpText: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 20,
+  },
+  promoModalFooter: {
+    flexDirection: 'row',
+    padding: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    gap: 16,
+  },
+  promoCancelButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  promoCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  promoSaveButton: {
+    flex: 2,
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  promoSaveButtonDisabled: {
+    backgroundColor: '#C4B5FD',
+  },
+  promoSaveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  imageButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  imageButton: {
+    flex: 1,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  imageButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  uploadButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  uploadButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  uploadButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 20,
+  },
+  footer: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  closeButtonBottom: {
+    backgroundColor: '#64748B',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  closeButtonBottomText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+});

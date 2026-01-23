@@ -67,8 +67,50 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
         // Filter external companies on the client side
         setCompanies(response.data.filter(c => c.companyType === 'EXTERNAL'));
       } else {
-        const response = await sitesApi.getSites({ limit: 100 });
-        setSites(response.data);
+        // Load all companies first to get their types
+        const companiesResponse = await companiesApi.getCompanies({ limit: 100 });
+
+        // Create a map of companyId -> companyType for quick lookup
+        const companyTypeMap = new Map<string, string>();
+        companiesResponse.data.forEach(company => {
+          companyTypeMap.set(company.id, company.companyType);
+        });
+
+        console.log('📍 Companies loaded:', {
+          total: companiesResponse.data.length,
+          internal: companiesResponse.data.filter(c => c.companyType === 'INTERNAL').length,
+          external: companiesResponse.data.filter(c => c.companyType === 'EXTERNAL').length
+        });
+
+        // Load all sites
+        const sitesResponse = await sitesApi.getSites({ limit: 100 });
+
+        console.log('📍 Sites loaded from API:', {
+          total: sitesResponse.data.length,
+          sample: sitesResponse.data.slice(0, 3).map(s => ({
+            id: s.id,
+            name: s.name,
+            companyId: s.companyId,
+            companyType: companyTypeMap.get(s.companyId)
+          }))
+        });
+
+        // Filter sites to show only those from INTERNAL companies
+        const internalSites = sitesResponse.data.filter(site => {
+          const companyType = companyTypeMap.get(site.companyId);
+          if (companyType === 'INTERNAL') {
+            return true;
+          }
+          return false;
+        });
+
+        console.log('📍 Filtered internal sites:', {
+          total: sitesResponse.data.length,
+          internal: internalSites.length,
+          filtered: sitesResponse.data.length - internalSites.length
+        });
+
+        setSites(internalSites);
       }
     } catch (error: any) {
       console.error('Error loading data:', error);
@@ -100,7 +142,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
     let entityName = '';
     if (participantType === ParticipantType.EXTERNAL_COMPANY) {
       const company = companies.find(c => c.id === currentEntityId);
-      entityName = company?.name || '';
+      entityName = company?.alias || company?.name || '';
     } else {
       const site = sites.find(s => s.id === currentEntityId);
       entityName = site?.name || '';
@@ -175,7 +217,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
 
   return (
     <ScreenLayout navigation={navigation}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity
@@ -249,7 +291,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
                         {companies.map((company) => (
                           <Picker.Item
                             key={company.id}
-                            label={company.name}
+                            label={company.alias || company.name}
                             value={company.id}
                           />
                         ))}
@@ -690,3 +732,4 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
+

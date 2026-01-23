@@ -16,12 +16,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { StockAdjustmentModal } from '@/components/Inventory/StockAdjustmentModal';
 import { StockByAreasModal } from '@/components/Inventory/StockByAreasModal';
 import { StockMovementHistoryModal } from '@/components/Inventory/StockMovementHistoryModal';
+import { BulkUploadModal } from '@/components/Inventory/BulkUploadModal';
 import { inventoryApi, StockItem } from '@/services/api/inventory';
 import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
@@ -44,6 +46,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   // New modals state
   const [isStockByAreasModalVisible, setIsStockByAreasModalVisible] = useState(false);
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
+  const [isBulkUploadModalVisible, setIsBulkUploadModalVisible] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [selectedProductTitle, setSelectedProductTitle] = useState<string>('');
   const [selectedProductSku, setSelectedProductSku] = useState<string>('');
@@ -142,9 +145,12 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
       productTitle: items[0].productTitle || 'Sin nombre',
       productSku: items[0].productSku || 'Sin SKU',
       totalStock: items.reduce((sum, item) => {
-        const quantity = typeof item.quantityBase === 'string'
-          ? parseFloat(item.quantityBase)
-          : (item.quantityBase || 0);
+        // Use availableQuantityBase (stock disponible) instead of quantityBase (stock total)
+        const quantity = typeof item.availableQuantityBase === 'number'
+          ? item.availableQuantityBase
+          : (typeof item.quantityBase === 'string'
+            ? parseFloat(item.quantityBase)
+            : (item.quantityBase || 0));
         return sum + quantity;
       }, 0),
       locations: items.length,
@@ -299,6 +305,8 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
           warehouseId: item.warehouseId,
           areaId: item.areaId || undefined,
           quantityBase: quantityBase,
+          reservedQuantityBase: item.reservedQuantityBase,
+          availableQuantityBase: item.availableQuantityBase,
           updatedAt: item.updatedAt,
           productTitle: item.product?.title,
           productSku: item.product?.sku,
@@ -429,9 +437,13 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     setIsHistoryModalVisible(true);
   };
 
+  const handleBulkUploadSuccess = () => {
+    loadStock();
+  };
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={styles.backButtonText}>←</Text>
@@ -447,7 +459,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -456,6 +468,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
         <Text style={styles.headerTitle}>Inventario</Text>
         <View style={styles.backButton} />
       </View>
+      <View style={styles.container}>
 
       {/* Filters Container */}
       <View style={styles.filtersWrapper}>
@@ -765,7 +778,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   <View style={styles.productDetails}>
                     <View style={styles.productDetailRow}>
                       <View style={styles.productDetailItem}>
-                        <Text style={styles.productDetailLabel}>Stock Total:</Text>
+                        <Text style={styles.productDetailLabel}>Stock Disponible:</Text>
                         <Text style={[styles.productDetailValue, styles.stockQuantity]}>
                           {(product.totalStock || 0).toFixed(2)} unidades
                         </Text>
@@ -813,6 +826,18 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
           </View>
         )}
       </ScrollView>
+      </View>
+
+      {/* Bulk Upload Button - Above drawer menu */}
+      <View style={styles.bulkUploadButtonContainer} pointerEvents="box-none">
+        <TouchableOpacity
+          style={styles.bulkUploadButton}
+          onPress={() => setIsBulkUploadModalVisible(true)}
+          activeOpacity={0.9}
+        >
+          <Ionicons name="cloud-upload" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
 
       {/* Stock Adjustment Modal */}
       <StockAdjustmentModal
@@ -841,11 +866,22 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
         productTitle={selectedProductTitle}
         productSku={selectedProductSku}
       />
+
+      {/* Bulk Upload Modal */}
+      <BulkUploadModal
+        visible={isBulkUploadModalVisible}
+        onClose={() => setIsBulkUploadModalVisible(false)}
+        onSuccess={handleBulkUploadSuccess}
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -1242,6 +1278,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  bulkUploadButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    left: 0,
+    top: 0,
+    zIndex: 999,
+    elevation: 999,
+  },
+  bulkUploadButton: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#6366F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 999,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    zIndex: 999,
+  },
 });
 
 export default StockScreen;
+

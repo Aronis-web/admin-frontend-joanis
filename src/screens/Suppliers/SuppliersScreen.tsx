@@ -34,6 +34,13 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [chatBadge] = useState(3);
   const [notificationsBadge] = useState(7);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
@@ -63,18 +70,25 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
     }
   }, [searchQuery, suppliers]);
 
-  const loadSuppliers = async () => {
+  const loadSuppliers = async (page: number = 1) => {
     try {
       setLoading(true);
       const response = await suppliersService.getSuppliers({
-        page: 1,
-        limit: 100,
+        page,
+        limit: pagination.limit,
         isActive: true
       });
 
-      console.log('🔍 Suppliers loaded:', response.data.length);
       setSuppliers(response.data);
-      setFilteredSuppliers(response.data);
+
+      // Update pagination info - API returns flat structure
+      const totalPages = Math.ceil(response.total / response.limit);
+      setPagination({
+        page: response.page,
+        limit: response.limit,
+        total: response.total,
+        totalPages: totalPages,
+      });
     } catch (error: any) {
       console.error('Error loading suppliers:', error);
       const errorMessage = error.response?.data?.message || error.message || 'No se pudieron cargar los proveedores';
@@ -88,8 +102,20 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadSuppliers();
+    await loadSuppliers(1);
     setRefreshing(false);
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.page > 1) {
+      loadSuppliers(pagination.page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) {
+      loadSuppliers(pagination.page + 1);
+    }
   };
 
   const handleMenuToggle = () => {
@@ -342,6 +368,56 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
           </View>
         )}
       </ScrollView>
+
+      {/* Pagination Controls */}
+      {!loading && pagination.total > 0 && !searchQuery && (
+        <View style={styles.paginationContainer}>
+          <TouchableOpacity
+            style={[
+              styles.paginationButton,
+              pagination.page === 1 && styles.paginationButtonDisabled,
+            ]}
+            onPress={handlePreviousPage}
+            disabled={pagination.page === 1}
+          >
+            <Text
+              style={[
+                styles.paginationButtonText,
+                pagination.page === 1 && styles.paginationButtonTextDisabled,
+              ]}
+            >
+              ← Anterior
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.paginationInfo}>
+            <Text style={styles.paginationText}>
+              Pág. {pagination.page}/{pagination.totalPages}
+            </Text>
+            <Text style={styles.paginationSubtext}>
+              {filteredSuppliers.length} de {pagination.total}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.paginationButton,
+              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
+            ]}
+            onPress={handleNextPage}
+            disabled={pagination.page >= pagination.totalPages}
+          >
+            <Text
+              style={[
+                styles.paginationButtonText,
+                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
+              ]}
+            >
+              Siguiente →
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -645,5 +721,50 @@ const styles = StyleSheet.create({
   },
   emptyButtonTextTablet: {
     fontSize: 17,
+  },
+  paginationContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 60,
+  },
+  paginationInfo: {
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  paginationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  paginationButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#6366F1',
+    minWidth: 110,
+    alignItems: 'center',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  paginationButtonTextDisabled: {
+    color: '#94A3B8',
   },
 });

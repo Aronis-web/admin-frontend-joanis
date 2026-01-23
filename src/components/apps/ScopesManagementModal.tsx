@@ -11,7 +11,7 @@ import {
   Switch,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { scopesApi, Scope, CreateScopeDto } from '@/services/api/apps';
+import { scopesApi, Scope, CreateScopeDto, ScopesPaginatedResponse } from '@/services/api/scopes';
 import { warehousesApi } from '@/services/api/warehouses';
 import { sitesApi } from '@/services/api/sites';
 import { companiesApi } from '@/services/api/companies';
@@ -125,10 +125,11 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
   const loadScopes = async () => {
     try {
       setLoading(true);
-      const data = await scopesApi.getAppScopes(appId);
-      console.log('🎯 Scopes recibidos del backend:', data);
-      console.log('📊 Total de scopes:', data.length);
-      data.forEach((scope, index) => {
+      const response = await scopesApi.getAppScopes(appId);
+      console.log('🎯 Scopes recibidos del backend:', response);
+      console.log('📊 Total de scopes:', response.items.length);
+      console.log('📊 Total páginas:', response.totalPages);
+      response.items.forEach((scope, index) => {
         console.log(`Scope ${index + 1}:`, {
           id: scope.id,
           companyId: scope.companyId,
@@ -136,10 +137,11 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
           warehouseId: scope.warehouseId,
           areaId: scope.areaId,
           level: scope.level,
-          warehouse: scope.warehouse,
+          canRead: scope.canRead,
+          canWrite: scope.canWrite,
         });
       });
-      setScopes(data);
+      setScopes(response.items);
     } catch (error: any) {
       console.error('Error loading scopes:', error);
       Alert.alert('Error', 'No se pudieron cargar los scopes');
@@ -353,55 +355,60 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
   };
 
   const getScopeLabel = (scope: Scope): string => {
-    // Priorizar por nivel de especificidad: Área > Almacén > Sede > Compañía > Global
+    // Usar el nivel del scope para determinar la etiqueta
+    // La nueva API de scopes incluye el nivel directamente
 
-    // Nivel 4: Área (más específico)
-    if (scope.areaId) {
-      if (scope.area) {
-        return `📦 Área: ${scope.area.name}`;
-      }
-      return `📦 Área: ${scope.areaId}`;
+    switch (scope.level) {
+      case 'AREA':
+        if (scope.areaId) {
+          // Buscar el área en la lista cargada
+          const area = areas.find(a => a.id === scope.areaId);
+          if (area) {
+            const warehouse = warehouses.find(w => w.id === area.warehouseId);
+            const site = sites.find(s => s.id === warehouse?.siteId);
+            const company = companies.find(c => c.id === site?.companyId);
+            return `📦 Área: ${area.name} - ${warehouse?.name || scope.warehouseId} - ${site?.name || scope.siteId} - ${company?.name || scope.companyId}`;
+          }
+          return `📦 Área: ${scope.areaId}`;
+        }
+        return '📦 Área';
+
+      case 'WAREHOUSE':
+        if (scope.warehouseId) {
+          const warehouse = warehouses.find(w => w.id === scope.warehouseId);
+          if (warehouse) {
+            const site = sites.find(s => s.id === warehouse.siteId);
+            const company = companies.find(c => c.id === site?.companyId);
+            return `🏢 Almacén: ${warehouse.name} - ${site?.name || scope.siteId} - ${company?.name || scope.companyId}`;
+          }
+          return `🏢 Almacén: ${scope.warehouseId}`;
+        }
+        return '🏢 Almacén';
+
+      case 'SITE':
+        if (scope.siteId) {
+          const site = sites.find(s => s.id === scope.siteId);
+          if (site) {
+            const company = companies.find(c => c.id === site.companyId);
+            return `📍 Sede: ${site.name} (${site.code}) - ${company?.name || scope.companyId}`;
+          }
+          return `📍 Sede: ${scope.siteId}`;
+        }
+        return '📍 Sede';
+
+      case 'COMPANY':
+        if (scope.companyId) {
+          const company = companies.find(c => c.id === scope.companyId);
+          if (company) {
+            return `🏢 Compañía: ${company.name} (${company.code})`;
+          }
+          return `🏢 Compañía: ${scope.companyId}`;
+        }
+        return '🏢 Compañía';
+
+      default:
+        return '🌍 Global (Acceso a todo)';
     }
-
-    // Nivel 3: Almacén
-    if (scope.warehouseId) {
-      if (scope.warehouse) {
-        const site = sites.find(s => s.id === scope.warehouse?.siteId);
-        const siteName = site ? site.name : scope.warehouse.siteId;
-        return `🏢 Almacén: ${scope.warehouse.name} (Sede: ${siteName})`;
-      }
-      // Buscar el warehouse para mostrar nombre y sede
-      const warehouse = warehouses.find(w => w.id === scope.warehouseId);
-      if (warehouse) {
-        const site = sites.find(s => s.id === warehouse.siteId);
-        const siteName = site ? site.name : warehouse.siteId;
-        return `🏢 Almacén: ${warehouse.name} (Sede: ${siteName})`;
-      }
-      return `🏢 Almacén: ${scope.warehouseId}`;
-    }
-
-    // Nivel 2: Sede
-    if (scope.siteId) {
-      const site = sites.find(s => s.id === scope.siteId);
-      if (site) {
-        const company = companies.find(c => c.id === site.companyId);
-        const companyName = company ? company.name : site.companyId;
-        return `📍 Sede: ${site.name} (${site.code}) - Empresa: ${companyName}`;
-      }
-      return `📍 Sede: ${scope.siteId}`;
-    }
-
-    // Nivel 1: Compañía
-    if (scope.companyId) {
-      const company = companies.find(c => c.id === scope.companyId);
-      if (company) {
-        return `🏢 Compañía: ${company.name} (${company.code})`;
-      }
-      return `🏢 Compañía: ${scope.companyId}`;
-    }
-
-    // Nivel 0: Global (acceso a todo)
-    return '🌍 Global (Acceso a todo)';
   };
 
   const renderScope = (scope: Scope) => (

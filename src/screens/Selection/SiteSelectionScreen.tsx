@@ -11,7 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
-import { companiesApi, UserCompanySite } from '@/services/api';
+import { companiesApi, scopesApi } from '@/services/api';
+import type { UserCompanySite, ResolvedScope } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '@/utils/config';
 import { ScreenProps } from '@/types/navigation';
@@ -38,7 +39,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
 
   // Get companyId and companyName from route params or from currentCompany
   const companyId = (route.params?.companyId || currentCompany?.id || '') as string;
-  const companyName = (route.params?.companyName || currentCompany?.name || '') as string;
+  const companyName = (route.params?.companyName || currentCompany?.alias || currentCompany?.name || '') as string;
 
   const [sites, setSites] = useState<UserCompanySite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,8 +60,18 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
 
   const loadUserSites = async () => {
     if (!user?.id) {
-      Alert.alert('Error', 'Usuario no autenticado');
-      logout();
+      Alert.alert('Error', 'Usuario no autenticado', [
+        {
+          text: 'OK',
+          onPress: async () => {
+            await logout();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          }
+        }
+      ]);
       return;
     }
 
@@ -73,15 +84,39 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       setLoading(true);
       console.log('🔍 Cargando sedes para companyId:', companyId, 'userId:', user.id);
 
-      // TypeScript type guard - we've already checked companyId is not empty above
-      const userSites = await companiesApi.getUserSitesInCompany(companyId as string, user.id);
+      // Get the appId from config
+      const appId = config.APP_ID;
+      console.log('🔍 AppId:', appId);
 
-      console.log('📦 Respuesta de API (tipo):', typeof userSites);
-      console.log('📦 Respuesta de API (es array):', Array.isArray(userSites));
-      console.log('📦 Respuesta de API (raw):', JSON.stringify(userSites, null, 2));
+      // Get user scopes from the scopes API instead of user_company_site
+      const userScopes = await scopesApi.getUserResolvedScopes(user.id, appId);
 
-      // Ensure userSites is an array
-      const sitesArray = Array.isArray(userSites) ? userSites : [];
+      console.log('📦 Respuesta de scopes (tipo):', typeof userScopes);
+      console.log('📦 Respuesta de scopes (es array):', Array.isArray(userScopes));
+      console.log('📦 Respuesta de scopes (raw):', JSON.stringify(userScopes, null, 2));
+
+      // Filter scopes for the current company and site level
+      const companySiteScopes = userScopes.filter(scope => {
+        const matchesCompany = scope.companyId === companyId;
+        const hasSite = scope.siteId !== null && scope.siteId !== undefined;
+        const isSiteLevel = scope.level === 'SITE';
+        return matchesCompany && hasSite && isSiteLevel;
+      });
+
+      console.log('📋 Scopes filtrados para la empresa:', companySiteScopes.length, 'scopes encontrados');
+
+      // Convert ResolvedScope to UserCompanySite format
+      const sitesArray: UserCompanySite[] = companySiteScopes.map(scope => ({
+        id: scope.siteId!,
+        siteId: scope.siteId!,
+        companyId: scope.companyId,
+        site: {
+          id: scope.siteId!,
+          name: scope.site_name || scope.site?.name || 'Sede sin nombre',
+          code: scope.site?.code || '',
+        },
+        canSelect: true, // If user has scope, they can select it
+      }));
 
       console.log('📋 Sedes procesadas:', sitesArray.length, 'sedes encontradas');
       sitesArray.forEach((site, index) => {
@@ -95,7 +130,17 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
           'No tienes acceso a ninguna sede en esta empresa. Contacta al administrador.',
           [
             { text: 'Volver', onPress: () => navigation.replace('CompanySelection') },
-            { text: 'Cerrar Sesión', onPress: logout, style: 'destructive' },
+            {
+              text: 'Cerrar Sesión',
+              onPress: async () => {
+                await logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Login' }],
+                });
+              },
+              style: 'destructive',
+            },
           ]
         );
         return;
@@ -175,9 +220,23 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       console.log('✅ Tenant store actualizado con sede');
 
       // Give stores time to update before navigation check
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      console.log('🚀 Stores actualizados - Navigation debería detectar el cambio y mostrar MainStack');
+      console.log('🚀 Stores actualizados - Verificando estado de navegación...');
+
+      // Check if we have all required data
+      const authState = useAuthStore.getState();
+      console.log('📊 Estado actual del auth store:', {
+        isAuthenticated: authState.isAuthenticated,
+        currentCompany: authState.currentCompany,
+        currentSite: authState.currentSite,
+      });
+
+      // Navigate to Home screen - this should work because Navigation will detect the state change
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
 
     } catch (error) {
       console.error('❌ Error selecting site:', error);
@@ -190,7 +249,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
     navigation.replace(COMPANY_SELECTION_ROUTE as any);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert(
       'Cerrar Sesión',
       '¿Estás seguro de que deseas cerrar sesión?',
@@ -199,7 +258,14 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
         {
           text: 'Cerrar Sesión',
           style: 'destructive',
-          onPress: logout,
+          onPress: async () => {
+            await logout();
+            // Navigate to login screen after logout
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          },
         },
       ]
     );
@@ -207,7 +273,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#667eea" />
           <Text style={styles.loadingText}>Cargando sedes...</Text>
@@ -217,7 +283,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
@@ -485,3 +551,4 @@ const styles = StyleSheet.create({
 });
 
 export default SiteSelectionScreen;
+

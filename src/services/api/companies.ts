@@ -208,7 +208,7 @@ export const companiesApi = {
     const response = await apiClient.get<UserCompanySite[]>(
       `/companies/${companyId}/users/${userId}/sites`
     );
-    // The API returns the array directly, not wrapped in a data property
+    // The API returns the array directly
     return Array.isArray(response) ? response : [];
   },
 

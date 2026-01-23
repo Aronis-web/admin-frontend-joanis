@@ -21,6 +21,7 @@ export interface Site {
 export interface Company {
   id: string;
   name: string;
+  alias?: string;
   ruc?: string;
   isActive: boolean;
 }

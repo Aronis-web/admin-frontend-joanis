@@ -24,6 +24,7 @@ import { RolesPermissionsScreen } from '@/screens/Roles/RolesPermissionsScreen';
 import { UsersScreen } from '@/screens/Users/UsersScreen';
 import { AppsScreen } from '@/screens/Apps/AppsScreen';
 import { SitesScreen } from '@/screens/Sites/SitesScreen';
+import { WarehousesScreen, WarehouseAreasScreen } from '@/screens/Warehouses';
 import { PermissionsDebugScreen } from '@/screens/Debug/PermissionsDebugScreen';
 import { ProductsScreen } from '@/screens/Inventory/ProductsScreen';
 import { StockScreen } from '@/screens/Inventory/StockScreen';
@@ -75,6 +76,24 @@ import {
   CampaignProductDetailScreen,
 } from '@/screens/Campaigns';
 
+// Repartos Screens
+import {
+  RepartosScreen,
+  RepartoDetailScreen,
+  RepartoCampaignDetailScreen,
+  RepartoParticipantDetailScreen,
+} from '@/screens/Repartos';
+
+// Balances Screens
+import { BalancesScreen, CreateBalanceScreen, BalanceDetailScreen, BalanceOperationsScreen, AllBalanceOperationsScreen } from '@/screens/Balances';
+
+// Transmisiones Screens
+import {
+  TransmisionesScreen,
+  CreateTransmisionScreen,
+  TransmisionDetailScreen,
+} from '@/screens/Transmisiones';
+
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -89,8 +108,8 @@ const AuthStack = React.memo(() => {
   const { isAuthenticated, currentCompany, currentSite } = useAuthStore();
 
   // Validate that we have valid data
-  const hasValidCompany = currentCompany && currentCompany.id && currentCompany.name;
-  const hasValidSite = currentSite && currentSite.id && currentSite.name;
+  const hasValidCompany = !!(currentCompany && currentCompany.id && currentCompany.name);
+  const hasValidSite = !!(currentSite && currentSite.id && currentSite.name);
 
   // Determine initial route based on authentication state
   const initialRouteName = React.useMemo(() => {
@@ -154,6 +173,20 @@ const MainStack = React.memo(() => {
         component={SitesScreen}
         options={{
           title: 'Gestión de Sedes'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="Warehouses"
+        component={WarehousesScreen}
+        options={{
+          title: 'Gestión de Almacenes'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="WarehouseAreas"
+        component={WarehouseAreasScreen}
+        options={{
+          title: 'Gestión de Áreas'
         }}
       />
       <MainStackNavigator.Screen
@@ -489,6 +522,16 @@ const MainStack = React.memo(() => {
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
+        name={MAIN_ROUTES.EDIT_EXPENSE_TEMPLATE}
+        options={{
+          title: 'Editar Plantilla'
+        }}
+      >
+        {(props) => (
+          <CreateExpenseTemplateScreen {...props} />
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
         name={MAIN_ROUTES.TEMPLATE_EXPENSES}
         options={{
           title: 'Gastos Generados'
@@ -547,6 +590,127 @@ const MainStack = React.memo(() => {
           title: 'Detalle de Producto'
         }}
       />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.REPARTOS}
+        options={{
+          title: 'Repartos'
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['campaigns.read', 'campaigns.create']}>
+            <RepartosScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="RepartoCampaignDetail"
+        component={RepartoCampaignDetailScreen}
+        options={{
+          title: 'Participantes de Campaña'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="RepartoParticipantDetail"
+        component={RepartoParticipantDetailScreen}
+        options={{
+          title: 'Productos de Reparto'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.REPARTO_DETAIL}
+        component={RepartoDetailScreen}
+        options={{
+          title: 'Detalle de Reparto'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BALANCES}
+        options={{
+          title: 'Balances'
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['balances.read', 'balances.create', 'balances.update']}>
+            <BalancesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.CREATE_BALANCE}
+        component={CreateBalanceScreen}
+        options={{
+          title: 'Nuevo Balance'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BALANCE_DETAIL}
+        component={BalanceDetailScreen}
+        options={{
+          title: 'Detalle de Balance'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BALANCE_OPERATIONS}
+        options={{
+          title: 'Operaciones de Balance'
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['balances.operations.read', 'balances.operations.create', 'balances.operations.update']}>
+            <BalanceOperationsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ALL_BALANCE_OPERATIONS}
+        options={{
+          title: 'Todas las Operaciones'
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['balances.operations.read']}>
+            <AllBalanceOperationsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.TRANSMISIONES}
+        options={{
+          title: 'Transmisiones'
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['transmisiones.read', 'transmisiones.create', 'transmisiones.update']}>
+            <TransmisionesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.CREATE_TRANSMISION}
+        options={{
+          title: 'Nueva Transmisión'
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['transmisiones.create']}>
+            <CreateTransmisionScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.TRANSMISION_DETAIL}
+        component={TransmisionDetailScreen}
+        options={{
+          title: 'Detalle de Transmisión'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={AUTH_ROUTES.SITE_SELECTION}
+        component={SiteSelectionScreen}
+        options={{
+          title: 'Seleccionar Sede'
+        }}
+      />
     </MainStackNavigator.Navigator>
   );
 });
@@ -556,11 +720,11 @@ export const Navigation = () => {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
   // Validate that site has valid data (not just an empty object)
-  const hasValidSite = currentSite && currentSite.id && currentSite.name;
-  const hasValidCompany = currentCompany && currentCompany.id && currentCompany.name;
+  const hasValidSite = !!(currentSite && currentSite.id && currentSite.name);
+  const hasValidCompany = !!(currentCompany && currentCompany.id && currentCompany.name);
 
   // Determine which stack to show based on authentication and selection state
-  const showMainStack = isAuthenticated && hasValidCompany && hasValidSite;
+  const showMainStack = !!(isAuthenticated && hasValidCompany && hasValidSite);
 
   console.log('🔄 Navigation render:', {
     isAuthenticated,

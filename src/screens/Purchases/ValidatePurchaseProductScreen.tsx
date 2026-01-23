@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { purchasesService } from '@/services/api';
@@ -20,6 +21,8 @@ import type { Warehouse, WarehouseArea } from '@/services/api/inventory';
 import type { Presentation } from '@/services/api/presentations';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
+import { PhotoCapture } from '@/components/Purchases/PhotoCapture';
+import { SignatureCapture } from '@/components/Purchases/SignatureCapture';
 
 interface ValidatePurchaseProductScreenProps {
   navigation: any;
@@ -53,6 +56,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [validationNotes, setValidationNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
 
+  // Photo and Signature
+  const [photoUri, setPhotoUri] = useState<string | undefined>();
+  const [signatureUri, setSignatureUri] = useState<string | undefined>();
+  const [showPhotoCapture, setShowPhotoCapture] = useState(false);
+  const [showSignatureCapture, setShowSignatureCapture] = useState(false);
+
   // Presentations from product (preliminary presentations)
   interface ValidatedPresentation {
     presentationId: string;
@@ -68,12 +77,14 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
   // Lists
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [areas, setAreas] = useState<WarehouseArea[]>([]);
   const [presentations, setPresentations] = useState<Presentation[]>([]);
 
   // UI State
   const [showWarehouseSelector, setShowWarehouseSelector] = useState(false);
   const [showAreaSelector, setShowAreaSelector] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [loadingAreas, setLoadingAreas] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -135,23 +146,38 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         const warehouse = warehousesData.find((w) => w.id === productData.warehouseId);
         if (warehouse) {
           setSelectedWarehouse(warehouse);
-          if (productData.areaId && warehouse.areas) {
-            const area = warehouse.areas.find((a) => a.id === productData.areaId);
-            if (area) setSelectedArea(area);
+
+          // Load areas for this warehouse
+          console.log('🔍 [INIT] Loading areas for warehouse:', warehouse.id, warehouse.name);
+          try {
+            const areasData = await inventoryApi.getWarehouseAreas(warehouse.id);
+            console.log('✅ [INIT] Areas loaded:', areasData.length, areasData);
+            setAreas(areasData);
+
+            // Set selected area if exists
+            if (productData.areaId) {
+              const area = areasData.find((a) => a.id === productData.areaId);
+              console.log('🔍 [INIT] Looking for area:', productData.areaId, 'Found:', area);
+              if (area) setSelectedArea(area);
+            }
+          } catch (error: any) {
+            console.error('❌ [INIT] Error loading warehouse areas:', error);
+            console.error('Error details:', error.message, error.response?.data);
+            setAreas([]);
           }
         }
       }
 
       // Load presentations from presentationHistory (PRELIMINARY type)
       if (productData.presentationHistory && productData.presentationHistory.length > 0) {
-        const preliminaryPresentations = productData.presentationHistory
+        const preliminaryPresentations: ValidatedPresentation[] = productData.presentationHistory
           .filter((ph) => ph.type === 'PRELIMINARY')
           .map((ph) => ({
             presentationId: ph.presentationId,
             presentationName: ph.presentation?.name || 'Presentación',
             factorToBase: ph.factorToBase,
             notes: ph.notes || '',
-            quantityOfPresentations: 0, // Inicializar en 0
+            quantityOfPresentations: 0 as number, // Inicializar en 0
           }));
         setValidatedPresentations(preliminaryPresentations);
 
@@ -161,10 +187,15 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           if (preliminaryPresentations.length > 0) {
             const firstPresentationId = preliminaryPresentations[0].presentationId;
             setSelectedPresentationForQuantity(firstPresentationId);
+            const validatedQty: number = productData.validatedPresentationQuantity ?? 0;
             const updatedPresentations = preliminaryPresentations.map((p, i) => ({
-              ...p,
-              quantityOfPresentations: i === 0 ? productData.validatedPresentationQuantity : 0,
-            }));
+              presentationId: p.presentationId,
+              presentationName: p.presentationName,
+              factorToBase: p.factorToBase,
+              notes: p.notes,
+              quantityOfPresentations: (i === 0 ? validatedQty : 0) as number,
+            })) as ValidatedPresentation[];
+            // @ts-ignore - TypeScript incorrectly infers quantityOfPresentations as number | undefined
             setValidatedPresentations(updatedPresentations);
           }
         } else if (productData.preliminaryPresentationQuantity !== undefined && productData.preliminaryPresentationQuantity !== null && productData.preliminaryPresentationQuantity > 0) {
@@ -172,10 +203,15 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           if (preliminaryPresentations.length > 0) {
             const firstPresentationId = preliminaryPresentations[0].presentationId;
             setSelectedPresentationForQuantity(firstPresentationId);
+            const preliminaryQty: number = productData.preliminaryPresentationQuantity ?? 0;
             const updatedPresentations = preliminaryPresentations.map((p, i) => ({
-              ...p,
-              quantityOfPresentations: i === 0 ? productData.preliminaryPresentationQuantity : 0,
-            }));
+              presentationId: p.presentationId,
+              presentationName: p.presentationName,
+              factorToBase: p.factorToBase,
+              notes: p.notes,
+              quantityOfPresentations: (i === 0 ? preliminaryQty : 0) as number,
+            })) as ValidatedPresentation[];
+            // @ts-ignore - TypeScript incorrectly infers quantityOfPresentations as number | undefined
             setValidatedPresentations(updatedPresentations);
           }
         }
@@ -188,6 +224,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       if (productData.validationNotes) {
         setValidationNotes(productData.validationNotes);
       }
+
+      // Reset photo and signature when loading
+      setPhotoUri(undefined);
+      setSignatureUri(undefined);
     } catch (error: any) {
       console.error('Error loading data:', error);
       Alert.alert('Error', 'No se pudo cargar los datos');
@@ -309,6 +349,8 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           notes: p.notes.trim() || undefined,
         })),
         barcode: barcode.trim() || undefined,
+        photoUrl: photoUri,
+        signatureUrl: signatureUri,
         validationNotes: validationNotes.trim() || undefined,
       });
 
@@ -408,6 +450,8 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                   notes: p.notes.trim() || undefined,
                 })),
                 barcode: barcode.trim() || undefined,
+                photoUrl: photoUri,
+                signatureUrl: signatureUri,
                 validationNotes: validationNotes.trim() || undefined,
               });
 
@@ -536,7 +580,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
           <Text style={styles.loadingText}>Cargando producto...</Text>
@@ -550,7 +594,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, isTablet && styles.headerTablet]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -646,7 +690,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               </TouchableOpacity>
 
               {showWarehouseSelector && (
-                <View style={[styles.optionsList, isTablet && styles.optionsListTablet]}>
+                <ScrollView style={[styles.optionsList, isTablet && styles.optionsListTablet]}>
                   {warehouses.map((warehouse) => (
                     <TouchableOpacity
                       key={warehouse.id}
@@ -655,10 +699,26 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                         isTablet && styles.optionItemTablet,
                         selectedWarehouse?.id === warehouse.id && styles.optionItemSelected,
                       ]}
-                      onPress={() => {
+                      onPress={async () => {
                         setSelectedWarehouse(warehouse);
                         setSelectedArea(null);
                         setShowWarehouseSelector(false);
+
+                        // Load areas for the selected warehouse
+                        setLoadingAreas(true);
+                        console.log('🔍 Loading areas for warehouse:', warehouse.id, warehouse.name);
+                        try {
+                          const areasData = await inventoryApi.getWarehouseAreas(warehouse.id);
+                          console.log('✅ Areas loaded:', areasData.length, areasData);
+                          setAreas(areasData);
+                        } catch (error: any) {
+                          console.error('❌ Error loading warehouse areas:', error);
+                          console.error('Error details:', error.message, error.response?.data);
+                          setAreas([]);
+                          Alert.alert('Advertencia', `No se pudieron cargar las áreas del almacén: ${error.message || 'Error desconocido'}`);
+                        } finally {
+                          setLoadingAreas(false);
+                        }
                       }}
                     >
                       <Text
@@ -672,18 +732,18 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </View>
+                </ScrollView>
               )}
             </View>
 
             {/* Area Selector */}
-            {selectedWarehouse && selectedWarehouse.areas && selectedWarehouse.areas.length > 0 && (
+            {selectedWarehouse && (
               <View style={styles.section}>
                 <Text style={[styles.label, isTablet && styles.labelTablet]}>Área</Text>
                 <TouchableOpacity
                   style={[styles.selector, isTablet && styles.selectorTablet]}
                   onPress={() => setShowAreaSelector(!showAreaSelector)}
-                  disabled={!canEdit()}
+                  disabled={!canEdit() || loadingAreas}
                 >
                   <Text
                     style={[
@@ -692,13 +752,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                       !selectedArea && styles.selectorPlaceholder,
                     ]}
                   >
-                    {selectedArea ? selectedArea.name : 'Seleccionar área (opcional)'}
+                    {loadingAreas
+                      ? 'Cargando áreas...'
+                      : selectedArea
+                      ? selectedArea.code
+                      : areas.length > 0
+                      ? 'Seleccionar área (opcional)'
+                      : 'Sin áreas disponibles'}
                   </Text>
                   <Text style={styles.selectorIcon}>{showAreaSelector ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
 
-                {showAreaSelector && (
-                  <View style={[styles.optionsList, isTablet && styles.optionsListTablet]}>
+                {showAreaSelector && !loadingAreas && (
+                  <ScrollView style={[styles.optionsList, isTablet && styles.optionsListTablet]}>
                     <TouchableOpacity
                       style={[styles.optionItem, isTablet && styles.optionItemTablet]}
                       onPress={() => {
@@ -710,7 +776,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                         Sin área específica
                       </Text>
                     </TouchableOpacity>
-                    {selectedWarehouse.areas.map((area) => (
+                    {areas.map((area) => (
                       <TouchableOpacity
                         key={area.id}
                         style={[
@@ -730,11 +796,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                             selectedArea?.id === area.id && styles.optionTextSelected,
                           ]}
                         >
-                          {area.name}
+                          {area.code}
                         </Text>
                       </TouchableOpacity>
                     ))}
-                  </View>
+                  </ScrollView>
                 )}
               </View>
             )}
@@ -944,6 +1010,68 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               </View>
               <Text style={[styles.hint, isTablet && styles.hintTablet]}>
                 Unidades sueltas + (Cantidad de presentaciones × Factor de conversión)
+              </Text>
+            </View>
+
+            {/* Photo Capture */}
+            <View style={styles.section}>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                Foto de Validación
+              </Text>
+              {photoUri ? (
+                <View style={styles.capturedContainer}>
+                  <Image source={{ uri: photoUri }} style={styles.capturedPhoto} />
+                  <TouchableOpacity
+                    style={styles.recaptureButton}
+                    onPress={() => setShowPhotoCapture(true)}
+                    disabled={!canEdit()}
+                  >
+                    <Text style={styles.recaptureButtonText}>📷 Cambiar Foto</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={() => setShowPhotoCapture(true)}
+                  disabled={!canEdit()}
+                >
+                  <Text style={styles.captureButtonIcon}>📷</Text>
+                  <Text style={styles.captureButtonText}>Tomar Foto</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
+                Foto del producto durante la validación (opcional)
+              </Text>
+            </View>
+
+            {/* Signature Capture */}
+            <View style={styles.section}>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                Firma de Validación
+              </Text>
+              {signatureUri ? (
+                <View style={styles.capturedContainer}>
+                  <Image source={{ uri: signatureUri }} style={styles.capturedSignature} />
+                  <TouchableOpacity
+                    style={styles.recaptureButton}
+                    onPress={() => setShowSignatureCapture(true)}
+                    disabled={!canEdit()}
+                  >
+                    <Text style={styles.recaptureButtonText}>✍️ Cambiar Firma</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={() => setShowSignatureCapture(true)}
+                  disabled={!canEdit()}
+                >
+                  <Text style={styles.captureButtonIcon}>✍️</Text>
+                  <Text style={styles.captureButtonText}>Capturar Firma</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
+                Firma del responsable de la validación (opcional)
               </Text>
             </View>
 
@@ -1198,6 +1326,33 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             </View>
           </View>
         </View>
+      )}
+
+      {/* Photo Capture Modal */}
+      {showPhotoCapture && (
+        <Modal visible={showPhotoCapture} animationType="slide" onRequestClose={() => setShowPhotoCapture(false)}>
+          <PhotoCapture
+            onPhotoCapture={(uri) => {
+              setPhotoUri(uri);
+              setShowPhotoCapture(false);
+            }}
+            onCancel={() => setShowPhotoCapture(false)}
+            currentPhoto={photoUri}
+          />
+        </Modal>
+      )}
+
+      {/* Signature Capture Modal */}
+      {showSignatureCapture && (
+        <Modal visible={showSignatureCapture} animationType="slide" onRequestClose={() => setShowSignatureCapture(false)}>
+          <SignatureCapture
+            onSignatureCapture={(signature) => {
+              setSignatureUri(signature);
+              setShowSignatureCapture(false);
+            }}
+            onCancel={() => setShowSignatureCapture(false)}
+          />
+        </Modal>
       )}
     </SafeAreaView>
   );
@@ -1711,6 +1866,52 @@ const styles = StyleSheet.create({
   dialogConfirmButtonTextTablet: {
     fontSize: 17,
   },
+  captureButton: {
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 32,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  captureButtonIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  captureButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  capturedContainer: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
+  },
+  capturedPhoto: {
+    width: '100%',
+    height: 200,
+    resizeMode: 'contain',
+  },
+  capturedSignature: {
+    width: '100%',
+    height: 150,
+    resizeMode: 'contain',
+    backgroundColor: '#FFFFFF',
+  },
+  recaptureButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  recaptureButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   presentationHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1915,3 +2116,4 @@ const styles = StyleSheet.create({
 });
 
 export default ValidatePurchaseProductScreen;
+

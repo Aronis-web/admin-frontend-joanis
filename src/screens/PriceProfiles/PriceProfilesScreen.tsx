@@ -12,6 +12,7 @@ import {
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { priceProfilesApi } from '@/services/api';
 import { PriceProfile, CreatePriceProfileRequest, UpdatePriceProfileRequest } from '@/types/price-profiles';
 
@@ -351,15 +352,15 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer} edges={['top']}>
         <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.loadingText}>Cargando perfiles de precio...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -438,7 +439,7 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
         }}
         icon="💰"
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

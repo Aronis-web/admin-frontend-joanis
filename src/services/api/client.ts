@@ -75,14 +75,56 @@ class ApiClient {
           }
         }
 
+        // Detect if this is a FormData request
+        const isFormData = requestConfig.data instanceof FormData;
+
+        // If it's FormData, remove Content-Type to let React Native handle it
+        // React Native's FormData will automatically set the correct Content-Type with boundary
+        if (isFormData && requestConfig.headers) {
+          // Delete any existing Content-Type - React Native will add it with boundary
+          delete requestConfig.headers['Content-Type'];
+          delete requestConfig.headers['content-type'];
+
+          // Also remove from common header variations
+          Object.keys(requestConfig.headers).forEach(key => {
+            if (key.toLowerCase() === 'content-type') {
+              delete (requestConfig.headers as any)[key];
+            }
+          });
+
+          console.log('📦 FormData detected - removing Content-Type to let React Native handle boundary');
+          console.log('📋 Headers after cleanup:', Object.keys(requestConfig.headers));
+        }
+
         // Add Authorization header if token is available
+        // Prefer authService token, fallback to store token
         const currentToken = authService.getAccessToken() || token;
         if (currentToken) {
           requestConfig.headers.Authorization = `Bearer ${currentToken}`;
+          console.log('✅ Authorization header set with token length:', currentToken.length);
+        } else {
+          console.warn('⚠️ No token available - user may not be authenticated');
+        }
+
+        // Special logging for /transfers endpoint to debug auth issues
+        if (requestConfig.url?.includes('/transfers')) {
+          console.log('🔍 /transfers Request Details:', {
+            url: requestConfig.url,
+            method: requestConfig.method,
+            hasToken: !!currentToken,
+            tokenLength: currentToken?.length || 0,
+            authServiceToken: !!authService.getAccessToken(),
+            storeToken: !!token,
+            userId: user?.id,
+            isAuthenticated: authStore.isAuthenticated,
+          });
         }
 
         // Add X-App-Id header to all requests (required by API)
-        requestConfig.headers['X-App-Id'] = config.APP_ID;
+        const appId = config.APP_ID;
+        console.log('🔑 Setting X-App-Id header:', appId);
+        requestConfig.headers['X-App-Id'] = appId;
+        requestConfig.headers['x-app-id'] = appId; // Also set lowercase for compatibility
 
         // Auto-sync tenant context from stores (prefer tenant store, fallback to auth store)
         const effectiveCompanyId = selectedCompany?.id || currentCompany?.id || this.tenantContext.companyId;
@@ -108,11 +150,14 @@ class ApiClient {
         console.log('API Request:', {
           url: requestConfig.url,
           method: requestConfig.method,
+          params: requestConfig.params,
+          isFormData,
           headers: {
             ...requestConfig.headers,
             'Authorization': requestConfig.headers.Authorization ? 'Bearer [REDACTED]' : 'None'
           },
           'X-App-Id': requestConfig.headers['X-App-Id'],
+          'x-app-id': requestConfig.headers['x-app-id'],
           'X-Company-Id': requestConfig.headers['X-Company-Id'] || 'None',
           'X-Site-Id': requestConfig.headers['X-Site-Id'] || 'None',
           'X-Warehouse-Id': requestConfig.headers['X-Warehouse-Id'] || 'None',
@@ -148,6 +193,30 @@ class ApiClient {
           headers: error.config?.headers,
           authorization: error.config?.headers?.Authorization ? 'Present' : 'Missing'
         });
+
+        // Enhanced debugging for 403 errors on /transfers endpoint
+        if (error.response?.status === 403 && error.config?.url?.includes('/transfers')) {
+          const authStore = useAuthStore.getState();
+          console.error('❌ 403 Forbidden on /transfers - Detailed Debug:', {
+            url: error.config?.url,
+            fullUrl: `${config.API_URL}${error.config?.url}`,
+            errorMessage: error.response?.data?.message,
+            hasToken: !!error.config?.headers?.Authorization,
+            authServiceToken: !!authService.getAccessToken(),
+            storeToken: !!authStore.token,
+            userId: authStore.user?.id,
+            isAuthenticated: authStore.isAuthenticated,
+            currentCompanyId: authStore.currentCompany?.id,
+            currentSiteId: authStore.currentSite?.id,
+            requestHeaders: {
+              'Authorization': error.config?.headers?.Authorization ? 'Bearer [REDACTED]' : 'Missing',
+              'X-App-Id': error.config?.headers?.['X-App-Id'],
+              'X-Company-Id': error.config?.headers?.['X-Company-Id'],
+              'X-Site-Id': error.config?.headers?.['X-Site-Id'],
+              'X-User-Id': error.config?.headers?.['X-User-Id'],
+            },
+          });
+        }
 
         // Simplified debugging for 401 errors
         if (error.response?.status === 401) {
@@ -256,14 +325,119 @@ class ApiClient {
     data?: any,
     config?: AxiosRequestConfig
   ): Promise<T> {
+    const isFormData = data instanceof FormData;
     console.log('📤 POST Request:', {
       url,
       data,
       hasData: !!data,
-      dataKeys: data ? Object.keys(data) : []
+      dataKeys: data && !isFormData ? Object.keys(data) : [],
+      isFormData,
+      dataType: data?.constructor?.name
     });
+
+    // For FormData in React Native, use fetch directly to avoid axios Content-Type issues
+    if (isFormData) {
+      console.log('📦 Using fetch for FormData upload to bypass axios Content-Type issues');
+      return this.postFormDataWithFetch<T>(url, data, config);
+    }
+
     const response: AxiosResponse<T> = await this.client.post(url, data, config);
     return response.data;
+  }
+
+  /**
+   * Upload FormData using fetch instead of axios
+   * This bypasses axios's Content-Type handling issues in React Native
+   */
+  private async postFormDataWithFetch<T = any>(
+    url: string,
+    formData: FormData,
+    requestConfig?: AxiosRequestConfig
+  ): Promise<T> {
+    const authStore = useAuthStore.getState();
+    const tenantStore = useTenantStore.getState();
+    const { user, currentCompany, currentSite } = authStore;
+    const { selectedCompany, selectedSite, selectedWarehouse } = tenantStore;
+
+    // Get the current token
+    const currentToken = authService.getAccessToken() || authStore.token;
+
+    // Build headers
+    const headers: Record<string, string> = {
+      'Accept': 'application/json, text/plain, */*',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    };
+
+    // Merge custom headers if provided
+    if (requestConfig?.headers) {
+      Object.entries(requestConfig.headers).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          headers[key] = String(value);
+        }
+      });
+    }
+
+    // Add auth header
+    if (currentToken) {
+      headers['Authorization'] = `Bearer ${currentToken}`;
+    }
+
+    // Add tenant context headers (use imported config from @/utils/config)
+    const appId = config.APP_ID;
+    headers['X-App-Id'] = appId;
+    headers['x-app-id'] = appId;
+
+    const effectiveCompanyId = selectedCompany?.id || currentCompany?.id || this.tenantContext.companyId;
+    const effectiveSiteId = selectedSite?.id || currentSite?.id || this.tenantContext.siteId;
+    const effectiveWarehouseId = selectedWarehouse?.id || this.tenantContext.warehouseId;
+    const effectiveUserId = user?.id || this.tenantContext.userId;
+
+    if (effectiveUserId) headers['X-User-Id'] = effectiveUserId;
+    if (effectiveCompanyId) headers['X-Company-Id'] = effectiveCompanyId;
+    if (effectiveSiteId) headers['X-Site-Id'] = effectiveSiteId;
+    if (effectiveWarehouseId) headers['X-Warehouse-Id'] = effectiveWarehouseId;
+
+    // DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
+    console.log('🌐 Fetch request headers:', Object.keys(headers));
+
+    const fullUrl = `${this.client.defaults.baseURL}${url}`;
+    console.log('🌐 Fetch URL:', fullUrl);
+
+    try {
+      // No timeout - OCR processing can take several minutes
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      console.log('🌐 Fetch response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('🌐 Fetch error response:', errorText);
+
+        // Enhanced error for 524 timeout
+        if (response.status === 524) {
+          const error: any = new Error('El servidor tardó demasiado en procesar los documentos. Intenta con menos archivos o archivos más pequeños.');
+          error.isTimeout = true;
+          error.status = 524;
+          throw error;
+        }
+
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('🌐 Fetch success:', result);
+      return result;
+    } catch (error: any) {
+      console.error('🌐 Fetch error:', error);
+
+      throw error;
+    }
   }
 
   async put<T = any>(

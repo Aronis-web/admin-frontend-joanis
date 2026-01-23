@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { campaignsService } from '@/services/api';
+import { campaignsService, sitesService } from '@/services/api';
 import { CreateCampaignRequest } from '@/types/campaigns';
+import { Site } from '@/types/sites';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { DatePicker } from '@/components/DatePicker';
+import { Picker } from '@react-native-picker/picker';
 
 interface CreateCampaignScreenProps {
   navigation: any;
@@ -29,12 +31,32 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [notes, setNotes] = useState('');
+  const [remainderSiteId, setRemainderSiteId] = useState<string>('');
+  const [sites, setSites] = useState<Site[]>([]);
+  const [loadingSites, setLoadingSites] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
+
+  useEffect(() => {
+    loadSites();
+  }, []);
+
+  const loadSites = async () => {
+    setLoadingSites(true);
+    try {
+      const response = await sitesService.getSites({ limit: 100, isActive: true });
+      setSites(response.data || []);
+    } catch (error) {
+      console.error('Error loading sites:', error);
+      Alert.alert('Error', 'No se pudieron cargar las sedes');
+    } finally {
+      setLoadingSites(false);
+    }
+  };
 
   const formatDate = (date: Date | undefined): string => {
     if (!date) return '';
@@ -60,6 +82,11 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
       return;
     }
 
+    if (!remainderSiteId) {
+      Alert.alert('Error', 'La sede de remanente es obligatoria');
+      return;
+    }
+
     if (startDate && endDate) {
       if (endDate < startDate) {
         Alert.alert('Error', 'La fecha de fin debe ser mayor o igual a la fecha de inicio');
@@ -76,6 +103,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
         startDate: formatDate(startDate) || undefined,
         endDate: formatDate(endDate) || undefined,
         notes: notes.trim() || undefined,
+        remainderSiteId: remainderSiteId,
       };
 
       const campaign = await campaignsService.createCampaign(data);
@@ -105,7 +133,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
 
   return (
     <ScreenLayout navigation={navigation}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity
@@ -220,6 +248,36 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
               />
             </View>
 
+            {/* Remainder Site */}
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                Sede de Remanente (Redondeo) *
+              </Text>
+              <Text style={[styles.helperText, isTablet && styles.helperTextTablet]}>
+                Sede que absorberá las unidades sobrantes del redondeo en los repartos
+              </Text>
+              <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
+                {loadingSites ? (
+                  <ActivityIndicator color="#6366F1" />
+                ) : (
+                  <Picker
+                    selectedValue={remainderSiteId}
+                    onValueChange={(value) => setRemainderSiteId(value)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Seleccionar sede de remanente" value="" />
+                    {sites.map((site) => (
+                      <Picker.Item
+                        key={site.id}
+                        label={`${site.code} - ${site.name}`}
+                        value={site.id}
+                      />
+                    ))}
+                  </Picker>
+                )}
+              </View>
+            </View>
+
             {/* Info Box */}
             <View style={[styles.infoBox, isTablet && styles.infoBoxTablet]}>
               <Text style={[styles.infoTitle, isTablet && styles.infoTitleTablet]}>
@@ -229,6 +287,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
                 • La campaña se creará en estado BORRADOR{'\n'}
                 • Podrás agregar participantes y productos después{'\n'}
                 • Las fechas son opcionales{'\n'}
+                • La sede de remanente es OBLIGATORIA y absorberá las unidades del redondeo{'\n'}
                 • Debes activar la campaña para generar repartos
               </Text>
             </View>
@@ -493,4 +552,28 @@ const styles = StyleSheet.create({
   createButtonTextTablet: {
     fontSize: 18,
   },
+  helperText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  helperTextTablet: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  pickerContainerTablet: {
+    borderRadius: 10,
+  },
+  picker: {
+    height: 50,
+  },
 });
+

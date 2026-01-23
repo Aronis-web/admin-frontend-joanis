@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { expensesService, sitesService } from '@/services/api';
 import {
   Expense,
@@ -23,6 +24,8 @@ import { MAIN_ROUTES } from '@/constants/routes';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { ExpenseCard } from '@/components/Expenses/ExpenseCard';
 import { ReconcileAmountModal } from '@/components/Expenses/ReconcileAmountModal';
+import { PaymentsModal } from '@/components/Expenses/PaymentsModal';
+import { ExpenseReportModal } from '@/components/Expenses/ExpenseReportModal';
 import { usePermissions } from '@/hooks/usePermissions';
 
 interface ExpensesScreenProps {
@@ -35,7 +38,16 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
   const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<ExpenseStatus | 'ALL'>('ALL');
   const [reconcileModalVisible, setReconcileModalVisible] = useState(false);
+  const [paymentsModalVisible, setPaymentsModalVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+
   const { currentCompany, currentSite } = useAuthStore();
   const { hasPermission } = usePermissions();
   const { width, height } = useWindowDimensions();
@@ -48,9 +60,16 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
   const canDelete = hasPermission('expenses.payments.delete') || hasPermission('expenses.admin');
   const canCreatePayment = hasPermission('expenses.payments.create') || hasPermission('expenses.admin');
 
-  const loadExpenses = useCallback(async () => {
+  const loadExpenses = useCallback(async (page: number = 1) => {
     try {
-      const params: any = {};
+      setLoading(true);
+
+      const params: any = {
+        page,
+        limit: pagination.limit,
+        sortBy: 'expenseDate',
+        sortOrder: 'DESC',
+      };
       if (selectedStatus !== 'ALL') params.status = selectedStatus;
 
       // Load expenses and sites in parallel
@@ -61,8 +80,6 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
 
       console.log('📊 Expenses loaded:', expensesResponse.data.length);
       console.log('🏢 Sites loaded:', sitesResponse.data.length);
-      console.log('📝 First expense siteId:', expensesResponse.data[0]?.siteId);
-      console.log('🏢 First site:', sitesResponse.data[0]);
 
       // Create a map of sites by ID for quick lookup
       const sitesMap = new Map(
@@ -75,9 +92,16 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
         site: expense.siteId ? sitesMap.get(expense.siteId) : undefined,
       }));
 
-      console.log('✅ First enriched expense site:', enrichedExpenses[0]?.site);
-
       setExpenses(enrichedExpenses);
+
+      // Update pagination info - API returns flat structure
+      const totalPages = Math.ceil(expensesResponse.total / expensesResponse.limit);
+      setPagination({
+        page: expensesResponse.page,
+        limit: expensesResponse.limit,
+        total: expensesResponse.total,
+        totalPages: totalPages,
+      });
     } catch (error: any) {
       console.error('Error loading expenses:', error);
       Alert.alert('Error', 'No se pudieron cargar los gastos');
@@ -85,7 +109,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedStatus]);
+  }, [selectedStatus, pagination.limit]);
 
   // Auto-reload expenses when screen comes into focus
   useFocusEffect(
@@ -98,11 +122,27 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadExpenses();
+    loadExpenses(1);
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.page > 1) {
+      loadExpenses(pagination.page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) {
+      loadExpenses(pagination.page + 1);
+    }
   };
 
   const handleCreateExpense = () => {
     navigation.navigate(MAIN_ROUTES.CREATE_EXPENSE as never);
+  };
+
+  const handleOpenReportModal = () => {
+    setReportModalVisible(true);
   };
 
   const handleExpensePress = (expense: Expense) => {
@@ -162,6 +202,12 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
 
   const handleReconcileSuccess = () => {
     loadExpenses();
+  };
+
+  const handleViewPayments = (expense: Expense) => {
+    // Open payments modal instead of navigating
+    setSelectedExpense(expense);
+    setPaymentsModalVisible(true);
   };
 
   const renderStatusFilter = () => {
@@ -229,25 +275,76 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
     }
 
     return (
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      >
-        {expenses.map((expense) => (
-          <ExpenseCard
-            key={expense.id}
-            expense={expense}
-            onPress={handleExpensePress}
-            onEdit={canUpdate ? handleEditExpense : undefined}
-            onDelete={canDelete ? handleDeleteExpense : undefined}
-            onAddPayment={canCreatePayment ? handleAddPayment : undefined}
-            onReconcileAmount={canUpdate ? handleReconcileAmount : undefined}
-          />
-        ))}
-      </ScrollView>
+      <>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        >
+          {expenses.map((expense) => (
+            <ExpenseCard
+              key={expense.id}
+              expense={expense}
+              onPress={handleExpensePress}
+              onEdit={canUpdate ? handleEditExpense : undefined}
+              onDelete={canDelete ? handleDeleteExpense : undefined}
+              onAddPayment={canCreatePayment ? handleAddPayment : undefined}
+              onReconcileAmount={canUpdate ? handleReconcileAmount : undefined}
+              onViewPayments={handleViewPayments}
+            />
+          ))}
+        </ScrollView>
+        {pagination.total > 0 && (
+          <View style={styles.paginationContainer}>
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                pagination.page === 1 && styles.paginationButtonDisabled,
+              ]}
+              onPress={handlePreviousPage}
+              disabled={pagination.page === 1}
+            >
+              <Text
+                style={[
+                  styles.paginationButtonText,
+                  pagination.page === 1 && styles.paginationButtonTextDisabled,
+                ]}
+              >
+                ← Anterior
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.paginationInfo}>
+              <Text style={styles.paginationText}>
+                Pág. {pagination.page}/{pagination.totalPages}
+              </Text>
+              <Text style={styles.paginationSubtext}>
+                {expenses.length} de {pagination.total}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
+              ]}
+              onPress={handleNextPage}
+              disabled={pagination.page >= pagination.totalPages}
+            >
+              <Text
+                style={[
+                  styles.paginationButtonText,
+                  pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
+                ]}
+              >
+                Siguiente →
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </>
     );
   };
 
@@ -265,6 +362,16 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
       <View style={styles.container}>
         {renderStatusFilter()}
         {renderContent()}
+
+        {/* Download Report Button - Above Add Button */}
+        <TouchableOpacity
+          style={styles.downloadButton}
+          onPress={handleOpenReportModal}
+          activeOpacity={0.9}
+        >
+          <Ionicons name="download" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+
         <AddButton onPress={handleCreateExpense} />
       </View>
 
@@ -279,6 +386,24 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
           onSuccess={handleReconcileSuccess}
         />
       )}
+
+      {/* Payments Modal */}
+      <PaymentsModal
+        visible={paymentsModalVisible}
+        expenseId={selectedExpense?.id || null}
+        expenseCode={selectedExpense?.code}
+        onClose={() => {
+          setPaymentsModalVisible(false);
+          setSelectedExpense(null);
+        }}
+      />
+
+      {/* Report Modal */}
+      <ExpenseReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        isRecurrent={false}
+      />
     </SafeAreaView>
   );
 };
@@ -390,6 +515,70 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#6366F1',
+  },
+  paginationContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 60,
+  },
+  paginationInfo: {
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  paginationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  paginationButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#6366F1',
+    minWidth: 110,
+    alignItems: 'center',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  paginationButtonTextDisabled: {
+    color: '#94A3B8',
+  },
+  downloadButton: {
+    position: 'absolute',
+    bottom: 160, // Above the Add button (90px) + 70px spacing
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#6366F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    zIndex: 9997,
   },
 });
 

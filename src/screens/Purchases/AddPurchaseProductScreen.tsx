@@ -194,7 +194,7 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, isTablet && styles.headerTablet]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -1316,3 +1316,4 @@ const modalStyles = StyleSheet.create({
 });
 
 export default AddPurchaseProductScreen;
+
