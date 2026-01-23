@@ -15,9 +15,9 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { purchasesService } from '@/services/api';
 import logger from '@/utils/logger';
-import { useOcrScannerStore, OcrScannedProduct } from '@/store/ocrScanner';
+import { useOcrScannerStore, OcrScannedProduct, ScanJob } from '@/store/ocrScanner';
+import { ocrScanQueue } from '@/services/ocrScanQueue';
 
 interface OcrScannedItem {
   sku: string;
@@ -166,26 +166,19 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
 }) => {
   // Use Zustand store for persistent state
   const {
-    isScanning,
-    scanningProgress,
-    scannedFiles,
-    observaciones,
+    scanJobs,
     scannedProducts,
-    lastScanResponse,
-    editingProductId,
-    setScanning,
-    setScanningProgress,
-    addScannedFiles,
-    removeScannedFile,
-    clearScannedFiles,
-    setObservaciones,
-    addScannedProducts,
+    addScannedFiles: addFilesToStore,
+    removeScannedFile: removeFileFromStore,
+    clearScannedFiles: clearFilesFromStore,
+    setObservaciones: setObservacionesInStore,
+    getScannedFiles,
+    getObservaciones,
     updateScannedProduct,
     removeScannedProduct,
-    clearScannedProducts,
-    setLastScanResponse,
-    setEditingProductId,
-    resetScannerState,
+    setEditingProductId: setEditingProductIdInStore,
+    getEditingProductId,
+    getScanJobsByPurchase,
   } = useOcrScannerStore();
 
   // Local state only for loading
@@ -194,17 +187,34 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
 
+  // Get data for current purchase
+  const scannedFiles = useMemo(() => getScannedFiles(purchaseId), [purchaseId, getScannedFiles]);
+  const observaciones = useMemo(() => getObservaciones(purchaseId), [purchaseId, getObservaciones]);
+  const editingProductId = useMemo(() => getEditingProductId(purchaseId), [purchaseId, getEditingProductId]);
+
   // Filter products for current purchase
   const products = useMemo(() => {
     return scannedProducts.filter(p => p.purchaseId === purchaseId);
   }, [scannedProducts, purchaseId]);
 
+  // Get scan jobs for current purchase
+  const purchaseJobs = useMemo(() => getScanJobsByPurchase(purchaseId), [purchaseId, getScanJobsByPurchase, scanJobs]);
+  const activeJob = useMemo(() => purchaseJobs.find(j => j.status === 'scanning'), [purchaseJobs]);
+  const isScanning = !!activeJob;
+  const scanningProgress = activeJob?.progress || null;
+
+  // Get last completed job for this purchase
+  const lastCompletedJob = useMemo(() => {
+    const completed = purchaseJobs.filter(j => j.status === 'completed').sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+    return completed[0];
+  }, [purchaseJobs]);
+
   // Load products when modal opens
   useEffect(() => {
     if (visible) {
-      logger.debug(`📂 Modal opened for purchase ${purchaseId}. Found ${products.length} scanned products.`);
+      logger.debug(`📂 Modal opened for purchase ${purchaseId}. Found ${products.length} scanned products and ${purchaseJobs.length} jobs.`);
     }
-  }, [visible, purchaseId, products.length]);
+  }, [visible, purchaseId, products.length, purchaseJobs.length]);
 
   // Memoized calculations for better performance
   const canConfirm = useMemo(() => {
@@ -227,11 +237,11 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
 
   const handleClose = useCallback(() => {
     // Solo limpiar archivos y observaciones, NO los productos escaneados
-    clearScannedFiles();
-    setObservaciones('');
-    setEditingProductId(null);
+    clearFilesFromStore(purchaseId);
+    setObservacionesInStore(purchaseId, '');
+    setEditingProductIdInStore(purchaseId, null);
     onClose();
-  }, [clearScannedFiles, setObservaciones, setEditingProductId, onClose]);
+  }, [clearFilesFromStore, setObservacionesInStore, setEditingProductIdInStore, purchaseId, onClose]);
 
   const scanDocuments = useCallback(async () => {
     if (scannedFiles.length === 0) {
@@ -239,156 +249,39 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       return;
     }
 
-    const startTime = Date.now();
-    setScanning(true);
-    setScanningProgress(null);
+    // Crear un nuevo trabajo de escaneo
+    const job: ScanJob = {
+      id: `job-${purchaseId}-${Date.now()}`,
+      purchaseId,
+      files: scannedFiles,
+      observaciones: observaciones || undefined,
+      status: 'pending',
+      progress: null,
+    };
 
-    try {
-      logger.debug('📄 Scanning documents:', {
-        count: scannedFiles.length,
-        files: scannedFiles.map(f => ({
-          name: f.name,
-          mimeType: f.mimeType,
-          uri: f.uri.substring(0, 50) + '...',
-        })),
-        observaciones: observaciones,
-        purchaseId,
-      });
+    logger.debug('📄 Creating scan job:', {
+      jobId: job.id,
+      purchaseId,
+      filesCount: scannedFiles.length,
+      hasObservaciones: !!observaciones,
+    });
 
-      // Use new batch OCR endpoint (60-80% faster for multiple files)
-      const files = scannedFiles.map(file => ({
-        uri: file.uri,
-        filename: file.name,
-        mimeType: file.mimeType,
-      }));
+    // Agregar trabajo a la cola
+    await ocrScanQueue.addJob(job);
 
-      logger.debug('📤 Sending to OCR service:', {
-        filesCount: files.length,
-        hasObservaciones: !!observaciones,
-      });
+    // Limpiar archivos después de agregar a la cola
+    clearFilesFromStore(purchaseId);
+    setObservacionesInStore(purchaseId, '');
 
-      let data: any;
-      let usedFallback = false;
+    // Mostrar mensaje de confirmación
+    Alert.alert(
+      '🚀 Escaneo Iniciado',
+      `Se ha iniciado el escaneo de ${scannedFiles.length} archivo(s) para esta compra.\n\nEl proceso continuará en segundo plano. Puedes cerrar este modal y revisar otras compras.\n\nRecibirás una notificación cuando el escaneo termine.`,
+      [{ text: 'Entendido' }]
+    );
 
-      try {
-        // Try batch processing first
-        data = await purchasesService.scanDocuments(
-          files,
-          observaciones || undefined
-        );
-      } catch (batchError: any) {
-        logger.error('❌ Batch processing failed:', {
-          error: batchError.message,
-          isTimeout: batchError.isTimeout,
-          status: batchError.status,
-        });
-
-        // If timeout error (524 or AbortError), fallback to sequential processing
-        if (batchError.isTimeout || batchError.status === 524) {
-          logger.debug('🔄 Falling back to sequential processing...');
-
-          Alert.alert(
-            'Procesamiento Lento',
-            'El procesamiento por lotes tardó demasiado. Se procesarán los archivos uno por uno. Esto puede tomar más tiempo.',
-            [{ text: 'Continuar' }]
-          );
-
-          usedFallback = true;
-
-          // Use sequential processing with progress callback
-          data = await purchasesService.scanDocumentsSequentially(
-            files,
-            observaciones || undefined,
-            (current, total, filename) => {
-              setScanningProgress({ current, total, filename });
-            }
-          );
-        } else {
-          // Re-throw non-timeout errors
-          throw batchError;
-        }
-      }
-
-      logger.debug('📥 OCR Response received:', {
-        hasItems: !!data?.items,
-        itemsCount: data?.items?.length || 0,
-        archivos_procesados: data?.archivos_procesados,
-        total_estimado: data?.total_estimado,
-        observaciones: data?.observaciones,
-        usedFallback,
-      });
-
-      // Validate response structure
-      if (!data) {
-        throw new Error('No se recibió respuesta del servidor');
-      }
-
-      if (!data.items || !Array.isArray(data.items)) {
-        logger.error('Invalid response structure:', data);
-        throw new Error('Respuesta inválida del servidor - formato incorrecto');
-      }
-
-      // Normalize scanned items using pure function
-      const editableProducts = data.items.map(normalizeScannedProduct);
-
-      logger.debug('📦 Products normalized:', {
-        count: editableProducts.length,
-        sample: editableProducts[0],
-      });
-
-      if (editableProducts.length === 0) {
-        Alert.alert(
-          'Sin productos',
-          'No se detectaron productos en los documentos. Intenta con otras imágenes.'
-        );
-      }
-
-      // Save products to persistent store
-      const productsToSave: OcrScannedProduct[] = editableProducts.map((p: EditableProduct) => ({
-        ...p,
-        purchaseId,
-        scannedAt: Date.now(),
-      }));
-
-      addScannedProducts(productsToSave, purchaseId);
-      setLastScanResponse(data);
-      setScanning(false);
-      setScanningProgress(null);
-
-      // Clear files after successful scan
-      clearScannedFiles();
-
-      logger.perf('Documents scanned successfully', startTime);
-      logger.debug(`✅ Detected ${editableProducts.length} products from ${data.archivos_procesados} files`);
-
-      // Show success message
-      const processingMethod = usedFallback ? 'procesamiento secuencial' : 'procesamiento por lotes';
-      Alert.alert(
-        'Escaneo Exitoso',
-        `Se detectaron ${editableProducts.length} productos de ${data.archivos_procesados} archivo(s) usando ${processingMethod}.\n\nTotal estimado: S/ ${data.total_estimado.toFixed(2)}\n\nLos productos se han guardado y permanecerán disponibles aunque cierres el modal.`
-      );
-
-    } catch (error: any) {
-      logger.error('❌ Error scanning documents:', {
-        error: error.message,
-        errorStack: error.stack,
-        responseData: error?.response?.data,
-        fileCount: scannedFiles.length,
-      });
-
-      let errorMessage = 'No se pudo escanear los documentos';
-
-      if (error?.response?.data?.error) {
-        errorMessage = `Error OCR: ${error.response.data.error}`;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-
-      Alert.alert('Error', errorMessage);
-      setScanning(false);
-      setScanningProgress(null);
-    }
-  }, [scannedFiles, observaciones, purchaseId, setScanning, setScanningProgress, addScannedProducts, setLastScanResponse, clearScannedFiles]);
+    logger.debug(`✅ Scan job ${job.id} added to queue`);
+  }, [scannedFiles, observaciones, purchaseId, clearFilesFromStore, setObservacionesInStore]);
 
   const pickImage = useCallback(async () => {
     try {
@@ -421,9 +314,9 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           Alert.alert('Límite alcanzado', 'Solo se pueden seleccionar hasta 10 archivos');
           // Add only what fits
           const filesToAdd = newFiles.slice(0, 10 - scannedFiles.length);
-          addScannedFiles(filesToAdd);
+          addFilesToStore(purchaseId, filesToAdd);
         } else {
-          addScannedFiles(newFiles);
+          addFilesToStore(purchaseId, newFiles);
         }
 
         logger.debug(`📁 Added ${newFiles.length} files. Total: ${scannedFiles.length + newFiles.length}`);
@@ -432,7 +325,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       logger.error('Error picking image:', error);
       Alert.alert('Error', 'No se pudo seleccionar la imagen');
     }
-  }, [scannedFiles, addScannedFiles]);
+  }, [scannedFiles, addFilesToStore, purchaseId]);
 
   const takePhoto = useCallback(async () => {
     try {
@@ -464,14 +357,14 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           mimeType: 'image/jpeg',
         };
 
-        addScannedFiles([fileData]);
+        addFilesToStore(purchaseId, [fileData]);
         logger.debug(`📸 Photo added. Total files: ${scannedFiles.length + 1}`);
       }
     } catch (error) {
       logger.error('Error taking photo:', error);
       Alert.alert('Error', 'No se pudo tomar la foto');
     }
-  }, [scannedFiles, addScannedFiles]);
+  }, [scannedFiles, addFilesToStore, purchaseId]);
 
   const pickDocument = useCallback(async () => {
     try {
@@ -502,9 +395,9 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           Alert.alert('Límite alcanzado', 'Solo se pueden seleccionar hasta 10 archivos');
           // Add only what fits
           const filesToAdd = newFiles.slice(0, 10 - scannedFiles.length);
-          addScannedFiles(filesToAdd);
+          addFilesToStore(purchaseId, filesToAdd);
         } else {
-          addScannedFiles(newFiles);
+          addFilesToStore(purchaseId, newFiles);
         }
 
         logger.debug(`📄 Added ${newFiles.length} documents. Total: ${scannedFiles.length + newFiles.length}`);
@@ -513,12 +406,12 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       logger.error('Error picking document:', error);
       Alert.alert('Error', 'No se pudo seleccionar el documento');
     }
-  }, [scannedFiles, addScannedFiles]);
+  }, [scannedFiles, addFilesToStore, purchaseId]);
 
   const removeFile = useCallback((index: number) => {
-    removeScannedFile(index);
+    removeFileFromStore(purchaseId, index);
     logger.debug(`🗑️ File removed. Total: ${scannedFiles.length - 1}`);
-  }, [removeScannedFile, scannedFiles.length]);
+  }, [removeFileFromStore, purchaseId, scannedFiles.length]);
 
   const handleAddNewRow = useCallback(() => {
     const newProduct: OcrScannedProduct = {
@@ -533,9 +426,10 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       purchaseId,
       scannedAt: Date.now(),
     };
-    addScannedProducts([newProduct], purchaseId);
-    setEditingProductId(newProduct.id);
-  }, [purchaseId, addScannedProducts, setEditingProductId]);
+    const store = useOcrScannerStore.getState();
+    store.addScannedProducts([newProduct], purchaseId);
+    setEditingProductIdInStore(purchaseId, newProduct.id);
+  }, [purchaseId, setEditingProductIdInStore]);
 
   const handleDeleteProduct = useCallback((productId: string) => {
     Alert.alert(
@@ -622,12 +516,12 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     productIds.forEach(id => removeScannedProduct(id));
 
     // Clear files and observaciones
-    clearScannedFiles();
-    setObservaciones('');
-    setEditingProductId(null);
+    clearFilesFromStore(purchaseId);
+    setObservacionesInStore(purchaseId, '');
+    setEditingProductIdInStore(purchaseId, null);
 
     onClose();
-  }, [products, onProductsConfirmed, removeScannedProduct, clearScannedFiles, setObservaciones, setEditingProductId, onClose]);
+  }, [products, onProductsConfirmed, removeScannedProduct, clearFilesFromStore, setObservacionesInStore, setEditingProductIdInStore, purchaseId, onClose]);
 
   // Handler to clear all scanned products for this purchase
   const handleClearAllProducts = useCallback(() => {
@@ -642,14 +536,13 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           onPress: () => {
             const productIds = products.map(p => p.id);
             productIds.forEach(id => removeScannedProduct(id));
-            setLastScanResponse(null);
             logger.debug(`🗑️ Cleared all ${productIds.length} scanned products for purchase ${purchaseId}`);
             Alert.alert('Éxito', 'Todos los productos escaneados han sido eliminados.');
           },
         },
       ]
     );
-  }, [products, removeScannedProduct, setLastScanResponse, purchaseId]);
+  }, [products, removeScannedProduct, purchaseId]);
 
   const renderProductRow = useCallback((product: OcrScannedProduct, index: number) => {
     const isEditing = editingProductId === product.id;
@@ -841,7 +734,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
               <TextInput
                 style={[styles.fieldInput, isTablet && styles.fieldInputTablet, { minHeight: 60 }]}
                 value={observaciones}
-                onChangeText={setObservaciones}
+                onChangeText={(text) => setObservacionesInStore(purchaseId, text)}
                 placeholder="Notas sobre los documentos..."
                 placeholderTextColor="#94A3B8"
                 multiline
@@ -955,25 +848,25 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                 </View>
               </View>
 
-              {lastScanResponse && (
+              {lastCompletedJob?.result && (
                 <View style={styles.summaryBox}>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Archivos Procesados:</Text>
                     <Text style={styles.summaryValue}>
-                      {lastScanResponse.archivos_procesados}
+                      {lastCompletedJob.result.archivos_procesados}
                     </Text>
                   </View>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Total Estimado:</Text>
                     <Text style={[styles.summaryValue, styles.summaryValueBold]}>
-                      S/ {lastScanResponse.total_estimado?.toFixed(2) || '0.00'}
+                      S/ {lastCompletedJob.result.total_estimado?.toFixed(2) || '0.00'}
                     </Text>
                   </View>
-                  {lastScanResponse.observaciones && (
+                  {lastCompletedJob.result.observaciones && (
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Observaciones:</Text>
                       <Text style={styles.summaryValue}>
-                        {lastScanResponse.observaciones}
+                        {lastCompletedJob.result.observaciones}
                       </Text>
                     </View>
                   )}

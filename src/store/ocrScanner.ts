@@ -34,33 +34,60 @@ export interface OcrScanResponse {
   observaciones?: string;
 }
 
-interface OcrScannerState {
-  // Estado del escaneo
-  isScanning: boolean;
-  scanningProgress: { current: number; total: number; filename: string } | null;
+// Estado de un trabajo de escaneo
+export type ScanJobStatus = 'pending' | 'scanning' | 'completed' | 'failed';
 
-  // Archivos seleccionados (temporal, se limpia al confirmar)
-  scannedFiles: OcrScannedFile[];
-  observaciones: string;
+export interface ScanJob {
+  id: string; // Unique job ID
+  purchaseId: string;
+  files: OcrScannedFile[];
+  observaciones?: string;
+  status: ScanJobStatus;
+  progress: { current: number; total: number; filename: string } | null;
+  startedAt?: number;
+  completedAt?: number;
+  error?: string;
+  result?: OcrScanResponse;
+}
+
+// Archivos seleccionados por compra
+interface PurchaseFiles {
+  [purchaseId: string]: {
+    files: OcrScannedFile[];
+    observaciones: string;
+  };
+}
+
+interface OcrScannerState {
+  // Cola de trabajos de escaneo (persistente)
+  scanJobs: ScanJob[];
+
+  // Archivos seleccionados por compra (temporal)
+  purchaseFiles: PurchaseFiles;
 
   // Productos escaneados (persistente)
   scannedProducts: OcrScannedProduct[];
-  lastScanResponse: OcrScanResponse | null;
 
-  // ID del producto en edición
-  editingProductId: string | null;
+  // ID del producto en edición por compra
+  editingProductIds: { [purchaseId: string]: string | null };
 
-  // Actions
-  setScanning: (isScanning: boolean) => void;
-  setScanningProgress: (progress: { current: number; total: number; filename: string } | null) => void;
+  // Actions - Manejo de trabajos
+  addScanJob: (job: ScanJob) => void;
+  updateScanJob: (jobId: string, updates: Partial<ScanJob>) => void;
+  removeScanJob: (jobId: string) => void;
+  getScanJobsByPurchase: (purchaseId: string) => ScanJob[];
+  getActiveScanJobs: () => ScanJob[];
+  clearCompletedJobs: () => void;
 
-  // Manejo de archivos
-  addScannedFiles: (files: OcrScannedFile[]) => void;
-  removeScannedFile: (index: number) => void;
-  clearScannedFiles: () => void;
-  setObservaciones: (observaciones: string) => void;
+  // Actions - Manejo de archivos por compra
+  addScannedFiles: (purchaseId: string, files: OcrScannedFile[]) => void;
+  removeScannedFile: (purchaseId: string, index: number) => void;
+  clearScannedFiles: (purchaseId: string) => void;
+  setObservaciones: (purchaseId: string, observaciones: string) => void;
+  getScannedFiles: (purchaseId: string) => OcrScannedFile[];
+  getObservaciones: (purchaseId: string) => string;
 
-  // Manejo de productos escaneados
+  // Actions - Manejo de productos escaneados
   addScannedProducts: (products: OcrScannedProduct[], purchaseId?: string) => void;
   updateScannedProduct: (productId: string, updates: Partial<OcrScannedProduct>) => void;
   removeScannedProduct: (productId: string) => void;
@@ -68,11 +95,9 @@ interface OcrScannerState {
   clearScannedProductsByPurchase: (purchaseId: string) => void;
   getScannedProductsByPurchase: (purchaseId: string) => OcrScannedProduct[];
 
-  // Manejo de respuesta del escaneo
-  setLastScanResponse: (response: OcrScanResponse | null) => void;
-
-  // Edición
-  setEditingProductId: (productId: string | null) => void;
+  // Actions - Edición
+  setEditingProductId: (purchaseId: string, productId: string | null) => void;
+  getEditingProductId: (purchaseId: string) => string | null;
 
   // Reset completo
   resetScannerState: () => void;
@@ -82,38 +107,117 @@ export const useOcrScannerStore = create<OcrScannerState>()(
   persist(
     (set, get) => ({
       // Estado inicial
-      isScanning: false,
-      scanningProgress: null,
-      scannedFiles: [],
-      observaciones: '',
+      scanJobs: [],
+      purchaseFiles: {},
       scannedProducts: [],
-      lastScanResponse: null,
-      editingProductId: null,
+      editingProductIds: {},
 
-      // Actions
-      setScanning: (isScanning) => set({ isScanning }),
-
-      setScanningProgress: (progress) => set({ scanningProgress: progress }),
-
-      // Archivos
-      addScannedFiles: (files) =>
+      // Actions - Manejo de trabajos
+      addScanJob: (job) =>
         set((state) => ({
-          scannedFiles: [...state.scannedFiles, ...files].slice(0, 10),
+          scanJobs: [...state.scanJobs, job],
         })),
 
-      removeScannedFile: (index) =>
+      updateScanJob: (jobId, updates) =>
         set((state) => ({
-          scannedFiles: state.scannedFiles.filter((_, i) => i !== index),
+          scanJobs: state.scanJobs.map((job) =>
+            job.id === jobId ? { ...job, ...updates } : job
+          ),
         })),
 
-      clearScannedFiles: () => set({ scannedFiles: [] }),
+      removeScanJob: (jobId) =>
+        set((state) => ({
+          scanJobs: state.scanJobs.filter((job) => job.id !== jobId),
+        })),
 
-      setObservaciones: (observaciones) => set({ observaciones }),
+      getScanJobsByPurchase: (purchaseId) => {
+        return get().scanJobs.filter((job) => job.purchaseId === purchaseId);
+      },
 
-      // Productos escaneados
+      getActiveScanJobs: () => {
+        return get().scanJobs.filter(
+          (job) => job.status === 'pending' || job.status === 'scanning'
+        );
+      },
+
+      clearCompletedJobs: () =>
+        set((state) => ({
+          scanJobs: state.scanJobs.filter(
+            (job) => job.status !== 'completed' && job.status !== 'failed'
+          ),
+        })),
+
+      // Actions - Manejo de archivos por compra
+      addScannedFiles: (purchaseId, files) =>
+        set((state) => {
+          const currentFiles = state.purchaseFiles[purchaseId]?.files || [];
+          const currentObs = state.purchaseFiles[purchaseId]?.observaciones || '';
+          return {
+            purchaseFiles: {
+              ...state.purchaseFiles,
+              [purchaseId]: {
+                files: [...currentFiles, ...files].slice(0, 10),
+                observaciones: currentObs,
+              },
+            },
+          };
+        }),
+
+      removeScannedFile: (purchaseId, index) =>
+        set((state) => {
+          const currentFiles = state.purchaseFiles[purchaseId]?.files || [];
+          const currentObs = state.purchaseFiles[purchaseId]?.observaciones || '';
+          return {
+            purchaseFiles: {
+              ...state.purchaseFiles,
+              [purchaseId]: {
+                files: currentFiles.filter((_, i) => i !== index),
+                observaciones: currentObs,
+              },
+            },
+          };
+        }),
+
+      clearScannedFiles: (purchaseId) =>
+        set((state) => {
+          const currentObs = state.purchaseFiles[purchaseId]?.observaciones || '';
+          return {
+            purchaseFiles: {
+              ...state.purchaseFiles,
+              [purchaseId]: {
+                files: [],
+                observaciones: currentObs,
+              },
+            },
+          };
+        }),
+
+      setObservaciones: (purchaseId, observaciones) =>
+        set((state) => {
+          const currentFiles = state.purchaseFiles[purchaseId]?.files || [];
+          return {
+            purchaseFiles: {
+              ...state.purchaseFiles,
+              [purchaseId]: {
+                files: currentFiles,
+                observaciones,
+              },
+            },
+          };
+        }),
+
+      getScannedFiles: (purchaseId) => {
+        return get().purchaseFiles[purchaseId]?.files || [];
+      },
+
+      getObservaciones: (purchaseId) => {
+        return get().purchaseFiles[purchaseId]?.observaciones || '';
+      },
+
+      // Actions - Productos escaneados
       addScannedProducts: (products, purchaseId) =>
         set((state) => {
-          const productsWithMetadata = products.map(p => ({
+          const productsWithMetadata = products.map((p) => ({
             ...p,
             purchaseId,
             scannedAt: Date.now(),
@@ -135,7 +239,7 @@ export const useOcrScannerStore = create<OcrScannerState>()(
           scannedProducts: state.scannedProducts.filter((p) => p.id !== productId),
         })),
 
-      clearScannedProducts: () => set({ scannedProducts: [], lastScanResponse: null }),
+      clearScannedProducts: () => set({ scannedProducts: [] }),
 
       clearScannedProductsByPurchase: (purchaseId) =>
         set((state) => ({
@@ -148,30 +252,34 @@ export const useOcrScannerStore = create<OcrScannerState>()(
         return get().scannedProducts.filter((p) => p.purchaseId === purchaseId);
       },
 
-      // Respuesta del escaneo
-      setLastScanResponse: (response) => set({ lastScanResponse: response }),
+      // Actions - Edición
+      setEditingProductId: (purchaseId, productId) =>
+        set((state) => ({
+          editingProductIds: {
+            ...state.editingProductIds,
+            [purchaseId]: productId,
+          },
+        })),
 
-      // Edición
-      setEditingProductId: (productId) => set({ editingProductId: productId }),
+      getEditingProductId: (purchaseId) => {
+        return get().editingProductIds[purchaseId] || null;
+      },
 
       // Reset
       resetScannerState: () =>
         set({
-          isScanning: false,
-          scanningProgress: null,
-          scannedFiles: [],
-          observaciones: '',
-          editingProductId: null,
-          // NO limpiamos scannedProducts ni lastScanResponse - son persistentes
+          purchaseFiles: {},
+          editingProductIds: {},
+          // NO limpiamos scanJobs ni scannedProducts - son persistentes
         }),
     }),
     {
       name: 'ocr-scanner-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      // Solo persistir los productos escaneados y la última respuesta
+      // Persistir trabajos y productos escaneados
       partialize: (state) => ({
+        scanJobs: state.scanJobs,
         scannedProducts: state.scannedProducts,
-        lastScanResponse: state.lastScanResponse,
       }),
     }
   )
