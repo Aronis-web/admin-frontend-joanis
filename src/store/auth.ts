@@ -178,6 +178,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('Login successful - User permissions:', response.user.permissions);
       console.log('Login successful - User roles:', response.user.roles);
 
+      // Clear any previous company/site selection
+      await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_COMPANY);
+      await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_SITE);
+
       // Store in AsyncStorage
       await AsyncStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, response.accessToken);
       await AsyncStorage.setItem(config.STORAGE_KEYS.USER, JSON.stringify(response.user));
@@ -202,6 +206,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         error: null,
         isLoading: false,
+        currentCompany: null,
+        currentSite: null,
       });
 
       return true;

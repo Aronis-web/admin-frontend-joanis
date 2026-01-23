@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
+import { useTenantStore } from '@/store/tenant';
+import { AUTH_ROUTES } from '@/constants/routes';
 
 interface LoginScreenProps {
   navigation: any;
@@ -24,6 +26,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { width, height } = useWindowDimensions();
 
   const { loginWithCredentials, isLoading, error, isAuthenticated } = useAuthStore();
+  const { clearTenantContext } = useTenantStore();
 
   // Determine if device is tablet based on width (works for both portrait and landscape)
   const isTablet = width >= 768 || height >= 768;
@@ -43,8 +46,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         return;
       }
 
+      // Limpiar el contexto de tenant (empresa/sede) de sesiones anteriores
+      await clearTenantContext();
+
       // Navegar a la pantalla de selección de empresa después del login exitoso
-      navigation.replace('CompanySelection');
+      navigation.replace(AUTH_ROUTES.COMPANY_SELECTION as any);
     } catch (error) {
       Alert.alert('Error', 'No se pudo conectar al servidor');
     }
