@@ -48,6 +48,8 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [productSearchQuery, setProductSearchQuery] = useState<string>('');
   const [showProductSuggestions, setShowProductSuggestions] = useState<boolean>(false);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [selectedPurchaseId, setSelectedPurchaseId] = useState<string>('');
   const [purchaseProducts, setPurchaseProducts] = useState<any[]>([]);
   const [selectedPurchaseProducts, setSelectedPurchaseProducts] = useState<
@@ -107,32 +109,8 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
           status: 'active,preliminary'
         });
 
-        const productsResponse = await productsApi.getAllProducts({
-          limit: 100,
-          status: 'active,preliminary', // Include both active and preliminary products
-        });
-
-        console.log('📦 Raw products response:', productsResponse);
-        console.log('📦 Products response type:', typeof productsResponse);
-        console.log('📦 Products response keys:', Object.keys(productsResponse || {}));
-
-        // Check if response is an array or has a products property
-        const productsList = Array.isArray(productsResponse)
-          ? productsResponse
-          : (productsResponse.products || productsResponse.data || []);
-
-        console.log('📦 Products list extracted:', {
-          total: productsList.length,
-          isArray: Array.isArray(productsList),
-          sample: productsList.slice(0, 3).map((p: any) => ({
-            id: p.id,
-            sku: p.sku,
-            title: p.title,
-            status: p.status
-          }))
-        });
-
-        setProducts(productsList);
+        // Don't load all products on mount - we'll search on demand
+        console.log('📦 Products will be loaded on search');
 
         // Load stock items separately
         try {
@@ -397,31 +375,45 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
     return totalStock;
   };
 
-  const getFilteredProducts = () => {
-    console.log('🔍 getFilteredProducts called:', {
-      totalProducts: products.length,
-      query: productSearchQuery,
-      showProductSuggestions,
-      sampleProducts: products.slice(0, 3).map(p => ({
-        sku: p.sku,
-        title: p.title,
-        description: p.description
-      }))
-    });
-
-    if (!productSearchQuery.trim()) {
-      console.log('🔍 Empty query, returning empty array');
-      return [];
+  const searchProducts = async (query: string) => {
+    if (!query || query.trim().length < 2) {
+      setProducts([]);
+      setShowProductSuggestions(false);
+      return;
     }
-    const query = productSearchQuery.toLowerCase();
-    const filtered = products.filter(product =>
-      product.sku?.toLowerCase().includes(query) ||
-      product.title?.toLowerCase().includes(query) ||
-      product.description?.toLowerCase().includes(query) ||
-      (product.correlativeNumber && product.correlativeNumber.toString().includes(query))
-    );
-    console.log('🔍 Filtered products:', filtered.length, 'from query:', query);
-    return filtered;
+
+    try {
+      setIsSearching(true);
+      console.log('🔍 Searching products with query:', query);
+
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/catalog/products/autocomplete?q=${encodeURIComponent(query)}&limit=20`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Error al buscar productos');
+      }
+
+      const results = await response.json();
+      console.log('🔍 Search results:', results.length, 'products found');
+
+      setProducts(results);
+      setShowProductSuggestions(results.length > 0);
+    } catch (error) {
+      console.error('Error searching products:', error);
+      Alert.alert('Error', 'No se pudieron buscar los productos');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const getFilteredProducts = () => {
+    return products;
   };
 
   const handleSelectProduct = (product: any) => {
@@ -435,10 +427,28 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
 
   const handleProductSearchChange = (text: string) => {
     setProductSearchQuery(text);
-    setShowProductSuggestions(text.length > 0);
+
     if (!text.trim()) {
       setSelectedProductId('');
+      setProducts([]);
+      setShowProductSuggestions(false);
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+      return;
     }
+
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Set new timeout for debounced search
+    const timeout = setTimeout(() => {
+      searchProducts(text);
+    }, 300); // Wait 300ms after user stops typing
+
+    setSearchTimeout(timeout);
   };
 
   const renderManualForm = () => {
