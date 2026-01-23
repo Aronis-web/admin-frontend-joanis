@@ -398,6 +398,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
     console.log('🔍 getFilteredProducts called:', {
       totalProducts: products.length,
       query: productSearchQuery,
+      showProductSuggestions,
       sampleProducts: products.slice(0, 3).map(p => ({
         sku: p.sku,
         title: p.title,
@@ -406,6 +407,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
     });
 
     if (!productSearchQuery.trim()) {
+      console.log('🔍 Empty query, returning empty array');
       return [];
     }
     const query = productSearchQuery.toLowerCase();
@@ -413,7 +415,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
       product.sku?.toLowerCase().includes(query) ||
       product.title?.toLowerCase().includes(query) ||
       product.description?.toLowerCase().includes(query) ||
-      (product.correlativeNumber && product.correlativeNumber.toString().includes(productSearchQuery))
+      (product.correlativeNumber && product.correlativeNumber.toString().includes(query))
     );
     console.log('🔍 Filtered products:', filtered.length, 'from query:', query);
     return filtered;
