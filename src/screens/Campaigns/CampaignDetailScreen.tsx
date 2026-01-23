@@ -22,11 +22,13 @@ import {
   CampaignStatus,
   CampaignStatusLabels,
   CampaignStatusColors,
+  CampaignProduct,
 } from '@/types/campaigns';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { Product } from '@/services/api/products';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
 
 interface CampaignDetailScreenProps {
   navigation: any;
@@ -52,6 +54,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [companies, setCompanies] = useState<Record<string, Company>>({});
   const [sites, setSites] = useState<Record<string, Site>>({});
   const [products, setProducts] = useState<Record<string, Product>>({});
+  const [selectedProduct, setSelectedProduct] = useState<CampaignProduct | null>(null);
+  const [showBannerModal, setShowBannerModal] = useState(false);
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
@@ -535,6 +539,44 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     );
   };
 
+  const handleDeleteProduct = async (product: CampaignProduct) => {
+    Alert.alert(
+      'Eliminar Producto',
+      `¿Estás seguro de eliminar "${product.product?.title || 'este producto'}" de la campaña?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setActionLoading(true);
+              await campaignsService.deleteProduct(campaignId, product.id);
+              Alert.alert('Éxito', 'Producto eliminado de la campaña');
+              loadCampaign();
+            } catch (error: any) {
+              logger.error('Error deleting product:', error);
+              Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleShowBanner = (product: CampaignProduct) => {
+    setSelectedProduct(product);
+    setShowBannerModal(true);
+  };
+
+  const handleCloseBanner = () => {
+    setShowBannerModal(false);
+    setSelectedProduct(null);
+    loadCampaign(); // Refresh to get updated data
+  };
+
   const renderProducts = () => {
     if (!campaign) return null;
 
@@ -564,47 +606,79 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               No hay productos agregados
             </Text>
           ) : (
-            campaign.products.map((product) => (
-              <TouchableOpacity
-                key={product.id}
-                style={[styles.listItem, isTablet && styles.listItemTablet]}
-                onPress={() =>
-                  navigation.navigate('CampaignProductDetail', {
-                    campaignId,
-                    productId: product.id,
-                  })
-                }
-              >
-                <View style={styles.listItemContent}>
-                  <Text style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}>
-                    {product.product?.title || products[product.productId]?.title || `Producto ID: ${product.productId}`}
-                  </Text>
-                  <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
-                    SKU: {product.product?.sku || products[product.productId]?.sku || 'N/A'} | Cantidad: {product.totalQuantityBase}
-                  </Text>
-                  <View style={styles.productBadges}>
-                    <View
-                      style={[
-                        styles.badge,
-                        product.productStatus === 'ACTIVE'
-                          ? styles.badgeActive
-                          : styles.badgePreliminary,
-                      ]}
-                    >
-                      <Text style={styles.badgeText}>
-                        {product.productStatus === 'ACTIVE' ? 'Activo' : 'Preliminar'}
+            campaign.products.map((product) => {
+              const productDetails = product.product || products[product.productId];
+              const costCents = productDetails?.costCents || 0;
+              const priceCents = productDetails?.priceCents || 0;
+
+              return (
+                <View
+                  key={product.id}
+                  style={[styles.productCard, isTablet && styles.productCardTablet]}
+                >
+                  <TouchableOpacity
+                    style={styles.productCardMain}
+                    onPress={() =>
+                      navigation.navigate('CampaignProductDetail', {
+                        campaignId,
+                        productId: product.id,
+                      })
+                    }
+                  >
+                    <View style={styles.listItemContent}>
+                      <Text style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}>
+                        {productDetails?.title || `Producto ID: ${product.productId}`}
                       </Text>
-                    </View>
-                    {product.distributionGenerated && (
-                      <View style={[styles.badge, styles.badgeGenerated]}>
-                        <Text style={styles.badgeText}>Generado</Text>
+                      <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
+                        SKU: {productDetails?.sku || 'N/A'} | Cantidad: {product.totalQuantityBase}
+                      </Text>
+                      <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
+                        Costo: S/ {(costCents / 100).toFixed(2)} | Precio: S/ {(priceCents / 100).toFixed(2)}
+                      </Text>
+                      <View style={styles.productBadges}>
+                        <View
+                          style={[
+                            styles.badge,
+                            product.productStatus === 'ACTIVE'
+                              ? styles.badgeActive
+                              : styles.badgePreliminary,
+                          ]}
+                        >
+                          <Text style={styles.badgeText}>
+                            {product.productStatus === 'ACTIVE' ? 'Activo' : 'Preliminar'}
+                          </Text>
+                        </View>
+                        {product.distributionGenerated && (
+                          <View style={[styles.badge, styles.badgeGenerated]}>
+                            <Text style={styles.badgeText}>Generado</Text>
+                          </View>
+                        )}
                       </View>
+                    </View>
+                    <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+                  </TouchableOpacity>
+
+                  {/* Action buttons */}
+                  <View style={styles.productCardActions}>
+                    <TouchableOpacity
+                      style={[styles.productActionButton, styles.productBannerButton]}
+                      onPress={() => handleShowBanner(product)}
+                    >
+                      <Text style={styles.productActionButtonText}>📊 Ver Detalles</Text>
+                    </TouchableOpacity>
+
+                    {(campaign.status === CampaignStatus.DRAFT || campaign.status === CampaignStatus.ACTIVE) && (
+                      <TouchableOpacity
+                        style={[styles.productActionButton, styles.productDeleteButton]}
+                        onPress={() => handleDeleteProduct(product)}
+                      >
+                        <Text style={styles.productDeleteButtonText}>🗑️ Eliminar</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
                 </View>
-                <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
-              </TouchableOpacity>
-            ))
+              );
+            })
           )}
         </View>
       </View>
@@ -709,6 +783,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Banner Modal */}
+        <CampaignProductBannerModal
+          visible={showBannerModal}
+          campaignProduct={selectedProduct}
+          productDetails={selectedProduct ? (selectedProduct.product || products[selectedProduct.productId]) : null}
+          onClose={handleCloseBanner}
+        />
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -1013,6 +1095,53 @@ const styles = StyleSheet.create({
   },
   arrowIconTablet: {
     fontSize: 32,
+  },
+  productCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  productCardTablet: {
+    borderRadius: 12,
+  },
+  productCardMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  productCardActions: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  productActionButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  productBannerButton: {
+    borderRightWidth: 1,
+    borderRightColor: '#E2E8F0',
+  },
+  productActionButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  productDeleteButton: {
+    backgroundColor: '#FEF2F2',
+  },
+  productDeleteButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#EF4444',
   },
   footer: {
     flexDirection: 'row',
