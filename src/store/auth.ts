@@ -195,8 +195,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await AsyncStorage.setItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT, expiresAt.toString());
       }
 
-      // Note: AuthService already has the token from the login call
-      // No need to call authService.setAccessToken here
+      // IMPORTANT: Sync token with AuthService so API requests include Authorization header
+      // AuthService already has the token from the login call, but we ensure it's synced
+      authService.setAccessToken(response.accessToken);
+      console.log('🔐 Token synced with AuthService after login');
 
       set({
         user: response.user as any,
