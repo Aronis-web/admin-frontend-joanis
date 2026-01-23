@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { purchasesService } from '@/services/api';
 import logger from '@/utils/logger';
+import { useOcrScannerStore, OcrScannedProduct } from '@/store/ocrScanner';
 
 interface OcrScannedItem {
   sku: string;
@@ -163,103 +164,99 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
   onProductsConfirmed,
   purchaseId,
 }) => {
-  // Consolidated state for better performance
-  const [ocrState, setOcrState] = useState({
-    loading: false,
-    scanning: false,
-    scannedFiles: [] as Array<{ uri: string; name: string; mimeType: string }>,
-    observaciones: '',
-    products: [] as EditableProduct[],
-    scanResponse: null as OcrScanResponse | null,
-    editingProductId: null as string | null,
-    scanningProgress: null as { current: number; total: number; filename: string } | null,
-  });
+  // Use Zustand store for persistent state
+  const {
+    isScanning,
+    scanningProgress,
+    scannedFiles,
+    observaciones,
+    scannedProducts,
+    lastScanResponse,
+    editingProductId,
+    setScanning,
+    setScanningProgress,
+    addScannedFiles,
+    removeScannedFile,
+    clearScannedFiles,
+    setObservaciones,
+    addScannedProducts,
+    updateScannedProduct,
+    removeScannedProduct,
+    clearScannedProducts,
+    setLastScanResponse,
+    setEditingProductId,
+    resetScannerState,
+  } = useOcrScannerStore();
+
+  // Local state only for loading
+  const [loading, setLoading] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
 
-  // Helper to update state
-  const updateOcrState = useCallback((updates: Partial<typeof ocrState>) => {
-    setOcrState(prev => ({ ...prev, ...updates }));
-  }, []);
+  // Filter products for current purchase
+  const products = useMemo(() => {
+    return scannedProducts.filter(p => p.purchaseId === purchaseId);
+  }, [scannedProducts, purchaseId]);
 
-  const resetModal = useCallback(() => {
-    setOcrState({
-      loading: false,
-      scanning: false,
-      scannedFiles: [],
-      observaciones: '',
-      products: [],
-      scanResponse: null,
-      editingProductId: null,
-      scanningProgress: null,
-    });
-  }, []);
+  // Load products when modal opens
+  useEffect(() => {
+    if (visible) {
+      logger.debug(`📂 Modal opened for purchase ${purchaseId}. Found ${products.length} scanned products.`);
+    }
+  }, [visible, purchaseId, products.length]);
 
   // Memoized calculations for better performance
   const canConfirm = useMemo(() => {
-    return ocrState.products.length > 0 &&
-           ocrState.products.some(p => isValidProduct(p));
-  }, [ocrState.products]);
+    return products.length > 0 &&
+           products.some(p => isValidProduct(p));
+  }, [products]);
 
-  const totalProducts = useMemo(() => ocrState.products.length, [ocrState.products]);
+  const totalProducts = useMemo(() => products.length, [products]);
 
   const totalCost = useMemo(() => {
-    return ocrState.products.reduce((sum, p) => {
+    return products.reduce((sum, p) => {
       const subtotal = p.subtotal_fila;
       return sum + (isValidNumber(subtotal) ? subtotal : 0);
     }, 0);
-  }, [ocrState.products]);
+  }, [products]);
 
   const invalidProductsCount = useMemo(() => {
-    return ocrState.products.filter(p => !isValidProduct(p)).length;
-  }, [ocrState.products]);
+    return products.filter(p => !isValidProduct(p)).length;
+  }, [products]);
 
   const handleClose = useCallback(() => {
-    if (ocrState.products.length > 0) {
-      Alert.alert(
-        'Confirmar',
-        '¿Deseas cerrar? Se perderán los productos escaneados.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Cerrar',
-            style: 'destructive',
-            onPress: () => {
-              resetModal();
-              onClose();
-            },
-          },
-        ]
-      );
-    } else {
-      resetModal();
-      onClose();
-    }
-  }, [ocrState.products.length, resetModal, onClose]);
+    // Solo limpiar archivos y observaciones, NO los productos escaneados
+    clearScannedFiles();
+    setObservaciones('');
+    setEditingProductId(null);
+    onClose();
+  }, [clearScannedFiles, setObservaciones, setEditingProductId, onClose]);
 
   const scanDocuments = useCallback(async () => {
-    if (ocrState.scannedFiles.length === 0) {
+    if (scannedFiles.length === 0) {
       Alert.alert('Error', 'No hay archivos seleccionados para escanear');
       return;
     }
 
     const startTime = Date.now();
-    updateOcrState({ scanning: true, scanningProgress: null });
+    setScanning(true);
+    setScanningProgress(null);
 
     try {
       logger.debug('📄 Scanning documents:', {
-        count: ocrState.scannedFiles.length,
-        files: ocrState.scannedFiles.map(f => ({
+        count: scannedFiles.length,
+        files: scannedFiles.map(f => ({
           name: f.name,
           mimeType: f.mimeType,
           uri: f.uri.substring(0, 50) + '...',
         })),
-        observaciones: ocrState.observaciones,
+        observaciones: observaciones,
+        purchaseId,
       });
 
       // Use new batch OCR endpoint (60-80% faster for multiple files)
-      const files = ocrState.scannedFiles.map(file => ({
+      const files = scannedFiles.map(file => ({
         uri: file.uri,
         filename: file.name,
         mimeType: file.mimeType,
@@ -267,7 +264,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
 
       logger.debug('📤 Sending to OCR service:', {
         filesCount: files.length,
-        hasObservaciones: !!ocrState.observaciones,
+        hasObservaciones: !!observaciones,
       });
 
       let data: any;
@@ -277,7 +274,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
         // Try batch processing first
         data = await purchasesService.scanDocuments(
           files,
-          ocrState.observaciones || undefined
+          observaciones || undefined
         );
       } catch (batchError: any) {
         logger.error('❌ Batch processing failed:', {
@@ -301,11 +298,9 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           // Use sequential processing with progress callback
           data = await purchasesService.scanDocumentsSequentially(
             files,
-            ocrState.observaciones || undefined,
+            observaciones || undefined,
             (current, total, filename) => {
-              updateOcrState({
-                scanningProgress: { current, total, filename },
-              });
+              setScanningProgress({ current, total, filename });
             }
           );
         } else {
@@ -348,12 +343,20 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
         );
       }
 
-      updateOcrState({
-        products: editableProducts,
-        scanResponse: data,
-        scanning: false,
-        scanningProgress: null,
-      });
+      // Save products to persistent store
+      const productsToSave: OcrScannedProduct[] = editableProducts.map((p: EditableProduct) => ({
+        ...p,
+        purchaseId,
+        scannedAt: Date.now(),
+      }));
+
+      addScannedProducts(productsToSave, purchaseId);
+      setLastScanResponse(data);
+      setScanning(false);
+      setScanningProgress(null);
+
+      // Clear files after successful scan
+      clearScannedFiles();
 
       logger.perf('Documents scanned successfully', startTime);
       logger.debug(`✅ Detected ${editableProducts.length} products from ${data.archivos_procesados} files`);
@@ -362,7 +365,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       const processingMethod = usedFallback ? 'procesamiento secuencial' : 'procesamiento por lotes';
       Alert.alert(
         'Escaneo Exitoso',
-        `Se detectaron ${editableProducts.length} productos de ${data.archivos_procesados} archivo(s) usando ${processingMethod}.\n\nTotal estimado: S/ ${data.total_estimado.toFixed(2)}`
+        `Se detectaron ${editableProducts.length} productos de ${data.archivos_procesados} archivo(s) usando ${processingMethod}.\n\nTotal estimado: S/ ${data.total_estimado.toFixed(2)}\n\nLos productos se han guardado y permanecerán disponibles aunque cierres el modal.`
       );
 
     } catch (error: any) {
@@ -370,7 +373,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
         error: error.message,
         errorStack: error.stack,
         responseData: error?.response?.data,
-        fileCount: ocrState.scannedFiles.length,
+        fileCount: scannedFiles.length,
       });
 
       let errorMessage = 'No se pudo escanear los documentos';
@@ -382,12 +385,10 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       }
 
       Alert.alert('Error', errorMessage);
-      updateOcrState({
-        scanning: false,
-        scanningProgress: null,
-      });
+      setScanning(false);
+      setScanningProgress(null);
     }
-  }, [ocrState.scannedFiles, ocrState.observaciones, updateOcrState]);
+  }, [scannedFiles, observaciones, purchaseId, setScanning, setScanningProgress, addScannedProducts, setLastScanResponse, clearScannedFiles]);
 
   const pickImage = useCallback(async () => {
     try {
@@ -415,25 +416,27 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           mimeType: asset.mimeType || 'image/jpeg',
         }));
 
-        // Add to existing files (max 10 total)
-        const updatedFiles = [...ocrState.scannedFiles, ...newFiles].slice(0, 10);
-
-        if (updatedFiles.length > ocrState.scannedFiles.length + newFiles.length) {
+        // Check if we would exceed the limit
+        if (scannedFiles.length + newFiles.length > 10) {
           Alert.alert('Límite alcanzado', 'Solo se pueden seleccionar hasta 10 archivos');
+          // Add only what fits
+          const filesToAdd = newFiles.slice(0, 10 - scannedFiles.length);
+          addScannedFiles(filesToAdd);
+        } else {
+          addScannedFiles(newFiles);
         }
 
-        updateOcrState({ scannedFiles: updatedFiles });
-        logger.debug(`📁 Added ${newFiles.length} files. Total: ${updatedFiles.length}`);
+        logger.debug(`📁 Added ${newFiles.length} files. Total: ${scannedFiles.length + newFiles.length}`);
       }
     } catch (error) {
       logger.error('Error picking image:', error);
       Alert.alert('Error', 'No se pudo seleccionar la imagen');
     }
-  }, [ocrState.scannedFiles, updateOcrState]);
+  }, [scannedFiles, addScannedFiles]);
 
   const takePhoto = useCallback(async () => {
     try {
-      if (ocrState.scannedFiles.length >= 10) {
+      if (scannedFiles.length >= 10) {
         Alert.alert('Límite alcanzado', 'Ya tienes 10 archivos seleccionados');
         return;
       }
@@ -461,20 +464,18 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           mimeType: 'image/jpeg',
         };
 
-        updateOcrState({
-          scannedFiles: [...ocrState.scannedFiles, fileData]
-        });
-        logger.debug(`📸 Photo added. Total files: ${ocrState.scannedFiles.length + 1}`);
+        addScannedFiles([fileData]);
+        logger.debug(`📸 Photo added. Total files: ${scannedFiles.length + 1}`);
       }
     } catch (error) {
       logger.error('Error taking photo:', error);
       Alert.alert('Error', 'No se pudo tomar la foto');
     }
-  }, [ocrState.scannedFiles, updateOcrState]);
+  }, [scannedFiles, addScannedFiles]);
 
   const pickDocument = useCallback(async () => {
     try {
-      if (ocrState.scannedFiles.length >= 10) {
+      if (scannedFiles.length >= 10) {
         Alert.alert('Límite alcanzado', 'Ya tienes 10 archivos seleccionados');
         return;
       }
@@ -496,30 +497,31 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           mimeType: asset.mimeType || 'application/pdf',
         }));
 
-        // Add to existing files (max 10 total)
-        const updatedFiles = [...ocrState.scannedFiles, ...newFiles].slice(0, 10);
-
-        if (updatedFiles.length < ocrState.scannedFiles.length + newFiles.length) {
+        // Check if we would exceed the limit
+        if (scannedFiles.length + newFiles.length > 10) {
           Alert.alert('Límite alcanzado', 'Solo se pueden seleccionar hasta 10 archivos');
+          // Add only what fits
+          const filesToAdd = newFiles.slice(0, 10 - scannedFiles.length);
+          addScannedFiles(filesToAdd);
+        } else {
+          addScannedFiles(newFiles);
         }
 
-        updateOcrState({ scannedFiles: updatedFiles });
-        logger.debug(`📄 Added ${newFiles.length} documents. Total: ${updatedFiles.length}`);
+        logger.debug(`📄 Added ${newFiles.length} documents. Total: ${scannedFiles.length + newFiles.length}`);
       }
     } catch (error) {
       logger.error('Error picking document:', error);
       Alert.alert('Error', 'No se pudo seleccionar el documento');
     }
-  }, [ocrState.scannedFiles, updateOcrState]);
+  }, [scannedFiles, addScannedFiles]);
 
   const removeFile = useCallback((index: number) => {
-    const updatedFiles = ocrState.scannedFiles.filter((_, i) => i !== index);
-    updateOcrState({ scannedFiles: updatedFiles });
-    logger.debug(`🗑️ File removed. Total: ${updatedFiles.length}`);
-  }, [ocrState.scannedFiles, updateOcrState]);
+    removeScannedFile(index);
+    logger.debug(`🗑️ File removed. Total: ${scannedFiles.length - 1}`);
+  }, [removeScannedFile, scannedFiles.length]);
 
   const handleAddNewRow = useCallback(() => {
-    const newProduct: EditableProduct = {
+    const newProduct: OcrScannedProduct = {
       id: `temp-${Date.now()}`,
       sku: '',
       nombre: '',
@@ -528,12 +530,12 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       cantidad_total: 1,
       precio_unitario: 0,
       subtotal_fila: 0,
+      purchaseId,
+      scannedAt: Date.now(),
     };
-    updateOcrState({
-      products: [...ocrState.products, newProduct],
-      editingProductId: newProduct.id,
-    });
-  }, [ocrState.products, updateOcrState]);
+    addScannedProducts([newProduct], purchaseId);
+    setEditingProductId(newProduct.id);
+  }, [purchaseId, addScannedProducts, setEditingProductId]);
 
   const handleDeleteProduct = useCallback((productId: string) => {
     Alert.alert(
@@ -545,46 +547,46 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           text: 'Eliminar',
           style: 'destructive',
           onPress: () => {
-            updateOcrState({
-              products: ocrState.products.filter(p => p.id !== productId),
-            });
+            removeScannedProduct(productId);
           },
         },
       ]
     );
-  }, [ocrState.products, updateOcrState]);
+  }, [removeScannedProduct]);
 
-  const handleUpdateProduct = useCallback((productId: string, field: keyof EditableProduct, value: any) => {
-    updateOcrState({
-      products: ocrState.products.map(p => {
-        if (p.id !== productId) return p;
+  const handleUpdateProduct = useCallback((productId: string, field: keyof OcrScannedProduct, value: any) => {
+    const product = scannedProducts.find(p => p.id === productId);
+    if (!product) return;
 
-        const updated = { ...p, [field]: value };
+    const updated: Partial<OcrScannedProduct> = { [field]: value };
 
-        // Validate and normalize numeric values
-        if (['cajas', 'unidades_por_caja', 'cantidad_total', 'precio_unitario'].includes(field)) {
-          const numValue = safeNumber(value, p[field as keyof EditableProduct] as number);
-          updated[field as keyof EditableProduct] = Math.max(0, numValue) as any;
-        }
+    // Validate and normalize numeric values
+    if (['cajas', 'unidades_por_caja', 'cantidad_total', 'precio_unitario'].includes(field)) {
+      const currentValue = product[field as keyof OcrScannedProduct];
+      const numValue = safeNumber(value, typeof currentValue === 'number' ? currentValue : 0);
+      updated[field as keyof OcrScannedProduct] = Math.max(0, numValue) as any;
+    }
 
-        // Recalculate dependencies based on field changed
-        if (field === 'cajas' || field === 'unidades_por_caja') {
-          updated.cantidad_total = updated.cajas * updated.unidades_por_caja;
-        }
+    // Recalculate dependencies based on field changed
+    if (field === 'cajas' || field === 'unidades_por_caja') {
+      const cajas = field === 'cajas' ? (updated.cajas ?? product.cajas) : product.cajas;
+      const unidadesPorCaja = field === 'unidades_por_caja' ? (updated.unidades_por_caja ?? product.unidades_por_caja) : product.unidades_por_caja;
+      updated.cantidad_total = cajas * unidadesPorCaja;
+    }
 
-        // Always recalculate subtotal when relevant fields change
-        if (['cajas', 'unidades_por_caja', 'cantidad_total', 'precio_unitario'].includes(field)) {
-          updated.subtotal_fila = calculateSubtotal(updated.cantidad_total, updated.precio_unitario);
-        }
+    // Always recalculate subtotal when relevant fields change
+    if (['cajas', 'unidades_por_caja', 'cantidad_total', 'precio_unitario'].includes(field)) {
+      const cantidadTotal = updated.cantidad_total ?? product.cantidad_total;
+      const precioUnitario = updated.precio_unitario ?? product.precio_unitario;
+      updated.subtotal_fila = calculateSubtotal(cantidadTotal, precioUnitario);
+    }
 
-        return updated;
-      }),
-    });
-  }, [ocrState.products, updateOcrState]);
+    updateScannedProduct(productId, updated);
+  }, [scannedProducts, updateScannedProduct]);
 
   const handleConfirm = useCallback(() => {
     // Validate products using pure function
-    const invalidProducts = ocrState.products.filter(p => !isValidProduct(p));
+    const invalidProducts = products.filter(p => !isValidProduct(p));
 
     if (invalidProducts.length > 0) {
       Alert.alert(
@@ -594,19 +596,63 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       return;
     }
 
-    if (ocrState.products.length === 0) {
+    if (products.length === 0) {
       Alert.alert('Validación', 'No hay productos para confirmar.');
       return;
     }
 
-    logger.debug(`✅ Confirming ${ocrState.products.length} products`);
-    onProductsConfirmed(ocrState.products);
-    resetModal();
-    onClose();
-  }, [ocrState.products, onProductsConfirmed, resetModal, onClose]);
+    logger.debug(`✅ Confirming ${products.length} products`);
 
-  const renderProductRow = useCallback((product: EditableProduct, index: number) => {
-    const isEditing = ocrState.editingProductId === product.id;
+    // Convert to EditableProduct format for backward compatibility
+    const editableProducts: EditableProduct[] = products.map(p => ({
+      id: p.id,
+      sku: p.sku,
+      nombre: p.nombre,
+      cajas: p.cajas,
+      unidades_por_caja: p.unidades_por_caja,
+      cantidad_total: p.cantidad_total,
+      precio_unitario: p.precio_unitario,
+      subtotal_fila: p.subtotal_fila,
+    }));
+
+    onProductsConfirmed(editableProducts);
+
+    // Clear products for this purchase after confirmation
+    const productIds = products.map(p => p.id);
+    productIds.forEach(id => removeScannedProduct(id));
+
+    // Clear files and observaciones
+    clearScannedFiles();
+    setObservaciones('');
+    setEditingProductId(null);
+
+    onClose();
+  }, [products, onProductsConfirmed, removeScannedProduct, clearScannedFiles, setObservaciones, setEditingProductId, onClose]);
+
+  // Handler to clear all scanned products for this purchase
+  const handleClearAllProducts = useCallback(() => {
+    Alert.alert(
+      'Confirmar',
+      '¿Deseas borrar todos los productos escaneados? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Borrar Todo',
+          style: 'destructive',
+          onPress: () => {
+            const productIds = products.map(p => p.id);
+            productIds.forEach(id => removeScannedProduct(id));
+            setLastScanResponse(null);
+            logger.debug(`🗑️ Cleared all ${productIds.length} scanned products for purchase ${purchaseId}`);
+            Alert.alert('Éxito', 'Todos los productos escaneados han sido eliminados.');
+          },
+        },
+      ]
+    );
+  }, [products, removeScannedProduct, setLastScanResponse, purchaseId]);
+
+  const renderProductRow = useCallback((product: OcrScannedProduct, index: number) => {
+    const isEditing = editingProductId === product.id;
 
     return (
       <View key={product.id} style={[styles.productRow, isTablet && styles.productRowTablet]}>
@@ -719,7 +765,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
         </View>
       </View>
     );
-  }, [ocrState.editingProductId, isTablet, handleUpdateProduct, handleDeleteProduct]);
+  }, [editingProductId, isTablet, handleUpdateProduct, handleDeleteProduct]);
 
   return (
     <Modal
@@ -758,7 +804,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
               <TouchableOpacity
                 style={[styles.uploadButton, isTablet && styles.uploadButtonTablet]}
                 onPress={takePhoto}
-                disabled={ocrState.scanning || ocrState.scannedFiles.length >= 10}
+                disabled={isScanning || scannedFiles.length >= 10}
               >
                 <Text style={styles.uploadButtonIcon}>📷</Text>
                 <Text style={[styles.uploadButtonText, isTablet && styles.uploadButtonTextTablet]}>
@@ -768,7 +814,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
               <TouchableOpacity
                 style={[styles.uploadButton, isTablet && styles.uploadButtonTablet]}
                 onPress={pickImage}
-                disabled={ocrState.scanning || ocrState.scannedFiles.length >= 10}
+                disabled={isScanning || scannedFiles.length >= 10}
               >
                 <Text style={styles.uploadButtonIcon}>🖼️</Text>
                 <Text style={[styles.uploadButtonText, isTablet && styles.uploadButtonTextTablet]}>
@@ -778,7 +824,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
               <TouchableOpacity
                 style={[styles.uploadButton, isTablet && styles.uploadButtonTablet]}
                 onPress={pickDocument}
-                disabled={ocrState.scanning || ocrState.scannedFiles.length >= 10}
+                disabled={isScanning || scannedFiles.length >= 10}
               >
                 <Text style={styles.uploadButtonIcon}>📄</Text>
                 <Text style={[styles.uploadButtonText, isTablet && styles.uploadButtonTextTablet]}>
@@ -794,8 +840,8 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
               </Text>
               <TextInput
                 style={[styles.fieldInput, isTablet && styles.fieldInputTablet, { minHeight: 60 }]}
-                value={ocrState.observaciones}
-                onChangeText={(value) => updateOcrState({ observaciones: value })}
+                value={observaciones}
+                onChangeText={setObservaciones}
                 placeholder="Notas sobre los documentos..."
                 placeholderTextColor="#94A3B8"
                 multiline
@@ -805,25 +851,25 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           </View>
 
           {/* Selected Files List */}
-          {ocrState.scannedFiles.length > 0 && (
+          {scannedFiles.length > 0 && (
             <View style={styles.filesSection}>
               <View style={styles.filesSectionHeader}>
                 <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-                  Archivos Seleccionados ({ocrState.scannedFiles.length}/10)
+                  Archivos Seleccionados ({scannedFiles.length}/10)
                 </Text>
                 <TouchableOpacity
-                  style={[styles.scanButton, ocrState.scanning && styles.scanButtonDisabled]}
+                  style={[styles.scanButton, isScanning && styles.scanButtonDisabled]}
                   onPress={scanDocuments}
-                  disabled={ocrState.scanning}
+                  disabled={isScanning}
                 >
                   <Text style={styles.scanButtonText}>
-                    {ocrState.scanning ? '⏳ Escaneando...' : '🚀 Escanear Documentos'}
+                    {isScanning ? '⏳ Escaneando...' : '🚀 Escanear Documentos'}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.filesList}>
-                {ocrState.scannedFiles.map((file, index) => (
+                {scannedFiles.map((file, index) => (
                   <View key={index} style={styles.fileItem}>
                     <View style={styles.fileInfo}>
                       <Text style={styles.fileIcon}>
@@ -842,7 +888,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                     <TouchableOpacity
                       style={styles.removeFileButton}
                       onPress={() => removeFile(index)}
-                      disabled={ocrState.scanning}
+                      disabled={isScanning}
                     >
                       <Text style={styles.removeFileButtonText}>✕</Text>
                     </TouchableOpacity>
@@ -853,22 +899,22 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           )}
 
           {/* Scanning Indicator */}
-          {ocrState.scanning && (
+          {isScanning && (
             <View style={styles.scanningSection}>
               <ActivityIndicator size="large" color="#6366F1" />
-              {ocrState.scanningProgress ? (
+              {scanningProgress ? (
                 <>
                   <Text style={[styles.scanningText, isTablet && styles.scanningTextTablet]}>
-                    Procesando archivo {ocrState.scanningProgress.current} de {ocrState.scanningProgress.total}
+                    Procesando archivo {scanningProgress.current} de {scanningProgress.total}
                   </Text>
                   <Text style={[styles.scanningSubtext, isTablet && styles.scanningTextTablet]}>
-                    {ocrState.scanningProgress.filename}
+                    {scanningProgress.filename}
                   </Text>
                   <View style={styles.progressBarContainer}>
                     <View
                       style={[
                         styles.progressBar,
-                        { width: `${(ocrState.scanningProgress.current / ocrState.scanningProgress.total) * 100}%` }
+                        { width: `${(scanningProgress.current / scanningProgress.total) * 100}%` }
                       ]}
                     />
                   </View>
@@ -876,10 +922,10 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
               ) : (
                 <>
                   <Text style={[styles.scanningText, isTablet && styles.scanningTextTablet]}>
-                    Escaneando {ocrState.scannedFiles.length} documento(s)...
+                    Escaneando {scannedFiles.length} documento(s)...
                   </Text>
                   <Text style={[styles.scanningSubtext, isTablet && styles.scanningTextTablet]}>
-                    Esto puede tomar unos segundos
+                    Esto puede tomar unos segundos. Puedes cerrar el modal y el escaneo continuará en segundo plano.
                   </Text>
                 </>
               )}
@@ -887,39 +933,47 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           )}
 
           {/* Products List */}
-          {ocrState.products.length > 0 && (
+          {products.length > 0 && (
             <View style={styles.productsSection}>
               <View style={styles.productsSectionHeader}>
                 <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-                  Productos Detectados ({ocrState.products.length})
+                  Productos Detectados ({products.length})
                 </Text>
-                <TouchableOpacity
-                  style={styles.addRowButton}
-                  onPress={handleAddNewRow}
-                >
-                  <Text style={styles.addRowButtonText}>+ Agregar Fila</Text>
-                </TouchableOpacity>
+                <View style={styles.productsSectionActions}>
+                  <TouchableOpacity
+                    style={styles.addRowButton}
+                    onPress={handleAddNewRow}
+                  >
+                    <Text style={styles.addRowButtonText}>+ Agregar Fila</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.clearAllButton}
+                    onPress={handleClearAllProducts}
+                  >
+                    <Text style={styles.clearAllButtonText}>🗑️ Borrar Todo</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              {ocrState.scanResponse && (
+              {lastScanResponse && (
                 <View style={styles.summaryBox}>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Archivos Procesados:</Text>
                     <Text style={styles.summaryValue}>
-                      {ocrState.scanResponse.archivos_procesados}
+                      {lastScanResponse.archivos_procesados}
                     </Text>
                   </View>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Total Estimado:</Text>
                     <Text style={[styles.summaryValue, styles.summaryValueBold]}>
-                      S/ {ocrState.scanResponse.total_estimado.toFixed(2)}
+                      S/ {lastScanResponse.total_estimado?.toFixed(2) || '0.00'}
                     </Text>
                   </View>
-                  {ocrState.scanResponse.observaciones && (
+                  {lastScanResponse.observaciones && (
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Observaciones:</Text>
                       <Text style={styles.summaryValue}>
-                        {ocrState.scanResponse.observaciones}
+                        {lastScanResponse.observaciones}
                       </Text>
                     </View>
                   )}
@@ -927,7 +981,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
               )}
 
               <View style={styles.productsList}>
-                {ocrState.products.map((product, index) => renderProductRow(product, index))}
+                {products.map((product, index) => renderProductRow(product, index))}
               </View>
             </View>
           )}
@@ -936,31 +990,31 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
         </ScrollView>
 
         {/* Footer Actions */}
-        {ocrState.products.length > 0 && (
+        {products.length > 0 && (
           <View style={[styles.footer, isTablet && styles.footerTablet]}>
             <TouchableOpacity
               style={[styles.cancelButton, isTablet && styles.cancelButtonTablet]}
               onPress={handleClose}
-              disabled={ocrState.loading}
+              disabled={loading}
             >
               <Text style={[styles.cancelButtonText, isTablet && styles.cancelButtonTextTablet]}>
-                Cancelar
+                Cerrar
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.confirmButton,
                 isTablet && styles.confirmButtonTablet,
-                ocrState.loading && styles.confirmButtonDisabled,
+                loading && styles.confirmButtonDisabled,
               ]}
               onPress={handleConfirm}
-              disabled={ocrState.loading}
+              disabled={loading}
             >
-              {ocrState.loading ? (
+              {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={[styles.confirmButtonText, isTablet && styles.confirmButtonTextTablet]}>
-                  Confirmar {ocrState.products.length} Producto{ocrState.products.length !== 1 ? 's' : ''}
+                  Confirmar {products.length} Producto{products.length !== 1 ? 's' : ''}
                 </Text>
               )}
             </TouchableOpacity>
@@ -1188,6 +1242,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  productsSectionActions: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
   },
   addRowButton: {
     paddingHorizontal: 16,
@@ -1196,6 +1257,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addRowButtonText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  clearAllButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#DC2626',
+    borderRadius: 8,
+  },
+  clearAllButtonText: {
     fontSize: 13,
     color: '#FFFFFF',
     fontWeight: '600',
