@@ -39,19 +39,29 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
 
     try {
+      console.log('🔑 Iniciando proceso de login...');
       const success = await loginWithCredentials(email, password);
 
       if (!success) {
+        console.log('❌ Login falló');
         Alert.alert('Error', error || 'Credenciales incorrectas');
         return;
       }
 
+      console.log('✅ Login exitoso, limpiando contexto de tenant...');
       // Limpiar el contexto de tenant (empresa/sede) de sesiones anteriores
       await clearTenantContext();
 
+      console.log('🧭 Navegando a CompanySelection...');
       // Navegar a la pantalla de selección de empresa después del login exitoso
-      navigation.replace(AUTH_ROUTES.COMPANY_SELECTION as any);
+      // Usar reset en lugar de replace para asegurar que la navegación funcione
+      navigation.reset({
+        index: 0,
+        routes: [{ name: AUTH_ROUTES.COMPANY_SELECTION as never }],
+      });
+      console.log('✅ Navegación ejecutada');
     } catch (error) {
+      console.error('❌ Error en handleLogin:', error);
       Alert.alert('Error', 'No se pudo conectar al servidor');
     }
   };

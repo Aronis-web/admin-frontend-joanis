@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/store/auth';
