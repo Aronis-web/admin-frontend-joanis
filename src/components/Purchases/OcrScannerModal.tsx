@@ -168,16 +168,15 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
   const {
     scanJobs,
     scannedProducts,
+    purchaseFiles,
+    editingProductIds,
     addScannedFiles: addFilesToStore,
     removeScannedFile: removeFileFromStore,
     clearScannedFiles: clearFilesFromStore,
     setObservaciones: setObservacionesInStore,
-    getScannedFiles,
-    getObservaciones,
     updateScannedProduct,
     removeScannedProduct,
     setEditingProductId: setEditingProductIdInStore,
-    getEditingProductId,
     getScanJobsByPurchase,
   } = useOcrScannerStore();
 
@@ -187,10 +186,10 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
 
-  // Get data for current purchase
-  const scannedFiles = useMemo(() => getScannedFiles(purchaseId), [purchaseId, getScannedFiles]);
-  const observaciones = useMemo(() => getObservaciones(purchaseId), [purchaseId, getObservaciones]);
-  const editingProductId = useMemo(() => getEditingProductId(purchaseId), [purchaseId, getEditingProductId]);
+  // Get data for current purchase - subscribe directly to purchaseFiles
+  const scannedFiles = useMemo(() => purchaseFiles[purchaseId]?.files || [], [purchaseFiles, purchaseId]);
+  const observaciones = useMemo(() => purchaseFiles[purchaseId]?.observaciones || '', [purchaseFiles, purchaseId]);
+  const editingProductId = useMemo(() => editingProductIds[purchaseId] || null, [editingProductIds, purchaseId]);
 
   // Filter products for current purchase
   const products = useMemo(() => {
@@ -249,6 +248,12 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       return;
     }
 
+    // Prevenir múltiples escaneos simultáneos para la misma compra
+    if (isScanning) {
+      Alert.alert('Aviso', 'Ya hay un escaneo en proceso para esta compra');
+      return;
+    }
+
     // Crear un nuevo trabajo de escaneo
     const job: ScanJob = {
       id: `job-${purchaseId}-${Date.now()}`,
@@ -281,7 +286,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     );
 
     logger.debug(`✅ Scan job ${job.id} added to queue`);
-  }, [scannedFiles, observaciones, purchaseId, clearFilesFromStore, setObservacionesInStore]);
+  }, [scannedFiles, observaciones, purchaseId, clearFilesFromStore, setObservacionesInStore, isScanning]);
 
   const pickImage = useCallback(async () => {
     try {

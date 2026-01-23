@@ -17,8 +17,37 @@
 ## Comandos Útiles
 
 ### Build
+
+#### Generar APK de Producción
+Para generar el APK del proyecto usando EAS Build:
+
 ```bash
-# Agregar comandos de build aquí cuando se identifiquen
+cd C:/Users/aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis
+npx eas-cli build --platform android --profile production
+```
+
+**Notas:**
+- El comando incrementa automáticamente el versionCode
+- El APK se genera en la nube usando EAS Build
+- Al finalizar, se proporciona un enlace de descarga del APK
+- El proceso toma aproximadamente 10-20 minutos
+- Requiere cuenta de Expo configurada
+
+#### Perfiles de Build Disponibles (eas.json)
+- `production`: APK de producción con auto-incremento de versión
+- `preview`: APK para pruebas internas
+- `preview-apk`: APK básico de preview
+
+#### Preparar Proyecto antes del Build
+Si hay problemas con dependencias, ejecutar:
+
+```bash
+# Actualizar dependencias a versiones compatibles
+npx expo install --fix
+
+# Regenerar directorio android
+Remove-Item -Recurse -Force android
+npx expo prebuild --platform android
 ```
 
 ### Test
@@ -28,7 +57,12 @@
 
 ### Lint
 ```bash
-# Agregar comandos de lint aquí cuando se identifiquen
+npm run lint
+```
+
+### Typecheck
+```bash
+npm run typecheck
 ```
 
 ## Estilo de Código

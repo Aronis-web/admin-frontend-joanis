@@ -217,7 +217,11 @@ export const useOcrScannerStore = create<OcrScannerState>()(
       // Actions - Productos escaneados
       addScannedProducts: (products, purchaseId) =>
         set((state) => {
-          const productsWithMetadata = products.map((p) => ({
+          // Evitar duplicados: verificar si ya existen productos con los mismos IDs
+          const existingIds = new Set(state.scannedProducts.map(p => p.id));
+          const newProducts = products.filter(p => !existingIds.has(p.id));
+
+          const productsWithMetadata = newProducts.map((p) => ({
             ...p,
             purchaseId,
             scannedAt: Date.now(),
@@ -276,10 +280,12 @@ export const useOcrScannerStore = create<OcrScannerState>()(
     {
       name: 'ocr-scanner-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      // Persistir trabajos y productos escaneados
+      // Persistir trabajos, productos escaneados y archivos seleccionados
       partialize: (state) => ({
         scanJobs: state.scanJobs,
         scannedProducts: state.scannedProducts,
+        purchaseFiles: state.purchaseFiles,
+        editingProductIds: state.editingProductIds,
       }),
     }
   )

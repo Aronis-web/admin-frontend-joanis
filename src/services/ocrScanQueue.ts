@@ -23,6 +23,20 @@ class OcrScanQueueService {
     this.isProcessing = true;
     logger.debug('🚀 Starting OCR scan queue processor');
 
+    // Limpiar trabajos huérfanos (que quedaron en 'scanning' por cierre abrupto)
+    const store = useOcrScannerStore.getState();
+    const orphanedJobs = store.scanJobs.filter(
+      (job) => job.status === 'scanning' && (!job.startedAt || Date.now() - job.startedAt > 300000) // 5 minutos
+    );
+    orphanedJobs.forEach((job) => {
+      logger.debug(`🧹 Cleaning orphaned job ${job.id}`);
+      store.updateScanJob(job.id, {
+        status: 'failed',
+        error: 'Job was interrupted',
+        completedAt: Date.now(),
+      });
+    });
+
     while (this.isProcessing) {
       const store = useOcrScannerStore.getState();
       const pendingJobs = store.scanJobs.filter((job) => job.status === 'pending');
@@ -35,8 +49,12 @@ class OcrScanQueueService {
           this.maxConcurrentJobs - scanningJobs.length
         );
 
-        // Procesar trabajos en paralelo
-        await Promise.all(jobsToProcess.map((job) => this.processJob(job)));
+        // Procesar trabajos en paralelo sin esperar (fire and forget)
+        jobsToProcess.forEach((job) => {
+          this.processJob(job).catch((error) => {
+            logger.error(`❌ Unhandled error in job ${job.id}:`, error);
+          });
+        });
       }
 
       // Si no hay trabajos activos, detener el procesador
@@ -172,7 +190,13 @@ class OcrScanQueueService {
       Alert.alert(
         '✅ Escaneo Completado',
         `Compra: ${job.purchaseId}\n\nSe detectaron ${editableProducts.length} productos de ${data.archivos_procesados} archivo(s) usando ${processingMethod}.\n\nTotal estimado: S/ ${data.total_estimado?.toFixed(2) || '0.00'}\n\nLos productos están listos para revisar.`,
-        [{ text: 'OK' }]
+        [{ text: 'OK', onPress: () => {
+          // Limpiar el trabajo después de 2 segundos de cerrar la alerta
+          setTimeout(() => {
+            store.removeScanJob(job.id);
+            logger.debug(`🧹 Removed completed job ${job.id} from queue`);
+          }, 2000);
+        }}]
       );
     } catch (error: any) {
       logger.error(`❌ Error processing job ${job.id}:`, {
@@ -193,7 +217,13 @@ class OcrScanQueueService {
       Alert.alert(
         '❌ Error en Escaneo',
         `Compra: ${job.purchaseId}\n\nNo se pudo completar el escaneo: ${error.message || 'Error desconocido'}`,
-        [{ text: 'OK' }]
+        [{ text: 'OK', onPress: () => {
+          // Limpiar el trabajo fallido después de 2 segundos de cerrar la alerta
+          setTimeout(() => {
+            store.removeScanJob(job.id);
+            logger.debug(`🧹 Removed failed job ${job.id} from queue`);
+          }, 2000);
+        }}]
       );
     }
   }
