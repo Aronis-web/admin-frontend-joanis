@@ -112,24 +112,27 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
           status: 'active,preliminary', // Include both active and preliminary products
         });
 
-        console.log('📦 Products received from backend:', {
-          total: productsResponse.products?.length,
-          byStatus: productsResponse.products?.reduce((acc, p) => {
-            const status = p.status || 'unknown';
-            acc[status] = (acc[status] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>),
-          preliminaryProducts: productsResponse.products?.filter(p =>
-            // @ts-ignore - preliminary is a valid status from backend
-            p.status === 'preliminary'
-          ).map(p => ({
+        console.log('📦 Raw products response:', productsResponse);
+        console.log('📦 Products response type:', typeof productsResponse);
+        console.log('📦 Products response keys:', Object.keys(productsResponse || {}));
+
+        // Check if response is an array or has a products property
+        const productsList = Array.isArray(productsResponse)
+          ? productsResponse
+          : (productsResponse.products || productsResponse.data || []);
+
+        console.log('📦 Products list extracted:', {
+          total: productsList.length,
+          isArray: Array.isArray(productsList),
+          sample: productsList.slice(0, 3).map((p: any) => ({
             id: p.id,
             sku: p.sku,
             title: p.title,
             status: p.status
           }))
         });
-        setProducts(productsResponse.products || []);
+
+        setProducts(productsList);
 
         // Load stock items separately
         try {
