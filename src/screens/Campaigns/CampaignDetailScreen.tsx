@@ -64,6 +64,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [editingPrice, setEditingPrice] = useState<{productId: string, profileId: string, value: string} | null>(null);
   const [editingCost, setEditingCost] = useState<{productId: string, value: string} | null>(null);
   const [savingPrice, setSavingPrice] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
@@ -148,7 +149,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               productIds.map(async (productId) => {
                 try {
                   const salePricesResponse = await priceProfilesApi.getProductSalePrices(productId);
-                  salePricesMap[productId] = salePricesResponse.salePrices || [];
+                  // The API returns {productId, productSku, costCents, salePrices: [...]}
+                  const prices = (salePricesResponse as any).salePrices || salePricesResponse.data || [];
+                  salePricesMap[productId] = prices;
                 } catch (error) {
                   logger.error(`Error loading sale prices for product ${productId}:`, error);
                   salePricesMap[productId] = [];
@@ -686,6 +689,61 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return priceEntry?.priceCents || 0;
   };
 
+  const handleCalculateFranquiciaFromSocia = async (productId: string) => {
+    // Find Socia and Franquicia profiles
+    const sociaProfile = priceProfiles.find(p => p.code === 'SOCIA' || p.name.toLowerCase().includes('socia'));
+    const franquiciaProfile = priceProfiles.find(p => p.code === 'FRANQ' || p.name.toLowerCase().includes('franquicia'));
+
+    if (!sociaProfile || !franquiciaProfile) {
+      Alert.alert('Error', 'No se encontraron los perfiles de Precio Socia y Precio Franquicia');
+      return;
+    }
+
+    const sociaPriceCents = getSalePriceForProfile(productId, sociaProfile.id);
+    if (sociaPriceCents === 0) {
+      Alert.alert('Error', 'El Precio Socia debe estar configurado primero');
+      return;
+    }
+
+    const franquiciaPriceCents = Math.round(sociaPriceCents / 1.15);
+
+    try {
+      setSavingPrice(true);
+      await priceProfilesApi.updateSalePrice(productId, {
+        productId,
+        presentationId: null,
+        profileId: franquiciaProfile.id,
+        priceCents: franquiciaPriceCents,
+      });
+
+      Alert.alert('Éxito', `Precio Franquicia calculado: S/ ${(franquiciaPriceCents / 100).toFixed(2)}`);
+      loadCampaign(); // Refresh to get updated data
+    } catch (error: any) {
+      logger.error('Error calculating franquicia price:', error);
+      Alert.alert('Error', error.message || 'No se pudo calcular el precio franquicia');
+    } finally {
+      setSavingPrice(false);
+    }
+  };
+
+  const filteredProducts = useMemo(() => {
+    if (!campaign?.products) return [];
+
+    if (!searchQuery.trim()) {
+      return campaign.products;
+    }
+
+    const query = searchQuery.toLowerCase();
+    return campaign.products.filter(product => {
+      const productDetails = product.product || products[product.productId];
+      const title = productDetails?.title?.toLowerCase() || '';
+      const sku = productDetails?.sku?.toLowerCase() || '';
+      const quantity = product.totalQuantityBase.toString();
+
+      return title.includes(query) || sku.includes(query) || quantity.includes(query);
+    });
+  }, [campaign?.products, products, searchQuery]);
+
   const renderProducts = () => {
     if (!campaign) return null;
 
@@ -710,14 +768,39 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             )}
           </View>
 
+          {/* Search bar */}
+          {campaign.products && campaign.products.length > 0 && (
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+                placeholder="Buscar por nombre, SKU o cantidad..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholderTextColor="#94A3B8"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearSearchButton}
+                  onPress={() => setSearchQuery('')}
+                >
+                  <Text style={styles.clearSearchText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {!campaign.products || campaign.products.length === 0 ? (
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
               No hay productos agregados
             </Text>
+          ) : filteredProducts.length === 0 ? (
+            <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+              No se encontraron productos que coincidan con "{searchQuery}"
+            </Text>
           ) : (
-            campaign.products.map((product) => {
+            filteredProducts.map((product) => {
               const productDetails = product.product || products[product.productId];
-              const costCents = productDetails?.costCents || 0;
+              const costCents = (productDetails as any)?.costCents || 0;
               const isExpanded = expandedProducts.has(product.id);
 
               return (
@@ -807,6 +890,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               onChangeText={(text) => setEditingCost({...editingCost, value: text})}
                               keyboardType="decimal-pad"
                               autoFocus
+                              onSubmitEditing={() => handleSaveCost(product.productId)}
                             />
                             <TouchableOpacity
                               style={styles.saveButton}
@@ -814,16 +898,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               disabled={savingPrice}
                             >
                               {savingPrice ? (
-                                <ActivityIndicator size="small" color="#10B981" />
+                                <ActivityIndicator size="small" color="#FFFFFF" />
                               ) : (
                                 <Text style={styles.saveButtonText}>✓</Text>
                               )}
                             </TouchableOpacity>
                             <TouchableOpacity
-                              style={styles.cancelButton}
+                              style={styles.cancelEditButton}
                               onPress={() => setEditingCost(null)}
                             >
-                              <Text style={styles.cancelButtonText}>✕</Text>
+                              <Text style={styles.cancelEditButtonText}>✕</Text>
                             </TouchableOpacity>
                           </View>
                         ) : (
@@ -843,6 +927,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       {priceProfiles.map((profile) => {
                         const priceCents = getSalePriceForProfile(product.productId, profile.id);
                         const isEditingThis = editingPrice?.productId === product.productId && editingPrice?.profileId === profile.id;
+                        const isFranquicia = profile.code === 'FRANQ' || profile.name.toLowerCase().includes('franquicia');
 
                         return (
                           <View key={profile.id} style={styles.priceRow}>
@@ -856,6 +941,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                                   onChangeText={(text) => setEditingPrice({...editingPrice, value: text})}
                                   keyboardType="decimal-pad"
                                   autoFocus
+                                  onSubmitEditing={() => handleSavePrice(product.productId, profile.id)}
                                 />
                                 <TouchableOpacity
                                   style={styles.saveButton}
@@ -863,16 +949,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                                   disabled={savingPrice}
                                 >
                                   {savingPrice ? (
-                                    <ActivityIndicator size="small" color="#10B981" />
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
                                   ) : (
                                     <Text style={styles.saveButtonText}>✓</Text>
                                   )}
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                  style={styles.cancelButton}
+                                  style={styles.cancelEditButton}
                                   onPress={() => setEditingPrice(null)}
                                 >
-                                  <Text style={styles.cancelButtonText}>✕</Text>
+                                  <Text style={styles.cancelEditButtonText}>✕</Text>
                                 </TouchableOpacity>
                               </View>
                             ) : (
@@ -884,6 +970,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                                 >
                                   <Text style={styles.editButtonText}>✏️</Text>
                                 </TouchableOpacity>
+                                {isFranquicia && (
+                                  <TouchableOpacity
+                                    style={styles.calculateButton}
+                                    onPress={() => handleCalculateFranquiciaFromSocia(product.productId)}
+                                    disabled={savingPrice}
+                                  >
+                                    <Text style={styles.calculateButtonText}>🧮 /1.15</Text>
+                                  </TouchableOpacity>
+                                )}
                               </View>
                             )}
                           </View>
@@ -956,11 +1051,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         {campaign.status === CampaignStatus.DRAFT && (
           <View style={[styles.footer, isTablet && styles.footerTablet]}>
             <TouchableOpacity
-              style={[styles.cancelButton, isTablet && styles.cancelButtonTablet]}
+              style={[styles.cancelCampaignButton, isTablet && styles.cancelCampaignButtonTablet]}
               onPress={handleCancel}
               disabled={actionLoading}
             >
-              <Text style={[styles.cancelButtonText, isTablet && styles.cancelButtonTextTablet]}>
+              <Text style={[styles.cancelCampaignButtonText, isTablet && styles.cancelCampaignButtonTextTablet]}>
                 Cancelar Campaña
               </Text>
             </TouchableOpacity>
@@ -1437,7 +1532,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  cancelButton: {
+  cancelEditButton: {
     backgroundColor: '#EF4444',
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1445,8 +1540,55 @@ const styles = StyleSheet.create({
     minWidth: 32,
     alignItems: 'center',
   },
-  cancelButtonText: {
+  cancelEditButtonText: {
     fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  calculateButton: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginLeft: 4,
+  },
+  calculateButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  searchContainer: {
+    marginBottom: 16,
+    position: 'relative',
+  },
+  searchInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#1E293B',
+  },
+  searchInputTablet: {
+    fontSize: 16,
+    paddingVertical: 12,
+  },
+  clearSearchButton: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: [{ translateY: -12 }],
+    backgroundColor: '#94A3B8',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearSearchText: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -1462,7 +1604,7 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 16,
   },
-  cancelButton: {
+  cancelCampaignButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
@@ -1471,15 +1613,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButtonTablet: {
+  cancelCampaignButtonTablet: {
     paddingVertical: 16,
   },
-  cancelButtonText: {
+  cancelCampaignButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#EF4444',
   },
-  cancelButtonTextTablet: {
+  cancelCampaignButtonTextTablet: {
     fontSize: 18,
   },
   activateButton: {
