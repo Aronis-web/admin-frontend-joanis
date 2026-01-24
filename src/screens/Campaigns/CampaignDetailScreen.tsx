@@ -43,6 +43,7 @@ interface CampaignDetailScreenProps {
   route: {
     params: {
       campaignId: string;
+      shouldReload?: boolean;
     };
   };
 }
@@ -215,7 +216,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   useFocusEffect(
     useCallback(() => {
       // Check if we should force reload (e.g., after editing a product)
-      const shouldReload = route.params?.shouldReload;
+      const shouldReload = (route.params as any)?.shouldReload;
 
       if (shouldReload) {
         // Clear the param to avoid reloading again
@@ -233,7 +234,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         // This cleanup runs when navigating away from the screen
         hasLoadedRef.current = false;
       };
-    }, [loadCampaign, route.params?.shouldReload, navigation])
+    }, [loadCampaign, route.params, navigation])
   );
 
   const handleRefresh = () => {

@@ -56,7 +56,7 @@ class CampaignsService {
   async getCampaign(id: string): Promise<Campaign> {
     return apiClient.get<Campaign>(`${this.basePath}/${id}`, {
       params: {
-        include: 'participants.company,participants.site,participants.priceProfile,products.product,products.customDistributions.items',
+        include: 'participants.company,participants.site,participants.priceProfile,products.product,products.purchase,products.customDistributions.items',
       },
     });
   }

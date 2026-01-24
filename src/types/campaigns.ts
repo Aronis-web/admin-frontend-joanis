@@ -153,6 +153,8 @@ export interface CampaignProduct {
     sku: string;
     status: string;
     costCents?: number;
+    preliminaryStock?: number;
+    validatedStock?: number;
     presentations?: Array<{
       id: string;
       presentationId: string;
