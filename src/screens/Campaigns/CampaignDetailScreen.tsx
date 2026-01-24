@@ -150,12 +150,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         // First, use products that come embedded in the campaign response
         const productsMap: Record<string, Product> = {};
 
+        logger.info(`📦 Total campaign products: ${data.products.length}`);
+
         // Collect products that are already embedded in the response
+        let embeddedCount = 0;
         data.products.forEach(campaignProduct => {
           if (campaignProduct.product) {
+            embeddedCount++;
+            logger.info(`✅ Embedded product found: ${campaignProduct.product.id} - ${campaignProduct.product.title || campaignProduct.product.sku}`);
             productsMap[campaignProduct.productId] = campaignProduct.product as any;
           }
         });
+
+        logger.info(`📊 Embedded products: ${embeddedCount}/${data.products.length}`);
 
         // Find products that are NOT embedded and need to be fetched
         const missingProductIds = data.products
@@ -185,6 +192,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             logger.error('Error loading missing products:', error);
           }
         }
+
+        logger.info(`📋 Final products map size: ${Object.keys(productsMap).length}`);
+        logger.info(`📋 Sample product from map:`, Object.values(productsMap)[0]);
 
         setProducts(productsMap);
 
