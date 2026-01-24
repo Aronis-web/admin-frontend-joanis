@@ -43,7 +43,6 @@ interface CampaignDetailScreenProps {
   route: {
     params: {
       campaignId: string;
-      shouldReload?: boolean;
     };
   };
 }
@@ -168,7 +167,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         if (missingProductIds.length > 0) {
           try {
             logger.info(`Fetching ${missingProductIds.length} missing products:`, missingProductIds);
-            const productsResponse = await productsApi.getProducts({ limit: 1000 });
+            const productsResponse = await productsApi.getProducts({
+              limit: 1000,
+              status: 'active,preliminary' // Include both active and preliminary products
+            });
             const productsList = productsResponse.products || [];
             productsList.forEach(product => {
               if (missingProductIds.includes(product.id)) {
@@ -216,7 +218,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   useFocusEffect(
     useCallback(() => {
       // Check if we should force reload (e.g., after editing a product)
-      const shouldReload = (route.params as any)?.shouldReload;
+      const shouldReload = route.params?.shouldReload;
 
       if (shouldReload) {
         // Clear the param to avoid reloading again
@@ -234,7 +236,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         // This cleanup runs when navigating away from the screen
         hasLoadedRef.current = false;
       };
-    }, [loadCampaign, route.params, navigation])
+    }, [loadCampaign, route.params?.shouldReload, navigation])
   );
 
   const handleRefresh = () => {
