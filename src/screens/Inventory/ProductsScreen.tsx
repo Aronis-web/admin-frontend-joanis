@@ -34,7 +34,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'sku' | 'correlative'>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('active'); // Default to 'active'
+  const [statusFilter, setStatusFilter] = useState<string>('all'); // Default to 'all' to show all products
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isProductModalVisible, setIsProductModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -138,12 +138,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   );
 
   useEffect(() => {
-    if (!Array.isArray(products)) {
+    if (!Array.isArray(products) || products.length === 0) {
       setFilteredProducts([]);
       return;
     }
 
-    let filtered = products;
+    let filtered = [...products];
 
     // Filter by status
     if (statusFilter !== 'all') {
@@ -152,12 +152,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
     // Filter by search query
     if (searchQuery.trim() !== '') {
-      filtered = filtered.filter((product) => {
-        const query = searchQuery.toLowerCase();
+      const query = searchQuery.toLowerCase().trim();
 
+      filtered = filtered.filter((product) => {
         if (searchType === 'correlative') {
           // Búsqueda por número correlativo
-          return product.correlativeNumber && product.correlativeNumber.toString().includes(searchQuery);
+          return product.correlativeNumber && product.correlativeNumber.toString().includes(query);
         } else if (searchType === 'sku') {
           // Búsqueda solo por SKU
           return product.sku && product.sku.toLowerCase().includes(query);
@@ -166,7 +166,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           return (
             (product.title && product.title.toLowerCase().includes(query)) ||
             (product.sku && product.sku.toLowerCase().includes(query)) ||
-            (product.correlativeNumber && product.correlativeNumber.toString().includes(searchQuery))
+            (product.correlativeNumber && product.correlativeNumber.toString().includes(query))
           );
         }
       });
@@ -175,6 +175,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     console.log('🔍 Filter applied:', {
       statusFilter,
       searchQuery,
+      searchType,
       totalProducts: products.length,
       filteredCount: filtered.length,
     });
@@ -439,6 +440,14 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           >
             <Text style={[styles.filterChipText, statusFilter === 'all' && styles.filterChipTextActive]}>
               Todos
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'preliminary' && styles.filterChipActive]}
+            onPress={() => setStatusFilter('preliminary')}
+          >
+            <Text style={[styles.filterChipText, statusFilter === 'preliminary' && styles.filterChipTextActive]}>
+              Preliminares
             </Text>
           </TouchableOpacity>
           <TouchableOpacity

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { inventoryApi, ExportFormat } from '@/services/api/inventory';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 
 interface StockExportModalProps {
   visible: boolean;
@@ -90,59 +91,49 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
         onClose();
       } else {
         // Mobile - use sharing
-        try {
-          // Dynamic import for mobile
-          const FileSystemModule = await import('expo-file-system');
-          const FileSystem = FileSystemModule.default || FileSystemModule;
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = async () => {
+          try {
+            const base64data = reader.result as string;
+            const base64 = base64data.split(',')[1];
 
-          const reader = new FileReader();
-          reader.readAsDataURL(blob);
-          reader.onloadend = async () => {
-            try {
-              const base64data = reader.result as string;
-              const base64 = base64data.split(',')[1];
+            // Create a temporary file URI
+            const fileUri = `${FileSystem.cacheDirectory}${filename}`;
 
-              // Create a temporary file URI
-              const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+            await FileSystem.writeAsStringAsync(fileUri, base64, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
 
-              await FileSystem.writeAsStringAsync(fileUri, base64, {
-                encoding: FileSystem.EncodingType.Base64,
+            console.log('✅ File saved to:', fileUri);
+
+            // Share the file
+            if (await Sharing.isAvailableAsync()) {
+              await Sharing.shareAsync(fileUri, {
+                mimeType: format === 'excel'
+                  ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                  : 'application/pdf',
+                dialogTitle: 'Guardar Reporte de Stock',
+                UTI: format === 'excel' ? 'com.microsoft.excel.xlsx' : 'com.adobe.pdf',
               });
-
-              console.log('✅ File saved to:', fileUri);
-
-              // Share the file
-              if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(fileUri, {
-                  mimeType: format === 'excel'
-                    ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                    : 'application/pdf',
-                  dialogTitle: 'Guardar Reporte de Stock',
-                  UTI: format === 'excel' ? 'com.microsoft.excel.xlsx' : 'com.adobe.pdf',
-                });
-              } else {
-                Alert.alert('Éxito', `Reporte guardado en: ${fileUri}`);
-              }
-
-              setLoading(false);
-              onClose();
-            } catch (error) {
-              console.error('Error saving file:', error);
-              Alert.alert('Error', 'No se pudo guardar el archivo');
-              setLoading(false);
+            } else {
+              Alert.alert('Éxito', `Reporte guardado en: ${fileUri}`);
             }
-          };
 
-          reader.onerror = () => {
-            console.error('Error reading blob');
-            Alert.alert('Error', 'No se pudo procesar el archivo');
             setLoading(false);
-          };
-        } catch (error) {
-          console.error('Error loading FileSystem:', error);
-          Alert.alert('Error', 'No se pudo acceder al sistema de archivos');
+            onClose();
+          } catch (error) {
+            console.error('Error saving file:', error);
+            Alert.alert('Error', 'No se pudo guardar el archivo');
+            setLoading(false);
+          }
+        };
+
+        reader.onerror = () => {
+          console.error('Error reading blob');
+          Alert.alert('Error', 'No se pudo procesar el archivo');
           setLoading(false);
-        }
+        };
       }
 
       // Reset form
