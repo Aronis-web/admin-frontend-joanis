@@ -63,11 +63,10 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       let productsData: any[] = [];
       let responseData: any;
       try {
-        // Include all statuses explicitly to ensure we get all products
+        // Don't filter by status - get all products and filter on frontend
         responseData = await productsApi.getAllProducts({
           page,
-          limit: pagination.limit,
-          status: 'active,draft,archived,inactive,discontinued'
+          limit: pagination.limit
         });
         productsData = responseData.products || [];
       } catch (adminError: any) {
@@ -76,8 +75,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           console.log('Admin endpoint forbidden, trying public catalog...');
           responseData = await productsApi.getProducts({
             page,
-            limit: pagination.limit,
-            status: 'active,draft,archived,inactive,discontinued'
+            limit: pagination.limit
           });
           productsData = responseData.products || [];
         } else {
