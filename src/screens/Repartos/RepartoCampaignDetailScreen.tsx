@@ -22,6 +22,7 @@ import { Campaign, CampaignParticipant, ParticipantType } from '@/types/campaign
 import { RepartoProducto } from '@/types/repartos';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProductSelectionModal, CircularProgress } from '@/components/Repartos';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface RepartoCampaignDetailScreenProps {
   navigation: any;
@@ -46,9 +47,11 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
   const [showProductSelectionModal, setShowProductSelectionModal] = useState(false);
   const [allProducts, setAllProducts] = useState<RepartoProducto[]>([]);
   const [downloadingParticipantId, setDownloadingParticipantId] = useState<string | null>(null);
+  const [downloadingGeneralReport, setDownloadingGeneralReport] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
+  const { hasPermission } = usePermissions();
 
   const loadData = useCallback(async () => {
     try {
@@ -195,6 +198,86 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     }
   };
 
+  const handleDownloadGeneralReport = async () => {
+    if (repartos.length === 0) {
+      Alert.alert('Error', 'No hay repartos para generar el reporte');
+      return;
+    }
+
+    try {
+      setDownloadingGeneralReport(true);
+
+      logger.info('🔄 Descargando reporte general de totales de la campaña');
+      const startTime = new Date().getTime();
+
+      // Get the first reparto ID to use for the general report
+      const firstRepartoId = repartos[0].id;
+
+      // Call the API to get the PDF blob for all participants (no participantId filter)
+      const pdfBlob = await repartosService.exportRepartoTotalsReport(firstRepartoId);
+
+      const endTime = new Date().getTime();
+      logger.info('✅ PDF descargado del servidor');
+      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+      logger.info('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+
+      if (Platform.OS === 'web') {
+        // For web, create a download link using blob URL
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `reporte-totales-general-${campaign?.code || campaignId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up the blob URL after a short delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+
+        Alert.alert('Éxito', 'El reporte general de totales se está descargando');
+      } else {
+        // For mobile (iOS/Android), save to file system and share
+        const timestamp = new Date().getTime();
+        const fileName = `reporte-totales-general-${campaign?.code || campaignId}-${timestamp}.pdf`;
+        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
+
+        // Convert blob to array buffer using FileReader
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(pdfBlob);
+        });
+
+        // Write to file
+        await file.create();
+        const writer = file.writableStream().getWriter();
+        await writer.write(new Uint8Array(arrayBuffer));
+        await writer.close();
+
+        // Share the file
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: 'Reporte General de Totales',
+            UTI: 'com.adobe.pdf',
+          });
+        } else {
+          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
+        }
+      }
+    } catch (error: any) {
+      logger.error('Error downloading general report:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'No se pudo descargar el reporte general'
+      );
+    } finally {
+      setDownloadingGeneralReport(false);
+    }
+  };
+
   const handleDownloadParticipantReport = async (participant: CampaignParticipant, event: any) => {
     // Prevent navigation to participant detail
     event.stopPropagation();
@@ -210,29 +293,21 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       logger.info('🔄 Descargando reporte del participante:', participantName);
       const startTime = new Date().getTime();
 
-      // Get the participant's repartos to extract product IDs
+      // Get the participant's repartos to extract the first reparto ID
       const participantRepartos = repartos.filter((reparto) =>
         reparto.participantes?.some((p: any) => p.campaignParticipantId === participant.id)
       );
 
-      // Collect all product IDs for this participant
-      const productIds = new Set<string>();
-      participantRepartos.forEach((reparto) => {
-        const participanteReparto = reparto.participantes?.find(
-          (p: any) => p.campaignParticipantId === participant.id
-        );
-        participanteReparto?.productos?.forEach((producto: any) => {
-          if (producto.productId) {
-            productIds.add(producto.productId);
-          }
-        });
-      });
+      if (participantRepartos.length === 0) {
+        Alert.alert('Error', 'No se encontraron repartos para este participante');
+        return;
+      }
 
-      // Call the API to get the PDF blob for this participant's products
-      const pdfBlob = await repartosService.exportCampaignDistributionSheets(
-        campaignId,
-        Array.from(productIds)
-      );
+      // Use the first reparto ID and pass the participant ID as filter
+      const firstRepartoId = participantRepartos[0].id;
+
+      // Call the API to get the PDF blob for this participant
+      const pdfBlob = await repartosService.exportRepartoTotalsReport(firstRepartoId, participant.id);
 
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');
@@ -493,6 +568,26 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
             >
               <Text style={[styles.exportButtonText, isTablet && styles.exportButtonTextTablet]}>
                 {exportingPdf ? '📄 Generando PDF...' : '📄 Descargar Todas las Hojas de Reparto'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Download General Totals Report Button */}
+          {hasPermission('repartos.reports') && repartos.length > 0 && (
+            <TouchableOpacity
+              style={[
+                styles.generalReportButton,
+                isTablet && styles.generalReportButtonTablet,
+                downloadingGeneralReport && styles.downloadButtonDisabled,
+              ]}
+              onPress={handleDownloadGeneralReport}
+              disabled={downloadingGeneralReport}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.generalReportButtonText, isTablet && styles.generalReportButtonTextTablet]}>
+                {downloadingGeneralReport
+                  ? '📊 Generando Reporte...'
+                  : '📊 Descargar Reporte General de Totales'}
               </Text>
             </TouchableOpacity>
           )}
@@ -870,5 +965,31 @@ const styles = StyleSheet.create({
   },
   downloadButtonDisabled: {
     opacity: 0.5,
+  },
+  generalReportButton: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  generalReportButtonTablet: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    marginTop: 16,
+  },
+  generalReportButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  generalReportButtonTextTablet: {
+    fontSize: 16,
   },
 });

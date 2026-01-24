@@ -379,3 +379,60 @@ export const RepartoProductoStatusColors: Record<RepartoProductoStatus, string> 
   [RepartoProductoStatus.VALIDATED]: '#10B981',
   [RepartoProductoStatus.CANCELLED]: '#EF4444',
 };
+
+// ============================================
+// Progress and Reports Types
+// ============================================
+
+/**
+ * Progress Information
+ */
+export interface ProgressInfo {
+  productsAssigned: number;
+  productsValidated: number;
+  productsPercentage: number;
+  quantityAssigned: number;
+  quantityValidated: number;
+  quantityPercentage: number;
+}
+
+/**
+ * Product Progress
+ */
+export interface ProductProgress {
+  productId: string;
+  productName: string;
+  productSku: string;
+  quantityAssigned: number;
+  quantityValidated: number;
+  isValidated: boolean;
+  validatedAt?: string;
+  validatedBy?: string;
+}
+
+/**
+ * Participant Progress
+ */
+export interface ParticipantProgress {
+  participantId: string;
+  participantName: string;
+  participantType: string;
+  progress: ProgressInfo;
+  products: ProductProgress[];
+}
+
+/**
+ * Reparto Progress Response
+ */
+export interface RepartoProgressResponse {
+  repartoId: string;
+  repartoCode: string;
+  repartoName: string;
+  repartoStatus: string;
+  campaignId: string;
+  campaignName: string;
+  campaignCode: string;
+  scheduledDate?: string;
+  overallProgress: ProgressInfo;
+  participants: ParticipantProgress[];
+}

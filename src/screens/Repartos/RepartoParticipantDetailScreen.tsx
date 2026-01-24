@@ -10,14 +10,19 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   TextInput,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { campaignsService, repartosService } from '@/services/api';
 import { CampaignParticipant, ParticipantType } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ValidacionSalidaModal, ValidacionDetailModal, CircularProgress } from '@/components/Repartos';
 import { useAuthStore } from '@/store/auth';
+import { usePermissions } from '@/hooks/usePermissions';
+import logger from '@/utils/logger';
 
 interface RepartoParticipantDetailScreenProps {
   navigation: any;
@@ -117,10 +122,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const [selectedProducto, setSelectedProducto] = useState<ProductoReparto | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [repartoId, setRepartoId] = useState<string | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
   const { user } = useAuthStore();
+  const { hasPermission } = usePermissions();
 
   const loadData = useCallback(async () => {
     try {
@@ -160,10 +168,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
       // Transformar la respuesta del backend al formato esperado
       const productosAsignados: ProductoReparto[] = [];
+      let firstRepartoId: string | null = null;
 
       participantProducts.forEach((productGroup: any) => {
         // Cada grupo representa un producto con sus repartos
         productGroup.repartos?.forEach((reparto: any) => {
+          // Guardar el primer repartoId que encontremos
+          if (!firstRepartoId && reparto.repartoId) {
+            firstRepartoId = reparto.repartoId;
+          }
           // WORKAROUND: Si el backend no envía presentationInfo, intentar construirlo
           // basándonos en los datos del reparto individual
           let presentationInfo = productGroup.presentationInfo;
@@ -231,6 +244,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
       console.log('📊 Total productos asignados:', productosAsignados.length);
       setProductos(productosAsignados);
+
+      // Guardar el repartoId para usar en el reporte
+      if (firstRepartoId) {
+        setRepartoId(firstRepartoId);
+      }
     } catch (error: any) {
       console.error('Error loading participant data:', error);
       Alert.alert('Error', 'No se pudo cargar la información del participante');
@@ -314,6 +332,88 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       throw error;
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleDownloadParticipantReport = async () => {
+    if (!repartoId || !participant) {
+      Alert.alert('Error', 'No se pudo obtener la información del reparto');
+      return;
+    }
+
+    const participantName =
+      participant.participantType === ParticipantType.EXTERNAL_COMPANY
+        ? participant.company?.alias || participant.company?.name || 'Empresa'
+        : participant.site?.name || 'Sede';
+
+    try {
+      setDownloadingReport(true);
+
+      logger.info('🔄 Descargando reporte del participante:', participantName);
+      const startTime = new Date().getTime();
+
+      // Call the API to get the PDF blob for this participant
+      const pdfBlob = await repartosService.exportRepartoTotalsReport(repartoId, participantId);
+
+      const endTime = new Date().getTime();
+      logger.info('✅ PDF descargado del servidor');
+      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+      logger.info('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+
+      if (Platform.OS === 'web') {
+        // For web, create a download link using blob URL
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `reporte-totales-${participantName.replace(/\s+/g, '-')}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up the blob URL after a short delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+
+        Alert.alert('Éxito', `El reporte de ${participantName} se está descargando`);
+      } else {
+        // For mobile (iOS/Android), save to file system and share
+        const timestamp = new Date().getTime();
+        const fileName = `reporte-totales-${participantName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
+        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
+
+        // Convert blob to array buffer using FileReader
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(pdfBlob);
+        });
+
+        // Write to file
+        await file.create();
+        const writer = file.writableStream().getWriter();
+        await writer.write(new Uint8Array(arrayBuffer));
+        await writer.close();
+
+        // Share the file
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Reporte de Totales - ${participantName}`,
+            UTI: 'com.adobe.pdf',
+          });
+        } else {
+          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
+        }
+      }
+    } catch (error: any) {
+      logger.error('Error downloading participant report:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'No se pudo descargar el reporte del participante'
+      );
+    } finally {
+      setDownloadingReport(false);
     }
   };
 
@@ -610,6 +710,26 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               />
             </View>
           </View>
+
+          {/* Download Report Button */}
+          {hasPermission('repartos.reports') && repartoId && productos.length > 0 && (
+            <TouchableOpacity
+              style={[
+                styles.downloadReportButton,
+                isTablet && styles.downloadReportButtonTablet,
+                downloadingReport && styles.downloadButtonDisabled,
+              ]}
+              onPress={handleDownloadParticipantReport}
+              disabled={downloadingReport}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.downloadReportButtonText, isTablet && styles.downloadReportButtonTextTablet]}>
+                {downloadingReport
+                  ? '📄 Generando Reporte...'
+                  : '📄 Descargar Reporte de Totales'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Products List */}
@@ -995,6 +1115,35 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   buttonDisabled: {
+    opacity: 0.5,
+  },
+  downloadReportButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  downloadReportButtonTablet: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    marginTop: 16,
+  },
+  downloadReportButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  downloadReportButtonTextTablet: {
+    fontSize: 16,
+  },
+  downloadButtonDisabled: {
     opacity: 0.5,
   },
   headerSection: {
