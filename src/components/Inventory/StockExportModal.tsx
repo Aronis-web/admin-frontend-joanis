@@ -91,7 +91,9 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
       } else {
         // Mobile - use sharing
         try {
-          const FileSystem = require('expo-file-system');
+          // Dynamic import for mobile
+          const FileSystemModule = await import('expo-file-system');
+          const FileSystem = FileSystemModule.default || FileSystemModule;
 
           const reader = new FileReader();
           reader.readAsDataURL(blob);
