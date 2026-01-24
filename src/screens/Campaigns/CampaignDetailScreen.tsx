@@ -630,16 +630,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // Load all campaigns except the current one, ordered by creation date (newest first)
       const response = await campaignsService.getCampaigns({
         limit: 100,
-        include: 'participants.company,participants.site,participants.priceProfile',
         orderBy: 'createdAt',
         orderDir: 'DESC'
       });
 
-      // Filter campaigns that have participants and are not the current one
-      const otherCampaigns = response.data.filter(c => c.id !== campaignId && c.participants && c.participants.length > 0);
+      // Filter campaigns that are not the current one
+      const otherCampaigns = response.data.filter(c => c.id !== campaignId);
 
       if (otherCampaigns.length === 0) {
-        Alert.alert('Error', 'No hay campañas con participantes para copiar');
+        Alert.alert('Error', 'No hay otras campañas disponibles para copiar participantes');
         setActionLoading(false);
         return;
       }
@@ -647,10 +646,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // Get the most recent campaign (first one after ordering by createdAt DESC)
       const latestCampaign = otherCampaigns[0];
 
+      // Load the full campaign details with participants
+      logger.info('📥 Cargando participantes de la campaña:', latestCampaign.code);
+      const fullCampaign = await campaignsService.getCampaign(latestCampaign.id);
+
+      if (!fullCampaign.participants || fullCampaign.participants.length === 0) {
+        Alert.alert('Error', `La campaña "${latestCampaign.code} - ${latestCampaign.name}" no tiene participantes para copiar`);
+        setActionLoading(false);
+        return;
+      }
+
       // Show confirmation dialog
       Alert.alert(
         'Copiar Participantes',
-        `¿Deseas copiar los ${latestCampaign.participants?.length || 0} participante(s) de la campaña "${latestCampaign.code} - ${latestCampaign.name}"?`,
+        `¿Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campaña "${latestCampaign.code} - ${latestCampaign.name}"?`,
         [
           {
             text: 'Cancelar',
@@ -659,11 +668,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           },
           {
             text: 'Copiar',
-            onPress: () => handleCopyParticipantsFromCampaign(latestCampaign)
+            onPress: () => handleCopyParticipantsFromCampaign(fullCampaign)
           }
         ]
       );
     } catch (error: any) {
+      logger.error('Error loading campaigns for copy:', error);
       Alert.alert('Error', error.message || 'No se pudieron cargar las campañas');
       setActionLoading(false);
     }
