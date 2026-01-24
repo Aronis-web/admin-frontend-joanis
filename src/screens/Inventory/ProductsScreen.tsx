@@ -189,7 +189,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     });
 
     setFilteredProducts(filtered);
-  }, [searchQuery, statusFilter, products, searchType]);
+  }, [searchQuery, products, searchType]);
+
+  // Reload from page 1 when status filter changes
+  useEffect(() => {
+    loadProducts(1);
+  }, [statusFilter]);
 
   const onRefresh = async () => {
     setRefreshing(true);
