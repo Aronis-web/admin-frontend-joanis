@@ -81,6 +81,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
   // Include in sheet state (for PDF generation) - applies to ALL participants for this product
   const [includeInSheet, setIncludeInSheet] = useState<boolean>(true);
 
+  // Editable total quantity - allows modifying the total quantity to distribute
+  const [editableTotalQuantity, setEditableTotalQuantity] = useState<number>(0);
+
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
@@ -228,6 +231,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       });
 
       setAdjustedDistribution(previewDataWithPreferences);
+
+      // Initialize editable total quantity
+      setEditableTotalQuantity(previewDataWithPreferences.totalQuantity);
 
       // Inicializar distribuciones editables desde el preview
       const initialDistributions: typeof editableDistributions = {};
@@ -495,7 +501,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
   const validateDistributions = (): boolean => {
     const totalDistributed = getTotalDistributed();
-    const productTotal = adjustedDistribution?.totalQuantity || 0;
+    const productTotal = editableTotalQuantity;
 
     if (totalDistributed === 0) {
       Alert.alert('Error', 'Debes asignar al menos una cantidad a un participante');
@@ -1256,6 +1262,30 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                       </View>
                     )}
 
+                    {/* Stock Information */}
+                    {adjustedDistribution.stockDetails && adjustedDistribution.stockDetails.length > 0 && (
+                      <View style={styles.previewSection}>
+                        <Text style={styles.previewSectionTitle}>📦 Stock Disponible</Text>
+                        {adjustedDistribution.stockDetails.map((stock, index) => (
+                          <View key={index} style={styles.stockDetailCard}>
+                            <Text style={styles.stockWarehouseName}>{stock.warehouse}</Text>
+                            <View style={styles.stockDetailRow}>
+                              <Text style={styles.stockDetailLabel}>Total:</Text>
+                              <Text style={styles.stockDetailValue}>{stock.total} unidades</Text>
+                            </View>
+                            <View style={styles.stockDetailRow}>
+                              <Text style={styles.stockDetailLabel}>Reservado:</Text>
+                              <Text style={[styles.stockDetailValue, styles.stockReserved]}>{stock.reserved} unidades</Text>
+                            </View>
+                            <View style={styles.stockDetailRow}>
+                              <Text style={styles.stockDetailLabel}>Disponible:</Text>
+                              <Text style={[styles.stockDetailValue, styles.stockAvailable]}>{stock.available} unidades</Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
                     {/* Resumen de Distribución */}
                     <View style={styles.previewSection}>
                       <Text style={styles.previewSectionTitle}>Resumen</Text>
@@ -1269,26 +1299,49 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                           {adjustedDistribution.currency} {adjustedDistribution.totalAssignedAmount?.toFixed(2) || '0.00'}
                         </Text>
                       </View>
-                      <View style={styles.previewSummaryRow}>
-                        <Text style={styles.previewSummaryLabel}>Cantidad total:</Text>
-                        <Text style={styles.previewSummaryValue}>
-                          {adjustedDistribution.totalQuantity} unidades
+
+                      {/* Editable Total Quantity */}
+                      <View style={styles.editableTotalQuantityContainer}>
+                        <Text style={styles.editableTotalQuantityLabel}>Cantidad total a distribuir:</Text>
+                        <View style={styles.editableTotalQuantityInputContainer}>
+                          <TextInput
+                            style={styles.editableTotalQuantityInput}
+                            keyboardType="numeric"
+                            placeholder="0"
+                            value={editableTotalQuantity.toString()}
+                            onChangeText={(text) => {
+                              const newQuantity = parseInt(text) || 0;
+                              setEditableTotalQuantity(newQuantity);
+                            }}
+                          />
+                          <Text style={styles.editableTotalQuantityUnit}>unidades</Text>
+                        </View>
+                        <Text style={styles.editableTotalQuantityHint}>
+                          💡 Puedes modificar la cantidad total según el stock disponible
                         </Text>
                       </View>
                       <View style={styles.previewSummaryRow}>
-                        <Text style={styles.previewSummaryLabel}>Total a distribuir:</Text>
+                        <Text style={styles.previewSummaryLabel}>Total distribuido:</Text>
                         <Text style={[
                           styles.previewSummaryValue,
-                          getTotalDistributed() > adjustedDistribution.totalQuantity && styles.previewSummaryError
+                          getTotalDistributed() > editableTotalQuantity && styles.previewSummaryError
                         ]}>
                           {getTotalDistributed()} unidades
                         </Text>
                       </View>
-                      {(adjustedDistribution.totalQuantity - getTotalDistributed()) > 0 && (
+                      {(editableTotalQuantity - getTotalDistributed()) > 0 && (
                         <View style={styles.previewSummaryRow}>
                           <Text style={styles.previewSummaryLabel}>Remanente:</Text>
                           <Text style={[styles.previewSummaryValue, styles.previewRemainder]}>
-                            {adjustedDistribution.totalQuantity - getTotalDistributed()} unidades
+                            {editableTotalQuantity - getTotalDistributed()} unidades
+                          </Text>
+                        </View>
+                      )}
+                      {getTotalDistributed() > editableTotalQuantity && (
+                        <View style={styles.previewSummaryRow}>
+                          <Text style={styles.previewSummaryLabel}>Excedente:</Text>
+                          <Text style={[styles.previewSummaryValue, styles.previewSummaryError]}>
+                            {getTotalDistributed() - editableTotalQuantity} unidades
                           </Text>
                         </View>
                       )}
@@ -2573,6 +2626,95 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B',
     lineHeight: 18,
+  },
+  // Stock Detail Styles
+  stockDetailCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  stockWarehouseName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  stockDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  stockDetailLabel: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  stockDetailValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  stockReserved: {
+    color: '#F59E0B',
+  },
+  stockAvailable: {
+    color: '#10B981',
+  },
+  // Editable Total Quantity Styles
+  editableTotalQuantityContainer: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  editableTotalQuantityLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0C4A6E',
+    marginBottom: 10,
+  },
+  editableTotalQuantityInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  editableTotalQuantityInput: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: '#0EA5E9',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0C4A6E',
+    backgroundColor: '#FFFFFF',
+  },
+  editableTotalQuantityUnit: {
+    fontSize: 14,
+    color: '#0C4A6E',
+    fontWeight: '600',
+  },
+  editableTotalQuantityHint: {
+    fontSize: 12,
+    color: '#0369A1',
+    fontStyle: 'italic',
+    lineHeight: 16,
   },
   // Editable Distribution Styles
   editableItem: {

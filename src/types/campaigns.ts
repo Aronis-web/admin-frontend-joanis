@@ -363,6 +363,16 @@ export interface DistributionPreviewItem {
 }
 
 /**
+ * Stock Detail by Warehouse
+ */
+export interface StockDetailByWarehouse {
+  warehouse: string;
+  total: number;
+  reserved: number;
+  available: number;
+}
+
+/**
  * Distribution Preview Response
  */
 export interface DistributionPreviewResponse {
@@ -399,6 +409,7 @@ export interface DistributionPreviewResponse {
     roundingApplied: boolean;
     roundingMethod?: string;
   };
+  stockDetails?: StockDetailByWarehouse[];
   preview: DistributionPreviewItem[];
 }
 
