@@ -228,7 +228,11 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
         totalDistributed: previewDataWithPreferences.totalDistributed,
         remainder: previewDataWithPreferences.remainder,
         participantCount: previewDataWithPreferences.preview.length,
+        stockDetails: previewDataWithPreferences.stockDetails,
+        hasStockDetails: !!previewDataWithPreferences.stockDetails,
       });
+
+      logger.debug('📦 [MODAL] Stock Details completo:', JSON.stringify(previewDataWithPreferences.stockDetails, null, 2));
 
       setAdjustedDistribution(previewDataWithPreferences);
 
