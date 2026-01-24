@@ -15,7 +15,7 @@ import { CampaignProduct, ProductStatus } from '@/types/campaigns';
 import { inventoryApi } from '@/services/api/inventory';
 import { purchasesService } from '@/services/api/purchases';
 import { priceProfilesApi } from '@/services/api/price-profiles';
-import { campaignsApi } from '@/services/api/campaigns';
+import { campaignsService } from '@/services/api';
 import { ProductSalePrice, PriceProfile } from '@/types/price-profiles';
 
 interface CampaignProductBannerModalProps {
@@ -78,7 +78,20 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
         setQuantityValue(campaignProduct.totalQuantityBase.toString());
       }
     }
-  }, [visible, campaignProduct?.productId, productDetails?.costCents, campaignProduct?.totalQuantityBase]);
+  }, [visible, campaignProduct?.productId]); // Removed productDetails?.costCents and campaignProduct?.totalQuantityBase to prevent infinite loops
+
+  // Update form values when productDetails or campaignProduct changes (without fetching)
+  useEffect(() => {
+    if (productDetails?.costCents !== undefined && !editingCost) {
+      setCostValue((productDetails.costCents / 100).toFixed(2));
+    }
+  }, [productDetails?.costCents, editingCost]);
+
+  useEffect(() => {
+    if (campaignProduct?.totalQuantityBase !== undefined && !editingQuantity) {
+      setQuantityValue(campaignProduct.totalQuantityBase.toString());
+    }
+  }, [campaignProduct?.totalQuantityBase, editingQuantity]);
 
   const fetchStockData = async () => {
     if (!campaignProduct?.productId) return;
@@ -172,7 +185,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       setProfiles(profilesResponse);
 
       // La API devuelve {productId, productSku, costCents, salePrices: [...]}
-      const salePricesArray = salePricesResponse.salePrices || salePricesResponse.data || [];
+      const salePricesArray = (salePricesResponse as any).salePrices || salePricesResponse.data || [];
       setSalePrices(salePricesArray);
 
       // Initialize form data
@@ -291,8 +304,14 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
       Alert.alert('Éxito', `Precio Franquicia calculado y actualizado: S/ ${franquiciaPrice.toFixed(2)}`);
 
-      // Reload data to get updated prices
-      await fetchPriceProfiles();
+      // Update the local state instead of refetching
+      setPriceFormData(prevData =>
+        prevData.map(p =>
+          p.profileId === franquiciaProfileId
+            ? { ...p, priceCents, displayValue: franquiciaPrice.toFixed(2), isOverridden: true }
+            : p
+        )
+      );
     } catch (error: any) {
       console.error('❌ Error saving calculated Franquicia price:', error);
       console.error('Error details:', error.response?.data || error.message);
@@ -341,8 +360,14 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       setEditingPriceId(null);
       setEditingPriceValue('');
 
-      // Reload data to get updated prices
-      await fetchPriceProfiles();
+      // Update the local state instead of refetching
+      setPriceFormData(prevData =>
+        prevData.map(p =>
+          p.profileId === profileId
+            ? { ...p, priceCents, displayValue: editingPriceValue, isOverridden: true }
+            : p
+        )
+      );
     } catch (error: any) {
       console.error('❌ Error saving price:', error);
       console.error('Error details:', error.response?.data || error.message);
@@ -383,21 +408,47 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       setSavingCost(true);
       const costCents = Math.round(parseFloat(costValue) * 100);
 
+      const updateData = {
+        costCents,
+      };
+
+      console.log('💾 Saving cost:', {
+        productId: campaignProduct.productId,
+        costCents,
+        costValue,
+        updateData: JSON.stringify(updateData),
+      });
+
       // Import productsApi
       const { productsApi } = await import('@/services/api/products');
 
-      await productsApi.updateProduct(campaignProduct.productId, {
-        costCents,
-      });
+      // Update ONLY the costCents field, nothing else
+      const result = await productsApi.updateProduct(campaignProduct.productId, updateData);
 
-      Alert.alert('Éxito', 'Costo actualizado correctamente');
+      console.log('✅ Cost saved successfully:', result);
+
+      Alert.alert('Éxito', 'Costo base actualizado correctamente');
       setEditingCost(false);
 
-      // Reload price profiles to recalculate prices
-      await fetchPriceProfiles();
+      // Note: Price profiles will be recalculated on the backend based on the new cost
+      // The parent component should refresh the data when the modal closes
     } catch (error: any) {
-      console.error('Error saving cost:', error);
-      Alert.alert('Error', error.message || 'No se pudo actualizar el costo');
+      console.error('❌ Error saving cost:', error);
+      console.error('Error details:', error.response?.data || error.message);
+
+      const errorMessage = error.response?.data?.message || error.message || 'No se pudo actualizar el costo';
+
+      // Check if it's a presentation validation error
+      if (errorMessage.includes('Presentation') && errorMessage.includes('not found')) {
+        Alert.alert(
+          'Error de Validación',
+          'Este producto tiene presentaciones con datos inconsistentes en la base de datos. Por favor, contacta al administrador del sistema para corregir las presentaciones del producto antes de actualizar el costo.\n\n' +
+          'Detalles técnicos: ' + errorMessage,
+          [{ text: 'Entendido' }]
+        );
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     } finally {
       setSavingCost(false);
     }
@@ -436,7 +487,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
         return;
       }
 
-      await campaignsApi.updateProduct(campaignProduct.campaignId, campaignProduct.productId, {
+      await campaignsService.updateProduct(campaignProduct.campaignId, campaignProduct.productId, {
         totalQuantity: newQuantity,
       });
 
@@ -643,19 +694,26 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
             ) : (
               priceFormData.map((priceData, index) => {
                 const isEditing = editingPriceId === priceData.profileId;
+                const isSocia = priceData.profileCode === 'SOCIA' || priceData.profileName.toLowerCase().includes('socia');
 
                 return (
                 <View
                   key={priceData.profileId}
                   style={[
                     styles.bannerSection,
-                    index === 0 && styles.bannerSectionFirst,
+                    isSocia && styles.bannerSectionSocia,
+                    !isSocia && index === 0 && styles.bannerSectionFirst,
                   ]}
                 >
                   {/* Profile Header */}
                   <View style={styles.profileHeaderBanner}>
-                    <Text style={styles.bannerLabel}>{priceData.profileName}</Text>
+                    <Text style={[styles.bannerLabel, isSocia && styles.bannerLabelSocia]}>{priceData.profileName}</Text>
                     <Text style={styles.profileCodeBanner}>{priceData.profileCode} • {priceData.factorToCost.toFixed(2)}x</Text>
+                    {isSocia && (
+                      <View style={styles.sociaBadge}>
+                        <Text style={styles.sociaBadgeText}>⭐ PRECIO DESTACADO</Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Price Display/Edit */}
@@ -767,103 +825,145 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   container: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#1F2937',
+    backgroundColor: '#F8FAFC',
     position: 'relative',
   },
   containerTablet: {
     width: '90%',
     height: '90%',
-    borderRadius: 20,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   closeButton: {
     position: 'absolute',
-    top: 40,
-    right: 20,
+    top: 16,
+    right: 16,
     zIndex: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   closeButtonText: {
-    fontSize: 28,
-    color: '#FFFFFF',
-    fontWeight: '700',
+    fontSize: 24,
+    color: '#64748B',
+    fontWeight: '600',
   },
   scrollContent: {
-    paddingTop: 80,
+    paddingTop: 70,
     paddingBottom: 30,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   bannerSection: {
-    backgroundColor: '#374151',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    marginBottom: 16,
+    borderRadius: 16,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#4B5563',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   bannerSectionAlt: {
-    backgroundColor: '#2D3748',
-    borderColor: '#3F4A5C',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#CBD5E1',
   },
   bannerSectionFirst: {
     borderColor: '#10B981',
     borderWidth: 3,
-    backgroundColor: '#0F2A3F',
+    backgroundColor: '#ECFDF5',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  bannerSectionSocia: {
+    borderColor: '#10B981',
+    borderWidth: 4,
+    backgroundColor: '#ECFDF5',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 6,
+    transform: [{ scale: 1.02 }],
   },
   bannerLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#9CA3AF',
-    letterSpacing: 1.5,
+    color: '#64748B',
+    letterSpacing: 1.2,
     marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  bannerLabelSocia: {
+    fontSize: 14,
+    color: '#10B981',
+    letterSpacing: 1.5,
   },
   bannerValue: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontSize: 40,
+    fontWeight: '800',
+    color: '#1E293B',
     textAlign: 'center',
-    lineHeight: 42,
+    lineHeight: 48,
   },
   bannerValueTablet: {
-    fontSize: 48,
-    lineHeight: 56,
+    fontSize: 52,
+    lineHeight: 60,
   },
   bannerValueName: {
     fontSize: 28,
-    lineHeight: 34,
+    lineHeight: 36,
+    fontWeight: '700',
   },
   quantityValue: {
     color: '#F59E0B',
   },
   stockValue: {
-    color: '#60A5FA',
+    color: '#3B82F6',
   },
   costValue: {
-    color: '#FBBF24',
+    color: '#F59E0B',
   },
   priceValue: {
     color: '#10B981',
+    fontSize: 48,
+    fontWeight: '900',
   },
   preliminaryNote: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#F59E0B',
     marginTop: 12,
     fontWeight: '600',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   loadingStockContainer: {
     paddingVertical: 20,
@@ -871,31 +971,35 @@ const styles = StyleSheet.create({
   },
   loadingStockText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#64748B',
     marginTop: 12,
   },
   loadingPricesContainer: {
     paddingVertical: 40,
     alignItems: 'center',
-    backgroundColor: '#374151',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   loadingPricesText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#64748B',
     marginTop: 12,
   },
   emptyPricesContainer: {
     paddingVertical: 40,
     alignItems: 'center',
-    backgroundColor: '#374151',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   emptyPricesText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#64748B',
     textAlign: 'center',
   },
   inputRow: {
@@ -904,10 +1008,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   currencySymbol: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginRight: 10,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#64748B',
+    marginRight: 8,
   },
   costEditContainer: {
     width: '100%',
@@ -918,62 +1022,69 @@ const styles = StyleSheet.create({
   },
   costInput: {
     flex: 1,
-    backgroundColor: '#1F2937',
+    backgroundColor: '#FEF3C7',
     borderWidth: 2,
-    borderColor: '#FBBF24',
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FBBF24',
+    borderColor: '#F59E0B',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#F59E0B',
     textAlign: 'center',
   },
   costActionButtons: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
+    gap: 12,
+    marginTop: 16,
     width: '100%',
   },
   cancelCostButton: {
     flex: 1,
-    backgroundColor: '#4B5563',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     alignItems: 'center',
   },
   cancelCostButtonText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: '#475569',
   },
   saveCostButton: {
     flex: 1,
-    backgroundColor: '#FBBF24',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 8,
+    backgroundColor: '#F59E0B',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   saveCostButtonDisabled: {
-    backgroundColor: '#FCD34D',
+    opacity: 0.6,
   },
   saveCostButtonText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   editCostButton: {
     marginTop: 12,
-    backgroundColor: '#4B5563',
+    backgroundColor: '#F1F5F9',
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
   editCostButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#475569',
   },
   priceDisplayContainer: {
     alignItems: 'center',
@@ -984,100 +1095,126 @@ const styles = StyleSheet.create({
   },
   priceInputLarge: {
     flex: 1,
-    backgroundColor: '#1F2937',
-    borderWidth: 2,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 3,
     borderColor: '#10B981',
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 24,
-    fontWeight: '700',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 32,
+    fontWeight: '900',
     color: '#10B981',
     textAlign: 'center',
   },
   priceActionButtons: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
+    gap: 12,
+    marginTop: 16,
     width: '100%',
   },
   cancelPriceButton: {
     flex: 1,
-    backgroundColor: '#4B5563',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     alignItems: 'center',
   },
   cancelPriceButtonText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: '#475569',
   },
   savePriceButton: {
     flex: 1,
     backgroundColor: '#10B981',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   savePriceButtonDisabled: {
-    backgroundColor: '#6EE7B7',
+    opacity: 0.6,
   },
   savePriceButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   editPriceButton: {
     marginTop: 12,
-    backgroundColor: '#4B5563',
+    backgroundColor: '#F1F5F9',
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
   editPriceButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#475569',
   },
   profileHeaderBanner: {
     alignItems: 'center',
     marginBottom: 12,
   },
   profileCodeBanner: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    fontSize: 11,
+    color: '#94A3B8',
     marginTop: 4,
+    fontWeight: '600',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   priceInfoBanner: {
     marginTop: 12,
     alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
   priceInfoText: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    fontSize: 11,
+    color: '#64748B',
     textAlign: 'center',
+    fontWeight: '500',
   },
   overriddenTextBanner: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#F59E0B',
-    fontWeight: '600',
+    fontWeight: '700',
     marginTop: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   calculateSociaButton: {
     backgroundColor: '#8B5CF6',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 12,
     marginBottom: 8,
     width: '100%',
     alignItems: 'center',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   calculateSociaButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   quantityEditContainer: {
@@ -1089,69 +1226,80 @@ const styles = StyleSheet.create({
   },
   quantityInput: {
     width: '100%',
-    backgroundColor: '#1F2937',
+    backgroundColor: '#FEF3C7',
     borderWidth: 2,
     borderColor: '#F59E0B',
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 24,
-    fontWeight: '700',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 28,
+    fontWeight: '800',
     color: '#F59E0B',
     textAlign: 'center',
     marginBottom: 8,
   },
   stockAvailableText: {
-    fontSize: 14,
-    color: '#60A5FA',
+    fontSize: 13,
+    color: '#3B82F6',
     marginBottom: 12,
     fontWeight: '600',
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   quantityActionButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
     marginTop: 4,
     width: '100%',
   },
   cancelQuantityButton: {
     flex: 1,
-    backgroundColor: '#4B5563',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     alignItems: 'center',
   },
   cancelQuantityButtonText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: '#475569',
   },
   saveQuantityButton: {
     flex: 1,
     backgroundColor: '#F59E0B',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   saveQuantityButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   saveQuantityButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   editQuantityButton: {
     marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#374151',
-    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
   editQuantityButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: '#475569',
   },
   distributionGeneratedNote: {
     fontSize: 12,
@@ -1159,5 +1307,27 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontWeight: '600',
     textAlign: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  sociaBadge: {
+    marginTop: 8,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sociaBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.8,
   },
 });

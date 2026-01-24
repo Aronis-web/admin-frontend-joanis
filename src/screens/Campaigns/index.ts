@@ -4,3 +4,5 @@ export { CampaignDetailScreen } from './CampaignDetailScreen';
 export { AddParticipantScreen } from './AddParticipantScreen';
 export { AddProductScreen } from './AddProductScreen';
 export { CampaignProductDetailScreen } from './CampaignProductDetailScreen';
+
+export { CampaignParticipantDetailScreen } from './CampaignParticipantDetailScreen';

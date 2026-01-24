@@ -45,6 +45,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
   const [exportingPdf, setExportingPdf] = useState(false);
   const [showProductSelectionModal, setShowProductSelectionModal] = useState(false);
   const [allProducts, setAllProducts] = useState<RepartoProducto[]>([]);
+  const [downloadingParticipantId, setDownloadingParticipantId] = useState<string | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -194,6 +195,107 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     }
   };
 
+  const handleDownloadParticipantReport = async (participant: CampaignParticipant, event: any) => {
+    // Prevent navigation to participant detail
+    event.stopPropagation();
+
+    const participantName =
+      participant.participantType === ParticipantType.EXTERNAL_COMPANY
+        ? participant.company?.alias || participant.company?.name || 'Empresa'
+        : participant.site?.name || 'Sede';
+
+    try {
+      setDownloadingParticipantId(participant.id);
+
+      logger.info('🔄 Descargando reporte del participante:', participantName);
+      const startTime = new Date().getTime();
+
+      // Get the participant's repartos to extract product IDs
+      const participantRepartos = repartos.filter((reparto) =>
+        reparto.participantes?.some((p: any) => p.campaignParticipantId === participant.id)
+      );
+
+      // Collect all product IDs for this participant
+      const productIds = new Set<string>();
+      participantRepartos.forEach((reparto) => {
+        const participanteReparto = reparto.participantes?.find(
+          (p: any) => p.campaignParticipantId === participant.id
+        );
+        participanteReparto?.productos?.forEach((producto: any) => {
+          if (producto.productId) {
+            productIds.add(producto.productId);
+          }
+        });
+      });
+
+      // Call the API to get the PDF blob for this participant's products
+      const pdfBlob = await repartosService.exportCampaignDistributionSheets(
+        campaignId,
+        Array.from(productIds)
+      );
+
+      const endTime = new Date().getTime();
+      logger.info('✅ PDF descargado del servidor');
+      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+      logger.info('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+
+      if (Platform.OS === 'web') {
+        // For web, create a download link using blob URL
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `reparto-${participantName.replace(/\s+/g, '-')}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up the blob URL after a short delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+
+        Alert.alert('Éxito', `El reporte de ${participantName} se está descargando`);
+      } else {
+        // For mobile (iOS/Android), save to file system and share
+        const timestamp = new Date().getTime();
+        const fileName = `reparto-${participantName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
+        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
+
+        // Convert blob to array buffer using FileReader
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(pdfBlob);
+        });
+
+        // Write to file
+        await file.create();
+        const writer = file.writableStream().getWriter();
+        await writer.write(new Uint8Array(arrayBuffer));
+        await writer.close();
+
+        // Share the file
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Reporte de Reparto - ${participantName}`,
+            UTI: 'com.adobe.pdf',
+          });
+        } else {
+          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
+        }
+      }
+    } catch (error: any) {
+      logger.error('Error downloading participant report:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'No se pudo descargar el reporte del participante'
+      );
+    } finally {
+      setDownloadingParticipantId(null);
+    }
+  };
+
   const renderParticipantCard = useCallback((participant: CampaignParticipant) => {
     const participantName =
       participant.participantType === ParticipantType.EXTERNAL_COMPANY
@@ -305,9 +407,29 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           </Text>
           <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
         </View>
+
+        {/* Download Report Button */}
+        {productosAsignados > 0 && (
+          <TouchableOpacity
+            style={[
+              styles.downloadParticipantButton,
+              isTablet && styles.downloadParticipantButtonTablet,
+              downloadingParticipantId === participant.id && styles.downloadButtonDisabled,
+            ]}
+            onPress={(e) => handleDownloadParticipantReport(participant, e)}
+            disabled={downloadingParticipantId === participant.id}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.downloadParticipantButtonText, isTablet && styles.downloadParticipantButtonTextTablet]}>
+              {downloadingParticipantId === participant.id
+                ? '📄 Generando...'
+                : '📄 Descargar Reporte de Reparto'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     );
-  }, [isTablet, repartos, handleParticipantPress]);
+  }, [isTablet, repartos, handleParticipantPress, downloadingParticipantId, handleDownloadParticipantReport]);
 
   if (loading) {
     return (
@@ -722,5 +844,31 @@ const styles = StyleSheet.create({
   },
   exportButtonTextTablet: {
     fontSize: 16,
+  },
+  downloadParticipantButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  downloadParticipantButtonTablet: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginTop: 16,
+  },
+  downloadParticipantButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  downloadParticipantButtonTextTablet: {
+    fontSize: 15,
+  },
+  downloadButtonDisabled: {
+    opacity: 0.5,
   },
 });

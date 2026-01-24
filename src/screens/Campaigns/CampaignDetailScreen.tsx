@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -65,7 +65,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [editingCost, setEditingCost] = useState<{productId: string, value: string} | null>(null);
   const [savingPrice, setSavingPrice] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [distributionFilter, setDistributionFilter] = useState<'all' | 'generated' | 'not-generated'>('all');
   const { width, height } = useWindowDimensions();
+  const hasLoadedRef = useRef(false);
 
   const isTablet = width >= 768 || height >= 768;
 
@@ -176,12 +178,31 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
   useFocusEffect(
     useCallback(() => {
-      loadCampaign();
-    }, [loadCampaign])
+      // Check if we should force reload (e.g., after editing a product)
+      const shouldReload = route.params?.shouldReload;
+
+      if (shouldReload) {
+        // Clear the param to avoid reloading again
+        navigation.setParams({ shouldReload: undefined } as any);
+        hasLoadedRef.current = true;
+        loadCampaign();
+      } else if (!hasLoadedRef.current) {
+        // Only load on first mount, not on every focus
+        hasLoadedRef.current = true;
+        loadCampaign();
+      }
+
+      // Reset the ref when the screen is unmounted (navigating away)
+      return () => {
+        // This cleanup runs when navigating away from the screen
+        hasLoadedRef.current = false;
+      };
+    }, [loadCampaign, route.params?.shouldReload, navigation])
   );
 
   const handleRefresh = () => {
     setRefreshing(true);
+    hasLoadedRef.current = true; // Mark as loaded to prevent duplicate loads
     loadCampaign();
   };
 
@@ -586,8 +607,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             try {
               setActionLoading(true);
               await campaignsService.deleteProduct(campaignId, product.id);
+
+              // Update local state instead of reloading everything
+              setCampaign(prevCampaign => {
+                if (!prevCampaign || !prevCampaign.products) return prevCampaign;
+                return {
+                  ...prevCampaign,
+                  products: prevCampaign.products.filter(p => p.id !== product.id),
+                };
+              });
+
+              // Remove from product sale prices
+              setProductSalePrices(prevPrices => {
+                const { [product.productId]: removed, ...rest } = prevPrices;
+                return rest;
+              });
+
               Alert.alert('Éxito', 'Producto eliminado de la campaña');
-              loadCampaign();
             } catch (error: any) {
               logger.error('Error deleting product:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
@@ -608,7 +644,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const handleCloseBanner = () => {
     setShowBannerModal(false);
     setSelectedProduct(null);
-    loadCampaign(); // Refresh to get updated data
+    // No need to reload campaign - the modal updates its own state locally
   };
 
   const toggleProductExpanded = (productId: string) => {
@@ -647,9 +683,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
       await productsApi.updateProduct(productId, { costCents });
 
+      // Update local state instead of reloading everything
+      setProducts(prevProducts => {
+        if (!prevProducts || !prevProducts[productId]) return prevProducts;
+        return {
+          ...prevProducts,
+          [productId]: {
+            ...prevProducts[productId],
+            costCents,
+          },
+        };
+      });
+
       setEditingCost(null);
       Alert.alert('Éxito', 'Costo actualizado correctamente');
-      loadCampaign(); // Refresh to get updated data
     } catch (error: any) {
       logger.error('Error saving cost:', error);
       Alert.alert('Error', error.message || 'No se pudo actualizar el costo');
@@ -672,9 +719,42 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         priceCents,
       });
 
+      // Update local state instead of reloading everything
+      setProductSalePrices(prevPrices => {
+        const currentPrices = prevPrices[productId] || [];
+        const existingIndex = currentPrices.findIndex(
+          p => p.profileId === profileId && p.presentationId === null
+        );
+
+        let updatedPrices: ProductSalePrice[];
+        if (existingIndex >= 0) {
+          // Update existing price
+          updatedPrices = [...currentPrices];
+          updatedPrices[existingIndex] = { ...updatedPrices[existingIndex], priceCents };
+        } else {
+          // Add new price - create a complete ProductSalePrice object
+          const newPrice: ProductSalePrice = {
+            id: `temp-${Date.now()}`, // Temporary ID
+            productId,
+            presentationId: null,
+            profileId,
+            priceCents,
+            currency: 'PEN',
+            isOverridden: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          updatedPrices = [...currentPrices, newPrice];
+        }
+
+        return {
+          ...prevPrices,
+          [productId]: updatedPrices,
+        };
+      });
+
       setEditingPrice(null);
       Alert.alert('Éxito', 'Precio actualizado correctamente');
-      loadCampaign(); // Refresh to get updated data
     } catch (error: any) {
       logger.error('Error saving price:', error);
       Alert.alert('Error', error.message || 'No se pudo actualizar el precio');
@@ -716,8 +796,41 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         priceCents: franquiciaPriceCents,
       });
 
+      // Update local state instead of reloading everything
+      setProductSalePrices(prevPrices => {
+        const currentPrices = prevPrices[productId] || [];
+        const existingIndex = currentPrices.findIndex(
+          p => p.profileId === franquiciaProfile.id && p.presentationId === null
+        );
+
+        let updatedPrices: ProductSalePrice[];
+        if (existingIndex >= 0) {
+          // Update existing price
+          updatedPrices = [...currentPrices];
+          updatedPrices[existingIndex] = { ...updatedPrices[existingIndex], priceCents: franquiciaPriceCents };
+        } else {
+          // Add new price
+          const newPrice: ProductSalePrice = {
+            id: `temp-${Date.now()}`,
+            productId,
+            presentationId: null,
+            profileId: franquiciaProfile.id,
+            priceCents: franquiciaPriceCents,
+            currency: 'PEN',
+            isOverridden: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          updatedPrices = [...currentPrices, newPrice];
+        }
+
+        return {
+          ...prevPrices,
+          [productId]: updatedPrices,
+        };
+      });
+
       Alert.alert('Éxito', `Precio Franquicia calculado: S/ ${(franquiciaPriceCents / 100).toFixed(2)}`);
-      loadCampaign(); // Refresh to get updated data
     } catch (error: any) {
       logger.error('Error calculating franquicia price:', error);
       Alert.alert('Error', error.message || 'No se pudo calcular el precio franquicia');
@@ -729,20 +842,30 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const filteredProducts = useMemo(() => {
     if (!campaign?.products) return [];
 
-    if (!searchQuery.trim()) {
-      return campaign.products;
+    let filtered = campaign.products;
+
+    // Apply distribution filter
+    if (distributionFilter === 'generated') {
+      filtered = filtered.filter(product => product.distributionGenerated);
+    } else if (distributionFilter === 'not-generated') {
+      filtered = filtered.filter(product => !product.distributionGenerated);
     }
 
-    const query = searchQuery.toLowerCase();
-    return campaign.products.filter(product => {
-      const productDetails = product.product || products[product.productId];
-      const title = productDetails?.title?.toLowerCase() || '';
-      const sku = productDetails?.sku?.toLowerCase() || '';
-      const quantity = product.totalQuantityBase.toString();
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(product => {
+        const productDetails = product.product || products[product.productId];
+        const title = productDetails?.title?.toLowerCase() || '';
+        const sku = productDetails?.sku?.toLowerCase() || '';
+        const quantity = product.totalQuantityBase.toString();
 
-      return title.includes(query) || sku.includes(query) || quantity.includes(query);
-    });
-  }, [campaign?.products, products, searchQuery]);
+        return title.includes(query) || sku.includes(query) || quantity.includes(query);
+      });
+    }
+
+    return filtered;
+  }, [campaign?.products, products, searchQuery, distributionFilter]);
 
   const renderProducts = () => {
     if (!campaign) return null;
@@ -770,23 +893,80 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
           {/* Search bar */}
           {campaign.products && campaign.products.length > 0 && (
-            <View style={styles.searchContainer}>
-              <TextInput
-                style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-                placeholder="Buscar por nombre, SKU o cantidad..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor="#94A3B8"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  style={styles.clearSearchButton}
-                  onPress={() => setSearchQuery('')}
-                >
-                  <Text style={styles.clearSearchText}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            <>
+              <View style={styles.searchContainer}>
+                <TextInput
+                  style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+                  placeholder="Buscar por nombre, SKU o cantidad..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor="#94A3B8"
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.clearSearchButton}
+                    onPress={() => setSearchQuery('')}
+                  >
+                    <Text style={styles.clearSearchText}>✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Distribution filter */}
+              <View style={styles.filterContainer}>
+                <Text style={styles.filterLabel}>Reparto:</Text>
+                <View style={styles.filterButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterButton,
+                      distributionFilter === 'all' && styles.filterButtonActive,
+                    ]}
+                    onPress={() => setDistributionFilter('all')}
+                  >
+                    <Text
+                      style={[
+                        styles.filterButtonText,
+                        distributionFilter === 'all' && styles.filterButtonTextActive,
+                      ]}
+                    >
+                      Todos ({campaign.products.length})
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterButton,
+                      distributionFilter === 'generated' && styles.filterButtonActive,
+                    ]}
+                    onPress={() => setDistributionFilter('generated')}
+                  >
+                    <Text
+                      style={[
+                        styles.filterButtonText,
+                        distributionFilter === 'generated' && styles.filterButtonTextActive,
+                      ]}
+                    >
+                      ✓ Generado ({campaign.products.filter(p => p.distributionGenerated).length})
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterButton,
+                      distributionFilter === 'not-generated' && styles.filterButtonActive,
+                    ]}
+                    onPress={() => setDistributionFilter('not-generated')}
+                  >
+                    <Text
+                      style={[
+                        styles.filterButtonText,
+                        distributionFilter === 'not-generated' && styles.filterButtonTextActive,
+                      ]}
+                    >
+                      ✕ Sin generar ({campaign.products.filter(p => !p.distributionGenerated).length})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </>
           )}
 
           {!campaign.products || campaign.products.length === 0 ? (
@@ -822,8 +1002,18 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         {productDetails?.title || `Producto ID: ${product.productId}`}
                       </Text>
                       <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
-                        SKU: {productDetails?.sku || 'N/A'} | Cantidad: {product.totalQuantityBase}
+                        SKU: {productDetails?.sku || 'N/A'} | Cant: {product.totalQuantityBase} | Costo: <Text style={styles.quickPriceValue}>S/ {(costCents / 100).toFixed(2)}</Text>
+                        {priceProfiles.slice(0, 2).map((profile, index) => {
+                          const priceCents = getSalePriceForProfile(product.productId, profile.id);
+                          return (
+                            <Text key={profile.id}>
+                              {' | '}{profile.name}: <Text style={styles.quickPriceValue}>S/ {(priceCents / 100).toFixed(2)}</Text>
+                            </Text>
+                          );
+                        })}
+                        {priceProfiles.length > 2 && <Text> (+{priceProfiles.length - 2})</Text>}
                       </Text>
+
                       <View style={styles.productBadges}>
                         <View
                           style={[
@@ -1374,6 +1564,10 @@ const styles = StyleSheet.create({
   listItemAmountTablet: {
     fontSize: 16,
   },
+  quickPriceValue: {
+    fontWeight: '700',
+    color: '#10B981',
+  },
   productBadges: {
     flexDirection: 'row',
     gap: 8,
@@ -1590,6 +1784,41 @@ const styles = StyleSheet.create({
   clearSearchText: {
     fontSize: 14,
     fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  filterContainer: {
+    marginBottom: 16,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 8,
+  },
+  filterButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  filterButtonActive: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  filterButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  filterButtonTextActive: {
     color: '#FFFFFF',
   },
   footer: {

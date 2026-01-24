@@ -75,6 +75,7 @@ import {
   AddParticipantScreen,
   AddProductScreen,
   CampaignProductDetailScreen,
+  CampaignParticipantDetailScreen,
 } from '@/screens/Campaigns';
 
 // Repartos Screens
@@ -589,6 +590,13 @@ const MainStack = React.memo(() => {
         component={CampaignProductDetailScreen}
         options={{
           title: 'Detalle de Producto'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="ParticipantDetail"
+        component={CampaignParticipantDetailScreen}
+        options={{
+          title: 'Detalle de Participante'
         }}
       />
       <MainStackNavigator.Screen
