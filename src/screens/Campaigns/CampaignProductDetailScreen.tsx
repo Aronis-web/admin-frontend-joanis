@@ -27,6 +27,7 @@ import {
   ProductSourceType,
   DistributionType,
   SetCustomDistributionRequest,
+  StockDetailByWarehouse,
 } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 
@@ -87,6 +88,20 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
+
+  // Helper function to convert product stockItems to stockDetails format
+  const getStockDetailsFromProduct = useCallback((): StockDetailByWarehouse[] | undefined => {
+    if (!product?.product?.stockItems || product.product.stockItems.length === 0) {
+      return undefined;
+    }
+
+    return product.product.stockItems.map(item => ({
+      warehouse: item.warehouse?.name || 'Almacén desconocido',
+      total: item.quantityBase || 0,
+      reserved: item.reservedQuantityBase || 0,
+      available: item.availableQuantityBase || item.quantityBase || 0,
+    }));
+  }, [product]);
 
   const loadProduct = useCallback(async () => {
     try {
@@ -1267,28 +1282,37 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                     )}
 
                     {/* Stock Information */}
-                    {adjustedDistribution.stockDetails && adjustedDistribution.stockDetails.length > 0 && (
-                      <View style={styles.previewSection}>
-                        <Text style={styles.previewSectionTitle}>📦 Stock Disponible</Text>
-                        {adjustedDistribution.stockDetails.map((stock, index) => (
-                          <View key={index} style={styles.stockDetailCard}>
-                            <Text style={styles.stockWarehouseName}>{stock.warehouse}</Text>
-                            <View style={styles.stockDetailRow}>
-                              <Text style={styles.stockDetailLabel}>Total:</Text>
-                              <Text style={styles.stockDetailValue}>{stock.total} unidades</Text>
+                    {(() => {
+                      // Use stockDetails from API if available, otherwise fallback to product stockItems
+                      const stockDetails = adjustedDistribution.stockDetails || getStockDetailsFromProduct();
+
+                      if (!stockDetails || stockDetails.length === 0) {
+                        return null;
+                      }
+
+                      return (
+                        <View style={styles.previewSection}>
+                          <Text style={styles.previewSectionTitle}>📦 Stock Disponible</Text>
+                          {stockDetails.map((stock, index) => (
+                            <View key={index} style={styles.stockDetailCard}>
+                              <Text style={styles.stockWarehouseName}>{stock.warehouse}</Text>
+                              <View style={styles.stockDetailRow}>
+                                <Text style={styles.stockDetailLabel}>Total:</Text>
+                                <Text style={styles.stockDetailValue}>{stock.total} unidades</Text>
+                              </View>
+                              <View style={styles.stockDetailRow}>
+                                <Text style={styles.stockDetailLabel}>Reservado:</Text>
+                                <Text style={[styles.stockDetailValue, styles.stockReserved]}>{stock.reserved} unidades</Text>
+                              </View>
+                              <View style={styles.stockDetailRow}>
+                                <Text style={styles.stockDetailLabel}>Disponible:</Text>
+                                <Text style={[styles.stockDetailValue, styles.stockAvailable]}>{stock.available} unidades</Text>
+                              </View>
                             </View>
-                            <View style={styles.stockDetailRow}>
-                              <Text style={styles.stockDetailLabel}>Reservado:</Text>
-                              <Text style={[styles.stockDetailValue, styles.stockReserved]}>{stock.reserved} unidades</Text>
-                            </View>
-                            <View style={styles.stockDetailRow}>
-                              <Text style={styles.stockDetailLabel}>Disponible:</Text>
-                              <Text style={[styles.stockDetailValue, styles.stockAvailable]}>{stock.available} unidades</Text>
-                            </View>
-                          </View>
-                        ))}
-                      </View>
-                    )}
+                          ))}
+                        </View>
+                      );
+                    })()}
 
                     {/* Resumen de Distribución */}
                     <View style={styles.previewSection}>

@@ -165,6 +165,24 @@ export interface CampaignProduct {
         isBase: boolean;
       };
     }>;
+    stockItems?: Array<{
+      productId: string;
+      warehouseId: string;
+      areaId: string | null;
+      quantityBase: number;
+      reservedQuantityBase?: number;
+      availableQuantityBase?: number;
+      updatedAt: string;
+      warehouse?: {
+        id: string;
+        name: string;
+        code: string;
+      };
+      area?: {
+        id: string;
+        name: string;
+      } | null;
+    }>;
   };
   purchase?: {
     id: string;
