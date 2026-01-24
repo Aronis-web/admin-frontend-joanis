@@ -90,51 +90,57 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
         onClose();
       } else {
         // Mobile - use sharing
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = async () => {
-          try {
-            const base64data = reader.result as string;
+        try {
+          const FileSystem = require('expo-file-system');
 
-            // For mobile, we'll use the sharing API directly with the base64 data
-            // Create a temporary file URI
-            const FileSystem = await import('expo-file-system');
-            const fileUri = `${FileSystem.default.cacheDirectory}${filename}`;
-            const base64 = base64data.split(',')[1];
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = async () => {
+            try {
+              const base64data = reader.result as string;
+              const base64 = base64data.split(',')[1];
 
-            await FileSystem.default.writeAsStringAsync(fileUri, base64, {
-              encoding: FileSystem.default.EncodingType.Base64,
-            });
+              // Create a temporary file URI
+              const fileUri = `${FileSystem.cacheDirectory}${filename}`;
 
-            console.log('✅ File saved to:', fileUri);
-
-            // Share the file
-            if (await Sharing.isAvailableAsync()) {
-              await Sharing.shareAsync(fileUri, {
-                mimeType: format === 'excel'
-                  ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                  : 'application/pdf',
-                dialogTitle: 'Guardar Reporte de Stock',
-                UTI: format === 'excel' ? 'com.microsoft.excel.xlsx' : 'com.adobe.pdf',
+              await FileSystem.writeAsStringAsync(fileUri, base64, {
+                encoding: FileSystem.EncodingType.Base64,
               });
-            } else {
-              Alert.alert('Éxito', `Reporte guardado en: ${fileUri}`);
+
+              console.log('✅ File saved to:', fileUri);
+
+              // Share the file
+              if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri, {
+                  mimeType: format === 'excel'
+                    ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    : 'application/pdf',
+                  dialogTitle: 'Guardar Reporte de Stock',
+                  UTI: format === 'excel' ? 'com.microsoft.excel.xlsx' : 'com.adobe.pdf',
+                });
+              } else {
+                Alert.alert('Éxito', `Reporte guardado en: ${fileUri}`);
+              }
+
+              setLoading(false);
+              onClose();
+            } catch (error) {
+              console.error('Error saving file:', error);
+              Alert.alert('Error', 'No se pudo guardar el archivo');
+              setLoading(false);
             }
+          };
 
+          reader.onerror = () => {
+            console.error('Error reading blob');
+            Alert.alert('Error', 'No se pudo procesar el archivo');
             setLoading(false);
-            onClose();
-          } catch (error) {
-            console.error('Error saving file:', error);
-            Alert.alert('Error', 'No se pudo guardar el archivo');
-            setLoading(false);
-          }
-        };
-
-        reader.onerror = () => {
-          console.error('Error reading blob');
-          Alert.alert('Error', 'No se pudo procesar el archivo');
+          };
+        } catch (error) {
+          console.error('Error loading FileSystem:', error);
+          Alert.alert('Error', 'No se pudo acceder al sistema de archivos');
           setLoading(false);
-        };
+        }
       }
 
       // Reset form

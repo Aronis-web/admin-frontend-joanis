@@ -78,6 +78,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
       // Load images for each product
       console.log('🔍 Loading images for', productsData.length, 'products...');
+      console.log('🔍 First product from API:', productsData[0]);
       const productsWithImages = await Promise.all(
         productsData.map(async (product) => {
           try {
@@ -97,8 +98,17 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       );
 
       console.log('🔍 Products loaded:', productsWithImages.length);
+      console.log('🔍 Products status breakdown:', {
+        total: productsWithImages.length,
+        active: productsWithImages.filter(p => p.status === 'active').length,
+        draft: productsWithImages.filter(p => p.status === 'draft').length,
+        archived: productsWithImages.filter(p => p.status === 'archived').length,
+        other: productsWithImages.filter(p => !['active', 'draft', 'archived'].includes(p.status)).length,
+        statuses: [...new Set(productsWithImages.map(p => p.status))],
+      });
 
       setProducts(productsWithImages);
+      setFilteredProducts(productsWithImages);
 
       // Update pagination info - API returns flat structure
       const totalPages = Math.ceil(responseData.total / responseData.limit);
@@ -161,6 +171,13 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         }
       });
     }
+
+    console.log('🔍 Filter applied:', {
+      statusFilter,
+      searchQuery,
+      totalProducts: products.length,
+      filteredCount: filtered.length,
+    });
 
     setFilteredProducts(filtered);
   }, [searchQuery, statusFilter, products, searchType]);
