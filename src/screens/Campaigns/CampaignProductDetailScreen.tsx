@@ -564,66 +564,82 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     return true;
   };
 
-  const recalculateDistributions = async (newTotalQuantity: number) => {
-    if (!adjustedDistribution || !product) return;
+  const recalculateDistributions = (newTotalQuantity: number) => {
+    if (!adjustedDistribution) return;
 
-    setPreviewLoading(true);
-    try {
-      logger.debug('🔄 [RECALC] Recalculando distribuciones con nueva cantidad:', newTotalQuantity);
+    logger.debug('🔄 [RECALC] Recalculando distribuciones localmente con nueva cantidad:', newTotalQuantity);
 
-      // First, update the product with the new total quantity
-      await campaignsService.updateProduct(campaignId, productId, {
-        totalQuantityBase: newTotalQuantity,
-      });
+    // Recalcular cantidades basadas en porcentajes
+    const newDistributions: typeof editableDistributions = {};
+    let totalDistributed = 0;
+    let remainderParticipantId: string | null = null;
 
-      logger.debug('✅ [RECALC] Producto actualizado con nueva cantidad');
+    // Primero, calcular cantidades redondeadas para cada participante
+    Object.values(editableDistributions).forEach(dist => {
+      const exactQuantity = (dist.percentage / 100) * newTotalQuantity;
+      const roundedQuantity = Math.floor(exactQuantity);
 
-      // Then, get the updated preview with participant preferences
-      const participantPreferences = Object.values(editableDistributions).map(dist => ({
-        participantId: dist.participantId,
-        roundingFactor: globalRoundingFactor,
-        presentationId: selectedPresentationId || undefined,
-      }));
+      newDistributions[dist.participantId] = {
+        ...dist,
+        quantityBase: roundedQuantity,
+        quantityPresentation: globalRoundingFactor > 1
+          ? Math.floor(roundedQuantity / globalRoundingFactor)
+          : undefined,
+      };
 
-      const updatedPreview = await campaignsService.getDistributionPreview(
-        campaignId,
-        productId,
-        { participantPreferences }
-      );
+      totalDistributed += roundedQuantity;
+    });
 
-      logger.debug('✅ [RECALC] Preview actualizado recibido:', {
-        totalQuantity: updatedPreview.totalQuantity,
-        totalDistributed: updatedPreview.totalDistributed,
-        remainder: updatedPreview.remainder,
-      });
+    // Calcular remanente
+    const remainder = newTotalQuantity - totalDistributed;
 
-      setAdjustedDistribution(updatedPreview);
+    // Asignar remanente a la sede de ajuste (o al primer participante si no hay sede de ajuste)
+    if (remainder > 0) {
+      // Buscar la sede de ajuste del preview original
+      remainderParticipantId = adjustedDistribution.remainderAssignedTo?.participantId ||
+                               adjustedDistribution.preview[0]?.participantId;
 
-      // Update editable distributions with new values
-      const newDistributions: typeof editableDistributions = {};
-      updatedPreview.preview.forEach(item => {
-        newDistributions[item.participantId] = {
-          participantId: item.participantId,
-          participantName: item.participantName,
-          quantityBase: item.calculatedQuantity,
-          roundingFactor: item.roundingFactor,
-          presentationId: item.presentationId,
-          quantityPresentation: item.quantityPresentation,
-          percentage: item.percentage,
-        };
-      });
-      setEditableDistributions(newDistributions);
-
-      logger.debug('✅ [RECALC] Distribuciones actualizadas');
-    } catch (error: any) {
-      logger.error('❌ [RECALC] Error recalculando distribuciones:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo recalcular las distribuciones'
-      );
-    } finally {
-      setPreviewLoading(false);
+      if (remainderParticipantId && newDistributions[remainderParticipantId]) {
+        newDistributions[remainderParticipantId].quantityBase += remainder;
+        if (globalRoundingFactor > 1) {
+          newDistributions[remainderParticipantId].quantityPresentation =
+            Math.floor(newDistributions[remainderParticipantId].quantityBase / globalRoundingFactor);
+        }
+        totalDistributed += remainder;
+      }
     }
+
+    logger.debug('✅ [RECALC] Distribuciones recalculadas:', {
+      newTotalQuantity,
+      totalDistributed,
+      remainder,
+      remainderAssignedTo: remainderParticipantId,
+    });
+
+    // Actualizar el estado
+    setEditableDistributions(newDistributions);
+
+    // Actualizar adjustedDistribution con los nuevos valores
+    const updatedPreview = adjustedDistribution.preview.map(item => ({
+      ...item,
+      calculatedQuantity: newDistributions[item.participantId]?.quantityBase || 0,
+      quantityPresentation: newDistributions[item.participantId]?.quantityPresentation,
+    }));
+
+    setAdjustedDistribution({
+      ...adjustedDistribution,
+      totalQuantity: newTotalQuantity,
+      totalDistributed,
+      remainder: newTotalQuantity - totalDistributed,
+      preview: updatedPreview,
+      remainderAssignedTo: remainderParticipantId ? {
+        participantId: remainderParticipantId,
+        participantName: newDistributions[remainderParticipantId]?.participantName || '',
+        remainderQuantity: remainder,
+      } : undefined,
+    });
+
+    logger.debug('✅ [RECALC] Estado actualizado');
   };
 
   const validateDistributions = (): boolean => {
