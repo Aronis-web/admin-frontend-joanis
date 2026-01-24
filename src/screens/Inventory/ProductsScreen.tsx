@@ -140,6 +140,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   useFocusEffect(
     useCallback(() => {
       console.log('📱 ProductsScreen focused - reloading products...');
+      setStatusFilter('all'); // Reset filter to show all products
       loadProducts();
     }, [])
   );
