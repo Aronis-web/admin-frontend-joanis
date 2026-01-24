@@ -163,7 +163,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     }
 
     setFilteredProducts(filtered);
-  }, [searchQuery, statusFilter, products]);
+  }, [searchQuery, statusFilter, products, searchType]);
 
   const onRefresh = async () => {
     setRefreshing(true);

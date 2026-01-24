@@ -124,6 +124,18 @@ export interface StockByWarehouseResponse {
   }[];
 }
 
+// ========== EXPORT STOCK TYPES ==========
+
+export type ExportFormat = 'excel' | 'pdf';
+
+export interface ExportStockDto {
+  format: ExportFormat;
+  siteId: string;
+  startDate?: string; // ISO 8601 format
+  endDate?: string; // ISO 8601 format
+  includePrices?: boolean;
+}
+
 // ========== INVENTORY API ==========
 
 export const inventoryApi = {
@@ -180,6 +192,35 @@ export const inventoryApi = {
   // Get stock by product with areas - GET /inventory/stock/product/:productId
   getStockByProductWithAreas: async (productId: string): Promise<StockItemResponse[]> => {
     return apiClient.get<StockItemResponse[]>(`/inventory/stock/product/${productId}`);
+  },
+
+  // ========== EXPORT ENDPOINTS ==========
+
+  // Export stock report - POST /admin/inventory/export
+  // Returns a blob/buffer for download
+  exportStock: async (exportData: ExportStockDto): Promise<Blob> => {
+    const { config } = await import('@/utils/config');
+    const { authService } = await import('@/services/AuthService');
+
+    const token = authService.getAccessToken();
+    const baseURL = config.API_URL;
+
+    const response = await fetch(`${baseURL}/admin/inventory/export`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
+        'X-App-Id': config.APP_ID,
+      },
+      body: JSON.stringify(exportData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Error al exportar el reporte' }));
+      throw new Error(errorData.message || 'Error al exportar el reporte');
+    }
+
+    return response.blob();
   },
 };
 
