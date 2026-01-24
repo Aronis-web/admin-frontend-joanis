@@ -1339,7 +1339,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           ) : (
             filteredProducts.map((product) => {
               const productDetails = product.product || products[product.productId];
-              const costCents = (productDetails as any)?.costCents || 0;
+              const costCents = productDetails?.costCents || 0;
               const isExpanded = expandedProducts.has(product.id);
 
               return (

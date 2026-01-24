@@ -152,6 +152,7 @@ export interface CampaignProduct {
     title: string;
     sku: string;
     status: string;
+    costCents?: number;
     presentations?: Array<{
       id: string;
       presentationId: string;
