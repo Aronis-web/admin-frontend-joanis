@@ -1377,11 +1377,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               const productDetails = product.product || products[product.productId];
               const costCents = productDetails?.costCents || 0;
               const isExpanded = expandedProducts.has(product.id);
+              const isPreliminary = product.productStatus !== 'ACTIVE';
 
               return (
                 <View
                   key={product.id}
-                  style={[styles.productCard, isTablet && styles.productCardTablet]}
+                  style={[
+                    styles.productCard,
+                    isTablet && styles.productCardTablet,
+                    isPreliminary && styles.productCardPreliminary,
+                  ]}
                 >
                   <TouchableOpacity
                     style={styles.productCardMain}
@@ -1393,9 +1398,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     }
                   >
                     <View style={styles.listItemContent}>
-                      <Text style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}>
-                        {productDetails?.title || `Producto ID: ${product.productId}`}
-                      </Text>
+                      <View style={styles.productTitleRow}>
+                        <Text style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}>
+                          {productDetails?.title || `Producto ID: ${product.productId}`}
+                        </Text>
+                        {isPreliminary && (
+                          <View style={styles.preliminaryIndicator}>
+                            <Text style={styles.preliminaryIndicatorText}>⚠️ PRELIMINAR</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
                         SKU: {productDetails?.sku || 'N/A'} | Cant: {product.totalQuantityBase} | Costo: <Text style={styles.quickPriceValue}>S/ {(costCents / 100).toFixed(2)}</Text>
                         {priceProfiles.slice(0, 2).map((profile, index) => {
@@ -2193,7 +2205,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B98120',
   },
   badgePreliminary: {
-    backgroundColor: '#F59E0B20',
+    backgroundColor: '#F59E0B40',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
   },
   badgeGenerated: {
     backgroundColor: '#6366F120',
@@ -2202,6 +2216,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#1E293B',
+  },
+  productTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  preliminaryIndicator: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  preliminaryIndicatorText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#D97706',
+    letterSpacing: 0.5,
   },
   arrowIcon: {
     fontSize: 24,
@@ -2218,6 +2252,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     overflow: 'hidden',
+  },
+  productCardPreliminary: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    borderLeftWidth: 4,
   },
   productCardTablet: {
     borderRadius: 12,
