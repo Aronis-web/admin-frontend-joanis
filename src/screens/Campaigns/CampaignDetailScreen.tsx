@@ -167,7 +167,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         if (missingProductIds.length > 0) {
           try {
             logger.info(`Fetching ${missingProductIds.length} missing products:`, missingProductIds);
-            const productsResponse = await productsApi.getProducts({
+            // Use admin endpoint to get both active and preliminary products
+            const productsResponse = await productsApi.getAllProducts({
               limit: 1000,
               status: 'active,preliminary' // Include both active and preliminary products
             });
