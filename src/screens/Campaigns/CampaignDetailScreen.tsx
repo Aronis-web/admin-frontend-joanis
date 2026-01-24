@@ -624,6 +624,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const renderParticipants = () => {
     if (!campaign) return null;
 
+    // Calculate total expected amount from all participants
+    const totalExpectedAmountCents = campaign.participants?.reduce(
+      (sum, participant) => sum + (participant.assignedAmountCents || 0),
+      0
+    ) || 0;
+
     return (
       <View style={styles.tabContent}>
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
@@ -644,6 +650,56 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               </TouchableOpacity>
             )}
           </View>
+
+          {/* Summary Section */}
+          {participantTotals && campaign.participants && campaign.participants.length > 0 && (
+            <View style={[styles.summaryCard, isTablet && styles.summaryCardTablet]}>
+              <Text style={[styles.summaryTitle, isTablet && styles.summaryTitleTablet]}>
+                Resumen General
+              </Text>
+
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
+                    Total Compra
+                  </Text>
+                  <Text style={[styles.summaryValuePurchase, isTablet && styles.summaryValueTablet]}>
+                    {formatCurrency(participantTotals.totalPurchaseCents)}
+                  </Text>
+                </View>
+
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
+                    Total Venta
+                  </Text>
+                  <Text style={[styles.summaryValueSale, isTablet && styles.summaryValueTablet]}>
+                    {formatCurrency(participantTotals.totalSaleCents)}
+                  </Text>
+                </View>
+
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
+                    Total Margen
+                  </Text>
+                  <Text style={[styles.summaryValueMargin, isTablet && styles.summaryValueTablet]}>
+                    {formatCurrency(participantTotals.totalMarginCents)}
+                  </Text>
+                  <Text style={[styles.summaryPercentage, isTablet && styles.summaryPercentageTablet]}>
+                    ({participantTotals.totalMarginPercentage.toFixed(2)}%)
+                  </Text>
+                </View>
+
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
+                    Total Esperado
+                  </Text>
+                  <Text style={[styles.summaryValueExpected, isTablet && styles.summaryValueTablet]}>
+                    {formatCurrency(totalExpectedAmountCents)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Download General Report Button */}
           {participantTotals && campaign.participants && campaign.participants.length > 0 && (
@@ -703,6 +759,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     {/* Totals Display */}
                     {participantTotal && (
                       <View style={styles.totalsContainer}>
+                        <View style={styles.totalRow}>
+                          <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
+                            Esperado:
+                          </Text>
+                          <Text style={[styles.totalValueExpected, isTablet && styles.totalValueTablet]}>
+                            {formatCurrency(participant.assignedAmountCents)}
+                          </Text>
+                        </View>
                         <View style={styles.totalRow}>
                           <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
                             Compra:
@@ -1761,8 +1825,99 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6366F1',
   },
+  totalValueExpected: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8B5CF6',
+  },
   totalValueTablet: {
     fontSize: 16,
+  },
+  summaryCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+  },
+  summaryCardTablet: {
+    padding: 24,
+    marginBottom: 20,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  summaryTitleTablet: {
+    fontSize: 22,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  summaryItem: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  summaryLabelTablet: {
+    fontSize: 14,
+  },
+  summaryValuePurchase: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#F59E0B',
+    textAlign: 'center',
+  },
+  summaryValueSale: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#10B981',
+    textAlign: 'center',
+  },
+  summaryValueMargin: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6366F1',
+    textAlign: 'center',
+  },
+  summaryValueExpected: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#8B5CF6',
+    textAlign: 'center',
+  },
+  summaryValueTablet: {
+    fontSize: 22,
+  },
+  summaryPercentage: {
+    fontSize: 12,
+    color: '#6366F1',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  summaryPercentageTablet: {
+    fontSize: 14,
   },
   downloadGeneralReportButton: {
     backgroundColor: '#6366F1',
