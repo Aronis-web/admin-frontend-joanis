@@ -14,8 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { campaignsService } from '@/services/api';
-import { inventoryService } from '@/services/api';
+import { campaignsService, inventoryApi } from '@/services/api';
 import logger from '@/utils/logger';
 import {
   CampaignProduct,
@@ -219,7 +218,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     // Cargar stock directamente desde el API de inventario
     logger.debug('📦 [STOCK] Consultando stock directamente del API de inventario...');
     try {
-      const stockData = await inventoryService.getAllStock({ productId: product.productId });
+      const stockData = await inventoryApi.getAllStock({ productId: product.productId });
       logger.debug('✅ [STOCK] Stock obtenido del API:', {
         stockItemsCount: stockData.length,
         stockData: stockData,
