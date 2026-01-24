@@ -238,25 +238,37 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const shouldReload = route.params?.shouldReload;
       const skipReloadOnce = route.params?.skipReloadOnce;
 
+      logger.debug('🔄 [CAMPAIGN] useFocusEffect triggered:', {
+        shouldReload,
+        skipReloadOnce,
+        hasLoaded: hasLoadedRef.current,
+      });
+
       if (shouldReload) {
         // Clear the param to avoid reloading again
+        logger.debug('🔄 [CAMPAIGN] Reloading due to shouldReload param');
         navigation.setParams({ shouldReload: undefined } as any);
         hasLoadedRef.current = true;
         loadCampaign();
       } else if (skipReloadOnce) {
         // Skip reload this time (coming back from product detail)
+        logger.debug('⏭️ [CAMPAIGN] Skipping reload due to skipReloadOnce param');
         navigation.setParams({ skipReloadOnce: undefined } as any);
         // Don't reload, just mark as loaded
         hasLoadedRef.current = true;
       } else if (!hasLoadedRef.current) {
         // Only load on first mount, not on every focus
+        logger.debug('📥 [CAMPAIGN] Loading campaign (first time)');
         hasLoadedRef.current = true;
         loadCampaign();
+      } else {
+        logger.debug('✅ [CAMPAIGN] Already loaded, skipping reload');
       }
 
       // Reset the ref when the screen is unmounted (navigating away)
       return () => {
         // This cleanup runs when navigating away from the screen
+        logger.debug('🧹 [CAMPAIGN] Cleanup: resetting hasLoadedRef');
         hasLoadedRef.current = false;
       };
     }, [loadCampaign, route.params?.shouldReload, route.params?.skipReloadOnce, navigation])
