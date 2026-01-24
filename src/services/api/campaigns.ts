@@ -158,7 +158,11 @@ class CampaignsService {
    * Get all products for a campaign
    */
   async getProducts(campaignId: string): Promise<CampaignProduct[]> {
-    return apiClient.get<CampaignProduct[]>(`${this.basePath}/${campaignId}/products`);
+    return apiClient.get<CampaignProduct[]>(`${this.basePath}/${campaignId}/products`, {
+      params: {
+        include: 'product.category,product.presentations,product.salePrices,product.stockItems,purchase',
+      },
+    });
   }
 
   /**
