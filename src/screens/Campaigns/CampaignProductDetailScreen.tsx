@@ -91,16 +91,28 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
   // Helper function to convert product stockItems to stockDetails format
   const getStockDetailsFromProduct = useCallback((): StockDetailByWarehouse[] | undefined => {
+    logger.debug('🔍 [STOCK] Verificando stockItems del producto:', {
+      hasProduct: !!product,
+      hasProductData: !!product?.product,
+      hasStockItems: !!product?.product?.stockItems,
+      stockItemsLength: product?.product?.stockItems?.length || 0,
+      stockItems: product?.product?.stockItems,
+    });
+
     if (!product?.product?.stockItems || product.product.stockItems.length === 0) {
+      logger.debug('⚠️ [STOCK] No hay stockItems disponibles en el producto');
       return undefined;
     }
 
-    return product.product.stockItems.map(item => ({
+    const stockDetails = product.product.stockItems.map(item => ({
       warehouse: item.warehouse?.name || 'Almacén desconocido',
       total: item.quantityBase || 0,
       reserved: item.reservedQuantityBase || 0,
       available: item.availableQuantityBase || item.quantityBase || 0,
     }));
+
+    logger.debug('✅ [STOCK] Stock details generados desde producto:', stockDetails);
+    return stockDetails;
   }, [product]);
 
   const loadProduct = useCallback(async () => {
