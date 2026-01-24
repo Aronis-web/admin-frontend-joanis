@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { campaignsService } from '@/services/api';
+import { inventoryService } from '@/services/api';
 import logger from '@/utils/logger';
 import {
   CampaignProduct,
@@ -213,6 +214,43 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
         setSelectedPresentationId(basePresentation.presentationId);
         setSelectedPresentation(basePresentation);
       }
+    }
+
+    // Cargar stock directamente desde el API de inventario
+    logger.debug('📦 [STOCK] Consultando stock directamente del API de inventario...');
+    try {
+      const stockData = await inventoryService.getAllStock({ productId: product.productId });
+      logger.debug('✅ [STOCK] Stock obtenido del API:', {
+        stockItemsCount: stockData.length,
+        stockData: stockData,
+      });
+
+      // Actualizar el producto con los stockItems obtenidos
+      if (stockData && stockData.length > 0) {
+        setProduct(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            product: {
+              ...prev.product!,
+              stockItems: stockData.map(item => ({
+                productId: item.productId,
+                warehouseId: item.warehouseId,
+                areaId: item.areaId,
+                quantityBase: item.quantityBase,
+                reservedQuantityBase: item.reservedQuantityBase,
+                availableQuantityBase: item.availableQuantityBase,
+                updatedAt: item.updatedAt,
+                warehouse: item.warehouse,
+                area: item.area,
+              })),
+            },
+          };
+        });
+      }
+    } catch (error: any) {
+      logger.error('❌ [STOCK] Error obteniendo stock del API:', error);
+      // Continuar sin stock si hay error
     }
 
     // Cargar la vista previa para ajustar
