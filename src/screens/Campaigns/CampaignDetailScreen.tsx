@@ -1382,7 +1382,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               const productDetails = product.product || products[product.productId];
               const costCents = productDetails?.costCents || 0;
               const isExpanded = expandedProducts.has(product.id);
-              const isPreliminary = product.productStatus !== 'ACTIVE';
+              // Resaltar productos cuyo estado del producto es 'preliminary' (no validado aún)
+              const isPreliminary = (productDetails?.status as any) === 'preliminary';
 
               return (
                 <View

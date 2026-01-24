@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { inventoryApi, ExportFormat } from '@/services/api/inventory';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 interface StockExportModalProps {
   visible: boolean;
@@ -90,50 +90,50 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
         setLoading(false);
         onClose();
       } else {
-        // Mobile - use sharing
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = async () => {
-          try {
-            const base64data = reader.result as string;
-            const base64 = base64data.split(',')[1];
+        // Mobile - convert blob to base64 and save
+        try {
+          // Convert blob to base64 using FileReader (available in React Native)
+          const base64Data = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const dataUrl = reader.result as string;
+              // Remove the data URL prefix to get just the base64 data
+              const base64 = dataUrl.split(',')[1];
+              resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
 
-            // Create a temporary file URI
-            const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+          // Create a temporary file URI
+          const fileUri = `${FileSystem.cacheDirectory}${filename}`;
 
-            await FileSystem.writeAsStringAsync(fileUri, base64, {
-              encoding: FileSystem.EncodingType.Base64,
+          await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+
+          console.log('✅ File saved to:', fileUri);
+
+          // Share the file
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(fileUri, {
+              mimeType: format === 'excel'
+                ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                : 'application/pdf',
+              dialogTitle: 'Guardar Reporte de Stock',
+              UTI: format === 'excel' ? 'com.microsoft.excel.xlsx' : 'com.adobe.pdf',
             });
-
-            console.log('✅ File saved to:', fileUri);
-
-            // Share the file
-            if (await Sharing.isAvailableAsync()) {
-              await Sharing.shareAsync(fileUri, {
-                mimeType: format === 'excel'
-                  ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                  : 'application/pdf',
-                dialogTitle: 'Guardar Reporte de Stock',
-                UTI: format === 'excel' ? 'com.microsoft.excel.xlsx' : 'com.adobe.pdf',
-              });
-            } else {
-              Alert.alert('Éxito', `Reporte guardado en: ${fileUri}`);
-            }
-
-            setLoading(false);
-            onClose();
-          } catch (error) {
-            console.error('Error saving file:', error);
-            Alert.alert('Error', 'No se pudo guardar el archivo');
-            setLoading(false);
+          } else {
+            Alert.alert('Éxito', `Reporte guardado en: ${fileUri}`);
           }
-        };
 
-        reader.onerror = () => {
-          console.error('Error reading blob');
-          Alert.alert('Error', 'No se pudo procesar el archivo');
           setLoading(false);
-        };
+          onClose();
+        } catch (error) {
+          console.error('Error saving file:', error);
+          Alert.alert('Error', 'No se pudo guardar el archivo');
+          setLoading(false);
+        }
       }
 
       // Reset form
