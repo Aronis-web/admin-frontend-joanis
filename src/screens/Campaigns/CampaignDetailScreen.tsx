@@ -201,26 +201,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         setProducts(productsMap);
 
-        // Load sale prices for each product
-        const productIds = data.products
-          .map(p => p.productId)
-          .filter((id, index, self) => self.indexOf(id) === index); // unique IDs
-
-        const salePricesMap: Record<string, ProductSalePrice[]> = {};
-        await Promise.all(
-          productIds.map(async (productId) => {
-            try {
-              const salePricesResponse = await priceProfilesApi.getProductSalePrices(productId);
-              // The API returns {productId, productSku, costCents, salePrices: [...]}
-              const prices = (salePricesResponse as any).salePrices || salePricesResponse.data || [];
-              salePricesMap[productId] = prices;
-            } catch (error) {
-              logger.error(`Error loading sale prices for product ${productId}:`, error);
-              salePricesMap[productId] = [];
-            }
-          })
-        );
-        setProductSalePrices(salePricesMap);
+        // OPTIMIZATION: Removed sale-prices loading from here
+        // Sale prices are not needed in the list view and were causing 20+ requests
+        // They can be loaded on-demand if needed in the future
+        // This reduces initial load from 21 requests to just 1 request
+        logger.debug('⚡ [PERF] Skipping sale-prices loading for better performance');
       }
     } catch (error: any) {
       logger.error('Error loading campaign:', error);
@@ -235,8 +220,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   useFocusEffect(
     useCallback(() => {
       // Check if we should force reload (e.g., after editing a product)
-      const shouldReload = route.params?.shouldReload;
-      const skipReloadOnce = route.params?.skipReloadOnce;
+      const params = route.params as { campaignId: string; shouldReload?: boolean; skipReloadOnce?: boolean };
+      const shouldReload = params?.shouldReload;
+      const skipReloadOnce = params?.skipReloadOnce;
 
       logger.debug('🔄 [CAMPAIGN] useFocusEffect triggered:', {
         shouldReload,
@@ -265,12 +251,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         logger.debug('✅ [CAMPAIGN] Already loaded, skipping reload');
       }
 
-      // Reset the ref when the screen is unmounted (navigating away)
-      return () => {
-        // This cleanup runs when navigating away from the screen
-        logger.debug('🧹 [CAMPAIGN] Cleanup: resetting hasLoadedRef');
-        hasLoadedRef.current = false;
-      };
+      // OPTIMIZATION: Don't reset hasLoadedRef on cleanup
+      // This was causing the campaign to reload every time you came back from a child screen
+      // The cleanup runs when navigating to ANY screen (including child screens like ProductDetail)
+      // We only want to reload when explicitly requested via shouldReload param
+      // This prevents unnecessary reloads and improves performance significantly
     }, [loadCampaign, route.params?.shouldReload, route.params?.skipReloadOnce, navigation])
   );
 
