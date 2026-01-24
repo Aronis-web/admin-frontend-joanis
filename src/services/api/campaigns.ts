@@ -166,6 +166,17 @@ class CampaignsService {
   }
 
   /**
+   * Get a single product from a campaign
+   */
+  async getProduct(campaignId: string, productId: string): Promise<CampaignProduct> {
+    return apiClient.get<CampaignProduct>(`${this.basePath}/${campaignId}/products/${productId}`, {
+      params: {
+        include: 'product.category,product.presentations,product.salePrices,product.stockItems.warehouse,product.stockItems.area,purchase',
+      },
+    });
+  }
+
+  /**
    * Add a product to a campaign
    */
   async addProduct(campaignId: string, data: AddProductRequest): Promise<CampaignProduct> {

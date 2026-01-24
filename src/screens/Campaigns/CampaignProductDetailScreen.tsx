@@ -126,25 +126,20 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
   const loadProduct = useCallback(async () => {
     try {
-      const products = await campaignsService.getProducts(campaignId);
-      const foundProduct = products.find((p) => p.id === productId);
-      if (foundProduct) {
-        logger.debug('📦 Producto cargado:', {
-          id: foundProduct.id,
-          productId: foundProduct.productId,
-          hasProduct: !!foundProduct.product,
-          hasPresentations: !!foundProduct.product?.presentations,
-          presentationsCount: foundProduct.product?.presentations?.length || 0,
-          presentations: foundProduct.product?.presentations,
-          hasStockItems: !!foundProduct.product?.stockItems,
-          stockItemsCount: foundProduct.product?.stockItems?.length || 0,
-          stockItems: foundProduct.product?.stockItems,
-        });
-        setProduct(foundProduct);
-      } else {
-        Alert.alert('Error', 'Producto no encontrado');
-        navigation.goBack();
-      }
+      // Optimized: Load only the specific product instead of all campaign products
+      const foundProduct = await campaignsService.getProduct(campaignId, productId);
+      logger.debug('📦 Producto cargado:', {
+        id: foundProduct.id,
+        productId: foundProduct.productId,
+        hasProduct: !!foundProduct.product,
+        hasPresentations: !!foundProduct.product?.presentations,
+        presentationsCount: foundProduct.product?.presentations?.length || 0,
+        presentations: foundProduct.product?.presentations,
+        hasStockItems: !!foundProduct.product?.stockItems,
+        stockItemsCount: foundProduct.product?.stockItems?.length || 0,
+        stockItems: foundProduct.product?.stockItems,
+      });
+      setProduct(foundProduct);
     } catch (error: any) {
       logger.error('Error loading product:', error);
       Alert.alert('Error', 'No se pudo cargar el producto');
