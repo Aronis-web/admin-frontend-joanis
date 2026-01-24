@@ -631,7 +631,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     try {
       setActionLoading(true);
       // Load all campaigns except the current one
-      const response = await campaignsService.getCampaigns({ limit: 100 });
+      const response = await campaignsService.getCampaigns({
+        limit: 100,
+        include: 'participants.company,participants.site,participants.priceProfile'
+      });
       const otherCampaigns = response.data.filter(c => c.id !== campaignId && c.participants && c.participants.length > 0);
       setAvailableCampaigns(otherCampaigns);
       setShowCopyCampaignModal(true);
