@@ -167,14 +167,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         if (missingProductIds.length > 0) {
           try {
             logger.info(`Fetching ${missingProductIds.length} missing products:`, missingProductIds);
-            // Use admin endpoint to get both active and preliminary products
+            // Use admin endpoint to get both active and preliminary products with full details
             const productsResponse = await productsApi.getAllProducts({
               limit: 1000,
-              status: 'active,preliminary' // Include both active and preliminary products
+              status: 'active,preliminary,inactive,draft', // Include all product statuses
+              include: 'category,presentations,salePrices,stockItems' // Include all related data
             });
             const productsList = productsResponse.products || [];
+            logger.info(`Fetched ${productsList.length} products from admin endpoint`);
             productsList.forEach(product => {
               if (missingProductIds.includes(product.id)) {
+                logger.info(`Adding product to map: ${product.id} - ${product.title}`);
                 productsMap[product.id] = product;
               }
             });
