@@ -63,20 +63,33 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       let productsData: any[] = [];
       let responseData: any;
       try {
-        // Don't filter by status - get all products and filter on frontend
-        responseData = await productsApi.getAllProducts({
+        // Pass status filter to backend for proper pagination
+        const filters: any = {
           page,
           limit: pagination.limit
-        });
+        };
+
+        // Only add status filter if not 'all'
+        if (statusFilter !== 'all') {
+          filters.status = statusFilter;
+        }
+
+        responseData = await productsApi.getAllProducts(filters);
         productsData = responseData.products || [];
       } catch (adminError: any) {
         // If admin endpoint fails (403), try public catalog endpoint
         if (adminError.response?.status === 403) {
           console.log('Admin endpoint forbidden, trying public catalog...');
-          responseData = await productsApi.getProducts({
+          const filters: any = {
             page,
             limit: pagination.limit
-          });
+          };
+
+          if (statusFilter !== 'all') {
+            filters.status = statusFilter;
+          }
+
+          responseData = await productsApi.getProducts(filters);
           productsData = responseData.products || [];
         } else {
           throw adminError;
@@ -153,10 +166,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
     let filtered = [...products];
 
-    // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((product) => product.status === statusFilter);
-    }
+    // Note: Status filter is now handled by the backend
+    // Only apply search query filter here
 
     // Filter by search query
     if (searchQuery.trim() !== '') {
