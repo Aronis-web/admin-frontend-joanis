@@ -11,9 +11,11 @@ import {
   useWindowDimensions,
   TextInput,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { campaignsService } from '@/services/api';
@@ -72,6 +74,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [distributionFilter, setDistributionFilter] = useState<'all' | 'generated' | 'not-generated'>('all');
   const [participantTotals, setParticipantTotals] = useState<ParticipantTotalsResponse | null>(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
+  const [showCopyCampaignModal, setShowCopyCampaignModal] = useState(false);
+  const [availableCampaigns, setAvailableCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaignToCopy, setSelectedCampaignToCopy] = useState<string>('');
+  const [copyingParticipants, setCopyingParticipants] = useState(false);
   const { width, height } = useWindowDimensions();
   const hasLoadedRef = useRef(false);
 
@@ -621,6 +627,86 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return `S/ ${(cents / 100).toFixed(2)}`;
   };
 
+  const handleOpenCopyParticipantsModal = async () => {
+    try {
+      setActionLoading(true);
+      // Load all campaigns except the current one
+      const response = await campaignsService.getCampaigns({ limit: 100 });
+      const otherCampaigns = response.data.filter(c => c.id !== campaignId && c.participants && c.participants.length > 0);
+      setAvailableCampaigns(otherCampaigns);
+      setShowCopyCampaignModal(true);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'No se pudieron cargar las campañas');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCopyParticipants = async () => {
+    if (!selectedCampaignToCopy) {
+      Alert.alert('Error', 'Por favor selecciona una campaña');
+      return;
+    }
+
+    try {
+      setCopyingParticipants(true);
+
+      // Get participants from selected campaign
+      const sourceCampaign = availableCampaigns.find(c => c.id === selectedCampaignToCopy);
+      if (!sourceCampaign || !sourceCampaign.participants) {
+        Alert.alert('Error', 'No se encontraron participantes en la campaña seleccionada');
+        return;
+      }
+
+      // Copy each participant
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const participant of sourceCampaign.participants) {
+        try {
+          const participantData: any = {
+            participantType: participant.participantType,
+            assignedAmount: participant.assignedAmountCents / 100,
+            currency: participant.currency,
+          };
+
+          if (participant.participantType === 'EXTERNAL_COMPANY' && participant.companyId) {
+            participantData.companyId = participant.companyId;
+          } else if (participant.participantType === 'INTERNAL_SITE' && participant.siteId) {
+            participantData.siteId = participant.siteId;
+          }
+
+          if (participant.priceProfileId) {
+            participantData.priceProfileId = participant.priceProfileId;
+          }
+
+          await campaignsService.addParticipant(campaignId, participantData);
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          logger.error('Error copying participant:', error);
+        }
+      }
+
+      setShowCopyCampaignModal(false);
+      setSelectedCampaignToCopy('');
+
+      if (successCount > 0) {
+        Alert.alert(
+          'Éxito',
+          `Se copiaron ${successCount} participante(s) correctamente${errorCount > 0 ? `. ${errorCount} fallaron.` : ''}`,
+          [{ text: 'OK', onPress: () => loadData() }]
+        );
+      } else {
+        Alert.alert('Error', 'No se pudo copiar ningún participante');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'No se pudieron copiar los participantes');
+    } finally {
+      setCopyingParticipants(false);
+    }
+  };
+
   const renderParticipants = () => {
     if (!campaign) return null;
 
@@ -638,16 +724,26 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               Participantes ({campaign.participants?.length || 0})
             </Text>
             {(campaign.status === CampaignStatus.DRAFT || campaign.status === CampaignStatus.ACTIVE) && (
-              <TouchableOpacity
-                style={[styles.addButton, isTablet && styles.addButtonTablet]}
-                onPress={() =>
-                  navigation.navigate('AddCampaignParticipant', { campaignId })
-                }
-              >
-                <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
-                  + Agregar
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.headerButtons}>
+                <TouchableOpacity
+                  style={[styles.copyButton, isTablet && styles.copyButtonTablet]}
+                  onPress={handleOpenCopyParticipantsModal}
+                >
+                  <Text style={[styles.copyButtonText, isTablet && styles.copyButtonTextTablet]}>
+                    📋 Copiar
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.addButton, isTablet && styles.addButtonTablet]}
+                  onPress={() =>
+                    navigation.navigate('AddCampaignParticipant', { campaignId })
+                  }
+                >
+                  <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
+                    + Agregar
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
 
@@ -1528,6 +1624,74 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           productDetails={selectedProduct ? (selectedProduct.product || products[selectedProduct.productId]) : null}
           onClose={handleCloseBanner}
         />
+
+        {/* Copy Participants Modal */}
+        <Modal
+          visible={showCopyCampaignModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowCopyCampaignModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
+              <Text style={[styles.modalTitle, isTablet && styles.modalTitleTablet]}>
+                Copiar Participantes
+              </Text>
+              <Text style={[styles.modalDescription, isTablet && styles.modalDescriptionTablet]}>
+                Selecciona una campaña para copiar sus participantes:
+              </Text>
+
+              <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
+                <Picker
+                  selectedValue={selectedCampaignToCopy}
+                  onValueChange={(value) => setSelectedCampaignToCopy(value)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Selecciona una campaña..." value="" />
+                  {availableCampaigns.map((camp) => (
+                    <Picker.Item
+                      key={camp.id}
+                      label={`${camp.code} - ${camp.name} (${camp.participants?.length || 0} participantes)`}
+                      value={camp.id}
+                    />
+                  ))}
+                </Picker>
+              </View>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalCancelButton, isTablet && styles.modalButtonTablet]}
+                  onPress={() => {
+                    setShowCopyCampaignModal(false);
+                    setSelectedCampaignToCopy('');
+                  }}
+                  disabled={copyingParticipants}
+                >
+                  <Text style={[styles.modalCancelButtonText, isTablet && styles.modalButtonTextTablet]}>
+                    Cancelar
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalConfirmButton,
+                    isTablet && styles.modalButtonTablet,
+                    copyingParticipants && styles.modalButtonDisabled,
+                  ]}
+                  onPress={handleCopyParticipants}
+                  disabled={copyingParticipants}
+                >
+                  {copyingParticipants ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={[styles.modalConfirmButtonText, isTablet && styles.modalButtonTextTablet]}>
+                      Copiar
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -2342,5 +2506,117 @@ const styles = StyleSheet.create({
   },
   closeButtonTextTablet: {
     fontSize: 18,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  copyButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  copyButtonTablet: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  copyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  copyButtonTextTablet: {
+    fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    width: '100%',
+    maxWidth: 500,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalContentTablet: {
+    padding: 32,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  modalTitleTablet: {
+    fontSize: 24,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 20,
+  },
+  modalDescriptionTablet: {
+    fontSize: 16,
+  },
+  pickerContainer: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  pickerContainerTablet: {
+    borderRadius: 10,
+  },
+  picker: {
+    height: 50,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: '#E2E8F0',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalConfirmButton: {
+    flex: 1,
+    backgroundColor: '#6366F1',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonTablet: {
+    paddingVertical: 16,
+  },
+  modalButtonDisabled: {
+    opacity: 0.5,
+  },
+  modalCancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  modalConfirmButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalButtonTextTablet: {
+    fontSize: 16,
   },
 });
