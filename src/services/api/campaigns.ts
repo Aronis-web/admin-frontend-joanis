@@ -160,7 +160,7 @@ class CampaignsService {
   async getProducts(campaignId: string): Promise<CampaignProduct[]> {
     return apiClient.get<CampaignProduct[]>(`${this.basePath}/${campaignId}/products`, {
       params: {
-        include: 'product.category,product.presentations,product.salePrices,product.stockItems,purchase',
+        include: 'product.category,product.presentations,product.salePrices,product.stockItems.warehouse,product.stockItems.area,purchase',
       },
     });
   }

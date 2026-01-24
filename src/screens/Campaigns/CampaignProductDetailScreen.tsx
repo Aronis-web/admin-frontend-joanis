@@ -127,6 +127,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
           hasPresentations: !!foundProduct.product?.presentations,
           presentationsCount: foundProduct.product?.presentations?.length || 0,
           presentations: foundProduct.product?.presentations,
+          hasStockItems: !!foundProduct.product?.stockItems,
+          stockItemsCount: foundProduct.product?.stockItems?.length || 0,
+          stockItems: foundProduct.product?.stockItems,
         });
         setProduct(foundProduct);
       } else {
