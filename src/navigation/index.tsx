@@ -73,6 +73,7 @@ import {
   CreateCampaignScreen,
   CampaignDetailScreen,
   AddParticipantScreen,
+  EditParticipantScreen,
   AddProductScreen,
   CampaignProductDetailScreen,
   CampaignParticipantDetailScreen,
@@ -576,6 +577,13 @@ const MainStack = React.memo(() => {
         component={AddParticipantScreen}
         options={{
           title: 'Agregar Participante'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="EditCampaignParticipant"
+        component={EditParticipantScreen}
+        options={{
+          title: 'Editar Participante'
         }}
       />
       <MainStackNavigator.Screen

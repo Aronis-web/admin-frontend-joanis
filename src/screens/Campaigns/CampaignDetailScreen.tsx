@@ -733,69 +733,96 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               );
 
               return (
-                <TouchableOpacity
-                  key={participant.id}
-                  style={[styles.participantCard, isTablet && styles.participantCardTablet]}
-                  onPress={() =>
-                    navigation.navigate('ParticipantDetail', {
-                      campaignId,
-                      participantId: participant.id,
-                    })
-                  }
-                >
-                  <View style={styles.listItemContent}>
-                    <Text style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}>
-                      {participant.participantType === 'EXTERNAL_COMPANY'
-                        ? (participant.company?.name || companies[participant.companyId!]?.name || `Empresa ID: ${participant.companyId}`)
-                        : (participant.site?.name || sites[participant.siteId!]?.name || `Sede ID: ${participant.siteId}`)}
-                    </Text>
-                    <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
-                      {participant.participantType === 'EXTERNAL_COMPANY'
-                        ? 'Empresa Externa'
-                        : 'Sede Interna'}
-                      {(participant.site?.code || sites[participant.siteId!]?.code) && ` - ${participant.site?.code || sites[participant.siteId!]?.code}`}
-                    </Text>
-
-                    {/* Totals Display */}
-                    {participantTotal && (
-                      <View style={styles.totalsContainer}>
-                        <View style={styles.totalRow}>
-                          <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
-                            Esperado:
+                <View key={participant.id} style={[styles.participantCard, isTablet && styles.participantCardTablet]}>
+                  <TouchableOpacity
+                    style={styles.participantCardMain}
+                    onPress={() =>
+                      navigation.navigate('ParticipantDetail', {
+                        campaignId,
+                        participantId: participant.id,
+                      })
+                    }
+                  >
+                    <View style={styles.listItemContent}>
+                      <View style={styles.participantHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}>
+                            {participant.participantType === 'EXTERNAL_COMPANY'
+                              ? (participant.company?.name || companies[participant.companyId!]?.name || `Empresa ID: ${participant.companyId}`)
+                              : (participant.site?.name || sites[participant.siteId!]?.name || `Sede ID: ${participant.siteId}`)}
                           </Text>
-                          <Text style={[styles.totalValueExpected, isTablet && styles.totalValueTablet]}>
-                            {formatCurrency(participant.assignedAmountCents)}
+                          <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
+                            {participant.participantType === 'EXTERNAL_COMPANY'
+                              ? 'Empresa Externa'
+                              : 'Sede Interna'}
+                            {(participant.site?.code || sites[participant.siteId!]?.code) && ` - ${participant.site?.code || sites[participant.siteId!]?.code}`}
                           </Text>
                         </View>
-                        <View style={styles.totalRow}>
-                          <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
-                            Compra:
-                          </Text>
-                          <Text style={[styles.totalValuePurchase, isTablet && styles.totalValueTablet]}>
-                            {formatCurrency(participantTotal.totalPurchaseCents)}
-                          </Text>
-                        </View>
-                        <View style={styles.totalRow}>
-                          <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
-                            Venta:
-                          </Text>
-                          <Text style={[styles.totalValueSale, isTablet && styles.totalValueTablet]}>
-                            {formatCurrency(participantTotal.totalSaleCents)}
-                          </Text>
-                        </View>
-                        <View style={styles.totalRow}>
-                          <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
-                            Margen:
-                          </Text>
-                          <Text style={[styles.totalValueMargin, isTablet && styles.totalValueTablet]}>
-                            {formatCurrency(participantTotal.marginCents)} ({participantTotal.marginPercentage.toFixed(2)}%)
-                          </Text>
-                        </View>
+                        {(campaign.status === CampaignStatus.DRAFT || campaign.status === CampaignStatus.ACTIVE) && (
+                          <TouchableOpacity
+                            style={[styles.editParticipantButton, isTablet && styles.editParticipantButtonTablet]}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              navigation.navigate('EditCampaignParticipant', {
+                                campaignId,
+                                participantId: participant.id,
+                                participant,
+                              });
+                            }}
+                          >
+                            <Text style={[styles.editParticipantButtonText, isTablet && styles.editParticipantButtonTextTablet]}>
+                              ✏️ Editar
+                            </Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
-                    )}
-                  </View>
-                  <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
-                </TouchableOpacity>
+
+                      {/* Totals Display */}
+                      {participantTotal && (
+                        <View style={styles.totalsContainer}>
+                          <View style={styles.totalRow}>
+                            <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
+                              Esperado:
+                            </Text>
+                            <Text style={[styles.totalValueExpected, isTablet && styles.totalValueTablet]}>
+                              {formatCurrency(participant.assignedAmountCents)}
+                            </Text>
+                          </View>
+                          <View style={styles.totalRow}>
+                            <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
+                              Compra:
+                            </Text>
+                            <Text style={[styles.totalValuePurchase, isTablet && styles.totalValueTablet]}>
+                              {formatCurrency(participantTotal.totalPurchaseCents)}
+                            </Text>
+                          </View>
+                          <View style={styles.totalRow}>
+                            <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
+                              Venta:
+                            </Text>
+                            <Text style={[styles.totalValueSale, isTablet && styles.totalValueTablet]}>
+                              {formatCurrency(participantTotal.totalSaleCents)}
+                            </Text>
+                          </View>
+                          <View style={styles.totalRow}>
+                            <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
+                              Margen:
+                            </Text>
+                            <View style={styles.marginValueContainer}>
+                              <Text style={[styles.totalValueMargin, isTablet && styles.totalValueTablet]}>
+                                {formatCurrency(participantTotal.marginCents)}
+                              </Text>
+                              <Text style={[styles.marginPercentage, isTablet && styles.marginPercentageTablet]}>
+                                ({participantTotal.marginPercentage.toFixed(2)}%)
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+                  </TouchableOpacity>
+                </View>
               );
             })
           )}
@@ -1789,6 +1816,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    padding: 12,
+  },
+  participantHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    gap: 8,
+  },
+  editParticipantButton: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  editParticipantButtonTablet: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  editParticipantButtonText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  editParticipantButtonTextTablet: {
+    fontSize: 13,
   },
   totalsContainer: {
     marginTop: 12,
@@ -1832,6 +1886,20 @@ const styles = StyleSheet.create({
   },
   totalValueTablet: {
     fontSize: 16,
+  },
+  marginValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  marginPercentage: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6366F1',
+    opacity: 0.8,
+  },
+  marginPercentageTablet: {
+    fontSize: 14,
   },
   summaryCard: {
     backgroundColor: '#F8FAFC',
