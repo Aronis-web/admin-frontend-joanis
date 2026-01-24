@@ -33,13 +33,13 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
   // Initialize with all products selected by default
   useEffect(() => {
     if (visible && products.length > 0) {
-      const allProductIds = new Set(products.map(p => p.productId).filter(Boolean));
+      const allProductIds = new Set(products.map((p) => p.productId).filter(Boolean));
       setSelectedProducts(allProductIds);
     }
   }, [visible, products]);
 
   const toggleProduct = (productId: string) => {
-    setSelectedProducts(prev => {
+    setSelectedProducts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(productId)) {
         newSet.delete(productId);
@@ -56,7 +56,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
       setSelectedProducts(new Set());
     } else {
       // Select all
-      const allProductIds = new Set(products.map(p => p.productId).filter(Boolean));
+      const allProductIds = new Set(products.map((p) => p.productId).filter(Boolean));
       setSelectedProducts(allProductIds);
     }
   };
@@ -78,12 +78,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
   const someSelected = selectedProducts.size > 0 && selectedProducts.size < products.length;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={[styles.modalContainer, isTablet && styles.modalContainerTablet]}>
           {/* Header */}
@@ -103,12 +98,14 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
               onPress={toggleAll}
               activeOpacity={0.7}
             >
-              <View style={[
-                styles.checkbox,
-                isTablet && styles.checkboxTablet,
-                allSelected && styles.checkboxChecked,
-                someSelected && styles.checkboxIndeterminate,
-              ]}>
+              <View
+                style={[
+                  styles.checkbox,
+                  isTablet && styles.checkboxTablet,
+                  allSelected && styles.checkboxChecked,
+                  someSelected && styles.checkboxIndeterminate,
+                ]}
+              >
                 {allSelected && <Text style={styles.checkmark}>✓</Text>}
                 {someSelected && <Text style={styles.checkmark}>−</Text>}
               </View>
@@ -132,47 +129,53 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
                 return correlativeA - correlativeB;
               })
               .map((product) => {
-              const productKey = product.productId;
-              if (!productKey) return null;
+                const productKey = product.productId;
+                if (!productKey) {
+                  return null;
+                }
 
-              const isSelected = selectedProducts.has(productKey);
-              const productName = getProductName(product);
-              const productSKU = getProductSKU(product);
+                const isSelected = selectedProducts.has(productKey);
+                const productName = getProductName(product);
+                const productSKU = getProductSKU(product);
 
-              return (
-                <TouchableOpacity
-                  key={productKey}
-                  style={[
-                    styles.productItem,
-                    isTablet && styles.productItemTablet,
-                    isSelected && styles.productItemSelected,
-                  ]}
-                  onPress={() => toggleProduct(productKey)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[
-                    styles.checkbox,
-                    isTablet && styles.checkboxTablet,
-                    isSelected && styles.checkboxChecked,
-                  ]}>
-                    {isSelected && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <View style={styles.productInfo}>
-                    <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
-                      {productName}
-                    </Text>
-                    <View style={styles.productDetails}>
-                      <Text style={[styles.productSKU, isTablet && styles.productSKUTablet]}>
-                        SKU: {productSKU}
-                      </Text>
-                      <Text style={[styles.productQuantity, isTablet && styles.productQuantityTablet]}>
-                        Cantidad: {product.quantityAssigned || product.quantityBase || 0}
-                      </Text>
+                return (
+                  <TouchableOpacity
+                    key={productKey}
+                    style={[
+                      styles.productItem,
+                      isTablet && styles.productItemTablet,
+                      isSelected && styles.productItemSelected,
+                    ]}
+                    onPress={() => toggleProduct(productKey)}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        isTablet && styles.checkboxTablet,
+                        isSelected && styles.checkboxChecked,
+                      ]}
+                    >
+                      {isSelected && <Text style={styles.checkmark}>✓</Text>}
                     </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                    <View style={styles.productInfo}>
+                      <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
+                        {productName}
+                      </Text>
+                      <View style={styles.productDetails}>
+                        <Text style={[styles.productSKU, isTablet && styles.productSKUTablet]}>
+                          SKU: {productSKU}
+                        </Text>
+                        <Text
+                          style={[styles.productQuantity, isTablet && styles.productQuantityTablet]}
+                        >
+                          Cantidad: {product.quantityAssigned || product.quantityBase || 0}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
           </ScrollView>
 
           {/* Footer Actions */}
@@ -199,7 +202,9 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
               {loading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={[styles.confirmButtonText, isTablet && styles.confirmButtonTextTablet]}>
+                <Text
+                  style={[styles.confirmButtonText, isTablet && styles.confirmButtonTextTablet]}
+                >
                   Descargar PDF ({selectedProducts.size})
                 </Text>
               )}

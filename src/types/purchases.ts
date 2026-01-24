@@ -131,11 +131,11 @@ export interface PurchaseProduct {
   // Datos preliminares
   sku: string;
   name: string;
-  correlativeNumber?: number;  // Número correlativo del producto
+  correlativeNumber?: number; // Número correlativo del producto
   costCents: number;
   preliminaryStock: number;
-  preliminaryPresentationQuantity?: number;  // Cantidad de presentaciones (preliminar)
-  preliminaryLooseUnits?: number;            // Unidades sueltas (preliminar)
+  preliminaryPresentationQuantity?: number; // Cantidad de presentaciones (preliminar)
+  preliminaryLooseUnits?: number; // Unidades sueltas (preliminar)
 
   // Presentación actual
   currentPresentationId?: string;
@@ -143,8 +143,8 @@ export interface PurchaseProduct {
 
   // Datos de validación
   validatedStock?: number;
-  validatedPresentationQuantity?: number;    // Cantidad de presentaciones (validado)
-  validatedLooseUnits?: number;              // Unidades sueltas (validado)
+  validatedPresentationQuantity?: number; // Cantidad de presentaciones (validado)
+  validatedLooseUnits?: number; // Unidades sueltas (validado)
   warehouseId?: string;
   areaId?: string;
   productPhotos?: string[];
@@ -252,8 +252,8 @@ export interface PurchaseProductValidation {
   previousPresentationId?: string; // Presentación previa (historial)
   photosAdded: string[];
   barcodeAdded?: string;
-  photoUrl?: string;        // URL de la foto de validación
-  signatureUrl?: string;    // URL de la firma de validación
+  photoUrl?: string; // URL de la foto de validación
+  signatureUrl?: string; // URL de la firma de validación
   notes?: string;
   validatedByUser?: {
     id: string;
@@ -293,9 +293,9 @@ export interface UpdatePurchaseRequest {
  * Presentation Configuration for Product
  */
 export interface ProductPresentationConfig {
-  presentationId: string;              // OBLIGATORIO: ID de la presentación
-  factorToBase: number;                // OBLIGATORIO: Factor de conversión a unidad base (ej: 1 caja = 24 unidades)
-  notes?: string;                      // OPCIONAL: Notas sobre esta presentación
+  presentationId: string; // OBLIGATORIO: ID de la presentación
+  factorToBase: number; // OBLIGATORIO: Factor de conversión a unidad base (ej: 1 caja = 24 unidades)
+  notes?: string; // OPCIONAL: Notas sobre esta presentación
 }
 
 /**
@@ -306,10 +306,10 @@ export interface AddProductRequest {
   name: string;
   costCents: number;
   preliminaryStock: number;
-  preliminaryPresentationQuantity?: number;  // OPCIONAL: Cantidad de presentaciones
-  preliminaryLooseUnits?: number;            // OPCIONAL: Unidades sueltas
-  presentations: ProductPresentationConfig[];  // OBLIGATORIO: Array de presentaciones con sus factores base
-  notes?: string;                      // OPCIONAL: Notas generales del producto
+  preliminaryPresentationQuantity?: number; // OPCIONAL: Cantidad de presentaciones
+  preliminaryLooseUnits?: number; // OPCIONAL: Unidades sueltas
+  presentations: ProductPresentationConfig[]; // OBLIGATORIO: Array de presentaciones con sus factores base
+  notes?: string; // OPCIONAL: Notas generales del producto
 }
 
 /**
@@ -320,44 +320,44 @@ export interface UpdateProductRequest {
   name?: string;
   costCents?: number;
   preliminaryStock?: number;
-  preliminaryPresentationQuantity?: number;  // OPCIONAL: Cantidad de presentaciones
-  preliminaryLooseUnits?: number;            // OPCIONAL: Unidades sueltas
-  presentations?: ProductPresentationConfig[];  // OPCIONAL: Array de presentaciones con sus factores base
-  notes?: string;                      // OPCIONAL: Notas generales del producto
-  presentationId?: string;             // OPCIONAL: Presentación en la que llegó el producto (legacy)
-  factorToBase?: number;               // OPCIONAL: Factor de conversión a unidad base (legacy)
-  presentationNotes?: string;          // OPCIONAL: Notas sobre la presentación (legacy)
-  previousPresentationId?: string;     // OPCIONAL: Presentación previa (para auditoría)
-  quantityPerPresentation?: number;    // OPCIONAL: Cantidad por presentación
+  preliminaryPresentationQuantity?: number; // OPCIONAL: Cantidad de presentaciones
+  preliminaryLooseUnits?: number; // OPCIONAL: Unidades sueltas
+  presentations?: ProductPresentationConfig[]; // OPCIONAL: Array de presentaciones con sus factores base
+  notes?: string; // OPCIONAL: Notas generales del producto
+  presentationId?: string; // OPCIONAL: Presentación en la que llegó el producto (legacy)
+  factorToBase?: number; // OPCIONAL: Factor de conversión a unidad base (legacy)
+  presentationNotes?: string; // OPCIONAL: Notas sobre la presentación (legacy)
+  previousPresentationId?: string; // OPCIONAL: Presentación previa (para auditoría)
+  quantityPerPresentation?: number; // OPCIONAL: Cantidad por presentación
 }
 
 /**
  * Validated Presentation Config
  */
 export interface ValidatedPresentationConfig {
-  presentationId: string;              // OBLIGATORIO: ID de la presentación
-  factorToBase: number;                // OBLIGATORIO: Factor de conversión a unidad base
-  notes?: string;                      // OPCIONAL: Notas sobre esta presentación validada
+  presentationId: string; // OBLIGATORIO: ID de la presentación
+  factorToBase: number; // OBLIGATORIO: Factor de conversión a unidad base
+  notes?: string; // OPCIONAL: Notas sobre esta presentación validada
 }
 
 /**
  * Validate Product Request
  */
 export interface ValidateProductRequest {
-  sku?: string;                        // OPCIONAL: SKU actualizado
-  name?: string;                       // OPCIONAL: Nombre actualizado
-  costCents?: number;                  // OPCIONAL: Costo actualizado en centavos
-  preliminaryStock?: number;           // OPCIONAL: Stock preliminar
+  sku?: string; // OPCIONAL: SKU actualizado
+  name?: string; // OPCIONAL: Nombre actualizado
+  costCents?: number; // OPCIONAL: Costo actualizado en centavos
+  preliminaryStock?: number; // OPCIONAL: Stock preliminar
   validatedStock: number;
-  validatedPresentationQuantity?: number;  // OPCIONAL: Cantidad de presentaciones validadas
-  validatedLooseUnits?: number;            // OPCIONAL: Unidades sueltas validadas
+  validatedPresentationQuantity?: number; // OPCIONAL: Cantidad de presentaciones validadas
+  validatedLooseUnits?: number; // OPCIONAL: Unidades sueltas validadas
   warehouseId: string;
   areaId?: string;
-  presentations: ValidatedPresentationConfig[];  // OBLIGATORIO: Array de presentaciones validadas
+  presentations: ValidatedPresentationConfig[]; // OBLIGATORIO: Array de presentaciones validadas
   barcode?: string;
   productPhotos?: string[];
-  photoUrl?: string;                   // OPCIONAL: URL de la foto de validación
-  signatureUrl?: string;               // OPCIONAL: URL de la firma de validación
+  photoUrl?: string; // OPCIONAL: URL de la foto de validación
+  signatureUrl?: string; // OPCIONAL: URL de la firma de validación
   validationNotes?: string;
 }
 
@@ -509,13 +509,13 @@ export const PurchaseProductStatusColors: Record<PurchaseProductStatus, string> 
  * OCR Scanned Item (Updated for new batch OCR)
  */
 export interface OcrScannedItem {
-  sku: string | null;              // Can be null if not found
+  sku: string | null; // Can be null if not found
   nombre: string;
-  cajas: number;                   // Cantidad de presentaciones
-  unidades_por_caja: number;       // Factor de conversión
-  cantidad_total: number;          // Total unidades base
-  precio_unitario: number | null;  // Precio por unidad base (can be null)
-  subtotal_fila: number | null;    // Total de la línea (can be null)
+  cajas: number; // Cantidad de presentaciones
+  unidades_por_caja: number; // Factor de conversión
+  cantidad_total: number; // Total unidades base
+  precio_unitario: number | null; // Precio por unidad base (can be null)
+  subtotal_fila: number | null; // Total de la línea (can be null)
 }
 
 /**
@@ -523,9 +523,9 @@ export interface OcrScannedItem {
  */
 export interface OcrScanResponse {
   items: OcrScannedItem[];
-  total_estimado: number;          // Suma de todos los subtotales
-  archivos_procesados: number;     // Cantidad de archivos procesados
-  observaciones?: string;          // Observaciones si se enviaron
+  total_estimado: number; // Suma de todos los subtotales
+  archivos_procesados: number; // Cantidad de archivos procesados
+  observaciones?: string; // Observaciones si se enviaron
 
   // Legacy fields (deprecated but kept for backward compatibility)
   incluye_igv_en_precios?: boolean;

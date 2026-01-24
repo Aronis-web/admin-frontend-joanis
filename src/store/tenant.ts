@@ -81,7 +81,7 @@ export const useTenantStore = create<TenantState>((set, get) => ({
     set({
       selectedCompany: null,
       selectedSite: null,
-      selectedWarehouse: null
+      selectedWarehouse: null,
     });
     await AsyncStorage.removeItem(STORAGE_KEYS.SELECTED_COMPANY);
     await AsyncStorage.removeItem(STORAGE_KEYS.SELECTED_SITE);
@@ -169,13 +169,13 @@ export const useTenantStore = create<TenantState>((set, get) => ({
       set({
         selectedCompany,
         selectedSite,
-        selectedWarehouse
+        selectedWarehouse,
       });
 
       console.log('🏢 Tenant context initialized:', {
         company: selectedCompany?.name || 'None',
         site: selectedSite?.name || 'None',
-        warehouse: selectedWarehouse?.name || 'None'
+        warehouse: selectedWarehouse?.name || 'None',
       });
     } catch (error) {
       console.error('❌ Failed to initialize tenant context:', error);

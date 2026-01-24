@@ -75,12 +75,14 @@ export const transfersApi = {
    */
   executeInternalTransfer: async (id: string, performedBy?: string): Promise<Transfer> => {
     // Try multiple field names in case backend expects different naming
-    const payload = performedBy ? {
-      performedBy,
-      performed_by: performedBy,
-      userId: performedBy,
-      user_id: performedBy,
-    } : {};
+    const payload = performedBy
+      ? {
+          performedBy,
+          performed_by: performedBy,
+          userId: performedBy,
+          user_id: performedBy,
+        }
+      : {};
 
     console.log('🔧 Execute transfer payload:', payload);
     return apiClient.post<Transfer>(`/transfers/${id}/execute`, payload);
@@ -101,14 +103,16 @@ export const transfersApi = {
    * POST /api/transfers/:id/approve
    */
   approveTransfer: async (id: string, approvedBy?: string): Promise<Transfer> => {
-    const payload = approvedBy ? {
-      approvedBy,
-      approved_by: approvedBy,
-      changedBy: approvedBy,
-      changed_by: approvedBy,
-      userId: approvedBy,
-      user_id: approvedBy,
-    } : {};
+    const payload = approvedBy
+      ? {
+          approvedBy,
+          approved_by: approvedBy,
+          changedBy: approvedBy,
+          changed_by: approvedBy,
+          userId: approvedBy,
+          user_id: approvedBy,
+        }
+      : {};
 
     console.log('🔧 Approve transfer payload:', payload);
     return apiClient.post<Transfer>(`/transfers/${id}/approve`, payload);
@@ -128,15 +132,17 @@ export const transfersApi = {
    * POST /api/transfers/:id/receive
    */
   receiveTransfer: async (id: string, receivedBy?: string, notes?: string): Promise<Transfer> => {
-    const payload = receivedBy ? {
-      receivedBy,
-      received_by: receivedBy,
-      changedBy: receivedBy,
-      changed_by: receivedBy,
-      userId: receivedBy,
-      user_id: receivedBy,
-      notes,
-    } : { notes };
+    const payload = receivedBy
+      ? {
+          receivedBy,
+          received_by: receivedBy,
+          changedBy: receivedBy,
+          changed_by: receivedBy,
+          userId: receivedBy,
+          user_id: receivedBy,
+          notes,
+        }
+      : { notes };
 
     console.log('🔧 Receive transfer payload:', payload);
     return apiClient.post<Transfer>(`/transfers/${id}/receive`, payload);
@@ -190,7 +196,10 @@ export const transfersApi = {
    * Resolve discrepancy
    * POST /api/discrepancies/:id/resolve
    */
-  resolveDiscrepancy: async (id: string, data: ResolveDiscrepancyDto): Promise<TransferDiscrepancy> => {
+  resolveDiscrepancy: async (
+    id: string,
+    data: ResolveDiscrepancyDto
+  ): Promise<TransferDiscrepancy> => {
     return apiClient.post<TransferDiscrepancy>(`/discrepancies/${id}/resolve`, data);
   },
 
@@ -228,7 +237,9 @@ export const transfersApi = {
     productId: string,
     filters?: Omit<StockMovementFilters, 'productId'>
   ): Promise<StockMovement[]> => {
-    return apiClient.get<StockMovement[]>(`/stock-movements/product/${productId}`, { params: filters });
+    return apiClient.get<StockMovement[]>(`/stock-movements/product/${productId}`, {
+      params: filters,
+    });
   },
 
   /**
@@ -239,7 +250,9 @@ export const transfersApi = {
     productId: string,
     params?: { warehouseId?: string; limit?: number }
   ): Promise<StockMovement[]> => {
-    return apiClient.get<StockMovement[]>(`/transfers/stock-movements/product/${productId}`, { params });
+    return apiClient.get<StockMovement[]>(`/transfers/stock-movements/product/${productId}`, {
+      params,
+    });
   },
 
   /**

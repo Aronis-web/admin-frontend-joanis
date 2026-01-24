@@ -82,7 +82,15 @@ export const Button: React.FC<ButtonProps> = ({
           color={variant === 'primary' ? theme.colors.text.white : theme.colors.primary}
         />
       ) : (
-        <Text style={[getTextStyle(), textStyle, { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }]}>{title}</Text>
+        <Text
+          style={[
+            getTextStyle(),
+            textStyle,
+            { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+          ]}
+        >
+          {title}
+        </Text>
       )}
     </TouchableOpacity>
   );

@@ -56,9 +56,11 @@ export const usePermissions = () => {
 
       setPermissions(userPerms);
     } catch (err: any) {
-
       // Handle specific error cases
-      if (err.message?.includes('invalid input syntax for type uuid') || err.message?.includes('temp-id')) {
+      if (
+        err.message?.includes('invalid input syntax for type uuid') ||
+        err.message?.includes('temp-id')
+      ) {
         setError('ID de usuario inválido. Por favor inicia sesión nuevamente.');
         clearInvalidAuth();
       } else if (err.response?.status === 404) {
@@ -101,19 +103,23 @@ export const usePermissions = () => {
   };
 
   const hasAnyPermission = (perms: string[]): boolean => {
-    if (perms.length === 0) return true;
+    if (perms.length === 0) {
+      return true;
+    }
     if (!Array.isArray(permissions)) {
       return false;
     }
-    return perms.some(perm => permissions.includes(perm));
+    return perms.some((perm) => permissions.includes(perm));
   };
 
   const hasAllPermissions = (perms: string[]): boolean => {
-    if (perms.length === 0) return true;
+    if (perms.length === 0) {
+      return true;
+    }
     if (!Array.isArray(permissions)) {
       return false;
     }
-    return perms.every(perm => permissions.includes(perm));
+    return perms.every((perm) => permissions.includes(perm));
   };
 
   const hasModuleAccess = (module: string): boolean => {
@@ -121,7 +127,7 @@ export const usePermissions = () => {
     if (!Array.isArray(permissions)) {
       return false;
     }
-    const modulePermissions = permissions.filter(perm => perm.startsWith(`${module}.`));
+    const modulePermissions = permissions.filter((perm) => perm.startsWith(`${module}.`));
     return modulePermissions.length > 0;
   };
 
@@ -130,7 +136,7 @@ export const usePermissions = () => {
     if (!Array.isArray(permissions)) {
       return [];
     }
-    return permissions.filter(perm => perm.startsWith(`${module}.`));
+    return permissions.filter((perm) => perm.startsWith(`${module}.`));
   };
 
   return {

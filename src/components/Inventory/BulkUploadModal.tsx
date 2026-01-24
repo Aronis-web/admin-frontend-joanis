@@ -120,7 +120,8 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       console.error('❌ Error downloading template:', error);
       Alert.alert(
         'Error',
-        error.response?.data?.message || 'No se pudo descargar la plantilla. Por favor, intenta nuevamente.'
+        error.response?.data?.message ||
+          'No se pudo descargar la plantilla. Por favor, intenta nuevamente.'
       );
     } finally {
       setDownloadingTemplate(false);
@@ -183,24 +184,20 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       setUploadResult(result);
 
       if (result.errorCount === 0) {
-        Alert.alert(
-          'Éxito',
-          `Se crearon ${result.successCount} productos correctamente.`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                onSuccess();
-                onClose();
-              },
+        Alert.alert('Éxito', `Se crearon ${result.successCount} productos correctamente.`, [
+          {
+            text: 'OK',
+            onPress: () => {
+              onSuccess();
+              onClose();
             },
-          ]
-        );
+          },
+        ]);
       } else if (result.successCount > 0) {
         Alert.alert(
           'Carga Parcial',
           `Se crearon ${result.successCount} productos correctamente.\n\n` +
-          `${result.errorCount} productos tuvieron errores. Revisa los detalles a continuación.`
+            `${result.errorCount} productos tuvieron errores. Revisa los detalles a continuación.`
         );
       } else {
         Alert.alert(
@@ -212,7 +209,8 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       console.error('❌ Error uploading file:', error);
       Alert.alert(
         'Error',
-        error.response?.data?.message || 'No se pudo cargar el archivo. Por favor, intenta nuevamente.'
+        error.response?.data?.message ||
+          'No se pudo cargar el archivo. Por favor, intenta nuevamente.'
       );
     } finally {
       setLoading(false);
@@ -225,12 +223,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           {/* Header */}
@@ -323,9 +316,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                       {uploadResult.errors.map((error, index) => (
                         <View key={index} style={styles.errorItem}>
                           <Text style={styles.errorRow}>Fila {error.row}</Text>
-                          {error.sku && (
-                            <Text style={styles.errorSku}>SKU: {error.sku}</Text>
-                          )}
+                          {error.sku && <Text style={styles.errorSku}>SKU: {error.sku}</Text>}
                           <Text style={styles.errorMessage}>{error.error}</Text>
                         </View>
                       ))}
@@ -341,15 +332,11 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               <Text style={styles.noteText}>
                 • La plantilla incluye listas desplegables con categorías y presentaciones
               </Text>
-              <Text style={styles.noteText}>
-                • Los campos marcados con * son obligatorios
-              </Text>
+              <Text style={styles.noteText}>• Los campos marcados con * son obligatorios</Text>
               <Text style={styles.noteText}>
                 • Los costos deben ingresarse en céntimos (ej: 10000 = S/ 100.00)
               </Text>
-              <Text style={styles.noteText}>
-                • Los códigos de barras deben ser únicos
-              </Text>
+              <Text style={styles.noteText}>• Los códigos de barras deben ser únicos</Text>
               <Text style={styles.noteText}>
                 • El estado siempre será "active" y el tipo de impuesto "GRAVADO"
               </Text>

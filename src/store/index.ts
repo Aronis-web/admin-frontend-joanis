@@ -10,5 +10,5 @@ export type {
   OcrScannedFile,
   OcrScanResponse,
   ScanJob,
-  ScanJobStatus
+  ScanJobStatus,
 } from './ocrScanner';

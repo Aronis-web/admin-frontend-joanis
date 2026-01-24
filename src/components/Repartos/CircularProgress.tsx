@@ -33,11 +33,21 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
 
   // Determinar color basado en el progreso
   const getProgressColor = () => {
-    if (color) return color;
-    if (progress === 100) return '#10B981'; // Verde - Completado
-    if (progress >= 75) return '#3B82F6'; // Azul - Casi completo
-    if (progress >= 50) return '#F59E0B'; // Naranja - En progreso
-    if (progress >= 25) return '#EF4444'; // Rojo - Poco progreso
+    if (color) {
+      return color;
+    }
+    if (progress === 100) {
+      return '#10B981';
+    } // Verde - Completado
+    if (progress >= 75) {
+      return '#3B82F6';
+    } // Azul - Casi completo
+    if (progress >= 50) {
+      return '#F59E0B';
+    } // Naranja - En progreso
+    if (progress >= 25) {
+      return '#EF4444';
+    } // Rojo - Poco progreso
     return '#94A3B8'; // Gris - Muy poco progreso
   };
 
@@ -45,11 +55,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      <Svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-      >
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <G rotation="-90" origin={`${size / 2}, ${size / 2}`}>
           {/* Background Circle */}
           <Circle
@@ -79,9 +85,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
         <View style={styles.labelContainer}>
           {total !== undefined && validated !== undefined ? (
             <>
-              <Text style={[styles.progressText, { color: textColor, fontSize }]}>
-                {validated}
-              </Text>
+              <Text style={[styles.progressText, { color: textColor, fontSize }]}>{validated}</Text>
               <Text style={[styles.totalText, { color: textColor, fontSize: fontSize * 0.6 }]}>
                 / {total}
               </Text>

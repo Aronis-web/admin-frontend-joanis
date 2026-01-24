@@ -122,24 +122,15 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Text style={styles.headerTitle}>Historial de Movimientos</Text>
-              {productTitle && (
-                <Text style={styles.headerSubtitle}>{productTitle}</Text>
-              )}
-              {productSku && (
-                <Text style={styles.headerSku}>SKU: {productSku}</Text>
-              )}
+              {productTitle && <Text style={styles.headerSubtitle}>{productTitle}</Text>}
+              {productSku && <Text style={styles.headerSku}>SKU: {productSku}</Text>}
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
@@ -153,9 +144,7 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
               <View style={styles.summaryCard}>
                 <Text style={styles.summaryLabel}>TOTAL DE MOVIMIENTOS</Text>
                 <Text style={styles.summaryValue}>{movements.length}</Text>
-                <Text style={styles.summarySubtext}>
-                  Mostrando últimos {limit} registros
-                </Text>
+                <Text style={styles.summarySubtext}>Mostrando últimos {limit} registros</Text>
               </View>
             )}
             {loading ? (
@@ -194,9 +183,7 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
                           style={[
                             styles.quantityBadge,
                             {
-                              backgroundColor: isPositive
-                                ? '#10B981'
-                                : '#EF4444',
+                              backgroundColor: isPositive ? '#10B981' : '#EF4444',
                             },
                           ]}
                         >
@@ -211,9 +198,7 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
                       <View style={styles.movementDetails}>
                         <View style={styles.detailRow}>
                           <Text style={styles.detailLabel}>Stock antes:</Text>
-                          <Text style={styles.detailValue}>
-                            {movement.stockBefore} unidades
-                          </Text>
+                          <Text style={styles.detailValue}>{movement.stockBefore} unidades</Text>
                         </View>
                         <View style={styles.detailRow}>
                           <Text style={styles.detailLabel}>Stock después:</Text>
@@ -225,9 +210,7 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
                         {movement.warehouse && (
                           <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>🏢 Almacén:</Text>
-                            <Text style={styles.detailValue}>
-                              {movement.warehouse.name}
-                            </Text>
+                            <Text style={styles.detailValue}>{movement.warehouse.name}</Text>
                           </View>
                         )}
 
@@ -243,27 +226,21 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
                         {movement.relatedWarehouse && (
                           <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>🔗 Relacionado:</Text>
-                            <Text style={styles.detailValue}>
-                              {movement.relatedWarehouse.name}
-                            </Text>
+                            <Text style={styles.detailValue}>{movement.relatedWarehouse.name}</Text>
                           </View>
                         )}
 
                         {movement.referenceType && (
                           <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>📄 Referencia:</Text>
-                            <Text style={styles.detailValue}>
-                              {movement.referenceType}
-                            </Text>
+                            <Text style={styles.detailValue}>{movement.referenceType}</Text>
                           </View>
                         )}
 
                         {movement.performedByUser && (
                           <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>👤 Realizado por:</Text>
-                            <Text style={styles.detailValue}>
-                              {movement.performedByUser.name}
-                            </Text>
+                            <Text style={styles.detailValue}>{movement.performedByUser.name}</Text>
                           </View>
                         )}
 
@@ -283,10 +260,7 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.closeFooterButton}
-              onPress={onClose}
-            >
+            <TouchableOpacity style={styles.closeFooterButton} onPress={onClose}>
               <Text style={styles.closeFooterButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>

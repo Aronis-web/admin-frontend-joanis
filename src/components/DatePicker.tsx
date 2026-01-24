@@ -71,8 +71,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     for (let i = 1; i <= daysInMonth; i++) {
       const currentDate = new Date(year, month, i);
       const isDisabled =
-        (minimumDate && currentDate < minimumDate) ||
-        (maximumDate && currentDate > maximumDate);
+        (minimumDate && currentDate < minimumDate) || (maximumDate && currentDate > maximumDate);
 
       days.push({
         day: i,
@@ -90,8 +89,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     for (let i = 0; i < 12; i++) {
       const currentDate = new Date(selectedDate.getFullYear(), i, 1);
       const isDisabled =
-        (minimumDate && currentDate < new Date(minimumDate.getFullYear(), minimumDate.getMonth(), 1)) ||
-        (maximumDate && currentDate > new Date(maximumDate.getFullYear(), maximumDate.getMonth(), 1));
+        (minimumDate &&
+          currentDate < new Date(minimumDate.getFullYear(), minimumDate.getMonth(), 1)) ||
+        (maximumDate &&
+          currentDate > new Date(maximumDate.getFullYear(), maximumDate.getMonth(), 1));
 
       months.push({
         month: i,
@@ -157,19 +158,24 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
   ];
 
   const dayNames = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onCancel}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <Pressable style={styles.overlay} onPress={onCancel}>
         <SafeAreaView style={styles.container} edges={['bottom']}>
           <Pressable style={styles.content} onPress={(e) => e.stopPropagation()}>
@@ -179,9 +185,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               </TouchableOpacity>
               <Text style={styles.headerTitle}>{title}</Text>
               <TouchableOpacity onPress={handleConfirm} style={styles.headerButton}>
-                <Text style={[styles.headerButtonText, styles.headerButtonConfirm]}>
-                  Confirmar
-                </Text>
+                <Text style={[styles.headerButtonText, styles.headerButtonConfirm]}>Confirmar</Text>
               </TouchableOpacity>
             </View>
 
@@ -200,9 +204,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                     setViewMode('month');
                   }}
                 >
-                  <Text style={styles.monthYearText}>
-                    {monthNames[selectedDate.getMonth()]}
-                  </Text>
+                  <Text style={styles.monthYearText}>{monthNames[selectedDate.getMonth()]}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.monthYearButton}
@@ -211,9 +213,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                     setViewMode('year');
                   }}
                 >
-                  <Text style={styles.monthYearText}>
-                    {selectedDate.getFullYear()}
-                  </Text>
+                  <Text style={styles.monthYearText}>{selectedDate.getFullYear()}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -222,10 +222,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 <>
                   <View style={styles.weekDays}>
                     {dayNames.map((day) => (
-                      <Text key={day} style={styles.weekDayText}>{day}</Text>
+                      <Text key={day} style={styles.weekDayText}>
+                        {day}
+                      </Text>
                     ))}
                   </View>
-                  <ScrollView style={styles.daysContainer} contentContainerStyle={styles.daysScrollContent}>
+                  <ScrollView
+                    style={styles.daysContainer}
+                    contentContainerStyle={styles.daysScrollContent}
+                  >
                     <View style={styles.daysGrid}>
                       {generateDays().map(({ day, date, isDisabled, isSelected }) => (
                         <TouchableOpacity
@@ -263,7 +268,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
               {/* Month View */}
               {viewMode === 'month' && (
-                <ScrollView style={styles.monthsContainer} contentContainerStyle={styles.monthsScrollContent}>
+                <ScrollView
+                  style={styles.monthsContainer}
+                  contentContainerStyle={styles.monthsScrollContent}
+                >
                   <View style={styles.monthsGrid}>
                     {generateMonths().map(({ month, date, isDisabled, isSelected }) => (
                       <TouchableOpacity
@@ -300,7 +308,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
               {/* Year View */}
               {viewMode === 'year' && (
-                <ScrollView style={styles.yearsContainer} contentContainerStyle={styles.yearsScrollContent}>
+                <ScrollView
+                  style={styles.yearsContainer}
+                  contentContainerStyle={styles.yearsScrollContent}
+                >
                   <View style={styles.yearsGrid}>
                     {generateYears().map(({ year, date, isDisabled, isSelected }) => (
                       <TouchableOpacity
@@ -358,7 +369,9 @@ export const DatePickerButton: React.FC<DatePickerButtonProps> = ({
   icon = 'calendar',
 }) => {
   const formatDate = (dateString: string) => {
-    if (!dateString) return placeholder;
+    if (!dateString) {
+      return placeholder;
+    }
     // Handle both YYYY-MM-DD and full ISO string formats
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
@@ -378,9 +391,7 @@ export const DatePickerButton: React.FC<DatePickerButtonProps> = ({
       <Text style={styles.buttonLabel}>{label}</Text>
       <TouchableOpacity style={styles.button} onPress={handlePress}>
         <Ionicons name={icon as any} size={20} color="#64748B" style={styles.buttonIcon} />
-        <Text
-          style={[styles.buttonText, !value && styles.buttonTextPlaceholder]}
-        >
+        <Text style={[styles.buttonText, !value && styles.buttonTextPlaceholder]}>
           {formatDate(value || '')}
         </Text>
         <Ionicons name="chevron-forward" size={20} color="#94A3B8" />

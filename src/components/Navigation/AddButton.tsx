@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Animated,
-  useWindowDimensions,
-} from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, Animated, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AddButtonProps {
@@ -14,11 +8,7 @@ interface AddButtonProps {
   label?: string;
 }
 
-export const AddButton: React.FC<AddButtonProps> = ({
-  onPress,
-  icon = '+',
-  label,
-}) => {
+export const AddButton: React.FC<AddButtonProps> = ({ onPress, icon = '+', label }) => {
   const [scaleAnim] = useState(new Animated.Value(1));
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -58,15 +48,9 @@ export const AddButton: React.FC<AddButtonProps> = ({
         onPress={handlePress}
         activeOpacity={0.9}
       >
-        <Text style={[styles.fabIcon, isTablet && styles.fabIconTablet]}>
-          {icon}
-        </Text>
+        <Text style={[styles.fabIcon, isTablet && styles.fabIconTablet]}>{icon}</Text>
       </TouchableOpacity>
-      {label && (
-        <Text style={[styles.fabLabel, isTablet && styles.fabLabelTablet]}>
-          {label}
-        </Text>
-      )}
+      {label && <Text style={[styles.fabLabel, isTablet && styles.fabLabelTablet]}>{label}</Text>}
     </Animated.View>
   );
 };

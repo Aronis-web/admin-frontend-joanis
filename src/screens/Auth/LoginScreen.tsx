@@ -73,54 +73,76 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={[
-          styles.content,
-          isTablet && styles.contentTablet,
-          isTablet && isLandscape && styles.contentTabletLandscape
-        ]}>
+        <View
+          style={[
+            styles.content,
+            isTablet && styles.contentTablet,
+            isTablet && isLandscape && styles.contentTabletLandscape,
+          ]}
+        >
           <View style={[styles.header, isTablet && isLandscape && styles.headerLandscape]}>
             <View style={styles.logoContainer}>
-              <View style={[
-                styles.logoInner,
-                isTablet && styles.logoInnerTablet,
-                isTablet && isLandscape && styles.logoInnerLandscape
-              ]}>
-                <Text style={[
-                  styles.logo,
-                  isTablet && styles.logoTablet,
-                  isTablet && isLandscape && styles.logoLandscape
-                ]}>PG</Text>
+              <View
+                style={[
+                  styles.logoInner,
+                  isTablet && styles.logoInnerTablet,
+                  isTablet && isLandscape && styles.logoInnerLandscape,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.logo,
+                    isTablet && styles.logoTablet,
+                    isTablet && isLandscape && styles.logoLandscape,
+                  ]}
+                >
+                  PG
+                </Text>
               </View>
             </View>
-            <Text style={[
-              styles.title,
-              isTablet && styles.titleTablet,
-              isTablet && isLandscape && styles.titleLandscape
-            ]}>Bienvenido</Text>
-            <Text style={[
-              styles.subtitle,
-              isTablet && styles.subtitleTablet,
-              isTablet && isLandscape && styles.subtitleLandscape
-            ]}>Inicia sesión para acceder a tu panel</Text>
+            <Text
+              style={[
+                styles.title,
+                isTablet && styles.titleTablet,
+                isTablet && isLandscape && styles.titleLandscape,
+              ]}
+            >
+              Bienvenido
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                isTablet && styles.subtitleTablet,
+                isTablet && isLandscape && styles.subtitleLandscape,
+              ]}
+            >
+              Inicia sesión para acceder a tu panel
+            </Text>
           </View>
 
-          <View style={[
-            styles.form,
-            isTablet && styles.formTablet,
-            isTablet && isLandscape && styles.formLandscape
-          ]}>
+          <View
+            style={[
+              styles.form,
+              isTablet && styles.formTablet,
+              isTablet && isLandscape && styles.formLandscape,
+            ]}
+          >
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, isTablet && styles.inputLabelTablet]}>Correo electrónico</Text>
-              <View style={[
-                styles.inputWrapper,
-                isTablet && styles.inputWrapperTablet,
-                isTablet && isLandscape && styles.inputWrapperLandscape
-              ]}>
+              <Text style={[styles.inputLabel, isTablet && styles.inputLabelTablet]}>
+                Correo electrónico
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  isTablet && styles.inputWrapperTablet,
+                  isTablet && isLandscape && styles.inputWrapperLandscape,
+                ]}
+              >
                 <TextInput
                   style={[
                     styles.input,
                     isTablet && styles.inputTablet,
-                    isTablet && isLandscape && styles.inputLandscape
+                    isTablet && isLandscape && styles.inputLandscape,
                   ]}
                   placeholder="correo@empresa.com"
                   placeholderTextColor="#94A3B8"
@@ -134,17 +156,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, isTablet && styles.inputLabelTablet]}>Contraseña</Text>
-              <View style={[
-                styles.inputWrapper,
-                isTablet && styles.inputWrapperTablet,
-                isTablet && isLandscape && styles.inputWrapperLandscape
-              ]}>
+              <Text style={[styles.inputLabel, isTablet && styles.inputLabelTablet]}>
+                Contraseña
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  isTablet && styles.inputWrapperTablet,
+                  isTablet && isLandscape && styles.inputWrapperLandscape,
+                ]}
+              >
                 <TextInput
                   style={[
                     styles.input,
                     isTablet && styles.inputTablet,
-                    isTablet && isLandscape && styles.inputLandscape
+                    isTablet && isLandscape && styles.inputLandscape,
                   ]}
                   placeholder="Ingresa tu contraseña"
                   placeholderTextColor="#94A3B8"
@@ -161,7 +187,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 styles.button,
                 isLoading && styles.buttonDisabled,
                 isTablet && styles.buttonTablet,
-                isTablet && isLandscape && styles.buttonLandscape
+                isTablet && isLandscape && styles.buttonLandscape,
               ]}
               onPress={handleLogin}
               disabled={isLoading}
@@ -171,14 +197,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 {isLoading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={[styles.buttonText, isTablet && styles.buttonTextTablet]}>Iniciar Sesión</Text>
+                  <Text style={[styles.buttonText, isTablet && styles.buttonTextTablet]}>
+                    Iniciar Sesión
+                  </Text>
                 )}
               </View>
             </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
-            <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>© 2024 Panel Admin Grit</Text>
+            <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
+              © 2024 Panel Admin Grit
+            </Text>
           </View>
         </View>
       </KeyboardAvoidingView>

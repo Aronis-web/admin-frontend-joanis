@@ -313,7 +313,10 @@ export const appPermissionsApi = {
   /**
    * 🆕 Definir permisos de una app (reemplaza los existentes)
    */
-  async setAppPermissions(appId: string, permissionData: CreateAppPermissionsDto): Promise<{ created: AppPermission[] }> {
+  async setAppPermissions(
+    appId: string,
+    permissionData: CreateAppPermissionsDto
+  ): Promise<{ created: AppPermission[] }> {
     // Incluir appId en el body como lo requiere el backend
     const requestData = {
       ...permissionData,
@@ -357,18 +360,32 @@ export const userAppRolesApi = {
   /**
    * ✏️ Actualizar rol/scope de usuario en una app
    */
-  async updateUserRole(userId: string, appId: string, updateData: UpdateUserRoleDto): Promise<UserAppRole> {
+  async updateUserRole(
+    userId: string,
+    appId: string,
+    updateData: UpdateUserRoleDto
+  ): Promise<UserAppRole> {
     return apiClient.patch<UserAppRole>(`/apps/users/${userId}/apps/${appId}`, updateData);
   },
 
   /**
    * 🗑️ Remover acceso de usuario a una app
    */
-  async removeUserRole(userId: string, appId: string, params?: { companyId?: string; siteId?: string; warehouseId?: string }): Promise<void> {
+  async removeUserRole(
+    userId: string,
+    appId: string,
+    params?: { companyId?: string; siteId?: string; warehouseId?: string }
+  ): Promise<void> {
     const queryParams = new URLSearchParams();
-    if (params?.companyId) queryParams.append('companyId', params.companyId);
-    if (params?.siteId) queryParams.append('siteId', params.siteId);
-    if (params?.warehouseId) queryParams.append('warehouseId', params.warehouseId);
+    if (params?.companyId) {
+      queryParams.append('companyId', params.companyId);
+    }
+    if (params?.siteId) {
+      queryParams.append('siteId', params.siteId);
+    }
+    if (params?.warehouseId) {
+      queryParams.append('warehouseId', params.warehouseId);
+    }
     const queryString = queryParams.toString();
     const url = `/apps/users/${userId}/apps/${appId}${queryString ? `?${queryString}` : ''}`;
     return apiClient.delete<void>(url);

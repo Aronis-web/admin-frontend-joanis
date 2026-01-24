@@ -120,10 +120,10 @@ export const ROUTES = {
  * Maps menu item IDs to their corresponding route names
  */
 export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
-  'dashboard': 'HOME',
-  'productos': 'PRODUCTS',
-  'stock': 'STOCK',
-  'compras': 'PURCHASES',
+  dashboard: 'HOME',
+  productos: 'PRODUCTS',
+  stock: 'STOCK',
+  compras: 'PURCHASES',
   'gastos-templates': 'CREATE_EXPENSE_TEMPLATE',
   'gastos-lista': 'EXPENSES',
   'gastos-pagos': 'EXPENSES_PAYMENTS',
@@ -132,17 +132,17 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
   'gastos-reportes': 'EXPENSES_REPORTS',
   'traslados-internos': 'INTERNAL_TRANSFERS',
   'traslados-externos': 'EXTERNAL_TRANSFERS',
-  'recepciones': 'RECEPTIONS',
-  'proveedores': 'SUPPLIERS',
-  'campanas': 'CAMPAIGNS',
-  'usuarios': 'USERS',
+  recepciones: 'RECEPTIONS',
+  proveedores: 'SUPPLIERS',
+  campanas: 'CAMPAIGNS',
+  usuarios: 'USERS',
   'roles-permisos': 'ROLES_PERMISSIONS',
-  'empresas': 'COMPANIES',
+  empresas: 'COMPANIES',
   'gestion-apps': 'APPS',
   'perfiles-precio': 'PRICE_PROFILES',
-  'presentaciones': 'PRESENTATIONS',
+  presentaciones: 'PRESENTATIONS',
   'debug-permissions': 'PERMISSIONS_DEBUG',
-  'transmisiones': 'TRANSMISIONES',
+  transmisiones: 'TRANSMISIONES',
 };
 
 /**
@@ -230,7 +230,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 /**
  * Helper function to get route name from constant
  */
-export function getRouteName<T extends keyof typeof ROUTES>(routeKey: T): typeof ROUTES[T] {
+export function getRouteName<T extends keyof typeof ROUTES>(routeKey: T): (typeof ROUTES)[T] {
   return ROUTES[routeKey];
 }
 

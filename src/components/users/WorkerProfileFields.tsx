@@ -44,9 +44,7 @@ export const WorkerProfileFields: React.FC<WorkerProfileFieldsProps> = ({
       {/* Section Header */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>👤 Perfil del Trabajador</Text>
-        <Text style={styles.sectionSubtitle}>
-          Información adicional opcional del trabajador
-        </Text>
+        <Text style={styles.sectionSubtitle}>Información adicional opcional del trabajador</Text>
       </View>
 
       {/* Identification Section */}

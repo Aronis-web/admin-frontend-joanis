@@ -17,7 +17,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRoles = [],
   requireAll = false,
   fallback,
-  loadingComponent
+  loadingComponent,
 }) => {
   const {
     isAuthenticated,
@@ -26,7 +26,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     hasAnyPermission,
     hasAllPermissions,
     hasRole,
-    hasAnyRole
+    hasAnyRole,
   } = useAuthStore();
 
   // Check authentication first
@@ -37,9 +37,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.deniedTitle}>🔒 Autenticación Requerida</Text>
-        <Text style={styles.deniedMessage}>
-          Debes iniciar sesión para acceder a esta sección.
-        </Text>
+        <Text style={styles.deniedMessage}>Debes iniciar sesión para acceder a esta sección.</Text>
       </View>
     );
   }
@@ -93,11 +91,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           {requiredPermissions.length > 0 && requiredRoles.length > 0
             ? `Permisos requeridos: ${requiredPermissions.join(', ')} | Roles requeridos: ${requiredRoles.join(', ')}`
             : requiredPermissions.length > 0
-            ? `Permisos requeridos: ${requiredPermissions.join(', ')}`
-            : requiredRoles.length > 0
-            ? `Roles requeridos: ${requiredRoles.join(', ')}`
-            : 'Se requieren permisos adicionales'
-          }
+              ? `Permisos requeridos: ${requiredPermissions.join(', ')}`
+              : requiredRoles.length > 0
+                ? `Roles requeridos: ${requiredRoles.join(', ')}`
+                : 'Se requieren permisos adicionales'}
         </Text>
       </View>
     );
@@ -120,7 +117,7 @@ export const ProtectedElement: React.FC<ProtectedElementProps> = ({
   requiredPermissions = [],
   requiredRoles = [],
   requireAll = false,
-  fallback = null
+  fallback = null,
 }) => {
   const {
     isAuthenticated,
@@ -130,7 +127,7 @@ export const ProtectedElement: React.FC<ProtectedElementProps> = ({
     hasAllPermissions,
     hasRole,
     hasAnyRole,
-    user
+    user,
   } = useAuthStore();
 
   // If not authenticated or loading, don't show anything
@@ -177,7 +174,7 @@ export const ConditionalRender: React.FC<ConditionalRenderProps> = ({
   requiredPermissions = [],
   requiredRoles = [],
   requireAll = false,
-  renderIfNoPermission = null
+  renderIfNoPermission = null,
 }) => {
   const {
     isAuthenticated,
@@ -186,7 +183,7 @@ export const ConditionalRender: React.FC<ConditionalRenderProps> = ({
     hasAnyPermission,
     hasAllPermissions,
     hasRole,
-    hasAnyRole
+    hasAnyRole,
   } = useAuthStore();
 
   if (!isAuthenticated || isLoading) {
@@ -219,23 +216,27 @@ export const ConditionalRender: React.FC<ConditionalRenderProps> = ({
 
 // Hook simplificado para verificar permisos específicos comúnmente usados
 export const useCommonPermissions = () => {
-  const {
-    hasPermission,
-    hasAnyPermission,
-    hasRole,
-    hasAnyRole
-  } = useAuthStore();
+  const { hasPermission, hasAnyPermission, hasRole, hasAnyRole } = useAuthStore();
 
-  const canManageUsers = hasPermission('users.create') || hasPermission('users.update') || hasPermission('users.delete');
-  const canManageRoles = hasPermission('roles.create') || hasPermission('roles.update') || hasPermission('roles.delete');
-  const canManageProducts = hasPermission('products.create') || hasPermission('products.update') || hasPermission('products.delete');
+  const canManageUsers =
+    hasPermission('users.create') || hasPermission('users.update') || hasPermission('users.delete');
+  const canManageRoles =
+    hasPermission('roles.create') || hasPermission('roles.update') || hasPermission('roles.delete');
+  const canManageProducts =
+    hasPermission('products.create') ||
+    hasPermission('products.update') ||
+    hasPermission('products.delete');
   const canManageInventory = hasPermission('inventory.read') || hasPermission('inventory.update');
   const canViewReports = hasPermission('reports.read');
-  const canManageFiles = hasPermission('files.public.upload') || hasPermission('files.private.upload');
+  const canManageFiles =
+    hasPermission('files.public.upload') || hasPermission('files.private.upload');
 
   // Combine role-based and permission-based checks
-  const isAdmin = hasRole('SUPERADMIN') || hasAnyPermission(['roles.create', 'roles.delete', 'iam.assign_user_roles']);
-  const isManager = hasRole('MANAGER') || hasAnyPermission(['users.create', 'users.update', 'roles.assign']);
+  const isAdmin =
+    hasRole('SUPERADMIN') ||
+    hasAnyPermission(['roles.create', 'roles.delete', 'iam.assign_user_roles']);
+  const isManager =
+    hasRole('MANAGER') || hasAnyPermission(['users.create', 'users.update', 'roles.assign']);
   const isOperator = hasRole('OPERATOR') || hasAnyPermission(['products.read', 'inventory.read']);
 
   return {

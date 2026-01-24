@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -54,8 +54,11 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
   const [actionLoading, setActionLoading] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
-  const [adjustedDistribution, setAdjustedDistribution] = useState<DistributionPreviewResponse | null>(null);
-  const [selectedDistributionType, setSelectedDistributionType] = useState<DistributionType | null>(null);
+  const [adjustedDistribution, setAdjustedDistribution] =
+    useState<DistributionPreviewResponse | null>(null);
+  const [selectedDistributionType, setSelectedDistributionType] = useState<DistributionType | null>(
+    null
+  );
   const [customQuantities, setCustomQuantities] = useState<{ [participantId: string]: number }>({});
   const [previewLoading, setPreviewLoading] = useState(false);
 
@@ -87,7 +90,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
   const [editableTotalQuantity, setEditableTotalQuantity] = useState<number>(0);
 
   // Local stock data fetched from inventory API
-  const [localStockData, setLocalStockData] = useState<StockDetailByWarehouse[] | undefined>(undefined);
+  const [localStockData, setLocalStockData] = useState<StockDetailByWarehouse[] | undefined>(
+    undefined
+  );
 
   const { width, height } = useWindowDimensions();
 
@@ -114,7 +119,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       return undefined;
     }
 
-    const stockDetails = product.product.stockItems.map(item => ({
+    const stockDetails = product.product.stockItems.map((item) => ({
       warehouse: item.warehouse?.name || 'Almacén desconocido',
       total: item.quantityBase || 0,
       reserved: item.reservedQuantityBase || 0,
@@ -157,41 +162,36 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     }, [loadProduct])
   );
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
     loadProduct();
-  };
+  }, [loadProduct]);
 
-  const handleShowPreview = async () => {
-    if (!product) return;
+  const handleShowPreview = useCallback(async () => {
+    if (!product) {
+      return;
+    }
 
     setActionLoading(true);
     try {
-      const previewData = await campaignsService.getDistributionPreview(
-        campaignId,
-        productId
-      );
+      const previewData = await campaignsService.getDistributionPreview(campaignId, productId);
       setPreview(previewData);
       setShowPreviewModal(true);
     } catch (error: any) {
       logger.error('Error loading preview:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo cargar la vista previa'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo cargar la vista previa');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [campaignId, productId]);
 
-  const handleGenerateDistribution = async () => {
-    if (!product) return;
+  const handleGenerateDistribution = useCallback(async () => {
+    if (!product) {
+      return;
+    }
 
     if (product.productStatus !== 'ACTIVE') {
-      Alert.alert(
-        'Error',
-        'Solo se pueden generar repartos de productos en estado ACTIVO'
-      );
+      Alert.alert('Error', 'Solo se pueden generar repartos de productos en estado ACTIVO');
       return;
     }
 
@@ -213,7 +213,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
     // Si el producto tiene presentaciones, seleccionar la base por defecto
     if (product.product?.presentations && product.product.presentations.length > 0) {
-      const basePresentation = product.product.presentations.find(p => p.isBase);
+      const basePresentation = product.product.presentations.find((p) => p.isBase);
       if (basePresentation) {
         setSelectedPresentationId(basePresentation.presentationId);
         setSelectedPresentation(basePresentation);
@@ -231,7 +231,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
       // Guardar en estado local sin actualizar el producto (evita recargar la campaña)
       if (stockData && stockData.length > 0) {
-        const stockDetails: StockDetailByWarehouse[] = stockData.map(item => ({
+        const stockDetails: StockDetailByWarehouse[] = stockData.map((item) => ({
           warehouse: item.warehouse?.name || 'Almacén desconocido',
           total: item.quantityBase || 0,
           reserved: item.reservedQuantityBase || 0,
@@ -269,9 +269,12 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       const initialRoundingFactor = 1;
       setGlobalRoundingFactor(initialRoundingFactor);
 
-      logger.debug('🔄 [MODAL] Creando preferencias con roundingFactor global:', initialRoundingFactor);
+      logger.debug(
+        '🔄 [MODAL] Creando preferencias con roundingFactor global:',
+        initialRoundingFactor
+      );
       // Crear preferencias para TODOS los participantes con el mismo roundingFactor
-      const participantPreferences = initialPreview.preview.map(item => ({
+      const participantPreferences = initialPreview.preview.map((item) => ({
         participantId: item.participantId,
         roundingFactor: initialRoundingFactor,
       }));
@@ -293,7 +296,10 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
         hasStockDetails: !!previewDataWithPreferences.stockDetails,
       });
 
-      logger.debug('📦 [MODAL] Stock Details completo:', JSON.stringify(previewDataWithPreferences.stockDetails, null, 2));
+      logger.debug(
+        '📦 [MODAL] Stock Details completo:',
+        JSON.stringify(previewDataWithPreferences.stockDetails, null, 2)
+      );
 
       setAdjustedDistribution(previewDataWithPreferences);
 
@@ -302,7 +308,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
       // Inicializar distribuciones editables desde el preview
       const initialDistributions: typeof editableDistributions = {};
-      previewDataWithPreferences.preview.forEach(item => {
+      previewDataWithPreferences.preview.forEach((item) => {
         initialDistributions[item.participantId] = {
           participantId: item.participantId,
           participantName: item.participantName,
@@ -333,10 +339,12 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [product, campaignId, productId, localStockData]);
 
-  const handleDistributionTypeChange = async (newType: DistributionType) => {
-    if (!product) return;
+  const handleDistributionTypeChange = useCallback(async (newType: DistributionType) => {
+    if (!product) {
+      return;
+    }
 
     setSelectedDistributionType(newType);
     setCustomQuantities({});
@@ -344,7 +352,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     // Si cambia a CUSTOM, inicializar cantidades vacías
     if (newType === DistributionType.CUSTOM) {
       const initialQuantities: { [key: string]: number } = {};
-      adjustedDistribution?.preview.forEach(item => {
+      adjustedDistribution?.preview.forEach((item) => {
         initialQuantities[item.participantId] = 0;
       });
       setCustomQuantities(initialQuantities);
@@ -358,10 +366,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
         distributionType: newType,
       });
 
-      const previewData = await campaignsService.getDistributionPreview(
-        campaignId,
-        productId
-      );
+      const previewData = await campaignsService.getDistributionPreview(campaignId, productId);
       setAdjustedDistribution(previewData);
     } catch (error: any) {
       logger.error('Error updating distribution type:', error);
@@ -372,39 +377,40 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     } finally {
       setPreviewLoading(false);
     }
-  };
+  }, [product, campaignId, productId, adjustedDistribution]);
 
-  const handleCustomQuantityChange = (participantId: string, quantity: string) => {
+  const handleCustomQuantityChange = useCallback((participantId: string, quantity: string) => {
     const numQuantity = parseInt(quantity) || 0;
-    setCustomQuantities(prev => ({
+    setCustomQuantities((prev) => ({
       ...prev,
       [participantId]: numQuantity,
     }));
-  };
+  }, []);
 
-  const getTotalCustomQuantity = () => {
+  const getTotalCustomQuantity = useCallback(() => {
     return Object.values(customQuantities).reduce((sum, qty) => sum + qty, 0);
-  };
+  }, [customQuantities]);
 
   // Nuevas funciones para manejar distribuciones editables
-  const handleQuantityChange = (participantId: string, newQuantity: number) => {
-    setEditableDistributions(prev => {
+  const handleQuantityChange = useCallback((participantId: string, newQuantity: number) => {
+    setEditableDistributions((prev) => {
       const dist = prev[participantId];
-      if (!dist) return prev;
+      if (!dist) {
+        return prev;
+      }
 
       const updated = { ...prev };
       updated[participantId] = {
         ...dist,
         quantityBase: newQuantity,
-        quantityPresentation: dist.roundingFactor > 1
-          ? Math.floor(newQuantity / dist.roundingFactor)
-          : undefined,
+        quantityPresentation:
+          dist.roundingFactor > 1 ? Math.floor(newQuantity / dist.roundingFactor) : undefined,
       };
       return updated;
     });
-  };
+  }, []);
 
-  const handleGlobalRoundingFactorChange = async (newFactor: number) => {
+  const handleGlobalRoundingFactorChange = useCallback(async (newFactor: number) => {
     logger.debug('🔄 [MODAL] Cambiando roundingFactor global:', {
       oldFactor: globalRoundingFactor,
       newFactor: newFactor,
@@ -415,17 +421,22 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     if (newFactor > 1) {
       const nonDivisibleParticipants: string[] = [];
 
-      Object.values(editableDistributions).forEach(dist => {
+      Object.values(editableDistributions).forEach((dist) => {
         const remainder = dist.quantityBase % newFactor;
         const quotient = dist.quantityBase / newFactor;
 
         if (remainder !== 0) {
-          nonDivisibleParticipants.push(`${dist.participantName} (${dist.quantityBase} unidades = ${quotient.toFixed(2)} cajas)`);
+          nonDivisibleParticipants.push(
+            `${dist.participantName} (${dist.quantityBase} unidades = ${quotient.toFixed(2)} cajas)`
+          );
         }
       });
 
       if (nonDivisibleParticipants.length > 0) {
-        logger.debug('⚠️ [MODAL] BLOQUEANDO cambio - Participantes con cantidades no divisibles:', nonDivisibleParticipants.length);
+        logger.debug(
+          '⚠️ [MODAL] BLOQUEANDO cambio - Participantes con cantidades no divisibles:',
+          nonDivisibleParticipants.length
+        );
         Alert.alert(
           'No se puede usar presentación',
           `Las siguientes cantidades no son divisibles exactamente por ${newFactor}:\n\n${nonDivisibleParticipants.slice(0, 5).join('\n')}${nonDivisibleParticipants.length > 5 ? `\n\n...y ${nonDivisibleParticipants.length - 5} más` : ''}\n\nPor favor, usa distribución por unidades o ajusta las cantidades manualmente primero para que sean múltiplos de ${newFactor}.`,
@@ -441,16 +452,14 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       setGlobalRoundingFactor(newFactor);
 
       // Aplicar el mismo roundingFactor a TODOS los participantes
-      const participantPreferences = Object.values(editableDistributions).map(dist => ({
+      const participantPreferences = Object.values(editableDistributions).map((dist) => ({
         participantId: dist.participantId,
         roundingFactor: newFactor,
       }));
 
-      const previewData = await campaignsService.getDistributionPreview(
-        campaignId,
-        productId,
-        { participantPreferences }
-      );
+      const previewData = await campaignsService.getDistributionPreview(campaignId, productId, {
+        participantPreferences,
+      });
 
       logger.debug('✅ [MODAL] Preview recalculado recibido:', {
         totalParticipants: previewData.totalParticipants,
@@ -464,7 +473,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
       // Actualizar distribuciones editables con los nuevos valores calculados
       const updatedDistributions: typeof editableDistributions = {};
-      previewData.preview.forEach(item => {
+      previewData.preview.forEach((item) => {
         updatedDistributions[item.participantId] = {
           participantId: item.participantId,
           participantName: item.participantName,
@@ -489,61 +498,71 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     } finally {
       setPreviewLoading(false);
     }
-  };
+  }, [globalRoundingFactor, editableDistributions, campaignId, productId]);
 
-  const getTotalDistributed = () => {
+  const getTotalDistributed = useCallback(() => {
     return Object.values(editableDistributions).reduce((sum, dist) => sum + dist.quantityBase, 0);
-  };
+  }, [editableDistributions]);
 
   // Función para ordenar participantes: primero sedes alfabéticamente, luego empresas alfabéticamente
-  const getSortedDistributions = () => {
+  const getSortedDistributions = useMemo(() => {
     const distributions = Object.values(editableDistributions);
 
     const sorted = distributions.sort((a, b) => {
       // Obtener el tipo de participante desde adjustedDistribution.preview
-      const typeA = adjustedDistribution?.preview.find(p => p.participantId === a.participantId)?.participantType || 'EXTERNAL_COMPANY';
-      const typeB = adjustedDistribution?.preview.find(p => p.participantId === b.participantId)?.participantType || 'EXTERNAL_COMPANY';
+      const typeA =
+        adjustedDistribution?.preview.find((p) => p.participantId === a.participantId)
+          ?.participantType || 'EXTERNAL_COMPANY';
+      const typeB =
+        adjustedDistribution?.preview.find((p) => p.participantId === b.participantId)
+          ?.participantType || 'EXTERNAL_COMPANY';
 
       // Si uno es INTERNAL_SITE y el otro no, INTERNAL_SITE va primero
-      if (typeA === 'INTERNAL_SITE' && typeB !== 'INTERNAL_SITE') return -1;
-      if (typeA !== 'INTERNAL_SITE' && typeB === 'INTERNAL_SITE') return 1;
+      if (typeA === 'INTERNAL_SITE' && typeB !== 'INTERNAL_SITE') {
+        return -1;
+      }
+      if (typeA !== 'INTERNAL_SITE' && typeB === 'INTERNAL_SITE') {
+        return 1;
+      }
 
       // Si ambos son del mismo tipo, ordenar alfabéticamente por nombre
       return a.participantName.localeCompare(b.participantName);
     });
 
     return sorted;
-  };
+  }, [editableDistributions, adjustedDistribution]);
 
   // Helper function to calculate quantity in presentation
-  const calculateQuantityInPresentation = (quantityBase: number): number => {
+  const calculateQuantityInPresentation = useCallback((quantityBase: number): number => {
     if (!selectedPresentation || selectedPresentation.factorToBase <= 0) {
       return quantityBase;
     }
     return quantityBase / selectedPresentation.factorToBase;
-  };
+  }, [selectedPresentation]);
 
   // Helper function to calculate quantity in base units
-  const calculateQuantityInBase = (quantityPresentation: number): number => {
+  const calculateQuantityInBase = useCallback((quantityPresentation: number): number => {
     if (!selectedPresentation || selectedPresentation.factorToBase <= 0) {
       return quantityPresentation;
     }
     return quantityPresentation * selectedPresentation.factorToBase;
-  };
+  }, [selectedPresentation]);
 
   // Handle presentation selection change
-  const handlePresentationChange = (presentationId: string) => {
+  const handlePresentationChange = useCallback((presentationId: string) => {
     const presentation = product?.product?.presentations?.find(
-      p => p.presentationId === presentationId
+      (p) => p.presentationId === presentationId
     );
     if (presentation) {
       setSelectedPresentationId(presentationId);
       setSelectedPresentation(presentation);
     }
-  };
+  }, [product]);
 
-  const validateCustomDistribution = (): boolean => {
-    if (selectedDistributionType !== DistributionType.CUSTOM) return true;
+  const validateCustomDistribution = useCallback((): boolean => {
+    if (selectedDistributionType !== DistributionType.CUSTOM) {
+      return true;
+    }
 
     const total = getTotalCustomQuantity();
     const productTotal = product?.totalQuantityBase || 0;
@@ -562,12 +581,17 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     }
 
     return true;
-  };
+  }, [selectedDistributionType, customQuantities, product]);
 
-  const recalculateDistributions = (newTotalQuantity: number) => {
-    if (!adjustedDistribution) return;
+  const recalculateDistributions = useCallback((newTotalQuantity: number) => {
+    if (!adjustedDistribution) {
+      return;
+    }
 
-    logger.debug('🔄 [RECALC] Recalculando distribuciones localmente con nueva cantidad:', newTotalQuantity);
+    logger.debug(
+      '🔄 [RECALC] Recalculando distribuciones localmente con nueva cantidad:',
+      newTotalQuantity
+    );
 
     // Recalcular cantidades basadas en porcentajes
     const newDistributions: typeof editableDistributions = {};
@@ -575,7 +599,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     let remainderParticipantId: string | null = null;
 
     // Primero, calcular cantidades redondeadas para cada participante
-    Object.values(editableDistributions).forEach(dist => {
+    Object.values(editableDistributions).forEach((dist) => {
       const exactQuantity = (dist.percentage / 100) * newTotalQuantity;
       // Redondear: si es >= 0.5 redondea hacia arriba, si no hacia abajo
       const roundedQuantity = Math.round(exactQuantity);
@@ -583,9 +607,8 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       newDistributions[dist.participantId] = {
         ...dist,
         quantityBase: roundedQuantity,
-        quantityPresentation: globalRoundingFactor > 1
-          ? Math.floor(roundedQuantity / globalRoundingFactor)
-          : undefined,
+        quantityPresentation:
+          globalRoundingFactor > 1 ? Math.floor(roundedQuantity / globalRoundingFactor) : undefined,
       };
 
       totalDistributed += roundedQuantity;
@@ -597,14 +620,16 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     // Asignar remanente a la sede de ajuste (o al primer participante si no hay sede de ajuste)
     if (remainder > 0) {
       // Buscar la sede de ajuste del preview original
-      remainderParticipantId = adjustedDistribution.remainderAssignedTo?.participantId ||
-                               adjustedDistribution.preview[0]?.participantId;
+      remainderParticipantId =
+        adjustedDistribution.remainderAssignedTo?.participantId ||
+        adjustedDistribution.preview[0]?.participantId;
 
       if (remainderParticipantId && newDistributions[remainderParticipantId]) {
         newDistributions[remainderParticipantId].quantityBase += remainder;
         if (globalRoundingFactor > 1) {
-          newDistributions[remainderParticipantId].quantityPresentation =
-            Math.floor(newDistributions[remainderParticipantId].quantityBase / globalRoundingFactor);
+          newDistributions[remainderParticipantId].quantityPresentation = Math.floor(
+            newDistributions[remainderParticipantId].quantityBase / globalRoundingFactor
+          );
         }
         totalDistributed += remainder;
       }
@@ -621,7 +646,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     setEditableDistributions(newDistributions);
 
     // Actualizar adjustedDistribution con los nuevos valores
-    const updatedPreview = adjustedDistribution.preview.map(item => ({
+    const updatedPreview = adjustedDistribution.preview.map((item) => ({
       ...item,
       calculatedQuantity: newDistributions[item.participantId]?.quantityBase || 0,
       quantityPresentation: newDistributions[item.participantId]?.quantityPresentation,
@@ -633,17 +658,19 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       totalDistributed,
       remainder: newTotalQuantity - totalDistributed,
       preview: updatedPreview,
-      remainderAssignedTo: remainderParticipantId ? {
-        participantId: remainderParticipantId,
-        participantName: newDistributions[remainderParticipantId]?.participantName || '',
-        remainderQuantity: remainder,
-      } : undefined,
+      remainderAssignedTo: remainderParticipantId
+        ? {
+            participantId: remainderParticipantId,
+            participantName: newDistributions[remainderParticipantId]?.participantName || '',
+            remainderQuantity: remainder,
+          }
+        : undefined,
     });
 
     logger.debug('✅ [RECALC] Estado actualizado');
-  };
+  }, [adjustedDistribution, editableDistributions, globalRoundingFactor]);
 
-  const validateDistributions = (): boolean => {
+  const validateDistributions = useCallback((): boolean => {
     const totalDistributed = getTotalDistributed();
     const productTotal = editableTotalQuantity;
 
@@ -661,10 +688,12 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     }
 
     return true;
-  };
+  }, [editableTotalQuantity]);
 
-  const handleConfirmGeneration = async () => {
-    if (!product || !adjustedDistribution) return;
+  const handleConfirmGeneration = useCallback(async () => {
+    if (!product || !adjustedDistribution) {
+      return;
+    }
 
     logger.debug('🎯 [MODAL] Confirmando generación de reparto...');
 
@@ -676,7 +705,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     setActionLoading(true);
     try {
       // Preparar distribuciones con cantidades exactas desde editableDistributions
-      const distributions = Object.values(editableDistributions).map(dist => ({
+      const distributions = Object.values(editableDistributions).map((dist) => ({
         participantId: dist.participantId,
         quantityBase: dist.quantityBase,
         roundingFactor: dist.roundingFactor,
@@ -686,14 +715,10 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       }));
 
       // Generar distribución con cantidades exactas
-      const result = await campaignsService.generateDistribution(
-        campaignId,
-        productId,
-        {
-          distributions,
-          notes: `Reparto generado desde preview - ${new Date().toLocaleString()}`,
-        }
-      );
+      const result = await campaignsService.generateDistribution(campaignId, productId, {
+        distributions,
+        notes: `Reparto generado desde preview - ${new Date().toLocaleString()}`,
+      });
 
       logger.debug('✅ [MODAL] Reparto generado exitosamente:', result.repartoCode);
 
@@ -715,24 +740,23 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       );
     } catch (error: any) {
       logger.error('❌ [MODAL] Error generando reparto:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo generar el reparto'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo generar el reparto');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [product, adjustedDistribution, validateDistributions, editableDistributions, campaignId, productId, includeInSheet, loadProduct]);
 
-  const handleManageCustomDistribution = () => {
+  const handleManageCustomDistribution = useCallback(() => {
     navigation.navigate('ManageCustomDistribution', {
       campaignId,
       productId,
     });
-  };
+  }, [navigation, campaignId, productId]);
 
-  const handleChangeToActive = async () => {
-    if (!product) return;
+  const handleChangeToActive = useCallback(async () => {
+    if (!product) {
+      return;
+    }
 
     Alert.alert(
       'Cambiar a Activo',
@@ -767,7 +791,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
         },
       ]
     );
-  };
+  }, [product, campaignId, productId, loadProduct]);
 
   if (loading) {
     return (
@@ -807,21 +831,14 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
               ← Volver
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Detalle del Producto
-          </Text>
+          <Text style={[styles.title, isTablet && styles.titleTablet]}>Detalle del Producto</Text>
         </View>
 
         {/* Content */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {/* Product Info */}
           <View style={[styles.section, isTablet && styles.sectionTablet]}>
@@ -830,20 +847,17 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
             </Text>
 
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Producto:
-              </Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Producto:</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {product.product?.title || 'N/A'}
               </Text>
             </View>
 
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                SKU:
-              </Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>SKU:</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                {product.product?.correlativeNumber && `#${product.product.correlativeNumber} | `}{product.product?.sku || 'N/A'}
+                {product.product?.correlativeNumber && `#${product.product.correlativeNumber} | `}
+                {product.product?.sku || 'N/A'}
               </Text>
             </View>
 
@@ -857,9 +871,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
             </View>
 
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Estado:
-              </Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Estado:</Text>
               <View style={styles.statusContainer}>
                 <View
                   style={[
@@ -887,7 +899,12 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                     onPress={handleChangeToActive}
                     disabled={actionLoading}
                   >
-                    <Text style={[styles.changeStatusButtonText, isTablet && styles.changeStatusButtonTextTablet]}>
+                    <Text
+                      style={[
+                        styles.changeStatusButtonText,
+                        isTablet && styles.changeStatusButtonTextTablet,
+                      ]}
+                    >
                       Cambiar a Activo
                     </Text>
                   </TouchableOpacity>
@@ -912,9 +929,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                 style={[
                   styles.infoValue,
                   isTablet && styles.infoValueTablet,
-                  product.distributionGenerated
-                    ? styles.generatedYes
-                    : styles.generatedNo,
+                  product.distributionGenerated ? styles.generatedYes : styles.generatedNo,
                 ]}
               >
                 {product.distributionGenerated ? 'Sí' : 'No'}
@@ -924,9 +939,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
             {/* @ts-ignore */}
             {product.purchase && (
               <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                  Compra:
-                </Text>
+                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Compra:</Text>
                 <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                   {product.purchase.code}
                 </Text>
@@ -945,7 +958,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                   style={[styles.manageButton, isTablet && styles.manageButtonTablet]}
                   onPress={handleManageCustomDistribution}
                 >
-                  <Text style={[styles.manageButtonText, isTablet && styles.manageButtonTextTablet]}>
+                  <Text
+                    style={[styles.manageButtonText, isTablet && styles.manageButtonTextTablet]}
+                  >
                     Gestionar
                   </Text>
                 </TouchableOpacity>
@@ -958,9 +973,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
               ) : (
                 product.customDistributions.map((dist) => (
                   <View key={dist.id} style={styles.distributionItem}>
-                    <Text style={styles.distributionName}>
-                      {dist.name || 'Sin nombre'}
-                    </Text>
+                    <Text style={styles.distributionName}>{dist.name || 'Sin nombre'}</Text>
                     <Text style={styles.distributionItems}>
                       {dist.items?.length || 0} participantes
                     </Text>
@@ -976,10 +989,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
               ℹ️ Acciones Disponibles
             </Text>
             <Text style={[styles.infoText, isTablet && styles.infoTextTablet]}>
-              • Vista Previa: Ver cómo se distribuirá el producto{'\n'}
-              • Generar Reparto: Crear los registros de distribución{'\n'}
-              • Solo productos ACTIVOS pueden generar reparto{'\n'}
-              • El reparto se genera una sola vez por producto
+              • Vista Previa: Ver cómo se distribuirá el producto{'\n'}• Generar Reparto: Crear los
+              registros de distribución{'\n'}• Solo productos ACTIVOS pueden generar reparto{'\n'}•
+              El reparto se genera una sola vez por producto
             </Text>
           </View>
         </ScrollView>
@@ -1009,9 +1021,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
             ]}
             onPress={handleGenerateDistribution}
             disabled={
-              actionLoading ||
-              product.distributionGenerated ||
-              product.productStatus !== 'ACTIVE'
+              actionLoading || product.distributionGenerated || product.productStatus !== 'ACTIVE'
             }
           >
             <Text style={[styles.generateButtonText, isTablet && styles.generateButtonTextTablet]}>
@@ -1077,11 +1087,15 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                       </View>
                       <View style={styles.previewSummaryRow}>
                         <Text style={styles.previewSummaryLabel}>Cantidad total:</Text>
-                        <Text style={styles.previewSummaryValue}>{preview.totalQuantity} unidades</Text>
+                        <Text style={styles.previewSummaryValue}>
+                          {preview.totalQuantity} unidades
+                        </Text>
                       </View>
                       <View style={styles.previewSummaryRow}>
                         <Text style={styles.previewSummaryLabel}>Total distribuido:</Text>
-                        <Text style={styles.previewSummaryValue}>{preview.totalDistributed} unidades</Text>
+                        <Text style={styles.previewSummaryValue}>
+                          {preview.totalDistributed} unidades
+                        </Text>
                       </View>
                       {preview.remainder > 0 && (
                         <View style={styles.previewSummaryRow}>
@@ -1095,9 +1109,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
                     {/* Detalle por Participante */}
                     <View style={styles.previewSection}>
-                      <Text style={styles.previewSectionTitle}>
-                        Distribución por Participante
-                      </Text>
+                      <Text style={styles.previewSectionTitle}>Distribución por Participante</Text>
                       {preview.preview.map((item, index) => (
                         <View key={index} style={styles.previewItem}>
                           <View style={styles.previewItemHeader}>
@@ -1170,7 +1182,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                   <>
                     {/* Información del Producto */}
                     <View style={styles.previewHeader}>
-                      <Text style={styles.previewProductName}>{adjustedDistribution.productName}</Text>
+                      <Text style={styles.previewProductName}>
+                        {adjustedDistribution.productName}
+                      </Text>
                       <Text style={styles.previewProductStatus}>
                         Estado: {adjustedDistribution.isPreliminary ? '⚠️ Preliminar' : '✓ Activo'}
                       </Text>
@@ -1189,131 +1203,138 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                     <View style={styles.infoBoxModal}>
                       <Text style={styles.infoBoxTitle}>ℹ️ Generación Automática</Text>
                       <Text style={styles.infoBoxText}>
-                        Al confirmar, se creará automáticamente un reparto con las cantidades calculadas y se reservará el stock necesario.
+                        Al confirmar, se creará automáticamente un reparto con las cantidades
+                        calculadas y se reservará el stock necesario.
                       </Text>
                     </View>
 
                     {/* Selector de Presentación */}
-                    {product?.product?.presentations && product.product.presentations.length > 0 && (
-                      <View style={styles.previewSection}>
-                        <Text style={styles.previewSectionTitle}>📦 Unidad de Distribución</Text>
-                        <Text style={styles.distributionTypeHint}>
-                          Selecciona si deseas distribuir en unidades base o por presentación:
-                        </Text>
+                    {product?.product?.presentations &&
+                      product.product.presentations.length > 0 && (
+                        <View style={styles.previewSection}>
+                          <Text style={styles.previewSectionTitle}>📦 Unidad de Distribución</Text>
+                          <Text style={styles.distributionTypeHint}>
+                            Selecciona si deseas distribuir en unidades base o por presentación:
+                          </Text>
 
-                        {/* Toggle: Unidades vs Presentaciones */}
-                        <View style={styles.presentationToggleContainer}>
-                          <TouchableOpacity
-                            style={[
-                              styles.presentationToggleOption,
-                              !usePresentation && styles.presentationToggleOptionSelected,
-                            ]}
-                            onPress={() => setUsePresentation(false)}
-                          >
-                            <View style={styles.presentationToggleHeader}>
-                              <View
-                                style={[
-                                  styles.presentationToggleRadio,
-                                  !usePresentation && styles.presentationToggleRadioSelected,
-                                ]}
-                              >
-                                {!usePresentation && (
-                                  <View style={styles.presentationToggleRadioInner} />
-                                )}
+                          {/* Toggle: Unidades vs Presentaciones */}
+                          <View style={styles.presentationToggleContainer}>
+                            <TouchableOpacity
+                              style={[
+                                styles.presentationToggleOption,
+                                !usePresentation && styles.presentationToggleOptionSelected,
+                              ]}
+                              onPress={() => setUsePresentation(false)}
+                            >
+                              <View style={styles.presentationToggleHeader}>
+                                <View
+                                  style={[
+                                    styles.presentationToggleRadio,
+                                    !usePresentation && styles.presentationToggleRadioSelected,
+                                  ]}
+                                >
+                                  {!usePresentation && (
+                                    <View style={styles.presentationToggleRadioInner} />
+                                  )}
+                                </View>
+                                <Text
+                                  style={[
+                                    styles.presentationToggleLabel,
+                                    !usePresentation && styles.presentationToggleLabelSelected,
+                                  ]}
+                                >
+                                  Unidades Base
+                                </Text>
                               </View>
-                              <Text
-                                style={[
-                                  styles.presentationToggleLabel,
-                                  !usePresentation && styles.presentationToggleLabelSelected,
-                                ]}
-                              >
-                                Unidades Base
+                              <Text style={styles.presentationToggleDescription}>
+                                Distribuir en unidades individuales
                               </Text>
-                            </View>
-                            <Text style={styles.presentationToggleDescription}>
-                              Distribuir en unidades individuales
-                            </Text>
-                          </TouchableOpacity>
+                            </TouchableOpacity>
 
-                          <TouchableOpacity
-                            style={[
-                              styles.presentationToggleOption,
-                              usePresentation && styles.presentationToggleOptionSelected,
-                            ]}
-                            onPress={() => setUsePresentation(true)}
-                          >
-                            <View style={styles.presentationToggleHeader}>
-                              <View
-                                style={[
-                                  styles.presentationToggleRadio,
-                                  usePresentation && styles.presentationToggleRadioSelected,
-                                ]}
-                              >
-                                {usePresentation && (
-                                  <View style={styles.presentationToggleRadioInner} />
-                                )}
+                            <TouchableOpacity
+                              style={[
+                                styles.presentationToggleOption,
+                                usePresentation && styles.presentationToggleOptionSelected,
+                              ]}
+                              onPress={() => setUsePresentation(true)}
+                            >
+                              <View style={styles.presentationToggleHeader}>
+                                <View
+                                  style={[
+                                    styles.presentationToggleRadio,
+                                    usePresentation && styles.presentationToggleRadioSelected,
+                                  ]}
+                                >
+                                  {usePresentation && (
+                                    <View style={styles.presentationToggleRadioInner} />
+                                  )}
+                                </View>
+                                <Text
+                                  style={[
+                                    styles.presentationToggleLabel,
+                                    usePresentation && styles.presentationToggleLabelSelected,
+                                  ]}
+                                >
+                                  Por Presentación
+                                </Text>
                               </View>
-                              <Text
-                                style={[
-                                  styles.presentationToggleLabel,
-                                  usePresentation && styles.presentationToggleLabelSelected,
-                                ]}
-                              >
-                                Por Presentación
+                              <Text style={styles.presentationToggleDescription}>
+                                Distribuir en cajas, packs, etc.
                               </Text>
-                            </View>
-                            <Text style={styles.presentationToggleDescription}>
-                              Distribuir en cajas, packs, etc.
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        {/* Selector de Presentación */}
-                        {usePresentation && (
-                          <View style={styles.presentationSelectorContainer}>
-                            <Text style={styles.presentationSelectorLabel}>Selecciona la presentación:</Text>
-                            <View style={styles.presentationOptions}>
-                              {product.product.presentations
-                                .filter(p => !p.isBase)
-                                .map((pres) => (
-                                  <TouchableOpacity
-                                    key={pres.presentationId}
-                                    style={[
-                                      styles.presentationOption,
-                                      selectedPresentationId === pres.presentationId && styles.presentationOptionSelected,
-                                    ]}
-                                    onPress={() => handlePresentationChange(pres.presentationId)}
-                                  >
-                                    <View style={styles.presentationOptionHeader}>
-                                      <View
-                                        style={[
-                                          styles.presentationOptionRadio,
-                                          selectedPresentationId === pres.presentationId && styles.presentationOptionRadioSelected,
-                                        ]}
-                                      >
-                                        {selectedPresentationId === pres.presentationId && (
-                                          <View style={styles.presentationOptionRadioInner} />
-                                        )}
-                                      </View>
-                                      <Text
-                                        style={[
-                                          styles.presentationOptionLabel,
-                                          selectedPresentationId === pres.presentationId && styles.presentationOptionLabelSelected,
-                                        ]}
-                                      >
-                                        {pres.presentation.code} - {pres.presentation.name}
-                                      </Text>
-                                    </View>
-                                    <Text style={styles.presentationOptionFactor}>
-                                      1 {pres.presentation.name} = {pres.factorToBase} unidades
-                                    </Text>
-                                  </TouchableOpacity>
-                                ))}
-                            </View>
+                            </TouchableOpacity>
                           </View>
-                        )}
-                      </View>
-                    )}
+
+                          {/* Selector de Presentación */}
+                          {usePresentation && (
+                            <View style={styles.presentationSelectorContainer}>
+                              <Text style={styles.presentationSelectorLabel}>
+                                Selecciona la presentación:
+                              </Text>
+                              <View style={styles.presentationOptions}>
+                                {product.product.presentations
+                                  .filter((p) => !p.isBase)
+                                  .map((pres) => (
+                                    <TouchableOpacity
+                                      key={pres.presentationId}
+                                      style={[
+                                        styles.presentationOption,
+                                        selectedPresentationId === pres.presentationId &&
+                                          styles.presentationOptionSelected,
+                                      ]}
+                                      onPress={() => handlePresentationChange(pres.presentationId)}
+                                    >
+                                      <View style={styles.presentationOptionHeader}>
+                                        <View
+                                          style={[
+                                            styles.presentationOptionRadio,
+                                            selectedPresentationId === pres.presentationId &&
+                                              styles.presentationOptionRadioSelected,
+                                          ]}
+                                        >
+                                          {selectedPresentationId === pres.presentationId && (
+                                            <View style={styles.presentationOptionRadioInner} />
+                                          )}
+                                        </View>
+                                        <Text
+                                          style={[
+                                            styles.presentationOptionLabel,
+                                            selectedPresentationId === pres.presentationId &&
+                                              styles.presentationOptionLabelSelected,
+                                          ]}
+                                        >
+                                          {pres.presentation.code} - {pres.presentation.name}
+                                        </Text>
+                                      </View>
+                                      <Text style={styles.presentationOptionFactor}>
+                                        1 {pres.presentation.name} = {pres.factorToBase} unidades
+                                      </Text>
+                                    </TouchableOpacity>
+                                  ))}
+                              </View>
+                            </View>
+                          )}
+                        </View>
+                      )}
 
                     {/* Selector de Tipo de Distribución */}
                     <View style={styles.previewSection}>
@@ -1329,7 +1350,8 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                             key={type}
                             style={[
                               styles.distributionTypeOption,
-                              selectedDistributionType === type && styles.distributionTypeOptionSelected,
+                              selectedDistributionType === type &&
+                                styles.distributionTypeOptionSelected,
                             ]}
                             onPress={() => handleDistributionTypeChange(type)}
                             disabled={previewLoading}
@@ -1338,7 +1360,8 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                               <View
                                 style={[
                                   styles.distributionTypeRadio,
-                                  selectedDistributionType === type && styles.distributionTypeRadioSelected,
+                                  selectedDistributionType === type &&
+                                    styles.distributionTypeRadioSelected,
                                 ]}
                               >
                                 {selectedDistributionType === type && (
@@ -1348,7 +1371,8 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                               <Text
                                 style={[
                                   styles.distributionTypeLabel,
-                                  selectedDistributionType === type && styles.distributionTypeLabelSelected,
+                                  selectedDistributionType === type &&
+                                    styles.distributionTypeLabelSelected,
                                 ]}
                               >
                                 {DistributionTypeLabels[type]}
@@ -1364,7 +1388,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                       {previewLoading && (
                         <View style={styles.previewLoadingContainer}>
                           <ActivityIndicator color="#6366F1" />
-                          <Text style={styles.previewLoadingText}>Actualizando vista previa...</Text>
+                          <Text style={styles.previewLoadingText}>
+                            Actualizando vista previa...
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -1385,41 +1411,46 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
                         <View style={styles.stockInfoRow}>
                           <Text style={styles.stockInfoLabel}>Stock Actual (Campaña):</Text>
-                          <Text style={[
-                            styles.stockInfoValue,
-                            product.purchaseProduct.validatedStock !== undefined &&
-                            product.totalQuantityBase !== product.purchaseProduct.validatedStock &&
-                            styles.stockInfoValueDifferent
-                          ]}>
+                          <Text
+                            style={[
+                              styles.stockInfoValue,
+                              product.purchaseProduct.validatedStock !== undefined &&
+                                product.totalQuantityBase !==
+                                  product.purchaseProduct.validatedStock &&
+                                styles.stockInfoValueDifferent,
+                            ]}
+                          >
                             {product.totalQuantityBase} unidades
                           </Text>
                         </View>
 
                         {product.purchaseProduct.validatedStock !== undefined &&
-                         product.totalQuantityBase !== product.purchaseProduct.validatedStock && (
-                          <View style={styles.stockDifferenceWarning}>
-                            <Text style={styles.stockDifferenceWarningIcon}>⚠️</Text>
-                            <View style={styles.stockDifferenceWarningTextContainer}>
-                              <Text style={styles.stockDifferenceWarningTitle}>
-                                Diferencia detectada
-                              </Text>
-                              <Text style={styles.stockDifferenceWarningText}>
-                                El stock actual ({product.totalQuantityBase}) difiere del stock validado en la compra ({product.purchaseProduct.validatedStock}).
-                                {product.totalQuantityBase > product.purchaseProduct.validatedStock
-                                  ? ` Hay ${product.totalQuantityBase - product.purchaseProduct.validatedStock} unidades adicionales.`
-                                  : ` Faltan ${product.purchaseProduct.validatedStock - product.totalQuantityBase} unidades.`
-                                }
-                              </Text>
+                          product.totalQuantityBase !== product.purchaseProduct.validatedStock && (
+                            <View style={styles.stockDifferenceWarning}>
+                              <Text style={styles.stockDifferenceWarningIcon}>⚠️</Text>
+                              <View style={styles.stockDifferenceWarningTextContainer}>
+                                <Text style={styles.stockDifferenceWarningTitle}>
+                                  Diferencia detectada
+                                </Text>
+                                <Text style={styles.stockDifferenceWarningText}>
+                                  El stock actual ({product.totalQuantityBase}) difiere del stock
+                                  validado en la compra ({product.purchaseProduct.validatedStock}).
+                                  {product.totalQuantityBase >
+                                  product.purchaseProduct.validatedStock
+                                    ? ` Hay ${product.totalQuantityBase - product.purchaseProduct.validatedStock} unidades adicionales.`
+                                    : ` Faltan ${product.purchaseProduct.validatedStock - product.totalQuantityBase} unidades.`}
+                                </Text>
+                              </View>
                             </View>
-                          </View>
-                        )}
+                          )}
                       </View>
                     )}
 
                     {/* Stock Information */}
                     {(() => {
                       // Use stockDetails from API if available, otherwise fallback to product stockItems
-                      const stockDetails = adjustedDistribution.stockDetails || getStockDetailsFromProduct();
+                      const stockDetails =
+                        adjustedDistribution.stockDetails || getStockDetailsFromProduct();
 
                       if (!stockDetails || stockDetails.length === 0) {
                         return null;
@@ -1437,11 +1468,15 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                               </View>
                               <View style={styles.stockDetailRow}>
                                 <Text style={styles.stockDetailLabel}>Reservado:</Text>
-                                <Text style={[styles.stockDetailValue, styles.stockReserved]}>{stock.reserved} unidades</Text>
+                                <Text style={[styles.stockDetailValue, styles.stockReserved]}>
+                                  {stock.reserved} unidades
+                                </Text>
                               </View>
                               <View style={styles.stockDetailRow}>
                                 <Text style={styles.stockDetailLabel}>Disponible:</Text>
-                                <Text style={[styles.stockDetailValue, styles.stockAvailable]}>{stock.available} unidades</Text>
+                                <Text style={[styles.stockDetailValue, styles.stockAvailable]}>
+                                  {stock.available} unidades
+                                </Text>
                               </View>
                             </View>
                           ))}
@@ -1454,18 +1489,23 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                       <Text style={styles.previewSectionTitle}>Resumen</Text>
                       <View style={styles.previewSummaryRow}>
                         <Text style={styles.previewSummaryLabel}>Total de participantes:</Text>
-                        <Text style={styles.previewSummaryValue}>{adjustedDistribution.totalParticipants}</Text>
+                        <Text style={styles.previewSummaryValue}>
+                          {adjustedDistribution.totalParticipants}
+                        </Text>
                       </View>
                       <View style={styles.previewSummaryRow}>
                         <Text style={styles.previewSummaryLabel}>Monto total asignado:</Text>
                         <Text style={styles.previewSummaryValue}>
-                          {adjustedDistribution.currency} {adjustedDistribution.totalAssignedAmount?.toFixed(2) || '0.00'}
+                          {adjustedDistribution.currency}{' '}
+                          {adjustedDistribution.totalAssignedAmount?.toFixed(2) || '0.00'}
                         </Text>
                       </View>
 
                       {/* Editable Total Quantity */}
                       <View style={styles.editableTotalQuantityContainer}>
-                        <Text style={styles.editableTotalQuantityLabel}>Cantidad total a distribuir:</Text>
+                        <Text style={styles.editableTotalQuantityLabel}>
+                          Cantidad total a distribuir:
+                        </Text>
                         <View style={styles.editableTotalQuantityInputContainer}>
                           <TextInput
                             style={styles.editableTotalQuantityInput}
@@ -1489,22 +1529,28 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                           style={styles.recalculateButton}
                           onPress={() => recalculateDistributions(editableTotalQuantity)}
                         >
-                          <Text style={styles.recalculateButtonText}>🔄 Actualizar Distribuciones</Text>
+                          <Text style={styles.recalculateButtonText}>
+                            🔄 Actualizar Distribuciones
+                          </Text>
                         </TouchableOpacity>
                         <Text style={styles.editableTotalQuantityHint}>
-                          💡 Modifica la cantidad y presiona "Actualizar Distribuciones" para recalcular
+                          💡 Modifica la cantidad y presiona "Actualizar Distribuciones" para
+                          recalcular
                         </Text>
                       </View>
                       <View style={styles.previewSummaryRow}>
                         <Text style={styles.previewSummaryLabel}>Total distribuido:</Text>
-                        <Text style={[
-                          styles.previewSummaryValue,
-                          getTotalDistributed() > editableTotalQuantity && styles.previewSummaryError
-                        ]}>
+                        <Text
+                          style={[
+                            styles.previewSummaryValue,
+                            getTotalDistributed() > editableTotalQuantity &&
+                              styles.previewSummaryError,
+                          ]}
+                        >
                           {getTotalDistributed()} unidades
                         </Text>
                       </View>
-                      {(editableTotalQuantity - getTotalDistributed()) > 0 && (
+                      {editableTotalQuantity - getTotalDistributed() > 0 && (
                         <View style={styles.previewSummaryRow}>
                           <Text style={styles.previewSummaryLabel}>Remanente:</Text>
                           <Text style={[styles.previewSummaryValue, styles.previewRemainder]}>
@@ -1525,24 +1571,37 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                       {adjustedDistribution.remainder > 0 && (
                         <>
                           <View style={styles.previewSummaryRow}>
-                            <Text style={styles.previewSummaryLabel}>Remanente (por redondeo):</Text>
+                            <Text style={styles.previewSummaryLabel}>
+                              Remanente (por redondeo):
+                            </Text>
                             <Text style={[styles.previewSummaryValue, styles.previewRemainder]}>
                               {adjustedDistribution.remainder} unidades
                             </Text>
                           </View>
                           {adjustedDistribution.remainderSite && (
                             <View style={styles.remainderInfoBox}>
-                              <Text style={styles.remainderInfoTitle}>✓ Sede de Remanente Configurada</Text>
+                              <Text style={styles.remainderInfoTitle}>
+                                ✓ Sede de Remanente Configurada
+                              </Text>
                               <Text style={styles.remainderInfoText}>
-                                La sede <Text style={styles.remainderSiteName}>{adjustedDistribution.remainderSite.name}</Text> absorberá las {adjustedDistribution.remainder} unidades del remanente.
+                                La sede{' '}
+                                <Text style={styles.remainderSiteName}>
+                                  {adjustedDistribution.remainderSite.name}
+                                </Text>{' '}
+                                absorberá las {adjustedDistribution.remainder} unidades del
+                                remanente.
                               </Text>
                             </View>
                           )}
                           {!adjustedDistribution.remainderSite && (
                             <View style={styles.remainderWarningBox}>
-                              <Text style={styles.remainderWarningTitle}>⚠️ Sin Sede de Remanente</Text>
+                              <Text style={styles.remainderWarningTitle}>
+                                ⚠️ Sin Sede de Remanente
+                              </Text>
                               <Text style={styles.remainderWarningText}>
-                                Hay {adjustedDistribution.remainder} unidades sin asignar. Configura una sede de remanente en el resumen de la campaña para distribuir el 100% del stock.
+                                Hay {adjustedDistribution.remainder} unidades sin asignar. Configura
+                                una sede de remanente en el resumen de la campaña para distribuir el
+                                100% del stock.
                               </Text>
                             </View>
                           )}
@@ -1553,77 +1612,99 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                         <View style={styles.remainderAssignedBox}>
                           <Text style={styles.remainderAssignedTitle}>📦 Remanente Asignado</Text>
                           <Text style={styles.remainderAssignedText}>
-                            <Text style={styles.remainderParticipantName}>{adjustedDistribution.remainderAssignedTo.participantName}</Text> recibirá {adjustedDistribution.remainderAssignedTo.remainderQuantity} unidades adicionales del remanente.
+                            <Text style={styles.remainderParticipantName}>
+                              {adjustedDistribution.remainderAssignedTo.participantName}
+                            </Text>{' '}
+                            recibirá {adjustedDistribution.remainderAssignedTo.remainderQuantity}{' '}
+                            unidades adicionales del remanente.
                           </Text>
                         </View>
                       )}
                     </View>
 
                     {/* Selector GLOBAL de tipo de distribución */}
-                    {adjustedDistribution.presentationInfo && adjustedDistribution.presentationInfo.hasPresentations && (
-                      <View style={styles.previewSection}>
-                        <Text style={styles.previewSectionTitle}>📦 Unidad de Distribución</Text>
-                        <Text style={styles.adjustHint}>
-                          Selecciona cómo distribuir a TODOS los participantes:
-                        </Text>
-                        <View style={styles.roundingFactorButtons}>
-                          <TouchableOpacity
-                            style={[
-                              styles.roundingFactorButton,
-                              globalRoundingFactor === 1 && styles.roundingFactorButtonSelected,
-                            ]}
-                            onPress={() => handleGlobalRoundingFactorChange(1)}
-                            disabled={previewLoading}
-                          >
-                            <Text style={[
-                              styles.roundingFactorButtonText,
-                              globalRoundingFactor === 1 && styles.roundingFactorButtonTextSelected,
-                            ]}>
-                              Unidades
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[
-                              styles.roundingFactorButton,
-                              globalRoundingFactor === adjustedDistribution.presentationInfo.largestFactor && styles.roundingFactorButtonSelected,
-                            ]}
-                            onPress={() => handleGlobalRoundingFactorChange(adjustedDistribution.presentationInfo!.largestFactor)}
-                            disabled={previewLoading}
-                          >
-                            <Text style={[
-                              styles.roundingFactorButtonText,
-                              globalRoundingFactor === adjustedDistribution.presentationInfo.largestFactor && styles.roundingFactorButtonTextSelected,
-                            ]}>
-                              {adjustedDistribution.presentationInfo.largestPresentation?.name || 'Presentación'} ({adjustedDistribution.presentationInfo.largestFactor} unidades)
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                        {previewLoading && (
-                          <View style={styles.previewLoadingContainer}>
-                            <ActivityIndicator color="#6366F1" />
-                            <Text style={styles.previewLoadingText}>Recalculando cantidades...</Text>
+                    {adjustedDistribution.presentationInfo &&
+                      adjustedDistribution.presentationInfo.hasPresentations && (
+                        <View style={styles.previewSection}>
+                          <Text style={styles.previewSectionTitle}>📦 Unidad de Distribución</Text>
+                          <Text style={styles.adjustHint}>
+                            Selecciona cómo distribuir a TODOS los participantes:
+                          </Text>
+                          <View style={styles.roundingFactorButtons}>
+                            <TouchableOpacity
+                              style={[
+                                styles.roundingFactorButton,
+                                globalRoundingFactor === 1 && styles.roundingFactorButtonSelected,
+                              ]}
+                              onPress={() => handleGlobalRoundingFactorChange(1)}
+                              disabled={previewLoading}
+                            >
+                              <Text
+                                style={[
+                                  styles.roundingFactorButtonText,
+                                  globalRoundingFactor === 1 &&
+                                    styles.roundingFactorButtonTextSelected,
+                                ]}
+                              >
+                                Unidades
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[
+                                styles.roundingFactorButton,
+                                globalRoundingFactor ===
+                                  adjustedDistribution.presentationInfo.largestFactor &&
+                                  styles.roundingFactorButtonSelected,
+                              ]}
+                              onPress={() =>
+                                handleGlobalRoundingFactorChange(
+                                  adjustedDistribution.presentationInfo!.largestFactor
+                                )
+                              }
+                              disabled={previewLoading}
+                            >
+                              <Text
+                                style={[
+                                  styles.roundingFactorButtonText,
+                                  globalRoundingFactor ===
+                                    adjustedDistribution.presentationInfo.largestFactor &&
+                                    styles.roundingFactorButtonTextSelected,
+                                ]}
+                              >
+                                {adjustedDistribution.presentationInfo.largestPresentation?.name ||
+                                  'Presentación'}{' '}
+                                ({adjustedDistribution.presentationInfo.largestFactor} unidades)
+                              </Text>
+                            </TouchableOpacity>
                           </View>
-                        )}
-                      </View>
-                    )}
+                          {previewLoading && (
+                            <View style={styles.previewLoadingContainer}>
+                              <ActivityIndicator color="#6366F1" />
+                              <Text style={styles.previewLoadingText}>
+                                Recalculando cantidades...
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
 
                     {/* Detalle por Participante - EDITABLE */}
                     <View style={styles.previewSection}>
-                      <Text style={styles.previewSectionTitle}>
-                        Distribución por Participante
-                      </Text>
+                      <Text style={styles.previewSectionTitle}>Distribución por Participante</Text>
                       <Text style={styles.adjustHint}>
                         ✏️ Puedes editar las cantidades manualmente si es necesario
                       </Text>
 
-                      {getSortedDistributions().map((dist, index) => (
+                      {getSortedDistributions.map((dist: any, index: number) => (
                         <View key={dist.participantId} style={styles.editableItem}>
                           <View style={styles.editableItemHeader}>
                             <Text style={styles.editableParticipantName}>
                               {dist.participantName}
                             </Text>
                             <Text style={styles.editableParticipantType}>
-                              {adjustedDistribution.preview.find(p => p.participantId === dist.participantId)?.participantType === 'EXTERNAL_COMPANY'
+                              {adjustedDistribution.preview.find(
+                                (p) => p.participantId === dist.participantId
+                              )?.participantType === 'EXTERNAL_COMPANY'
                                 ? '🏢 Empresa'
                                 : '🏛️ Sede'}
                             </Text>
@@ -1645,7 +1726,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                                 keyboardType="numeric"
                                 placeholder="0"
                                 value={dist.quantityBase.toString()}
-                                onChangeText={(text) => handleQuantityChange(dist.participantId, parseInt(text) || 0)}
+                                onChangeText={(text) =>
+                                  handleQuantityChange(dist.participantId, parseInt(text) || 0)
+                                }
                               />
                               <Text style={styles.editableQuantityUnit}>unidades</Text>
                             </View>
@@ -1654,7 +1737,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                             {dist.roundingFactor > 1 && dist.quantityPresentation !== undefined && (
                               <View style={styles.presentationEquivalence}>
                                 <Text style={styles.presentationEquivalenceText}>
-                                  = {dist.quantityPresentation} {adjustedDistribution.presentationInfo?.largestPresentation?.name || 'presentaciones'}
+                                  = {dist.quantityPresentation}{' '}
+                                  {adjustedDistribution.presentationInfo?.largestPresentation
+                                    ?.name || 'presentaciones'}
                                 </Text>
                               </View>
                             )}
@@ -1671,13 +1756,13 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                         onPress={() => setIncludeInSheet(!includeInSheet)}
                         activeOpacity={0.7}
                       >
-                        <View style={[
-                          styles.includeInSheetCheckbox,
-                          includeInSheet && styles.includeInSheetCheckboxChecked,
-                        ]}>
-                          {includeInSheet && (
-                            <Text style={styles.includeInSheetCheckmark}>✓</Text>
-                          )}
+                        <View
+                          style={[
+                            styles.includeInSheetCheckbox,
+                            includeInSheet && styles.includeInSheetCheckboxChecked,
+                          ]}
+                        >
+                          {includeInSheet && <Text style={styles.includeInSheetCheckmark}>✓</Text>}
                         </View>
                         <View style={styles.includeInSheetTextContainer}>
                           <Text style={styles.includeInSheetLabelLarge}>
@@ -1698,17 +1783,17 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                       <Text style={styles.infoText}>
                         {selectedDistributionType === DistributionType.CUSTOM ? (
                           <>
-                            • Ingresa las cantidades manualmente para cada participante{'\n'}
-                            • La suma NO debe exceder el total disponible{'\n'}
-                            • Puedes dejar participantes en 0 si no recibirán producto{'\n'}
-                            • Una vez generado, el reparto NO se puede modificar
+                            • Ingresa las cantidades manualmente para cada participante{'\n'}• La
+                            suma NO debe exceder el total disponible{'\n'}• Puedes dejar
+                            participantes en 0 si no recibirán producto{'\n'}• Una vez generado, el
+                            reparto NO se puede modificar
                           </>
                         ) : (
                           <>
-                            • Las cantidades se calculan proporcionalmente según los montos asignados{'\n'}
-                            • El remanente por redondeo se distribuirá automáticamente{'\n'}
-                            • Puedes cambiar el tipo de distribución antes de generar{'\n'}
-                            • Una vez generado, el reparto NO se puede modificar
+                            • Las cantidades se calculan proporcionalmente según los montos
+                            asignados{'\n'}• El remanente por redondeo se distribuirá
+                            automáticamente{'\n'}• Puedes cambiar el tipo de distribución antes de
+                            generar{'\n'}• Una vez generado, el reparto NO se puede modificar
                           </>
                         )}
                       </Text>
@@ -1723,7 +1808,12 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                   onPress={() => setShowAdjustModal(false)}
                   disabled={actionLoading}
                 >
-                  <Text style={[styles.modalCancelButtonText, isTablet && styles.modalCancelButtonTextTablet]}>
+                  <Text
+                    style={[
+                      styles.modalCancelButtonText,
+                      isTablet && styles.modalCancelButtonTextTablet,
+                    ]}
+                  >
                     Cancelar
                   </Text>
                 </TouchableOpacity>
@@ -1735,7 +1825,12 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                   {actionLoading ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text style={[styles.modalConfirmButtonText, isTablet && styles.modalConfirmButtonTextTablet]}>
+                    <Text
+                      style={[
+                        styles.modalConfirmButtonText,
+                        isTablet && styles.modalConfirmButtonTextTablet,
+                      ]}
+                    >
                       Confirmar y Generar
                     </Text>
                   )}
@@ -3034,4 +3129,3 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 });
-

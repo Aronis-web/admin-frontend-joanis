@@ -108,10 +108,12 @@ const calculateSubtotal = (cantidad: number, precio: number): number => {
  */
 const isValidProduct = (product: EditableProduct): boolean => {
   return !!(
-    product.sku?.trim() &&
-    product.nombre?.trim() &&
-    isValidNumber(product.cantidad_total) &&
-    product.cantidad_total > 0
+    (
+      product.sku?.trim() &&
+      product.nombre?.trim() &&
+      isValidNumber(product.cantidad_total) &&
+      product.cantidad_total > 0
+    )
     // precio_unitario and subtotal_fila are optional (can be 0 or null)
   );
 };
@@ -187,38 +189,56 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
   const isTablet = width >= 768 || height >= 768;
 
   // Get data for current purchase - subscribe directly to purchaseFiles
-  const scannedFiles = useMemo(() => purchaseFiles[purchaseId]?.files || [], [purchaseFiles, purchaseId]);
-  const observaciones = useMemo(() => purchaseFiles[purchaseId]?.observaciones || '', [purchaseFiles, purchaseId]);
-  const editingProductId = useMemo(() => editingProductIds[purchaseId] || null, [editingProductIds, purchaseId]);
+  const scannedFiles = useMemo(
+    () => purchaseFiles[purchaseId]?.files || [],
+    [purchaseFiles, purchaseId]
+  );
+  const observaciones = useMemo(
+    () => purchaseFiles[purchaseId]?.observaciones || '',
+    [purchaseFiles, purchaseId]
+  );
+  const editingProductId = useMemo(
+    () => editingProductIds[purchaseId] || null,
+    [editingProductIds, purchaseId]
+  );
 
   // Filter products for current purchase
   const products = useMemo(() => {
-    return scannedProducts.filter(p => p.purchaseId === purchaseId);
+    return scannedProducts.filter((p) => p.purchaseId === purchaseId);
   }, [scannedProducts, purchaseId]);
 
   // Get scan jobs for current purchase
-  const purchaseJobs = useMemo(() => getScanJobsByPurchase(purchaseId), [purchaseId, getScanJobsByPurchase, scanJobs]);
-  const activeJob = useMemo(() => purchaseJobs.find(j => j.status === 'scanning'), [purchaseJobs]);
+  const purchaseJobs = useMemo(
+    () => getScanJobsByPurchase(purchaseId),
+    [purchaseId, getScanJobsByPurchase, scanJobs]
+  );
+  const activeJob = useMemo(
+    () => purchaseJobs.find((j) => j.status === 'scanning'),
+    [purchaseJobs]
+  );
   const isScanning = !!activeJob;
   const scanningProgress = activeJob?.progress || null;
 
   // Get last completed job for this purchase
   const lastCompletedJob = useMemo(() => {
-    const completed = purchaseJobs.filter(j => j.status === 'completed').sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+    const completed = purchaseJobs
+      .filter((j) => j.status === 'completed')
+      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
     return completed[0];
   }, [purchaseJobs]);
 
   // Load products when modal opens
   useEffect(() => {
     if (visible) {
-      logger.debug(`📂 Modal opened for purchase ${purchaseId}. Found ${products.length} scanned products and ${purchaseJobs.length} jobs.`);
+      logger.debug(
+        `📂 Modal opened for purchase ${purchaseId}. Found ${products.length} scanned products and ${purchaseJobs.length} jobs.`
+      );
     }
   }, [visible, purchaseId, products.length, purchaseJobs.length]);
 
   // Memoized calculations for better performance
   const canConfirm = useMemo(() => {
-    return products.length > 0 &&
-           products.some(p => isValidProduct(p));
+    return products.length > 0 && products.some((p) => isValidProduct(p));
   }, [products]);
 
   const totalProducts = useMemo(() => products.length, [products]);
@@ -231,7 +251,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
   }, [products]);
 
   const invalidProductsCount = useMemo(() => {
-    return products.filter(p => !isValidProduct(p)).length;
+    return products.filter((p) => !isValidProduct(p)).length;
   }, [products]);
 
   const handleClose = useCallback(() => {
@@ -240,7 +260,13 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     setObservacionesInStore(purchaseId, '');
     setEditingProductIdInStore(purchaseId, null);
     onClose();
-  }, [clearFilesFromStore, setObservacionesInStore, setEditingProductIdInStore, purchaseId, onClose]);
+  }, [
+    clearFilesFromStore,
+    setObservacionesInStore,
+    setEditingProductIdInStore,
+    purchaseId,
+    onClose,
+  ]);
 
   const scanDocuments = useCallback(async () => {
     if (scannedFiles.length === 0) {
@@ -286,7 +312,14 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     );
 
     logger.debug(`✅ Scan job ${job.id} added to queue`);
-  }, [scannedFiles, observaciones, purchaseId, clearFilesFromStore, setObservacionesInStore, isScanning]);
+  }, [
+    scannedFiles,
+    observaciones,
+    purchaseId,
+    clearFilesFromStore,
+    setObservacionesInStore,
+    isScanning,
+  ]);
 
   const pickImage = useCallback(async () => {
     try {
@@ -324,7 +357,9 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           addFilesToStore(purchaseId, newFiles);
         }
 
-        logger.debug(`📁 Added ${newFiles.length} files. Total: ${scannedFiles.length + newFiles.length}`);
+        logger.debug(
+          `📁 Added ${newFiles.length} files. Total: ${scannedFiles.length + newFiles.length}`
+        );
       }
     } catch (error) {
       logger.error('Error picking image:', error);
@@ -342,10 +377,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
       if (status !== 'granted') {
-        Alert.alert(
-          'Permisos requeridos',
-          'Se necesitan permisos para acceder a la cámara.'
-        );
+        Alert.alert('Permisos requeridos', 'Se necesitan permisos para acceder a la cámara.');
         return;
       }
 
@@ -379,7 +411,11 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       }
 
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['image/*', 'application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        type: [
+          'image/*',
+          'application/pdf',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
         copyToCacheDirectory: true,
         multiple: true, // Allow multiple selection
       });
@@ -389,7 +425,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       }
 
       if (result.assets && result.assets.length > 0) {
-        const newFiles = result.assets.map(asset => ({
+        const newFiles = result.assets.map((asset) => ({
           uri: asset.uri,
           name: asset.name,
           mimeType: asset.mimeType || 'application/pdf',
@@ -405,7 +441,9 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           addFilesToStore(purchaseId, newFiles);
         }
 
-        logger.debug(`📄 Added ${newFiles.length} documents. Total: ${scannedFiles.length + newFiles.length}`);
+        logger.debug(
+          `📄 Added ${newFiles.length} documents. Total: ${scannedFiles.length + newFiles.length}`
+        );
       }
     } catch (error) {
       logger.error('Error picking document:', error);
@@ -413,10 +451,13 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     }
   }, [scannedFiles, addFilesToStore, purchaseId]);
 
-  const removeFile = useCallback((index: number) => {
-    removeFileFromStore(purchaseId, index);
-    logger.debug(`🗑️ File removed. Total: ${scannedFiles.length - 1}`);
-  }, [removeFileFromStore, purchaseId, scannedFiles.length]);
+  const removeFile = useCallback(
+    (index: number) => {
+      removeFileFromStore(purchaseId, index);
+      logger.debug(`🗑️ File removed. Total: ${scannedFiles.length - 1}`);
+    },
+    [removeFileFromStore, purchaseId, scannedFiles.length]
+  );
 
   const handleAddNewRow = useCallback(() => {
     const newProduct: OcrScannedProduct = {
@@ -436,11 +477,9 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     setEditingProductIdInStore(purchaseId, newProduct.id);
   }, [purchaseId, setEditingProductIdInStore]);
 
-  const handleDeleteProduct = useCallback((productId: string) => {
-    Alert.alert(
-      'Confirmar',
-      '¿Deseas eliminar este producto?',
-      [
+  const handleDeleteProduct = useCallback(
+    (productId: string) => {
+      Alert.alert('Confirmar', '¿Deseas eliminar este producto?', [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Eliminar',
@@ -449,43 +488,52 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
             removeScannedProduct(productId);
           },
         },
-      ]
-    );
-  }, [removeScannedProduct]);
+      ]);
+    },
+    [removeScannedProduct]
+  );
 
-  const handleUpdateProduct = useCallback((productId: string, field: keyof OcrScannedProduct, value: any) => {
-    const product = scannedProducts.find(p => p.id === productId);
-    if (!product) return;
+  const handleUpdateProduct = useCallback(
+    (productId: string, field: keyof OcrScannedProduct, value: any) => {
+      const product = scannedProducts.find((p) => p.id === productId);
+      if (!product) {
+        return;
+      }
 
-    const updated: Partial<OcrScannedProduct> = { [field]: value };
+      const updated: Partial<OcrScannedProduct> = { [field]: value };
 
-    // Validate and normalize numeric values
-    if (['cajas', 'unidades_por_caja', 'cantidad_total', 'precio_unitario'].includes(field)) {
-      const currentValue = product[field as keyof OcrScannedProduct];
-      const numValue = safeNumber(value, typeof currentValue === 'number' ? currentValue : 0);
-      updated[field as keyof OcrScannedProduct] = Math.max(0, numValue) as any;
-    }
+      // Validate and normalize numeric values
+      if (['cajas', 'unidades_por_caja', 'cantidad_total', 'precio_unitario'].includes(field)) {
+        const currentValue = product[field as keyof OcrScannedProduct];
+        const numValue = safeNumber(value, typeof currentValue === 'number' ? currentValue : 0);
+        updated[field as keyof OcrScannedProduct] = Math.max(0, numValue) as any;
+      }
 
-    // Recalculate dependencies based on field changed
-    if (field === 'cajas' || field === 'unidades_por_caja') {
-      const cajas = field === 'cajas' ? (updated.cajas ?? product.cajas) : product.cajas;
-      const unidadesPorCaja = field === 'unidades_por_caja' ? (updated.unidades_por_caja ?? product.unidades_por_caja) : product.unidades_por_caja;
-      updated.cantidad_total = cajas * unidadesPorCaja;
-    }
+      // Recalculate dependencies based on field changed
+      if (field === 'cajas' || field === 'unidades_por_caja') {
+        const cajas = field === 'cajas' ? (updated.cajas ?? product.cajas) : product.cajas;
+        const unidadesPorCaja =
+          field === 'unidades_por_caja'
+            ? (updated.unidades_por_caja ?? product.unidades_por_caja)
+            : product.unidades_por_caja;
+        updated.cantidad_total = cajas * unidadesPorCaja;
+      }
 
-    // Always recalculate subtotal when relevant fields change
-    if (['cajas', 'unidades_por_caja', 'cantidad_total', 'precio_unitario'].includes(field)) {
-      const cantidadTotal = updated.cantidad_total ?? product.cantidad_total;
-      const precioUnitario = updated.precio_unitario ?? product.precio_unitario;
-      updated.subtotal_fila = calculateSubtotal(cantidadTotal, precioUnitario);
-    }
+      // Always recalculate subtotal when relevant fields change
+      if (['cajas', 'unidades_por_caja', 'cantidad_total', 'precio_unitario'].includes(field)) {
+        const cantidadTotal = updated.cantidad_total ?? product.cantidad_total;
+        const precioUnitario = updated.precio_unitario ?? product.precio_unitario;
+        updated.subtotal_fila = calculateSubtotal(cantidadTotal, precioUnitario);
+      }
 
-    updateScannedProduct(productId, updated);
-  }, [scannedProducts, updateScannedProduct]);
+      updateScannedProduct(productId, updated);
+    },
+    [scannedProducts, updateScannedProduct]
+  );
 
   const handleConfirm = useCallback(() => {
     // Validate products using pure function
-    const invalidProducts = products.filter(p => !isValidProduct(p));
+    const invalidProducts = products.filter((p) => !isValidProduct(p));
 
     if (invalidProducts.length > 0) {
       Alert.alert(
@@ -503,7 +551,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     logger.debug(`✅ Confirming ${products.length} products`);
 
     // Convert to EditableProduct format for backward compatibility
-    const editableProducts: EditableProduct[] = products.map(p => ({
+    const editableProducts: EditableProduct[] = products.map((p) => ({
       id: p.id,
       sku: p.sku,
       nombre: p.nombre,
@@ -517,8 +565,8 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     onProductsConfirmed(editableProducts);
 
     // Clear products for this purchase after confirmation
-    const productIds = products.map(p => p.id);
-    productIds.forEach(id => removeScannedProduct(id));
+    const productIds = products.map((p) => p.id);
+    productIds.forEach((id) => removeScannedProduct(id));
 
     // Clear files and observaciones
     clearFilesFromStore(purchaseId);
@@ -526,7 +574,16 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     setEditingProductIdInStore(purchaseId, null);
 
     onClose();
-  }, [products, onProductsConfirmed, removeScannedProduct, clearFilesFromStore, setObservacionesInStore, setEditingProductIdInStore, purchaseId, onClose]);
+  }, [
+    products,
+    onProductsConfirmed,
+    removeScannedProduct,
+    clearFilesFromStore,
+    setObservacionesInStore,
+    setEditingProductIdInStore,
+    purchaseId,
+    onClose,
+  ]);
 
   // Handler to clear all scanned products for this purchase
   const handleClearAllProducts = useCallback(() => {
@@ -539,9 +596,11 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           text: 'Borrar Todo',
           style: 'destructive',
           onPress: () => {
-            const productIds = products.map(p => p.id);
-            productIds.forEach(id => removeScannedProduct(id));
-            logger.debug(`🗑️ Cleared all ${productIds.length} scanned products for purchase ${purchaseId}`);
+            const productIds = products.map((p) => p.id);
+            productIds.forEach((id) => removeScannedProduct(id));
+            logger.debug(
+              `🗑️ Cleared all ${productIds.length} scanned products for purchase ${purchaseId}`
+            );
             Alert.alert('Éxito', 'Todos los productos escaneados han sido eliminados.');
           },
         },
@@ -549,129 +608,145 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     );
   }, [products, removeScannedProduct, purchaseId]);
 
-  const renderProductRow = useCallback((product: OcrScannedProduct, index: number) => {
-    const isEditing = editingProductId === product.id;
+  const renderProductRow = useCallback(
+    (product: OcrScannedProduct, index: number) => {
+      const isEditing = editingProductId === product.id;
 
-    return (
-      <View key={product.id} style={[styles.productRow, isTablet && styles.productRowTablet]}>
-        <View style={styles.productRowHeader}>
-          <Text style={[styles.productRowNumber, isTablet && styles.productRowNumberTablet]}>
-            #{index + 1}
-          </Text>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDeleteProduct(product.id)}
-          >
-            <Text style={styles.deleteButtonText}>🗑️</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.productFields}>
-          {/* SKU */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>SKU</Text>
-            <TextInput
-              style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
-              value={product.sku}
-              onChangeText={(value) => handleUpdateProduct(product.id, 'sku', value)}
-              placeholder="SKU"
-              placeholderTextColor="#94A3B8"
-            />
+      return (
+        <View key={product.id} style={[styles.productRow, isTablet && styles.productRowTablet]}>
+          <View style={styles.productRowHeader}>
+            <Text style={[styles.productRowNumber, isTablet && styles.productRowNumberTablet]}>
+              #{index + 1}
+            </Text>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDeleteProduct(product.id)}
+            >
+              <Text style={styles.deleteButtonText}>🗑️</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Nombre */}
-          <View style={[styles.fieldGroup, styles.fieldGroupWide]}>
-            <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Nombre</Text>
-            <TextInput
-              style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
-              value={product.nombre}
-              onChangeText={(value) => handleUpdateProduct(product.id, 'nombre', value)}
-              placeholder="Nombre del producto"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
+          <View style={styles.productFields}>
+            {/* SKU */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>SKU</Text>
+              <TextInput
+                style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
+                value={product.sku}
+                onChangeText={(value) => handleUpdateProduct(product.id, 'sku', value)}
+                placeholder="SKU"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
 
-          {/* Cajas */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Cajas</Text>
-            <TextInput
-              style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
-              value={String(product.cajas)}
-              onChangeText={(value) => handleUpdateProduct(product.id, 'cajas', safeParseInt(value, 0))}
-              placeholder="0"
-              placeholderTextColor="#94A3B8"
-              keyboardType="number-pad"
-            />
-          </View>
+            {/* Nombre */}
+            <View style={[styles.fieldGroup, styles.fieldGroupWide]}>
+              <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Nombre</Text>
+              <TextInput
+                style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
+                value={product.nombre}
+                onChangeText={(value) => handleUpdateProduct(product.id, 'nombre', value)}
+                placeholder="Nombre del producto"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
 
-          {/* Unidades por caja */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Und/Caja</Text>
-            <TextInput
-              style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
-              value={String(product.unidades_por_caja)}
-              onChangeText={(value) => handleUpdateProduct(product.id, 'unidades_por_caja', safeParseInt(value, 0))}
-              placeholder="0"
-              placeholderTextColor="#94A3B8"
-              keyboardType="number-pad"
-            />
-          </View>
-
-          {/* Cantidad total */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Total</Text>
-            <TextInput
-              style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
-              value={String(product.cantidad_total)}
-              onChangeText={(value) => handleUpdateProduct(product.id, 'cantidad_total', safeParseInt(value, 0))}
-              placeholder="0"
-              placeholderTextColor="#94A3B8"
-              keyboardType="number-pad"
-            />
-          </View>
-
-          {/* Precio unitario */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Precio</Text>
-            <TextInput
-              style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
-              value={String(product.precio_unitario)}
-              onChangeText={(value) => {
-                // Allow empty string for editing, otherwise parse the value
-                if (value === '' || value === '.') {
-                  handleUpdateProduct(product.id, 'precio_unitario', 0);
-                } else {
-                  const parsed = safeParseFloat(value, product.precio_unitario);
-                  handleUpdateProduct(product.id, 'precio_unitario', parsed);
+            {/* Cajas */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Cajas</Text>
+              <TextInput
+                style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
+                value={String(product.cajas)}
+                onChangeText={(value) =>
+                  handleUpdateProduct(product.id, 'cajas', safeParseInt(value, 0))
                 }
-              }}
-              placeholder="0.00"
-              placeholderTextColor="#94A3B8"
-              keyboardType="decimal-pad"
-            />
-          </View>
+                placeholder="0"
+                placeholderTextColor="#94A3B8"
+                keyboardType="number-pad"
+              />
+            </View>
 
-          {/* Subtotal */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Subtotal</Text>
-            <View style={[styles.fieldInput, isTablet && styles.fieldInputTablet, styles.fieldInputReadonly]}>
-              <Text style={styles.fieldInputReadonlyText}>
-                S/ {product.subtotal_fila !== null && product.subtotal_fila !== undefined && isFinite(product.subtotal_fila) && !isNaN(product.subtotal_fila) ? product.subtotal_fila.toFixed(2) : '0.00'}
-              </Text>
+            {/* Unidades por caja */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Und/Caja</Text>
+              <TextInput
+                style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
+                value={String(product.unidades_por_caja)}
+                onChangeText={(value) =>
+                  handleUpdateProduct(product.id, 'unidades_por_caja', safeParseInt(value, 0))
+                }
+                placeholder="0"
+                placeholderTextColor="#94A3B8"
+                keyboardType="number-pad"
+              />
+            </View>
+
+            {/* Cantidad total */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Total</Text>
+              <TextInput
+                style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
+                value={String(product.cantidad_total)}
+                onChangeText={(value) =>
+                  handleUpdateProduct(product.id, 'cantidad_total', safeParseInt(value, 0))
+                }
+                placeholder="0"
+                placeholderTextColor="#94A3B8"
+                keyboardType="number-pad"
+              />
+            </View>
+
+            {/* Precio unitario */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Precio</Text>
+              <TextInput
+                style={[styles.fieldInput, isTablet && styles.fieldInputTablet]}
+                value={String(product.precio_unitario)}
+                onChangeText={(value) => {
+                  // Allow empty string for editing, otherwise parse the value
+                  if (value === '' || value === '.') {
+                    handleUpdateProduct(product.id, 'precio_unitario', 0);
+                  } else {
+                    const parsed = safeParseFloat(value, product.precio_unitario);
+                    handleUpdateProduct(product.id, 'precio_unitario', parsed);
+                  }
+                }}
+                placeholder="0.00"
+                placeholderTextColor="#94A3B8"
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            {/* Subtotal */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>Subtotal</Text>
+              <View
+                style={[
+                  styles.fieldInput,
+                  isTablet && styles.fieldInputTablet,
+                  styles.fieldInputReadonly,
+                ]}
+              >
+                <Text style={styles.fieldInputReadonlyText}>
+                  S/{' '}
+                  {product.subtotal_fila !== null &&
+                  product.subtotal_fila !== undefined &&
+                  isFinite(product.subtotal_fila) &&
+                  !isNaN(product.subtotal_fila)
+                    ? product.subtotal_fila.toFixed(2)
+                    : '0.00'}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
-    );
-  }, [editingProductId, isTablet, handleUpdateProduct, handleDeleteProduct]);
+      );
+    },
+    [editingProductId, isTablet, handleUpdateProduct, handleDeleteProduct]
+  );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={handleClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
@@ -771,8 +846,11 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                   <View key={index} style={styles.fileItem}>
                     <View style={styles.fileInfo}>
                       <Text style={styles.fileIcon}>
-                        {file.mimeType.startsWith('image/') ? '🖼️' :
-                         file.mimeType === 'application/pdf' ? '📄' : '📊'}
+                        {file.mimeType.startsWith('image/')
+                          ? '🖼️'
+                          : file.mimeType === 'application/pdf'
+                            ? '📄'
+                            : '📊'}
                       </Text>
                       <View style={styles.fileDetails}>
                         <Text style={styles.fileName} numberOfLines={1}>
@@ -812,7 +890,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                     <View
                       style={[
                         styles.progressBar,
-                        { width: `${(scanningProgress.current / scanningProgress.total) * 100}%` }
+                        { width: `${(scanningProgress.current / scanningProgress.total) * 100}%` },
                       ]}
                     />
                   </View>
@@ -823,7 +901,8 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                     Escaneando {scannedFiles.length} documento(s)...
                   </Text>
                   <Text style={[styles.scanningSubtext, isTablet && styles.scanningTextTablet]}>
-                    Esto puede tomar unos segundos. Puedes cerrar el modal y el escaneo continuará en segundo plano.
+                    Esto puede tomar unos segundos. Puedes cerrar el modal y el escaneo continuará
+                    en segundo plano.
                   </Text>
                 </>
               )}
@@ -838,16 +917,10 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                   Productos Detectados ({products.length})
                 </Text>
                 <View style={styles.productsSectionActions}>
-                  <TouchableOpacity
-                    style={styles.addRowButton}
-                    onPress={handleAddNewRow}
-                  >
+                  <TouchableOpacity style={styles.addRowButton} onPress={handleAddNewRow}>
                     <Text style={styles.addRowButtonText}>+ Agregar Fila</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.clearAllButton}
-                    onPress={handleClearAllProducts}
-                  >
+                  <TouchableOpacity style={styles.clearAllButton} onPress={handleClearAllProducts}>
                     <Text style={styles.clearAllButtonText}>🗑️ Borrar Todo</Text>
                   </TouchableOpacity>
                 </View>
@@ -911,7 +984,9 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={[styles.confirmButtonText, isTablet && styles.confirmButtonTextTablet]}>
+                <Text
+                  style={[styles.confirmButtonText, isTablet && styles.confirmButtonTextTablet]}
+                >
                   Confirmar {products.length} Producto{products.length !== 1 ? 's' : ''}
                 </Text>
               )}

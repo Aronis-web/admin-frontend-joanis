@@ -4,98 +4,107 @@ import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/store/auth';
+import { lazyLoad } from '@/utils/lazyLoad';
 
 // Type Definitions
 import { AuthStackParamList, MainStackParamList } from '@/types/navigation';
 import { AUTH_ROUTES, MAIN_ROUTES } from '@/constants/routes';
 
-// Auth Screens
+// ============================================
+// EAGER LOADED - Critical screens (always loaded)
+// ============================================
+
+// Auth Screens (always needed immediately)
 import LoginScreen from '@/screens/Auth/LoginScreen';
 import RegisterScreen from '@/screens/Auth/RegisterScreen';
 
-// Selection Screens
+// Selection Screens (needed after login)
 import { CompanySelectionScreen } from '@/screens/Selection/CompanySelectionScreen';
 import { SiteSelectionScreen } from '@/screens/Selection/SiteSelectionScreen';
 
-// Main Screens
+// Home Screen (first screen after auth)
 import HomeScreen from '@/screens/Home/HomeScreen';
-import { CompaniesScreen } from '@/screens/Companies/CompaniesScreen';
-import { CompanyDetailScreen } from '@/screens/Companies/CompanyDetailScreen';
-import { RolesPermissionsScreen } from '@/screens/Roles/RolesPermissionsScreen';
-import { UsersScreen } from '@/screens/Users/UsersScreen';
-import { AppsScreen } from '@/screens/Apps/AppsScreen';
-import { SitesScreen } from '@/screens/Sites/SitesScreen';
-import { WarehousesScreen, WarehouseAreasScreen } from '@/screens/Warehouses';
-import { PermissionsDebugScreen } from '@/screens/Debug/PermissionsDebugScreen';
-import { ProductsScreen } from '@/screens/Inventory/ProductsScreen';
-import { StockScreen } from '@/screens/Inventory/StockScreen';
-import { PriceProfilesScreen } from '@/screens/PriceProfiles/PriceProfilesScreen';
-import { PresentationsScreen } from '@/screens/Presentations/PresentationsScreen';
 
-// Transfers Screens
-import InternalTransfersScreen from '@/screens/Transfers/InternalTransfersScreen';
-import ExternalTransfersScreen from '@/screens/Transfers/ExternalTransfersScreen';
-import ReceptionsScreen from '@/screens/Transfers/ReceptionsScreen';
-import TransferDetailScreen from '@/screens/Transfers/TransferDetailScreen';
+// ============================================
+// LAZY LOADED - Heavy screens (loaded on demand)
+// ============================================
 
-// Suppliers Screens
-import { SuppliersScreen } from '@/screens/Suppliers/SuppliersScreen';
-import { SupplierDetailScreen } from '@/screens/Suppliers/SupplierDetailScreen';
+// Main Screens - Lazy Loaded
+const CompaniesScreen = lazyLoad(() => import('@/screens/Companies/CompaniesScreen').then(m => ({ default: m.CompaniesScreen })));
+const CompanyDetailScreen = lazyLoad(() => import('@/screens/Companies/CompanyDetailScreen').then(m => ({ default: m.CompanyDetailScreen })));
+const RolesPermissionsScreen = lazyLoad(() => import('@/screens/Roles/RolesPermissionsScreen').then(m => ({ default: m.RolesPermissionsScreen })));
+const UsersScreen = lazyLoad(() => import('@/screens/Users/UsersScreen').then(m => ({ default: m.UsersScreen })));
+const AppsScreen = lazyLoad(() => import('@/screens/Apps/AppsScreen').then(m => ({ default: m.AppsScreen })));
+const SitesScreen = lazyLoad(() => import('@/screens/Sites/SitesScreen').then(m => ({ default: m.SitesScreen })));
+const WarehousesScreen = lazyLoad(() => import('@/screens/Warehouses').then(m => ({ default: m.WarehousesScreen })));
+const WarehouseAreasScreen = lazyLoad(() => import('@/screens/Warehouses').then(m => ({ default: m.WarehouseAreasScreen })));
+const PermissionsDebugScreen = lazyLoad(() => import('@/screens/Debug/PermissionsDebugScreen').then(m => ({ default: m.PermissionsDebugScreen })));
+const ProductsScreen = lazyLoad(() => import('@/screens/Inventory/ProductsScreen').then(m => ({ default: m.ProductsScreen })), 'Cargando productos...');
+const StockScreen = lazyLoad(() => import('@/screens/Inventory/StockScreen').then(m => ({ default: m.StockScreen })), 'Cargando inventario...');
+const PriceProfilesScreen = lazyLoad(() => import('@/screens/PriceProfiles/PriceProfilesScreen').then(m => ({ default: m.PriceProfilesScreen })));
+const PresentationsScreen = lazyLoad(() => import('@/screens/Presentations/PresentationsScreen').then(m => ({ default: m.PresentationsScreen })));
 
-// Purchases Screens
-import { PurchasesScreen } from '@/screens/Purchases/PurchasesScreen';
-import { CreatePurchaseScreen } from '@/screens/Purchases/CreatePurchaseScreen';
-import { PurchaseDetailScreen } from '@/screens/Purchases/PurchaseDetailScreen';
-import { AddPurchaseProductScreen } from '@/screens/Purchases/AddPurchaseProductScreen';
-import { EditPurchaseProductScreen } from '@/screens/Purchases/EditPurchaseProductScreen';
-import { ValidatePurchaseProductScreen } from '@/screens/Purchases/ValidatePurchaseProductScreen';
-import { AssignDebtScreen } from '@/screens/Purchases/AssignDebtScreen';
+// Transfers Screens - Lazy Loaded
+const InternalTransfersScreen = lazyLoad(() => import('@/screens/Transfers/InternalTransfersScreen'));
+const ExternalTransfersScreen = lazyLoad(() => import('@/screens/Transfers/ExternalTransfersScreen'));
+const ReceptionsScreen = lazyLoad(() => import('@/screens/Transfers/ReceptionsScreen'));
+const TransferDetailScreen = lazyLoad(() => import('@/screens/Transfers/TransferDetailScreen'));
 
-// Expenses Screens
-import { ExpensesScreen } from '@/screens/Expenses/ExpensesScreen';
-import { CreateExpenseScreen } from '@/screens/Expenses/CreateExpenseScreen';
-import { ExpenseDetailScreen } from '@/screens/Expenses/ExpenseDetailScreen';
-import { CreateExpensePaymentScreen } from '@/screens/Expenses/CreateExpensePaymentScreen';
-// import { ExpensePaymentsScreen } from '@/screens/Expenses/ExpensePaymentsScreen'; // Removed - payments are now managed within each expense
-import { ExpenseProjectsScreen } from '@/screens/Expenses/ExpenseProjectsScreen';
-import { CreateExpenseProjectScreen } from '@/screens/Expenses/CreateExpenseProjectScreen';
-import { ExpenseProjectDetailScreen } from '@/screens/Expenses/ExpenseProjectDetailScreen';
-import { ExpenseCategoriesScreen } from '@/screens/Expenses/ExpenseCategoriesScreen';
-import { ExpenseCategoryDetailScreen } from '@/screens/Expenses/ExpenseCategoryDetailScreen';
-import { ExpenseReportsScreen } from '@/screens/Expenses/ExpenseReportsScreen';
-import { ExpenseTemplatesScreen } from '@/screens/Expenses/ExpenseTemplatesScreen';
-import { CreateExpenseTemplateScreen } from '@/screens/Expenses/CreateExpenseTemplateScreen';
-import { TemplateExpensesScreen } from '@/screens/Expenses/TemplateExpensesScreen';
+// Suppliers Screens - Lazy Loaded
+const SuppliersScreen = lazyLoad(() => import('@/screens/Suppliers/SuppliersScreen').then(m => ({ default: m.SuppliersScreen })));
+const SupplierDetailScreen = lazyLoad(() => import('@/screens/Suppliers/SupplierDetailScreen').then(m => ({ default: m.SupplierDetailScreen })));
 
-// Campaigns Screens
-import {
-  CampaignsScreen,
-  CreateCampaignScreen,
-  CampaignDetailScreen,
-  AddParticipantScreen,
-  EditParticipantScreen,
-  AddProductScreen,
-  CampaignProductDetailScreen,
-  CampaignParticipantDetailScreen,
-} from '@/screens/Campaigns';
+// Purchases Screens - Lazy Loaded
+const PurchasesScreen = lazyLoad(() => import('@/screens/Purchases/PurchasesScreen').then(m => ({ default: m.PurchasesScreen })), 'Cargando compras...');
+const CreatePurchaseScreen = lazyLoad(() => import('@/screens/Purchases/CreatePurchaseScreen').then(m => ({ default: m.CreatePurchaseScreen })));
+const PurchaseDetailScreen = lazyLoad(() => import('@/screens/Purchases/PurchaseDetailScreen').then(m => ({ default: m.PurchaseDetailScreen })));
+const AddPurchaseProductScreen = lazyLoad(() => import('@/screens/Purchases/AddPurchaseProductScreen').then(m => ({ default: m.AddPurchaseProductScreen })));
+const EditPurchaseProductScreen = lazyLoad(() => import('@/screens/Purchases/EditPurchaseProductScreen').then(m => ({ default: m.EditPurchaseProductScreen })));
+const ValidatePurchaseProductScreen = lazyLoad(() => import('@/screens/Purchases/ValidatePurchaseProductScreen').then(m => ({ default: m.ValidatePurchaseProductScreen })));
+const AssignDebtScreen = lazyLoad(() => import('@/screens/Purchases/AssignDebtScreen').then(m => ({ default: m.AssignDebtScreen })));
 
-// Repartos Screens
-import {
-  RepartosScreen,
-  RepartoDetailScreen,
-  RepartoCampaignDetailScreen,
-  RepartoParticipantDetailScreen,
-} from '@/screens/Repartos';
+// Expenses Screens - Lazy Loaded
+const ExpensesScreen = lazyLoad(() => import('@/screens/Expenses/ExpensesScreen').then(m => ({ default: m.ExpensesScreen })), 'Cargando gastos...');
+const CreateExpenseScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpenseScreen').then(m => ({ default: m.CreateExpenseScreen })));
+const ExpenseDetailScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseDetailScreen').then(m => ({ default: m.ExpenseDetailScreen })));
+const CreateExpensePaymentScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpensePaymentScreen').then(m => ({ default: m.CreateExpensePaymentScreen })));
+const ExpenseProjectsScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseProjectsScreen').then(m => ({ default: m.ExpenseProjectsScreen })));
+const CreateExpenseProjectScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpenseProjectScreen').then(m => ({ default: m.CreateExpenseProjectScreen })));
+const ExpenseProjectDetailScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseProjectDetailScreen').then(m => ({ default: m.ExpenseProjectDetailScreen })));
+const ExpenseCategoriesScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseCategoriesScreen').then(m => ({ default: m.ExpenseCategoriesScreen })));
+const ExpenseCategoryDetailScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseCategoryDetailScreen').then(m => ({ default: m.ExpenseCategoryDetailScreen })));
+const ExpenseReportsScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseReportsScreen').then(m => ({ default: m.ExpenseReportsScreen })));
+const ExpenseTemplatesScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseTemplatesScreen').then(m => ({ default: m.ExpenseTemplatesScreen })));
+const CreateExpenseTemplateScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpenseTemplateScreen').then(m => ({ default: m.CreateExpenseTemplateScreen })));
+const TemplateExpensesScreen = lazyLoad(() => import('@/screens/Expenses/TemplateExpensesScreen').then(m => ({ default: m.TemplateExpensesScreen })));
 
-// Balances Screens
-import { BalancesScreen, CreateBalanceScreen, BalanceDetailScreen, BalanceOperationsScreen, AllBalanceOperationsScreen } from '@/screens/Balances';
+// Campaigns Screens - Lazy Loaded
+const CampaignsScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.CampaignsScreen })), 'Cargando campañas...');
+const CreateCampaignScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.CreateCampaignScreen })));
+const CampaignDetailScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.CampaignDetailScreen })));
+const AddParticipantScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.AddParticipantScreen })));
+const EditParticipantScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.EditParticipantScreen })));
+const AddProductScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.AddProductScreen })));
+const CampaignProductDetailScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.CampaignProductDetailScreen })));
+const CampaignParticipantDetailScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.CampaignParticipantDetailScreen })));
 
-// Transmisiones Screens
-import {
-  TransmisionesScreen,
-  CreateTransmisionScreen,
-  TransmisionDetailScreen,
-} from '@/screens/Transmisiones';
+// Repartos Screens - Lazy Loaded
+const RepartosScreen = lazyLoad(() => import('@/screens/Repartos').then(m => ({ default: m.RepartosScreen })), 'Cargando repartos...');
+const RepartoDetailScreen = lazyLoad(() => import('@/screens/Repartos').then(m => ({ default: m.RepartoDetailScreen })));
+const RepartoCampaignDetailScreen = lazyLoad(() => import('@/screens/Repartos').then(m => ({ default: m.RepartoCampaignDetailScreen })));
+const RepartoParticipantDetailScreen = lazyLoad(() => import('@/screens/Repartos').then(m => ({ default: m.RepartoParticipantDetailScreen })));
+
+// Balances Screens - Lazy Loaded
+const BalancesScreen = lazyLoad(() => import('@/screens/Balances').then(m => ({ default: m.BalancesScreen })));
+const CreateBalanceScreen = lazyLoad(() => import('@/screens/Balances').then(m => ({ default: m.CreateBalanceScreen })));
+const BalanceDetailScreen = lazyLoad(() => import('@/screens/Balances').then(m => ({ default: m.BalanceDetailScreen })));
+const BalanceOperationsScreen = lazyLoad(() => import('@/screens/Balances').then(m => ({ default: m.BalanceOperationsScreen })));
+const AllBalanceOperationsScreen = lazyLoad(() => import('@/screens/Balances').then(m => ({ default: m.AllBalanceOperationsScreen })));
+
+// Transmisiones Screens - Lazy Loaded
+const TransmisionesScreen = lazyLoad(() => import('@/screens/Transmisiones').then(m => ({ default: m.TransmisionesScreen })));
+const CreateTransmisionScreen = lazyLoad(() => import('@/screens/Transmisiones').then(m => ({ default: m.CreateTransmisionScreen })));
+const TransmisionDetailScreen = lazyLoad(() => import('@/screens/Transmisiones').then(m => ({ default: m.TransmisionDetailScreen })));
 
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -130,14 +139,8 @@ const AuthStack = React.memo(() => {
       screenOptions={{ headerShown: false }}
       initialRouteName={initialRouteName}
     >
-      <AuthStackNavigator.Screen
-        name={AUTH_ROUTES.LOGIN}
-        component={LoginScreen}
-      />
-      <AuthStackNavigator.Screen
-        name={AUTH_ROUTES.REGISTER}
-        component={RegisterScreen}
-      />
+      <AuthStackNavigator.Screen name={AUTH_ROUTES.LOGIN} component={LoginScreen} />
+      <AuthStackNavigator.Screen name={AUTH_ROUTES.REGISTER} component={RegisterScreen} />
       <AuthStackNavigator.Screen
         name={AUTH_ROUTES.COMPANY_SELECTION}
         component={CompanySelectionScreen}
@@ -153,49 +156,46 @@ const AuthStack = React.memo(() => {
 const MainStack = React.memo(() => {
   return (
     <MainStackNavigator.Navigator screenOptions={{ headerShown: false }}>
-      <MainStackNavigator.Screen
-        name={MAIN_ROUTES.HOME}
-        component={HomeScreen}
-      />
+      <MainStackNavigator.Screen name={MAIN_ROUTES.HOME} component={HomeScreen} />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.COMPANIES}
         component={CompaniesScreen}
         options={{
-          title: 'Gestión de Empresas'
+          title: 'Gestión de Empresas',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.COMPANY_DETAIL}
         component={CompanyDetailScreen}
         options={{
-          title: 'Detalle de Empresa'
+          title: 'Detalle de Empresa',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.SITES}
         component={SitesScreen}
         options={{
-          title: 'Gestión de Sedes'
+          title: 'Gestión de Sedes',
         }}
       />
       <MainStackNavigator.Screen
         name="Warehouses"
         component={WarehousesScreen}
         options={{
-          title: 'Gestión de Almacenes'
+          title: 'Gestión de Almacenes',
         }}
       />
       <MainStackNavigator.Screen
         name="WarehouseAreas"
         component={WarehouseAreasScreen}
         options={{
-          title: 'Gestión de Áreas'
+          title: 'Gestión de Áreas',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.USERS}
         options={{
-          title: 'Gestión de Usuarios'
+          title: 'Gestión de Usuarios',
         }}
       >
         {(props) => (
@@ -207,7 +207,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.ROLES_PERMISSIONS}
         options={{
-          title: 'Roles y Permisos'
+          title: 'Roles y Permisos',
         }}
       >
         {(props) => (
@@ -219,7 +219,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.APPS}
         options={{
-          title: 'Gestión de Apps'
+          title: 'Gestión de Apps',
         }}
       >
         {(props) => (
@@ -231,7 +231,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.PERMISSIONS_DEBUG}
         options={{
-          title: 'Debug de Permisos'
+          title: 'Debug de Permisos',
         }}
       >
         {(props) => (
@@ -243,11 +243,13 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.PRODUCTS}
         options={{
-          title: 'Gestión de Productos'
+          title: 'Gestión de Productos',
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['products.read', 'products.create', 'products.update']}>
+          <ProtectedRoute
+            requiredPermissions={['products.read', 'products.create', 'products.update']}
+          >
             <ProductsScreen {...props} />
           </ProtectedRoute>
         )}
@@ -255,7 +257,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.STOCK}
         options={{
-          title: 'Gestión de Inventario'
+          title: 'Gestión de Inventario',
         }}
       >
         {(props) => (
@@ -268,24 +270,30 @@ const MainStack = React.memo(() => {
         name={MAIN_ROUTES.PRICE_PROFILES}
         component={PriceProfilesScreen}
         options={{
-          title: 'Perfiles de Precio'
+          title: 'Perfiles de Precio',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.PRESENTATIONS}
         component={PresentationsScreen}
         options={{
-          title: 'Presentaciones'
+          title: 'Presentaciones',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.INTERNAL_TRANSFERS}
         options={{
-          title: 'Traslados Internos'
+          title: 'Traslados Internos',
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['transfers.view.all', 'transfers.read', 'transfers.create.internal']}>
+          <ProtectedRoute
+            requiredPermissions={[
+              'transfers.view.all',
+              'transfers.read',
+              'transfers.create.internal',
+            ]}
+          >
             <InternalTransfersScreen {...props} />
           </ProtectedRoute>
         )}
@@ -293,11 +301,17 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.EXTERNAL_TRANSFERS}
         options={{
-          title: 'Traslados Externos'
+          title: 'Traslados Externos',
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['transfers.view.all', 'transfers.read', 'transfers.create.external']}>
+          <ProtectedRoute
+            requiredPermissions={[
+              'transfers.view.all',
+              'transfers.read',
+              'transfers.create.external',
+            ]}
+          >
             <ExternalTransfersScreen {...props} />
           </ProtectedRoute>
         )}
@@ -305,11 +319,17 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.RECEPTIONS}
         options={{
-          title: 'Recepciones'
+          title: 'Recepciones',
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['receptions.validate', 'receptions.complete', 'transfers.view.all']}>
+          <ProtectedRoute
+            requiredPermissions={[
+              'receptions.validate',
+              'receptions.complete',
+              'transfers.view.all',
+            ]}
+          >
             <ReceptionsScreen {...props} />
           </ProtectedRoute>
         )}
@@ -318,17 +338,24 @@ const MainStack = React.memo(() => {
         name={MAIN_ROUTES.TRANSFER_DETAIL}
         component={TransferDetailScreen}
         options={{
-          title: 'Detalle de Traslado'
+          title: 'Detalle de Traslado',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.SUPPLIERS}
         options={{
-          title: 'Proveedores'
+          title: 'Proveedores',
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['suppliers.read', 'suppliers.create', 'suppliers.update', 'providers.read']}>
+          <ProtectedRoute
+            requiredPermissions={[
+              'suppliers.read',
+              'suppliers.create',
+              'suppliers.update',
+              'providers.read',
+            ]}
+          >
             <SuppliersScreen {...props} />
           </ProtectedRoute>
         )}
@@ -337,17 +364,19 @@ const MainStack = React.memo(() => {
         name={MAIN_ROUTES.SUPPLIER_DETAIL}
         component={SupplierDetailScreen}
         options={{
-          title: 'Detalle de Proveedor'
+          title: 'Detalle de Proveedor',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.PURCHASES}
         options={{
-          title: 'Compras'
+          title: 'Compras',
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['purchases.read', 'purchases.create', 'purchases.update']}>
+          <ProtectedRoute
+            requiredPermissions={['purchases.read', 'purchases.create', 'purchases.update']}
+          >
             <PurchasesScreen {...props} />
           </ProtectedRoute>
         )}
@@ -355,7 +384,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.CREATE_PURCHASE}
         options={{
-          title: 'Nueva Compra'
+          title: 'Nueva Compra',
         }}
       >
         {(props) => (
@@ -368,41 +397,41 @@ const MainStack = React.memo(() => {
         name={MAIN_ROUTES.PURCHASE_DETAIL}
         component={PurchaseDetailScreen}
         options={{
-          title: 'Detalle de Compra'
+          title: 'Detalle de Compra',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.ADD_PURCHASE_PRODUCT}
         component={AddPurchaseProductScreen}
         options={{
-          title: 'Agregar Producto'
+          title: 'Agregar Producto',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.EDIT_PURCHASE_PRODUCT}
         component={EditPurchaseProductScreen}
         options={{
-          title: 'Editar Producto'
+          title: 'Editar Producto',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.VALIDATE_PURCHASE_PRODUCT}
         component={ValidatePurchaseProductScreen}
         options={{
-          title: 'Validar Producto'
+          title: 'Validar Producto',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.ASSIGN_DEBT}
         component={AssignDebtScreen}
         options={{
-          title: 'Asignar Deudas'
+          title: 'Asignar Deudas',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.EXPENSES}
         options={{
-          title: 'Gastos'
+          title: 'Gastos',
         }}
       >
         {(props) => (
@@ -415,21 +444,21 @@ const MainStack = React.memo(() => {
         name={MAIN_ROUTES.CREATE_EXPENSE}
         component={CreateExpenseScreen}
         options={{
-          title: 'Crear Gasto'
+          title: 'Crear Gasto',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.EXPENSE_DETAIL}
         component={ExpenseDetailScreen}
         options={{
-          title: 'Detalle de Gasto'
+          title: 'Detalle de Gasto',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.CREATE_EXPENSE_PAYMENT}
         component={CreateExpensePaymentScreen}
         options={{
-          title: 'Registrar Pago'
+          title: 'Registrar Pago',
         }}
       />
       {/* ExpensePaymentsScreen removed - payments are now managed within each expense detail */}
@@ -448,7 +477,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.EXPENSES_PROJECTS}
         options={{
-          title: 'Proyectos de Gastos'
+          title: 'Proyectos de Gastos',
         }}
       >
         {(props) => (
@@ -461,20 +490,20 @@ const MainStack = React.memo(() => {
         name={MAIN_ROUTES.CREATE_EXPENSE_PROJECT}
         component={CreateExpenseProjectScreen}
         options={{
-          title: 'Nuevo Proyecto'
+          title: 'Nuevo Proyecto',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.EXPENSE_PROJECT_DETAIL}
         component={ExpenseProjectDetailScreen}
         options={{
-          title: 'Detalle del Proyecto'
+          title: 'Detalle del Proyecto',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.EXPENSES_CATEGORIES}
         options={{
-          title: 'Categorías de Gastos'
+          title: 'Categorías de Gastos',
         }}
       >
         {(props) => (
@@ -487,13 +516,13 @@ const MainStack = React.memo(() => {
         name={MAIN_ROUTES.EXPENSE_CATEGORY_DETAIL}
         component={ExpenseCategoryDetailScreen}
         options={{
-          title: 'Detalle de Categoría'
+          title: 'Detalle de Categoría',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.EXPENSES_REPORTS}
         options={{
-          title: 'Reportes de Gastos'
+          title: 'Reportes de Gastos',
         }}
       >
         {(props) => (
@@ -505,7 +534,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.EXPENSE_TEMPLATES}
         options={{
-          title: 'Gastos Recurrentes'
+          title: 'Gastos Recurrentes',
         }}
       >
         {(props) => (
@@ -517,27 +546,23 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.CREATE_EXPENSE_TEMPLATE}
         options={{
-          title: 'Crear Plantilla'
+          title: 'Crear Plantilla',
         }}
       >
-        {(props) => (
-          <CreateExpenseTemplateScreen {...props} />
-        )}
+        {(props) => <CreateExpenseTemplateScreen {...props} />}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.EDIT_EXPENSE_TEMPLATE}
         options={{
-          title: 'Editar Plantilla'
+          title: 'Editar Plantilla',
         }}
       >
-        {(props) => (
-          <CreateExpenseTemplateScreen {...props} />
-        )}
+        {(props) => <CreateExpenseTemplateScreen {...props} />}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.TEMPLATE_EXPENSES}
         options={{
-          title: 'Gastos Generados'
+          title: 'Gastos Generados',
         }}
       >
         {(props) => (
@@ -549,7 +574,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name="Campaigns"
         options={{
-          title: 'Campañas'
+          title: 'Campañas',
         }}
       >
         {(props) => (
@@ -562,55 +587,55 @@ const MainStack = React.memo(() => {
         name="CreateCampaign"
         component={CreateCampaignScreen}
         options={{
-          title: 'Nueva Campaña'
+          title: 'Nueva Campaña',
         }}
       />
       <MainStackNavigator.Screen
         name="CampaignDetail"
         component={CampaignDetailScreen}
         options={{
-          title: 'Detalle de Campaña'
+          title: 'Detalle de Campaña',
         }}
       />
       <MainStackNavigator.Screen
         name="AddCampaignParticipant"
         component={AddParticipantScreen}
         options={{
-          title: 'Agregar Participante'
+          title: 'Agregar Participante',
         }}
       />
       <MainStackNavigator.Screen
         name="EditCampaignParticipant"
         component={EditParticipantScreen}
         options={{
-          title: 'Editar Participante'
+          title: 'Editar Participante',
         }}
       />
       <MainStackNavigator.Screen
         name="AddCampaignProduct"
         component={AddProductScreen}
         options={{
-          title: 'Agregar Producto'
+          title: 'Agregar Producto',
         }}
       />
       <MainStackNavigator.Screen
         name="CampaignProductDetail"
         component={CampaignProductDetailScreen}
         options={{
-          title: 'Detalle de Producto'
+          title: 'Detalle de Producto',
         }}
       />
       <MainStackNavigator.Screen
         name="ParticipantDetail"
         component={CampaignParticipantDetailScreen}
         options={{
-          title: 'Detalle de Participante'
+          title: 'Detalle de Participante',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.REPARTOS}
         options={{
-          title: 'Repartos'
+          title: 'Repartos',
         }}
       >
         {(props) => (
@@ -623,31 +648,33 @@ const MainStack = React.memo(() => {
         name="RepartoCampaignDetail"
         component={RepartoCampaignDetailScreen}
         options={{
-          title: 'Participantes de Campaña'
+          title: 'Participantes de Campaña',
         }}
       />
       <MainStackNavigator.Screen
         name="RepartoParticipantDetail"
         component={RepartoParticipantDetailScreen}
         options={{
-          title: 'Productos de Reparto'
+          title: 'Productos de Reparto',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.REPARTO_DETAIL}
         component={RepartoDetailScreen}
         options={{
-          title: 'Detalle de Reparto'
+          title: 'Detalle de Reparto',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.BALANCES}
         options={{
-          title: 'Balances'
+          title: 'Balances',
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['balances.read', 'balances.create', 'balances.update']}>
+          <ProtectedRoute
+            requiredPermissions={['balances.read', 'balances.create', 'balances.update']}
+          >
             <BalancesScreen {...props} />
           </ProtectedRoute>
         )}
@@ -656,24 +683,30 @@ const MainStack = React.memo(() => {
         name={MAIN_ROUTES.CREATE_BALANCE}
         component={CreateBalanceScreen}
         options={{
-          title: 'Nuevo Balance'
+          title: 'Nuevo Balance',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.BALANCE_DETAIL}
         component={BalanceDetailScreen}
         options={{
-          title: 'Detalle de Balance'
+          title: 'Detalle de Balance',
         }}
       />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.BALANCE_OPERATIONS}
         options={{
-          title: 'Operaciones de Balance'
+          title: 'Operaciones de Balance',
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['balances.operations.read', 'balances.operations.create', 'balances.operations.update']}>
+          <ProtectedRoute
+            requiredPermissions={[
+              'balances.operations.read',
+              'balances.operations.create',
+              'balances.operations.update',
+            ]}
+          >
             <BalanceOperationsScreen {...props} />
           </ProtectedRoute>
         )}
@@ -681,7 +714,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.ALL_BALANCE_OPERATIONS}
         options={{
-          title: 'Todas las Operaciones'
+          title: 'Todas las Operaciones',
         }}
       >
         {(props) => (
@@ -693,11 +726,17 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.TRANSMISIONES}
         options={{
-          title: 'Transmisiones'
+          title: 'Transmisiones',
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['transmisiones.read', 'transmisiones.create', 'transmisiones.update']}>
+          <ProtectedRoute
+            requiredPermissions={[
+              'transmisiones.read',
+              'transmisiones.create',
+              'transmisiones.update',
+            ]}
+          >
             <TransmisionesScreen {...props} />
           </ProtectedRoute>
         )}
@@ -705,7 +744,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.CREATE_TRANSMISION}
         options={{
-          title: 'Nueva Transmisión'
+          title: 'Nueva Transmisión',
         }}
       >
         {(props) => (
@@ -718,14 +757,14 @@ const MainStack = React.memo(() => {
         name={MAIN_ROUTES.TRANSMISION_DETAIL}
         component={TransmisionDetailScreen}
         options={{
-          title: 'Detalle de Transmisión'
+          title: 'Detalle de Transmisión',
         }}
       />
       <MainStackNavigator.Screen
         name={AUTH_ROUTES.SITE_SELECTION}
         component={SiteSelectionScreen}
         options={{
-          title: 'Seleccionar Sede'
+          title: 'Seleccionar Sede',
         }}
       />
     </MainStackNavigator.Navigator>
@@ -783,7 +822,9 @@ export const Navigation = () => {
 
   // Handle navigation based on auth state changes
   useEffect(() => {
-    if (!isReady || !navigationRef.current) return;
+    if (!isReady || !navigationRef.current) {
+      return;
+    }
 
     // Si está autenticado pero no tiene empresa válida, navegar a CompanySelection
     if (isAuthenticated && !hasValidCompany && !showMainStack) {
@@ -822,10 +863,7 @@ export const Navigation = () => {
         {showMainStack && (
           <>
             <FloatingActionButton onPress={() => setIsDrawerVisible(true)} />
-            <DrawerMenu
-              visible={isDrawerVisible}
-              onClose={() => setIsDrawerVisible(false)}
-            />
+            <DrawerMenu visible={isDrawerVisible} onClose={() => setIsDrawerVisible(false)} />
           </>
         )}
       </View>

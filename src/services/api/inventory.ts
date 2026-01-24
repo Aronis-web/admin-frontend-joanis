@@ -153,13 +153,20 @@ export const inventoryApi = {
 
   // Get stock by warehouse - GET /admin/inventory/stock/warehouse/:warehouseId
   getStockByWarehouse: async (warehouseId: string): Promise<StockByWarehouseResponse> => {
-    return apiClient.get<StockByWarehouseResponse>(`/admin/inventory/stock/warehouse/${warehouseId}`);
+    return apiClient.get<StockByWarehouseResponse>(
+      `/admin/inventory/stock/warehouse/${warehouseId}`
+    );
   },
 
   // Get all stock items - GET /inventory/stock
   // Note: This endpoint requires stock.read permission and may require site/warehouse context
   // Returns an array of StockItemResponse directly from the backend
-  getAllStock: async (params?: { siteId?: string; warehouseId?: string; productId?: string; areaId?: string }): Promise<StockItemResponse[]> => {
+  getAllStock: async (params?: {
+    siteId?: string;
+    warehouseId?: string;
+    productId?: string;
+    areaId?: string;
+  }): Promise<StockItemResponse[]> => {
     return apiClient.get<StockItemResponse[]>('/inventory/stock', { params });
   },
 
@@ -209,14 +216,16 @@ export const inventoryApi = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '',
+        Authorization: token ? `Bearer ${token}` : '',
         'X-App-Id': config.APP_ID,
       },
       body: JSON.stringify(exportData),
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Error al exportar el reporte' }));
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: 'Error al exportar el reporte' }));
       throw new Error(errorData.message || 'Error al exportar el reporte');
     }
 

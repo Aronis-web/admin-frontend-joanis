@@ -56,7 +56,7 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
       setPaths((prev) => [...prev, currentPath]);
       setCurrentPath('');
       // Esperar un momento para que se actualice el estado
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     try {

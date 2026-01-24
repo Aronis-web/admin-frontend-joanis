@@ -20,11 +20,7 @@ interface UserSitesModalProps {
   onClose: () => void;
 }
 
-export const UserSitesModal: React.FC<UserSitesModalProps> = ({
-  visible,
-  userId,
-  onClose,
-}) => {
+export const UserSitesModal: React.FC<UserSitesModalProps> = ({ visible, userId, onClose }) => {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -62,12 +58,7 @@ export const UserSitesModal: React.FC<UserSitesModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -108,10 +99,7 @@ export const UserSitesModal: React.FC<UserSitesModalProps> = ({
 
           {/* Actions */}
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.button, styles.closeButton]}
-              onPress={onClose}
-            >
+            <TouchableOpacity style={[styles.button, styles.closeButton]} onPress={onClose}>
               <Text style={styles.closeButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>

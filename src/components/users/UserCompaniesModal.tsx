@@ -46,7 +46,7 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
 
       // Get companies assigned to the user
       const userCompanies = await companiesApi.getUserCompanies(userId);
-      const userCompanyIds = new Set(userCompanies.map(c => c.id));
+      const userCompanyIds = new Set(userCompanies.map((c) => c.id));
       setSelectedCompanyIds(userCompanyIds);
     } catch (error: any) {
       console.error('Error loading companies:', error);
@@ -57,7 +57,7 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
   };
 
   const toggleCompany = (companyId: string) => {
-    setSelectedCompanyIds(prev => {
+    setSelectedCompanyIds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(companyId)) {
         newSet.delete(companyId);
@@ -74,7 +74,7 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
 
       // Get current user companies
       const currentCompanies = await companiesApi.getUserCompanies(userId);
-      const currentCompanyIds = new Set(currentCompanies.map(c => c.id));
+      const currentCompanyIds = new Set(currentCompanies.map((c) => c.id));
 
       // Add new companies
       for (const companyId of selectedCompanyIds) {
@@ -98,19 +98,17 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
       onClose();
     } catch (error: any) {
       console.error('Error saving companies:', error);
-      Alert.alert('Error', error.response?.data?.message || 'No se pudieron actualizar las empresas');
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'No se pudieron actualizar las empresas'
+      );
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -145,10 +143,12 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
                       <Text style={styles.companyRuc}>RUC: {company.ruc}</Text>
                       <Text style={styles.companyType}>{company.companyType}</Text>
                     </View>
-                    <View style={[
-                      styles.checkbox,
-                      selectedCompanyIds.has(company.id) && styles.checkboxChecked
-                    ]}>
+                    <View
+                      style={[
+                        styles.checkbox,
+                        selectedCompanyIds.has(company.id) && styles.checkboxChecked,
+                      ]}
+                    >
                       {selectedCompanyIds.has(company.id) && (
                         <Text style={styles.checkmark}>✓</Text>
                       )}

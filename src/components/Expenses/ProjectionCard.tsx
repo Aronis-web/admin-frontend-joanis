@@ -8,10 +8,7 @@ interface ProjectionCardProps {
   onPress: (projection: ExpenseProjection) => void;
 }
 
-export const ProjectionCard: React.FC<ProjectionCardProps> = ({
-  projection,
-  onPress,
-}) => {
+export const ProjectionCard: React.FC<ProjectionCardProps> = ({ projection, onPress }) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -63,7 +60,9 @@ export const ProjectionCard: React.FC<ProjectionCardProps> = ({
         {projection.notes && (
           <View style={styles.notesContainer}>
             <Text style={styles.notesLabel}>Notas:</Text>
-            <Text style={styles.notesText} numberOfLines={2}>{projection.notes}</Text>
+            <Text style={styles.notesText} numberOfLines={2}>
+              {projection.notes}
+            </Text>
           </View>
         )}
       </View>

@@ -21,7 +21,8 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const { user, logout, currentCompany, currentSite, setCurrentCompany, setCurrentSite } = useAuthStore();
+  const { user, logout, currentCompany, currentSite, setCurrentCompany, setCurrentSite } =
+    useAuthStore();
   const { width, height } = useWindowDimensions();
 
   // Determine if device is tablet based on width (works for both portrait and landscape)
@@ -35,7 +36,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const getUserInitials = (name: string) => {
     return name
       .split(' ')
-      .map(word => word[0])
+      .map((word) => word[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
@@ -56,20 +57,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <View style={styles.circle3} />
       </View>
 
-      <ScrollView style={[
-        styles.content,
-        isTablet && styles.contentTablet,
-        isTablet && isLandscape && styles.contentTabletLandscape
-      ]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={[
+          styles.content,
+          isTablet && styles.contentTablet,
+          isTablet && isLandscape && styles.contentTabletLandscape,
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header del Perfil */}
-        <View style={[
-          styles.profileHeader,
-          isTablet && styles.profileHeaderTablet,
-          isTablet && isLandscape && styles.profileHeaderLandscape
-        ]}>
+        <View
+          style={[
+            styles.profileHeader,
+            isTablet && styles.profileHeaderTablet,
+            isTablet && isLandscape && styles.profileHeaderLandscape,
+          ]}
+        >
           <View style={styles.avatarContainer}>
             {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={[styles.avatar, isTablet && styles.avatarTablet]} />
+              <Image
+                source={{ uri: user.avatar }}
+                style={[styles.avatar, isTablet && styles.avatarTablet]}
+              />
             ) : (
               <View style={[styles.avatarPlaceholder, isTablet && styles.avatarPlaceholderTablet]}>
                 <Text style={[styles.avatarText, isTablet && styles.avatarTextTablet]}>
@@ -80,48 +89,76 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </View>
 
           <View style={styles.profileInfo}>
-            <Text style={[styles.welcomeText, isTablet && styles.welcomeTextTablet]}>Bienvenido de nuevo</Text>
-            <Text style={[styles.userName, isTablet && styles.userNameTablet]}>{user?.name || 'Usuario'}</Text>
-            <Text style={[styles.userEmail, isTablet && styles.userEmailTablet]}>{user?.email || 'usuario@ejemplo.com'}</Text>
+            <Text style={[styles.welcomeText, isTablet && styles.welcomeTextTablet]}>
+              Bienvenido de nuevo
+            </Text>
+            <Text style={[styles.userName, isTablet && styles.userNameTablet]}>
+              {user?.name || 'Usuario'}
+            </Text>
+            <Text style={[styles.userEmail, isTablet && styles.userEmailTablet]}>
+              {user?.email || 'usuario@ejemplo.com'}
+            </Text>
             <View style={[styles.roleContainer, isTablet && styles.roleContainerTablet]}>
-              <Text style={[styles.userRole, isTablet && styles.userRoleTablet]}>{getUserRole()}</Text>
+              <Text style={[styles.userRole, isTablet && styles.userRoleTablet]}>
+                {getUserRole()}
+              </Text>
             </View>
           </View>
         </View>
 
         {/* QR Code */}
-        <View style={[
-          styles.qrSection,
-          isTablet && styles.qrSectionTablet,
-          isTablet && isLandscape && styles.qrSectionLandscape
-        ]}>
-          <View style={[
-            styles.qrContainer,
-            isTablet && styles.qrContainerTablet,
-            isTablet && isLandscape && styles.qrContainerLandscape
-          ]}>
+        <View
+          style={[
+            styles.qrSection,
+            isTablet && styles.qrSectionTablet,
+            isTablet && isLandscape && styles.qrSectionLandscape,
+          ]}
+        >
+          <View
+            style={[
+              styles.qrContainer,
+              isTablet && styles.qrContainerTablet,
+              isTablet && isLandscape && styles.qrContainerLandscape,
+            ]}
+          >
             {user?.id ? (
               <QRCodeStyled
                 data={user.id}
-                style={isTablet && isLandscape ? styles.qrCodeLandscape : isTablet ? styles.qrCodeTablet : styles.qrCode}
+                style={
+                  isTablet && isLandscape
+                    ? styles.qrCodeLandscape
+                    : isTablet
+                      ? styles.qrCodeTablet
+                      : styles.qrCode
+                }
                 color="#1E293B"
               />
             ) : (
-              <View style={[
-                styles.qrPlaceholder,
-                isTablet && styles.qrPlaceholderTablet,
-                isTablet && isLandscape && styles.qrPlaceholderLandscape
-              ]}>
-                <Text style={[
-                  styles.qrIcon,
-                  isTablet && styles.qrIconTablet,
-                  isTablet && isLandscape && styles.qrIconLandscape
-                ]}>📱</Text>
-                <Text style={[
-                  styles.qrText,
-                  isTablet && styles.qrTextTablet,
-                  isTablet && isLandscape && styles.qrTextLandscape
-                ]}>Generando QR...</Text>
+              <View
+                style={[
+                  styles.qrPlaceholder,
+                  isTablet && styles.qrPlaceholderTablet,
+                  isTablet && isLandscape && styles.qrPlaceholderLandscape,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.qrIcon,
+                    isTablet && styles.qrIconTablet,
+                    isTablet && isLandscape && styles.qrIconLandscape,
+                  ]}
+                >
+                  📱
+                </Text>
+                <Text
+                  style={[
+                    styles.qrText,
+                    isTablet && styles.qrTextTablet,
+                    isTablet && isLandscape && styles.qrTextLandscape,
+                  ]}
+                >
+                  Generando QR...
+                </Text>
               </View>
             )}
           </View>

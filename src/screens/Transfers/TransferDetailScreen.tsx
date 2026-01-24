@@ -76,7 +76,9 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
   };
 
   const renderTimeline = () => {
-    if (history.length === 0) return null;
+    if (history.length === 0) {
+      return null;
+    }
 
     return (
       <View style={styles.section}>
@@ -96,7 +98,9 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
                   <Text style={styles.timelineDate}>{formatDate(item.changedAt)}</Text>
                 </View>
                 {item.changedBy && (
-                  <Text style={styles.timelineUser}>Por: {item.changedBy.name || item.changedBy.email}</Text>
+                  <Text style={styles.timelineUser}>
+                    Por: {item.changedBy.name || item.changedBy.email}
+                  </Text>
                 )}
                 {item.notes && <Text style={styles.timelineNotes}>{item.notes}</Text>}
               </View>

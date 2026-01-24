@@ -13,7 +13,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { companiesApi } from '@/services/api';
-import { Company, CompanyType, CreateCompanyRequest, UpdateCompanyRequest } from '@/types/companies';
+import {
+  Company,
+  CompanyType,
+  CreateCompanyRequest,
+  UpdateCompanyRequest,
+} from '@/types/companies';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { AddButton } from '@/components/Navigation/AddButton';
@@ -103,7 +108,9 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
   };
 
   const handleUpdateCompany = async () => {
-    if (!selectedCompany) return;
+    if (!selectedCompany) {
+      return;
+    }
 
     if (!formData.name.trim()) {
       Alert.alert('Error', 'El nombre de la empresa es requerido');
@@ -205,7 +212,9 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
           <Text style={styles.companyName}>{item.alias || item.name}</Text>
           {item.ruc && <Text style={styles.companyRuc}>RUC: {item.ruc}</Text>}
         </View>
-        <View style={[styles.statusBadge, item.isActive ? styles.statusActive : styles.statusInactive]}>
+        <View
+          style={[styles.statusBadge, item.isActive ? styles.statusActive : styles.statusInactive]}
+        >
           <Text style={styles.statusText}>{item.isActive ? 'Activo' : 'Inactivo'}</Text>
         </View>
       </View>
@@ -239,7 +248,12 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
     </View>
   );
 
-  const renderModal = (visible: boolean, onClose: () => void, onSave: () => void, title: string) => (
+  const renderModal = (
+    visible: boolean,
+    onClose: () => void,
+    onSave: () => void,
+    title: string
+  ) => (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -285,14 +299,24 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
                   style={styles.radioOption}
                   onPress={() => setFormData({ ...formData, companyType: CompanyType.EXTERNAL })}
                 >
-                  <View style={[styles.radio, formData.companyType === CompanyType.EXTERNAL && styles.radioSelected]} />
+                  <View
+                    style={[
+                      styles.radio,
+                      formData.companyType === CompanyType.EXTERNAL && styles.radioSelected,
+                    ]}
+                  />
                   <Text style={styles.radioLabel}>Externa</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.radioOption}
                   onPress={() => setFormData({ ...formData, companyType: CompanyType.INTERNAL })}
                 >
-                  <View style={[styles.radio, formData.companyType === CompanyType.INTERNAL && styles.radioSelected]} />
+                  <View
+                    style={[
+                      styles.radio,
+                      formData.companyType === CompanyType.INTERNAL && styles.radioSelected,
+                    ]}
+                  />
                   <Text style={styles.radioLabel}>Interna</Text>
                 </TouchableOpacity>
               </View>

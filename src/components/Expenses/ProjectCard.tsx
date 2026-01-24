@@ -18,7 +18,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onViewExpenses,
 }) => {
   const formatDate = (dateString?: string | null) => {
-    if (!dateString) return '-';
+    if (!dateString) {
+      return '-';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
   };
@@ -29,7 +31,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   };
 
   const getBudgetProgress = () => {
-    if (project.budgetCents === 0) return 0;
+    if (project.budgetCents === 0) {
+      return 0;
+    }
     return (project.spentCents / project.budgetCents) * 100;
   };
 
@@ -46,7 +50,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.projectCode}>{project.code}</Text>
-          <Text style={styles.projectName} numberOfLines={1}>{project.name}</Text>
+          <Text style={styles.projectName} numberOfLines={1}>
+            {project.name}
+          </Text>
         </View>
         <ProjectStatusBadge status={project.status} size="small" />
       </View>
@@ -73,23 +79,25 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             <Text style={styles.budgetLabelSecondary}>
               {isOverBudget ? 'Excedido:' : 'Disponible:'}
             </Text>
-            <Text style={[
-              styles.budgetValueSecondary,
-              isOverBudget ? styles.overBudget : styles.underBudget
-            ]}>
+            <Text
+              style={[
+                styles.budgetValueSecondary,
+                isOverBudget ? styles.overBudget : styles.underBudget,
+              ]}
+            >
               {formatAmount(Math.abs(remainingBudget))}
             </Text>
           </View>
           <View style={styles.progressBar}>
-            <View style={[
-              styles.progressFill,
-              { width: `${Math.min(budgetProgress, 100)}%` },
-              isOverBudget && styles.progressOverBudget
-            ]} />
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${Math.min(budgetProgress, 100)}%` },
+                isOverBudget && styles.progressOverBudget,
+              ]}
+            />
           </View>
-          <Text style={styles.progressText}>
-            {budgetProgress.toFixed(1)}% utilizado
-          </Text>
+          <Text style={styles.progressText}>{budgetProgress.toFixed(1)}% utilizado</Text>
         </View>
 
         <View style={styles.footer}>

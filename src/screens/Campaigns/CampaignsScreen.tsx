@@ -24,22 +24,16 @@ import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { AddButton } from '@/components/Navigation/AddButton';
 import logger from '@/utils/logger';
+import { useCampaigns } from '@/hooks/api/useCampaigns';
 
 interface CampaignsScreenProps {
   navigation: any;
 }
 
 export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) => {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL'>('ALL');
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const { currentCompany, currentSite } = useAuthStore();
   const { width, height } = useWindowDimensions();
@@ -47,64 +41,64 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  const loadCampaigns = useCallback(async (page: number = 1) => {
-    try {
-      setLoading(true);
+  // ✅ React Query: Reemplaza loadCampaigns() con caché automático
+  const params = useMemo(
+    () => ({
+      page,
+      limit,
+      ...(selectedStatus !== 'ALL' && { status: selectedStatus }),
+    }),
+    [page, selectedStatus]
+  );
 
-      const params: any = {
-        page,
-        limit: pagination.limit,
-      };
+  const {
+    data: campaignsResponse,
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useCampaigns(params);
 
-      if (selectedStatus !== 'ALL') {
-        params.status = selectedStatus;
-      }
-
-      const response = await campaignsService.getCampaigns(params);
-      setCampaigns(response.data);
-
-      // Update pagination info - API returns flat structure
-      const totalPages = Math.ceil(response.total / response.limit);
-      setPagination({
-        page: response.page,
-        limit: response.limit,
-        total: response.total,
-        totalPages: totalPages,
-      });
-    } catch (error: any) {
-      logger.error('Error loading campaigns:', error);
-      Alert.alert('Error', 'No se pudieron cargar las campañas');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [selectedStatus, pagination.limit]);
+  // Extraer campaigns y paginación de la respuesta
+  const campaigns = useMemo(() => campaignsResponse?.data || [], [campaignsResponse]);
+  const pagination = useMemo(
+    () => ({
+      page: campaignsResponse?.page || 1,
+      limit: campaignsResponse?.limit || limit,
+      total: campaignsResponse?.total || 0,
+      totalPages: Math.ceil((campaignsResponse?.total || 0) / (campaignsResponse?.limit || limit)),
+    }),
+    [campaignsResponse]
+  );
 
   // Auto-reload campaigns when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      logger.debug('📱 CampaignsScreen focused - reloading campaigns...');
-      setLoading(true);
-      loadCampaigns();
-    }, [loadCampaigns])
+      logger.debug('📱 CampaignsScreen focused - refetching campaigns...');
+      refetch();
+    }, [refetch])
   );
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadCampaigns(1);
-  };
+  // Reset to page 1 when status filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [selectedStatus]);
 
-  const handlePreviousPage = () => {
+  // ✅ Handlers simplificados
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const handlePreviousPage = useCallback(() => {
     if (pagination.page > 1) {
-      loadCampaigns(pagination.page - 1);
+      setPage(pagination.page - 1);
     }
-  };
+  }, [pagination.page]);
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     if (pagination.page < pagination.totalPages) {
-      loadCampaigns(pagination.page + 1);
+      setPage(pagination.page + 1);
     }
-  };
+  }, [pagination.page, pagination.totalPages]);
 
   const handleCreateCampaign = () => {
     navigation.navigate('CreateCampaign');
@@ -115,7 +109,9 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {
+      return 'N/A';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
@@ -179,129 +175,128 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
     );
   };
 
-  const renderCampaignCard = useCallback((campaign: Campaign) => {
-    const totalParticipants = campaign.participants?.length || 0;
-    const totalProducts = campaign.products?.length || 0;
-    const activeProducts =
-      campaign.products?.filter((p) => p.productStatus === ProductStatus.ACTIVE).length || 0;
-    const generatedProducts =
-      campaign.products?.filter((p) => p.distributionGenerated).length || 0;
+  const renderCampaignCard = useCallback(
+    (campaign: Campaign) => {
+      const totalParticipants = campaign.participants?.length || 0;
+      const totalProducts = campaign.products?.length || 0;
+      const activeProducts =
+        campaign.products?.filter((p) => p.productStatus === ProductStatus.ACTIVE).length || 0;
+      const generatedProducts =
+        campaign.products?.filter((p) => p.distributionGenerated).length || 0;
 
-    return (
-      <TouchableOpacity
-        key={campaign.id}
-        style={[styles.card, isTablet && styles.cardTablet]}
-        onPress={() => handleCampaignPress(campaign)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderLeft}>
-            <Text style={[styles.cardCode, isTablet && styles.cardCodeTablet]}>
-              {campaign.code}
-            </Text>
-            <View
-              style={[
-                styles.statusBadge,
-                isTablet && styles.statusBadgeTablet,
-                getStatusBadgeStyle(campaign.status),
-              ]}
-            >
-              <Text
+      return (
+        <TouchableOpacity
+          key={campaign.id}
+          style={[styles.card, isTablet && styles.cardTablet]}
+          onPress={() => handleCampaignPress(campaign)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <Text style={[styles.cardCode, isTablet && styles.cardCodeTablet]}>
+                {campaign.code}
+              </Text>
+              <View
                 style={[
-                  styles.statusText,
-                  isTablet && styles.statusTextTablet,
-                  getStatusTextStyle(campaign.status),
+                  styles.statusBadge,
+                  isTablet && styles.statusBadgeTablet,
+                  getStatusBadgeStyle(campaign.status),
                 ]}
               >
-                {CampaignStatusLabels[campaign.status]}
-              </Text>
+                <Text
+                  style={[
+                    styles.statusText,
+                    isTablet && styles.statusTextTablet,
+                    getStatusTextStyle(campaign.status),
+                  ]}
+                >
+                  {CampaignStatusLabels[campaign.status]}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.cardBody}>
-          <Text
-            style={[styles.campaignName, isTablet && styles.campaignNameTablet]}
-            numberOfLines={2}
-          >
-            {campaign.name}
-          </Text>
-
-          {campaign.description && (
+          <View style={styles.cardBody}>
             <Text
-              style={[styles.campaignDescription, isTablet && styles.campaignDescriptionTablet]}
+              style={[styles.campaignName, isTablet && styles.campaignNameTablet]}
               numberOfLines={2}
             >
-              {campaign.description}
+              {campaign.name}
             </Text>
-          )}
 
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                {totalParticipants}
+            {campaign.description && (
+              <Text
+                style={[styles.campaignDescription, isTablet && styles.campaignDescriptionTablet]}
+                numberOfLines={2}
+              >
+                {campaign.description}
               </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Participantes
-              </Text>
+            )}
+
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                  {totalParticipants}
+                </Text>
+                <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
+                  Participantes
+                </Text>
+              </View>
+
+              <View style={styles.statItem}>
+                <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                  {activeProducts}/{totalProducts}
+                </Text>
+                <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
+                  Productos Activos
+                </Text>
+              </View>
+
+              <View style={styles.statItem}>
+                <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                  {generatedProducts}/{totalProducts}
+                </Text>
+                <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Repartos</Text>
+              </View>
             </View>
 
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                {activeProducts}/{totalProducts}
-              </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Productos Activos
-              </Text>
-            </View>
-
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                {generatedProducts}/{totalProducts}
-              </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Repartos
-              </Text>
-            </View>
+            {(campaign.startDate || campaign.endDate) && (
+              <View style={styles.datesRow}>
+                {campaign.startDate && (
+                  <View style={styles.dateItem}>
+                    <Text style={[styles.dateLabel, isTablet && styles.dateLabelTablet]}>
+                      Inicio:
+                    </Text>
+                    <Text style={[styles.dateValue, isTablet && styles.dateValueTablet]}>
+                      {formatDate(campaign.startDate)}
+                    </Text>
+                  </View>
+                )}
+                {campaign.endDate && (
+                  <View style={styles.dateItem}>
+                    <Text style={[styles.dateLabel, isTablet && styles.dateLabelTablet]}>Fin:</Text>
+                    <Text style={[styles.dateValue, isTablet && styles.dateValueTablet]}>
+                      {formatDate(campaign.endDate)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
 
-          {(campaign.startDate || campaign.endDate) && (
-            <View style={styles.datesRow}>
-              {campaign.startDate && (
-                <View style={styles.dateItem}>
-                  <Text style={[styles.dateLabel, isTablet && styles.dateLabelTablet]}>
-                    Inicio:
-                  </Text>
-                  <Text style={[styles.dateValue, isTablet && styles.dateValueTablet]}>
-                    {formatDate(campaign.startDate)}
-                  </Text>
-                </View>
-              )}
-              {campaign.endDate && (
-                <View style={styles.dateItem}>
-                  <Text style={[styles.dateLabel, isTablet && styles.dateLabelTablet]}>
-                    Fin:
-                  </Text>
-                  <Text style={[styles.dateValue, isTablet && styles.dateValueTablet]}>
-                    {formatDate(campaign.endDate)}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-        </View>
+          <View style={styles.cardFooter}>
+            <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
+              Creado: {formatDate(campaign.createdAt)}
+            </Text>
+            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [isTablet, handleCampaignPress, formatDate]
+  );
 
-        <View style={styles.cardFooter}>
-          <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
-            Creado: {formatDate(campaign.createdAt)}
-          </Text>
-          <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  }, [isTablet, handleCampaignPress, formatDate]);
-
-  if (loading) {
+  if (isLoading && !campaignsResponse) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
@@ -318,9 +313,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <View>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>
-              Campañas
-            </Text>
+            <Text style={[styles.title, isTablet && styles.titleTablet]}>Campañas</Text>
             <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
               Gestión de campañas de distribución
             </Text>
@@ -333,13 +326,8 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
         {/* Campaigns List */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
         >
           {campaigns.length === 0 ? (
             <View style={styles.emptyContainer}>

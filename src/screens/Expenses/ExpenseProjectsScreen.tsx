@@ -22,9 +22,7 @@ interface ExpenseProjectsScreenProps {
   navigation: any;
 }
 
-export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({
-  navigation,
-}) => {
+export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ navigation }) => {
   const [projects, setProjects] = useState<ExpenseProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -93,10 +91,7 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({
           {statuses.map((status) => (
             <TouchableOpacity
               key={status}
-              style={[
-                styles.filterButton,
-                selectedStatus === status && styles.filterButtonActive,
-              ]}
+              style={[styles.filterButton, selectedStatus === status && styles.filterButtonActive]}
               onPress={() => setSelectedStatus(status)}
             >
               <Text
@@ -128,9 +123,7 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({
       return (
         <View style={styles.centerContainer}>
           <Text style={styles.emptyText}>No hay proyectos registrados</Text>
-          <Text style={styles.emptySubtext}>
-            Presiona el botón + para crear un nuevo proyecto
-          </Text>
+          <Text style={styles.emptySubtext}>Presiona el botón + para crear un nuevo proyecto</Text>
         </View>
       );
     }
@@ -139,9 +132,7 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {projects.map((project) => (
           <ProjectCard

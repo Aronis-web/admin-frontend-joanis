@@ -134,7 +134,9 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
   };
 
   const handleDelete = () => {
-    if (!selectedApp) return;
+    if (!selectedApp) {
+      return;
+    }
 
     Alert.alert(
       'Confirmar Eliminación',
@@ -183,18 +185,14 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
 
   const handleLogout = async () => {
     setIsMenuVisible(false);
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que deseas cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: logout,
-        },
-      ]
-    );
+    Alert.alert('Cerrar Sesión', '¿Estás seguro de que deseas cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Sesión',
+        style: 'destructive',
+        onPress: logout,
+      },
+    ]);
   };
 
   const getAppTypeIcon = (type: AppType): string => {
@@ -248,24 +246,12 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
       </View>
 
       <View style={styles.appCardFooter}>
-        <View
-          style={[
-            styles.typeBadge,
-            { backgroundColor: `${getAppTypeColor(app.appType)}15` },
-          ]}
-        >
-          <Text
-            style={[
-              styles.typeBadgeText,
-              { color: getAppTypeColor(app.appType) },
-            ]}
-          >
+        <View style={[styles.typeBadge, { backgroundColor: `${getAppTypeColor(app.appType)}15` }]}>
+          <Text style={[styles.typeBadgeText, { color: getAppTypeColor(app.appType) }]}>
             {app.appType}
           </Text>
         </View>
-        <Text style={styles.appDate}>
-          {new Date(app.createdAt).toLocaleDateString('es-ES')}
-        </Text>
+        <Text style={styles.appDate}>{new Date(app.createdAt).toLocaleDateString('es-ES')}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -308,9 +294,7 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
       {/* Content */}
       <ScrollView
         style={[styles.content, isLandscape && styles.contentLandscape]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
@@ -331,9 +315,7 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
             </Text>
           </View>
         ) : (
-          <View style={styles.appsGrid}>
-            {filteredApps.map(renderAppCard)}
-          </View>
+          <View style={styles.appsGrid}>{filteredApps.map(renderAppCard)}</View>
         )}
       </ScrollView>
 

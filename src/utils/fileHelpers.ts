@@ -17,7 +17,7 @@ export function fileToBase64(file: File): Promise<string> {
       const base64 = (reader.result as string).split(',')[1];
       resolve(base64);
     };
-    reader.onerror = error => reject(error);
+    reader.onerror = (error) => reject(error);
   });
 }
 
@@ -34,7 +34,7 @@ export function blobToBase64(blob: Blob): Promise<string> {
       const base64 = (reader.result as string).split(',')[1];
       resolve(base64);
     };
-    reader.onerror = error => reject(error);
+    reader.onerror = (error) => reject(error);
   });
 }
 

@@ -37,14 +37,7 @@ export const companiesApi = {
    * GET /companies
    */
   async getCompanies(params: GetCompaniesParams = {}): Promise<CompaniesResponse> {
-    const {
-      q,
-      isActive,
-      page = 1,
-      limit = 20,
-      orderBy = 'name',
-      orderDir = 'ASC',
-    } = params;
+    const { q, isActive, page = 1, limit = 20, orderBy = 'name', orderDir = 'ASC' } = params;
 
     const queryParams = new URLSearchParams({
       page: page.toString(),
@@ -154,10 +147,7 @@ export const companiesApi = {
    * Assign a user to multiple sites within a company
    * POST /companies/:id/sites/assign
    */
-  async assignUserToSites(
-    companyId: string,
-    assignData: AssignUserToSitesRequest
-  ): Promise<void> {
+  async assignUserToSites(companyId: string, assignData: AssignUserToSitesRequest): Promise<void> {
     return apiClient.post<void>(`/companies/${companyId}/sites/assign`, assignData);
   },
 
@@ -165,14 +155,8 @@ export const companiesApi = {
    * Remove a user from a specific site
    * DELETE /companies/:id/sites/:siteId/users/:userId
    */
-  async removeUserFromSite(
-    companyId: string,
-    siteId: string,
-    userId: string
-  ): Promise<void> {
-    return apiClient.delete<void>(
-      `/companies/${companyId}/sites/${siteId}/users/${userId}`
-    );
+  async removeUserFromSite(companyId: string, siteId: string, userId: string): Promise<void> {
+    return apiClient.delete<void>(`/companies/${companyId}/sites/${siteId}/users/${userId}`);
   },
 
   /**
@@ -180,9 +164,7 @@ export const companiesApi = {
    * GET /companies/:id/users/:userId/sites
    */
   async getUserSites(companyId: string, userId: string): Promise<UserSitesResponse> {
-    return apiClient.get<UserSitesResponse>(
-      `/companies/${companyId}/users/${userId}/sites`
-    );
+    return apiClient.get<UserSitesResponse>(`/companies/${companyId}/users/${userId}/sites`);
   },
 
   // ============================================
@@ -194,9 +176,7 @@ export const companiesApi = {
    * GET /companies?userId=:userId
    */
   async getUserCompanies(userId: string): Promise<Company[]> {
-    const response = await apiClient.get<CompaniesResponse>(
-      `/companies?userId=${userId}`
-    );
+    const response = await apiClient.get<CompaniesResponse>(`/companies?userId=${userId}`);
     return response.data;
   },
 
@@ -220,7 +200,10 @@ export const companiesApi = {
    * Get sites of a company
    * GET /sites?companyId=:companyId
    */
-  async getCompanySites(companyId: string, params: Omit<GetSitesParams, 'companyId'> = {}): Promise<SitesResponse> {
+  async getCompanySites(
+    companyId: string,
+    params: Omit<GetSitesParams, 'companyId'> = {}
+  ): Promise<SitesResponse> {
     const queryParams = new URLSearchParams({
       companyId,
       page: (params.page || 1).toString(),
@@ -229,11 +212,21 @@ export const companiesApi = {
       orderDir: params.orderDir || 'ASC',
     });
 
-    if (params.q) queryParams.append('q', params.q);
-    if (params.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
-    if (params.district) queryParams.append('district', params.district);
-    if (params.province) queryParams.append('province', params.province);
-    if (params.department) queryParams.append('department', params.department);
+    if (params.q) {
+      queryParams.append('q', params.q);
+    }
+    if (params.isActive !== undefined) {
+      queryParams.append('isActive', params.isActive.toString());
+    }
+    if (params.district) {
+      queryParams.append('district', params.district);
+    }
+    if (params.province) {
+      queryParams.append('province', params.province);
+    }
+    if (params.department) {
+      queryParams.append('department', params.department);
+    }
 
     return apiClient.get<SitesResponse>(`/sites?${queryParams.toString()}`);
   },
@@ -303,14 +296,19 @@ export const companiesApi = {
    * GET /companies/:id/payment-methods/:paymentMethodId
    */
   async getPaymentMethodById(companyId: string, paymentMethodId: string): Promise<PaymentMethod> {
-    return apiClient.get<PaymentMethod>(`/companies/${companyId}/payment-methods/${paymentMethodId}`);
+    return apiClient.get<PaymentMethod>(
+      `/companies/${companyId}/payment-methods/${paymentMethodId}`
+    );
   },
 
   /**
    * Create a payment method
    * POST /companies/:id/payment-methods
    */
-  async createPaymentMethod(companyId: string, data: CreatePaymentMethodRequest): Promise<PaymentMethod> {
+  async createPaymentMethod(
+    companyId: string,
+    data: CreatePaymentMethodRequest
+  ): Promise<PaymentMethod> {
     return apiClient.post<PaymentMethod>(`/companies/${companyId}/payment-methods`, data);
   },
 
@@ -323,7 +321,10 @@ export const companiesApi = {
     paymentMethodId: string,
     data: UpdatePaymentMethodRequest
   ): Promise<PaymentMethod> {
-    return apiClient.patch<PaymentMethod>(`/companies/${companyId}/payment-methods/${paymentMethodId}`, data);
+    return apiClient.patch<PaymentMethod>(
+      `/companies/${companyId}/payment-methods/${paymentMethodId}`,
+      data
+    );
   },
 
   /**
@@ -342,8 +343,13 @@ export const companiesApi = {
    * Get accounts of a payment method
    * GET /companies/:id/payment-methods/:paymentMethodId/accounts
    */
-  async getPaymentMethodAccounts(companyId: string, paymentMethodId: string): Promise<BankAccount[]> {
-    return apiClient.get<BankAccount[]>(`/companies/${companyId}/payment-methods/${paymentMethodId}/accounts`);
+  async getPaymentMethodAccounts(
+    companyId: string,
+    paymentMethodId: string
+  ): Promise<BankAccount[]> {
+    return apiClient.get<BankAccount[]>(
+      `/companies/${companyId}/payment-methods/${paymentMethodId}/accounts`
+    );
   },
 
   /**
@@ -355,7 +361,10 @@ export const companiesApi = {
     paymentMethodId: string,
     data: CreateBankAccountRequest
   ): Promise<BankAccount> {
-    return apiClient.post<BankAccount>(`/companies/${companyId}/payment-methods/${paymentMethodId}/accounts`, data);
+    return apiClient.post<BankAccount>(
+      `/companies/${companyId}/payment-methods/${paymentMethodId}/accounts`,
+      data
+    );
   },
 
   /**
@@ -378,8 +387,14 @@ export const companiesApi = {
    * Delete a bank account
    * DELETE /companies/:id/payment-methods/:paymentMethodId/accounts/:accountId
    */
-  async deleteBankAccount(companyId: string, paymentMethodId: string, accountId: string): Promise<void> {
-    return apiClient.delete<void>(`/companies/${companyId}/payment-methods/${paymentMethodId}/accounts/${accountId}`);
+  async deleteBankAccount(
+    companyId: string,
+    paymentMethodId: string,
+    accountId: string
+  ): Promise<void> {
+    return apiClient.delete<void>(
+      `/companies/${companyId}/payment-methods/${paymentMethodId}/accounts/${accountId}`
+    );
   },
 };
 

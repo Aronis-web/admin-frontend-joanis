@@ -86,19 +86,15 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
 
       await appsApi.createApp(appData);
 
-      Alert.alert(
-        'Éxito',
-        'App creada correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              handleClose();
-              onAppCreated();
-            },
+      Alert.alert('Éxito', 'App creada correctamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            handleClose();
+            onAppCreated();
           },
-        ]
-      );
+        },
+      ]);
     } catch (error: any) {
       console.error('Error creating app:', error);
       const errorMessage = error.response?.data?.message || 'Error al crear la app';
@@ -121,20 +117,15 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
   };
 
   const updateField = (field: keyof CreateAppDto, value: string | boolean | AppType) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -159,9 +150,7 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
                 error={errors.code}
                 autoCapitalize="characters"
               />
-              <Text style={styles.hint}>
-                Solo letras mayúsculas, números y guiones bajos
-              </Text>
+              <Text style={styles.hint}>Solo letras mayúsculas, números y guiones bajos</Text>
             </View>
 
             {/* Name */}
@@ -239,11 +228,7 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={handleClose}
-              disabled={loading}
-            >
+            <TouchableOpacity style={styles.cancelButton} onPress={handleClose} disabled={loading}>
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
 

@@ -24,7 +24,9 @@ export const ProductDisplayModal: React.FC<ProductDisplayModalProps> = ({
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768;
 
-  if (!product) return null;
+  if (!product) {
+    return null;
+  }
 
   // Calcular precios
   const cost = product.costCents ? product.costCents / 100 : 0;
@@ -32,38 +34,25 @@ export const ProductDisplayModal: React.FC<ProductDisplayModalProps> = ({
   const precioFranquicia = cost * 1.13;
 
   // Determinar stock a mostrar
-  const stock = product.productStatus === 'preliminary'
-    ? product.product?.preliminaryStock || 0
-    : product.product?.stock || 0;
+  const stock =
+    product.productStatus === 'preliminary'
+      ? product.product?.preliminaryStock || 0
+      : product.product?.stock || 0;
 
-  const stockLabel = product.productStatus === 'preliminary'
-    ? 'Stock Preliminar'
-    : 'Stock';
+  const stockLabel = product.productStatus === 'preliminary' ? 'Stock Preliminar' : 'Stock';
 
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent={false}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="fade" transparent={false} onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header con botón cerrar */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={onClose}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.7}>
             <Text style={styles.closeButtonText}>✕ Cerrar</Text>
           </TouchableOpacity>
         </View>
 
         {/* Contenido del banner */}
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* SKU */}
           <View style={styles.section}>
             <Text style={styles.label}>SKU</Text>
@@ -89,17 +78,13 @@ export const ProductDisplayModal: React.FC<ProductDisplayModalProps> = ({
           {/* Costo */}
           <View style={styles.section}>
             <Text style={styles.label}>Costo</Text>
-            <Text style={[styles.value, styles.cost]}>
-              S/ {cost.toFixed(2)}
-            </Text>
+            <Text style={[styles.value, styles.cost]}>S/ {cost.toFixed(2)}</Text>
           </View>
 
           {/* Precio Socia */}
           <View style={[styles.section, styles.priceSection]}>
             <Text style={styles.priceLabel}>Precio Socia</Text>
-            <Text style={[styles.value, styles.priceSocia]}>
-              S/ {precioSocia.toFixed(2)}
-            </Text>
+            <Text style={[styles.value, styles.priceSocia]}>S/ {precioSocia.toFixed(2)}</Text>
             <Text style={styles.priceFormula}>(Costo × 1.30)</Text>
           </View>
 

@@ -74,7 +74,7 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
   // Filter warehouses when site changes
   useEffect(() => {
     if (selectedSiteId && warehouses.length > 0) {
-      const filtered = warehouses.filter(w => w.siteId === selectedSiteId);
+      const filtered = warehouses.filter((w) => w.siteId === selectedSiteId);
       setFilteredWarehouses(filtered);
     } else {
       setFilteredWarehouses(warehouses);
@@ -259,7 +259,7 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
   };
 
   const filteredUsers = appUsers.filter(
-    user =>
+    (user) =>
       searchQuery === '' ||
       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -267,7 +267,7 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
   );
 
   const availableUsers = allUsers.filter(
-    user => !appUsers.some(appUser => appUser.userId === user.id)
+    (user) => !appUsers.some((appUser) => appUser.userId === user.id)
   );
 
   const formatDate = (dateString: string) => {
@@ -283,9 +283,7 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
     <View key={user.userId} style={styles.userCard}>
       <View style={styles.userHeader}>
         <View style={styles.userAvatar}>
-          <Text style={styles.userAvatarText}>
-            {user.username.substring(0, 2).toUpperCase()}
-          </Text>
+          <Text style={styles.userAvatarText}>{user.username.substring(0, 2).toUpperCase()}</Text>
         </View>
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{user.username}</Text>
@@ -303,20 +301,13 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
         <View style={styles.roleBadge}>
           <Text style={styles.roleText}>{user.roleName}</Text>
         </View>
-        <Text style={styles.assignedDate}>
-          Asignado: {formatDate(user.assignedAt)}
-        </Text>
+        <Text style={styles.assignedDate}>Asignado: {formatDate(user.assignedAt)}</Text>
       </View>
     </View>
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -335,7 +326,8 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
             {/* Info Card */}
             <View style={styles.infoCard}>
               <Text style={styles.infoText}>
-                Asigna usuarios a esta app y define sus roles. Los usuarios solo podrán acceder a esta app si tienen un rol asignado.
+                Asigna usuarios a esta app y define sus roles. Los usuarios solo podrán acceder a
+                esta app si tienen un rol asignado.
               </Text>
             </View>
 
@@ -354,10 +346,7 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
 
             {/* Add User Button */}
             {!showAddForm && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowAddForm(true)}
-              >
+              <TouchableOpacity style={styles.addButton} onPress={() => setShowAddForm(true)}>
                 <Text style={styles.addButtonText}>+ Asignar Usuario</Text>
               </TouchableOpacity>
             )}
@@ -506,7 +495,9 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
                           {companies.map((company) => (
                             <Picker.Item
                               key={company.id}
-                              label={company.ruc ? `${company.name} (${company.ruc})` : company.name}
+                              label={
+                                company.ruc ? `${company.name} (${company.ruc})` : company.name
+                              }
                               value={company.id}
                             />
                           ))}
@@ -554,7 +545,11 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
                             {filteredWarehouses.map((warehouse) => (
                               <Picker.Item
                                 key={warehouse.id}
-                                label={warehouse.code ? `${warehouse.code} - ${warehouse.name}` : warehouse.name}
+                                label={
+                                  warehouse.code
+                                    ? `${warehouse.code} - ${warehouse.name}`
+                                    : warehouse.name
+                                }
                                 value={warehouse.id}
                               />
                             ))}
@@ -618,9 +613,7 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
 
             {/* Users List */}
             <View style={styles.usersList}>
-              <Text style={styles.sectionTitle}>
-                Usuarios Asignados ({filteredUsers.length})
-              </Text>
+              <Text style={styles.sectionTitle}>Usuarios Asignados ({filteredUsers.length})</Text>
 
               {loading ? (
                 <View style={styles.loadingContainer}>

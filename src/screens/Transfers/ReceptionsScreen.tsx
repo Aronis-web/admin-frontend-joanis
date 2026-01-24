@@ -94,7 +94,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         destinationSiteId: currentSiteId,
         status: TransferStatus.IN_TRANSIT,
         page: 1,
-        limit: 100
+        limit: 100,
       };
       console.log('🔧 Testing with destinationSiteId:', inTransitFiltersDestination);
       const inTransitResponseDest = await transfersApi.getTransfers(inTransitFiltersDestination);
@@ -105,16 +105,15 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         currentSiteId: currentSiteId,
         status: TransferStatus.IN_TRANSIT,
         page: 1,
-        limit: 100
+        limit: 100,
       };
       console.log('🔧 Testing with currentSiteId:', inTransitFiltersCurrent);
       const inTransitResponseCurrent = await transfersApi.getTransfers(inTransitFiltersCurrent);
       console.log('📦 Results with currentSiteId:', inTransitResponseCurrent.data?.length || 0);
 
       // Usar el que tenga resultados
-      const inTransitResponse = inTransitResponseDest.data?.length > 0
-        ? inTransitResponseDest
-        : inTransitResponseCurrent;
+      const inTransitResponse =
+        inTransitResponseDest.data?.length > 0 ? inTransitResponseDest : inTransitResponseCurrent;
 
       console.log('✅ Using response with', inTransitResponse.data?.length || 0, 'transfers');
       if (inTransitResponse.data && inTransitResponse.data.length > 0) {
@@ -131,7 +130,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         destinationSiteId: currentSiteId,
         status: TransferStatus.RECEIVED,
         page: 1,
-        limit: 100
+        limit: 100,
       });
 
       console.log('📥 RECEIVED transfers found:', receivedResponse.data?.length || 0);
@@ -139,7 +138,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
       // Combinar traslados en tránsito y recibidos para la pestaña de pendientes
       const allPendingTransfers = [
         ...(inTransitResponse.data || []),
-        ...(receivedResponse.data || [])
+        ...(receivedResponse.data || []),
       ];
 
       console.log('📊 Total pending transfers:', allPendingTransfers.length);
@@ -148,7 +147,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
       const recentReceptionsResponse = await transfersApi.getPendingReceptions({
         currentSiteId: currentSiteId,
         page: 1,
-        limit: 100
+        limit: 100,
       });
 
       console.log('✅ Recent receptions found:', recentReceptionsResponse.data?.length || 0);
@@ -177,12 +176,13 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
       setCurrentReception(transfer.reception);
 
       // Initialize item validations with shipped quantities
-      const validations = transfer.items?.map(item => ({
-        transferItemId: item.id,
-        quantityReceived: item.quantityShipped?.toString() || '0',
-        notes: '',
-        damageNotes: '',
-      })) || [];
+      const validations =
+        transfer.items?.map((item) => ({
+          transferItemId: item.id,
+          quantityReceived: item.quantityShipped?.toString() || '0',
+          notes: '',
+          damageNotes: '',
+        })) || [];
       setItemValidations(validations);
 
       setShowValidateModal(true);
@@ -195,7 +195,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   };
 
   const handleInitiateReception = async () => {
-    if (!selectedTransfer) return;
+    if (!selectedTransfer) {
+      return;
+    }
 
     try {
       const userId = user?.id;
@@ -204,7 +206,10 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
       console.log('👤 User ID:', userId);
 
       if (!userId) {
-        Alert.alert('Error', 'No se pudo identificar el usuario. Por favor, inicia sesión nuevamente.');
+        Alert.alert(
+          'Error',
+          'No se pudo identificar el usuario. Por favor, inicia sesión nuevamente.'
+        );
         return;
       }
 
@@ -226,12 +231,13 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
               setCurrentReception(updatedTransfer.reception || null);
 
               // Initialize item validations with shipped quantities
-              const validations = updatedTransfer.items?.map(item => ({
-                transferItemId: item.id,
-                quantityReceived: item.quantityShipped?.toString() || '0',
-                notes: '',
-                damageNotes: '',
-              })) || [];
+              const validations =
+                updatedTransfer.items?.map((item) => ({
+                  transferItemId: item.id,
+                  quantityReceived: item.quantityShipped?.toString() || '0',
+                  notes: '',
+                  damageNotes: '',
+                })) || [];
               setItemValidations(validations);
 
               setShowValidateModal(true);
@@ -257,12 +263,14 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   };
 
   const handleValidateItems = async () => {
-    if (!selectedTransfer || !currentReception) return;
+    if (!selectedTransfer || !currentReception) {
+      return;
+    }
 
     try {
       const validateDto: ValidateItemsDto = {
         receptionId: currentReception.id,
-        items: itemValidations.map(validation => ({
+        items: itemValidations.map((validation) => ({
           transferItemId: validation.transferItemId,
           quantityReceived: parseFloat(validation.quantityReceived) || 0,
           notes: validation.notes || undefined,
@@ -293,7 +301,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   };
 
   const handleCompleteReception = async () => {
-    if (!selectedTransfer || !currentReception) return;
+    if (!selectedTransfer || !currentReception) {
+      return;
+    }
 
     Alert.alert(
       'Completar Recepción',
@@ -383,7 +393,8 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
           // Mostrar información del transfer asociado
           const transfer = reception.transfer;
           const displayNumber = reception.receptionNumber || transfer?.transferNumber || 'N/A';
-          const displayDate = reception.receivedAt || transfer?.shippedAt || new Date().toISOString();
+          const displayDate =
+            reception.receivedAt || transfer?.shippedAt || new Date().toISOString();
 
           return (
             <TouchableOpacity
@@ -519,9 +530,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Iniciar Recepción</Text>
-            <Text style={styles.modalSubtitle}>
-              Traslado: {selectedTransfer?.transferNumber}
-            </Text>
+            <Text style={styles.modalSubtitle}>Traslado: {selectedTransfer?.transferNumber}</Text>
 
             <View style={styles.transferInfo}>
               <View style={styles.infoRow}>
@@ -534,7 +543,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Items:</Text>
-                <Text style={styles.infoValue}>{selectedTransfer?.items?.length || 0} productos</Text>
+                <Text style={styles.infoValue}>
+                  {selectedTransfer?.items?.length || 0} productos
+                </Text>
               </View>
             </View>
 
@@ -595,7 +606,10 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.validateContent} contentContainerStyle={styles.validateScrollContent}>
+          <ScrollView
+            style={styles.validateContent}
+            contentContainerStyle={styles.validateScrollContent}
+          >
             <View style={styles.validateInfo}>
               <Text style={styles.validateInfoText}>
                 📦 Traslado: {selectedTransfer?.transferNumber}
@@ -627,7 +641,10 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
               <View key={item.id} style={styles.validateItemCard}>
                 <View style={styles.validateItemHeader}>
                   <Text style={styles.validateItemTitle}>{item.product?.title}</Text>
-                  <Text style={styles.validateItemSku}>{item.product?.correlativeNumber && `#${item.product.correlativeNumber} | `}SKU: {item.product?.sku}</Text>
+                  <Text style={styles.validateItemSku}>
+                    {item.product?.correlativeNumber && `#${item.product.correlativeNumber} | `}SKU:{' '}
+                    {item.product?.sku}
+                  </Text>
                 </View>
 
                 <View style={styles.quantityInfo}>
@@ -675,15 +692,16 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
                 {/* Show difference indicator */}
                 {itemValidations[index]?.quantityReceived &&
-                 parseFloat(itemValidations[index].quantityReceived) !== (item.quantityShipped || 0) && (
-                  <View style={styles.differenceBox}>
-                    <Text style={styles.differenceText}>
-                      ⚠️ Diferencia: {
-                        parseFloat(itemValidations[index].quantityReceived) - (item.quantityShipped || 0)
-                      }
-                    </Text>
-                  </View>
-                )}
+                  parseFloat(itemValidations[index].quantityReceived) !==
+                    (item.quantityShipped || 0) && (
+                    <View style={styles.differenceBox}>
+                      <Text style={styles.differenceText}>
+                        ⚠️ Diferencia:{' '}
+                        {parseFloat(itemValidations[index].quantityReceived) -
+                          (item.quantityShipped || 0)}
+                      </Text>
+                    </View>
+                  )}
               </View>
             ))}
 

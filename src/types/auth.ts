@@ -41,7 +41,14 @@ export interface RefreshTokenResponse {
 }
 
 export interface AuthErrorData {
-  code: 'INVALID_CREDENTIALS' | 'TOKEN_EXPIRED' | 'TOKEN_INVALID' | 'NETWORK_ERROR' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'SERVER_ERROR';
+  code:
+    | 'INVALID_CREDENTIALS'
+    | 'TOKEN_EXPIRED'
+    | 'TOKEN_INVALID'
+    | 'NETWORK_ERROR'
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'SERVER_ERROR';
   message: string;
   status?: number;
 }
@@ -104,6 +111,6 @@ export interface PaginatedResponse<T = any> {
 // Request headers for authenticated requests
 export interface AuthHeaders {
   'Content-Type': 'application/json';
-  'Authorization': `Bearer ${string}`;
+  Authorization: `Bearer ${string}`;
   'X-App-Id': string;
 }

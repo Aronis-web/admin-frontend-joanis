@@ -80,7 +80,9 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
     reference: '',
     notes: '',
   });
-  const [selectedFiles, setSelectedFiles] = useState<Array<{uri: string; filename: string; mimeType: string}>>([]);
+  const [selectedFiles, setSelectedFiles] = useState<
+    Array<{ uri: string; filename: string; mimeType: string }>
+  >([]);
   const [showOperationDatePicker, setShowOperationDatePicker] = useState(false);
 
   useEffect(() => {
@@ -182,7 +184,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
     }
 
     // Auto-set emitter to current site if operation requires emitter and none is set
-    let emitterCompanyId = formData.emitterCompanyId;
+    const emitterCompanyId = formData.emitterCompanyId;
     let emitterSiteId = formData.emitterSiteId;
 
     if (
@@ -205,8 +207,11 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
     }
 
     // Validate that SOLD and TO_PAY are not allowed for external balances
-    if (selectedBalance.balanceType === 'EXTERNO' &&
-        (formData.operationType === OperationType.SOLD || formData.operationType === OperationType.TO_PAY)) {
+    if (
+      selectedBalance.balanceType === 'EXTERNO' &&
+      (formData.operationType === OperationType.SOLD ||
+        formData.operationType === OperationType.TO_PAY)
+    ) {
       Alert.alert(
         'Operación No Permitida',
         `La operación "${getOperationTypeLabel(formData.operationType)}" no se registra para balances externos.`
@@ -215,7 +220,9 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
     }
 
     // Validate payment method if required
-    if (isPaymentMethodRequired(selectedBalance.balanceType as BalanceType, formData.operationType)) {
+    if (
+      isPaymentMethodRequired(selectedBalance.balanceType as BalanceType, formData.operationType)
+    ) {
       if (!formData.paymentMethod) {
         Alert.alert('Error', 'El método de pago es requerido para este tipo de operación');
         return;
@@ -239,19 +246,22 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
       };
 
       console.log('📤 Creating balance operation...');
-      const createdOperation = await balancesApi.createBalanceOperation(selectedBalance.id, createData);
+      const createdOperation = await balancesApi.createBalanceOperation(
+        selectedBalance.id,
+        createData
+      );
       console.log('✅ Operation created:', createdOperation.id);
 
       // 2. Upload files if any were selected
       if (selectedFiles.length > 0) {
         try {
           console.log(`📎 Uploading ${selectedFiles.length} file(s)...`);
-          await filesApi.uploadBalanceOperationFiles(
-            selectedFiles,
-            createdOperation.id
-          );
+          await filesApi.uploadBalanceOperationFiles(selectedFiles, createdOperation.id);
           console.log('✅ Files uploaded successfully');
-          Alert.alert('Éxito', `Operación creada con ${selectedFiles.length} archivo(s) adjunto(s)`);
+          Alert.alert(
+            'Éxito',
+            `Operación creada con ${selectedFiles.length} archivo(s) adjunto(s)`
+          );
         } catch (fileError: any) {
           console.error('❌ Error uploading files:', fileError);
           Alert.alert(
@@ -293,7 +303,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
     console.log('🟢 openCreateModal called with operationType:', operationType);
     resetForm();
     if (operationType) {
-      setFormData(prev => ({ ...prev, operationType }));
+      setFormData((prev) => ({ ...prev, operationType }));
     }
     console.log('🟢 Setting showCreateModal to true');
     setShowCreateModal(true);
@@ -304,20 +314,23 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
     openCreateModal(operationType);
   };
 
-  const validateFiles = (files: Array<{uri: string; filename: string; mimeType: string}>) => {
+  const validateFiles = (files: Array<{ uri: string; filename: string; mimeType: string }>) => {
     const MAX_FILES = 10;
     const ALLOWED_TYPES = [
-      'image/jpeg', 'image/jpg', 'image/png', 'image/heic',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/heic',
       'application/pdf',
       'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ];
 
     if (files.length > MAX_FILES) {
       throw new Error(`Máximo ${MAX_FILES} archivos permitidos`);
     }
 
-    files.forEach(file => {
+    files.forEach((file) => {
       // Validar tipo
       if (!ALLOWED_TYPES.includes(file.mimeType)) {
         throw new Error(`Tipo de archivo no permitido: ${file.mimeType}`);
@@ -341,10 +354,12 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newFiles = result.assets.map(asset => ({
+        const newFiles = result.assets.map((asset) => ({
           uri: asset.uri,
           filename: asset.fileName || `archivo_${Date.now()}.${asset.uri.split('.').pop()}`,
-          mimeType: asset.mimeType || (asset.uri.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+          mimeType:
+            asset.mimeType ||
+            (asset.uri.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
         }));
 
         // Validate files before adding
@@ -397,24 +412,20 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
   };
 
   const handleFileOptions = () => {
-    Alert.alert(
-      'Seleccionar Archivo',
-      'Elige una opción',
-      [
-        {
-          text: 'Tomar Foto',
-          onPress: handleTakePhoto,
-        },
-        {
-          text: 'Seleccionar de Galería',
-          onPress: handlePickFile,
-        },
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-      ]
-    );
+    Alert.alert('Seleccionar Archivo', 'Elige una opción', [
+      {
+        text: 'Tomar Foto',
+        onPress: handleTakePhoto,
+      },
+      {
+        text: 'Seleccionar de Galería',
+        onPress: handlePickFile,
+      },
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+    ]);
   };
 
   const filteredOperations = operations.filter((operation) => {
@@ -427,21 +438,28 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
 
     const matchesType = !filterType || operation.operationType === filterType;
 
-    const matchesReceiver = !filterReceiver ||
-      (operation.balance?.receiverCompany?.name || '').toLowerCase().includes(filterReceiver.toLowerCase()) ||
-      (operation.balance?.receiverSite?.name || '').toLowerCase().includes(filterReceiver.toLowerCase());
+    const matchesReceiver =
+      !filterReceiver ||
+      (operation.balance?.receiverCompany?.name || '')
+        .toLowerCase()
+        .includes(filterReceiver.toLowerCase()) ||
+      (operation.balance?.receiverSite?.name || '')
+        .toLowerCase()
+        .includes(filterReceiver.toLowerCase());
 
     return matchesSearch && matchesType && matchesReceiver;
   });
 
   const renderOperationItem = ({ item }: { item: BalanceOperation }) => (
-    <TouchableOpacity
-      style={styles.operationItem}
-      onPress={() => handleOperationPress(item)}
-    >
+    <TouchableOpacity style={styles.operationItem} onPress={() => handleOperationPress(item)}>
       <View style={styles.operationHeader}>
         <View style={styles.operationInfo}>
-          <View style={[styles.typeBadge, { backgroundColor: getOperationTypeColor(item.operationType) }]}>
+          <View
+            style={[
+              styles.typeBadge,
+              { backgroundColor: getOperationTypeColor(item.operationType) },
+            ]}
+          >
             <Text style={styles.typeBadgeText}>{getOperationTypeLabel(item.operationType)}</Text>
           </View>
           <Text style={styles.operationDate}>
@@ -451,28 +469,18 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
         <Text style={styles.operationAmount}>{formatCentsToCurrency(item.amountCents)}</Text>
       </View>
 
-      <Text style={styles.operationBalance}>
-        Balance ID: {item.balanceId}
-      </Text>
+      <Text style={styles.operationBalance}>Balance ID: {item.balanceId}</Text>
 
       {item.emitterCompany && (
-        <Text style={styles.operationEmitter}>
-          Emisor: {item.emitterCompany.name}
-        </Text>
+        <Text style={styles.operationEmitter}>Emisor: {item.emitterCompany.name}</Text>
       )}
       {item.emitterSite && (
-        <Text style={styles.operationEmitter}>
-          Emisor: {item.emitterSite.name}
-        </Text>
+        <Text style={styles.operationEmitter}>Emisor: {item.emitterSite.name}</Text>
       )}
 
-      {item.description && (
-        <Text style={styles.operationDescription}>{item.description}</Text>
-      )}
+      {item.description && <Text style={styles.operationDescription}>{item.description}</Text>}
 
-      {item.reference && (
-        <Text style={styles.operationReference}>Ref: {item.reference}</Text>
-      )}
+      {item.reference && <Text style={styles.operationReference}>Ref: {item.reference}</Text>}
 
       <View style={styles.operationFooter}>
         <Text style={styles.viewDetailsText}>Ver detalles del balance →</Text>
@@ -505,10 +513,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
           onChangeText={setFilterReceiver}
         />
         {filterReceiver !== '' && (
-          <TouchableOpacity
-            style={styles.clearFilterButton}
-            onPress={() => setFilterReceiver('')}
-          >
+          <TouchableOpacity style={styles.clearFilterButton} onPress={() => setFilterReceiver('')}>
             <Text style={styles.clearFilterText}>✕</Text>
           </TouchableOpacity>
         )}
@@ -524,7 +529,10 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterButton, filterType === OperationType.DISTRIBUTED && styles.filterButtonActive]}
+          style={[
+            styles.filterButton,
+            filterType === OperationType.DISTRIBUTED && styles.filterButtonActive,
+          ]}
           onPress={() => setFilterType(OperationType.DISTRIBUTED)}
         >
           <Text
@@ -537,7 +545,10 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterButton, filterType === OperationType.SOLD && styles.filterButtonActive]}
+          style={[
+            styles.filterButton,
+            filterType === OperationType.SOLD && styles.filterButtonActive,
+          ]}
           onPress={() => setFilterType(OperationType.SOLD)}
         >
           <Text
@@ -550,7 +561,10 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterButton, filterType === OperationType.TO_PAY && styles.filterButtonActive]}
+          style={[
+            styles.filterButton,
+            filterType === OperationType.TO_PAY && styles.filterButtonActive,
+          ]}
           onPress={() => setFilterType(OperationType.TO_PAY)}
         >
           <Text
@@ -563,7 +577,10 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterButton, filterType === OperationType.PAID && styles.filterButtonActive]}
+          style={[
+            styles.filterButton,
+            filterType === OperationType.PAID && styles.filterButtonActive,
+          ]}
           onPress={() => setFilterType(OperationType.PAID)}
         >
           <Text
@@ -576,7 +593,10 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterButton, filterType === OperationType.RETURNED && styles.filterButtonActive]}
+          style={[
+            styles.filterButton,
+            filterType === OperationType.RETURNED && styles.filterButtonActive,
+          ]}
           onPress={() => setFilterType(OperationType.RETURNED)}
         >
           <Text
@@ -697,14 +717,19 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
                     ]}
                     onPress={() => {
                       // Filter balances by type
-                      const internalBalance = balances.find(b => b.balanceType === 'INTERNO');
-                      if (internalBalance) setSelectedBalance(internalBalance);
+                      const internalBalance = balances.find((b) => b.balanceType === 'INTERNO');
+                      if (internalBalance) {
+                        setSelectedBalance(internalBalance);
+                      }
                     }}
                   >
-                    <Text style={[
-                      styles.balanceTypeButtonText,
-                      selectedBalance?.balanceType === 'INTERNO' && styles.balanceTypeButtonTextActive,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.balanceTypeButtonText,
+                        selectedBalance?.balanceType === 'INTERNO' &&
+                          styles.balanceTypeButtonTextActive,
+                      ]}
+                    >
                       🏢 Interna (Sede)
                     </Text>
                   </TouchableOpacity>
@@ -715,14 +740,19 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
                     ]}
                     onPress={() => {
                       // Filter balances by type
-                      const externalBalance = balances.find(b => b.balanceType === 'EXTERNO');
-                      if (externalBalance) setSelectedBalance(externalBalance);
+                      const externalBalance = balances.find((b) => b.balanceType === 'EXTERNO');
+                      if (externalBalance) {
+                        setSelectedBalance(externalBalance);
+                      }
                     }}
                   >
-                    <Text style={[
-                      styles.balanceTypeButtonText,
-                      selectedBalance?.balanceType === 'EXTERNO' && styles.balanceTypeButtonTextActive,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.balanceTypeButtonText,
+                        selectedBalance?.balanceType === 'EXTERNO' &&
+                          styles.balanceTypeButtonTextActive,
+                      ]}
+                    >
                       🏭 Externa (Empresa)
                     </Text>
                   </TouchableOpacity>
@@ -733,43 +763,60 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
               {selectedBalance && (
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>
-                    {selectedBalance.balanceType === 'INTERNO' ? 'Seleccionar Sede *' : 'Seleccionar Empresa *'}
+                    {selectedBalance.balanceType === 'INTERNO'
+                      ? 'Seleccionar Sede *'
+                      : 'Seleccionar Empresa *'}
                   </Text>
                   <Text style={styles.helperText}>
-                    Selecciona {selectedBalance.balanceType === 'INTERNO' ? 'la sede' : 'la empresa'} para esta operación
+                    Selecciona{' '}
+                    {selectedBalance.balanceType === 'INTERNO' ? 'la sede' : 'la empresa'} para esta
+                    operación
                   </Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.balanceSelector}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.balanceSelector}
+                  >
                     {balances
-                      .filter(b => b.balanceType === selectedBalance.balanceType)
+                      .filter((b) => b.balanceType === selectedBalance.balanceType)
                       .map((balance) => (
-                      <TouchableOpacity
-                        key={balance.id}
-                        style={[
-                          styles.balanceOption,
-                          selectedBalance?.id === balance.id && styles.balanceOptionSelected,
-                        ]}
-                        onPress={() => setSelectedBalance(balance)}
-                      >
-                        <Text style={[
-                          styles.balanceOptionTitle,
-                          selectedBalance?.id === balance.id && styles.balanceOptionTitleSelected,
-                        ]}>
-                          {balance.receiverCompany?.name || balance.receiverSite?.name}
-                        </Text>
-                        <Text style={[
-                          styles.balanceOptionCode,
-                          selectedBalance?.id === balance.id && styles.balanceOptionCodeSelected,
-                        ]}>
-                          {balance.code}
-                        </Text>
-                        <Text style={[
-                          styles.balanceOptionSubtext,
-                          selectedBalance?.id === balance.id && styles.balanceOptionSubtextSelected,
-                        ]}>
-                          {balance.balanceType}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                        <TouchableOpacity
+                          key={balance.id}
+                          style={[
+                            styles.balanceOption,
+                            selectedBalance?.id === balance.id && styles.balanceOptionSelected,
+                          ]}
+                          onPress={() => setSelectedBalance(balance)}
+                        >
+                          <Text
+                            style={[
+                              styles.balanceOptionTitle,
+                              selectedBalance?.id === balance.id &&
+                                styles.balanceOptionTitleSelected,
+                            ]}
+                          >
+                            {balance.receiverCompany?.name || balance.receiverSite?.name}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.balanceOptionCode,
+                              selectedBalance?.id === balance.id &&
+                                styles.balanceOptionCodeSelected,
+                            ]}
+                          >
+                            {balance.code}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.balanceOptionSubtext,
+                              selectedBalance?.id === balance.id &&
+                                styles.balanceOptionSubtextSelected,
+                            ]}
+                          >
+                            {balance.balanceType}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
                   </ScrollView>
                 </View>
               )}
@@ -777,7 +824,12 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
               {/* Operation Type - Display only (selected from FAB) */}
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Tipo de Operación</Text>
-                <View style={[styles.operationTypeBadge, { backgroundColor: getOperationTypeColor(formData.operationType) }]}>
+                <View
+                  style={[
+                    styles.operationTypeBadge,
+                    { backgroundColor: getOperationTypeColor(formData.operationType) },
+                  ]}
+                >
                   <Text style={styles.operationTypeBadgeText}>
                     {getOperationTypeLabel(formData.operationType)}
                   </Text>
@@ -789,23 +841,24 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
                       <>
                         {formData.operationType === OperationType.PAID && (
                           <Text style={styles.operationInfoText}>
-                            • Requiere método de pago: Solo Transferencia Bancaria{'\n'}
-                            • Permite adjuntar archivos (comprobantes)
+                            • Requiere método de pago: Solo Transferencia Bancaria{'\n'}• Permite
+                            adjuntar archivos (comprobantes)
                           </Text>
                         )}
                         {formData.operationType === OperationType.DISTRIBUTED && (
                           <Text style={styles.operationInfoText}>
-                            • No requiere método de pago{'\n'}
-                            • Permite adjuntar archivos (guías, comprobantes)
+                            • No requiere método de pago{'\n'}• Permite adjuntar archivos (guías,
+                            comprobantes)
                           </Text>
                         )}
                         {formData.operationType === OperationType.RETURNED && (
                           <Text style={styles.operationInfoText}>
-                            • No requiere método de pago{'\n'}
-                            • Permite adjuntar archivos (comprobantes de devolución)
+                            • No requiere método de pago{'\n'}• Permite adjuntar archivos
+                            (comprobantes de devolución)
                           </Text>
                         )}
-                        {(formData.operationType === OperationType.SOLD || formData.operationType === OperationType.TO_PAY) && (
+                        {(formData.operationType === OperationType.SOLD ||
+                          formData.operationType === OperationType.TO_PAY) && (
                           <Text style={styles.operationInfoText}>
                             ⚠️ Esta operación no se registra para balances externos
                           </Text>
@@ -817,20 +870,20 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
                           formData.operationType === OperationType.TO_PAY ||
                           formData.operationType === OperationType.PAID) && (
                           <Text style={styles.operationInfoText}>
-                            • Requiere método de pago: Izipay, Prosegur o Transferencia{'\n'}
-                            • Permite adjuntar archivos (comprobantes, facturas)
+                            • Requiere método de pago: Izipay, Prosegur o Transferencia{'\n'}•
+                            Permite adjuntar archivos (comprobantes, facturas)
                           </Text>
                         )}
                         {formData.operationType === OperationType.DISTRIBUTED && (
                           <Text style={styles.operationInfoText}>
-                            • No requiere método de pago{'\n'}
-                            • Permite adjuntar archivos (guías, comprobantes)
+                            • No requiere método de pago{'\n'}• Permite adjuntar archivos (guías,
+                            comprobantes)
                           </Text>
                         )}
                         {formData.operationType === OperationType.RETURNED && (
                           <Text style={styles.operationInfoText}>
-                            • No requiere método de pago{'\n'}
-                            • Permite adjuntar archivos (comprobantes de devolución)
+                            • No requiere método de pago{'\n'}• Permite adjuntar archivos
+                            (comprobantes de devolución)
                           </Text>
                         )}
                       </>
@@ -840,44 +893,53 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
               </View>
 
               {/* Payment Method - Only show if required */}
-              {selectedBalance && isPaymentMethodRequired(selectedBalance.balanceType as BalanceType, formData.operationType) && (
-                <View style={styles.formGroup}>
-                  <Text style={styles.label}>Método de Pago *</Text>
-                  <Text style={styles.helperText}>
-                    {selectedBalance.balanceType === 'EXTERNO' && formData.operationType === OperationType.PAID
-                      ? '⚠️ Solo se permite Transferencia Bancaria para pagos en balances externos'
-                      : selectedBalance.balanceType === 'INTERNO'
-                      ? `Selecciona el método de pago para ${getOperationTypeLabel(formData.operationType).toLowerCase()}`
-                      : 'Selecciona el método de pago'}
-                  </Text>
-                  <View style={styles.paymentMethodContainer}>
-                    {getAllowedPaymentMethods(selectedBalance.balanceType as BalanceType, formData.operationType).map((method) => (
-                      <TouchableOpacity
-                        key={method}
-                        style={[
-                          styles.paymentMethodButton,
-                          formData.paymentMethod === method && styles.paymentMethodButtonActive,
-                        ]}
-                        onPress={() => setFormData({ ...formData, paymentMethod: method })}
-                      >
-                        <Text
-                          style={[
-                            styles.paymentMethodButtonText,
-                            formData.paymentMethod === method && styles.paymentMethodButtonTextActive,
-                          ]}
-                        >
-                          {getPaymentMethodLabel(method)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  {!formData.paymentMethod && (
-                    <Text style={styles.errorText}>
-                      ⚠️ Debes seleccionar un método de pago para continuar
+              {selectedBalance &&
+                isPaymentMethodRequired(
+                  selectedBalance.balanceType as BalanceType,
+                  formData.operationType
+                ) && (
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>Método de Pago *</Text>
+                    <Text style={styles.helperText}>
+                      {selectedBalance.balanceType === 'EXTERNO' &&
+                      formData.operationType === OperationType.PAID
+                        ? '⚠️ Solo se permite Transferencia Bancaria para pagos en balances externos'
+                        : selectedBalance.balanceType === 'INTERNO'
+                          ? `Selecciona el método de pago para ${getOperationTypeLabel(formData.operationType).toLowerCase()}`
+                          : 'Selecciona el método de pago'}
                     </Text>
-                  )}
-                </View>
-              )}
+                    <View style={styles.paymentMethodContainer}>
+                      {getAllowedPaymentMethods(
+                        selectedBalance.balanceType as BalanceType,
+                        formData.operationType
+                      ).map((method) => (
+                        <TouchableOpacity
+                          key={method}
+                          style={[
+                            styles.paymentMethodButton,
+                            formData.paymentMethod === method && styles.paymentMethodButtonActive,
+                          ]}
+                          onPress={() => setFormData({ ...formData, paymentMethod: method })}
+                        >
+                          <Text
+                            style={[
+                              styles.paymentMethodButtonText,
+                              formData.paymentMethod === method &&
+                                styles.paymentMethodButtonTextActive,
+                            ]}
+                          >
+                            {getPaymentMethodLabel(method)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    {!formData.paymentMethod && (
+                      <Text style={styles.errorText}>
+                        ⚠️ Debes seleccionar un método de pago para continuar
+                      </Text>
+                    )}
+                  </View>
+                )}
 
               {/* Amount */}
               <View style={styles.formGroup}>
@@ -946,17 +1008,14 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
                     {formData.operationType === OperationType.PAID
                       ? '📎 Adjunta comprobantes de pago, transferencias, etc.'
                       : formData.operationType === OperationType.SOLD
-                      ? '📎 Adjunta facturas, tickets de venta, etc.'
-                      : formData.operationType === OperationType.DISTRIBUTED
-                      ? '📎 Adjunta guías de remisión, comprobantes de entrega, fotos, etc.'
-                      : formData.operationType === OperationType.RETURNED
-                      ? '📎 Adjunta comprobantes de devolución, fotos, etc.'
-                      : '📎 Puedes adjuntar comprobantes, facturas, fotos, etc.'}
+                        ? '📎 Adjunta facturas, tickets de venta, etc.'
+                        : formData.operationType === OperationType.DISTRIBUTED
+                          ? '📎 Adjunta guías de remisión, comprobantes de entrega, fotos, etc.'
+                          : formData.operationType === OperationType.RETURNED
+                            ? '📎 Adjunta comprobantes de devolución, fotos, etc.'
+                            : '📎 Puedes adjuntar comprobantes, facturas, fotos, etc.'}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.fileUploadButton}
-                    onPress={handleFileOptions}
-                  >
+                  <TouchableOpacity style={styles.fileUploadButton} onPress={handleFileOptions}>
                     <Text style={styles.fileUploadButtonText}>📎 Seleccionar Archivos</Text>
                   </TouchableOpacity>
                   {selectedFiles.length > 0 && (
@@ -968,12 +1027,16 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
                               {file.filename}
                             </Text>
                             <Text style={styles.fileType}>
-                              {file.mimeType.split('/')[0] === 'image' ? '📷 Imagen' : '📄 Documento'}
+                              {file.mimeType.split('/')[0] === 'image'
+                                ? '📷 Imagen'
+                                : '📄 Documento'}
                             </Text>
                           </View>
-                          <TouchableOpacity onPress={() => {
-                            setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
-                          }}>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+                            }}
+                          >
                             <Text style={styles.fileRemove}>✕</Text>
                           </TouchableOpacity>
                         </View>

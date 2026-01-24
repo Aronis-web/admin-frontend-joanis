@@ -47,10 +47,7 @@ export const extractUserFromToken = (token: string): UserFromToken => {
     const base64Payload = payload.replace(/-/g, '+').replace(/_/g, '/');
 
     // Add padding if needed
-    const paddedPayload = base64Payload.padEnd(
-      Math.ceil(base64Payload.length / 4) * 4,
-      '='
-    );
+    const paddedPayload = base64Payload.padEnd(Math.ceil(base64Payload.length / 4) * 4, '=');
 
     let decodedPayload: JWTPayload;
     try {

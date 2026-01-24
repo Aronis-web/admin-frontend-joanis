@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { App, AppType } from '@/services/api/apps';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 
@@ -31,7 +24,9 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   onManagePermissions,
   onManageUsers,
 }) => {
-  if (!app) return null;
+  if (!app) {
+    return null;
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -65,12 +60,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -109,12 +99,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                     { backgroundColor: `${getAppTypeColor(app.appType)}15` },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.typeBadgeText,
-                      { color: getAppTypeColor(app.appType) },
-                    ]}
-                  >
+                  <Text style={[styles.typeBadgeText, { color: getAppTypeColor(app.appType) }]}>
                     {getAppTypeLabel(app.appType)}
                   </Text>
                 </View>

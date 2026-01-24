@@ -120,9 +120,7 @@ export const useOcrScannerStore = create<OcrScannerState>()(
 
       updateScanJob: (jobId, updates) =>
         set((state) => ({
-          scanJobs: state.scanJobs.map((job) =>
-            job.id === jobId ? { ...job, ...updates } : job
-          ),
+          scanJobs: state.scanJobs.map((job) => (job.id === jobId ? { ...job, ...updates } : job)),
         })),
 
       removeScanJob: (jobId) =>
@@ -218,8 +216,8 @@ export const useOcrScannerStore = create<OcrScannerState>()(
       addScannedProducts: (products, purchaseId) =>
         set((state) => {
           // Evitar duplicados: verificar si ya existen productos con los mismos IDs
-          const existingIds = new Set(state.scannedProducts.map(p => p.id));
-          const newProducts = products.filter(p => !existingIds.has(p.id));
+          const existingIds = new Set(state.scannedProducts.map((p) => p.id));
+          const newProducts = products.filter((p) => !existingIds.has(p.id));
 
           const productsWithMetadata = newProducts.map((p) => ({
             ...p,
@@ -247,9 +245,7 @@ export const useOcrScannerStore = create<OcrScannerState>()(
 
       clearScannedProductsByPurchase: (purchaseId) =>
         set((state) => ({
-          scannedProducts: state.scannedProducts.filter(
-            (p) => p.purchaseId !== purchaseId
-          ),
+          scannedProducts: state.scannedProducts.filter((p) => p.purchaseId !== purchaseId),
         })),
 
       getScannedProductsByPurchase: (purchaseId) => {

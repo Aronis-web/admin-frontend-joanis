@@ -106,7 +106,10 @@ class PurchasesService {
   /**
    * Get all products for a purchase
    */
-  async getPurchaseProducts(purchaseId: string, params?: { includeProductStatus?: string }): Promise<PurchaseProduct[]> {
+  async getPurchaseProducts(
+    purchaseId: string,
+    params?: { includeProductStatus?: string }
+  ): Promise<PurchaseProduct[]> {
     return apiClient.get<PurchaseProduct[]>(`${this.basePath}/${purchaseId}/products`, { params });
   }
 
@@ -245,10 +248,7 @@ class PurchasesService {
 
     // ApiClient will automatically use fetch for FormData
     // DO NOT set Content-Type - fetch will handle it with proper boundary
-    return apiClient.post<OcrScanResponse>(
-      `${this.basePath}/ocr/scan`,
-      formData
-    );
+    return apiClient.post<OcrScanResponse>(`${this.basePath}/ocr/scan`, formData);
   }
 
   /**

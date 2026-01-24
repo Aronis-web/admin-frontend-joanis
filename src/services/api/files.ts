@@ -80,7 +80,10 @@ export const filesApi = {
     formData.append('productId', productId);
 
     // No especificar Content-Type - Axios lo establecerá automáticamente con el boundary correcto
-    return apiClient.post<{ success: boolean; url: string; path: string; productId: string }>('/files/upload/product-image/multipart', formData);
+    return apiClient.post<{ success: boolean; url: string; path: string; productId: string }>(
+      '/files/upload/product-image/multipart',
+      formData
+    );
   },
 
   /**
@@ -93,11 +96,14 @@ export const filesApi = {
     productId: string,
     filename: string
   ): Promise<{ success: boolean; url: string; path: string; productId: string }> => {
-    return apiClient.post<{ success: boolean; url: string; path: string; productId: string }>('/files/upload/product-image', {
-      base64: base64File,
-      productId,
-      filename,
-    });
+    return apiClient.post<{ success: boolean; url: string; path: string; productId: string }>(
+      '/files/upload/product-image',
+      {
+        base64: base64File,
+        productId,
+        filename,
+      }
+    );
   },
 
   /**
@@ -108,7 +114,11 @@ export const filesApi = {
     files: Array<{ uri: string; filename: string; mimeType?: string }>,
     category: string,
     subfolder: string
-  ): Promise<{ success: boolean; count: number; files: Array<{ url: string; path: string; filename: string }> }> => {
+  ): Promise<{
+    success: boolean;
+    count: number;
+    files: Array<{ url: string; path: string; filename: string }>;
+  }> => {
     const formData = new FormData();
 
     files.forEach((file, index) => {
@@ -123,7 +133,11 @@ export const filesApi = {
     formData.append('subfolder', subfolder);
 
     // Don't set Content-Type manually - let axios set it with the boundary
-    return apiClient.post<{ success: boolean; count: number; files: Array<{ url: string; path: string; filename: string }> }>('/files/upload/multiple', formData);
+    return apiClient.post<{
+      success: boolean;
+      count: number;
+      files: Array<{ url: string; path: string; filename: string }>;
+    }>('/files/upload/multiple', formData);
   },
 
   /**
@@ -134,8 +148,16 @@ export const filesApi = {
     files: Array<{ base64: string; filename: string }>,
     category: string,
     subfolder: string
-  ): Promise<{ success: boolean; count: number; files: Array<{ url: string; path: string; filename: string }> }> => {
-    return apiClient.post<{ success: boolean; count: number; files: Array<{ url: string; path: string; filename: string }> }>('/files/upload/multiple', {
+  ): Promise<{
+    success: boolean;
+    count: number;
+    files: Array<{ url: string; path: string; filename: string }>;
+  }> => {
+    return apiClient.post<{
+      success: boolean;
+      count: number;
+      files: Array<{ url: string; path: string; filename: string }>;
+    }>('/files/upload/multiple', {
       files,
       category,
       subfolder,
@@ -166,7 +188,10 @@ export const filesApi = {
     }
 
     // Don't set Content-Type manually - let axios set it with the boundary
-    return apiClient.post<{ success: boolean; url: string; path: string; category: string }>('/files/upload/category', formData);
+    return apiClient.post<{ success: boolean; url: string; path: string; category: string }>(
+      '/files/upload/category',
+      formData
+    );
   },
 
   /**
@@ -179,12 +204,15 @@ export const filesApi = {
     category: string,
     subfolder?: string
   ): Promise<{ success: boolean; url: string; path: string; category: string }> => {
-    return apiClient.post<{ success: boolean; url: string; path: string; category: string }>('/files/upload/category', {
-      base64: base64File,
-      filename,
-      category,
-      subfolder,
-    });
+    return apiClient.post<{ success: boolean; url: string; path: string; category: string }>(
+      '/files/upload/category',
+      {
+        base64: base64File,
+        filename,
+        category,
+        subfolder,
+      }
+    );
   },
 
   /**
@@ -200,9 +228,7 @@ export const filesApi = {
    * GET /files/list/:category/:subfolder?
    */
   listFilesByCategory: async (category: string, subfolder?: string): Promise<string[]> => {
-    const url = subfolder
-      ? `/files/list/${category}/${subfolder}`
-      : `/files/list/${category}`;
+    const url = subfolder ? `/files/list/${category}/${subfolder}` : `/files/list/${category}`;
     return apiClient.get<string[]>(url);
   },
 
@@ -210,7 +236,9 @@ export const filesApi = {
    * Get product images
    * GET /files/products/{productId}/images
    */
-  getProductImages: async (productId: string): Promise<{
+  getProductImages: async (
+    productId: string
+  ): Promise<{
     success: boolean;
     productId: string;
     count: number;
@@ -322,7 +350,9 @@ export const filesApi = {
             encoding: FileSystem.EncodingType.Base64,
           });
 
-          console.log(`✅ File ${index + 1}/${files.length} converted: ${file.filename} (${fileSize} bytes, base64 length: ${base64Data.length})`);
+          console.log(
+            `✅ File ${index + 1}/${files.length} converted: ${file.filename} (${fileSize} bytes, base64 length: ${base64Data.length})`
+          );
 
           return {
             base64: base64Data,
@@ -344,7 +374,7 @@ export const filesApi = {
       operationId,
       category: 'balances/documentos',
       filesCount: filesData.length,
-      fileNames: filesData.map(f => f.filename),
+      fileNames: filesData.map((f) => f.filename),
     });
 
     try {

@@ -92,7 +92,8 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
   const [selectedPresentationId, setSelectedPresentationId] = useState<string | null>(null);
   const [selectedPresentation, setSelectedPresentation] = useState<any | null>(null);
 
-  const hasPresentations = producto?.product?.presentations && producto.product.presentations.length > 0;
+  const hasPresentations =
+    producto?.product?.presentations && producto.product.presentations.length > 0;
 
   React.useEffect(() => {
     if (visible && producto) {
@@ -116,7 +117,10 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
         producto.presentationInfo?.roundingApplied ||
         (!!producto.presentationId && !!producto.factorToBase);
 
-      console.log('🔍 ValidacionSalidaModal - wasDistributedByPresentation:', wasDistributedByPresentation);
+      console.log(
+        '🔍 ValidacionSalidaModal - wasDistributedByPresentation:',
+        wasDistributedByPresentation
+      );
 
       if (wasDistributedByPresentation && hasPresentations) {
         // Producto distribuido por presentación - iniciar en modo presentación
@@ -125,15 +129,16 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
         // Intentar usar presentationInfo primero
         if (producto.presentationInfo?.largestPresentation) {
           distributedPresentation = producto.product!.presentations!.find(
-            p => p.presentation.name === producto.presentationInfo!.largestPresentation!.name ||
-                 p.factorToBase === producto.presentationInfo!.largestFactor
+            (p) =>
+              p.presentation.name === producto.presentationInfo!.largestPresentation!.name ||
+              p.factorToBase === producto.presentationInfo!.largestFactor
           );
         }
 
         // Fallback a presentationId si existe
         if (!distributedPresentation && producto.presentationId) {
           distributedPresentation = producto.product!.presentations!.find(
-            p => p.presentationId === producto.presentationId
+            (p) => p.presentationId === producto.presentationId
           );
         }
 
@@ -159,7 +164,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
         // Set default presentation to base if available (para permitir cambio a presentación)
         if (hasPresentations) {
-          const basePresentation = producto.product!.presentations!.find(p => p.isBase);
+          const basePresentation = producto.product!.presentations!.find((p) => p.isBase);
           if (basePresentation) {
             setSelectedPresentationId(basePresentation.presentationId);
             setSelectedPresentation(basePresentation);
@@ -199,7 +204,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
   const handlePresentationChange = (presentationId: string) => {
     const presentation = producto?.product?.presentations?.find(
-      p => p.presentationId === presentationId
+      (p) => p.presentationId === presentationId
     );
     if (presentation) {
       setSelectedPresentationId(presentationId);
@@ -228,7 +233,8 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
   const handleValidate = async () => {
     const quantityInBase = getQuantityInBase();
-    const assignedQuantity = producto?.quantityAssigned || parseFloat(producto?.quantityBase || '0');
+    const assignedQuantity =
+      producto?.quantityAssigned || parseFloat(producto?.quantityBase || '0');
 
     if (isNaN(quantityInBase) || quantityInBase < 0) {
       Alert.alert('Error', 'Por favor ingresa una cantidad válida');
@@ -269,13 +275,17 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
       if (usePresentation && selectedPresentation) {
         const presentationQty = parseFloat(validatedQuantity) || 0;
         const fullPresentations = Math.floor(presentationQty);
-        const looseUnits = Math.round((presentationQty - fullPresentations) * selectedPresentation.factorToBase);
+        const looseUnits = Math.round(
+          (presentationQty - fullPresentations) * selectedPresentation.factorToBase
+        );
 
-        validationData.presentations = [{
-          presentationId: selectedPresentation.presentationId,
-          factorToBase: selectedPresentation.factorToBase,
-          notes: `Validado en ${selectedPresentation.presentation.name}`,
-        }];
+        validationData.presentations = [
+          {
+            presentationId: selectedPresentation.presentationId,
+            factorToBase: selectedPresentation.factorToBase,
+            notes: `Validado en ${selectedPresentation.presentation.name}`,
+          },
+        ];
         validationData.validatedPresentationQuantity = fullPresentations;
         validationData.validatedLooseUnits = looseUnits;
       }
@@ -297,7 +307,9 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
     }
   };
 
-  if (!producto) return null;
+  if (!producto) {
+    return null;
+  }
 
   if (step === 'photo') {
     return (
@@ -314,21 +326,13 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
   if (step === 'signature') {
     return (
       <Modal visible={visible} animationType="slide" onRequestClose={handleCancel}>
-        <SignatureCapture
-          onSignatureCapture={handleSignatureCapture}
-          onCancel={handleCancel}
-        />
+        <SignatureCapture onSignatureCapture={handleSignatureCapture} onCancel={handleCancel} />
       </Modal>
     );
   }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -349,45 +353,31 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                 <Text style={styles.inputLabel}>Modo de Validación</Text>
                 <View style={styles.presentationToggle}>
                   <TouchableOpacity
-                    style={[
-                      styles.toggleOption,
-                      !usePresentation && styles.toggleOptionActive,
-                    ]}
+                    style={[styles.toggleOption, !usePresentation && styles.toggleOptionActive]}
                     onPress={() => {
                       setUsePresentation(false);
-                      const assignedQty = producto.quantityAssigned || parseFloat(producto.quantityBase) || 0;
+                      const assignedQty =
+                        producto.quantityAssigned || parseFloat(producto.quantityBase) || 0;
                       setValidatedQuantity(assignedQty.toString());
                     }}
                   >
-                    <Text
-                      style={[
-                        styles.toggleText,
-                        !usePresentation && styles.toggleTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.toggleText, !usePresentation && styles.toggleTextActive]}>
                       Por Unidad
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[
-                      styles.toggleOption,
-                      usePresentation && styles.toggleOptionActive,
-                    ]}
+                    style={[styles.toggleOption, usePresentation && styles.toggleOptionActive]}
                     onPress={() => {
                       setUsePresentation(true);
                       if (selectedPresentation) {
-                        const assignedQty = producto.quantityAssigned || parseFloat(producto.quantityBase) || 0;
+                        const assignedQty =
+                          producto.quantityAssigned || parseFloat(producto.quantityBase) || 0;
                         const presentationQty = calculateQuantityInPresentation(assignedQty);
                         setValidatedQuantity(presentationQty.toFixed(2));
                       }
                     }}
                   >
-                    <Text
-                      style={[
-                        styles.toggleText,
-                        usePresentation && styles.toggleTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.toggleText, usePresentation && styles.toggleTextActive]}>
                       Por Presentación
                     </Text>
                   </TouchableOpacity>
@@ -433,7 +423,11 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
             {/* Validated Quantity */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
-                Cantidad Validada {usePresentation && selectedPresentation ? `(en ${selectedPresentation.presentation.name})` : '(en unidades)'} *
+                Cantidad Validada{' '}
+                {usePresentation && selectedPresentation
+                  ? `(en ${selectedPresentation.presentation.name})`
+                  : '(en unidades)'}{' '}
+                *
               </Text>
               <TextInput
                 style={styles.input}
@@ -448,7 +442,16 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                 </Text>
               )}
               <Text style={styles.inputHint}>
-                Ingresa la cantidad real entregada (máximo: {usePresentation && selectedPresentation ? calculateQuantityInPresentation(producto.quantityAssigned || parseFloat(producto.quantityBase) || 0).toFixed(2) : (producto.quantityAssigned || producto.quantityBase)}{usePresentation && selectedPresentation ? ` ${selectedPresentation.presentation.name}` : ' unidades'})
+                Ingresa la cantidad real entregada (máximo:{' '}
+                {usePresentation && selectedPresentation
+                  ? calculateQuantityInPresentation(
+                      producto.quantityAssigned || parseFloat(producto.quantityBase) || 0
+                    ).toFixed(2)
+                  : producto.quantityAssigned || producto.quantityBase}
+                {usePresentation && selectedPresentation
+                  ? ` ${selectedPresentation.presentation.name}`
+                  : ' unidades'}
+                )
               </Text>
             </View>
 
@@ -458,18 +461,12 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
               {photoUri ? (
                 <View style={styles.capturedContainer}>
                   <Image source={{ uri: photoUri }} style={styles.capturedPhoto} />
-                  <TouchableOpacity
-                    style={styles.recaptureButton}
-                    onPress={() => setStep('photo')}
-                  >
+                  <TouchableOpacity style={styles.recaptureButton} onPress={() => setStep('photo')}>
                     <Text style={styles.recaptureButtonText}>📷 Cambiar Foto</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity
-                  style={styles.captureButton}
-                  onPress={() => setStep('photo')}
-                >
+                <TouchableOpacity style={styles.captureButton} onPress={() => setStep('photo')}>
                   <Text style={styles.captureButtonIcon}>📷</Text>
                   <Text style={styles.captureButtonText}>Tomar Foto</Text>
                 </TouchableOpacity>
@@ -490,10 +487,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity
-                  style={styles.captureButton}
-                  onPress={() => setStep('signature')}
-                >
+                <TouchableOpacity style={styles.captureButton} onPress={() => setStep('signature')}>
                   <Text style={styles.captureButtonIcon}>✍️</Text>
                   <Text style={styles.captureButtonText}>Capturar Firma</Text>
                 </TouchableOpacity>

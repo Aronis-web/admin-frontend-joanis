@@ -21,8 +21,12 @@ import { ValidacionSalida, RepartoProducto } from '@/types/repartos';
  * }
  * ```
  */
-export function wasValidatedByPresentation(validacion: ValidacionSalida | null | undefined): boolean {
-  if (!validacion) return false;
+export function wasValidatedByPresentation(
+  validacion: ValidacionSalida | null | undefined
+): boolean {
+  if (!validacion) {
+    return false;
+  }
 
   // Método 1: Verificar el campo changes.presentations
   if (validacion.changes?.presentations && validacion.changes.presentations.length > 0) {
@@ -83,7 +87,9 @@ export function getValidationDetails(validacion: ValidacionSalida | null | undef
     presentations: [],
   };
 
-  if (!validacion) return defaultResult;
+  if (!validacion) {
+    return defaultResult;
+  }
 
   const byPresentation = wasValidatedByPresentation(validacion);
 
@@ -126,7 +132,9 @@ export function formatValidationInfo(
   validacion: ValidacionSalida | null | undefined,
   producto?: RepartoProducto
 ): string {
-  if (!validacion) return 'No validado';
+  if (!validacion) {
+    return 'No validado';
+  }
 
   const details = getValidationDetails(validacion);
 
@@ -143,7 +151,7 @@ export function formatValidationInfo(
     if (details.presentations.length > 0 && producto?.product?.presentations) {
       const presentationId = details.presentations[0].presentationId;
       const presentation = producto.product.presentations.find(
-        p => p.presentationId === presentationId
+        (p) => p.presentationId === presentationId
       );
       if (presentation) {
         presentationName = presentation.presentation.name.toLowerCase();
@@ -167,8 +175,12 @@ export function formatValidationInfo(
  * @param producto - El producto a verificar
  * @returns true si fue distribuido por presentación
  */
-export function wasDistributedByPresentation(producto: RepartoProducto | null | undefined): boolean {
-  if (!producto) return false;
+export function wasDistributedByPresentation(
+  producto: RepartoProducto | null | undefined
+): boolean {
+  if (!producto) {
+    return false;
+  }
 
   // Verificar si tiene presentationId y factorToBase
   if (producto.presentationId && producto.factorToBase) {
@@ -197,7 +209,7 @@ export function getValidationSummary(productos: RepartoProducto[]): {
   let validatedByUnit = 0;
   let pending = 0;
 
-  productos.forEach(producto => {
+  productos.forEach((producto) => {
     if (!producto.validacion) {
       pending++;
     } else if (wasValidatedByPresentation(producto.validacion)) {

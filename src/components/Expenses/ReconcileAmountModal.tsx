@@ -55,25 +55,18 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
       };
 
       await expensesService.reconcileAmount(expenseId, data);
-      Alert.alert(
-        'Éxito',
-        'Monto real conciliado correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              onClose();
-              onSuccess?.();
-            },
+      Alert.alert('Éxito', 'Monto real conciliado correctamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            onClose();
+            onSuccess?.();
           },
-        ]
-      );
+        },
+      ]);
     } catch (error: any) {
       console.error('Error reconciling amount:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo conciliar el monto'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo conciliar el monto');
     } finally {
       setLoading(false);
     }
@@ -84,12 +77,7 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.container}>
           {/* Header */}
@@ -151,8 +139,8 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
                     parseFloat(actualAmount) > estimatedAmount
                       ? styles.differencePositive
                       : parseFloat(actualAmount) < estimatedAmount
-                      ? styles.differenceNegative
-                      : styles.differenceZero,
+                        ? styles.differenceNegative
+                        : styles.differenceZero,
                   ]}
                 >
                   {formatAmount(parseFloat(actualAmount) - estimatedAmount)}

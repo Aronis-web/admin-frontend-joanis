@@ -114,7 +114,9 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
         setAttachedFile({
           uri: asset.uri,
           filename: asset.fileName || `comprobante_${Date.now()}.${asset.uri.split('.').pop()}`,
-          mimeType: asset.mimeType || (asset.uri.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+          mimeType:
+            asset.mimeType ||
+            (asset.uri.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
         });
       }
     } catch (error) {
@@ -225,10 +227,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
         {options.map((option) => (
           <TouchableOpacity
             key={option.value}
-            style={[
-              styles.pickerOption,
-              value === option.value && styles.pickerOptionSelected,
-            ]}
+            style={[styles.pickerOption, value === option.value && styles.pickerOptionSelected]}
             onPress={() => onChange(option.value)}
           >
             <Text
@@ -309,7 +308,8 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
               {expense.actualAmountCents ? 'Monto Real:' : 'Monto Total:'}
             </Text>
             <Text style={styles.expenseInfoValue}>
-              {expense.currency || 'PEN'} {((expense.actualAmountCents || expense.amountCents || 0) / 100).toFixed(2)}
+              {expense.currency || 'PEN'}{' '}
+              {((expense.actualAmountCents || expense.amountCents || 0) / 100).toFixed(2)}
             </Text>
           </View>
 
@@ -323,18 +323,24 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
             </View>
           )}
 
-          {(expense.totalPaidCents || expense.paidAmountCents) ? (
+          {expense.totalPaidCents || expense.paidAmountCents ? (
             <View style={styles.expenseInfo}>
               <Text style={styles.expenseInfoLabel}>Pagado:</Text>
               <Text style={styles.expenseInfoValue}>
-                {expense.currency || 'PEN'} {((expense.totalPaidCents || expense.paidAmountCents || 0) / 100).toFixed(2)}
+                {expense.currency || 'PEN'}{' '}
+                {((expense.totalPaidCents || expense.paidAmountCents || 0) / 100).toFixed(2)}
               </Text>
             </View>
           ) : null}
           <View style={styles.expenseInfo}>
             <Text style={styles.expenseInfoLabel}>Pendiente:</Text>
             <Text style={[styles.expenseInfoValue, styles.pendingAmount]}>
-              {expense.currency || 'PEN'} {(((expense.actualAmountCents || expense.amountCents || 0) - (expense.totalPaidCents || expense.paidAmountCents || 0)) / 100).toFixed(2)}
+              {expense.currency || 'PEN'}{' '}
+              {(
+                ((expense.actualAmountCents || expense.amountCents || 0) -
+                  (expense.totalPaidCents || expense.paidAmountCents || 0)) /
+                100
+              ).toFixed(2)}
             </Text>
           </View>
         </View>
@@ -414,18 +420,12 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
 
             {!attachedFile ? (
               <View style={styles.fileButtonsContainer}>
-                <TouchableOpacity
-                  style={styles.fileButton}
-                  onPress={handlePickFile}
-                >
+                <TouchableOpacity style={styles.fileButton} onPress={handlePickFile}>
                   <Ionicons name="document-attach" size={20} color="#6366F1" />
                   <Text style={styles.fileButtonText}>Adjuntar Archivo</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.fileButton}
-                  onPress={handleTakePhoto}
-                >
+                <TouchableOpacity style={styles.fileButton} onPress={handleTakePhoto}>
                   <Ionicons name="camera" size={20} color="#6366F1" />
                   <Text style={styles.fileButtonText}>Tomar Foto</Text>
                 </TouchableOpacity>
@@ -448,10 +448,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
                   <Text style={styles.fileName} numberOfLines={1}>
                     {attachedFile.filename}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.removeFileButton}
-                    onPress={handleRemoveFile}
-                  >
+                  <TouchableOpacity style={styles.removeFileButton} onPress={handleRemoveFile}>
                     <Ionicons name="close-circle" size={24} color="#EF4444" />
                     <Text style={styles.removeFileText}>Eliminar</Text>
                   </TouchableOpacity>

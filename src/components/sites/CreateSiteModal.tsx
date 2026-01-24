@@ -52,7 +52,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
   // Update companyId when prop changes
   useEffect(() => {
     if (companyId) {
-      setFormData(prev => ({ ...prev, companyId }));
+      setFormData((prev) => ({ ...prev, companyId }));
     }
   }, [companyId]);
 
@@ -153,29 +153,33 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
         siteData.postalCode = formData.postalCode.trim();
       }
 
-      if (formData.latitude !== undefined && formData.latitude !== null && formData.latitude !== '') {
+      if (
+        formData.latitude !== undefined &&
+        formData.latitude !== null &&
+        formData.latitude !== ''
+      ) {
         siteData.latitude = Number(formData.latitude);
       }
 
-      if (formData.longitude !== undefined && formData.longitude !== null && formData.longitude !== '') {
+      if (
+        formData.longitude !== undefined &&
+        formData.longitude !== null &&
+        formData.longitude !== ''
+      ) {
         siteData.longitude = Number(formData.longitude);
       }
 
       await sitesApi.createSite(siteData);
 
-      Alert.alert(
-        'Éxito',
-        'Sede creada correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              handleClose();
-              onSiteCreated();
-            },
+      Alert.alert('Éxito', 'Sede creada correctamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            handleClose();
+            onSiteCreated();
           },
-        ]
-      );
+        },
+      ]);
     } catch (error: any) {
       console.error('Error creating site:', error);
       const errorMessage = error.response?.data?.message || 'Error al crear la sede';
@@ -207,16 +211,19 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
     onClose();
   };
 
-  const updateField = (field: keyof CreateSiteRequest, value: string | boolean | number | undefined) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const updateField = (
+    field: keyof CreateSiteRequest,
+    value: string | boolean | number | undefined
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
   const handleLocationSelected = (locationData: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       latitude: locationData.latitude,
       longitude: locationData.longitude,
@@ -230,12 +237,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}

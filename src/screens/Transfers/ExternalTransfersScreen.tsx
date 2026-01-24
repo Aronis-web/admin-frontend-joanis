@@ -143,7 +143,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         type: TransferType.EXTERNAL,
         currentSiteId: effectiveSite?.id,
         page: 1,
-        limit: 100
+        limit: 100,
       };
       if (selectedStatus !== 'ALL') {
         params.status = selectedStatus;
@@ -192,7 +192,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
 
       const productsData = await productsApi.getAllProducts({
         limit: 1000,
-        include: 'stockItems'
+        include: 'stockItems',
       });
       setProducts(productsData.products || []);
     } catch (error) {
@@ -211,7 +211,10 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   };
 
   const addTransferItem = () => {
-    setTransferItems([...transferItems, { productId: '', quantity: '', notes: '', product: undefined }]);
+    setTransferItems([
+      ...transferItems,
+      { productId: '', quantity: '', notes: '', product: undefined },
+    ]);
   };
 
   const removeTransferItem = (index: number) => {
@@ -310,11 +313,16 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     }
 
     if (originWarehouse?.siteId === destinationWarehouse?.siteId) {
-      Alert.alert('Error', 'Los traslados externos deben ser entre sedes diferentes. Usa traslados internos para la misma sede.');
+      Alert.alert(
+        'Error',
+        'Los traslados externos deben ser entre sedes diferentes. Usa traslados internos para la misma sede.'
+      );
       return false;
     }
 
-    const validItems = transferItems.filter((item) => item.productId && parseFloat(item.quantity) > 0);
+    const validItems = transferItems.filter(
+      (item) => item.productId && parseFloat(item.quantity) > 0
+    );
 
     if (validItems.length === 0) {
       Alert.alert('Error', 'Agrega al menos un producto con cantidad válida');
@@ -371,40 +379,39 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   };
 
   const handleApproveTransfer = async (transferId: string) => {
-    Alert.alert(
-      'Aprobar Traslado',
-      '¿Estás seguro de aprobar este traslado?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Aprobar',
-          onPress: async () => {
-            try {
-              const userId = user?.id;
-              console.log('🔄 Approving transfer...');
-              console.log('📋 Transfer ID:', transferId);
-              console.log('👤 User ID:', userId);
+    Alert.alert('Aprobar Traslado', '¿Estás seguro de aprobar este traslado?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Aprobar',
+        onPress: async () => {
+          try {
+            const userId = user?.id;
+            console.log('🔄 Approving transfer...');
+            console.log('📋 Transfer ID:', transferId);
+            console.log('👤 User ID:', userId);
 
-              if (!userId) {
-                Alert.alert('Error', 'No se pudo identificar el usuario. Por favor, inicia sesión nuevamente.');
-                return;
-              }
-
-              await transfersApi.approveTransfer(transferId, userId);
-              Alert.alert('Éxito', 'Traslado aprobado exitosamente');
-              loadTransfers();
-              if (selectedTransfer?.id === transferId) {
-                const updated = await transfersApi.getTransferById(transferId);
-                setSelectedTransfer(updated);
-              }
-            } catch (error: any) {
-              console.error('Error approving transfer:', error);
-              Alert.alert('Error', error.message || 'No se pudo aprobar el traslado');
+            if (!userId) {
+              Alert.alert(
+                'Error',
+                'No se pudo identificar el usuario. Por favor, inicia sesión nuevamente.'
+              );
+              return;
             }
-          },
+
+            await transfersApi.approveTransfer(transferId, userId);
+            Alert.alert('Éxito', 'Traslado aprobado exitosamente');
+            loadTransfers();
+            if (selectedTransfer?.id === transferId) {
+              const updated = await transfersApi.getTransferById(transferId);
+              setSelectedTransfer(updated);
+            }
+          } catch (error: any) {
+            console.error('Error approving transfer:', error);
+            Alert.alert('Error', error.message || 'No se pudo aprobar el traslado');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleShipTransfer = (transfer: Transfer) => {
@@ -414,22 +421,27 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   };
 
   const handleConfirmShip = async () => {
-    if (!selectedTransfer) return;
+    if (!selectedTransfer) {
+      return;
+    }
 
     try {
       // Validate that all items have valid quantities
-      const items = selectedTransfer.items?.map((item) => {
-        const quantity = Number(item.quantityRequested);
+      const items =
+        selectedTransfer.items?.map((item) => {
+          const quantity = Number(item.quantityRequested);
 
-        if (isNaN(quantity) || quantity < 0) {
-          throw new Error(`Cantidad inválida para el producto ${item.product?.title || item.productId}`);
-        }
+          if (isNaN(quantity) || quantity < 0) {
+            throw new Error(
+              `Cantidad inválida para el producto ${item.product?.title || item.productId}`
+            );
+          }
 
-        return {
-          transferItemId: item.id,
-          quantityShipped: quantity,
-        };
-      }) || [];
+          return {
+            transferItemId: item.id,
+            quantityShipped: quantity,
+          };
+        }) || [];
 
       if (items.length === 0) {
         Alert.alert('Error', 'No hay productos para despachar');
@@ -444,7 +456,10 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       console.log('🚚 Shipping transfer with data:', JSON.stringify(shipDto, null, 2));
 
       await transfersApi.shipTransfer(selectedTransfer.id, shipDto);
-      Alert.alert('Éxito', 'Traslado despachado exitosamente. Stock descontado del almacén origen.');
+      Alert.alert(
+        'Éxito',
+        'Traslado despachado exitosamente. Stock descontado del almacén origen.'
+      );
       setShowShipModal(false);
       setShowDetailModal(false);
       loadTransfers();
@@ -498,8 +513,8 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
             {searchQuery
               ? 'No se encontraron resultados'
               : selectedStatus === 'ALL'
-              ? 'Crea tu primer traslado externo'
-              : `No hay traslados en estado ${statusFilters.find(f => f.key === selectedStatus)?.label}`}
+                ? 'Crea tu primer traslado externo'
+                : `No hay traslados en estado ${statusFilters.find((f) => f.key === selectedStatus)?.label}`}
           </Text>
         </View>
       );
@@ -528,7 +543,8 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Traslados Externos</Text>
           <Text style={styles.headerSubtitle}>
-            Entre sedes diferentes • {filteredTransfers.length} traslado{filteredTransfers.length !== 1 ? 's' : ''}
+            Entre sedes diferentes • {filteredTransfers.length} traslado
+            {filteredTransfers.length !== 1 ? 's' : ''}
           </Text>
         </View>
       </View>
@@ -765,9 +781,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       <Modal visible={showDetailModal} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer} edges={['top']}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {selectedTransfer?.transferNumber || 'Detalle'}
-            </Text>
+            <Text style={styles.modalTitle}>{selectedTransfer?.transferNumber || 'Detalle'}</Text>
             <TouchableOpacity onPress={() => setShowDetailModal(false)} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
@@ -776,102 +790,106 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
           <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalScrollContent}>
             {selectedTransfer && (
               <>
-              <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>Estado</Text>
-                <Text style={styles.detailValue}>{selectedTransfer.status}</Text>
-              </View>
-
-              <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>Origen</Text>
-                <Text style={styles.detailValue}>{selectedTransfer.originWarehouse?.name}</Text>
-                <Text style={styles.detailSubvalue}>{selectedTransfer.originSite?.name}</Text>
-              </View>
-
-              <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>Destino</Text>
-                <Text style={styles.detailValue}>{selectedTransfer.destinationWarehouse?.name}</Text>
-                <Text style={styles.detailSubvalue}>{selectedTransfer.destinationSite?.name}</Text>
-              </View>
-
-              {selectedTransfer.expectedArrivalDate && (
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Fecha Estimada de Llegada</Text>
-                  <Text style={styles.detailValue}>{selectedTransfer.expectedArrivalDate}</Text>
+                  <Text style={styles.detailLabel}>Estado</Text>
+                  <Text style={styles.detailValue}>{selectedTransfer.status}</Text>
                 </View>
-              )}
 
-              {selectedTransfer.notes && (
                 <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Notas</Text>
-                  <Text style={styles.detailValue}>{selectedTransfer.notes}</Text>
+                  <Text style={styles.detailLabel}>Origen</Text>
+                  <Text style={styles.detailValue}>{selectedTransfer.originWarehouse?.name}</Text>
+                  <Text style={styles.detailSubvalue}>{selectedTransfer.originSite?.name}</Text>
                 </View>
-              )}
 
-              <View style={styles.detailSection}>
-                <Text style={styles.sectionTitle}>Productos</Text>
-                {selectedTransfer.items && selectedTransfer.items.length > 0 && (
-                  <TransferItemsList items={selectedTransfer.items} />
-                )}
-              </View>
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Destino</Text>
+                  <Text style={styles.detailValue}>
+                    {selectedTransfer.destinationWarehouse?.name}
+                  </Text>
+                  <Text style={styles.detailSubvalue}>
+                    {selectedTransfer.destinationSite?.name}
+                  </Text>
+                </View>
 
-              {/* Action Buttons */}
-              <View style={styles.actionButtons}>
-                {selectedTransfer.status === TransferStatus.DRAFT && (
-                  <>
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.approveButton]}
-                      onPress={() => handleApproveTransfer(selectedTransfer.id)}
-                    >
-                      <Text style={styles.actionButtonText}>✓ Aprobar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.cancelButton]}
-                      onPress={() => handleCancelTransfer(selectedTransfer.id)}
-                    >
-                      <Text style={styles.actionButtonText}>✕ Cancelar</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-
-                {selectedTransfer.status === TransferStatus.APPROVED && (
-                  <>
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.shipButton]}
-                      onPress={() => handleShipTransfer(selectedTransfer)}
-                    >
-                      <Text style={styles.actionButtonText}>📦 Despachar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.cancelButton]}
-                      onPress={() => handleCancelTransfer(selectedTransfer.id)}
-                    >
-                      <Text style={styles.actionButtonText}>✕ Cancelar</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-
-                {selectedTransfer.status === TransferStatus.IN_TRANSIT && (
-                  <View style={styles.infoBox}>
-                    <Text style={styles.infoText}>
-                      ℹ️ Este traslado está en tránsito. Debe ser recibido en la sede destino.
-                    </Text>
+                {selectedTransfer.expectedArrivalDate && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Fecha Estimada de Llegada</Text>
+                    <Text style={styles.detailValue}>{selectedTransfer.expectedArrivalDate}</Text>
                   </View>
                 )}
 
-                {selectedTransfer.status === TransferStatus.RECEIVED && (
-                  <View style={styles.infoBox}>
-                    <Text style={styles.infoText}>
-                      ℹ️ Este traslado ha sido recibido y está pendiente de validación.
-                    </Text>
+                {selectedTransfer.notes && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Notas</Text>
+                    <Text style={styles.detailValue}>{selectedTransfer.notes}</Text>
                   </View>
                 )}
 
-                {selectedTransfer.status === TransferStatus.COMPLETED && (
-                  <View style={styles.successBox}>
-                    <Text style={styles.successText}>✓ Traslado completado exitosamente</Text>
-                  </View>
-                )}
-              </View>
+                <View style={styles.detailSection}>
+                  <Text style={styles.sectionTitle}>Productos</Text>
+                  {selectedTransfer.items && selectedTransfer.items.length > 0 && (
+                    <TransferItemsList items={selectedTransfer.items} />
+                  )}
+                </View>
+
+                {/* Action Buttons */}
+                <View style={styles.actionButtons}>
+                  {selectedTransfer.status === TransferStatus.DRAFT && (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.actionButton, styles.approveButton]}
+                        onPress={() => handleApproveTransfer(selectedTransfer.id)}
+                      >
+                        <Text style={styles.actionButtonText}>✓ Aprobar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.actionButton, styles.cancelButton]}
+                        onPress={() => handleCancelTransfer(selectedTransfer.id)}
+                      >
+                        <Text style={styles.actionButtonText}>✕ Cancelar</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+
+                  {selectedTransfer.status === TransferStatus.APPROVED && (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.actionButton, styles.shipButton]}
+                        onPress={() => handleShipTransfer(selectedTransfer)}
+                      >
+                        <Text style={styles.actionButtonText}>📦 Despachar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.actionButton, styles.cancelButton]}
+                        onPress={() => handleCancelTransfer(selectedTransfer.id)}
+                      >
+                        <Text style={styles.actionButtonText}>✕ Cancelar</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+
+                  {selectedTransfer.status === TransferStatus.IN_TRANSIT && (
+                    <View style={styles.infoBox}>
+                      <Text style={styles.infoText}>
+                        ℹ️ Este traslado está en tránsito. Debe ser recibido en la sede destino.
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedTransfer.status === TransferStatus.RECEIVED && (
+                    <View style={styles.infoBox}>
+                      <Text style={styles.infoText}>
+                        ℹ️ Este traslado ha sido recibido y está pendiente de validación.
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedTransfer.status === TransferStatus.COMPLETED && (
+                    <View style={styles.successBox}>
+                      <Text style={styles.successText}>✓ Traslado completado exitosamente</Text>
+                    </View>
+                  )}
+                </View>
               </>
             )}
           </ScrollView>

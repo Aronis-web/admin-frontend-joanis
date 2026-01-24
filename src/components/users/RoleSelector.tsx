@@ -49,7 +49,9 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
   };
 
   const toggleRole = (roleId: string) => {
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
 
     if (singleSelection) {
       // Single selection mode: replace current selection
@@ -64,7 +66,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
       // Multiple selection mode
       if (selectedRoleIds.includes(roleId)) {
         // Remove role
-        onRolesChange(selectedRoleIds.filter(id => id !== roleId));
+        onRolesChange(selectedRoleIds.filter((id) => id !== roleId));
       } else {
         // Add role
         onRolesChange([...selectedRoleIds, roleId]);
@@ -116,15 +118,19 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.label}>
-        {singleSelection ? 'Rol' : 'Roles'} {selectedRoleIds.length > 0 && `(${selectedRoleIds.length} seleccionado${selectedRoleIds.length !== 1 ? 's' : ''})`}
+        {singleSelection ? 'Rol' : 'Roles'}{' '}
+        {selectedRoleIds.length > 0 &&
+          `(${selectedRoleIds.length} seleccionado${selectedRoleIds.length !== 1 ? 's' : ''})`}
       </Text>
       <Text style={styles.description}>
-        {singleSelection ? 'Selecciona el rol que deseas asignar al usuario' : 'Selecciona los roles que deseas asignar al usuario'}
+        {singleSelection
+          ? 'Selecciona el rol que deseas asignar al usuario'
+          : 'Selecciona los roles que deseas asignar al usuario'}
       </Text>
 
       <ScrollView
         style={styles.rolesContainer}
-        nestedScrollViewEnabled={true}
+        nestedScrollEnabled={true}
         showsVerticalScrollIndicator={false}
       >
         {roles.map((role) => {
@@ -142,32 +148,32 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
               activeOpacity={0.7}
             >
               <View style={styles.roleItemLeft}>
-                <View style={[
-                  styles.checkbox,
-                  selected && styles.checkboxSelected,
-                  disabled && styles.checkboxDisabled,
-                ]}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    selected && styles.checkboxSelected,
+                    disabled && styles.checkboxDisabled,
+                  ]}
+                >
                   {selected && <Text style={styles.checkmark}>✓</Text>}
                 </View>
                 <View style={styles.roleInfo}>
-                  <Text style={[
-                    styles.roleName,
-                    selected && styles.roleNameSelected,
-                    disabled && styles.roleNameDisabled,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.roleName,
+                      selected && styles.roleNameSelected,
+                      disabled && styles.roleNameDisabled,
+                    ]}
+                  >
                     {role.name}
                   </Text>
-                  <Text style={[
-                    styles.roleCode,
-                    disabled && styles.roleCodeDisabled,
-                  ]}>
+                  <Text style={[styles.roleCode, disabled && styles.roleCodeDisabled]}>
                     {role.code}
                   </Text>
                   {role.description && (
-                    <Text style={[
-                      styles.roleDescription,
-                      disabled && styles.roleDescriptionDisabled,
-                    ]}>
+                    <Text
+                      style={[styles.roleDescription, disabled && styles.roleDescriptionDisabled]}
+                    >
                       {role.description}
                     </Text>
                   )}

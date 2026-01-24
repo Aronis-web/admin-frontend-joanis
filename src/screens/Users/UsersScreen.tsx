@@ -209,7 +209,9 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   const renderUserItem = (user: User) => {
     // Determine status from either status field or is_active field
     const userStatus = user.status || (user.is_active ? 'active' : 'inactive');
-    console.log(`User ${user.email} - status: ${user.status}, is_active: ${user.is_active}, computed: ${userStatus}`);
+    console.log(
+      `User ${user.email} - status: ${user.status}, is_active: ${user.is_active}, computed: ${userStatus}`
+    );
 
     return (
       <TouchableOpacity
@@ -228,9 +230,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
             <Text style={styles.userName}>{user.name || user.email}</Text>
             <Text style={styles.userEmail}>{user.email}</Text>
             {user.roles && Array.isArray(user.roles) && user.roles.length > 0 && (
-              <Text style={styles.userRoles}>
-                {user.roles.map(role => role.name).join(', ')}
-              </Text>
+              <Text style={styles.userRoles}>{user.roles.map((role) => role.name).join(', ')}</Text>
             )}
           </View>
         </View>
@@ -286,9 +286,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
       {/* Users List */}
       <ScrollView
         style={[styles.usersList, isLandscape && styles.usersListLandscape]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
         {filteredUsers.length === 0 ? (

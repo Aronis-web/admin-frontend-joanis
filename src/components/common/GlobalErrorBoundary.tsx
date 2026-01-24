@@ -79,27 +79,17 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                 <Text style={styles.errorDetailsTitle}>Error:</Text>
                 <ScrollView style={styles.errorScroll}>
                   <Text style={styles.errorText}>{error.toString()}</Text>
-                  {errorInfo && (
-                    <Text style={styles.errorText}>
-                      {errorInfo.componentStack}
-                    </Text>
-                  )}
+                  {errorInfo && <Text style={styles.errorText}>{errorInfo.componentStack}</Text>}
                 </ScrollView>
               </View>
             )}
 
             <View style={styles.actions}>
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={this.handleReset}
-              >
+              <TouchableOpacity style={styles.primaryButton} onPress={this.handleReset}>
                 <Text style={styles.primaryButtonText}>Intentar de nuevo</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={this.handleReload}
-              >
+              <TouchableOpacity style={styles.secondaryButton} onPress={this.handleReload}>
                 <Text style={styles.secondaryButtonText}>Recargar aplicación</Text>
               </TouchableOpacity>
             </View>

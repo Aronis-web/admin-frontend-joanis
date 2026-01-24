@@ -56,7 +56,8 @@ class RepartosService {
   async getReparto(id: string): Promise<Reparto> {
     return apiClient.get<Reparto>(`${this.basePath}/${id}`, {
       params: {
-        include: 'campaign,participantes.campaignParticipant.company,participantes.campaignParticipant.site,participantes.productos.product.presentations.presentation,participantes.productos.warehouse,participantes.productos.area,participantes.productos.validacion',
+        include:
+          'campaign,participantes.campaignParticipant.company,participantes.campaignParticipant.site,participantes.productos.product.presentations.presentation,participantes.productos.warehouse,participantes.productos.area,participantes.productos.validacion',
       },
     });
   }
@@ -148,9 +149,7 @@ class RepartosService {
       sku: string;
     };
   }> {
-    return apiClient.get<any>(
-      `/admin/inventory/stock-items/${stockItemId}/available`
-    );
+    return apiClient.get<any>(`/admin/inventory/stock-items/${stockItemId}/available`);
   }
 
   // ============================================
@@ -193,12 +192,18 @@ class RepartosService {
 
     const headers: Record<string, string> = {
       'X-App-Id': config.APP_ID,
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     };
 
-    if (userId) headers['X-User-Id'] = userId;
-    if (companyId) headers['X-Company-Id'] = companyId;
-    if (siteId) headers['X-Site-Id'] = siteId;
+    if (userId) {
+      headers['X-User-Id'] = userId;
+    }
+    if (companyId) {
+      headers['X-Company-Id'] = companyId;
+    }
+    if (siteId) {
+      headers['X-Site-Id'] = siteId;
+    }
 
     // Add timestamp to prevent caching
     const timestamp = new Date().getTime();
@@ -218,8 +223,8 @@ class RepartosService {
       headers: {
         ...headers,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       },
     });
 
@@ -261,12 +266,18 @@ class RepartosService {
 
     const headers: Record<string, string> = {
       'X-App-Id': config.APP_ID,
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     };
 
-    if (userId) headers['X-User-Id'] = userId;
-    if (companyId) headers['X-Company-Id'] = companyId;
-    if (siteId) headers['X-Site-Id'] = siteId;
+    if (userId) {
+      headers['X-User-Id'] = userId;
+    }
+    if (companyId) {
+      headers['X-Company-Id'] = companyId;
+    }
+    if (siteId) {
+      headers['X-Site-Id'] = siteId;
+    }
 
     // Add timestamp to prevent caching
     const timestamp = new Date().getTime();
@@ -277,8 +288,8 @@ class RepartosService {
         headers: {
           ...headers,
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          Pragma: 'no-cache',
+          Expires: '0',
         },
       }
     );
@@ -320,12 +331,18 @@ class RepartosService {
 
     const headers: Record<string, string> = {
       'X-App-Id': config.APP_ID,
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     };
 
-    if (userId) headers['X-User-Id'] = userId;
-    if (companyId) headers['X-Company-Id'] = companyId;
-    if (siteId) headers['X-Site-Id'] = siteId;
+    if (userId) {
+      headers['X-User-Id'] = userId;
+    }
+    if (companyId) {
+      headers['X-Company-Id'] = companyId;
+    }
+    if (siteId) {
+      headers['X-Site-Id'] = siteId;
+    }
 
     // Add timestamp to prevent caching
     const timestamp = new Date().getTime();
@@ -338,7 +355,7 @@ class RepartosService {
     if (selectedProductIds && selectedProductIds.length > 0) {
       console.log('🔍 Productos seleccionados para exportar:', selectedProductIds.length);
       console.log('📋 IDs de productos:', selectedProductIds);
-      selectedProductIds.forEach(productId => {
+      selectedProductIds.forEach((productId) => {
         urlParams.append('productIds[]', productId);
       });
     } else {
@@ -353,8 +370,8 @@ class RepartosService {
       headers: {
         ...headers,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       },
     });
 

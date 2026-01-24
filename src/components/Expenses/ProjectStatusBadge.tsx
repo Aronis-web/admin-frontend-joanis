@@ -9,7 +9,7 @@ interface ProjectStatusBadgeProps {
 
 export const ProjectStatusBadge: React.FC<ProjectStatusBadgeProps> = ({
   status,
-  size = 'medium'
+  size = 'medium',
 }) => {
   const backgroundColor = ProjectStatusColors[status];
   const label = ProjectStatusLabels[status];

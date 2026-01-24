@@ -94,7 +94,9 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   }, [campaignProduct?.totalQuantityBase, editingQuantity]);
 
   const fetchStockData = async () => {
-    if (!campaignProduct?.productId) return;
+    if (!campaignProduct?.productId) {
+      return;
+    }
 
     const isPrelim = campaignProduct.productStatus === ProductStatus.PRELIMINARY;
 
@@ -103,7 +105,10 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
       if (isPrelim) {
         // For preliminary products, search in all purchases to find the preliminary stock
-        console.log('🔍 Searching preliminary stock in purchases for product:', campaignProduct.productId);
+        console.log(
+          '🔍 Searching preliminary stock in purchases for product:',
+          campaignProduct.productId
+        );
 
         // Get recent purchases (not closed or cancelled)
         const purchasesResponse = await purchasesService.getPurchases({
@@ -127,10 +132,15 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
               });
 
               // Find the product in this purchase
-              const foundProduct = products.find(p => p.productId === campaignProduct.productId);
+              const foundProduct = products.find((p) => p.productId === campaignProduct.productId);
               if (foundProduct && foundProduct.preliminaryStock) {
                 prelimStock = foundProduct.preliminaryStock;
-                console.log('✅ Found preliminary stock:', prelimStock, 'in purchase:', purchase.id);
+                console.log(
+                  '✅ Found preliminary stock:',
+                  prelimStock,
+                  'in purchase:',
+                  purchase.id
+                );
                 break; // Found it, stop searching
               }
             } catch (err) {
@@ -169,7 +179,9 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   };
 
   const fetchPriceProfiles = async () => {
-    if (!campaignProduct?.productId || !productDetails) return;
+    if (!campaignProduct?.productId || !productDetails) {
+      return;
+    }
 
     try {
       setLoadingPrices(true);
@@ -185,7 +197,8 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       setProfiles(profilesResponse);
 
       // La API devuelve {productId, productSku, costCents, salePrices: [...]}
-      const salePricesArray = (salePricesResponse as any).salePrices || salePricesResponse.data || [];
+      const salePricesArray =
+        (salePricesResponse as any).salePrices || salePricesResponse.data || [];
       setSalePrices(salePricesArray);
 
       // Initialize form data
@@ -194,9 +207,10 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
           (sp: any) => sp.profileId === profile.id && sp.presentationId === null
         );
 
-        const factorToCost = typeof profile.factorToCost === 'string'
-          ? parseFloat(profile.factorToCost)
-          : profile.factorToCost;
+        const factorToCost =
+          typeof profile.factorToCost === 'string'
+            ? parseFloat(profile.factorToCost)
+            : profile.factorToCost;
 
         const calculatedPriceCents = priceProfilesApi.calculatePrice(
           productDetails.costCents || 0,
@@ -238,9 +252,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
     // Evitar múltiples puntos decimales
     const parts = sanitizedValue.split('.');
-    const finalValue = parts.length > 2
-      ? parts[0] + '.' + parts.slice(1).join('')
-      : sanitizedValue;
+    const finalValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : sanitizedValue;
 
     setEditingPriceValue(finalValue);
   };
@@ -263,7 +275,9 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     console.log('💰 Calculated Franquicia price:', franquiciaPrice);
 
     // Find the Precio Franquicia profile
-    const franquiciaProfile = priceFormData.find(p => p.profileCode === 'FRANQ' || p.profileName.toLowerCase().includes('franquicia'));
+    const franquiciaProfile = priceFormData.find(
+      (p) => p.profileCode === 'FRANQ' || p.profileName.toLowerCase().includes('franquicia')
+    );
 
     console.log('🔍 Found Franquicia profile:', franquiciaProfile);
 
@@ -276,8 +290,13 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     }
   };
 
-  const handleSaveCalculatedFranquiciaPrice = async (franquiciaProfileId: string, franquiciaPrice: number) => {
-    if (!campaignProduct?.productId) return;
+  const handleSaveCalculatedFranquiciaPrice = async (
+    franquiciaProfileId: string,
+    franquiciaPrice: number
+  ) => {
+    if (!campaignProduct?.productId) {
+      return;
+    }
 
     try {
       setSaving(true);
@@ -302,11 +321,14 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
       console.log('✅ Franquicia price saved successfully:', result);
 
-      Alert.alert('Éxito', `Precio Franquicia calculado y actualizado: S/ ${franquiciaPrice.toFixed(2)}`);
+      Alert.alert(
+        'Éxito',
+        `Precio Franquicia calculado y actualizado: S/ ${franquiciaPrice.toFixed(2)}`
+      );
 
       // Update the local state instead of refetching
-      setPriceFormData(prevData =>
-        prevData.map(p =>
+      setPriceFormData((prevData) =>
+        prevData.map((p) =>
           p.profileId === franquiciaProfileId
             ? { ...p, priceCents, displayValue: franquiciaPrice.toFixed(2), isOverridden: true }
             : p
@@ -322,7 +344,9 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   };
 
   const handleSavePrice = async (profileId: string) => {
-    if (!campaignProduct?.productId || !editingPriceValue) return;
+    if (!campaignProduct?.productId || !editingPriceValue) {
+      return;
+    }
 
     try {
       setSaving(true);
@@ -361,8 +385,8 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       setEditingPriceValue('');
 
       // Update the local state instead of refetching
-      setPriceFormData(prevData =>
-        prevData.map(p =>
+      setPriceFormData((prevData) =>
+        prevData.map((p) =>
           p.profileId === profileId
             ? { ...p, priceCents, displayValue: editingPriceValue, isOverridden: true }
             : p
@@ -383,7 +407,9 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   };
 
   const calculateMargin = (costCents: number, priceCents: number): string => {
-    if (costCents === 0) return '0%';
+    if (costCents === 0) {
+      return '0%';
+    }
     const margin = ((priceCents - costCents) / costCents) * 100;
     return `${margin.toFixed(1)}%`;
   };
@@ -394,15 +420,15 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
     // Evitar múltiples puntos decimales
     const parts = sanitizedValue.split('.');
-    const finalValue = parts.length > 2
-      ? parts[0] + '.' + parts.slice(1).join('')
-      : sanitizedValue;
+    const finalValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : sanitizedValue;
 
     setCostValue(finalValue);
   };
 
   const handleSaveCost = async () => {
-    if (!campaignProduct?.productId || !costValue) return;
+    if (!campaignProduct?.productId || !costValue) {
+      return;
+    }
 
     try {
       setSavingCost(true);
@@ -436,14 +462,16 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       console.error('❌ Error saving cost:', error);
       console.error('Error details:', error.response?.data || error.message);
 
-      const errorMessage = error.response?.data?.message || error.message || 'No se pudo actualizar el costo';
+      const errorMessage =
+        error.response?.data?.message || error.message || 'No se pudo actualizar el costo';
 
       // Check if it's a presentation validation error
       if (errorMessage.includes('Presentation') && errorMessage.includes('not found')) {
         Alert.alert(
           'Error de Validación',
           'Este producto tiene presentaciones con datos inconsistentes en la base de datos. Por favor, contacta al administrador del sistema para corregir las presentaciones del producto antes de actualizar el costo.\n\n' +
-          'Detalles técnicos: ' + errorMessage,
+            'Detalles técnicos: ' +
+            errorMessage,
           [{ text: 'Entendido' }]
         );
       } else {
@@ -468,7 +496,9 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   };
 
   const handleSaveQuantity = async () => {
-    if (!campaignProduct?.productId || !quantityValue || !campaignProduct?.campaignId) return;
+    if (!campaignProduct?.productId || !quantityValue || !campaignProduct?.campaignId) {
+      return;
+    }
 
     try {
       setSavingQuantity(true);
@@ -483,7 +513,10 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       // Check available stock
       const availableStock = stockData.stock || 0;
       if (newQuantity > availableStock) {
-        Alert.alert('Error', `La cantidad no puede ser mayor al stock disponible (${availableStock})`);
+        Alert.alert(
+          'Error',
+          `La cantidad no puede ser mayor al stock disponible (${availableStock})`
+        );
         return;
       }
 
@@ -511,21 +544,23 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     }
   };
 
-  if (!campaignProduct) return null;
+  if (!campaignProduct) {
+    return null;
+  }
 
   // Use product from campaignProduct if available, otherwise use productDetails
   const product = campaignProduct.product || productDetails;
 
-  if (!product) return null;
+  if (!product) {
+    return null;
+  }
   const isPreliminary = campaignProduct.productStatus === ProductStatus.PRELIMINARY;
 
   // Use productDetails if available (has costCents), otherwise fallback to 0
   const costCents = productDetails?.costCents || 0;
 
   // Determine which stock to show
-  const stockValue = isPreliminary
-    ? stockData.preliminaryStock
-    : stockData.stock;
+  const stockValue = isPreliminary ? stockData.preliminaryStock : stockData.stock;
   const stockLabel = isPreliminary ? 'Stock Preliminar' : 'Stock';
 
   const formatCurrency = (cents: number) => {
@@ -533,12 +568,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={[styles.container, isTablet && styles.containerTablet]}>
           {/* Close Button */}
@@ -561,7 +591,13 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
             {/* Product Name Banner */}
             <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
               <Text style={styles.bannerLabel}>PRODUCTO</Text>
-              <Text style={[styles.bannerValue, styles.bannerValueName, isTablet && styles.bannerValueTablet]}>
+              <Text
+                style={[
+                  styles.bannerValue,
+                  styles.bannerValueName,
+                  isTablet && styles.bannerValueTablet,
+                ]}
+              >
                 {product.title || 'Sin nombre'}
               </Text>
             </View>
@@ -581,7 +617,8 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                     autoFocus={true}
                   />
                   <Text style={styles.stockAvailableText}>
-                    Stock disponible: {stockData.stock !== undefined ? stockData.stock : 'Cargando...'}
+                    Stock disponible:{' '}
+                    {stockData.stock !== undefined ? stockData.stock : 'Cargando...'}
                   </Text>
                   <View style={styles.quantityActionButtons}>
                     <TouchableOpacity
@@ -592,7 +629,10 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                       <Text style={styles.cancelQuantityButtonText}>✕ Cancelar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.saveQuantityButton, savingQuantity && styles.saveQuantityButtonDisabled]}
+                      style={[
+                        styles.saveQuantityButton,
+                        savingQuantity && styles.saveQuantityButtonDisabled,
+                      ]}
                       onPress={handleSaveQuantity}
                       disabled={savingQuantity}
                     >
@@ -606,7 +646,13 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                 </View>
               ) : (
                 <View style={styles.quantityDisplayContainer}>
-                  <Text style={[styles.bannerValue, styles.quantityValue, isTablet && styles.bannerValueTablet]}>
+                  <Text
+                    style={[
+                      styles.bannerValue,
+                      styles.quantityValue,
+                      isTablet && styles.bannerValueTablet,
+                    ]}
+                  >
                     {campaignProduct.totalQuantityBase}
                   </Text>
                   {!campaignProduct.distributionGenerated && (
@@ -666,7 +712,13 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                 </View>
               ) : (
                 <View style={styles.costDisplayContainer}>
-                  <Text style={[styles.bannerValue, styles.costValue, isTablet && styles.bannerValueTablet]}>
+                  <Text
+                    style={[
+                      styles.bannerValue,
+                      styles.costValue,
+                      isTablet && styles.bannerValueTablet,
+                    ]}
+                  >
                     {formatCurrency(costCents)}
                   </Text>
                   <TouchableOpacity
@@ -687,112 +739,127 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
               </View>
             ) : priceFormData.length === 0 ? (
               <View style={styles.emptyPricesContainer}>
-                <Text style={styles.emptyPricesText}>
-                  No hay perfiles de precio activos
-                </Text>
+                <Text style={styles.emptyPricesText}>No hay perfiles de precio activos</Text>
               </View>
             ) : (
               priceFormData.map((priceData, index) => {
                 const isEditing = editingPriceId === priceData.profileId;
-                const isSocia = priceData.profileCode === 'SOCIA' || priceData.profileName.toLowerCase().includes('socia');
+                const isSocia =
+                  priceData.profileCode === 'SOCIA' ||
+                  priceData.profileName.toLowerCase().includes('socia');
 
                 return (
-                <View
-                  key={priceData.profileId}
-                  style={[
-                    styles.bannerSection,
-                    isSocia && styles.bannerSectionSocia,
-                    !isSocia && index === 0 && styles.bannerSectionFirst,
-                  ]}
-                >
-                  {/* Profile Header */}
-                  <View style={styles.profileHeaderBanner}>
-                    <Text style={[styles.bannerLabel, isSocia && styles.bannerLabelSocia]}>{priceData.profileName}</Text>
-                    <Text style={styles.profileCodeBanner}>{priceData.profileCode} • {priceData.factorToCost.toFixed(2)}x</Text>
-                    {isSocia && (
-                      <View style={styles.sociaBadge}>
-                        <Text style={styles.sociaBadgeText}>⭐ PRECIO DESTACADO</Text>
+                  <View
+                    key={priceData.profileId}
+                    style={[
+                      styles.bannerSection,
+                      isSocia && styles.bannerSectionSocia,
+                      !isSocia && index === 0 && styles.bannerSectionFirst,
+                    ]}
+                  >
+                    {/* Profile Header */}
+                    <View style={styles.profileHeaderBanner}>
+                      <Text style={[styles.bannerLabel, isSocia && styles.bannerLabelSocia]}>
+                        {priceData.profileName}
+                      </Text>
+                      <Text style={styles.profileCodeBanner}>
+                        {priceData.profileCode} • {priceData.factorToCost.toFixed(2)}x
+                      </Text>
+                      {isSocia && (
+                        <View style={styles.sociaBadge}>
+                          <Text style={styles.sociaBadgeText}>⭐ PRECIO DESTACADO</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Price Display/Edit */}
+                    {isEditing ? (
+                      <View style={styles.priceEditContainer}>
+                        <View style={styles.inputRow}>
+                          <Text style={styles.currencySymbol}>S/</Text>
+                          <TextInput
+                            style={styles.priceInputLarge}
+                            value={editingPriceValue}
+                            onChangeText={handlePriceChange}
+                            keyboardType="decimal-pad"
+                            editable={!saving}
+                            selectTextOnFocus={true}
+                            autoFocus={true}
+                          />
+                        </View>
+
+                        {/* Show calculate button only for Precio Socia */}
+                        {(priceData.profileCode === 'SOCIA' ||
+                          priceData.profileName.toLowerCase().includes('socia')) && (
+                          <TouchableOpacity
+                            style={styles.calculateSociaButton}
+                            onPress={handleCalculateFranquiciaFromSocia}
+                            disabled={saving || !editingPriceValue}
+                          >
+                            <Text style={styles.calculateSociaButtonText}>
+                              🧮 Calcular Precio Franquicia (/1.15)
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+
+                        <View style={styles.priceActionButtons}>
+                          <TouchableOpacity
+                            style={styles.cancelPriceButton}
+                            onPress={handleCancelPriceEdit}
+                            disabled={saving}
+                          >
+                            <Text style={styles.cancelPriceButtonText}>✕ Cancelar</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              styles.savePriceButton,
+                              saving && styles.savePriceButtonDisabled,
+                            ]}
+                            onPress={() => handleSavePrice(priceData.profileId)}
+                            disabled={saving}
+                          >
+                            {saving ? (
+                              <ActivityIndicator size="small" color="#FFFFFF" />
+                            ) : (
+                              <Text style={styles.savePriceButtonText}>✓ Guardar</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={styles.priceDisplayContainer}>
+                        <Text
+                          style={[
+                            styles.bannerValue,
+                            styles.priceValue,
+                            isTablet && styles.bannerValueTablet,
+                          ]}
+                        >
+                          {formatCurrency(priceData.priceCents)}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.editPriceButton}
+                          onPress={() => handleStartEditPrice(priceData)}
+                        >
+                          <Text style={styles.editPriceButtonText}>✏️ Editar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {/* Price Info */}
+                    {!isEditing && (
+                      <View style={styles.priceInfoBanner}>
+                        <Text style={styles.priceInfoText}>
+                          Calculado: {formatCurrency(priceData.calculatedPriceCents)} • Margen:{' '}
+                          {calculateMargin(costCents, priceData.priceCents)}
+                        </Text>
+                        {priceData.isOverridden && (
+                          <Text style={styles.overriddenTextBanner}>✏️ Modificado</Text>
+                        )}
                       </View>
                     )}
                   </View>
-
-                  {/* Price Display/Edit */}
-                  {isEditing ? (
-                    <View style={styles.priceEditContainer}>
-                      <View style={styles.inputRow}>
-                        <Text style={styles.currencySymbol}>S/</Text>
-                        <TextInput
-                          style={styles.priceInputLarge}
-                          value={editingPriceValue}
-                          onChangeText={handlePriceChange}
-                          keyboardType="decimal-pad"
-                          editable={!saving}
-                          selectTextOnFocus={true}
-                          autoFocus={true}
-                        />
-                      </View>
-
-                      {/* Show calculate button only for Precio Socia */}
-                      {(priceData.profileCode === 'SOCIA' || priceData.profileName.toLowerCase().includes('socia')) && (
-                        <TouchableOpacity
-                          style={styles.calculateSociaButton}
-                          onPress={handleCalculateFranquiciaFromSocia}
-                          disabled={saving || !editingPriceValue}
-                        >
-                          <Text style={styles.calculateSociaButtonText}>
-                            🧮 Calcular Precio Franquicia (/1.15)
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-
-                      <View style={styles.priceActionButtons}>
-                        <TouchableOpacity
-                          style={styles.cancelPriceButton}
-                          onPress={handleCancelPriceEdit}
-                          disabled={saving}
-                        >
-                          <Text style={styles.cancelPriceButtonText}>✕ Cancelar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.savePriceButton, saving && styles.savePriceButtonDisabled]}
-                          onPress={() => handleSavePrice(priceData.profileId)}
-                          disabled={saving}
-                        >
-                          {saving ? (
-                            <ActivityIndicator size="small" color="#FFFFFF" />
-                          ) : (
-                            <Text style={styles.savePriceButtonText}>✓ Guardar</Text>
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ) : (
-                    <View style={styles.priceDisplayContainer}>
-                      <Text style={[styles.bannerValue, styles.priceValue, isTablet && styles.bannerValueTablet]}>
-                        {formatCurrency(priceData.priceCents)}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.editPriceButton}
-                        onPress={() => handleStartEditPrice(priceData)}
-                      >
-                        <Text style={styles.editPriceButtonText}>✏️ Editar</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  {/* Price Info */}
-                  {!isEditing && (
-                    <View style={styles.priceInfoBanner}>
-                      <Text style={styles.priceInfoText}>
-                        Calculado: {formatCurrency(priceData.calculatedPriceCents)} • Margen: {calculateMargin(costCents, priceData.priceCents)}
-                      </Text>
-                      {priceData.isOverridden && (
-                        <Text style={styles.overriddenTextBanner}>✏️ Modificado</Text>
-                      )}
-                    </View>
-                  )}
-                </View>
-              );
+                );
               })
             )}
 
@@ -805,15 +872,17 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                   <Text style={styles.loadingStockText}>Cargando stock...</Text>
                 </View>
               ) : (
-                <Text style={[styles.bannerValue, styles.stockValue, isTablet && styles.bannerValueTablet]}>
+                <Text
+                  style={[
+                    styles.bannerValue,
+                    styles.stockValue,
+                    isTablet && styles.bannerValueTablet,
+                  ]}
+                >
                   {stockValue !== undefined && stockValue !== null ? stockValue : 'N/A'}
                 </Text>
               )}
-              {isPreliminary && (
-                <Text style={styles.preliminaryNote}>
-                  ⚠️ Producto Preliminar
-                </Text>
-              )}
+              {isPreliminary && <Text style={styles.preliminaryNote}>⚠️ Producto Preliminar</Text>}
             </View>
           </ScrollView>
         </View>

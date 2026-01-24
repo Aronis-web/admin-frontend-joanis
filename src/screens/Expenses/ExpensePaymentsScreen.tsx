@@ -75,9 +75,7 @@ export const ExpensePaymentsScreen: React.FC<ExpensePaymentsScreenProps> = ({ na
         <ScrollView
           style={styles.content}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>💳</Text>
@@ -85,9 +83,7 @@ export const ExpensePaymentsScreen: React.FC<ExpensePaymentsScreenProps> = ({ na
             <Text style={styles.emptyMessage}>
               Aquí podrás gestionar todos los pagos de gastos.
             </Text>
-            <Text style={styles.emptyHint}>
-              Esta funcionalidad estará disponible próximamente.
-            </Text>
+            <Text style={styles.emptyHint}>Esta funcionalidad estará disponible próximamente.</Text>
           </View>
         </ScrollView>
       </SafeAreaView>

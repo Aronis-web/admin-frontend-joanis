@@ -9,7 +9,7 @@ interface ExpenseStatusBadgeProps {
 
 export const ExpenseStatusBadge: React.FC<ExpenseStatusBadgeProps> = ({
   status,
-  size = 'medium'
+  size = 'medium',
 }) => {
   const backgroundColor = ExpenseStatusColors[status as ExpenseStatus] || '#6B7280';
   const label = ExpenseStatusLabels[status as ExpenseStatus] || status;

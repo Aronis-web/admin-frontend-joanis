@@ -88,8 +88,8 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
       onClose();
     } catch (error: any) {
       console.error('Error saving area:', error);
-      const errorMessage = error.response?.data?.message ||
-        `Error al ${isEditMode ? 'actualizar' : 'crear'} el área`;
+      const errorMessage =
+        error.response?.data?.message || `Error al ${isEditMode ? 'actualizar' : 'crear'} el área`;
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -103,12 +103,7 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -117,9 +112,7 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
               <View style={styles.areaIcon}>
                 <Text style={styles.iconText}>📍</Text>
               </View>
-              <Text style={styles.modalTitle}>
-                {isEditMode ? 'Editar Área' : 'Crear Área'}
-              </Text>
+              <Text style={styles.modalTitle}>{isEditMode ? 'Editar Área' : 'Crear Área'}</Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
@@ -172,7 +165,8 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
               <View style={styles.warningBox}>
                 <Text style={styles.warningBoxTitle}>⚠️ Advertencia</Text>
                 <Text style={styles.warningBoxText}>
-                  Al eliminar un área, los items de stock asociados tendrán su área establecida a NULL.
+                  Al eliminar un área, los items de stock asociados tendrán su área establecida a
+                  NULL.
                 </Text>
               </View>
             )}

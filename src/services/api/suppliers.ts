@@ -116,9 +116,7 @@ class SuppliersService {
    * Delete a legal entity
    */
   async deleteLegalEntity(supplierId: string, entityId: string): Promise<void> {
-    return apiClient.delete<void>(
-      `${this.basePath}/${supplierId}/legal-entities/${entityId}`
-    );
+    return apiClient.delete<void>(`${this.basePath}/${supplierId}/legal-entities/${entityId}`);
   }
 
   /**
@@ -137,14 +135,8 @@ class SuppliersService {
   /**
    * Add a contact to a supplier
    */
-  async addContact(
-    supplierId: string,
-    data: CreateSupplierContactDto
-  ): Promise<SupplierContact> {
-    return apiClient.post<SupplierContact>(
-      `${this.basePath}/${supplierId}/contacts`,
-      data
-    );
+  async addContact(supplierId: string, data: CreateSupplierContactDto): Promise<SupplierContact> {
+    return apiClient.post<SupplierContact>(`${this.basePath}/${supplierId}/contacts`, data);
   }
 
   /**
@@ -165,9 +157,7 @@ class SuppliersService {
    * Delete a contact
    */
   async deleteContact(supplierId: string, contactId: string): Promise<void> {
-    return apiClient.delete<void>(
-      `${this.basePath}/${supplierId}/contacts/${contactId}`
-    );
+    return apiClient.delete<void>(`${this.basePath}/${supplierId}/contacts/${contactId}`);
   }
 
   // ============================================
@@ -178,9 +168,7 @@ class SuppliersService {
    * Get all bank accounts for a supplier
    */
   async getBankAccounts(supplierId: string): Promise<SupplierBankAccount[]> {
-    return apiClient.get<SupplierBankAccount[]>(
-      `${this.basePath}/${supplierId}/bank-accounts`
-    );
+    return apiClient.get<SupplierBankAccount[]>(`${this.basePath}/${supplierId}/bank-accounts`);
   }
 
   /**
@@ -223,9 +211,7 @@ class SuppliersService {
    * Deactivate a bank account
    */
   async deactivateBankAccount(supplierId: string, accountId: string): Promise<void> {
-    return apiClient.delete<void>(
-      `${this.basePath}/${supplierId}/bank-accounts/${accountId}`
-    );
+    return apiClient.delete<void>(`${this.basePath}/${supplierId}/bank-accounts/${accountId}`);
   }
 
   /**
@@ -309,45 +295,29 @@ class SuppliersService {
   /**
    * Get all payments for a supplier
    */
-  async getPayments(
-    supplierId: string,
-    params?: QueryPaymentsParams
-  ): Promise<PaymentsResponse> {
-    return apiClient.get<PaymentsResponse>(
-      `${this.basePath}/${supplierId}/payments`,
-      { params }
-    );
+  async getPayments(supplierId: string, params?: QueryPaymentsParams): Promise<PaymentsResponse> {
+    return apiClient.get<PaymentsResponse>(`${this.basePath}/${supplierId}/payments`, { params });
   }
 
   /**
    * Get unassigned payments for a supplier
    */
   async getUnassignedPayments(supplierId: string): Promise<SupplierPayment[]> {
-    return apiClient.get<SupplierPayment[]>(
-      `${this.basePath}/${supplierId}/payments/unassigned`
-    );
+    return apiClient.get<SupplierPayment[]>(`${this.basePath}/${supplierId}/payments/unassigned`);
   }
 
   /**
    * Get a single payment
    */
   async getPayment(supplierId: string, paymentId: string): Promise<SupplierPayment> {
-    return apiClient.get<SupplierPayment>(
-      `${this.basePath}/${supplierId}/payments/${paymentId}`
-    );
+    return apiClient.get<SupplierPayment>(`${this.basePath}/${supplierId}/payments/${paymentId}`);
   }
 
   /**
    * Create a payment
    */
-  async createPayment(
-    supplierId: string,
-    data: CreatePaymentRequest
-  ): Promise<SupplierPayment> {
-    return apiClient.post<SupplierPayment>(
-      `${this.basePath}/${supplierId}/payments`,
-      data
-    );
+  async createPayment(supplierId: string, data: CreatePaymentRequest): Promise<SupplierPayment> {
+    return apiClient.post<SupplierPayment>(`${this.basePath}/${supplierId}/payments`, data);
   }
 
   /**
@@ -413,10 +383,7 @@ class PaymentMethodsService {
   /**
    * Update a payment method
    */
-  async updatePaymentMethod(
-    id: string,
-    data: UpdatePaymentMethodRequest
-  ): Promise<PaymentMethod> {
+  async updatePaymentMethod(id: string, data: UpdatePaymentMethodRequest): Promise<PaymentMethod> {
     return apiClient.patch<PaymentMethod>(`${this.basePath}/${id}`, data);
   }
 

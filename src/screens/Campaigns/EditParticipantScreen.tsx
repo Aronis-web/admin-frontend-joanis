@@ -109,25 +109,17 @@ export const EditParticipantScreen: React.FC<EditParticipantScreenProps> = ({
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container}>
         <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
               ← Volver
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Editar Participante
-          </Text>
+          <Text style={[styles.title, isTablet && styles.titleTablet]}>Editar Participante</Text>
         </View>
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
         >
           <View style={[styles.section, isTablet && styles.sectionTablet]}>
             <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
@@ -135,9 +127,7 @@ export const EditParticipantScreen: React.FC<EditParticipantScreenProps> = ({
             </Text>
 
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Nombre:
-              </Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Nombre:</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {participant.participantType === 'EXTERNAL_COMPANY'
                   ? participant.company?.name
@@ -146,9 +136,7 @@ export const EditParticipantScreen: React.FC<EditParticipantScreenProps> = ({
             </View>
 
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Tipo:
-              </Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Tipo:</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {participant.participantType === 'EXTERNAL_COMPANY'
                   ? 'Empresa Externa'
@@ -176,9 +164,7 @@ export const EditParticipantScreen: React.FC<EditParticipantScreenProps> = ({
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Perfil de Precio
-              </Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Perfil de Precio</Text>
               <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
                 <Picker
                   selectedValue={priceProfileId}

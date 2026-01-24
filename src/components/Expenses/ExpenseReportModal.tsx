@@ -113,16 +113,30 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
 
       if (isRecurrent) {
         // For recurring expenses (templates)
-        if (selectedSiteId) params.siteId = selectedSiteId;
-        if (selectedCategoryId) params.categoryId = selectedCategoryId;
-        if (includeInactive) params.isActive = 'false';
+        if (selectedSiteId) {
+          params.siteId = selectedSiteId;
+        }
+        if (selectedCategoryId) {
+          params.categoryId = selectedCategoryId;
+        }
+        if (includeInactive) {
+          params.isActive = 'false';
+        }
         params.templateExpenseType = 'RECURRENT';
       } else {
         // For regular expenses
-        if (startDate) params.startDate = startDate;
-        if (endDate) params.endDate = endDate;
-        if (selectedSiteId) params.siteId = selectedSiteId;
-        if (selectedCategoryId) params.categoryId = selectedCategoryId;
+        if (startDate) {
+          params.startDate = startDate;
+        }
+        if (endDate) {
+          params.endDate = endDate;
+        }
+        if (selectedSiteId) {
+          params.siteId = selectedSiteId;
+        }
+        if (selectedCategoryId) {
+          params.categoryId = selectedCategoryId;
+        }
       }
 
       // Build URL with query parameters
@@ -130,7 +144,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
         ? '/admin/expense-templates/reports/excel'
         : '/admin/expenses/reports/excel';
       const queryString = Object.keys(params)
-        .map(key => `${key}=${encodeURIComponent(params[key])}`)
+        .map((key) => `${key}=${encodeURIComponent(params[key])}`)
         .join('&');
       const timestamp = new Date().getTime();
       const url = queryString
@@ -142,15 +156,21 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
       // Prepare headers
       const headers: Record<string, string> = {
         'X-App-Id': config.APP_ID,
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       };
 
-      if (userId) headers['X-User-Id'] = userId;
-      if (companyId) headers['X-Company-Id'] = companyId;
-      if (siteId) headers['X-Site-Id'] = siteId;
+      if (userId) {
+        headers['X-User-Id'] = userId;
+      }
+      if (companyId) {
+        headers['X-Company-Id'] = companyId;
+      }
+      if (siteId) {
+        headers['X-Site-Id'] = siteId;
+      }
 
       // Download the Excel file
       const startTime = Date.now();
@@ -169,7 +189,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
 
       console.log('✅ Excel descargado del servidor');
       console.log('📦 Tamaño del Excel:', excelBlob.size, 'bytes');
-      console.log('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+      console.log('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       // Handle download based on platform
       const fileName = isRecurrent
@@ -270,16 +290,12 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
     setIncludeInactive(false);
   };
 
-  const hasFilters = startDate || endDate || selectedSiteId || selectedCategoryId || includeInactive;
+  const hasFilters =
+    startDate || endDate || selectedSiteId || selectedCategoryId || includeInactive;
 
   return (
     <>
-      <Modal
-        visible={visible}
-        transparent
-        animationType="slide"
-        onRequestClose={onClose}
-      >
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
         <View style={styles.overlay}>
           <View style={styles.container}>
             <View style={styles.content}>
@@ -328,10 +344,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                     <Text style={styles.sectionLabel}>Estado de Plantillas</Text>
                     <View style={styles.switchContainer}>
                       <TouchableOpacity
-                        style={[
-                          styles.switchOption,
-                          !includeInactive && styles.switchOptionActive,
-                        ]}
+                        style={[styles.switchOption, !includeInactive && styles.switchOptionActive]}
                         onPress={() => setIncludeInactive(false)}
                       >
                         <Text
@@ -344,10 +357,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[
-                          styles.switchOption,
-                          includeInactive && styles.switchOptionActive,
-                        ]}
+                        style={[styles.switchOption, includeInactive && styles.switchOptionActive]}
                         onPress={() => setIncludeInactive(true)}
                       >
                         <Text
@@ -375,10 +385,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                       contentContainerStyle={styles.filterChipsContainer}
                     >
                       <TouchableOpacity
-                        style={[
-                          styles.filterChip,
-                          !selectedSiteId && styles.filterChipActive,
-                        ]}
+                        style={[styles.filterChip, !selectedSiteId && styles.filterChipActive]}
                         onPress={() => setSelectedSiteId('')}
                       >
                         <Text
@@ -425,10 +432,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                       contentContainerStyle={styles.filterChipsContainer}
                     >
                       <TouchableOpacity
-                        style={[
-                          styles.filterChip,
-                          !selectedCategoryId && styles.filterChipActive,
-                        ]}
+                        style={[styles.filterChip, !selectedCategoryId && styles.filterChipActive]}
                         onPress={() => setSelectedCategoryId('')}
                       >
                         <Text
@@ -527,10 +531,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
               {/* Footer Actions */}
               <View style={styles.footer}>
                 {hasFilters && (
-                  <TouchableOpacity
-                    style={styles.clearButton}
-                    onPress={clearFilters}
-                  >
+                  <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
                     <Ionicons name="refresh" size={18} color="#6366F1" />
                     <Text style={styles.clearButtonText}>Limpiar Filtros</Text>
                   </TouchableOpacity>

@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 
 interface FormDatePickerProps {
   label: string;
@@ -41,7 +34,9 @@ export const FormDatePicker: React.FC<FormDatePickerProps> = ({
   );
 
   const formatDate = (dateString?: string): string => {
-    if (!dateString) return placeholder;
+    if (!dateString) {
+      return placeholder;
+    }
 
     const d = new Date(dateString);
     const day = String(d.getDate()).padStart(2, '0');
@@ -63,8 +58,18 @@ export const FormDatePicker: React.FC<FormDatePickerProps> = ({
 
   const generateMonths = (): { value: number; label: string }[] => {
     const months = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
     ];
     return months.map((month, index) => ({ value: index, label: month }));
   };
@@ -122,11 +127,7 @@ export const FormDatePicker: React.FC<FormDatePickerProps> = ({
         animationType="slide"
         onRequestClose={handleCancel}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={handleCancel}
-        >
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={handleCancel}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{label}</Text>
@@ -195,10 +196,7 @@ export const FormDatePicker: React.FC<FormDatePickerProps> = ({
                   {generateDays().map((day) => (
                     <TouchableOpacity
                       key={day}
-                      style={[
-                        styles.pickerItem,
-                        selectedDay === day && styles.pickerItemSelected,
-                      ]}
+                      style={[styles.pickerItem, selectedDay === day && styles.pickerItemSelected]}
                       onPress={() => setSelectedDay(day)}
                     >
                       <Text

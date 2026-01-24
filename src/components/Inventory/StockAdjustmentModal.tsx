@@ -104,7 +104,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       console.log('🔄 Loading areas for warehouse:', warehouseId);
 
       // Find the warehouse in the warehouses array
-      const selectedWarehouse = warehouses.find(w => w.id === warehouseId);
+      const selectedWarehouse = warehouses.find((w) => w.id === warehouseId);
 
       if (selectedWarehouse && selectedWarehouse.areas) {
         console.log('✅ Warehouse found in cache:', selectedWarehouse.name);
@@ -137,7 +137,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       loadAreasForWarehouse(formData.warehouseId);
     } else {
       setAvailableAreas([]);
-      setFormData(prev => ({ ...prev, areaId: '' }));
+      setFormData((prev) => ({ ...prev, areaId: '' }));
     }
   }, [formData.warehouseId]);
 
@@ -177,7 +177,9 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     setLoading(true);
     try {
@@ -279,13 +281,17 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                       style={styles.picker}
                       onPress={() => {
                         if (warehouses.length === 0) {
-                          Alert.alert('Sin almacenes', 'No hay almacenes disponibles. Por favor, crea uno primero.');
+                          Alert.alert(
+                            'Sin almacenes',
+                            'No hay almacenes disponibles. Por favor, crea uno primero.'
+                          );
                           return;
                         }
 
                         const options = warehouses.map((w) => ({
                           text: `${w.name} (${w.code})`,
-                          onPress: () => setFormData({ ...formData, warehouseId: w.id, areaId: '' }),
+                          onPress: () =>
+                            setFormData({ ...formData, warehouseId: w.id, areaId: '' }),
                         }));
 
                         Alert.alert('Seleccionar Almacén', '', [
@@ -297,8 +303,12 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                       <Text style={styles.pickerText}>
                         {formData.warehouseId
                           ? (() => {
-                              const selected = warehouses.find((w) => w.id === formData.warehouseId);
-                              return selected ? `${selected.name} (${selected.code})` : 'Seleccionar almacén...';
+                              const selected = warehouses.find(
+                                (w) => w.id === formData.warehouseId
+                              );
+                              return selected
+                                ? `${selected.name} (${selected.code})`
+                                : 'Seleccionar almacén...';
                             })()
                           : 'Seleccionar almacén...'}
                       </Text>
@@ -348,8 +358,14 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                         <Text style={styles.pickerText}>
                           {formData.areaId
                             ? (() => {
-                                const selected = availableAreas.find((a) => a.id === formData.areaId);
-                                return selected ? (selected.name || selected.code || `Área ${selected.id.substring(0, 8)}`) : 'Seleccionar área...';
+                                const selected = availableAreas.find(
+                                  (a) => a.id === formData.areaId
+                                );
+                                return selected
+                                  ? selected.name ||
+                                      selected.code ||
+                                      `Área ${selected.id.substring(0, 8)}`
+                                  : 'Seleccionar área...';
                               })()
                             : 'Seleccionar área...'}
                         </Text>
@@ -428,9 +444,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                 placeholder="COMPRA-2024-001"
                 placeholderTextColor="#94A3B8"
               />
-              <Text style={styles.helpText}>
-                Para idempotencia y trazabilidad de la operación
-              </Text>
+              <Text style={styles.helpText}>Para idempotencia y trazabilidad de la operación</Text>
             </View>
           </View>
 
@@ -447,8 +461,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
               <Text style={styles.summaryLabel}>Almacén:</Text>
               <Text style={styles.summaryValue}>
                 {formData.warehouseId
-                  ? warehouses.find((w) => w.id === formData.warehouseId)?.name ||
-                    'Seleccionado'
+                  ? warehouses.find((w) => w.id === formData.warehouseId)?.name || 'Seleccionado'
                   : 'No seleccionado'}
               </Text>
             </View>
@@ -458,7 +471,9 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                 {formData.areaId
                   ? (() => {
                       const selected = availableAreas.find((a) => a.id === formData.areaId);
-                      return selected ? (selected.name || selected.code || 'Seleccionada') : 'Seleccionada';
+                      return selected
+                        ? selected.name || selected.code || 'Seleccionada'
+                        : 'Seleccionada';
                     })()
                   : 'No seleccionada'}
               </Text>

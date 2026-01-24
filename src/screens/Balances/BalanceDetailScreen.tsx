@@ -34,10 +34,7 @@ interface BalanceDetailScreenProps {
   };
 }
 
-export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({
-  navigation,
-  route,
-}) => {
+export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({ navigation, route }) => {
   const { balanceId } = route.params;
   const [balance, setBalance] = useState<Balance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,63 +72,61 @@ export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({
   };
 
   const handleActivate = async () => {
-    if (!balance) return;
+    if (!balance) {
+      return;
+    }
 
-    Alert.alert(
-      'Activar Balance',
-      '¿Está seguro de que desea activar este balance?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Activar',
-          onPress: async () => {
-            try {
-              setActionLoading(true);
-              await balancesApi.activateBalance(balance.id);
-              Alert.alert('Éxito', 'Balance activado correctamente');
-              loadBalance();
-            } catch (error: any) {
-              console.error('Error activating balance:', error);
-              Alert.alert('Error', 'No se pudo activar el balance');
-            } finally {
-              setActionLoading(false);
-            }
-          },
+    Alert.alert('Activar Balance', '¿Está seguro de que desea activar este balance?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Activar',
+        onPress: async () => {
+          try {
+            setActionLoading(true);
+            await balancesApi.activateBalance(balance.id);
+            Alert.alert('Éxito', 'Balance activado correctamente');
+            loadBalance();
+          } catch (error: any) {
+            console.error('Error activating balance:', error);
+            Alert.alert('Error', 'No se pudo activar el balance');
+          } finally {
+            setActionLoading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleDeactivate = async () => {
-    if (!balance) return;
+    if (!balance) {
+      return;
+    }
 
-    Alert.alert(
-      'Desactivar Balance',
-      '¿Está seguro de que desea desactivar este balance?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Desactivar',
-          onPress: async () => {
-            try {
-              setActionLoading(true);
-              await balancesApi.deactivateBalance(balance.id);
-              Alert.alert('Éxito', 'Balance desactivado correctamente');
-              loadBalance();
-            } catch (error: any) {
-              console.error('Error deactivating balance:', error);
-              Alert.alert('Error', 'No se pudo desactivar el balance');
-            } finally {
-              setActionLoading(false);
-            }
-          },
+    Alert.alert('Desactivar Balance', '¿Está seguro de que desea desactivar este balance?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Desactivar',
+        onPress: async () => {
+          try {
+            setActionLoading(true);
+            await balancesApi.deactivateBalance(balance.id);
+            Alert.alert('Éxito', 'Balance desactivado correctamente');
+            loadBalance();
+          } catch (error: any) {
+            console.error('Error deactivating balance:', error);
+            Alert.alert('Error', 'No se pudo desactivar el balance');
+          } finally {
+            setActionLoading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleClose = async () => {
-    if (!balance) return;
+    if (!balance) {
+      return;
+    }
 
     Alert.alert(
       'Cerrar Balance',
@@ -160,7 +155,9 @@ export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({
   };
 
   const handleDelete = async () => {
-    if (!balance) return;
+    if (!balance) {
+      return;
+    }
 
     Alert.alert(
       'Eliminar Balance',
@@ -194,7 +191,9 @@ export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {
+      return 'N/A';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
@@ -229,180 +228,182 @@ export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({
   return (
     <>
       <ScreenLayout navigation={navigation}>
-      <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Detalle de Balance
-          </Text>
-        </View>
-
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={[
-            styles.contentContainer,
-            isTablet && styles.contentContainerTablet,
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
-        >
-          {/* Balance Info Card */}
-          <View style={[styles.card, isTablet && styles.cardTablet]}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderLeft}>
-                <Text style={[styles.balanceCode, isTablet && styles.balanceCodeTablet]}>
-                  {balance.code}
-                </Text>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    isTablet && styles.statusBadgeTablet,
-                    { backgroundColor: getBalanceStatusColor(balance.status) + '20' },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      isTablet && styles.statusTextTablet,
-                      { color: getBalanceStatusColor(balance.status) },
-                    ]}
-                  >
-                    {getBalanceStatusLabel(balance.status)}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.typeBadge}>
-                <Text style={[styles.typeText, isTablet && styles.typeTextTablet]}>
-                  {getBalanceTypeLabel(balance.balanceType)}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.cardBody}>
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                  Receptor:
-                </Text>
-                <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                  {balance.receiverSite?.name || balance.receiverCompany?.alias || balance.receiverCompany?.name || 'N/A'}
-                </Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                  Fecha Inicio:
-                </Text>
-                <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                  {formatDate(balance.startDate)}
-                </Text>
-              </View>
-
-              {balance.endDate && (
-                <View style={styles.infoRow}>
-                  <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                    Fecha Fin:
-                  </Text>
-                  <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                    {formatDate(balance.endDate)}
-                  </Text>
-                </View>
-              )}
-
-              {balance.notes && (
-                <View style={styles.infoRow}>
-                  <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                    Notas:
-                  </Text>
-                  <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                    {balance.notes}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* Actions Card */}
-          <View style={[styles.card, isTablet && styles.cardTablet]}>
-            <Text style={[styles.cardTitle, isTablet && styles.cardTitleTablet]}>
-              Acciones
-            </Text>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.viewOperationsButton]}
-              onPress={handleViewOperations}
-            >
-              <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>
-                Ver Operaciones
+        <SafeAreaView style={styles.container} edges={['top']}>
+          {/* Header */}
+          <View style={[styles.header, isTablet && styles.headerTablet]}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
+                ← Volver
               </Text>
             </TouchableOpacity>
-
-            {canModify && (
-              <>
-                {balance.status === BalanceStatus.ACTIVE ? (
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.deactivateButton]}
-                    onPress={handleDeactivate}
-                    disabled={actionLoading}
-                  >
-                    <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>
-                      Desactivar Balance
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.activateButton]}
-                    onPress={handleActivate}
-                    disabled={actionLoading}
-                  >
-                    <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>
-                      Activar Balance
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.closeButton]}
-                  onPress={handleClose}
-                  disabled={actionLoading}
-                >
-                  <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>
-                    Cerrar Balance
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.deleteButton]}
-                  onPress={handleDelete}
-                  disabled={actionLoading}
-                >
-                  <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>
-                    Eliminar Balance
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
+            <Text style={[styles.title, isTablet && styles.titleTablet]}>Detalle de Balance</Text>
           </View>
 
-          <View style={styles.bottomSpacer} />
-        </ScrollView>
-      </SafeAreaView>
-    </ScreenLayout>
+          <ScrollView
+            style={styles.content}
+            contentContainerStyle={[
+              styles.contentContainer,
+              isTablet && styles.contentContainerTablet,
+            ]}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          >
+            {/* Balance Info Card */}
+            <View style={[styles.card, isTablet && styles.cardTablet]}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardHeaderLeft}>
+                  <Text style={[styles.balanceCode, isTablet && styles.balanceCodeTablet]}>
+                    {balance.code}
+                  </Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      isTablet && styles.statusBadgeTablet,
+                      { backgroundColor: getBalanceStatusColor(balance.status) + '20' },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        isTablet && styles.statusTextTablet,
+                        { color: getBalanceStatusColor(balance.status) },
+                      ]}
+                    >
+                      {getBalanceStatusLabel(balance.status)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.typeBadge}>
+                  <Text style={[styles.typeText, isTablet && styles.typeTextTablet]}>
+                    {getBalanceTypeLabel(balance.balanceType)}
+                  </Text>
+                </View>
+              </View>
 
-    {/* Operations Modal */}
-    <BalanceOperationsModal
-      visible={showOperationsModal}
-      balance={balance}
-      onClose={() => setShowOperationsModal(false)}
-    />
+              <View style={styles.cardBody}>
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                    Receptor:
+                  </Text>
+                  <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                    {balance.receiverSite?.name ||
+                      balance.receiverCompany?.alias ||
+                      balance.receiverCompany?.name ||
+                      'N/A'}
+                  </Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                    Fecha Inicio:
+                  </Text>
+                  <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                    {formatDate(balance.startDate)}
+                  </Text>
+                </View>
+
+                {balance.endDate && (
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                      Fecha Fin:
+                    </Text>
+                    <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                      {formatDate(balance.endDate)}
+                    </Text>
+                  </View>
+                )}
+
+                {balance.notes && (
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                      Notas:
+                    </Text>
+                    <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                      {balance.notes}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Actions Card */}
+            <View style={[styles.card, isTablet && styles.cardTablet]}>
+              <Text style={[styles.cardTitle, isTablet && styles.cardTitleTablet]}>Acciones</Text>
+
+              <TouchableOpacity
+                style={[styles.actionButton, styles.viewOperationsButton]}
+                onPress={handleViewOperations}
+              >
+                <Text style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}>
+                  Ver Operaciones
+                </Text>
+              </TouchableOpacity>
+
+              {canModify && (
+                <>
+                  {balance.status === BalanceStatus.ACTIVE ? (
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.deactivateButton]}
+                      onPress={handleDeactivate}
+                      disabled={actionLoading}
+                    >
+                      <Text
+                        style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}
+                      >
+                        Desactivar Balance
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.activateButton]}
+                      onPress={handleActivate}
+                      disabled={actionLoading}
+                    >
+                      <Text
+                        style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}
+                      >
+                        Activar Balance
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.closeButton]}
+                    onPress={handleClose}
+                    disabled={actionLoading}
+                  >
+                    <Text
+                      style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}
+                    >
+                      Cerrar Balance
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.deleteButton]}
+                    onPress={handleDelete}
+                    disabled={actionLoading}
+                  >
+                    <Text
+                      style={[styles.actionButtonText, isTablet && styles.actionButtonTextTablet]}
+                    >
+                      Eliminar Balance
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+
+            <View style={styles.bottomSpacer} />
+          </ScrollView>
+        </SafeAreaView>
+      </ScreenLayout>
+
+      {/* Operations Modal */}
+      <BalanceOperationsModal
+        visible={showOperationsModal}
+        balance={balance}
+        onClose={() => setShowOperationsModal(false)}
+      />
     </>
   );
 };

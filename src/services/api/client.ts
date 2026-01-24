@@ -18,8 +18,8 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       },
     });
 
@@ -52,7 +52,7 @@ class ApiClient {
    * Clear specific tenant context fields
    */
   clearTenantContextFields(...fields: (keyof TenantContext)[]): void {
-    fields.forEach(field => {
+    fields.forEach((field) => {
       delete this.tenantContext[field];
     });
   }
@@ -86,13 +86,15 @@ class ApiClient {
           delete requestConfig.headers['content-type'];
 
           // Also remove from common header variations
-          Object.keys(requestConfig.headers).forEach(key => {
+          Object.keys(requestConfig.headers).forEach((key) => {
             if (key.toLowerCase() === 'content-type') {
               delete (requestConfig.headers as any)[key];
             }
           });
 
-          console.log('📦 FormData detected - removing Content-Type to let React Native handle boundary');
+          console.log(
+            '📦 FormData detected - removing Content-Type to let React Native handle boundary'
+          );
           console.log('📋 Headers after cleanup:', Object.keys(requestConfig.headers));
         }
 
@@ -127,7 +129,8 @@ class ApiClient {
         requestConfig.headers['x-app-id'] = appId; // Also set lowercase for compatibility
 
         // Auto-sync tenant context from stores (prefer tenant store, fallback to auth store)
-        const effectiveCompanyId = selectedCompany?.id || currentCompany?.id || this.tenantContext.companyId;
+        const effectiveCompanyId =
+          selectedCompany?.id || currentCompany?.id || this.tenantContext.companyId;
         const effectiveSiteId = selectedSite?.id || currentSite?.id || this.tenantContext.siteId;
         const effectiveWarehouseId = selectedWarehouse?.id || this.tenantContext.warehouseId;
         const effectiveUserId = user?.id || this.tenantContext.userId;
@@ -154,7 +157,7 @@ class ApiClient {
           isFormData,
           headers: {
             ...requestConfig.headers,
-            'Authorization': requestConfig.headers.Authorization ? 'Bearer [REDACTED]' : 'None'
+            Authorization: requestConfig.headers.Authorization ? 'Bearer [REDACTED]' : 'None',
           },
           'X-App-Id': requestConfig.headers['X-App-Id'],
           'x-app-id': requestConfig.headers['x-app-id'],
@@ -180,7 +183,7 @@ class ApiClient {
           url: response.config.url,
           status: response.status,
           method: response.config.method,
-          data: response.data
+          data: response.data,
         });
         return response;
       },
@@ -191,7 +194,7 @@ class ApiClient {
           message: error.response?.data?.message || error.message,
           method: error.config?.method,
           headers: error.config?.headers,
-          authorization: error.config?.headers?.Authorization ? 'Present' : 'Missing'
+          authorization: error.config?.headers?.Authorization ? 'Present' : 'Missing',
         });
 
         // Enhanced debugging for 403 errors on /transfers endpoint
@@ -209,7 +212,7 @@ class ApiClient {
             currentCompanyId: authStore.currentCompany?.id,
             currentSiteId: authStore.currentSite?.id,
             requestHeaders: {
-              'Authorization': error.config?.headers?.Authorization ? 'Bearer [REDACTED]' : 'Missing',
+              Authorization: error.config?.headers?.Authorization ? 'Bearer [REDACTED]' : 'Missing',
               'X-App-Id': error.config?.headers?.['X-App-Id'],
               'X-Company-Id': error.config?.headers?.['X-Company-Id'],
               'X-Site-Id': error.config?.headers?.['X-Site-Id'],
@@ -226,7 +229,8 @@ class ApiClient {
 
         if (error.code === 'ECONNREFUSED') {
           error.code = 'NETWORK_ERROR';
-          error.message = 'No se puede conectar al servidor. Verifica que el backend esté en ejecución.';
+          error.message =
+            'No se puede conectar al servidor. Verifica que el backend esté en ejecución.';
         }
 
         const originalRequest = error.config;
@@ -237,7 +241,9 @@ class ApiClient {
 
           // Prevent infinite refresh loops
           if (this.refreshAttempts >= this.maxRefreshAttempts) {
-            console.error(`Max refresh attempts (${this.maxRefreshAttempts}) reached, logging out...`);
+            console.error(
+              `Max refresh attempts (${this.maxRefreshAttempts}) reached, logging out...`
+            );
             this.refreshAttempts = 0;
             await useAuthStore.getState().logout();
             return Promise.reject(error);
@@ -246,7 +252,9 @@ class ApiClient {
           this.refreshAttempts++;
 
           try {
-            console.log(`Attempting token refresh (${this.refreshAttempts}/${this.maxRefreshAttempts}) for 401 error...`);
+            console.log(
+              `Attempting token refresh (${this.refreshAttempts}/${this.maxRefreshAttempts}) for 401 error...`
+            );
 
             // Use the new authService for token refresh
             await authService.refreshToken();
@@ -271,7 +279,9 @@ class ApiClient {
 
         // Handle 403 errors - permission denied
         if (error.response?.status === 403) {
-          const errorMessage = error.response?.data?.message || 'No tienes los permisos necesarios para realizar esta acción.';
+          const errorMessage =
+            error.response?.data?.message ||
+            'No tienes los permisos necesarios para realizar esta acción.';
 
           // Extract required permissions from error message if available
           const requiredPermissionsMatch = errorMessage.match(/Se requieren los permisos: (.+)/);
@@ -314,17 +324,13 @@ class ApiClient {
       dataType: typeof response.data,
       hasData: !!response.data,
       dataKeys: response.data ? Object.keys(response.data) : [],
-      fullData: response.data
+      fullData: response.data,
     });
 
     return response.data;
   }
 
-  async post<T = any>(
-    url: string,
-    data?: any,
-    config?: AxiosRequestConfig
-  ): Promise<T> {
+  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const isFormData = data instanceof FormData;
     console.log('📤 POST Request:', {
       url,
@@ -332,7 +338,7 @@ class ApiClient {
       hasData: !!data,
       dataKeys: data && !isFormData ? Object.keys(data) : [],
       isFormData,
-      dataType: data?.constructor?.name
+      dataType: data?.constructor?.name,
     });
 
     // For FormData in React Native, use fetch directly to avoid axios Content-Type issues
@@ -367,10 +373,10 @@ class ApiClient {
 
     // Build headers
     const headers: Record<string, string> = {
-      'Accept': 'application/json, text/plain, */*',
+      Accept: 'application/json, text/plain, */*',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
+      Pragma: 'no-cache',
+      Expires: '0',
     };
 
     // Merge custom headers if provided
@@ -384,7 +390,7 @@ class ApiClient {
 
     // Add auth header
     if (currentToken) {
-      headers['Authorization'] = `Bearer ${currentToken}`;
+      headers.Authorization = `Bearer ${currentToken}`;
     }
 
     // Add tenant context headers (use imported config from @/utils/config)
@@ -392,15 +398,24 @@ class ApiClient {
     headers['X-App-Id'] = appId;
     headers['x-app-id'] = appId;
 
-    const effectiveCompanyId = selectedCompany?.id || currentCompany?.id || this.tenantContext.companyId;
+    const effectiveCompanyId =
+      selectedCompany?.id || currentCompany?.id || this.tenantContext.companyId;
     const effectiveSiteId = selectedSite?.id || currentSite?.id || this.tenantContext.siteId;
     const effectiveWarehouseId = selectedWarehouse?.id || this.tenantContext.warehouseId;
     const effectiveUserId = user?.id || this.tenantContext.userId;
 
-    if (effectiveUserId) headers['X-User-Id'] = effectiveUserId;
-    if (effectiveCompanyId) headers['X-Company-Id'] = effectiveCompanyId;
-    if (effectiveSiteId) headers['X-Site-Id'] = effectiveSiteId;
-    if (effectiveWarehouseId) headers['X-Warehouse-Id'] = effectiveWarehouseId;
+    if (effectiveUserId) {
+      headers['X-User-Id'] = effectiveUserId;
+    }
+    if (effectiveCompanyId) {
+      headers['X-Company-Id'] = effectiveCompanyId;
+    }
+    if (effectiveSiteId) {
+      headers['X-Site-Id'] = effectiveSiteId;
+    }
+    if (effectiveWarehouseId) {
+      headers['X-Warehouse-Id'] = effectiveWarehouseId;
+    }
 
     // DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
     console.log('🌐 Fetch request headers:', Object.keys(headers));
@@ -434,7 +449,9 @@ class ApiClient {
 
         // Enhanced error for 524 timeout
         if (response.status === 524) {
-          const error: any = new Error('El servidor tardó demasiado en procesar los documentos. Intenta con menos archivos o archivos más pequeños.');
+          const error: any = new Error(
+            'El servidor tardó demasiado en procesar los documentos. Intenta con menos archivos o archivos más pequeños.'
+          );
           error.isTimeout = true;
           error.status = 524;
           throw error;
@@ -453,32 +470,24 @@ class ApiClient {
     }
   }
 
-  async put<T = any>(
-    url: string,
-    data?: any,
-    config?: AxiosRequestConfig
-  ): Promise<T> {
+  async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response: AxiosResponse<T> = await this.client.put(url, data, config);
     return response.data;
   }
 
-  async patch<T = any>(
-    url: string,
-    data?: any,
-    config?: AxiosRequestConfig
-  ): Promise<T> {
+  async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     console.log('📤 PATCH Request:', {
       url,
       data,
       hasData: !!data,
       dataKeys: data ? Object.keys(data) : [],
-      dataValues: data ? Object.values(data) : []
+      dataValues: data ? Object.values(data) : [],
     });
     const response: AxiosResponse<T> = await this.client.patch(url, data, config);
     console.log('📥 PATCH Response:', {
       url,
       status: response.status,
-      data: response.data
+      data: response.data,
     });
     return response.data;
   }

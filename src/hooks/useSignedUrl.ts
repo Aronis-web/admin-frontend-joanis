@@ -37,7 +37,9 @@ export const useSignedUrl = (key: string | null, options: UseSignedUrlOptions = 
   }, [key, enabled, expiresIn]);
 
   const refetch = async () => {
-    if (!key) return;
+    if (!key) {
+      return;
+    }
 
     try {
       setIsLoading(true);

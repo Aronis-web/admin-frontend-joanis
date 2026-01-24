@@ -73,7 +73,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [validatedPresentations, setValidatedPresentations] = useState<ValidatedPresentation[]>([]);
   const [showAddPresentation, setShowAddPresentation] = useState(false);
   const [newPresentationId, setNewPresentationId] = useState('');
-  const [selectedPresentationForQuantity, setSelectedPresentationForQuantity] = useState<string | null>(null); // Solo una presentación puede tener cantidad
+  const [selectedPresentationForQuantity, setSelectedPresentationForQuantity] = useState<
+    string | null
+  >(null); // Solo una presentación puede tener cantidad
 
   // Lists
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -134,9 +136,15 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setCostCents(productData.costCents ? (productData.costCents / 100).toFixed(2) : '');
 
       // Initialize loose units from DB fields
-      if (productData.validatedLooseUnits !== undefined && productData.validatedLooseUnits !== null) {
+      if (
+        productData.validatedLooseUnits !== undefined &&
+        productData.validatedLooseUnits !== null
+      ) {
         setLooseUnits(productData.validatedLooseUnits.toString());
-      } else if (productData.preliminaryLooseUnits !== undefined && productData.preliminaryLooseUnits !== null) {
+      } else if (
+        productData.preliminaryLooseUnits !== undefined &&
+        productData.preliminaryLooseUnits !== null
+      ) {
         setLooseUnits(productData.preliminaryLooseUnits.toString());
       } else {
         setLooseUnits('0');
@@ -158,7 +166,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             if (productData.areaId) {
               const area = areasData.find((a) => a.id === productData.areaId);
               console.log('🔍 [INIT] Looking for area:', productData.areaId, 'Found:', area);
-              if (area) setSelectedArea(area);
+              if (area) {
+                setSelectedArea(area);
+              }
             }
           } catch (error: any) {
             console.error('❌ [INIT] Error loading warehouse areas:', error);
@@ -182,7 +192,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         setValidatedPresentations(preliminaryPresentations);
 
         // If there's a saved presentation quantity, restore it
-        if (productData.validatedPresentationQuantity !== undefined && productData.validatedPresentationQuantity !== null && productData.validatedPresentationQuantity > 0) {
+        if (
+          productData.validatedPresentationQuantity !== undefined &&
+          productData.validatedPresentationQuantity !== null &&
+          productData.validatedPresentationQuantity > 0
+        ) {
           // Find the first presentation and set its quantity (assuming only one has quantity)
           if (preliminaryPresentations.length > 0) {
             const firstPresentationId = preliminaryPresentations[0].presentationId;
@@ -198,7 +212,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             // @ts-ignore - TypeScript incorrectly infers quantityOfPresentations as number | undefined
             setValidatedPresentations(updatedPresentations);
           }
-        } else if (productData.preliminaryPresentationQuantity !== undefined && productData.preliminaryPresentationQuantity !== null && productData.preliminaryPresentationQuantity > 0) {
+        } else if (
+          productData.preliminaryPresentationQuantity !== undefined &&
+          productData.preliminaryPresentationQuantity !== null &&
+          productData.preliminaryPresentationQuantity > 0
+        ) {
           // Load from preliminary data
           if (preliminaryPresentations.length > 0) {
             const firstPresentationId = preliminaryPresentations[0].presentationId;
@@ -262,7 +280,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     // Only calculate from the selected presentation for quantity
     if (selectedPresentationForQuantity) {
       const selectedPres = validatedPresentations.find(
-        p => p.presentationId === selectedPresentationForQuantity
+        (p) => p.presentationId === selectedPresentationForQuantity
       );
       if (selectedPres) {
         presentationUnits = selectedPres.quantityOfPresentations * selectedPres.factorToBase;
@@ -273,7 +291,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   };
 
   const handleSaveValidation = async () => {
-    if (!product) return;
+    if (!product) {
+      return;
+    }
 
     // Validate SKU
     if (!sku.trim()) {
@@ -324,7 +344,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     let validatedPresentationQuantity = 0;
     if (selectedPresentationForQuantity) {
       const selectedPres = validatedPresentations.find(
-        p => p.presentationId === selectedPresentationForQuantity
+        (p) => p.presentationId === selectedPresentationForQuantity
       );
       if (selectedPres) {
         validatedPresentationQuantity = selectedPres.quantityOfPresentations;
@@ -343,7 +363,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         validatedPresentationQuantity: validatedPresentationQuantity,
         warehouseId: selectedWarehouse.id,
         areaId: selectedArea?.id,
-        presentations: validatedPresentations.map(p => ({
+        presentations: validatedPresentations.map((p) => ({
           presentationId: p.presentationId,
           factorToBase: Number(p.factorToBase),
           notes: p.notes.trim() || undefined,
@@ -364,7 +384,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   };
 
   const handleCloseValidation = async () => {
-    if (!product) return;
+    if (!product) {
+      return;
+    }
 
     // Validate SKU
     if (!sku.trim()) {
@@ -415,7 +437,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     let validatedPresentationQuantity = 0;
     if (selectedPresentationForQuantity) {
       const selectedPres = validatedPresentations.find(
-        p => p.presentationId === selectedPresentationForQuantity
+        (p) => p.presentationId === selectedPresentationForQuantity
       );
       if (selectedPres) {
         validatedPresentationQuantity = selectedPres.quantityOfPresentations;
@@ -444,7 +466,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 validatedPresentationQuantity: validatedPresentationQuantity,
                 warehouseId: selectedWarehouse.id,
                 areaId: selectedArea?.id,
-                presentations: validatedPresentations.map(p => ({
+                presentations: validatedPresentations.map((p) => ({
                   presentationId: p.presentationId,
                   factorToBase: Number(p.factorToBase),
                   notes: p.notes.trim() || undefined,
@@ -506,12 +528,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     }
 
     // Check if presentation already exists
-    if (validatedPresentations.some(p => p.presentationId === newPresentationId)) {
+    if (validatedPresentations.some((p) => p.presentationId === newPresentationId)) {
       Alert.alert('Error', 'Esta presentación ya está agregada');
       return;
     }
 
-    const presentation = presentations.find(p => p.id === newPresentationId);
+    const presentation = presentations.find((p) => p.id === newPresentationId);
     if (!presentation) {
       Alert.alert('Error', 'Presentación no encontrada');
       return;
@@ -533,27 +555,23 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   };
 
   const handleRemovePresentation = (index: number) => {
-    Alert.alert(
-      'Eliminar Presentación',
-      '¿Está seguro de eliminar esta presentación?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => {
-            const presentationToRemove = validatedPresentations[index];
-            const newPresentations = validatedPresentations.filter((_, i) => i !== index);
-            setValidatedPresentations(newPresentations);
+    Alert.alert('Eliminar Presentación', '¿Está seguro de eliminar esta presentación?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: () => {
+          const presentationToRemove = validatedPresentations[index];
+          const newPresentations = validatedPresentations.filter((_, i) => i !== index);
+          setValidatedPresentations(newPresentations);
 
-            // If this was the selected presentation for quantity, clear it
-            if (selectedPresentationForQuantity === presentationToRemove.presentationId) {
-              setSelectedPresentationForQuantity(null);
-            }
-          },
+          // If this was the selected presentation for quantity, clear it
+          if (selectedPresentationForQuantity === presentationToRemove.presentationId) {
+            setSelectedPresentationForQuantity(null);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const canEdit = () => {
@@ -602,18 +620,13 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={[styles.title, isTablet && styles.titleTablet]}>Validar Producto</Text>
-          <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-            {product.name}
-          </Text>
+          <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>{product.name}</Text>
         </View>
       </View>
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[
-          styles.contentContainer,
-          isTablet && styles.contentContainerTablet,
-        ]}
+        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
       >
         {/* Product Info - Editable */}
         {canEdit() && (
@@ -690,7 +703,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               </TouchableOpacity>
 
               {showWarehouseSelector && (
-                <ScrollView style={[styles.optionsList, isTablet && styles.optionsListTablet]}>
+                <ScrollView
+                  style={[styles.optionsList, isTablet && styles.optionsListTablet]}
+                  nestedScrollEnabled={true}
+                >
                   {warehouses.map((warehouse) => (
                     <TouchableOpacity
                       key={warehouse.id}
@@ -706,7 +722,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
                         // Load areas for the selected warehouse
                         setLoadingAreas(true);
-                        console.log('🔍 Loading areas for warehouse:', warehouse.id, warehouse.name);
+                        console.log(
+                          '🔍 Loading areas for warehouse:',
+                          warehouse.id,
+                          warehouse.name
+                        );
                         try {
                           const areasData = await inventoryApi.getWarehouseAreas(warehouse.id);
                           console.log('✅ Areas loaded:', areasData.length, areasData);
@@ -715,7 +735,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                           console.error('❌ Error loading warehouse areas:', error);
                           console.error('Error details:', error.message, error.response?.data);
                           setAreas([]);
-                          Alert.alert('Advertencia', `No se pudieron cargar las áreas del almacén: ${error.message || 'Error desconocido'}`);
+                          Alert.alert(
+                            'Advertencia',
+                            `No se pudieron cargar las áreas del almacén: ${error.message || 'Error desconocido'}`
+                          );
                         } finally {
                           setLoadingAreas(false);
                         }
@@ -755,16 +778,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                     {loadingAreas
                       ? 'Cargando áreas...'
                       : selectedArea
-                      ? selectedArea.code
-                      : areas.length > 0
-                      ? 'Seleccionar área (opcional)'
-                      : 'Sin áreas disponibles'}
+                        ? selectedArea.code
+                        : areas.length > 0
+                          ? 'Seleccionar área (opcional)'
+                          : 'Sin áreas disponibles'}
                   </Text>
                   <Text style={styles.selectorIcon}>{showAreaSelector ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
 
                 {showAreaSelector && !loadingAreas && (
-                  <ScrollView style={[styles.optionsList, isTablet && styles.optionsListTablet]}>
+                  <ScrollView
+                    style={[styles.optionsList, isTablet && styles.optionsListTablet]}
+                    nestedScrollEnabled={true}
+                  >
                     <TouchableOpacity
                       style={[styles.optionItem, isTablet && styles.optionItemTablet]}
                       onPress={() => {
@@ -813,10 +839,18 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 </Text>
                 {canEdit() && (
                   <TouchableOpacity
-                    style={[styles.addPresentationButton, isTablet && styles.addPresentationButtonTablet]}
+                    style={[
+                      styles.addPresentationButton,
+                      isTablet && styles.addPresentationButtonTablet,
+                    ]}
                     onPress={() => setShowAddPresentation(true)}
                   >
-                    <Text style={[styles.addPresentationButtonText, isTablet && styles.addPresentationButtonTextTablet]}>
+                    <Text
+                      style={[
+                        styles.addPresentationButtonText,
+                        isTablet && styles.addPresentationButtonTextTablet,
+                      ]}
+                    >
                       + Agregar
                     </Text>
                   </TouchableOpacity>
@@ -827,17 +861,30 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               </Text>
 
               {validatedPresentations.map((pres, index) => (
-                <View key={index} style={[styles.presentationCard, isTablet && styles.presentationCardTablet]}>
+                <View
+                  key={index}
+                  style={[styles.presentationCard, isTablet && styles.presentationCardTablet]}
+                >
                   <View style={styles.presentationHeader}>
-                    <Text style={[styles.presentationName, isTablet && styles.presentationNameTablet]}>
+                    <Text
+                      style={[styles.presentationName, isTablet && styles.presentationNameTablet]}
+                    >
                       {pres.presentationName}
                     </Text>
                     {canEdit() && (
                       <TouchableOpacity
-                        style={[styles.removePresentationButton, isTablet && styles.removePresentationButtonTablet]}
+                        style={[
+                          styles.removePresentationButton,
+                          isTablet && styles.removePresentationButtonTablet,
+                        ]}
                         onPress={() => handleRemovePresentation(index)}
                       >
-                        <Text style={[styles.removePresentationButtonText, isTablet && styles.removePresentationButtonTextTablet]}>
+                        <Text
+                          style={[
+                            styles.removePresentationButtonText,
+                            isTablet && styles.removePresentationButtonTextTablet,
+                          ]}
+                        >
                           🗑️
                         </Text>
                       </TouchableOpacity>
@@ -846,16 +893,26 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
                   <View style={styles.presentationRow}>
                     <View style={styles.presentationField}>
-                      <Text style={[styles.presentationLabel, isTablet && styles.presentationLabelTablet]}>
+                      <Text
+                        style={[
+                          styles.presentationLabel,
+                          isTablet && styles.presentationLabelTablet,
+                        ]}
+                      >
                         Factor a Base:
                       </Text>
                       <TextInput
-                        style={[styles.presentationInput, isTablet && styles.presentationInputTablet]}
+                        style={[
+                          styles.presentationInput,
+                          isTablet && styles.presentationInputTablet,
+                        ]}
                         value={pres.factorToBase.toString()}
                         onChangeText={(text) => {
                           const newPresentations = [...validatedPresentations];
                           const parsedValue = parseFloat(text);
-                          newPresentations[index].factorToBase = isNaN(parsedValue) ? 0 : parsedValue;
+                          newPresentations[index].factorToBase = isNaN(parsedValue)
+                            ? 0
+                            : parsedValue;
                           setValidatedPresentations(newPresentations);
                         }}
                         placeholder="Ej: 24"
@@ -870,14 +927,20 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                   <View style={styles.presentationRow}>
                     <View style={styles.presentationFieldFull}>
                       <View style={styles.quantityHeaderRow}>
-                        <Text style={[styles.presentationLabel, isTablet && styles.presentationLabelTablet]}>
+                        <Text
+                          style={[
+                            styles.presentationLabel,
+                            isTablet && styles.presentationLabelTablet,
+                          ]}
+                        >
                           Cantidad de Presentaciones:
                         </Text>
                         {canEdit() && (
                           <TouchableOpacity
                             style={[
                               styles.selectForQuantityButton,
-                              selectedPresentationForQuantity === pres.presentationId && styles.selectForQuantityButtonActive,
+                              selectedPresentationForQuantity === pres.presentationId &&
+                                styles.selectForQuantityButtonActive,
                             ]}
                             onPress={() => {
                               if (selectedPresentationForQuantity === pres.presentationId) {
@@ -891,17 +954,23 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                                 setSelectedPresentationForQuantity(pres.presentationId);
                                 const newPresentations = validatedPresentations.map((p, i) => ({
                                   ...p,
-                                  quantityOfPresentations: i === index ? p.quantityOfPresentations : 0,
+                                  quantityOfPresentations:
+                                    i === index ? p.quantityOfPresentations : 0,
                                 }));
                                 setValidatedPresentations(newPresentations);
                               }
                             }}
                           >
-                            <Text style={[
-                              styles.selectForQuantityButtonText,
-                              selectedPresentationForQuantity === pres.presentationId && styles.selectForQuantityButtonTextActive,
-                            ]}>
-                              {selectedPresentationForQuantity === pres.presentationId ? '✓ Seleccionada' : 'Seleccionar'}
+                            <Text
+                              style={[
+                                styles.selectForQuantityButtonText,
+                                selectedPresentationForQuantity === pres.presentationId &&
+                                  styles.selectForQuantityButtonTextActive,
+                              ]}
+                            >
+                              {selectedPresentationForQuantity === pres.presentationId
+                                ? '✓ Seleccionada'
+                                : 'Seleccionar'}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -910,37 +979,62 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                         style={[
                           styles.presentationInput,
                           isTablet && styles.presentationInputTablet,
-                          selectedPresentationForQuantity !== pres.presentationId && styles.presentationInputDisabled,
+                          selectedPresentationForQuantity !== pres.presentationId &&
+                            styles.presentationInputDisabled,
                         ]}
                         value={pres.quantityOfPresentations.toString()}
                         onChangeText={(text) => {
                           if (selectedPresentationForQuantity === pres.presentationId) {
                             const newPresentations = [...validatedPresentations];
                             const parsedValue = parseInt(text);
-                            newPresentations[index].quantityOfPresentations = isNaN(parsedValue) ? 0 : parsedValue;
+                            newPresentations[index].quantityOfPresentations = isNaN(parsedValue)
+                              ? 0
+                              : parsedValue;
                             setValidatedPresentations(newPresentations);
                           }
                         }}
-                        placeholder={selectedPresentationForQuantity === pres.presentationId ? "Ej: 5" : "Seleccione esta presentación primero"}
+                        placeholder={
+                          selectedPresentationForQuantity === pres.presentationId
+                            ? 'Ej: 5'
+                            : 'Seleccione esta presentación primero'
+                        }
                         placeholderTextColor="#94A3B8"
                         keyboardType="number-pad"
-                        editable={canEdit() && selectedPresentationForQuantity === pres.presentationId}
+                        editable={
+                          canEdit() && selectedPresentationForQuantity === pres.presentationId
+                        }
                       />
-                      {selectedPresentationForQuantity === pres.presentationId && pres.quantityOfPresentations > 0 && (
-                        <Text style={[styles.hint, isTablet && styles.hintTablet, styles.calculationHint]}>
-                          = {pres.quantityOfPresentations} × {pres.factorToBase} = {pres.quantityOfPresentations * pres.factorToBase} unidades
-                        </Text>
-                      )}
+                      {selectedPresentationForQuantity === pres.presentationId &&
+                        pres.quantityOfPresentations > 0 && (
+                          <Text
+                            style={[
+                              styles.hint,
+                              isTablet && styles.hintTablet,
+                              styles.calculationHint,
+                            ]}
+                          >
+                            = {pres.quantityOfPresentations} × {pres.factorToBase} ={' '}
+                            {pres.quantityOfPresentations * pres.factorToBase} unidades
+                          </Text>
+                        )}
                     </View>
                   </View>
 
                   <View style={styles.presentationRow}>
                     <View style={styles.presentationFieldFull}>
-                      <Text style={[styles.presentationLabel, isTablet && styles.presentationLabelTablet]}>
+                      <Text
+                        style={[
+                          styles.presentationLabel,
+                          isTablet && styles.presentationLabelTablet,
+                        ]}
+                      >
                         Notas:
                       </Text>
                       <TextInput
-                        style={[styles.presentationInput, isTablet && styles.presentationInputTablet]}
+                        style={[
+                          styles.presentationInput,
+                          isTablet && styles.presentationInputTablet,
+                        ]}
                         value={pres.notes}
                         onChangeText={(text) => {
                           const newPresentations = [...validatedPresentations];
@@ -1015,9 +1109,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
             {/* Photo Capture */}
             <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Foto de Validación
-              </Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Foto de Validación</Text>
               {photoUri ? (
                 <View style={styles.capturedContainer}>
                   <Image source={{ uri: photoUri }} style={styles.capturedPhoto} />
@@ -1144,7 +1236,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               {actionLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={[styles.primaryButtonText, isTablet && styles.primaryButtonTextTablet]}>
+                <Text
+                  style={[styles.primaryButtonText, isTablet && styles.primaryButtonTextTablet]}
+                >
                   Iniciar Validación
                 </Text>
               )}
@@ -1330,7 +1424,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
       {/* Photo Capture Modal */}
       {showPhotoCapture && (
-        <Modal visible={showPhotoCapture} animationType="slide" onRequestClose={() => setShowPhotoCapture(false)}>
+        <Modal
+          visible={showPhotoCapture}
+          animationType="slide"
+          onRequestClose={() => setShowPhotoCapture(false)}
+        >
           <PhotoCapture
             onPhotoCapture={(uri) => {
               setPhotoUri(uri);
@@ -1344,7 +1442,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
       {/* Signature Capture Modal */}
       {showSignatureCapture && (
-        <Modal visible={showSignatureCapture} animationType="slide" onRequestClose={() => setShowSignatureCapture(false)}>
+        <Modal
+          visible={showSignatureCapture}
+          animationType="slide"
+          onRequestClose={() => setShowSignatureCapture(false)}
+        >
           <SignatureCapture
             onSignatureCapture={(signature) => {
               setSignatureUri(signature);
@@ -2116,4 +2218,3 @@ const styles = StyleSheet.create({
 });
 
 export default ValidatePurchaseProductScreen;
-

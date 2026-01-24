@@ -352,9 +352,7 @@ export const scopesApi = {
    * @returns Lista de scopes resueltos con información jerárquica
    */
   async getUserResolvedScopes(userId: string, appId: string): Promise<ResolvedScope[]> {
-    return apiClient.get<ResolvedScope[]>(
-      `/scopes/users/${userId}/apps/${appId}/resolved`
-    );
+    return apiClient.get<ResolvedScope[]>(`/scopes/users/${userId}/apps/${appId}/resolved`);
   },
 
   // ==================== ESTADÍSTICAS ====================
@@ -382,9 +380,7 @@ export const scopesApi = {
    * @param appId - ID de la aplicación
    */
   async invalidateUserCache(userId: string, appId: string): Promise<void> {
-    return apiClient.delete<void>(
-      `/scopes/cache/users/${userId}/apps/${appId}`
-    );
+    return apiClient.delete<void>(`/scopes/cache/users/${userId}/apps/${appId}`);
   },
 
   /**
@@ -500,10 +496,7 @@ export const scopesApi = {
   /**
    * 📊 Obtener el nivel de acceso más alto de un usuario
    */
-  async getHighestAccessLevel(
-    userId: string,
-    appId: string
-  ): Promise<ResolvedScope | null> {
+  async getHighestAccessLevel(userId: string, appId: string): Promise<ResolvedScope | null> {
     try {
       const scopes = await this.getUserResolvedScopes(userId, appId);
 
@@ -513,10 +506,10 @@ export const scopesApi = {
 
       // Ordenar por nivel de acceso (COMPANY > SITE > WAREHOUSE > AREA)
       const levelPriority: Record<ScopeLevel, number> = {
-        'COMPANY': 0,
-        'SITE': 1,
-        'WAREHOUSE': 2,
-        'AREA': 3,
+        COMPANY: 0,
+        SITE: 1,
+        WAREHOUSE: 2,
+        AREA: 3,
       };
 
       const sortedScopes = scopes.sort((a, b) => {
@@ -547,10 +540,7 @@ export const scopesApi = {
     appId: string,
     scopeData: AssignUserScopeDto
   ): Promise<UserScope> {
-    return apiClient.post<UserScope>(
-      `/scopes/users/${userId}/apps/${appId}`,
-      scopeData
-    );
+    return apiClient.post<UserScope>(`/scopes/users/${userId}/apps/${appId}`, scopeData);
   },
 
   /**
@@ -593,14 +583,8 @@ export const scopesApi = {
    * @param updates - Campos a actualizar
    * @returns Scope de usuario actualizado
    */
-  async updateUserScope(
-    userScopeId: string,
-    updates: UpdateUserScopeDto
-  ): Promise<UserScope> {
-    return apiClient.put<UserScope>(
-      `/scopes/users/${userScopeId}`,
-      updates
-    );
+  async updateUserScope(userScopeId: string, updates: UpdateUserScopeDto): Promise<UserScope> {
+    return apiClient.put<UserScope>(`/scopes/users/${userScopeId}`, updates);
   },
 
   /**

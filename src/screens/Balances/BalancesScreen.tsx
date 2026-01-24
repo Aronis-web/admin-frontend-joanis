@@ -51,8 +51,12 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
   const loadBalances = useCallback(async () => {
     try {
       const params: any = {};
-      if (selectedStatus !== 'ALL') params.status = selectedStatus;
-      if (selectedType !== 'ALL') params.balanceType = selectedType;
+      if (selectedStatus !== 'ALL') {
+        params.status = selectedStatus;
+      }
+      if (selectedType !== 'ALL') {
+        params.balanceType = selectedType;
+      }
 
       const response = await balancesApi.getBalances({
         page: 1,
@@ -99,7 +103,9 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {
+      return 'N/A';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
@@ -164,11 +170,7 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
   };
 
   const renderTypeFilter = () => {
-    const types: Array<BalanceType | 'ALL'> = [
-      'ALL',
-      BalanceType.INTERNAL,
-      BalanceType.EXTERNAL,
-    ];
+    const types: Array<BalanceType | 'ALL'> = ['ALL', BalanceType.INTERNAL, BalanceType.EXTERNAL];
 
     return (
       <View style={styles.filterWrapper}>
@@ -210,22 +212,19 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
     return (
       <TouchableOpacity
         key={balance.id}
-        style={[
-          styles.card,
-          isTablet && styles.cardTablet,
-          isExternal && styles.cardExternal,
-        ]}
+        style={[styles.card, isTablet && styles.cardTablet, isExternal && styles.cardExternal]}
         onPress={() => handleBalancePress(balance)}
         activeOpacity={0.7}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
             <Text style={[styles.receiverName, isTablet && styles.receiverNameTablet]}>
-              {balance.receiverSite?.name || balance.receiverCompany?.alias || balance.receiverCompany?.name || 'N/A'}
+              {balance.receiverSite?.name ||
+                balance.receiverCompany?.alias ||
+                balance.receiverCompany?.name ||
+                'N/A'}
             </Text>
-            <Text style={[styles.cardCode, isTablet && styles.cardCodeTablet]}>
-              {balance.code}
-            </Text>
+            <Text style={[styles.cardCode, isTablet && styles.cardCodeTablet]}>{balance.code}</Text>
             <View style={styles.badgesRow}>
               <View
                 style={[
@@ -251,11 +250,13 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
                   isExternal && styles.typeBadgeExternal,
                 ]}
               >
-                <Text style={[
-                  styles.typeText,
-                  isTablet && styles.typeTextTablet,
-                  isExternal && styles.typeTextExternal,
-                ]}>
+                <Text
+                  style={[
+                    styles.typeText,
+                    isTablet && styles.typeTextTablet,
+                    isExternal && styles.typeTextExternal,
+                  ]}
+                >
                   {getBalanceTypeLabel(balance.balanceType)}
                 </Text>
               </View>
@@ -264,11 +265,8 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
         </View>
 
         <View style={styles.cardBody}>
-
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Inicio:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Inicio:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {formatDate(balance.startDate)}
             </Text>
@@ -276,9 +274,7 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
 
           {balance.endDate && (
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Fin:
-              </Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Fin:</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {formatDate(balance.endDate)}
               </Text>
@@ -321,9 +317,7 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <View>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>
-              Balances
-            </Text>
+            <Text style={[styles.title, isTablet && styles.titleTablet]}>Balances</Text>
             <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
               Gestión de balances de distribución
             </Text>
@@ -343,9 +337,7 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
             styles.contentContainer,
             isTablet && styles.contentContainerTablet,
           ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {balances.length === 0 ? (
             <View style={styles.emptyContainer}>

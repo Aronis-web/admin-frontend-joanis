@@ -60,7 +60,8 @@ export const TransferItemsList: React.FC<TransferItemsListProps> = ({
               <Text
                 style={[
                   styles.quantityValue,
-                  hasDifference && (item.quantityDifference! > 0 ? styles.positive : styles.negative),
+                  hasDifference &&
+                    (item.quantityDifference! > 0 ? styles.positive : styles.negative),
                 ]}
               >
                 {item.quantityDifference || 0}

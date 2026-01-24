@@ -17,18 +17,19 @@ export class CacheManager {
 
       // Get all keys and remove any that might be cached data
       const allKeys = await AsyncStorage.getAllKeys();
-      const keysToRemove = allKeys.filter(key =>
-        // Remove any keys that might contain cached data
-        key.includes('cache') ||
-        key.includes('products') ||
-        key.includes('stock') ||
-        key.includes('purchases') ||
-        key.includes('transfers') ||
-        // But keep auth and user data
-        (!key.includes(config.STORAGE_KEYS.AUTH_TOKEN) &&
-         !key.includes(config.STORAGE_KEYS.REFRESH_TOKEN) &&
-         !key.includes(config.STORAGE_KEYS.USER) &&
-         !key.includes(config.STORAGE_KEYS.TOKEN_EXPIRES_AT))
+      const keysToRemove = allKeys.filter(
+        (key) =>
+          // Remove any keys that might contain cached data
+          key.includes('cache') ||
+          key.includes('products') ||
+          key.includes('stock') ||
+          key.includes('purchases') ||
+          key.includes('transfers') ||
+          // But keep auth and user data
+          (!key.includes(config.STORAGE_KEYS.AUTH_TOKEN) &&
+            !key.includes(config.STORAGE_KEYS.REFRESH_TOKEN) &&
+            !key.includes(config.STORAGE_KEYS.USER) &&
+            !key.includes(config.STORAGE_KEYS.TOKEN_EXPIRES_AT))
       );
 
       if (keysToRemove.length > 0) {

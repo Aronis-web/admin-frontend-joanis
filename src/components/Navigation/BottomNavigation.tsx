@@ -31,27 +31,23 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   const isLandscape = width > height;
 
   return (
-    <View style={[
-      styles.safeArea,
-      { paddingBottom: insets.bottom },
-      isLandscape && styles.safeAreaLandscape
-    ]}>
+    <View
+      style={[
+        styles.safeArea,
+        { paddingBottom: insets.bottom },
+        isLandscape && styles.safeAreaLandscape,
+      ]}
+    >
       <View style={[styles.container, isLandscape && styles.containerLandscape]}>
         {/* Botón de Chat - Izquierda */}
-        <TouchableOpacity
-          style={styles.navButton}
-          onPress={onChatPress}
-          activeOpacity={0.8}
-        >
+        <TouchableOpacity style={styles.navButton} onPress={onChatPress} activeOpacity={0.8}>
           <View style={styles.buttonContent}>
             <View style={styles.iconContainer}>
               <Text style={styles.buttonIcon}>💬</Text>
             </View>
             {chatBadge > 0 && (
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {chatBadge > 99 ? '99+' : chatBadge}
-                </Text>
+                <Text style={styles.badgeText}>{chatBadge > 99 ? '99+' : chatBadge}</Text>
               </View>
             )}
           </View>
@@ -59,11 +55,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
         </TouchableOpacity>
 
         {/* Botón de Menú - Centro */}
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={onMenuPress}
-          activeOpacity={0.8}
-        >
+        <TouchableOpacity style={styles.menuButton} onPress={onMenuPress} activeOpacity={0.8}>
           <View style={styles.menuButtonInner}>
             <Text style={styles.menuIcon}>☰</Text>
           </View>

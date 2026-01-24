@@ -15,6 +15,8 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { Loader } from '@/components/common/Loader';
 import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
+import { QueryProvider } from '@/providers/QueryProvider';
+import { initSentry } from '@/config/sentry';
 
 export const App = () => {
   const [fontsLoaded] = useFonts({
@@ -30,6 +32,9 @@ export const App = () => {
   useEffect(() => {
     const initialize = async () => {
       try {
+        // Initialize Sentry first for error tracking
+        initSentry();
+
         // Set a timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
           console.error('⏰ App initialization timeout - forcing loading to false');
@@ -38,10 +43,7 @@ export const App = () => {
           setLoading(false);
         }, 10000);
 
-        await Promise.all([
-          initAuth(),
-          initTenantContext(),
-        ]);
+        await Promise.all([initAuth(), initTenantContext()]);
 
         clearTimeout(timeoutId);
       } catch (error) {
@@ -89,10 +91,12 @@ export const App = () => {
 
   return (
     <GlobalErrorBoundary>
-      <SafeAreaProvider>
-        <StatusBar barStyle="dark-content" />
-        <Navigation />
-      </SafeAreaProvider>
+      <QueryProvider>
+        <SafeAreaProvider>
+          <StatusBar barStyle="dark-content" />
+          <Navigation />
+        </SafeAreaProvider>
+      </QueryProvider>
     </GlobalErrorBoundary>
   );
 };

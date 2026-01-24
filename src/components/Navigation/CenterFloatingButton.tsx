@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 
 interface CenterFloatingButtonProps {
   onPress: () => void;
@@ -69,25 +63,20 @@ export const CenterFloatingButton: React.FC<CenterFloatingButtonProps> = ({
     onPress();
   };
 
-  if (!isVisible) return null;
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <Animated.View
       style={[
         styles.container,
         {
-          transform: [
-            { translateX: slideAnim },
-            { scale: scaleAnim },
-          ],
+          transform: [{ translateX: slideAnim }, { scale: scaleAnim }],
         },
       ]}
     >
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handlePress}
-        activeOpacity={0.8}
-      >
+      <TouchableOpacity style={styles.button} onPress={handlePress} activeOpacity={0.8}>
         <Text style={styles.buttonText}>+</Text>
       </TouchableOpacity>
     </Animated.View>

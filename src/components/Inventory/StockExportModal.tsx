@@ -117,9 +117,10 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
           // Share the file
           if (await Sharing.isAvailableAsync()) {
             await Sharing.shareAsync(fileUri, {
-              mimeType: format === 'excel'
-                ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                : 'application/pdf',
+              mimeType:
+                format === 'excel'
+                  ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                  : 'application/pdf',
               dialogTitle: 'Guardar Reporte de Stock',
               UTI: format === 'excel' ? 'com.microsoft.excel.xlsx' : 'com.adobe.pdf',
             });
@@ -158,7 +159,9 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
   };
 
   const formatDateForDisplay = (dateString: string) => {
-    if (!dateString) return '';
+    if (!dateString) {
+      return '';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
@@ -168,7 +171,9 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
   };
 
   const parseDate = (dateString: string): Date => {
-    if (!dateString) return new Date();
+    if (!dateString) {
+      return new Date();
+    }
     return new Date(dateString);
   };
 
@@ -188,11 +193,7 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                 <Ionicons name="download-outline" size={24} color="#6366F1" />
                 <Text style={styles.headerTitle}>Exportar Reporte de Stock</Text>
               </View>
-              <TouchableOpacity
-                onPress={handleClose}
-                style={styles.closeButton}
-                disabled={loading}
-              >
+              <TouchableOpacity onPress={handleClose} style={styles.closeButton} disabled={loading}>
                 <Ionicons name="close" size={24} color="#64748B" />
               </TouchableOpacity>
             </View>
@@ -209,10 +210,7 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                 <Text style={styles.sectionTitle}>Formato de Exportación</Text>
                 <View style={styles.formatContainer}>
                   <TouchableOpacity
-                    style={[
-                      styles.formatButton,
-                      format === 'excel' && styles.formatButtonSelected,
-                    ]}
+                    style={[styles.formatButton, format === 'excel' && styles.formatButtonSelected]}
                     onPress={() => setFormat('excel')}
                     disabled={loading}
                   >
@@ -232,10 +230,7 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[
-                      styles.formatButton,
-                      format === 'pdf' && styles.formatButtonSelected,
-                    ]}
+                    style={[styles.formatButton, format === 'pdf' && styles.formatButtonSelected]}
                     onPress={() => setFormat('pdf')}
                     disabled={loading}
                   >
@@ -303,9 +298,7 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                   disabled={loading}
                 >
                   <View style={[styles.checkbox, includePrices && styles.checkboxChecked]}>
-                    {includePrices && (
-                      <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                    )}
+                    {includePrices && <Ionicons name="checkmark" size={18} color="#FFFFFF" />}
                   </View>
                   <View style={styles.checkboxLabelContainer}>
                     <Text style={styles.checkboxLabel}>Incluir Precios y Valorización</Text>

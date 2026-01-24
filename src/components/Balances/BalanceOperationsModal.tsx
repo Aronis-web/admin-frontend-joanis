@@ -58,7 +58,9 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
   }, [preselectedOperationType]);
 
   const loadOperations = async () => {
-    if (!balance?.id) return;
+    if (!balance?.id) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -102,13 +104,15 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
   });
 
   const renderOperationItem = ({ item }: { item: BalanceOperation }) => (
-    <TouchableOpacity
-      style={styles.operationItem}
-      onPress={() => openDetailModal(item)}
-    >
+    <TouchableOpacity style={styles.operationItem} onPress={() => openDetailModal(item)}>
       <View style={styles.operationHeader}>
         <View style={styles.operationInfo}>
-          <View style={[styles.typeBadge, { backgroundColor: getOperationTypeColor(item.operationType) }]}>
+          <View
+            style={[
+              styles.typeBadge,
+              { backgroundColor: getOperationTypeColor(item.operationType) },
+            ]}
+          >
             <Text style={styles.typeBadgeText}>{getOperationTypeLabel(item.operationType)}</Text>
           </View>
           <Text style={styles.operationDate}>
@@ -119,28 +123,22 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
       </View>
 
       {item.emitterCompany && (
-        <Text style={styles.operationEmitter}>
-          Emisor: {item.emitterCompany.name}
-        </Text>
+        <Text style={styles.operationEmitter}>Emisor: {item.emitterCompany.name}</Text>
       )}
       {item.emitterSite && (
-        <Text style={styles.operationEmitter}>
-          Emisor: {item.emitterSite.name}
-        </Text>
+        <Text style={styles.operationEmitter}>Emisor: {item.emitterSite.name}</Text>
       )}
 
-      {item.description && (
-        <Text style={styles.operationDescription}>{item.description}</Text>
-      )}
+      {item.description && <Text style={styles.operationDescription}>{item.description}</Text>}
 
-      {item.reference && (
-        <Text style={styles.operationReference}>Ref: {item.reference}</Text>
-      )}
+      {item.reference && <Text style={styles.operationReference}>Ref: {item.reference}</Text>}
     </TouchableOpacity>
   );
 
   const renderDetailModal = () => {
-    if (!selectedOperation) return null;
+    if (!selectedOperation) {
+      return null;
+    }
 
     const formatDate = (dateString: string) => {
       const date = new Date(dateString);
@@ -152,7 +150,9 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
     };
 
     const renderInfoRow = (label: string, value: string | undefined) => {
-      if (!value) return null;
+      if (!value) {
+        return null;
+      }
 
       return (
         <View style={styles.infoRow}>
@@ -165,9 +165,7 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
     const renderSection = (title: string, children: React.ReactNode) => (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.sectionContent}>
-          {children}
-        </View>
+        <View style={styles.sectionContent}>{children}</View>
       </View>
     );
 
@@ -183,65 +181,79 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
             {/* Header */}
             <View style={styles.detailModalHeader}>
               <View style={styles.headerLeft}>
-                <View style={[styles.operationBadge, { backgroundColor: getOperationTypeColor(selectedOperation.operationType) }]}>
+                <View
+                  style={[
+                    styles.operationBadge,
+                    { backgroundColor: getOperationTypeColor(selectedOperation.operationType) },
+                  ]}
+                >
                   <Text style={styles.operationBadgeText}>
                     {getOperationTypeLabel(selectedOperation.operationType)}
                   </Text>
                 </View>
                 <View style={styles.headerInfo}>
-                  <Text style={styles.detailModalTitle}>
-                    Detalle de Operación
-                  </Text>
+                  <Text style={styles.detailModalTitle}>Detalle de Operación</Text>
                   <Text style={styles.detailModalAmount}>
                     {formatCentsToCurrency(selectedOperation.amountCents)}
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => setShowDetailModal(false)} style={styles.closeButton}>
+              <TouchableOpacity
+                onPress={() => setShowDetailModal(false)}
+                style={styles.closeButton}
+              >
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
             </View>
 
             {/* Content */}
-            <ScrollView
-              style={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
               {/* Información General */}
-              {renderSection('Información General', (
+              {renderSection(
+                'Información General',
                 <>
-                  {renderInfoRow('Tipo de Operación', getOperationTypeLabel(selectedOperation.operationType))}
+                  {renderInfoRow(
+                    'Tipo de Operación',
+                    getOperationTypeLabel(selectedOperation.operationType)
+                  )}
                   {renderInfoRow('Monto', formatCentsToCurrency(selectedOperation.amountCents))}
                   {renderInfoRow('Moneda', selectedOperation.currency)}
                   {renderInfoRow('Fecha de Operación', formatDate(selectedOperation.operationDate))}
                 </>
-              ))}
+              )}
 
               {/* Emisor */}
-              {(selectedOperation.emitterCompany || selectedOperation.emitterSite) && renderSection('Emisor', (
-                <>
-                  {renderInfoRow('Empresa Emisora', selectedOperation.emitterCompany?.name)}
-                  {renderInfoRow('Sede Emisora', selectedOperation.emitterSite?.name)}
-                </>
-              ))}
+              {(selectedOperation.emitterCompany || selectedOperation.emitterSite) &&
+                renderSection(
+                  'Emisor',
+                  <>
+                    {renderInfoRow('Empresa Emisora', selectedOperation.emitterCompany?.name)}
+                    {renderInfoRow('Sede Emisora', selectedOperation.emitterSite?.name)}
+                  </>
+                )}
 
               {/* Detalles Adicionales */}
-              {(selectedOperation.description || selectedOperation.reference || selectedOperation.notes) && renderSection('Detalles Adicionales', (
-                <>
-                  {renderInfoRow('Descripción', selectedOperation.description)}
-                  {renderInfoRow('Referencia', selectedOperation.reference)}
-                  {renderInfoRow('Notas', selectedOperation.notes)}
-                </>
-              ))}
+              {(selectedOperation.description ||
+                selectedOperation.reference ||
+                selectedOperation.notes) &&
+                renderSection(
+                  'Detalles Adicionales',
+                  <>
+                    {renderInfoRow('Descripción', selectedOperation.description)}
+                    {renderInfoRow('Referencia', selectedOperation.reference)}
+                    {renderInfoRow('Notas', selectedOperation.notes)}
+                  </>
+                )}
 
               {/* Información del Sistema */}
-              {renderSection('Información del Sistema', (
+              {renderSection(
+                'Información del Sistema',
                 <>
                   {renderInfoRow('ID', selectedOperation.id)}
                   {renderInfoRow('Fecha de Creación', formatDate(selectedOperation.createdAt))}
                   {renderInfoRow('Última Actualización', formatDate(selectedOperation.updatedAt))}
                 </>
-              ))}
+              )}
             </ScrollView>
 
             {/* Actions */}
@@ -259,15 +271,12 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
     );
   };
 
-  if (!balance) return null;
+  if (!balance) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -302,7 +311,10 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, filterType === OperationType.DISTRIBUTED && styles.filterButtonActive]}
+              style={[
+                styles.filterButton,
+                filterType === OperationType.DISTRIBUTED && styles.filterButtonActive,
+              ]}
               onPress={() => setFilterType(OperationType.DISTRIBUTED)}
             >
               <Text
@@ -315,7 +327,10 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, filterType === OperationType.SOLD && styles.filterButtonActive]}
+              style={[
+                styles.filterButton,
+                filterType === OperationType.SOLD && styles.filterButtonActive,
+              ]}
               onPress={() => setFilterType(OperationType.SOLD)}
             >
               <Text
@@ -328,7 +343,10 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, filterType === OperationType.TO_PAY && styles.filterButtonActive]}
+              style={[
+                styles.filterButton,
+                filterType === OperationType.TO_PAY && styles.filterButtonActive,
+              ]}
               onPress={() => setFilterType(OperationType.TO_PAY)}
             >
               <Text
@@ -341,7 +359,10 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, filterType === OperationType.PAID && styles.filterButtonActive]}
+              style={[
+                styles.filterButton,
+                filterType === OperationType.PAID && styles.filterButtonActive,
+              ]}
               onPress={() => setFilterType(OperationType.PAID)}
             >
               <Text
@@ -354,7 +375,10 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, filterType === OperationType.RETURNED && styles.filterButtonActive]}
+              style={[
+                styles.filterButton,
+                filterType === OperationType.RETURNED && styles.filterButtonActive,
+              ]}
               onPress={() => setFilterType(OperationType.RETURNED)}
             >
               <Text

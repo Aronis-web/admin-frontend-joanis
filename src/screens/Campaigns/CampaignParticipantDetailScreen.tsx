@@ -96,7 +96,9 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
   };
 
   const handleDownloadReport = async () => {
-    if (!totalsData) return;
+    if (!totalsData) {
+      return;
+    }
 
     try {
       setDownloadingReport(true);
@@ -110,7 +112,7 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');
       logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-      logger.info('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
@@ -160,10 +162,7 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
       }
     } catch (error: any) {
       logger.error('Error downloading report:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudo descargar el reporte'
-      );
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte');
     } finally {
       setDownloadingReport(false);
     }
@@ -228,13 +227,8 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
         {/* Content */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {/* Totals Summary */}
           {totalsData && (
@@ -244,32 +238,62 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
               </Text>
 
               <View style={styles.totalsGrid}>
-                <View style={[styles.totalCard, isTablet && styles.totalCardTablet, styles.purchaseCard]}>
+                <View
+                  style={[
+                    styles.totalCard,
+                    isTablet && styles.totalCardTablet,
+                    styles.purchaseCard,
+                  ]}
+                >
                   <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
                     Total Compra
                   </Text>
-                  <Text style={[styles.totalValue, isTablet && styles.totalValueTablet, styles.purchaseValue]}>
+                  <Text
+                    style={[
+                      styles.totalValue,
+                      isTablet && styles.totalValueTablet,
+                      styles.purchaseValue,
+                    ]}
+                  >
                     {formatCurrency(totalsData.totalPurchaseCents)}
                   </Text>
                 </View>
 
-                <View style={[styles.totalCard, isTablet && styles.totalCardTablet, styles.saleCard]}>
+                <View
+                  style={[styles.totalCard, isTablet && styles.totalCardTablet, styles.saleCard]}
+                >
                   <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
                     Total Venta
                   </Text>
-                  <Text style={[styles.totalValue, isTablet && styles.totalValueTablet, styles.saleValue]}>
+                  <Text
+                    style={[
+                      styles.totalValue,
+                      isTablet && styles.totalValueTablet,
+                      styles.saleValue,
+                    ]}
+                  >
                     {formatCurrency(totalsData.totalSaleCents)}
                   </Text>
                 </View>
 
-                <View style={[styles.totalCard, isTablet && styles.totalCardTablet, styles.marginCard]}>
+                <View
+                  style={[styles.totalCard, isTablet && styles.totalCardTablet, styles.marginCard]}
+                >
                   <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
                     Margen
                   </Text>
-                  <Text style={[styles.totalValue, isTablet && styles.totalValueTablet, styles.marginValue]}>
+                  <Text
+                    style={[
+                      styles.totalValue,
+                      isTablet && styles.totalValueTablet,
+                      styles.marginValue,
+                    ]}
+                  >
                     {formatCurrency(totalsData.marginCents)}
                   </Text>
-                  <Text style={[styles.marginPercentage, isTablet && styles.marginPercentageTablet]}>
+                  <Text
+                    style={[styles.marginPercentage, isTablet && styles.marginPercentageTablet]}
+                  >
                     {totalsData.marginPercentage.toFixed(2)}%
                   </Text>
                 </View>
@@ -344,19 +368,43 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
                     </View>
 
                     <View style={[styles.detailRow, styles.totalRow]}>
-                      <Text style={[styles.detailLabel, isTablet && styles.detailLabelTablet, styles.totalLabel]}>
+                      <Text
+                        style={[
+                          styles.detailLabel,
+                          isTablet && styles.detailLabelTablet,
+                          styles.totalLabel,
+                        ]}
+                      >
                         Total Compra:
                       </Text>
-                      <Text style={[styles.detailValue, isTablet && styles.detailValueTablet, styles.purchaseValue]}>
+                      <Text
+                        style={[
+                          styles.detailValue,
+                          isTablet && styles.detailValueTablet,
+                          styles.purchaseValue,
+                        ]}
+                      >
                         {formatCurrency(product.purchaseTotalCents)}
                       </Text>
                     </View>
 
                     <View style={[styles.detailRow, styles.totalRow]}>
-                      <Text style={[styles.detailLabel, isTablet && styles.detailLabelTablet, styles.totalLabel]}>
+                      <Text
+                        style={[
+                          styles.detailLabel,
+                          isTablet && styles.detailLabelTablet,
+                          styles.totalLabel,
+                        ]}
+                      >
                         Total Venta:
                       </Text>
-                      <Text style={[styles.detailValue, isTablet && styles.detailValueTablet, styles.saleValue]}>
+                      <Text
+                        style={[
+                          styles.detailValue,
+                          isTablet && styles.detailValueTablet,
+                          styles.saleValue,
+                        ]}
+                      >
                         {formatCurrency(product.saleTotalCents)}
                       </Text>
                     </View>
@@ -377,7 +425,9 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
               onPress={handleDownloadReport}
               disabled={downloadingReport}
             >
-              <Text style={[styles.downloadButtonText, isTablet && styles.downloadButtonTextTablet]}>
+              <Text
+                style={[styles.downloadButtonText, isTablet && styles.downloadButtonTextTablet]}
+              >
                 {downloadingReport ? '📄 Generando reporte...' : '📄 Descargar Reporte de Totales'}
               </Text>
             </TouchableOpacity>

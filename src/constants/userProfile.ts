@@ -9,7 +9,7 @@ export const DOCUMENT_TYPES = {
   PASAPORTE: 'PASAPORTE',
 } as const;
 
-export type DocumentType = typeof DOCUMENT_TYPES[keyof typeof DOCUMENT_TYPES];
+export type DocumentType = (typeof DOCUMENT_TYPES)[keyof typeof DOCUMENT_TYPES];
 
 export const DOCUMENT_TYPE_OPTIONS = [
   { label: 'DNI', value: DOCUMENT_TYPES.DNI },
@@ -23,7 +23,7 @@ export const GENDER_TYPES = {
   OTRO: 'OTRO',
 } as const;
 
-export type GenderType = typeof GENDER_TYPES[keyof typeof GENDER_TYPES];
+export type GenderType = (typeof GENDER_TYPES)[keyof typeof GENDER_TYPES];
 
 export const GENDER_OPTIONS = [
   { label: 'Masculino', value: GENDER_TYPES.M },
@@ -39,7 +39,7 @@ export const MARITAL_STATUS_TYPES = {
   CONVIVIENTE: 'CONVIVIENTE',
 } as const;
 
-export type MaritalStatusType = typeof MARITAL_STATUS_TYPES[keyof typeof MARITAL_STATUS_TYPES];
+export type MaritalStatusType = (typeof MARITAL_STATUS_TYPES)[keyof typeof MARITAL_STATUS_TYPES];
 
 export const MARITAL_STATUS_OPTIONS = [
   { label: 'Soltero/a', value: MARITAL_STATUS_TYPES.SOLTERO },

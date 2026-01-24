@@ -21,14 +21,7 @@ export const priceProfilesApi = {
    * GET /admin/price-profiles
    */
   async getPriceProfiles(params: GetPriceProfilesParams = {}): Promise<PriceProfilesResponse> {
-    const {
-      q,
-      isActive,
-      page = 1,
-      limit = 20,
-      orderBy = 'name',
-      orderDir = 'ASC',
-    } = params;
+    const { q, isActive, page = 1, limit = 20, orderBy = 'name', orderDir = 'ASC' } = params;
 
     const queryParams = new URLSearchParams({
       page: page.toString(),
@@ -140,9 +133,7 @@ export const priceProfilesApi = {
    * GET /admin/products/:id/sale-prices
    */
   async getProductSalePrices(productId: string): Promise<ProductSalePricesResponse> {
-    return apiClient.get<ProductSalePricesResponse>(
-      `/admin/products/${productId}/sale-prices`
-    );
+    return apiClient.get<ProductSalePricesResponse>(`/admin/products/${productId}/sale-prices`);
   },
 
   /**
@@ -153,10 +144,7 @@ export const priceProfilesApi = {
     productId: string,
     priceData: UpdateSalePriceRequest
   ): Promise<ProductSalePrice> {
-    return apiClient.put<ProductSalePrice>(
-      `/admin/products/${productId}/sale-price`,
-      priceData
-    );
+    return apiClient.put<ProductSalePrice>(`/admin/products/${productId}/sale-price`, priceData);
   },
 
   /**
@@ -194,7 +182,9 @@ export const priceProfilesApi = {
    * Calculate margin percentage
    */
   calculateMargin(costCents: number, priceCents: number): number {
-    if (costCents === 0) return 0;
+    if (costCents === 0) {
+      return 0;
+    }
     return ((priceCents - costCents) / costCents) * 100;
   },
 

@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,10 +18,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-      >
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.iconContainer}>
           <Ionicons name="lock-closed" size={80} color="#EF4444" />
         </View>
@@ -72,8 +63,8 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
         <View style={styles.infoContainer}>
           <Ionicons name="information-circle" size={20} color="#64748B" />
           <Text style={styles.infoText}>
-            Si crees que esto es un error, contacta al administrador del sistema
-            para solicitar los permisos necesarios.
+            Si crees que esto es un error, contacta al administrador del sistema para solicitar los
+            permisos necesarios.
           </Text>
         </View>
       </ScrollView>

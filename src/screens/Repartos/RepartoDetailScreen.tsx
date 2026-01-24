@@ -26,7 +26,11 @@ import {
   RepartoProductoValidationStatusColors,
 } from '@/types/repartos';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { ValidacionSalidaModal, ValidacionDetailModal, CircularProgress } from '@/components/Repartos';
+import {
+  ValidacionSalidaModal,
+  ValidacionDetailModal,
+  CircularProgress,
+} from '@/components/Repartos';
 import { useAuthStore } from '@/store/auth';
 
 interface RepartoDetailScreenProps {
@@ -40,10 +44,7 @@ interface RepartoDetailScreenProps {
 
 type TabType = 'overview' | 'participantes';
 
-export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
-  navigation,
-  route,
-}) => {
+export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ navigation, route }) => {
   const { repartoId } = route.params;
   const [reparto, setReparto] = useState<Reparto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,9 +67,15 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
       if (data.participantes && data.participantes.length > 0) {
         console.log('🔍 Primer participante:', JSON.stringify(data.participantes[0], null, 2));
         if (data.participantes[0].productos) {
-          console.log('📦 Productos del primer participante:', data.participantes[0].productos.length);
+          console.log(
+            '📦 Productos del primer participante:',
+            data.participantes[0].productos.length
+          );
           if (data.participantes[0].productos.length > 0) {
-            console.log('🔍 Primer producto:', JSON.stringify(data.participantes[0].productos[0], null, 2));
+            console.log(
+              '🔍 Primer producto:',
+              JSON.stringify(data.participantes[0].productos[0], null, 2)
+            );
           }
         }
       }
@@ -95,7 +102,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
   };
 
   const handleCancel = async () => {
-    if (!reparto) return;
+    if (!reparto) {
+      return;
+    }
 
     Alert.alert(
       'Cancelar Reparto',
@@ -141,7 +150,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
     signatureUrl: string;
     notes?: string;
   }) => {
-    if (!selectedProducto) return;
+    if (!selectedProducto) {
+      return;
+    }
 
     setActionLoading(true);
     try {
@@ -158,10 +169,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
       setSelectedProducto(null);
       loadReparto();
     } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo validar la salida'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo validar la salida');
       throw error;
     } finally {
       setActionLoading(false);
@@ -169,7 +177,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {
+      return 'N/A';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
@@ -240,19 +250,24 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
   };
 
   const renderOverview = () => {
-    if (!reparto) return null;
+    if (!reparto) {
+      return null;
+    }
 
     const totalParticipantes = reparto.participantes?.length || 0;
     // Total de productos (items) en el reparto
-    const totalProductos = reparto.participantes?.reduce(
-      (sum, p) => sum + (p.productos?.length || 0),
-      0
-    ) || 0;
+    const totalProductos =
+      reparto.participantes?.reduce((sum, p) => sum + (p.productos?.length || 0), 0) || 0;
     // Cantidad de productos (items) validados
-    const productosValidados = reparto.participantes?.reduce(
-      (sum, p) => sum + (p.productos?.filter(prod => prod.validationStatus === RepartoProductoValidationStatus.VALIDATED).length || 0),
-      0
-    ) || 0;
+    const productosValidados =
+      reparto.participantes?.reduce(
+        (sum, p) =>
+          sum +
+          (p.productos?.filter(
+            (prod) => prod.validationStatus === RepartoProductoValidationStatus.VALIDATED
+          ).length || 0),
+        0
+      ) || 0;
 
     return (
       <View style={styles.overviewContainer}>
@@ -263,18 +278,14 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
           </Text>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Código:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Código:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {reparto.code}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Nombre:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Nombre:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {reparto.name}
             </Text>
@@ -282,9 +293,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
 
           {reparto.campaign && (
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Campaña:
-              </Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Campaña:</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {reparto.campaign.code} - {reparto.campaign.name}
               </Text>
@@ -303,9 +312,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
           )}
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Estado:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Estado:</Text>
             <View
               style={[
                 styles.statusBadge,
@@ -337,9 +344,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
           )}
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Creado:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Creado:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {formatDate(reparto.createdAt)}
             </Text>
@@ -377,18 +382,14 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
               <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
                 {totalProductos}
               </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Productos
-              </Text>
+              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Productos</Text>
             </View>
 
             <View style={[styles.statCard, isTablet && styles.statCardTablet]}>
               <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
                 {productosValidados}
               </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Validados
-              </Text>
+              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Validados</Text>
             </View>
 
             <View style={[styles.statCard, isTablet && styles.statCardTablet]}>
@@ -400,7 +401,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
                 validated={productosValidados}
                 fontSize={isTablet ? 16 : 14}
               />
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet, { marginTop: 8 }]}>
+              <Text
+                style={[styles.statLabel, isTablet && styles.statLabelTablet, { marginTop: 8 }]}
+              >
                 Productos Validados
               </Text>
             </View>
@@ -410,9 +413,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
         {/* Notes */}
         {reparto.notes && (
           <View style={[styles.section, isTablet && styles.sectionTablet]}>
-            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-              Notas
-            </Text>
+            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>Notas</Text>
             <Text style={[styles.notesText, isTablet && styles.notesTextTablet]}>
               {reparto.notes}
             </Text>
@@ -420,25 +421,28 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
         )}
 
         {/* Actions */}
-        {reparto.status !== RepartoStatus.CANCELLED && reparto.status !== RepartoStatus.COMPLETED && (
-          <View style={[styles.section, isTablet && styles.sectionTablet]}>
-            <TouchableOpacity
-              style={[styles.cancelButton, actionLoading && styles.buttonDisabled]}
-              onPress={handleCancel}
-              disabled={actionLoading}
-            >
-              <Text style={styles.cancelButtonText}>
-                {actionLoading ? 'Cancelando...' : 'Cancelar Reparto'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {reparto.status !== RepartoStatus.CANCELLED &&
+          reparto.status !== RepartoStatus.COMPLETED && (
+            <View style={[styles.section, isTablet && styles.sectionTablet]}>
+              <TouchableOpacity
+                style={[styles.cancelButton, actionLoading && styles.buttonDisabled]}
+                onPress={handleCancel}
+                disabled={actionLoading}
+              >
+                <Text style={styles.cancelButtonText}>
+                  {actionLoading ? 'Cancelando...' : 'Cancelar Reparto'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
       </View>
     );
   };
 
   const renderParticipantes = () => {
-    if (!reparto) return null;
+    if (!reparto) {
+      return null;
+    }
 
     return (
       <View style={styles.tabContent}>
@@ -459,164 +463,225 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
                 const typeA = a.campaignParticipant?.participantType;
                 const typeB = b.campaignParticipant?.participantType;
 
-                if (typeA === 'INTERNAL_SITE' && typeB !== 'INTERNAL_SITE') return -1;
-                if (typeA !== 'INTERNAL_SITE' && typeB === 'INTERNAL_SITE') return 1;
+                if (typeA === 'INTERNAL_SITE' && typeB !== 'INTERNAL_SITE') {
+                  return -1;
+                }
+                if (typeA !== 'INTERNAL_SITE' && typeB === 'INTERNAL_SITE') {
+                  return 1;
+                }
 
                 // Ordenar alfabéticamente dentro de cada grupo
-                const nameA = typeA === 'EXTERNAL_COMPANY'
-                  ? (a.campaignParticipant?.company?.name || '')
-                  : (a.campaignParticipant?.site?.name || '');
+                const nameA =
+                  typeA === 'EXTERNAL_COMPANY'
+                    ? a.campaignParticipant?.company?.name || ''
+                    : a.campaignParticipant?.site?.name || '';
 
-                const nameB = typeB === 'EXTERNAL_COMPANY'
-                  ? (b.campaignParticipant?.company?.name || '')
-                  : (b.campaignParticipant?.site?.name || '');
+                const nameB =
+                  typeB === 'EXTERNAL_COMPANY'
+                    ? b.campaignParticipant?.company?.name || ''
+                    : b.campaignParticipant?.site?.name || '';
 
                 return nameA.localeCompare(nameB);
               })
               .map((participante) => {
-              const participantName = participante.campaignParticipant?.participantType === 'EXTERNAL_COMPANY'
-                ? participante.campaignParticipant?.company?.name || 'Empresa'
-                : participante.campaignParticipant?.site?.name || 'Sede';
+                const participantName =
+                  participante.campaignParticipant?.participantType === 'EXTERNAL_COMPANY'
+                    ? participante.campaignParticipant?.company?.name || 'Empresa'
+                    : participante.campaignParticipant?.site?.name || 'Sede';
 
-              // Calcular progreso individual del participante (cantidad de productos validados)
-              const totalProductosParticipante = participante.productos?.length || 0;
-              const productosValidadosParticipante = participante.productos?.filter(
-                (p) => p.validationStatus === RepartoProductoValidationStatus.VALIDATED
-              ).length || 0;
-              const progressPercentageParticipante = totalProductosParticipante > 0
-                ? Math.round((productosValidadosParticipante / totalProductosParticipante) * 100)
-                : 0;
+                // Calcular progreso individual del participante (cantidad de productos validados)
+                const totalProductosParticipante = participante.productos?.length || 0;
+                const productosValidadosParticipante =
+                  participante.productos?.filter(
+                    (p) => p.validationStatus === RepartoProductoValidationStatus.VALIDATED
+                  ).length || 0;
+                const progressPercentageParticipante =
+                  totalProductosParticipante > 0
+                    ? Math.round(
+                        (productosValidadosParticipante / totalProductosParticipante) * 100
+                      )
+                    : 0;
 
-              return (
-                <View
-                  key={participante.id}
-                  style={[styles.participantCard, isTablet && styles.participantCardTablet]}
-                >
-                  <View style={styles.participantHeader}>
-                    <View style={styles.participantInfo}>
-                      <Text style={[styles.participantName, isTablet && styles.participantNameTablet]}>
-                        {participantName}
-                      </Text>
-                      <Text style={[styles.participantType, isTablet && styles.participantTypeTablet]}>
-                        {participante.campaignParticipant?.participantType === 'EXTERNAL_COMPANY'
-                          ? 'Empresa Externa'
-                          : 'Sede Interna'}
-                      </Text>
-                      <Text style={[styles.participantStats, isTablet && styles.participantStatsTablet]}>
-                        Productos Validados: {productosValidadosParticipante} / {totalProductosParticipante}
-                      </Text>
+                return (
+                  <View
+                    key={participante.id}
+                    style={[styles.participantCard, isTablet && styles.participantCardTablet]}
+                  >
+                    <View style={styles.participantHeader}>
+                      <View style={styles.participantInfo}>
+                        <Text
+                          style={[styles.participantName, isTablet && styles.participantNameTablet]}
+                        >
+                          {participantName}
+                        </Text>
+                        <Text
+                          style={[styles.participantType, isTablet && styles.participantTypeTablet]}
+                        >
+                          {participante.campaignParticipant?.participantType === 'EXTERNAL_COMPANY'
+                            ? 'Empresa Externa'
+                            : 'Sede Interna'}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.participantStats,
+                            isTablet && styles.participantStatsTablet,
+                          ]}
+                        >
+                          Productos Validados: {productosValidadosParticipante} /{' '}
+                          {totalProductosParticipante}
+                        </Text>
+                      </View>
+
+                      {/* Circular Progress for Individual Participant */}
+                      {totalProductosParticipante > 0 && (
+                        <View style={styles.participantProgress}>
+                          <CircularProgress
+                            progress={progressPercentageParticipante}
+                            size={isTablet ? 70 : 60}
+                            strokeWidth={isTablet ? 7 : 6}
+                          />
+                        </View>
+                      )}
                     </View>
 
-                    {/* Circular Progress for Individual Participant */}
-                    {totalProductosParticipante > 0 && (
-                      <View style={styles.participantProgress}>
-                        <CircularProgress
-                          progress={progressPercentageParticipante}
-                          size={isTablet ? 70 : 60}
-                          strokeWidth={isTablet ? 7 : 6}
-                        />
+                    {participante.productos && participante.productos.length > 0 && (
+                      <View style={styles.productsList}>
+                        <Text
+                          style={[styles.productsTitle, isTablet && styles.productsTitleTablet]}
+                        >
+                          Productos ({participante.productos.length})
+                        </Text>
+                        {participante.productos
+                          .slice()
+                          .sort((a, b) => {
+                            // Ordenar por correlativo
+                            const correlativeA = (a.product as any)?.correlativeNumber || 0;
+                            const correlativeB = (b.product as any)?.correlativeNumber || 0;
+                            return correlativeA - correlativeB;
+                          })
+                          .map((producto) => {
+                            // ✅ SOLO mostrar por presentación si la VALIDACIÓN fue por presentación
+                            const validacionAny = producto.validacion as any;
+                            const wasValidatedByPresentation =
+                              producto.validationStatus ===
+                                RepartoProductoValidationStatus.VALIDATED &&
+                              validacionAny?.presentationInfo?.roundingApplied === true;
+
+                            // Calcular cantidades en presentación SOLO si fue validado por presentación
+                            let quantityInPresentation = 0;
+                            let validatedInPresentation = 0;
+                            let presentationName = '';
+
+                            if (
+                              wasValidatedByPresentation &&
+                              validacionAny?.presentationInfo?.largestPresentation
+                            ) {
+                              const factor =
+                                validacionAny.presentationInfo.largestPresentation.factorToBase;
+                              presentationName =
+                                validacionAny.presentationInfo.largestPresentation.name;
+                              quantityInPresentation = Math.floor(
+                                parseFloat(producto.quantityBase || '0') / factor
+                              );
+                              if (validacionAny?.validatedQuantityBase) {
+                                validatedInPresentation = Math.floor(
+                                  parseFloat(validacionAny.validatedQuantityBase) / factor
+                                );
+                              }
+                            }
+
+                            return (
+                              <View key={producto.id} style={styles.productItem}>
+                                <View style={styles.productInfo}>
+                                  <Text
+                                    style={[
+                                      styles.productName,
+                                      isTablet && styles.productNameTablet,
+                                    ]}
+                                  >
+                                    {producto.product?.title || 'Producto'}
+                                  </Text>
+                                  <Text
+                                    style={[styles.productSku, isTablet && styles.productSkuTablet]}
+                                  >
+                                    {(producto.product as any)?.correlativeNumber &&
+                                      `#${(producto.product as any).correlativeNumber} | `}
+                                    SKU: {producto.product?.sku}
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.productQuantity,
+                                      isTablet && styles.productQuantityTablet,
+                                    ]}
+                                  >
+                                    Cantidad Asignada:{' '}
+                                    {wasValidatedByPresentation
+                                      ? `${quantityInPresentation} ${presentationName} (${producto.quantityBase} unidades)`
+                                      : `${producto.quantityBase} unidades`}
+                                  </Text>
+                                  {producto.validacion && (
+                                    <Text
+                                      style={[
+                                        styles.validatedQuantity,
+                                        isTablet && styles.validatedQuantityTablet,
+                                      ]}
+                                    >
+                                      Cantidad Validada:{' '}
+                                      {wasValidatedByPresentation
+                                        ? `${validatedInPresentation} ${presentationName} (${producto.validacion.validatedQuantityBase} unidades)`
+                                        : `${producto.validacion.validatedQuantityBase} unidades`}
+                                    </Text>
+                                  )}
+                                </View>
+                                <View style={styles.productActions}>
+                                  <View
+                                    style={[
+                                      styles.productStatusBadge,
+                                      getProductStatusBadgeStyle(producto.validationStatus),
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.productStatusText,
+                                        getProductStatusTextStyle(producto.validationStatus),
+                                      ]}
+                                    >
+                                      {
+                                        RepartoProductoValidationStatusLabels[
+                                          producto.validationStatus
+                                        ]
+                                      }
+                                    </Text>
+                                  </View>
+                                  {producto.validationStatus ===
+                                    RepartoProductoValidationStatus.PENDING && (
+                                    <TouchableOpacity
+                                      style={styles.validateButton}
+                                      onPress={() => handleValidateProduct(producto)}
+                                    >
+                                      <Text style={styles.validateButtonText}>Validar Salida</Text>
+                                    </TouchableOpacity>
+                                  )}
+                                  {producto.validationStatus ===
+                                    RepartoProductoValidationStatus.VALIDATED && (
+                                    <TouchableOpacity
+                                      style={styles.viewValidationButton}
+                                      onPress={() => handleViewValidation(producto)}
+                                    >
+                                      <Text style={styles.viewValidationButtonText}>
+                                        Ver Validación
+                                      </Text>
+                                    </TouchableOpacity>
+                                  )}
+                                </View>
+                              </View>
+                            );
+                          })}
                       </View>
                     )}
                   </View>
-
-                  {participante.productos && participante.productos.length > 0 && (
-                    <View style={styles.productsList}>
-                      <Text style={[styles.productsTitle, isTablet && styles.productsTitleTablet]}>
-                        Productos ({participante.productos.length})
-                      </Text>
-                      {participante.productos
-                        .slice()
-                        .sort((a, b) => {
-                          // Ordenar por correlativo
-                          const correlativeA = (a.product as any)?.correlativeNumber || 0;
-                          const correlativeB = (b.product as any)?.correlativeNumber || 0;
-                          return correlativeA - correlativeB;
-                        })
-                        .map((producto) => {
-                        // ✅ SOLO mostrar por presentación si la VALIDACIÓN fue por presentación
-                        const validacionAny = producto.validacion as any;
-                        const wasValidatedByPresentation = producto.validationStatus === RepartoProductoValidationStatus.VALIDATED &&
-                          (validacionAny?.presentationInfo?.roundingApplied === true);
-
-                        // Calcular cantidades en presentación SOLO si fue validado por presentación
-                        let quantityInPresentation = 0;
-                        let validatedInPresentation = 0;
-                        let presentationName = '';
-
-                        if (wasValidatedByPresentation && validacionAny?.presentationInfo?.largestPresentation) {
-                          const factor = validacionAny.presentationInfo.largestPresentation.factorToBase;
-                          presentationName = validacionAny.presentationInfo.largestPresentation.name;
-                          quantityInPresentation = Math.floor(parseFloat(producto.quantityBase || '0') / factor);
-                          if (validacionAny?.validatedQuantityBase) {
-                            validatedInPresentation = Math.floor(parseFloat(validacionAny.validatedQuantityBase) / factor);
-                          }
-                        }
-
-                        return (
-                          <View key={producto.id} style={styles.productItem}>
-                            <View style={styles.productInfo}>
-                              <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
-                                {producto.product?.title || 'Producto'}
-                              </Text>
-                              <Text style={[styles.productSku, isTablet && styles.productSkuTablet]}>
-                                {(producto.product as any)?.correlativeNumber && `#${(producto.product as any).correlativeNumber} | `}SKU: {producto.product?.sku}
-                              </Text>
-                              <Text style={[styles.productQuantity, isTablet && styles.productQuantityTablet]}>
-                                Cantidad Asignada: {wasValidatedByPresentation
-                                  ? `${quantityInPresentation} ${presentationName} (${producto.quantityBase} unidades)`
-                                  : `${producto.quantityBase} unidades`
-                                }
-                              </Text>
-                              {producto.validacion && (
-                                <Text style={[styles.validatedQuantity, isTablet && styles.validatedQuantityTablet]}>
-                                  Cantidad Validada: {wasValidatedByPresentation
-                                    ? `${validatedInPresentation} ${presentationName} (${producto.validacion.validatedQuantityBase} unidades)`
-                                    : `${producto.validacion.validatedQuantityBase} unidades`
-                                  }
-                                </Text>
-                              )}
-                            </View>
-                            <View style={styles.productActions}>
-                              <View
-                                style={[
-                                  styles.productStatusBadge,
-                                  getProductStatusBadgeStyle(producto.validationStatus),
-                                ]}
-                              >
-                                <Text
-                                  style={[
-                                    styles.productStatusText,
-                                    getProductStatusTextStyle(producto.validationStatus),
-                                  ]}
-                                >
-                                  {RepartoProductoValidationStatusLabels[producto.validationStatus]}
-                                </Text>
-                              </View>
-                            {producto.validationStatus === RepartoProductoValidationStatus.PENDING && (
-                              <TouchableOpacity
-                                style={styles.validateButton}
-                                onPress={() => handleValidateProduct(producto)}
-                              >
-                                <Text style={styles.validateButtonText}>Validar Salida</Text>
-                              </TouchableOpacity>
-                            )}
-                            {producto.validationStatus === RepartoProductoValidationStatus.VALIDATED && (
-                              <TouchableOpacity
-                                style={styles.viewValidationButton}
-                                onPress={() => handleViewValidation(producto)}
-                              >
-                                <Text style={styles.viewValidationButtonText}>Ver Validación</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        </View>
-                        );
-                      })}
-                    </View>
-                  )}
-                </View>
-              );
-            })
+                );
+              })
           )}
         </View>
       </View>
@@ -643,9 +708,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
             <Text style={styles.backButtonText}>← Volver</Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>
-              {reparto?.code}
-            </Text>
+            <Text style={[styles.title, isTablet && styles.titleTablet]}>{reparto?.code}</Text>
             <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
               {reparto?.name}
             </Text>
@@ -658,13 +721,8 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({
         {/* Content */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {activeTab === 'overview' ? renderOverview() : renderParticipantes()}
         </ScrollView>

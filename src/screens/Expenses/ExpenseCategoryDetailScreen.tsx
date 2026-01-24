@@ -88,7 +88,9 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
   };
 
   const renderInfoRow = (label: string, value: string | number | null | undefined) => {
-    if (value === null || value === undefined) return null;
+    if (value === null || value === undefined) {
+      return null;
+    }
 
     return (
       <View style={styles.infoRow}>
@@ -146,19 +148,18 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
 
         {/* Status Badge */}
         <View style={styles.statusContainer}>
-          <View style={[
-            styles.statusBadge,
-            { backgroundColor: category.isActive ? '#DCFCE7' : '#FEE2E2' }
-          ]}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: category.isActive ? '#DCFCE7' : '#FEE2E2' },
+            ]}
+          >
             <Ionicons
               name={category.isActive ? 'checkmark-circle' : 'close-circle'}
               size={16}
               color={category.isActive ? '#16A34A' : '#DC2626'}
             />
-            <Text style={[
-              styles.statusText,
-              { color: category.isActive ? '#16A34A' : '#DC2626' }
-            ]}>
+            <Text style={[styles.statusText, { color: category.isActive ? '#16A34A' : '#DC2626' }]}>
               {category.isActive ? 'Activo' : 'Inactivo'}
             </Text>
           </View>
@@ -186,8 +187,17 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Categoría Padre</Text>
             <View style={styles.parentCategory}>
-              <View style={[styles.iconContainer, { backgroundColor: category.parent.color || '#6366F1' }]}>
-                <Ionicons name={(category.parent.icon as any) || 'pricetag'} size={20} color="#FFFFFF" />
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: category.parent.color || '#6366F1' },
+                ]}
+              >
+                <Ionicons
+                  name={(category.parent.icon as any) || 'pricetag'}
+                  size={20}
+                  color="#FFFFFF"
+                />
               </View>
               <View style={styles.parentInfo}>
                 <Text style={styles.parentName}>{category.parent.name}</Text>
@@ -222,7 +232,10 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
             <Text style={styles.actionButtonText}>Editar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={handleDelete}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.deleteButton]}
+            onPress={handleDelete}
+          >
             <Ionicons name="trash-outline" size={20} color="#DC2626" />
             <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Eliminar</Text>
           </TouchableOpacity>

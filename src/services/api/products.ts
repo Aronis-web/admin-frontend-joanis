@@ -357,7 +357,9 @@ export const productsApi = {
   // ========== PRODUCT IMAGES ENDPOINTS ==========
 
   // Get product images - GET /files/products/:productId/images
-  getProductImages: async (productId: string): Promise<{
+  getProductImages: async (
+    productId: string
+  ): Promise<{
     success: boolean;
     productId: string;
     count: number;
@@ -380,7 +382,9 @@ export const productsApi = {
   },
 
   // Upload bulk products file - POST /admin/products/bulk/upload
-  uploadBulkProducts: async (file: File | Blob | any): Promise<{
+  uploadBulkProducts: async (
+    file: File | Blob | any
+  ): Promise<{
     successCount: number;
     errorCount: number;
     totalRows: number;
@@ -436,7 +440,9 @@ export const productsApi = {
   },
 
   // Get bulk upload history detail - GET /admin/products/bulk/history/:id
-  getBulkUploadHistoryDetail: async (id: string): Promise<{
+  getBulkUploadHistoryDetail: async (
+    id: string
+  ): Promise<{
     id: string;
     filename: string;
     uploadedBy: string;
@@ -471,14 +477,20 @@ export const exampleUsage = {
   }): Promise<ProductListResponse> {
     const queryParams = new URLSearchParams();
 
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
-    if (params?.q) queryParams.append('q', params.q);
+    if (params?.page) {
+      queryParams.append('page', params.page.toString());
+    }
+    if (params?.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    if (params?.categoryId) {
+      queryParams.append('categoryId', params.categoryId);
+    }
+    if (params?.q) {
+      queryParams.append('q', params.q);
+    }
 
-    const response = await fetch(
-      `${config.API_URL}/catalog/products?${queryParams}`
-    );
+    const response = await fetch(`${config.API_URL}/catalog/products?${queryParams}`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -505,7 +517,7 @@ export const exampleUsage = {
       const productList = await this.getProducts({
         page: 1,
         limit: 10,
-        q: 'agua'
+        q: 'agua',
       });
 
       console.log('Productos encontrados:', productList.total);
@@ -516,11 +528,10 @@ export const exampleUsage = {
         const productDetail = await this.getProduct(productList.products[0].id);
         console.log('Presentaciones disponibles:', productDetail.presentations);
       }
-
     } catch (error) {
       console.error('Error:', error);
     }
-  }
+  },
 };
 
 export default productsApi;

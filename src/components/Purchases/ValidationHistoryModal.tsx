@@ -26,12 +26,7 @@ export const ValidationHistoryModal: React.FC<ValidationHistoryModalProps> = ({
   const isTablet = width >= 768;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
           <View style={styles.header}>
@@ -44,9 +39,7 @@ export const ValidationHistoryModal: React.FC<ValidationHistoryModalProps> = ({
           <ScrollView showsVerticalScrollIndicator={false}>
             {validations.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>
-                  No hay validaciones registradas
-                </Text>
+                <Text style={styles.emptyStateText}>No hay validaciones registradas</Text>
               </View>
             ) : (
               validations.map((validation, index) => (
@@ -70,15 +63,15 @@ export const ValidationHistoryModal: React.FC<ValidationHistoryModalProps> = ({
                     <View style={styles.infoRow}>
                       <Text style={styles.infoLabel}>Validado por:</Text>
                       <Text style={styles.infoValue}>
-                        {validation.validatedByUser?.name || validation.validatedByUser?.email || 'N/A'}
+                        {validation.validatedByUser?.name ||
+                          validation.validatedByUser?.email ||
+                          'N/A'}
                       </Text>
                     </View>
 
                     <View style={styles.infoRow}>
                       <Text style={styles.infoLabel}>Stock validado:</Text>
-                      <Text style={styles.infoValue}>
-                        {validation.validatedStock} unidades
-                      </Text>
+                      <Text style={styles.infoValue}>{validation.validatedStock} unidades</Text>
                     </View>
 
                     {validation.notes && (
@@ -109,9 +102,7 @@ export const ValidationHistoryModal: React.FC<ValidationHistoryModalProps> = ({
                                 // TODO: Open full screen image viewer
                               }}
                             >
-                              <Text style={styles.viewFullButtonText}>
-                                Ver en tamaño completo
-                              </Text>
+                              <Text style={styles.viewFullButtonText}>Ver en tamaño completo</Text>
                             </TouchableOpacity>
                           </View>
                         )}

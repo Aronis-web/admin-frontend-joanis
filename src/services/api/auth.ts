@@ -35,7 +35,9 @@ export const authApi = {
       try {
         // Import userPermissionsApi to get effective permissions
         const { userPermissionsApi } = await import('./roles');
-        const effectivePermissions = await userPermissionsApi.getUserEffectivePermissions(response.user.id);
+        const effectivePermissions = await userPermissionsApi.getUserEffectivePermissions(
+          response.user.id
+        );
 
         // Add permissions to user object
         response.user.permissions = effectivePermissions;

@@ -1,7 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ExpensePayment, PaymentAttachment, PaymentStatusLabels, PaymentStatusColors, PaymentMethodLabels } from '@/types/expenses';
+import {
+  ExpensePayment,
+  PaymentAttachment,
+  PaymentStatusLabels,
+  PaymentStatusColors,
+  PaymentMethodLabels,
+} from '@/types/expenses';
 import { PaymentStatusBadge } from './PaymentStatusBadge';
 import { filesApi } from '@/services/api';
 
@@ -27,7 +33,9 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
   });
 
   const formatDate = (dateString?: string | null) => {
-    if (!dateString) return '-';
+    if (!dateString) {
+      return '-';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
   };
@@ -171,7 +179,9 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.paymentCode}>{paymentCode}</Text>
-            <Text style={styles.paymentMethod}>{PaymentMethodLabels[payment.paymentMethod] || payment.paymentMethod}</Text>
+            <Text style={styles.paymentMethod}>
+              {PaymentMethodLabels[payment.paymentMethod] || payment.paymentMethod}
+            </Text>
           </View>
           <PaymentStatusBadge status={paymentStatus as any} size="small" />
         </View>
@@ -200,90 +210,101 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
             {payment.transactionReference && (
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Referencia:</Text>
-                <Text style={styles.detailValue} numberOfLines={1}>{payment.transactionReference}</Text>
+                <Text style={styles.detailValue} numberOfLines={1}>
+                  {payment.transactionReference}
+                </Text>
               </View>
             )}
 
             {payment.notes && (
               <View style={styles.notesContainer}>
                 <Text style={styles.notesLabel}>Notas:</Text>
-                <Text style={styles.notesText} numberOfLines={2}>{payment.notes}</Text>
+                <Text style={styles.notesText} numberOfLines={2}>
+                  {payment.notes}
+                </Text>
               </View>
             )}
           </View>
 
-        {/* Attachments Section */}
-        {payment.attachments && payment.attachments.length > 0 ? (
-          <View style={styles.attachmentsContainer}>
-            <Text style={styles.attachmentsTitle}>
-              Archivos adjuntos ({payment.attachments.length})
-            </Text>
-            {payment.attachments.map((attachment, index) => {
-              console.log(`📎 Rendering attachment ${index}:`, {
-                id: attachment.id,
-                fileId: attachment.fileId,
-                fileName: attachment.fileName,
-                mimeType: attachment.mimeType,
-                fileType: attachment.fileType,
-              });
-              return (
-                <TouchableOpacity
-                  key={attachment.id || index}
-                  style={styles.attachmentButton}
-                  onPress={() => {
-                    console.log(`👆 Attachment button pressed for: ${attachment.fileName}`);
-                    handleViewAttachment(attachment);
-                  }}
-                >
-                  <Ionicons name={getFileIcon(attachment) as any} size={20} color="#6366F1" />
-                  <View style={styles.attachmentInfo}>
-                    <Text style={styles.attachmentButtonText}>{getFileTypeLabel(attachment)}</Text>
-                    <Text style={styles.attachmentFileName} numberOfLines={1}>
-                      {attachment.fileName}
-                    </Text>
-                    {attachment.description && (
-                      <Text style={styles.attachmentDescription} numberOfLines={1}>
-                        {attachment.description}
+          {/* Attachments Section */}
+          {payment.attachments && payment.attachments.length > 0 ? (
+            <View style={styles.attachmentsContainer}>
+              <Text style={styles.attachmentsTitle}>
+                Archivos adjuntos ({payment.attachments.length})
+              </Text>
+              {payment.attachments.map((attachment, index) => {
+                console.log(`📎 Rendering attachment ${index}:`, {
+                  id: attachment.id,
+                  fileId: attachment.fileId,
+                  fileName: attachment.fileName,
+                  mimeType: attachment.mimeType,
+                  fileType: attachment.fileType,
+                });
+                return (
+                  <TouchableOpacity
+                    key={attachment.id || index}
+                    style={styles.attachmentButton}
+                    onPress={() => {
+                      console.log(`👆 Attachment button pressed for: ${attachment.fileName}`);
+                      handleViewAttachment(attachment);
+                    }}
+                  >
+                    <Ionicons name={getFileIcon(attachment) as any} size={20} color="#6366F1" />
+                    <View style={styles.attachmentInfo}>
+                      <Text style={styles.attachmentButtonText}>
+                        {getFileTypeLabel(attachment)}
                       </Text>
-                    )}
-                  </View>
-                  <Ionicons name="open-outline" size={16} color="#6366F1" />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ) : payment.attachmentFile ? (
-          <TouchableOpacity
-            style={styles.attachmentButton}
-            onPress={() => payment.attachmentFile && handleViewAttachment({
-              id: payment.attachmentFile.id,
-              fileId: payment.attachmentFile.url,
-              fileName: payment.attachmentFile.fileName,
-              fileType: 'OTHER',
-              url: payment.attachmentFile.url,
-              mimeType: payment.attachmentFile.mimeType,
-              createdAt: payment.createdAt,
-            })}
-          >
-            <Ionicons name="document-attach" size={20} color="#6366F1" />
-            <Text style={styles.attachmentButtonText}>Ver archivo adjunto</Text>
-            <Ionicons name="open-outline" size={16} color="#6366F1" />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.noAttachmentContainer}>
-            <Ionicons name="document-outline" size={16} color="#94A3B8" />
-            <Text style={styles.noAttachmentText}>Sin archivos adjuntos</Text>
-          </View>
-        )}
+                      <Text style={styles.attachmentFileName} numberOfLines={1}>
+                        {attachment.fileName}
+                      </Text>
+                      {attachment.description && (
+                        <Text style={styles.attachmentDescription} numberOfLines={1}>
+                          {attachment.description}
+                        </Text>
+                      )}
+                    </View>
+                    <Ionicons name="open-outline" size={16} color="#6366F1" />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : payment.attachmentFile ? (
+            <TouchableOpacity
+              style={styles.attachmentButton}
+              onPress={() =>
+                payment.attachmentFile &&
+                handleViewAttachment({
+                  id: payment.attachmentFile.id,
+                  fileId: payment.attachmentFile.url,
+                  fileName: payment.attachmentFile.fileName,
+                  fileType: 'OTHER',
+                  url: payment.attachmentFile.url,
+                  mimeType: payment.attachmentFile.mimeType,
+                  createdAt: payment.createdAt,
+                })
+              }
+            >
+              <Ionicons name="document-attach" size={20} color="#6366F1" />
+              <Text style={styles.attachmentButtonText}>Ver archivo adjunto</Text>
+              <Ionicons name="open-outline" size={16} color="#6366F1" />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.noAttachmentContainer}>
+              <Ionicons name="document-outline" size={16} color="#94A3B8" />
+              <Text style={styles.noAttachmentText}>Sin archivos adjuntos</Text>
+            </View>
+          )}
 
-        {payment.createdByUser && (
-          <View style={styles.footer}>
-            <Text style={styles.footerLabel}>Registrado por:</Text>
-            <Text style={styles.footerValue}>{payment.createdByUser.name || payment.createdByUser.email}</Text>
-          </View>
-        )}
-      </View>
-    </CardWrapper>
+          {payment.createdByUser && (
+            <View style={styles.footer}>
+              <Text style={styles.footerLabel}>Registrado por:</Text>
+              <Text style={styles.footerValue}>
+                {payment.createdByUser.name || payment.createdByUser.email}
+              </Text>
+            </View>
+          )}
+        </View>
+      </CardWrapper>
     );
   } catch (error) {
     console.error('❌ Error rendering PaymentCard:', error);

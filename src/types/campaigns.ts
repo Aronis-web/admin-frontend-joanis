@@ -561,8 +561,12 @@ export const ProductStatusColors: Record<ProductStatus, string> = {
  * Distribution Type Descriptions for UI
  */
 export const DistributionTypeDescriptions: Record<DistributionType, string> = {
-  [DistributionType.ALL]: 'El producto se distribuirá proporcionalmente entre todos los participantes (empresas y sedes) según sus montos asignados.',
-  [DistributionType.INTERNAL_ONLY]: 'El producto se distribuirá solo entre sedes internas, ignorando empresas externas.',
-  [DistributionType.EXTERNAL_ONLY]: 'El producto se distribuirá solo entre empresas externas, ignorando sedes internas.',
-  [DistributionType.CUSTOM]: 'Permite definir cantidades específicas manualmente para cada participante.',
+  [DistributionType.ALL]:
+    'El producto se distribuirá proporcionalmente entre todos los participantes (empresas y sedes) según sus montos asignados.',
+  [DistributionType.INTERNAL_ONLY]:
+    'El producto se distribuirá solo entre sedes internas, ignorando empresas externas.',
+  [DistributionType.EXTERNAL_ONLY]:
+    'El producto se distribuirá solo entre empresas externas, ignorando sedes internas.',
+  [DistributionType.CUSTOM]:
+    'Permite definir cantidades específicas manualmente para cada participante.',
 };

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { expensesService, sitesService } from '@/services/api';
-import {
-  Expense,
-  ExpenseStatus,
-  ExpenseStatusLabels,
-} from '@/types/expenses';
+import { sitesService } from '@/services/api';
+import { Expense, ExpenseStatus, ExpenseStatusLabels } from '@/types/expenses';
+import { useExpenses, useDeleteExpense } from '@/hooks/api';
 import { useAuthStore } from '@/store/auth';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { AddButton } from '@/components/Navigation/AddButton';
@@ -33,20 +30,13 @@ interface ExpensesScreenProps {
 }
 
 export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) => {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<ExpenseStatus | 'ALL'>('ALL');
   const [reconcileModalVisible, setReconcileModalVisible] = useState(false);
   const [paymentsModalVisible, setPaymentsModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const { currentCompany, currentSite } = useAuthStore();
   const { hasPermission } = usePermissions();
@@ -55,170 +45,173 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
+  // Build query params
+  const queryParams = useMemo(() => {
+    const params: any = {
+      page,
+      limit,
+      sortBy: 'expenseDate',
+      sortOrder: 'DESC',
+    };
+    if (selectedStatus !== 'ALL') {
+      params.status = selectedStatus;
+    }
+    return params;
+  }, [page, limit, selectedStatus]);
+
+  // React Query hooks
+  const { data, isLoading, isRefetching, refetch } = useExpenses(queryParams);
+  const deleteExpenseMutation = useDeleteExpense();
+
   // Check permissions
   const canUpdate = hasPermission('expenses.payments.update') || hasPermission('expenses.admin');
   const canDelete = hasPermission('expenses.payments.delete') || hasPermission('expenses.admin');
-  const canCreatePayment = hasPermission('expenses.payments.create') || hasPermission('expenses.admin');
+  const canCreatePayment =
+    hasPermission('expenses.payments.create') || hasPermission('expenses.admin');
 
-  const loadExpenses = useCallback(async (page: number = 1) => {
-    try {
-      setLoading(true);
+  // Enrich expenses with site data
+  const expenses = useMemo(() => {
+    if (!data?.data) return [];
+    // Sites are already included in the expense data from the API
+    return data.data;
+  }, [data]);
 
-      const params: any = {
-        page,
-        limit: pagination.limit,
-        sortBy: 'expenseDate',
-        sortOrder: 'DESC',
-      };
-      if (selectedStatus !== 'ALL') params.status = selectedStatus;
-
-      // Load expenses and sites in parallel
-      const [expensesResponse, sitesResponse] = await Promise.all([
-        expensesService.getExpenses(params),
-        sitesService.getSites({ page: 1, limit: 100 }),
-      ]);
-
-      console.log('📊 Expenses loaded:', expensesResponse.data.length);
-      console.log('🏢 Sites loaded:', sitesResponse.data.length);
-
-      // Create a map of sites by ID for quick lookup
-      const sitesMap = new Map(
-        sitesResponse.data.map((site: any) => [site.id, site])
-      );
-
-      // Enrich expenses with site objects
-      const enrichedExpenses = expensesResponse.data.map((expense: any) => ({
-        ...expense,
-        site: expense.siteId ? sitesMap.get(expense.siteId) : undefined,
-      }));
-
-      setExpenses(enrichedExpenses);
-
-      // Update pagination info - API returns flat structure
-      const totalPages = Math.ceil(expensesResponse.total / expensesResponse.limit);
-      setPagination({
-        page: expensesResponse.page,
-        limit: expensesResponse.limit,
-        total: expensesResponse.total,
-        totalPages: totalPages,
-      });
-    } catch (error: any) {
-      console.error('Error loading expenses:', error);
-      Alert.alert('Error', 'No se pudieron cargar los gastos');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  // Calculate pagination
+  const pagination = useMemo(() => {
+    if (!data?.meta) {
+      return { page: 1, limit: 20, total: 0, totalPages: 0 };
     }
-  }, [selectedStatus, pagination.limit]);
+    return {
+      page: data.meta.page,
+      limit: data.meta.limit,
+      total: data.meta.total,
+      totalPages: data.meta.totalPages,
+    };
+  }, [data]);
 
   // Auto-reload expenses when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('📱 ExpensesScreen focused - reloading expenses...');
-      setLoading(true);
-      loadExpenses();
-    }, [loadExpenses])
+      refetch();
+    }, [refetch])
   );
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadExpenses(1);
-  };
+  const handleRefresh = useCallback(() => {
+    setPage(1);
+    refetch();
+  }, [refetch]);
 
-  const handlePreviousPage = () => {
+  const handlePreviousPage = useCallback(() => {
     if (pagination.page > 1) {
-      loadExpenses(pagination.page - 1);
+      setPage(pagination.page - 1);
     }
-  };
+  }, [pagination.page]);
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     if (pagination.page < pagination.totalPages) {
-      loadExpenses(pagination.page + 1);
+      setPage(pagination.page + 1);
     }
-  };
+  }, [pagination.page, pagination.totalPages]);
 
-  const handleCreateExpense = () => {
+  const handleCreateExpense = useCallback(() => {
     navigation.navigate(MAIN_ROUTES.CREATE_EXPENSE as never);
-  };
+  }, [navigation]);
 
-  const handleOpenReportModal = () => {
+  const handleOpenReportModal = useCallback(() => {
     setReportModalVisible(true);
-  };
+  }, []);
 
-  const handleExpensePress = (expense: Expense) => {
-    navigation.navigate(MAIN_ROUTES.EXPENSE_DETAIL as never, { expenseId: expense.id });
-  };
+  const handleExpensePress = useCallback(
+    (expense: Expense) => {
+      navigation.navigate(MAIN_ROUTES.EXPENSE_DETAIL as never, { expenseId: expense.id });
+    },
+    [navigation]
+  );
 
-  const handleChangeStatus = (expense: Expense) => {
-    navigation.navigate(MAIN_ROUTES.EXPENSE_DETAIL as never, {
-      expenseId: expense.id,
-      action: 'change_status',
-    });
-  };
+  const handleChangeStatus = useCallback(
+    (expense: Expense) => {
+      navigation.navigate(MAIN_ROUTES.EXPENSE_DETAIL as never, {
+        expenseId: expense.id,
+        action: 'change_status',
+      });
+    },
+    [navigation]
+  );
 
-  const handleEditExpense = (expense: Expense) => {
-    // Navigate to edit expense screen
-    navigation.navigate(MAIN_ROUTES.CREATE_EXPENSE as never, { expenseId: expense.id });
-  };
+  const handleEditExpense = useCallback(
+    (expense: Expense) => {
+      // Navigate to edit expense screen
+      navigation.navigate(MAIN_ROUTES.CREATE_EXPENSE as never, { expenseId: expense.id });
+    },
+    [navigation]
+  );
 
-  const handleDeleteExpense = (expense: Expense) => {
-    Alert.alert(
-      'Eliminar Gasto',
-      `¿Estás seguro de que deseas eliminar el gasto "${expense.name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await expensesService.deleteExpense(expense.id);
-              Alert.alert('Éxito', 'Gasto eliminado correctamente');
-              loadExpenses();
-            } catch (error) {
-              console.error('Error deleting expense:', error);
-              Alert.alert('Error', 'No se pudo eliminar el gasto');
-            }
+  const handleDeleteExpense = useCallback(
+    (expense: Expense) => {
+      Alert.alert(
+        'Eliminar Gasto',
+        `¿Estás seguro de que deseas eliminar el gasto "${expense.name}"?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deleteExpenseMutation.mutateAsync(expense.id);
+                Alert.alert('Éxito', 'Gasto eliminado correctamente');
+              } catch (error) {
+                console.error('Error deleting expense:', error);
+                Alert.alert('Error', 'No se pudo eliminar el gasto');
+              }
+            },
           },
-        },
-      ]
-    );
-  };
+        ]
+      );
+    },
+    [deleteExpenseMutation]
+  );
 
-  const handleAddPayment = (expense: Expense) => {
-    // Navigate to create payment screen
-    navigation.navigate(MAIN_ROUTES.CREATE_EXPENSE_PAYMENT as never, { expenseId: expense.id });
-  };
+  const handleAddPayment = useCallback(
+    (expense: Expense) => {
+      // Navigate to create payment screen
+      navigation.navigate(MAIN_ROUTES.CREATE_EXPENSE_PAYMENT as never, { expenseId: expense.id });
+    },
+    [navigation]
+  );
 
-  const handleReconcileAmount = (expense: Expense) => {
+  const handleReconcileAmount = useCallback((expense: Expense) => {
     setSelectedExpense(expense);
     setReconcileModalVisible(true);
-  };
+  }, []);
 
-  const handleCloseReconcileModal = () => {
+  const handleCloseReconcileModal = useCallback(() => {
     setReconcileModalVisible(false);
     setSelectedExpense(null);
-  };
+  }, []);
 
-  const handleReconcileSuccess = () => {
-    loadExpenses();
-  };
+  const handleReconcileSuccess = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
-  const handleViewPayments = (expense: Expense) => {
+  const handleViewPayments = useCallback((expense: Expense) => {
     // Open payments modal instead of navigating
     setSelectedExpense(expense);
     setPaymentsModalVisible(true);
-  };
+  }, []);
 
-  const renderStatusFilter = () => {
-    const statuses: Array<ExpenseStatus | 'ALL'> = [
+  const statuses: Array<ExpenseStatus | 'ALL'> = useMemo(
+    () => [
       'ALL',
       ExpenseStatus.PENDING,
       ExpenseStatus.APPROVED,
       ExpenseStatus.PAID,
       ExpenseStatus.CANCELLED,
-    ];
+    ],
+    []
+  );
 
+  const renderStatusFilter = useMemo(() => {
     return (
       <View style={styles.filterWrapper}>
         <Text style={styles.filterLabel}>Estado:</Text>
@@ -251,10 +244,10 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
         </ScrollView>
       </View>
     );
-  };
+  }, [statuses, isTablet, selectedStatus]);
 
   const renderContent = () => {
-    if (loading) {
+    if (isLoading && !isRefetching) {
       return (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
@@ -267,9 +260,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
       return (
         <View style={styles.centerContainer}>
           <Text style={styles.emptyText}>No hay gastos registrados</Text>
-          <Text style={styles.emptySubtext}>
-            Presiona el botón + para crear un nuevo gasto
-          </Text>
+          <Text style={styles.emptySubtext}>Presiona el botón + para crear un nuevo gasto</Text>
         </View>
       );
     }
@@ -279,9 +270,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
         >
           {expenses.map((expense) => (
             <ExpenseCard
@@ -360,7 +349,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
         </TouchableOpacity>
       </View>
       <View style={styles.container}>
-        {renderStatusFilter()}
+        {renderStatusFilter}
         {renderContent()}
 
         {/* Download Report Button - Above Add Button */}
@@ -382,7 +371,9 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
           onClose={handleCloseReconcileModal}
           expenseId={selectedExpense.id}
           expenseName={selectedExpense.name}
-          estimatedAmount={(selectedExpense.estimatedAmountCents || selectedExpense.amountCents || 0) / 100}
+          estimatedAmount={
+            (selectedExpense.estimatedAmountCents || selectedExpense.amountCents || 0) / 100
+          }
           onSuccess={handleReconcileSuccess}
         />
       )}

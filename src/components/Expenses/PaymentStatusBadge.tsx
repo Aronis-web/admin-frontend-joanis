@@ -9,7 +9,7 @@ interface PaymentStatusBadgeProps {
 
 export const PaymentStatusBadge: React.FC<PaymentStatusBadgeProps> = ({
   status,
-  size = 'medium'
+  size = 'medium',
 }) => {
   const backgroundColor = PaymentStatusColors[status];
   const label = PaymentStatusLabels[status];

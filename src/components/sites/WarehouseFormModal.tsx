@@ -89,7 +89,8 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
       onClose();
     } catch (error: any) {
       console.error('Error saving warehouse:', error);
-      const errorMessage = error.response?.data?.message ||
+      const errorMessage =
+        error.response?.data?.message ||
         `Error al ${isEditMode ? 'actualizar' : 'crear'} el almacén`;
       Alert.alert('Error', errorMessage);
     } finally {
@@ -104,12 +105,7 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}

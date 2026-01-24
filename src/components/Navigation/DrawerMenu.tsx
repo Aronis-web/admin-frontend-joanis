@@ -106,7 +106,12 @@ const menuCategories: MenuCategory[] = [
         label: 'Campañas',
         route: MAIN_ROUTES.CAMPAIGNS,
         color: '#10B981',
-        requiredPermissions: ['campaigns.read', 'campaigns.create', 'campaigns.update', 'campaigns.edit'],
+        requiredPermissions: [
+          'campaigns.read',
+          'campaigns.create',
+          'campaigns.update',
+          'campaigns.edit',
+        ],
       },
       {
         id: 'repartos',
@@ -172,7 +177,11 @@ const menuCategories: MenuCategory[] = [
         label: 'Operaciones',
         route: MAIN_ROUTES.ALL_BALANCE_OPERATIONS,
         color: '#38BDF8',
-        requiredPermissions: ['balances.operations.read', 'balances.operations.create', 'balances.operations.update'],
+        requiredPermissions: [
+          'balances.operations.read',
+          'balances.operations.create',
+          'balances.operations.update',
+        ],
       },
     ],
   },
@@ -214,7 +223,12 @@ const menuCategories: MenuCategory[] = [
         label: 'Gastos Recurrentes',
         route: MAIN_ROUTES.EXPENSE_TEMPLATES,
         color: '#8B5CF6',
-        requiredPermissions: ['expenses.templates.create', 'expenses.templates.read', 'expenses.templates.update', 'expenses.templates.delete'],
+        requiredPermissions: [
+          'expenses.templates.create',
+          'expenses.templates.read',
+          'expenses.templates.update',
+          'expenses.templates.delete',
+        ],
       },
       {
         id: 'expenses-list',
@@ -255,7 +269,12 @@ const menuCategories: MenuCategory[] = [
         label: 'Proveedores',
         route: MAIN_ROUTES.SUPPLIERS,
         color: '#3B82F6',
-        requiredPermissions: ['suppliers.read', 'suppliers.create', 'suppliers.update', 'providers.read'],
+        requiredPermissions: [
+          'suppliers.read',
+          'suppliers.create',
+          'suppliers.update',
+          'providers.read',
+        ],
       },
       // Usuarios
       {
@@ -397,12 +416,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
     .filter((category) => category.items.length > 0);
 
   return (
-    <Modal
-      visible={visible}
-      animationType="none"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="none" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalContainer}>
         {/* Overlay */}
         <Pressable style={styles.overlay} onPress={onClose} />
@@ -501,25 +515,28 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                       <Text style={styles.categoryTitle}>{category.title}</Text>
                       <Text style={styles.categoryCount}>({category.items.length})</Text>
                     </View>
-                    <Text style={[styles.categoryArrow, isExpanded && styles.categoryArrowExpanded]}>
+                    <Text
+                      style={[styles.categoryArrow, isExpanded && styles.categoryArrowExpanded]}
+                    >
                       ›
                     </Text>
                   </TouchableOpacity>
 
                   {/* Category Items */}
-                  {isExpanded && category.items.map((item) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={styles.menuItem}
-                      onPress={() => handleMenuItemPress(item.route)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.menuItemIcon, { backgroundColor: item.color }]}>
-                        <Text style={styles.menuItemEmoji}>{item.icon}</Text>
-                      </View>
-                      <Text style={styles.menuItemLabel}>{item.label}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {isExpanded &&
+                    category.items.map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={styles.menuItem}
+                        onPress={() => handleMenuItemPress(item.route)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.menuItemIcon, { backgroundColor: item.color }]}>
+                          <Text style={styles.menuItemEmoji}>{item.icon}</Text>
+                        </View>
+                        <Text style={styles.menuItemLabel}>{item.label}</Text>
+                      </TouchableOpacity>
+                    ))}
                 </View>
               );
             })}

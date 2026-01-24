@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  FlatList,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, Platform } from 'react-native';
 
 interface PickerOption {
   label: string;
@@ -35,7 +27,7 @@ export const FormPicker: React.FC<FormPickerProps> = ({
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
 
-  const selectedOption = options.find(opt => opt.value === value);
+  const selectedOption = options.find((opt) => opt.value === value);
   const displayValue = selectedOption ? selectedOption.label : placeholder;
 
   const handleSelect = (optionValue: string) => {
@@ -82,10 +74,7 @@ export const FormPicker: React.FC<FormPickerProps> = ({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{label}</Text>
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                style={styles.closeButton}
-              >
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -94,23 +83,15 @@ export const FormPicker: React.FC<FormPickerProps> = ({
               keyExtractor={(item) => item.value}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[
-                    styles.optionItem,
-                    item.value === value && styles.selectedOption,
-                  ]}
+                  style={[styles.optionItem, item.value === value && styles.selectedOption]}
                   onPress={() => handleSelect(item.value)}
                 >
                   <Text
-                    style={[
-                      styles.optionText,
-                      item.value === value && styles.selectedOptionText,
-                    ]}
+                    style={[styles.optionText, item.value === value && styles.selectedOptionText]}
                   >
                     {item.label}
                   </Text>
-                  {item.value === value && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
+                  {item.value === value && <Text style={styles.checkmark}>✓</Text>}
                 </TouchableOpacity>
               )}
             />

@@ -77,7 +77,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
       setAllPermissions(allPermsArray);
 
       // Inicializar permisos seleccionados con los que ya tiene la app
-      const permKeys = new Set(appPermsArray.map(p => p.permissionKey));
+      const permKeys = new Set(appPermsArray.map((p) => p.permissionKey));
       setSelectedPermissions(permKeys);
 
       console.log('✅ Permisos actuales de la app:', Array.from(permKeys));
@@ -103,7 +103,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
   };
 
   const handleTogglePermission = (permissionKey: string) => {
-    setSelectedPermissions(prev => {
+    setSelectedPermissions((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(permissionKey)) {
         newSet.delete(permissionKey);
@@ -131,7 +131,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
       return;
     }
 
-    setSelectedPermissions(prev => new Set(prev).add(trimmed));
+    setSelectedPermissions((prev) => new Set(prev).add(trimmed));
     setCustomPermission('');
   };
 
@@ -142,12 +142,12 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
     }
 
     const permissionsToSave = Array.from(selectedPermissions);
-    const originalPermissions = appPermissions.map(p => p.permissionKey);
+    const originalPermissions = appPermissions.map((p) => p.permissionKey);
 
     // Calcular cambios
-    const added = permissionsToSave.filter(p => !originalPermissions.includes(p));
-    const removed = originalPermissions.filter(p => !permissionsToSave.includes(p));
-    const unchanged = permissionsToSave.filter(p => originalPermissions.includes(p));
+    const added = permissionsToSave.filter((p) => !originalPermissions.includes(p));
+    const removed = originalPermissions.filter((p) => !permissionsToSave.includes(p));
+    const unchanged = permissionsToSave.filter((p) => originalPermissions.includes(p));
 
     console.log('💾 Preparando para guardar permisos:');
     console.log('  📊 Originales:', originalPermissions.length, originalPermissions);
@@ -169,48 +169,45 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
     }
     message += '\n¿Deseas continuar?';
 
-    Alert.alert(
-      'Confirmar Cambios',
-      message,
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
+    Alert.alert('Confirmar Cambios', message, [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+      {
+        text: 'Guardar',
+        onPress: async () => {
+          try {
+            setSaving(true);
+
+            await appPermissionsApi.setAppPermissions(appId, {
+              permissionKeys: permissionsToSave,
+            });
+
+            console.log('✅ Permisos guardados exitosamente');
+            Alert.alert('Éxito', `${permissionsToSave.length} permisos actualizados correctamente`);
+
+            // Recargar datos para verificar
+            await loadData();
+          } catch (error: any) {
+            console.error('❌ Error saving permissions:', error);
+            const errorMessage = error.response?.data?.message || 'Error al guardar los permisos';
+            Alert.alert('Error', errorMessage);
+          } finally {
+            setSaving(false);
+          }
         },
-        {
-          text: 'Guardar',
-          onPress: async () => {
-            try {
-              setSaving(true);
-
-              await appPermissionsApi.setAppPermissions(appId, {
-                permissionKeys: permissionsToSave,
-              });
-
-              console.log('✅ Permisos guardados exitosamente');
-              Alert.alert('Éxito', `${permissionsToSave.length} permisos actualizados correctamente`);
-
-              // Recargar datos para verificar
-              await loadData();
-            } catch (error: any) {
-              console.error('❌ Error saving permissions:', error);
-              const errorMessage = error.response?.data?.message || 'Error al guardar los permisos';
-              Alert.alert('Error', errorMessage);
-            } finally {
-              setSaving(false);
-            }
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   // Obtener módulos únicos
-  const modules = ['all', ...new Set(allPermissions.map(p => p.module))];
+  const modules = ['all', ...new Set(allPermissions.map((p) => p.module))];
 
   // Filtrar permisos
-  const filteredPermissions = allPermissions.filter(p => {
-    const matchesSearch = searchQuery === '' ||
+  const filteredPermissions = allPermissions.filter((p) => {
+    const matchesSearch =
+      searchQuery === '' ||
       p.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.description.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -220,25 +217,28 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
   });
 
   // Agrupar permisos por módulo
-  const groupedPermissions = filteredPermissions.reduce((acc, permission) => {
-    const module = permission.module || 'Sin módulo';
-    if (!acc[module]) {
-      acc[module] = [];
-    }
-    acc[module].push(permission);
-    return acc;
-  }, {} as Record<string, Permission[]>);
+  const groupedPermissions = filteredPermissions.reduce(
+    (acc, permission) => {
+      const module = permission.module || 'Sin módulo';
+      if (!acc[module]) {
+        acc[module] = [];
+      }
+      acc[module].push(permission);
+      return acc;
+    },
+    {} as Record<string, Permission[]>
+  );
 
   // Verificar si todos los permisos de un módulo están seleccionados
   const isModuleFullySelected = (module: string): boolean => {
     const modulePerms = groupedPermissions[module] || [];
-    return modulePerms.length > 0 && modulePerms.every(p => selectedPermissions.has(p.key));
+    return modulePerms.length > 0 && modulePerms.every((p) => selectedPermissions.has(p.key));
   };
 
   // Verificar si algunos permisos de un módulo están seleccionados
   const isModulePartiallySelected = (module: string): boolean => {
     const modulePerms = groupedPermissions[module] || [];
-    const selectedCount = modulePerms.filter(p => selectedPermissions.has(p.key)).length;
+    const selectedCount = modulePerms.filter((p) => selectedPermissions.has(p.key)).length;
     return selectedCount > 0 && selectedCount < modulePerms.length;
   };
 
@@ -247,15 +247,15 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
     const modulePerms = groupedPermissions[module] || [];
     const isFullySelected = isModuleFullySelected(module);
 
-    setSelectedPermissions(prev => {
+    setSelectedPermissions((prev) => {
       const newSet = new Set(prev);
 
       if (isFullySelected) {
         // Deseleccionar todos
-        modulePerms.forEach(p => newSet.delete(p.key));
+        modulePerms.forEach((p) => newSet.delete(p.key));
       } else {
         // Seleccionar todos
-        modulePerms.forEach(p => newSet.add(p.key));
+        modulePerms.forEach((p) => newSet.add(p.key));
       }
 
       return newSet;
@@ -264,7 +264,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
 
   const renderPermissionItem = (permKey: string, description?: string) => {
     const isSelected = selectedPermissions.has(permKey);
-    const wasOriginallyAssigned = appPermissions.some(p => p.permissionKey === permKey);
+    const wasOriginallyAssigned = appPermissions.some((p) => p.permissionKey === permKey);
 
     return (
       <TouchableOpacity
@@ -289,21 +289,14 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
               {isSelected && <Text style={styles.checkmark}>✓</Text>}
             </View>
           </View>
-          {description && (
-            <Text style={styles.permissionDescription}>{description}</Text>
-          )}
+          {description && <Text style={styles.permissionDescription}>{description}</Text>}
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -322,7 +315,8 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
             {/* Info Card */}
             <View style={styles.infoCard}>
               <Text style={styles.infoText}>
-                Define qué acciones pueden realizar los usuarios dentro de esta app. Usa el formato: recurso.accion
+                Define qué acciones pueden realizar los usuarios dentro de esta app. Usa el formato:
+                recurso.accion
               </Text>
             </View>
 
@@ -347,7 +341,11 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
             {/* Module Filter */}
             <View style={styles.moduleFilter}>
               <Text style={styles.filterLabel}>Filtrar por módulo:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moduleScroll}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.moduleScroll}
+              >
                 {modules.map((module) => (
                   <TouchableOpacity
                     key={module}
@@ -434,11 +432,13 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
                         activeOpacity={0.7}
                       >
                         <View style={styles.moduleHeaderLeft}>
-                          <View style={[
-                            styles.moduleCheckbox,
-                            isModuleFullySelected(module) && styles.moduleCheckboxSelected,
-                            isModulePartiallySelected(module) && styles.moduleCheckboxPartial,
-                          ]}>
+                          <View
+                            style={[
+                              styles.moduleCheckbox,
+                              isModuleFullySelected(module) && styles.moduleCheckboxSelected,
+                              isModulePartiallySelected(module) && styles.moduleCheckboxPartial,
+                            ]}
+                          >
                             {isModuleFullySelected(module) ? (
                               <Text style={styles.moduleCheckmark}>✓</Text>
                             ) : isModulePartiallySelected(module) ? (
@@ -448,18 +448,21 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
                           <View>
                             <Text style={styles.moduleTitle}>{module}</Text>
                             <Text style={styles.moduleCount}>
-                              {permissions.filter(p => selectedPermissions.has(p.key)).length} de {permissions.length} seleccionados
+                              {permissions.filter((p) => selectedPermissions.has(p.key)).length} de{' '}
+                              {permissions.length} seleccionados
                             </Text>
                           </View>
                         </View>
                         <Text style={styles.moduleToggleText}>
-                          {isModuleFullySelected(module) ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                          {isModuleFullySelected(module)
+                            ? 'Deseleccionar todos'
+                            : 'Seleccionar todos'}
                         </Text>
                       </TouchableOpacity>
 
                       {/* Module Permissions */}
                       <View style={styles.modulePermissions}>
-                        {permissions.map(p => renderPermissionItem(p.key, p.description))}
+                        {permissions.map((p) => renderPermissionItem(p.key, p.description))}
                       </View>
                     </View>
                   ))}
@@ -469,14 +472,14 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
 
             {/* Selected Custom Permissions (not in system) */}
             {Array.from(selectedPermissions).some(
-              p => !allPermissions.find(ap => ap.key === p)
+              (p) => !allPermissions.find((ap) => ap.key === p)
             ) && (
               <View style={styles.permissionsSection}>
                 <Text style={styles.sectionTitle}>Permisos Personalizados</Text>
                 <View style={styles.permissionsList}>
                   {Array.from(selectedPermissions)
-                    .filter(p => !allPermissions.find(ap => ap.key === p))
-                    .map(p => renderPermissionItem(p))}
+                    .filter((p) => !allPermissions.find((ap) => ap.key === p))
+                    .map((p) => renderPermissionItem(p))}
                 </View>
               </View>
             )}
@@ -484,11 +487,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={onClose}
-              disabled={saving}
-            >
+            <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={saving}>
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
 

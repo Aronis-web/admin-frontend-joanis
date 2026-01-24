@@ -56,7 +56,9 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
   }, [visible, operation?.id]);
 
   const loadFiles = async () => {
-    if (!operation) return;
+    if (!operation) {
+      return;
+    }
 
     console.log('📥 Loading files for operation:', operation.id);
     setLoadingFiles(true);
@@ -73,7 +75,9 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
     }
   };
 
-  if (!operation) return null;
+  if (!operation) {
+    return null;
+  }
 
   console.log('📋 BalanceOperationDetailModal - Operation:', {
     id: operation.id,
@@ -135,10 +139,18 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
   };
 
   const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return '📷';
-    if (mimeType.includes('pdf')) return '📄';
-    if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
-    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
+    if (mimeType.startsWith('image/')) {
+      return '📷';
+    }
+    if (mimeType.includes('pdf')) {
+      return '📄';
+    }
+    if (mimeType.includes('word') || mimeType.includes('document')) {
+      return '📝';
+    }
+    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
+      return '📊';
+    }
     return '📎';
   };
 
@@ -150,7 +162,9 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
   };
 
   const handleDelete = () => {
-    if (!operation) return;
+    if (!operation) {
+      return;
+    }
 
     Alert.alert(
       'Eliminar Operación',
@@ -186,12 +200,7 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
 
   return (
     <>
-      <Modal
-        visible={visible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={onClose}
-      >
+      <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* Header */}
@@ -246,18 +255,12 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
               {/* Balance Info */}
               <View style={styles.section}>
                 <Text style={styles.label}>Balance</Text>
-                <Text style={styles.value}>
-                  {operation.balance?.code || operation.balanceId}
-                </Text>
+                <Text style={styles.value}>{operation.balance?.code || operation.balanceId}</Text>
                 {operation.balance?.receiverCompany && (
-                  <Text style={styles.subValue}>
-                    🏭 {operation.balance.receiverCompany.name}
-                  </Text>
+                  <Text style={styles.subValue}>🏭 {operation.balance.receiverCompany.name}</Text>
                 )}
                 {operation.balance?.receiverSite && (
-                  <Text style={styles.subValue}>
-                    🏢 {operation.balance.receiverSite.name}
-                  </Text>
+                  <Text style={styles.subValue}>🏢 {operation.balance.receiverSite.name}</Text>
                 )}
               </View>
 
@@ -266,14 +269,10 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
                 <View style={styles.section}>
                   <Text style={styles.label}>Emisor</Text>
                   {operation.emitterCompany && (
-                    <Text style={styles.value}>
-                      🏭 {operation.emitterCompany.name}
-                    </Text>
+                    <Text style={styles.value}>🏭 {operation.emitterCompany.name}</Text>
                   )}
                   {operation.emitterSite && (
-                    <Text style={styles.value}>
-                      🏢 {operation.emitterSite.name}
-                    </Text>
+                    <Text style={styles.value}>🏢 {operation.emitterSite.name}</Text>
                   )}
                 </View>
               )}
@@ -318,7 +317,8 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
                     {files.map((file) => {
                       const isImage = isImageFile(file.mimeType);
                       // Use signedUrl if available, otherwise construct URL
-                      const fileUrl = file.signedUrl || `${config.API_URL}/balance-files/${file.id}`;
+                      const fileUrl =
+                        file.signedUrl || `${config.API_URL}/balance-files/${file.id}`;
 
                       console.log('📎 Rendering file:', {
                         fileName: file.originalName,

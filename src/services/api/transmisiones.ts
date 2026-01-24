@@ -21,7 +21,9 @@ export const transmisionesApi = {
    * Get all transmisiones with pagination and filters
    * GET /admin/transmisiones
    */
-  getTransmisiones: async (params?: QueryTransmisionesRequest): Promise<PaginatedTransmisionesResponse> => {
+  getTransmisiones: async (
+    params?: QueryTransmisionesRequest
+  ): Promise<PaginatedTransmisionesResponse> => {
     return apiClient.get<PaginatedTransmisionesResponse>('/admin/transmisiones', { params });
   },
 
@@ -91,13 +93,8 @@ export const transmisionesApi = {
    * Remove product from transmision
    * DELETE /admin/transmisiones/:id/products/:productId
    */
-  removeProductFromTransmision: async (
-    transmisionId: string,
-    productId: string
-  ): Promise<void> => {
-    return apiClient.delete<void>(
-      `/admin/transmisiones/${transmisionId}/products/${productId}`
-    );
+  removeProductFromTransmision: async (transmisionId: string, productId: string): Promise<void> => {
+    return apiClient.delete<void>(`/admin/transmisiones/${transmisionId}/products/${productId}`);
   },
 
   /**
@@ -158,10 +155,7 @@ export const transmisionesApi = {
     failed: number;
     errors: Array<{ productId: string; error: string }>;
   }> => {
-    return apiClient.post(
-      `/admin/transmisiones/${transmisionId}/products/bulk`,
-      { products }
-    );
+    return apiClient.post(`/admin/transmisiones/${transmisionId}/products/bulk`, { products });
   },
 
   /**
@@ -175,10 +169,9 @@ export const transmisionesApi = {
     success: boolean;
     removed: number;
   }> => {
-    return apiClient.delete(
-      `/admin/transmisiones/${transmisionId}/products/bulk`,
-      { data: { productIds } }
-    );
+    return apiClient.delete(`/admin/transmisiones/${transmisionId}/products/bulk`, {
+      data: { productIds },
+    });
   },
 
   // ========== HELPER METHODS ==========

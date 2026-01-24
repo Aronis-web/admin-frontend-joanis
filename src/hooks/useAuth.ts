@@ -20,7 +20,7 @@ export const useAuth = () => {
         throw new Error('No access token received from server');
       }
 
-      let user = response.user;
+      const user = response.user;
 
       console.log('👤 User data:', JSON.stringify(user, null, 2));
 
@@ -55,7 +55,7 @@ export const useAuth = () => {
         throw new Error('No access token received from server');
       }
 
-      let user = response.user;
+      const user = response.user;
 
       // Validate that we have a valid user ID
       if (!user || !user.id) {

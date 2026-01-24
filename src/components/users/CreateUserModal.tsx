@@ -112,36 +112,60 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       }
 
       // Add worker profile fields if provided
-      if (formData.document_type) userData.document_type = formData.document_type;
-      if (formData.document_number?.trim()) userData.document_number = formData.document_number.trim();
-      if (formData.birth_date) userData.birth_date = formData.birth_date;
-      if (formData.gender) userData.gender = formData.gender;
-      if (formData.nationality?.trim()) userData.nationality = formData.nationality.trim();
-      if (formData.marital_status) userData.marital_status = formData.marital_status;
-      if (formData.address?.trim()) userData.address = formData.address.trim();
-      if (formData.ubigeo?.trim()) userData.ubigeo = formData.ubigeo.trim();
-      if (formData.phone?.trim()) userData.phone = formData.phone.trim();
-      if (formData.emergency_contact_name?.trim()) userData.emergency_contact_name = formData.emergency_contact_name.trim();
-      if (formData.emergency_contact_relationship?.trim()) userData.emergency_contact_relationship = formData.emergency_contact_relationship.trim();
-      if (formData.emergency_contact_phone?.trim()) userData.emergency_contact_phone = formData.emergency_contact_phone.trim();
-      if (formData.photo_url?.trim()) userData.photo_url = formData.photo_url.trim();
-      if (formData.epp_size) userData.epp_size = formData.epp_size;
+      if (formData.document_type) {
+        userData.document_type = formData.document_type;
+      }
+      if (formData.document_number?.trim()) {
+        userData.document_number = formData.document_number.trim();
+      }
+      if (formData.birth_date) {
+        userData.birth_date = formData.birth_date;
+      }
+      if (formData.gender) {
+        userData.gender = formData.gender;
+      }
+      if (formData.nationality?.trim()) {
+        userData.nationality = formData.nationality.trim();
+      }
+      if (formData.marital_status) {
+        userData.marital_status = formData.marital_status;
+      }
+      if (formData.address?.trim()) {
+        userData.address = formData.address.trim();
+      }
+      if (formData.ubigeo?.trim()) {
+        userData.ubigeo = formData.ubigeo.trim();
+      }
+      if (formData.phone?.trim()) {
+        userData.phone = formData.phone.trim();
+      }
+      if (formData.emergency_contact_name?.trim()) {
+        userData.emergency_contact_name = formData.emergency_contact_name.trim();
+      }
+      if (formData.emergency_contact_relationship?.trim()) {
+        userData.emergency_contact_relationship = formData.emergency_contact_relationship.trim();
+      }
+      if (formData.emergency_contact_phone?.trim()) {
+        userData.emergency_contact_phone = formData.emergency_contact_phone.trim();
+      }
+      if (formData.photo_url?.trim()) {
+        userData.photo_url = formData.photo_url.trim();
+      }
+      if (formData.epp_size) {
+        userData.epp_size = formData.epp_size;
+      }
 
       await usersApi.createUser(userData);
 
-      Alert.alert(
-        'Éxito',
-        'Usuario creado correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              handleClose();
-              onUserCreated();
-            },
+      Alert.alert('Éxito', 'Usuario creado correctamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            handleClose();
+            onUserCreated();
           },
-        ]
-      );
+        },
+      ]);
     } catch (error: any) {
       console.error('Error creating user:', error);
       const errorMessage = error.response?.data?.message || 'Error al crear el usuario';
@@ -181,20 +205,15 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   };
 
   const updateField = (field: keyof CreateUserRequest, value: string | boolean | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -260,9 +279,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             <View style={styles.switchContainer}>
               <View style={styles.switchLabelContainer}>
                 <Text style={styles.switchLabel}>Usuario Activo</Text>
-                <Text style={styles.switchDescription}>
-                  El usuario podrá iniciar sesión
-                </Text>
+                <Text style={styles.switchDescription}>El usuario podrá iniciar sesión</Text>
               </View>
               <Switch
                 value={formData.is_active}

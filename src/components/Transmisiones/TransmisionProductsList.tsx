@@ -104,7 +104,9 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
 
   // Filter products in transmission based on search query
   const filteredProducts = products.filter((product) => {
-    if (!searchQuery.trim()) return true;
+    if (!searchQuery.trim()) {
+      return true;
+    }
 
     const query = searchQuery.toLowerCase();
     const title = product.product?.title?.toLowerCase() || '';
@@ -115,30 +117,26 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
 
   // Handle adding product from search
   const handleAddProductFromSearch = async (product: any) => {
-    Alert.alert(
-      'Agregar Producto',
-      `¿Deseas agregar "${product.title}" a esta transmisión?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Agregar',
-          onPress: async () => {
-            try {
-              await transmisionesApi.addProductToTransmision(transmisionId, {
-                productId: product.id,
-              });
-              Alert.alert('Éxito', 'Producto agregado a la transmisión');
-              setSearchQuery('');
-              setShowSearchResults(false);
-              onProductsChanged();
-            } catch (error: any) {
-              console.error('Error adding product:', error);
-              Alert.alert('Error', error.message || 'No se pudo agregar el producto');
-            }
-          },
+    Alert.alert('Agregar Producto', `¿Deseas agregar "${product.title}" a esta transmisión?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Agregar',
+        onPress: async () => {
+          try {
+            await transmisionesApi.addProductToTransmision(transmisionId, {
+              productId: product.id,
+            });
+            Alert.alert('Éxito', 'Producto agregado a la transmisión');
+            setSearchQuery('');
+            setShowSearchResults(false);
+            onProductsChanged();
+          } catch (error: any) {
+            console.error('Error adding product:', error);
+            Alert.alert('Error', error.message || 'No se pudo agregar el producto');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleCheckValidation = async (product: TransmisionProduct) => {
@@ -355,9 +353,7 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyIcon}>📦</Text>
         <Text style={styles.emptyTitle}>No hay productos</Text>
-        <Text style={styles.emptySubtitle}>
-          Agrega productos a esta transmisión para comenzar
-        </Text>
+        <Text style={styles.emptySubtitle}>Agrega productos a esta transmisión para comenzar</Text>
       </View>
     );
   }
@@ -377,7 +373,13 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
             placeholderTextColor="#9CA3AF"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearchQuery(''); setShowSearchResults(false); }} style={styles.clearButton}>
+            <TouchableOpacity
+              onPress={() => {
+                setSearchQuery('');
+                setShowSearchResults(false);
+              }}
+              style={styles.clearButton}
+            >
               <Ionicons name="close-circle" size={20} color="#9CA3AF" />
             </TouchableOpacity>
           )}
@@ -399,7 +401,7 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
             </View>
           ) : (
             searchResults.map((product) => {
-              const isInTransmission = products.some(p => p.productId === product.id);
+              const isInTransmission = products.some((p) => p.productId === product.id);
               return (
                 <View key={product.id} style={styles.searchResultItem}>
                   <View style={styles.searchResultInfo}>

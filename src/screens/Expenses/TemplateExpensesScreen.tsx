@@ -122,7 +122,9 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#1E293B" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>Gastos Generados</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Gastos Generados
+          </Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.centerContainer}>
@@ -140,8 +142,12 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
           <Ionicons name="arrow-back" size={24} color="#1E293B" />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle} numberOfLines={1}>Gastos Generados</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>{templateName}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Gastos Generados
+          </Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
+            {templateName}
+          </Text>
         </View>
         <View style={styles.headerRight} />
       </View>
@@ -158,9 +164,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {/* Summary Card */}
           <View style={styles.summaryCard}>
@@ -184,9 +188,9 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
               <Text style={styles.summaryLabel}>Total Pagado:</Text>
               <Text style={[styles.summaryValue, { color: '#10B981' }]}>
                 {expenses[0]?.currency || 'PEN'}{' '}
-                {(
-                  expenses.reduce((sum, exp) => sum + (exp.totalPaidCents || 0), 0) / 100
-                ).toFixed(2)}
+                {(expenses.reduce((sum, exp) => sum + (exp.totalPaidCents || 0), 0) / 100).toFixed(
+                  2
+                )}
               </Text>
             </View>
             <View style={styles.summaryRow}>
@@ -222,7 +226,9 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
           onClose={handleCloseReconcileModal}
           expenseId={selectedExpense.id}
           expenseName={selectedExpense.name}
-          estimatedAmount={(selectedExpense.estimatedAmountCents || selectedExpense.amountCents || 0) / 100}
+          estimatedAmount={
+            (selectedExpense.estimatedAmountCents || selectedExpense.amountCents || 0) / 100
+          }
           onSuccess={handleReconcileSuccess}
         />
       )}

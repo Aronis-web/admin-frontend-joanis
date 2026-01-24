@@ -335,7 +335,10 @@ export const RepartoStatusLabels: Record<RepartoStatus, string> = {
 /**
  * Reparto Producto Validation Status Labels for UI
  */
-export const RepartoProductoValidationStatusLabels: Record<RepartoProductoValidationStatus, string> = {
+export const RepartoProductoValidationStatusLabels: Record<
+  RepartoProductoValidationStatus,
+  string
+> = {
   [RepartoProductoValidationStatus.PENDING]: 'Pendiente',
   [RepartoProductoValidationStatus.VALIDATED]: 'Validado',
   [RepartoProductoValidationStatus.PARTIAL]: 'Parcial',
@@ -364,7 +367,10 @@ export const RepartoStatusColors: Record<RepartoStatus, string> = {
 /**
  * Reparto Producto Validation Status Colors for UI
  */
-export const RepartoProductoValidationStatusColors: Record<RepartoProductoValidationStatus, string> = {
+export const RepartoProductoValidationStatusColors: Record<
+  RepartoProductoValidationStatus,
+  string
+> = {
   [RepartoProductoValidationStatus.PENDING]: '#F59E0B',
   [RepartoProductoValidationStatus.VALIDATED]: '#10B981',
   [RepartoProductoValidationStatus.PARTIAL]: '#3B82F6',

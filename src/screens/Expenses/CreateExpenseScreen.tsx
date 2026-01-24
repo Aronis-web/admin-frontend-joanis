@@ -12,10 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { expensesService } from '@/services/api';
-import {
-  ExpenseStatus,
-  CreateExpenseRequest,
-} from '@/types/expenses';
+import { ExpenseStatus, CreateExpenseRequest } from '@/types/expenses';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { usePermissionError } from '@/hooks/usePermissionError';
 import { useAuthStore } from '@/store/auth';
@@ -84,7 +81,9 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
   }, [expenseId, projectId, templateIdParam]);
 
   const loadExpense = async () => {
-    if (!expenseId) return;
+    if (!expenseId) {
+      return;
+    }
 
     try {
       setLoadingExpense(true);
@@ -98,9 +97,13 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
       setCurrency(expense.currency || 'PEN');
       setDueDate(expense.dueDate || '');
       // Only allow editing UNIQUE expenses
-      const mappedExpenseType = expense.expenseType === 'ONE_TIME' ? 'UNIQUE' : (expense.expenseType || 'UNIQUE');
+      const mappedExpenseType =
+        expense.expenseType === 'ONE_TIME' ? 'UNIQUE' : expense.expenseType || 'UNIQUE';
       if (mappedExpenseType !== 'UNIQUE') {
-        Alert.alert('Error', 'Solo se pueden editar gastos únicos. Los gastos recurrentes deben editarse desde sus plantillas.');
+        Alert.alert(
+          'Error',
+          'Solo se pueden editar gastos únicos. Los gastos recurrentes deben editarse desde sus plantillas.'
+        );
         navigation.goBack();
         return;
       }
@@ -121,7 +124,9 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
   };
 
   const loadProject = async () => {
-    if (!projectId) return;
+    if (!projectId) {
+      return;
+    }
     try {
       console.log('📦 Loading project data:', projectId);
       const project = await expensesService.getProject(projectId);
@@ -134,18 +139,30 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
   };
 
   const loadTemplate = async () => {
-    if (!templateIdParam) return;
+    if (!templateIdParam) {
+      return;
+    }
     try {
       console.log('📦 Loading template data:', templateIdParam);
       const template = await expensesService.getTemplate(templateIdParam);
       console.log('📦 Template loaded:', template);
       setTemplateData(template);
       // Pre-fill form with template data
-      if (template.name) setName(template.name);
-      if (template.amountCents) setAmount((template.amountCents / 100).toString());
-      if (template.currency) setCurrency(template.currency);
-      if (template.categoryId) setCategoryId(template.categoryId);
-      if (template.description) setDescription(template.description);
+      if (template.name) {
+        setName(template.name);
+      }
+      if (template.amountCents) {
+        setAmount((template.amountCents / 100).toString());
+      }
+      if (template.currency) {
+        setCurrency(template.currency);
+      }
+      if (template.categoryId) {
+        setCategoryId(template.categoryId);
+      }
+      if (template.description) {
+        setDescription(template.description);
+      }
     } catch (error: any) {
       console.error('❌ Error loading template:', error);
       Alert.alert('Error', 'No se pudo cargar la información de la plantilla');
@@ -237,16 +254,12 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
         };
 
         await expensesService.updateExpense(expenseId, updateData);
-        Alert.alert(
-          'Éxito',
-          'Gasto actualizado correctamente',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
+        Alert.alert('Éxito', 'Gasto actualizado correctamente', [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]);
       } else {
         // Determine which siteId to use
         let siteIdToUse: string | undefined;
@@ -307,16 +320,12 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           ? 'Gasto creado y asociado al proyecto correctamente'
           : 'Gasto creado correctamente';
 
-        Alert.alert(
-          'Éxito',
-          successMessage,
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
+        Alert.alert('Éxito', successMessage, [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]);
       }
     } catch (error: any) {
       console.error('Error saving expense:', error);
@@ -327,10 +336,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
         return;
       }
 
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo guardar el gasto'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo guardar el gasto');
     } finally {
       setLoading(false);
     }
@@ -344,18 +350,11 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
   ) => (
     <View style={styles.pickerContainer}>
       {label && <Text style={styles.pickerLabel}>{label}</Text>}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.pickerScroll}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerScroll}>
         {options.map((option) => (
           <TouchableOpacity
             key={option.value}
-            style={[
-              styles.pickerOption,
-              value === option.value && styles.pickerOptionActive,
-            ]}
+            style={[styles.pickerOption, value === option.value && styles.pickerOptionActive]}
             onPress={() => onValueChange(option.value)}
           >
             <Text
@@ -384,9 +383,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>{label}</Text>
       <View style={styles.inputWrapper}>
-        {icon && (
-          <Ionicons name={icon as any} size={20} color="#64748B" style={styles.inputIcon} />
-        )}
+        {icon && <Ionicons name={icon as any} size={20} color="#64748B" style={styles.inputIcon} />}
         <TextInput
           style={[styles.input, multiline && styles.inputMultiline]}
           value={value}
@@ -430,197 +427,182 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
         </View>
       ) : (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Project Info Banner */}
-        {isFromProject && projectData && (
-          <View style={styles.projectBanner}>
-            <Ionicons name="folder-open" size={20} color="#6366F1" />
-            <View style={styles.bannerContent}>
-              <Text style={styles.projectBannerText}>
-                Este gasto se asociará automáticamente al proyecto
-              </Text>
-              <Text style={styles.projectBannerSubtext}>
-                Proyecto: {projectData.name}
-              </Text>
-              {projectData.site && (
-                <Text style={styles.projectBannerSubtext}>
-                  Sede: {projectData.site.name}
+          {/* Project Info Banner */}
+          {isFromProject && projectData && (
+            <View style={styles.projectBanner}>
+              <Ionicons name="folder-open" size={20} color="#6366F1" />
+              <View style={styles.bannerContent}>
+                <Text style={styles.projectBannerText}>
+                  Este gasto se asociará automáticamente al proyecto
                 </Text>
-              )}
+                <Text style={styles.projectBannerSubtext}>Proyecto: {projectData.name}</Text>
+                {projectData.site && (
+                  <Text style={styles.projectBannerSubtext}>Sede: {projectData.site.name}</Text>
+                )}
+              </View>
             </View>
-          </View>
-        )}
+          )}
 
-        {/* Template Info Banner */}
-        {isFromTemplate && templateData && (
-          <View style={styles.templateBanner}>
-            <Ionicons name="repeat" size={20} color="#10B981" />
-            <View style={styles.bannerContent}>
-              <Text style={styles.templateBannerText}>
-                Creando gasto desde plantilla recurrente
-              </Text>
-              <Text style={styles.templateBannerSubtext}>
-                Plantilla: {templateData.name}
-              </Text>
+          {/* Template Info Banner */}
+          {isFromTemplate && templateData && (
+            <View style={styles.templateBanner}>
+              <Ionicons name="repeat" size={20} color="#10B981" />
+              <View style={styles.bannerContent}>
+                <Text style={styles.templateBannerText}>
+                  Creando gasto desde plantilla recurrente
+                </Text>
+                <Text style={styles.templateBannerSubtext}>Plantilla: {templateData.name}</Text>
+              </View>
             </View>
-          </View>
-        )}
+          )}
 
-        {/* Basic Information */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Información Básica</Text>
+          {/* Basic Information */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Información Básica</Text>
 
-          {/* Site Selection - Only show manual selector if NOT from project or template */}
-          {!isFromProject && !isFromTemplate && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Sede *</Text>
-              {renderPicker(
-                '',
-                manualSiteId,
-                setManualSiteId,
-                [
+            {/* Site Selection - Only show manual selector if NOT from project or template */}
+            {!isFromProject && !isFromTemplate && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Sede *</Text>
+                {renderPicker('', manualSiteId, setManualSiteId, [
                   { label: 'Seleccionar sede', value: '' },
                   ...sites.map((site) => ({
                     label: site.name,
                     value: site.id,
                   })),
-                ]
-              )}
-            </View>
-          )}
-
-          {/* Show site info if from project */}
-          {(isFromProject && projectData?.site) && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Sede</Text>
-              <View style={styles.disabledInput}>
-                <Ionicons name="business" size={16} color="#6366F1" style={{ marginRight: 8 }} />
-                <Text style={styles.disabledInputText}>{projectData.site.name}</Text>
+                ])}
               </View>
-              <Text style={styles.infoText}>
-                💡 La sede se toma automáticamente del proyecto
-              </Text>
-            </View>
-          )}
+            )}
 
-          {/* Show site info if from template */}
-          {(isFromTemplate && templateData?.site) && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Sede</Text>
-              <View style={styles.disabledInput}>
-                <Ionicons name="business" size={16} color="#10B981" style={{ marginRight: 8 }} />
-                <Text style={styles.disabledInputText}>{templateData.site.name}</Text>
+            {/* Show site info if from project */}
+            {isFromProject && projectData?.site && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Sede</Text>
+                <View style={styles.disabledInput}>
+                  <Ionicons name="business" size={16} color="#6366F1" style={{ marginRight: 8 }} />
+                  <Text style={styles.disabledInputText}>{projectData.site.name}</Text>
+                </View>
+                <Text style={styles.infoText}>💡 La sede se toma automáticamente del proyecto</Text>
               </View>
-              <Text style={styles.infoText}>
-                💡 La sede se toma automáticamente del gasto recurrente
-              </Text>
-            </View>
-          )}
+            )}
 
-          {renderInput('Nombre del Gasto', name, setName, 'Ej: Alquiler local', 'default', 'pricetag')}
-          {renderInput('Monto Estimado', amount, setAmount, '0.00', 'decimal-pad', 'cash')}
-          {renderInput(
-            'Descripción (opcional)',
-            description,
-            setDescription,
-            'Descripción del gasto',
-            'default',
-            'document-text',
-            true
-          )}
-        </View>
+            {/* Show site info if from template */}
+            {isFromTemplate && templateData?.site && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Sede</Text>
+                <View style={styles.disabledInput}>
+                  <Ionicons name="business" size={16} color="#10B981" style={{ marginRight: 8 }} />
+                  <Text style={styles.disabledInputText}>{templateData.site.name}</Text>
+                </View>
+                <Text style={styles.infoText}>
+                  💡 La sede se toma automáticamente del gasto recurrente
+                </Text>
+              </View>
+            )}
 
-        {/* Date and Type */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Fecha y Tipo</Text>
-
-          <DatePickerButton
-            label="Fecha de Vencimiento"
-            value={dueDate}
-            onPress={() => setShowDueDatePicker(true)}
-            placeholder="Seleccionar fecha de vencimiento"
-          />
-
-          {/* Expense Type - Only UNIQUE is available */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Tipo de Gasto</Text>
-            <View style={styles.disabledInput}>
-              <Text style={styles.disabledInputText}>Único</Text>
-            </View>
-            <Text style={styles.infoText}>
-              💡 Este es un gasto único. Para gastos recurrentes, use la sección "Gastos Recurrentes".
-            </Text>
+            {renderInput(
+              'Nombre del Gasto',
+              name,
+              setName,
+              'Ej: Alquiler local',
+              'default',
+              'pricetag'
+            )}
+            {renderInput('Monto Estimado', amount, setAmount, '0.00', 'decimal-pad', 'cash')}
+            {renderInput(
+              'Descripción (opcional)',
+              description,
+              setDescription,
+              'Descripción del gasto',
+              'default',
+              'document-text',
+              true
+            )}
           </View>
 
-          {renderPicker(
-            'Tipo de Costo',
-            costType,
-            (value) => setCostType(value as 'FIXED' | 'VARIABLE'),
-            [
-              { label: 'Fijo', value: 'FIXED' },
-              { label: 'Variable', value: 'VARIABLE' },
-            ]
-          )}
-        </View>
+          {/* Date and Type */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Fecha y Tipo</Text>
 
-        {/* Category and Template */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Categorización</Text>
+            <DatePickerButton
+              label="Fecha de Vencimiento"
+              value={dueDate}
+              onPress={() => setShowDueDatePicker(true)}
+              placeholder="Seleccionar fecha de vencimiento"
+            />
 
-          {renderPicker(
-            'Categoría (opcional)',
-            categoryId,
-            setCategoryId,
-            [
+            {/* Expense Type - Only UNIQUE is available */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Tipo de Gasto</Text>
+              <View style={styles.disabledInput}>
+                <Text style={styles.disabledInputText}>Único</Text>
+              </View>
+              <Text style={styles.infoText}>
+                💡 Este es un gasto único. Para gastos recurrentes, use la sección "Gastos
+                Recurrentes".
+              </Text>
+            </View>
+
+            {renderPicker(
+              'Tipo de Costo',
+              costType,
+              (value) => setCostType(value as 'FIXED' | 'VARIABLE'),
+              [
+                { label: 'Fijo', value: 'FIXED' },
+                { label: 'Variable', value: 'VARIABLE' },
+              ]
+            )}
+          </View>
+
+          {/* Category and Template */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Categorización</Text>
+
+            {renderPicker('Categoría (opcional)', categoryId, setCategoryId, [
               { label: 'Sin categoría', value: '' },
               ...categories.map((cat) => ({
                 label: cat.name,
                 value: cat.id,
               })),
-            ]
-          )}
+            ])}
 
-          {templates.length > 0 &&
-            renderPicker(
-              'Plantilla (opcional)',
-              templateId,
-              setTemplateId,
-              [
+            {templates.length > 0 &&
+              renderPicker('Plantilla (opcional)', templateId, setTemplateId, [
                 { label: 'Sin plantilla', value: '' },
                 ...templates.map((tmpl) => ({
                   label: tmpl.name,
                   value: tmpl.id,
                 })),
-              ]
+              ])}
+          </View>
+
+          {/* Notes */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Notas Adicionales</Text>
+
+            {renderInput(
+              'Notas (opcional)',
+              notes,
+              setNotes,
+              'Notas o comentarios adicionales',
+              'default',
+              'chatbox-outline',
+              true
             )}
-        </View>
+          </View>
 
-        {/* Notes */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Notas Adicionales</Text>
-
-          {renderInput(
-            'Notas (opcional)',
-            notes,
-            setNotes,
-            'Notas o comentarios adicionales',
-            'default',
-            'chatbox-outline',
-            true
-          )}
-        </View>
-
-        {/* Date Picker */}
-        <DatePicker
-          visible={showDueDatePicker}
-          date={dueDate ? new Date(dueDate) : new Date()}
-          onConfirm={(date) => {
-            setDueDate(date.toISOString().split('T')[0]);
-            setShowDueDatePicker(false);
-          }}
-          onCancel={() => setShowDueDatePicker(false)}
-          title="Fecha de Vencimiento"
-        />
-      </ScrollView>
+          {/* Date Picker */}
+          <DatePicker
+            visible={showDueDatePicker}
+            date={dueDate ? new Date(dueDate) : new Date()}
+            onConfirm={(date) => {
+              setDueDate(date.toISOString().split('T')[0]);
+              setShowDueDatePicker(false);
+            }}
+            onCancel={() => setShowDueDatePicker(false)}
+            title="Fecha de Vencimiento"
+          />
+        </ScrollView>
       )}
     </SafeAreaView>
   );

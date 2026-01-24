@@ -32,10 +32,7 @@ type SupplierDetailScreenProps = ScreenProps<'SupplierDetail'>;
 
 type TabType = 'general' | 'legal' | 'contacts' | 'banks' | 'debts' | 'payments';
 
-export const SupplierDetailScreen = ({
-  navigation,
-  route,
-}: any) => {
+export const SupplierDetailScreen = ({ navigation, route }: any) => {
   const supplierId = route?.params?.supplierId;
   const isEditMode = !!supplierId;
   const { width, height } = useWindowDimensions();
@@ -96,7 +93,9 @@ export const SupplierDetailScreen = ({
   }, [supplierId]);
 
   const loadSupplier = async () => {
-    if (!supplierId) return;
+    if (!supplierId) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -125,23 +124,27 @@ export const SupplierDetailScreen = ({
 
       // Set legal entities
       if (data.legalEntities) {
-        setLegalEntities(data.legalEntities.map(le => ({
-          legalName: le.legalName,
-          ruc: le.ruc,
-          taxAddress: le.taxAddress,
-          isPrimary: le.isPrimary,
-        })));
+        setLegalEntities(
+          data.legalEntities.map((le) => ({
+            legalName: le.legalName,
+            ruc: le.ruc,
+            taxAddress: le.taxAddress,
+            isPrimary: le.isPrimary,
+          }))
+        );
       }
 
       // Set contacts
       if (data.contacts) {
-        setContacts(data.contacts.map(c => ({
-          fullName: c.fullName,
-          position: c.position || '',
-          email: c.email || '',
-          phone: c.phone || '',
-          isPrimary: c.isPrimary,
-        })));
+        setContacts(
+          data.contacts.map((c) => ({
+            fullName: c.fullName,
+            position: c.position || '',
+            email: c.email || '',
+            phone: c.phone || '',
+            isPrimary: c.isPrimary,
+          }))
+        );
       }
     } catch (error: any) {
       console.error('Error loading supplier:', error);
@@ -168,7 +171,7 @@ export const SupplierDetailScreen = ({
       return;
     }
 
-    const primaryCount = legalEntities.filter(le => le.isPrimary).length;
+    const primaryCount = legalEntities.filter((le) => le.isPrimary).length;
     if (primaryCount === 0) {
       Alert.alert('Error', 'Debe marcar una razón social como principal');
       return;
@@ -196,8 +199,12 @@ export const SupplierDetailScreen = ({
           postalCode: formData.postalCode.trim() || undefined,
           latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
           longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
-          paymentTermsDays: formData.paymentTermsDays ? parseInt(formData.paymentTermsDays) : undefined,
-          creditLimitCents: formData.creditLimitCents ? parseInt(formData.creditLimitCents) : undefined,
+          paymentTermsDays: formData.paymentTermsDays
+            ? parseInt(formData.paymentTermsDays)
+            : undefined,
+          creditLimitCents: formData.creditLimitCents
+            ? parseInt(formData.creditLimitCents)
+            : undefined,
           notes: formData.notes.trim() || undefined,
           isActive: formData.isActive,
         };
@@ -219,8 +226,12 @@ export const SupplierDetailScreen = ({
           postalCode: formData.postalCode.trim() || undefined,
           latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
           longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
-          paymentTermsDays: formData.paymentTermsDays ? parseInt(formData.paymentTermsDays) : undefined,
-          creditLimitCents: formData.creditLimitCents ? parseInt(formData.creditLimitCents) : undefined,
+          paymentTermsDays: formData.paymentTermsDays
+            ? parseInt(formData.paymentTermsDays)
+            : undefined,
+          creditLimitCents: formData.creditLimitCents
+            ? parseInt(formData.creditLimitCents)
+            : undefined,
           notes: formData.notes.trim() || undefined,
           isActive: formData.isActive,
           legalEntities,
@@ -234,7 +245,8 @@ export const SupplierDetailScreen = ({
       navigation?.goBack();
     } catch (error: any) {
       console.error('Error saving supplier:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'No se pudo guardar el proveedor';
+      const errorMessage =
+        error.response?.data?.message || error.message || 'No se pudo guardar el proveedor';
       Alert.alert('Error', errorMessage);
     } finally {
       setSaving(false);
@@ -276,7 +288,7 @@ export const SupplierDetailScreen = ({
 
     // If setting as primary, unset others
     if (legalEntityForm.isPrimary) {
-      newEntities.forEach(le => le.isPrimary = false);
+      newEntities.forEach((le) => (le.isPrimary = false));
     }
 
     if (editingLegalEntity !== null) {
@@ -290,21 +302,17 @@ export const SupplierDetailScreen = ({
   };
 
   const handleDeleteLegalEntity = (index: number) => {
-    Alert.alert(
-      'Confirmar',
-      '¿Está seguro de eliminar esta razón social?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => {
-            const newEntities = legalEntities.filter((_, i) => i !== index);
-            setLegalEntities(newEntities);
-          },
+    Alert.alert('Confirmar', '¿Está seguro de eliminar esta razón social?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: () => {
+          const newEntities = legalEntities.filter((_, i) => i !== index);
+          setLegalEntities(newEntities);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleAddContact = () => {
@@ -342,7 +350,7 @@ export const SupplierDetailScreen = ({
 
     // If setting as primary, unset others
     if (contactForm.isPrimary) {
-      newContacts.forEach(c => c.isPrimary = false);
+      newContacts.forEach((c) => (c.isPrimary = false));
     }
 
     if (editingContact !== null) {
@@ -356,21 +364,17 @@ export const SupplierDetailScreen = ({
   };
 
   const handleDeleteContact = (index: number) => {
-    Alert.alert(
-      'Confirmar',
-      '¿Está seguro de eliminar este contacto?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => {
-            const newContacts = contacts.filter((_, i) => i !== index);
-            setContacts(newContacts);
-          },
+    Alert.alert('Confirmar', '¿Está seguro de eliminar este contacto?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: () => {
+          const newContacts = contacts.filter((_, i) => i !== index);
+          setContacts(newContacts);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const renderGeneralTab = () => (
@@ -583,9 +587,7 @@ export const SupplierDetailScreen = ({
                 <View style={styles.itemInfo}>
                   <Text style={[styles.itemTitle, isTablet && styles.itemTitleTablet]}>
                     {entity.legalName}
-                    {entity.isPrimary && (
-                      <Text style={styles.primaryBadge}> ⭐ Principal</Text>
-                    )}
+                    {entity.isPrimary && <Text style={styles.primaryBadge}> ⭐ Principal</Text>}
                   </Text>
                   <Text style={[styles.itemSubtitle, isTablet && styles.itemSubtitleTablet]}>
                     RUC: {entity.ruc}
@@ -619,9 +621,7 @@ export const SupplierDetailScreen = ({
   const renderContactsTab = () => (
     <View style={styles.tabContent}>
       <View style={styles.tabHeader}>
-        <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-          Contactos
-        </Text>
+        <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>Contactos</Text>
         <TouchableOpacity
           style={[styles.addButton, isTablet && styles.addButtonTablet]}
           onPress={handleAddContact}
@@ -647,9 +647,7 @@ export const SupplierDetailScreen = ({
                 <View style={styles.itemInfo}>
                   <Text style={[styles.itemTitle, isTablet && styles.itemTitleTablet]}>
                     {contact.fullName}
-                    {contact.isPrimary && (
-                      <Text style={styles.primaryBadge}> ⭐ Principal</Text>
-                    )}
+                    {contact.isPrimary && <Text style={styles.primaryBadge}> ⭐ Principal</Text>}
                   </Text>
                   {contact.position && (
                     <Text style={[styles.itemSubtitle, isTablet && styles.itemSubtitleTablet]}>
@@ -719,9 +717,7 @@ export const SupplierDetailScreen = ({
 
   const renderPaymentsTab = () => (
     <View style={styles.tabContent}>
-      <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-        Pagos
-      </Text>
+      <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>Pagos</Text>
       <View style={styles.emptyState}>
         <Text style={styles.emptyIcon}>💳</Text>
         <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
@@ -748,10 +744,7 @@ export const SupplierDetailScreen = ({
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation?.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation?.goBack()}>
           <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
             ← Volver
           </Text>
@@ -760,7 +753,11 @@ export const SupplierDetailScreen = ({
           {isEditMode ? 'Editar Proveedor' : 'Nuevo Proveedor'}
         </Text>
         <TouchableOpacity
-          style={[styles.saveButton, isTablet && styles.saveButtonTablet, saving && styles.saveButtonDisabled]}
+          style={[
+            styles.saveButton,
+            isTablet && styles.saveButtonTablet,
+            saving && styles.saveButtonDisabled,
+          ]}
           onPress={handleSave}
           disabled={saving}
         >
@@ -886,7 +883,9 @@ export const SupplierDetailScreen = ({
               <TextInput
                 style={[styles.input, isTablet && styles.inputTablet]}
                 value={legalEntityForm.taxAddress}
-                onChangeText={(text) => setLegalEntityForm({ ...legalEntityForm, taxAddress: text })}
+                onChangeText={(text) =>
+                  setLegalEntityForm({ ...legalEntityForm, taxAddress: text })
+                }
                 placeholder="Av. Principal 123, Miraflores"
                 placeholderTextColor="#94A3B8"
               />
@@ -897,7 +896,9 @@ export const SupplierDetailScreen = ({
                 <Text style={[styles.label, isTablet && styles.labelTablet]}>Principal</Text>
                 <Switch
                   value={legalEntityForm.isPrimary}
-                  onValueChange={(value) => setLegalEntityForm({ ...legalEntityForm, isPrimary: value })}
+                  onValueChange={(value) =>
+                    setLegalEntityForm({ ...legalEntityForm, isPrimary: value })
+                  }
                   trackColor={{ false: '#CBD5E1', true: '#667eea' }}
                   thumbColor="#FFFFFF"
                 />
@@ -1344,4 +1345,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

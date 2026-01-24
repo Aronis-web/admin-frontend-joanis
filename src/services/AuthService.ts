@@ -1,12 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '@/utils/config';
+import secureStorage from '@/utils/secureStorage';
 import {
   LoginRequest,
   LoginResponse,
   RefreshTokenResponse,
   User,
   AuthError,
-  AuthErrorData
+  AuthErrorData,
 } from '@/types/auth';
 
 /**
@@ -55,7 +56,7 @@ class AuthService {
             {
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${data.accessToken}`,
+                Authorization: `Bearer ${data.accessToken}`,
                 'X-App-Id': this.appId,
               },
             }
@@ -105,7 +106,9 @@ class AuthService {
         headers['Content-Type'] = 'application/json';
       }
 
-      const body = this.refreshTokenValue ? JSON.stringify({ refreshToken: this.refreshTokenValue }) : undefined;
+      const body = this.refreshTokenValue
+        ? JSON.stringify({ refreshToken: this.refreshTokenValue })
+        : undefined;
 
       const response = await fetch(`${this.baseUrl}/auth/refresh`, {
         method: 'POST',
@@ -157,16 +160,13 @@ class AuthService {
   /**
    * Make authenticated request to protected endpoint
    */
-  async makeAuthenticatedRequest<T = any>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  async makeAuthenticatedRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.accessToken}`,
+          Authorization: `Bearer ${this.accessToken}`,
           'X-App-Id': this.appId,
           ...options.headers,
         },
@@ -181,7 +181,7 @@ class AuthService {
             ...options,
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.accessToken}`,
+              Authorization: `Bearer ${this.accessToken}`,
               'X-App-Id': this.appId,
               ...options.headers,
             },
@@ -240,16 +240,20 @@ class AuthService {
    * Check if token should be refreshed
    */
   shouldRefreshToken(): boolean {
-    if (!this.tokenExpiresAt) return false;
+    if (!this.tokenExpiresAt) {
+      return false;
+    }
     const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
-    return Date.now() >= (this.tokenExpiresAt - fiveMinutes);
+    return Date.now() >= this.tokenExpiresAt - fiveMinutes;
   }
 
   /**
    * Check if token is expired
    */
   isTokenExpired(): boolean {
-    if (!this.tokenExpiresAt) return false;
+    if (!this.tokenExpiresAt) {
+      return false;
+    }
     return Date.now() >= this.tokenExpiresAt;
   }
 
@@ -260,18 +264,24 @@ class AuthService {
     this.accessToken = data.accessToken;
     this.refreshTokenValue = data.refreshToken;
     this.tokenExpiresAt = data.accessTokenExpiresIn
-      ? Date.now() + (data.accessTokenExpiresIn * 1000)
+      ? Date.now() + data.accessTokenExpiresIn * 1000
       : null;
 
     console.log('🔐 AuthService: Storing auth data, token length:', this.accessToken?.length);
 
     try {
-      await AsyncStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, data.accessToken);
-      await AsyncStorage.setItem(config.STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
-      await AsyncStorage.setItem(config.STORAGE_KEYS.USER, JSON.stringify(data.user));
+      // Store sensitive data in secure storage (encrypted)
+      await secureStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, data.accessToken);
+      await secureStorage.setItem(config.STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
       if (this.tokenExpiresAt) {
-        await AsyncStorage.setItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT, this.tokenExpiresAt.toString());
+        await secureStorage.setItem(
+          config.STORAGE_KEYS.TOKEN_EXPIRES_AT,
+          this.tokenExpiresAt.toString()
+        );
       }
+
+      // Store non-sensitive user data in AsyncStorage
+      await AsyncStorage.setItem(config.STORAGE_KEYS.USER, JSON.stringify(data.user));
     } catch (error) {
       console.error('Failed to store auth data:', error);
     }
@@ -284,16 +294,20 @@ class AuthService {
     this.accessToken = data.accessToken;
     this.refreshTokenValue = data.refreshToken;
     this.tokenExpiresAt = data.accessTokenExpiresIn
-      ? Date.now() + (data.accessTokenExpiresIn * 1000)
+      ? Date.now() + data.accessTokenExpiresIn * 1000
       : null;
 
     try {
-      await AsyncStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, data.accessToken);
+      // Store sensitive data in secure storage (encrypted)
+      await secureStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, data.accessToken);
       if (data.refreshToken) {
-        await AsyncStorage.setItem(config.STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
+        await secureStorage.setItem(config.STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
       }
       if (this.tokenExpiresAt) {
-        await AsyncStorage.setItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT, this.tokenExpiresAt.toString());
+        await secureStorage.setItem(
+          config.STORAGE_KEYS.TOKEN_EXPIRES_AT,
+          this.tokenExpiresAt.toString()
+        );
       }
     } catch (error) {
       console.error('Failed to update tokens:', error);
@@ -309,10 +323,13 @@ class AuthService {
     this.tokenExpiresAt = null;
 
     try {
-      await AsyncStorage.removeItem(config.STORAGE_KEYS.AUTH_TOKEN);
-      await AsyncStorage.removeItem(config.STORAGE_KEYS.REFRESH_TOKEN);
+      // Clear sensitive data from secure storage
+      await secureStorage.deleteItem(config.STORAGE_KEYS.AUTH_TOKEN);
+      await secureStorage.deleteItem(config.STORAGE_KEYS.REFRESH_TOKEN);
+      await secureStorage.deleteItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
+
+      // Clear non-sensitive data from AsyncStorage
       await AsyncStorage.removeItem(config.STORAGE_KEYS.USER);
-      await AsyncStorage.removeItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
     } catch (error) {
       console.error('Failed to clear auth data:', error);
     }
@@ -323,9 +340,10 @@ class AuthService {
    */
   private async restoreAuth(): Promise<void> {
     try {
-      const token = await AsyncStorage.getItem(config.STORAGE_KEYS.AUTH_TOKEN);
-      const refreshToken = await AsyncStorage.getItem(config.STORAGE_KEYS.REFRESH_TOKEN);
-      const tokenExpiresAtStr = await AsyncStorage.getItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
+      // Restore sensitive data from secure storage
+      const token = await secureStorage.getItem(config.STORAGE_KEYS.AUTH_TOKEN);
+      const refreshToken = await secureStorage.getItem(config.STORAGE_KEYS.REFRESH_TOKEN);
+      const tokenExpiresAtStr = await secureStorage.getItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
 
       console.log('🔐 AuthService: Restoring auth from storage, has token:', !!token);
 

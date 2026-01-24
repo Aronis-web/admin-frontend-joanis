@@ -39,8 +39,8 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
               index: 0,
               routes: [{ name: 'Login' }],
             });
-          }
-        }
+          },
+        },
       ]);
       return;
     }
@@ -62,8 +62,8 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
                   index: 0,
                   routes: [{ name: 'Login' }],
                 });
-              }
-            }
+              },
+            },
           ]
         );
         return;
@@ -123,7 +123,10 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
       console.log('✅ Empresa actualizada en store');
 
       // Navigate to site selection
-      navigation.replace('SiteSelection', { companyId: company.id, companyName: company.alias || company.name });
+      navigation.replace('SiteSelection', {
+        companyId: company.id,
+        companyName: company.alias || company.name,
+      });
     } catch (error) {
       console.error('❌ Error selecting company:', error);
       Alert.alert('Error', 'No se pudo seleccionar la empresa');
@@ -132,25 +135,21 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que deseas cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            // Navigate to login screen after logout
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          },
+    Alert.alert('Cerrar Sesión', '¿Estás seguro de que deseas cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Sesión',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          // Navigate to login screen after logout
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (loading) {
@@ -170,9 +169,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>🏢 Seleccionar Empresa</Text>
-          <Text style={styles.headerSubtitle}>
-            Hola, {user?.name || user?.email}
-          </Text>
+          <Text style={styles.headerSubtitle}>Hola, {user?.name || user?.email}</Text>
         </View>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
           <Text style={styles.logoutButtonText}>Salir</Text>
@@ -183,9 +180,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.infoCard}>
           <Text style={styles.infoIcon}>ℹ️</Text>
-          <Text style={styles.infoText}>
-            Selecciona la empresa con la que deseas trabajar
-          </Text>
+          <Text style={styles.infoText}>Selecciona la empresa con la que deseas trabajar</Text>
         </View>
 
         <View style={styles.companiesContainer}>
@@ -206,9 +201,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
                 </View>
                 <View style={styles.companyInfo}>
                   <Text style={styles.companyName}>{company.alias || company.name}</Text>
-                  {company.ruc && (
-                    <Text style={styles.companyRuc}>RUC: {company.ruc}</Text>
-                  )}
+                  {company.ruc && <Text style={styles.companyRuc}>RUC: {company.ruc}</Text>}
                   <View style={styles.companyFooter}>
                     <View
                       style={[
@@ -248,7 +241,8 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            {companies.length} {companies.length === 1 ? 'empresa disponible' : 'empresas disponibles'}
+            {companies.length}{' '}
+            {companies.length === 1 ? 'empresa disponible' : 'empresas disponibles'}
           </Text>
         </View>
       </ScrollView>
@@ -441,4 +435,3 @@ const styles = StyleSheet.create({
 });
 
 export default CompanySelectionScreen;
-

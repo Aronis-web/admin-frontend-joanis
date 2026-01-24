@@ -58,7 +58,9 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
   const [areas, setAreas] = useState<WarehouseArea[]>([]);
 
   // Form state
-  const [scopeType, setScopeType] = useState<'global' | 'company' | 'site' | 'warehouse' | 'area'>('warehouse');
+  const [scopeType, setScopeType] = useState<'global' | 'company' | 'site' | 'warehouse' | 'area'>(
+    'warehouse'
+  );
   const [selectedCompany, setSelectedCompany] = useState<string>('');
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('');
@@ -98,8 +100,11 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
     console.log('  - Total almacenes disponibles:', warehouses.length);
 
     if (selectedSite && warehouses.length > 0) {
-      const filtered = warehouses.filter(w => {
-        console.log(`    Comparando: w.siteId="${w.siteId}" === selectedSite="${selectedSite}"`, w.siteId === selectedSite);
+      const filtered = warehouses.filter((w) => {
+        console.log(
+          `    Comparando: w.siteId="${w.siteId}" === selectedSite="${selectedSite}"`,
+          w.siteId === selectedSite
+        );
         return w.siteId === selectedSite;
       });
       setFilteredWarehouses(filtered);
@@ -319,27 +324,23 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
   };
 
   const handleDeleteScope = (scopeId: string) => {
-    Alert.alert(
-      'Confirmar Eliminación',
-      '¿Estás seguro de que deseas eliminar este scope?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await scopesApi.deleteScope(scopeId);
-              Alert.alert('Éxito', 'Scope eliminado correctamente');
-              loadScopes();
-            } catch (error: any) {
-              console.error('Error deleting scope:', error);
-              Alert.alert('Error', 'No se pudo eliminar el scope');
-            }
-          },
+    Alert.alert('Confirmar Eliminación', '¿Estás seguro de que deseas eliminar este scope?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await scopesApi.deleteScope(scopeId);
+            Alert.alert('Éxito', 'Scope eliminado correctamente');
+            loadScopes();
+          } catch (error: any) {
+            console.error('Error deleting scope:', error);
+            Alert.alert('Error', 'No se pudo eliminar el scope');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const resetForm = () => {
@@ -362,11 +363,11 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
       case 'AREA':
         if (scope.areaId) {
           // Buscar el área en la lista cargada
-          const area = areas.find(a => a.id === scope.areaId);
+          const area = areas.find((a) => a.id === scope.areaId);
           if (area) {
-            const warehouse = warehouses.find(w => w.id === area.warehouseId);
-            const site = sites.find(s => s.id === warehouse?.siteId);
-            const company = companies.find(c => c.id === site?.companyId);
+            const warehouse = warehouses.find((w) => w.id === area.warehouseId);
+            const site = sites.find((s) => s.id === warehouse?.siteId);
+            const company = companies.find((c) => c.id === site?.companyId);
             return `📦 Área: ${area.name} - ${warehouse?.name || scope.warehouseId} - ${site?.name || scope.siteId} - ${company?.name || scope.companyId}`;
           }
           return `📦 Área: ${scope.areaId}`;
@@ -375,10 +376,10 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
 
       case 'WAREHOUSE':
         if (scope.warehouseId) {
-          const warehouse = warehouses.find(w => w.id === scope.warehouseId);
+          const warehouse = warehouses.find((w) => w.id === scope.warehouseId);
           if (warehouse) {
-            const site = sites.find(s => s.id === warehouse.siteId);
-            const company = companies.find(c => c.id === site?.companyId);
+            const site = sites.find((s) => s.id === warehouse.siteId);
+            const company = companies.find((c) => c.id === site?.companyId);
             return `🏢 Almacén: ${warehouse.name} - ${site?.name || scope.siteId} - ${company?.name || scope.companyId}`;
           }
           return `🏢 Almacén: ${scope.warehouseId}`;
@@ -387,9 +388,9 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
 
       case 'SITE':
         if (scope.siteId) {
-          const site = sites.find(s => s.id === scope.siteId);
+          const site = sites.find((s) => s.id === scope.siteId);
           if (site) {
-            const company = companies.find(c => c.id === site.companyId);
+            const company = companies.find((c) => c.id === site.companyId);
             return `📍 Sede: ${site.name} (${site.code}) - ${company?.name || scope.companyId}`;
           }
           return `📍 Sede: ${scope.siteId}`;
@@ -398,7 +399,7 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
 
       case 'COMPANY':
         if (scope.companyId) {
-          const company = companies.find(c => c.id === scope.companyId);
+          const company = companies.find((c) => c.id === scope.companyId);
           if (company) {
             return `🏢 Compañía: ${company.name} (${company.code})`;
           }
@@ -415,10 +416,7 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
     <View key={scope.id} style={styles.scopeCard}>
       <View style={styles.scopeHeader}>
         <Text style={styles.scopeLabel}>{getScopeLabel(scope)}</Text>
-        <TouchableOpacity
-          onPress={() => handleDeleteScope(scope.id)}
-          style={styles.deleteButton}
-        >
+        <TouchableOpacity onPress={() => handleDeleteScope(scope.id)} style={styles.deleteButton}>
           <Text style={styles.deleteButtonText}>🗑️</Text>
         </TouchableOpacity>
       </View>
@@ -439,12 +437,7 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -463,16 +456,14 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
             {/* Info Card */}
             <View style={styles.infoCard}>
               <Text style={styles.infoText}>
-                Los scopes definen a qué datos puede acceder esta app. Puedes configurar acceso global, por compañía, sede, almacén o área.
+                Los scopes definen a qué datos puede acceder esta app. Puedes configurar acceso
+                global, por compañía, sede, almacén o área.
               </Text>
             </View>
 
             {/* Add Scope Button */}
             {!showAddForm && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowAddForm(true)}
-              >
+              <TouchableOpacity style={styles.addButton} onPress={() => setShowAddForm(true)}>
                 <Text style={styles.addButtonText}>+ Agregar Scope</Text>
               </TouchableOpacity>
             )}
@@ -487,10 +478,7 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
                   <Text style={styles.label}>Tipo de Scope</Text>
                   <View style={styles.typeButtons}>
                     <TouchableOpacity
-                      style={[
-                        styles.typeButton,
-                        scopeType === 'global' && styles.typeButtonActive,
-                      ]}
+                      style={[styles.typeButton, scopeType === 'global' && styles.typeButtonActive]}
                       onPress={() => {
                         setScopeType('global');
                         setSelectedCompany('');
@@ -532,10 +520,7 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
                   </View>
                   <View style={[styles.typeButtons, { marginTop: 8 }]}>
                     <TouchableOpacity
-                      style={[
-                        styles.typeButton,
-                        scopeType === 'site' && styles.typeButtonActive,
-                      ]}
+                      style={[styles.typeButton, scopeType === 'site' && styles.typeButtonActive]}
                       onPress={() => {
                         setScopeType('site');
                         setSelectedWarehouse('');
@@ -568,10 +553,7 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[
-                        styles.typeButton,
-                        scopeType === 'area' && styles.typeButtonActive,
-                      ]}
+                      style={[styles.typeButton, scopeType === 'area' && styles.typeButtonActive]}
                       onPress={() => setScopeType('area')}
                     >
                       <Text
@@ -587,7 +569,10 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
                 </View>
 
                 {/* Company Selector */}
-                {(scopeType === 'company' || scopeType === 'site' || scopeType === 'warehouse' || scopeType === 'area') && (
+                {(scopeType === 'company' ||
+                  scopeType === 'site' ||
+                  scopeType === 'warehouse' ||
+                  scopeType === 'area') && (
                   <View style={styles.formGroup}>
                     <Text style={styles.label}>Compañía</Text>
                     <View style={styles.pickerContainer}>
@@ -614,67 +599,74 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
                 )}
 
                 {/* Site Selector */}
-                {(scopeType === 'site' || scopeType === 'warehouse' || scopeType === 'area') && selectedCompany && (
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Sede</Text>
-                    <View style={styles.pickerContainer}>
-                      <Picker
-                        selectedValue={selectedSite}
-                        onValueChange={(value) => {
-                          setSelectedSite(value);
-                          setSelectedWarehouse('');
-                        }}
-                        style={styles.picker}
-                      >
-                        <Picker.Item label="Seleccionar sede..." value="" />
-                        {sites.map((site) => (
-                          <Picker.Item
-                            key={site.id}
-                            label={`${site.code} - ${site.name}`}
-                            value={site.id}
-                          />
-                        ))}
-                      </Picker>
+                {(scopeType === 'site' || scopeType === 'warehouse' || scopeType === 'area') &&
+                  selectedCompany && (
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>Sede</Text>
+                      <View style={styles.pickerContainer}>
+                        <Picker
+                          selectedValue={selectedSite}
+                          onValueChange={(value) => {
+                            setSelectedSite(value);
+                            setSelectedWarehouse('');
+                          }}
+                          style={styles.picker}
+                        >
+                          <Picker.Item label="Seleccionar sede..." value="" />
+                          {sites.map((site) => (
+                            <Picker.Item
+                              key={site.id}
+                              label={`${site.code} - ${site.name}`}
+                              value={site.id}
+                            />
+                          ))}
+                        </Picker>
+                      </View>
                     </View>
-                  </View>
-                )}
+                  )}
 
                 {/* Warehouse Selector - Requiere seleccionar sede primero */}
-                {(scopeType === 'warehouse' || scopeType === 'area') && selectedCompany && selectedSite && (
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Almacén</Text>
-                    <View style={styles.pickerContainer}>
-                      <Picker
-                        selectedValue={selectedWarehouse}
-                        onValueChange={(value) => {
-                          setSelectedWarehouse(value);
-                          setSelectedArea('');
-                        }}
-                        style={styles.picker}
-                      >
-                        <Picker.Item label="Seleccionar almacén..." value="" />
-                        {filteredWarehouses.map((warehouse) => (
-                          <Picker.Item
-                            key={warehouse.id}
-                            label={warehouse.code ? `${warehouse.code} - ${warehouse.name}` : warehouse.name}
-                            value={warehouse.id}
-                          />
-                        ))}
-                      </Picker>
+                {(scopeType === 'warehouse' || scopeType === 'area') &&
+                  selectedCompany &&
+                  selectedSite && (
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>Almacén</Text>
+                      <View style={styles.pickerContainer}>
+                        <Picker
+                          selectedValue={selectedWarehouse}
+                          onValueChange={(value) => {
+                            setSelectedWarehouse(value);
+                            setSelectedArea('');
+                          }}
+                          style={styles.picker}
+                        >
+                          <Picker.Item label="Seleccionar almacén..." value="" />
+                          {filteredWarehouses.map((warehouse) => (
+                            <Picker.Item
+                              key={warehouse.id}
+                              label={
+                                warehouse.code
+                                  ? `${warehouse.code} - ${warehouse.name}`
+                                  : warehouse.name
+                              }
+                              value={warehouse.id}
+                            />
+                          ))}
+                        </Picker>
+                      </View>
+                      {selectedSite && filteredWarehouses.length === 0 && (
+                        <Text style={styles.hint}>
+                          ⚠️ No hay almacenes disponibles para esta sede.
+                          {warehouses.length > 0 && ` (Total almacenes: ${warehouses.length})`}
+                        </Text>
+                      )}
+                      {selectedSite && filteredWarehouses.length > 0 && (
+                        <Text style={styles.hint}>
+                          ✅ {filteredWarehouses.length} almacén(es) disponible(s)
+                        </Text>
+                      )}
                     </View>
-                    {selectedSite && filteredWarehouses.length === 0 && (
-                      <Text style={styles.hint}>
-                        ⚠️ No hay almacenes disponibles para esta sede.
-                        {warehouses.length > 0 && ` (Total almacenes: ${warehouses.length})`}
-                      </Text>
-                    )}
-                    {selectedSite && filteredWarehouses.length > 0 && (
-                      <Text style={styles.hint}>
-                        ✅ {filteredWarehouses.length} almacén(es) disponible(s)
-                      </Text>
-                    )}
-                  </View>
-                )}
+                  )}
 
                 {/* Area Selector - NUEVO - Requiere seleccionar almacén primero */}
                 {scopeType === 'area' && selectedCompany && selectedSite && selectedWarehouse && (
@@ -697,9 +689,7 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
                       </Picker>
                     </View>
                     {selectedWarehouse && filteredAreas.length === 0 && (
-                      <Text style={styles.hint}>
-                        ⚠️ No hay áreas disponibles para este almacén
-                      </Text>
+                      <Text style={styles.hint}>⚠️ No hay áreas disponibles para este almacén</Text>
                     )}
                     {selectedWarehouse && filteredAreas.length > 0 && (
                       <Text style={styles.hint}>
@@ -745,10 +735,7 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
                   >
                     <Text style={styles.cancelButtonText}>Cancelar</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={handleAddScope}
-                  >
+                  <TouchableOpacity style={styles.saveButton} onPress={handleAddScope}>
                     <Text style={styles.saveButtonText}>Guardar</Text>
                   </TouchableOpacity>
                 </View>
@@ -757,9 +744,7 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
 
             {/* Scopes List */}
             <View style={styles.scopesList}>
-              <Text style={styles.sectionTitle}>
-                Scopes Configurados ({scopes.length})
-              </Text>
+              <Text style={styles.sectionTitle}>Scopes Configurados ({scopes.length})</Text>
 
               {loading ? (
                 <View style={styles.loadingContainer}>

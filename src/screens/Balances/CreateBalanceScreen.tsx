@@ -15,11 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { balancesApi } from '@/services/api';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
-import {
-  BalanceType,
-  CreateBalanceRequest,
-  getBalanceTypeLabel,
-} from '@/types/balances';
+import { BalanceType, CreateBalanceRequest, getBalanceTypeLabel } from '@/types/balances';
 import { Company, CompanyType } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -31,9 +27,7 @@ interface CreateBalanceScreenProps {
   navigation: any;
 }
 
-export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
-  navigation,
-}) => {
+export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({ navigation }) => {
   const [balanceType, setBalanceType] = useState<BalanceType>(BalanceType.INTERNAL);
   const [receiverCompanyId, setReceiverCompanyId] = useState('');
   const [receiverSiteId, setReceiverSiteId] = useState('');
@@ -77,11 +71,16 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
       // Get companies for the current user
       const companies = await companiesApi.getUserCompanies(user?.id || '');
       console.log('📋 Total companies loaded:', companies.length);
-      console.log('📋 Companies:', companies.map(c => ({ name: c.name, type: c.companyType, active: c.isActive })));
+      console.log(
+        '📋 Companies:',
+        companies.map((c) => ({ name: c.name, type: c.companyType, active: c.isActive }))
+      );
 
       // Filter only active companies and by type based on balance type
-      const activeCompanies = companies.filter(c => {
-        if (!c.isActive) return false;
+      const activeCompanies = companies.filter((c) => {
+        if (!c.isActive) {
+          return false;
+        }
         // For external balances, only show external companies
         if (balanceType === BalanceType.EXTERNAL) {
           return c.companyType === CompanyType.EXTERNAL;
@@ -91,7 +90,10 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
       });
 
       console.log(`✅ Filtered companies for ${balanceType}:`, activeCompanies.length);
-      console.log('✅ Filtered companies:', activeCompanies.map(c => ({ name: c.name, type: c.companyType })));
+      console.log(
+        '✅ Filtered companies:',
+        activeCompanies.map((c) => ({ name: c.name, type: c.companyType }))
+      );
 
       setCompanies(activeCompanies);
     } catch (error: any) {
@@ -107,7 +109,7 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
       setLoadingSites(true);
       // Get all companies for the user first
       const companies = await companiesApi.getUserCompanies(user?.id || '');
-      const activeCompanies = companies.filter(c => c.isActive);
+      const activeCompanies = companies.filter((c) => c.isActive);
 
       // Get sites for each company
       const allSites: Site[] = [];
@@ -133,17 +135,19 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
   };
 
   const getSelectedCompanyName = () => {
-    const company = companies.find(c => c.id === receiverCompanyId);
+    const company = companies.find((c) => c.id === receiverCompanyId);
     return company ? company.name : 'Seleccionar empresa';
   };
 
   const getSelectedSiteName = () => {
-    const site = sites.find(s => s.id === receiverSiteId);
+    const site = sites.find((s) => s.id === receiverSiteId);
     return site ? site.name : 'Seleccionar sede';
   };
 
   const formatDate = (date: Date | undefined): string => {
-    if (!date) return '';
+    if (!date) {
+      return '';
+    }
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -151,7 +155,9 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
   };
 
   const formatDisplayDate = (date: Date | undefined): string => {
-    if (!date) return 'Seleccionar fecha';
+    if (!date) {
+      return 'Seleccionar fecha';
+    }
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
@@ -186,7 +192,8 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
     try {
       const data: CreateBalanceRequest = {
         balanceType,
-        receiverCompanyId: balanceType === BalanceType.EXTERNAL ? receiverCompanyId.trim() : undefined,
+        receiverCompanyId:
+          balanceType === BalanceType.EXTERNAL ? receiverCompanyId.trim() : undefined,
         receiverSiteId: balanceType === BalanceType.INTERNAL ? receiverSiteId.trim() : undefined,
         startDate: formatDate(startDate),
         endDate: formatDate(endDate) || undefined,
@@ -195,24 +202,17 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
 
       const balance = await balancesApi.createBalance(data);
 
-      Alert.alert(
-        'Éxito',
-        'Balance creado exitosamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              navigation.replace(MAIN_ROUTES.BALANCE_DETAIL, { balanceId: balance.id });
-            },
+      Alert.alert('Éxito', 'Balance creado exitosamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            navigation.replace(MAIN_ROUTES.BALANCE_DETAIL, { balanceId: balance.id });
           },
-        ]
-      );
+        },
+      ]);
     } catch (error: any) {
       console.error('Error creating balance:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo crear el balance'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo crear el balance');
     } finally {
       setLoading(false);
     }
@@ -223,33 +223,23 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
               ← Volver
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Nuevo Balance
-          </Text>
+          <Text style={[styles.title, isTablet && styles.titleTablet]}>Nuevo Balance</Text>
         </View>
 
         {/* Form */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
         >
           <View style={[styles.formCard, isTablet && styles.formCardTablet]}>
             {/* Balance Type */}
             <View style={styles.formGroup}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Tipo de Balance *
-              </Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Tipo de Balance *</Text>
               <View style={styles.typeButtons}>
                 <TouchableOpacity
                   style={[
@@ -289,9 +279,7 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
             {/* Receiver */}
             {balanceType === BalanceType.INTERNAL ? (
               <View style={styles.formGroup}>
-                <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                  Sede Receptora *
-                </Text>
+                <Text style={[styles.label, isTablet && styles.labelTablet]}>Sede Receptora *</Text>
                 <TouchableOpacity
                   style={[styles.selectInput, isTablet && styles.selectInputTablet]}
                   onPress={() => setShowSiteModal(true)}
@@ -323,9 +311,7 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
 
             {/* Start Date */}
             <View style={styles.formGroup}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Fecha de Inicio *
-              </Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Fecha de Inicio *</Text>
               <TouchableOpacity
                 style={[styles.dateInput, isTablet && styles.dateInputTablet]}
                 onPress={() => setShowStartDatePicker(true)}
@@ -353,9 +339,7 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
 
             {/* Notes */}
             <View style={styles.formGroup}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Notas (opcional)
-              </Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Notas (opcional)</Text>
               <TextInput
                 style={[styles.textArea, isTablet && styles.textAreaTablet]}
                 value={notes}
@@ -427,16 +411,14 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
                       }}
                     >
                       <View style={styles.modalItemContent}>
-                        <Text style={[styles.modalItemName, isTablet && styles.modalItemNameTablet]}>
+                        <Text
+                          style={[styles.modalItemName, isTablet && styles.modalItemNameTablet]}
+                        >
                           {company.name}
                         </Text>
-                        <Text style={styles.modalItemType}>
-                          {company.companyType}
-                        </Text>
+                        <Text style={styles.modalItemType}>{company.companyType}</Text>
                         {company.ruc && (
-                          <Text style={styles.modalItemType}>
-                            RUC: {company.ruc}
-                          </Text>
+                          <Text style={styles.modalItemType}>RUC: {company.ruc}</Text>
                         )}
                       </View>
                       {receiverCompanyId === company.id && (
@@ -492,21 +474,17 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({
                       }}
                     >
                       <View style={styles.modalItemContent}>
-                        <Text style={[styles.modalItemName, isTablet && styles.modalItemNameTablet]}>
+                        <Text
+                          style={[styles.modalItemName, isTablet && styles.modalItemNameTablet]}
+                        >
                           {site.name}
                         </Text>
                         <Text style={styles.modalItemType}>
                           {site.fullAddress || site.addressLine1 || 'Sin dirección'}
                         </Text>
-                        {site.code && (
-                          <Text style={styles.modalItemType}>
-                            Código: {site.code}
-                          </Text>
-                        )}
+                        {site.code && <Text style={styles.modalItemType}>Código: {site.code}</Text>}
                       </View>
-                      {receiverSiteId === site.id && (
-                        <Text style={styles.modalItemCheck}>✓</Text>
-                      )}
+                      {receiverSiteId === site.id && <Text style={styles.modalItemCheck}>✓</Text>}
                     </TouchableOpacity>
                   ))
                 )}

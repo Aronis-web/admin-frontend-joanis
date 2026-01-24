@@ -56,7 +56,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [selectedProductForInfo, setSelectedProductForInfo] = useState<PurchaseProduct | null>(null);
+  const [selectedProductForInfo, setSelectedProductForInfo] = useState<PurchaseProduct | null>(
+    null
+  );
   const [searchQuery, setSearchQuery] = useState('');
 
   const { width, height } = useWindowDimensions();
@@ -148,7 +150,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
         const totalBatches = Math.ceil(totalProducts / BATCH_SIZE);
 
-        console.log(`📦 Procesando lote ${batchNumber}/${totalBatches} (${batch.length} productos)...`);
+        console.log(
+          `📦 Procesando lote ${batchNumber}/${totalBatches} (${batch.length} productos)...`
+        );
 
         // Process batch in parallel
         const batchPromises = batch.map(async (product, index) => {
@@ -159,10 +163,28 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
             }
 
             // Ensure all numeric values are valid and safe
-            const cajas = (isFinite(product.cajas) && !isNaN(product.cajas) && product.cajas > 0) ? Math.max(1, Math.floor(product.cajas)) : 1;
-            const unidadesPorCaja = (isFinite(product.unidades_por_caja) && !isNaN(product.unidades_por_caja) && product.unidades_por_caja > 0) ? Math.max(1, Math.floor(product.unidades_por_caja)) : 1;
-            const cantidadTotal = (isFinite(product.cantidad_total) && !isNaN(product.cantidad_total) && product.cantidad_total > 0) ? Math.max(1, Math.floor(product.cantidad_total)) : 0;
-            const precioUnitario = (isFinite(product.precio_unitario) && !isNaN(product.precio_unitario) && product.precio_unitario > 0) ? Math.max(0.01, product.precio_unitario) : 0;
+            const cajas =
+              isFinite(product.cajas) && !isNaN(product.cajas) && product.cajas > 0
+                ? Math.max(1, Math.floor(product.cajas))
+                : 1;
+            const unidadesPorCaja =
+              isFinite(product.unidades_por_caja) &&
+              !isNaN(product.unidades_por_caja) &&
+              product.unidades_por_caja > 0
+                ? Math.max(1, Math.floor(product.unidades_por_caja))
+                : 1;
+            const cantidadTotal =
+              isFinite(product.cantidad_total) &&
+              !isNaN(product.cantidad_total) &&
+              product.cantidad_total > 0
+                ? Math.max(1, Math.floor(product.cantidad_total))
+                : 0;
+            const precioUnitario =
+              isFinite(product.precio_unitario) &&
+              !isNaN(product.precio_unitario) &&
+              product.precio_unitario > 0
+                ? Math.max(0.01, product.precio_unitario)
+                : 0;
 
             if (cantidadTotal <= 0) {
               throw new Error('Cantidad inválida o cero');
@@ -202,7 +224,12 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
             }
 
             // Validate all values one more time before sending
-            if (!isFinite(cantidadTotal) || !isFinite(cajas) || !isFinite(looseUnits) || !isFinite(costCents)) {
+            if (
+              !isFinite(cantidadTotal) ||
+              !isFinite(cajas) ||
+              !isFinite(looseUnits) ||
+              !isFinite(costCents)
+            ) {
               throw new Error('Valores numéricos inválidos detectados');
             }
 
@@ -222,7 +249,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
             return {
               success: false,
               product,
-              error: error.message || 'Error desconocido'
+              error: error.message || 'Error desconocido',
             };
           }
         });
@@ -231,7 +258,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         const batchResults = await Promise.all(batchPromises);
 
         // Count successes and errors
-        batchResults.forEach(result => {
+        batchResults.forEach((result) => {
           if (result.success) {
             successCount++;
           } else {
@@ -240,11 +267,13 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           }
         });
 
-        console.log(`✅ Lote ${batchNumber}/${totalBatches} completado. Éxitos: ${successCount}, Errores: ${errorCount}`);
+        console.log(
+          `✅ Lote ${batchNumber}/${totalBatches} completado. Éxitos: ${successCount}, Errores: ${errorCount}`
+        );
 
         // Add a small delay between batches to prevent overwhelming the system on tablets
         if (i + BATCH_SIZE < totalProducts) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
 
@@ -258,16 +287,16 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         Alert.alert(
           'Completado con errores',
           `Se agregaron ${successCount} producto${successCount !== 1 ? 's' : ''} correctamente.\n\n` +
-          `${errorCount} producto${errorCount !== 1 ? 's' : ''} no se pudieron agregar:\n` +
-          errors.slice(0, 5).join('\n') +
-          (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
+            `${errorCount} producto${errorCount !== 1 ? 's' : ''} no se pudieron agregar:\n` +
+            errors.slice(0, 5).join('\n') +
+            (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
         );
       } else {
         Alert.alert(
           'Error',
           `No se pudo agregar ningún producto.\n\nErrores:\n` +
-          errors.slice(0, 5).join('\n') +
-          (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
+            errors.slice(0, 5).join('\n') +
+            (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
         );
       }
 
@@ -313,29 +342,25 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const handleDeleteProduct = (product: PurchaseProduct) => {
-    Alert.alert(
-      'Eliminar Producto',
-      `¿Está seguro de eliminar "${product.name}" de esta compra?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              await purchasesService.deleteProduct(purchaseId, product.id);
-              Alert.alert('Éxito', 'Producto eliminado correctamente');
-              loadPurchase();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
-            } finally {
-              setActionLoading(false);
-            }
-          },
+    Alert.alert('Eliminar Producto', `¿Está seguro de eliminar "${product.name}" de esta compra?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          setActionLoading(true);
+          try {
+            await purchasesService.deleteProduct(purchaseId, product.id);
+            Alert.alert('Éxito', 'Producto eliminado correctamente');
+            loadPurchase();
+          } catch (error: any) {
+            Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
+          } finally {
+            setActionLoading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleAssignDebts = () => {
@@ -369,30 +394,26 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const handleCancelPurchase = async () => {
-    Alert.alert(
-      'Cancelar Compra',
-      '¿Está seguro de cancelar esta compra?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Sí, Cancelar',
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              await purchasesService.cancelPurchase(purchaseId);
-              Alert.alert('Éxito', 'Compra cancelada correctamente', [
-                { text: 'OK', onPress: () => navigation.goBack() },
-              ]);
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'No se pudo cancelar la compra');
-            } finally {
-              setActionLoading(false);
-            }
-          },
+    Alert.alert('Cancelar Compra', '¿Está seguro de cancelar esta compra?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Sí, Cancelar',
+        style: 'destructive',
+        onPress: async () => {
+          setActionLoading(true);
+          try {
+            await purchasesService.cancelPurchase(purchaseId);
+            Alert.alert('Éxito', 'Compra cancelada correctamente', [
+              { text: 'OK', onPress: () => navigation.goBack() },
+            ]);
+          } catch (error: any) {
+            Alert.alert('Error', error.message || 'No se pudo cancelar la compra');
+          } finally {
+            setActionLoading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const formatDate = (dateString: string) => {
@@ -416,20 +437,15 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     const inValidation = products.filter(
       (p) => p.status === PurchaseProductStatus.IN_VALIDATION
     ).length;
-    const validated = products.filter(
-      (p) => p.status === PurchaseProductStatus.VALIDATED
-    ).length;
-    const rejected = products.filter(
-      (p) => p.status === PurchaseProductStatus.REJECTED
-    ).length;
+    const validated = products.filter((p) => p.status === PurchaseProductStatus.VALIDATED).length;
+    const rejected = products.filter((p) => p.status === PurchaseProductStatus.REJECTED).length;
 
     return { total, preliminary, inValidation, validated, rejected };
   };
 
   const canAddProducts = () => {
     return (
-      purchase?.status !== PurchaseStatus.CLOSED &&
-      purchase?.status !== PurchaseStatus.CANCELLED
+      purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED
     );
   };
 
@@ -460,23 +476,21 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
   const canCancelPurchase = () => {
     return (
-      purchase?.status !== PurchaseStatus.CLOSED &&
-      purchase?.status !== PurchaseStatus.CANCELLED
+      purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED
     );
   };
 
   const renderProductCard = (product: PurchaseProduct) => {
-    const canDelete = product.status === PurchaseProductStatus.PRELIMINARY ||
-                      product.status === PurchaseProductStatus.IN_VALIDATION;
-    const canValidate = product.status !== PurchaseProductStatus.VALIDATED &&
-                        purchase?.status !== PurchaseStatus.CLOSED &&
-                        purchase?.status !== PurchaseStatus.CANCELLED;
+    const canDelete =
+      product.status === PurchaseProductStatus.PRELIMINARY ||
+      product.status === PurchaseProductStatus.IN_VALIDATION;
+    const canValidate =
+      product.status !== PurchaseProductStatus.VALIDATED &&
+      purchase?.status !== PurchaseStatus.CLOSED &&
+      purchase?.status !== PurchaseStatus.CANCELLED;
 
     return (
-      <View
-        key={product.id}
-        style={[styles.productCard, isTablet && styles.productCardTablet]}
-      >
+      <View key={product.id} style={[styles.productCard, isTablet && styles.productCardTablet]}>
         <TouchableOpacity
           onPress={() => handleProductPress(product)}
           activeOpacity={0.7}
@@ -521,7 +535,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.deleteButtonText, isTablet && styles.deleteButtonTextTablet]}>
+                  <Text
+                    style={[styles.deleteButtonText, isTablet && styles.deleteButtonTextTablet]}
+                  >
                     🗑️
                   </Text>
                 </TouchableOpacity>
@@ -529,107 +545,114 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
             </View>
           </View>
 
-        <View style={styles.productBody}>
-          <View style={styles.productRow}>
-            <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-              Costo:
-            </Text>
-            <Text style={[styles.productValue, isTablet && styles.productValueTablet]}>
-              {formatCurrency(product.costCents)}
-            </Text>
-          </View>
-
-          <View style={styles.productRow}>
-            <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-              Stock Preliminar:
-            </Text>
-            <Text style={[styles.productValue, isTablet && styles.productValueTablet]}>
-              {product.preliminaryStock}
-            </Text>
-          </View>
-
-          {product.validatedStock !== undefined && (
+          <View style={styles.productBody}>
             <View style={styles.productRow}>
               <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-                Stock Validado:
-              </Text>
-              <Text
-                style={[
-                  styles.productValue,
-                  isTablet && styles.productValueTablet,
-                  styles.productValueHighlight,
-                ]}
-              >
-                {product.validatedStock}
-              </Text>
-            </View>
-          )}
-
-          {product.warehouse && (
-            <View style={styles.productRow}>
-              <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-                Almacén:
+                Costo:
               </Text>
               <Text style={[styles.productValue, isTablet && styles.productValueTablet]}>
-                {product.warehouse.name}
+                {formatCurrency(product.costCents)}
               </Text>
             </View>
+
+            <View style={styles.productRow}>
+              <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
+                Stock Preliminar:
+              </Text>
+              <Text style={[styles.productValue, isTablet && styles.productValueTablet]}>
+                {product.preliminaryStock}
+              </Text>
+            </View>
+
+            {product.validatedStock !== undefined && (
+              <View style={styles.productRow}>
+                <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
+                  Stock Validado:
+                </Text>
+                <Text
+                  style={[
+                    styles.productValue,
+                    isTablet && styles.productValueTablet,
+                    styles.productValueHighlight,
+                  ]}
+                >
+                  {product.validatedStock}
+                </Text>
+              </View>
+            )}
+
+            {product.warehouse && (
+              <View style={styles.productRow}>
+                <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
+                  Almacén:
+                </Text>
+                <Text style={[styles.productValue, isTablet && styles.productValueTablet]}>
+                  {product.warehouse.name}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {product.rejectionReason && (
+            <View style={styles.rejectionContainer}>
+              <Text style={styles.rejectionLabel}>Razón de Rechazo:</Text>
+              <Text style={styles.rejectionText}>{product.rejectionReason}</Text>
+            </View>
           )}
-        </View>
 
-        {product.rejectionReason && (
-          <View style={styles.rejectionContainer}>
-            <Text style={styles.rejectionLabel}>Razón de Rechazo:</Text>
-            <Text style={styles.rejectionText}>{product.rejectionReason}</Text>
-          </View>
-        )}
-
-        {/* Action hint */}
-        {product.status === PurchaseProductStatus.PRELIMINARY && (
-          <View style={styles.productActionHint}>
-            <Text style={styles.productActionHintText}>✏️ Toca para editar</Text>
-          </View>
-        )}
-        {product.status === PurchaseProductStatus.IN_VALIDATION && (
-          <View style={styles.productActionHint}>
-            <Text style={styles.productActionHintText}>✏️ Toca para editar</Text>
-          </View>
-        )}
-        {product.status === PurchaseProductStatus.VALIDATED && (
-          <View style={styles.productActionHint}>
-            <Text style={styles.productActionHintText}>👁️ Toca para ver detalles</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-
-      {/* Validate button for PRELIMINARY products */}
-      {canValidate && (
-        <TouchableOpacity
-          style={[styles.validateProductButton, isTablet && styles.validateProductButtonTablet]}
-          onPress={() => handleStartProductValidation(product)}
-          disabled={actionLoading}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.validateProductButtonText, isTablet && styles.validateProductButtonTextTablet]}>
-            ✓ Validar Producto
-          </Text>
+          {/* Action hint */}
+          {product.status === PurchaseProductStatus.PRELIMINARY && (
+            <View style={styles.productActionHint}>
+              <Text style={styles.productActionHintText}>✏️ Toca para editar</Text>
+            </View>
+          )}
+          {product.status === PurchaseProductStatus.IN_VALIDATION && (
+            <View style={styles.productActionHint}>
+              <Text style={styles.productActionHintText}>✏️ Toca para editar</Text>
+            </View>
+          )}
+          {product.status === PurchaseProductStatus.VALIDATED && (
+            <View style={styles.productActionHint}>
+              <Text style={styles.productActionHintText}>👁️ Toca para ver detalles</Text>
+            </View>
+          )}
         </TouchableOpacity>
-      )}
 
-      {/* Info button for VALIDATED or CLOSED products */}
-      {(product.status === PurchaseProductStatus.VALIDATED ||
-        product.status === PurchaseProductStatus.CLOSED) && (
-        <TouchableOpacity
-          style={[styles.infoProductButton, isTablet && styles.infoProductButtonTablet]}
-          onPress={() => handleOpenInfoModal(product)}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.infoProductButtonText, isTablet && styles.infoProductButtonTextTablet]}>
-            📋 Información Registrada
-          </Text>
-        </TouchableOpacity>
-      )}
-    </View>
+        {/* Validate button for PRELIMINARY products */}
+        {canValidate && (
+          <TouchableOpacity
+            style={[styles.validateProductButton, isTablet && styles.validateProductButtonTablet]}
+            onPress={() => handleStartProductValidation(product)}
+            disabled={actionLoading}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.validateProductButtonText,
+                isTablet && styles.validateProductButtonTextTablet,
+              ]}
+            >
+              ✓ Validar Producto
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Info button for VALIDATED or CLOSED products */}
+        {(product.status === PurchaseProductStatus.VALIDATED ||
+          product.status === PurchaseProductStatus.CLOSED) && (
+          <TouchableOpacity
+            style={[styles.infoProductButton, isTablet && styles.infoProductButtonTablet]}
+            onPress={() => handleOpenInfoModal(product)}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[styles.infoProductButtonText, isTablet && styles.infoProductButtonTextTablet]}
+            >
+              📋 Información Registrada
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
     );
   };
 
@@ -684,10 +707,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[
-          styles.contentContainer,
-          isTablet && styles.contentContainerTablet,
-        ]}
+        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {/* Purchase Info */}
@@ -697,9 +717,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           </Text>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Proveedor:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Proveedor:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {purchase.supplier?.commercialName || 'N/A'}
             </Text>
@@ -771,9 +789,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
               >
                 {stats.preliminary}
               </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Preliminar
-              </Text>
+              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Preliminar</Text>
             </View>
             <View style={styles.statItem}>
               <Text
@@ -799,9 +815,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
               >
                 {stats.validated}
               </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Validados
-              </Text>
+              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Validados</Text>
             </View>
             <View style={styles.statItem}>
               <Text
@@ -813,9 +827,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
               >
                 {stats.rejected}
               </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Rechazados
-              </Text>
+              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Rechazados</Text>
             </View>
           </View>
         </View>
@@ -833,7 +845,13 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                   <Text style={[styles.totalSumLabel, isTablet && styles.totalSumLabelTablet]}>
                     Total Sin Validar
                   </Text>
-                  <Text style={[styles.totalSumValue, isTablet && styles.totalSumValueTablet, styles.totalSumUnvalidated]}>
+                  <Text
+                    style={[
+                      styles.totalSumValue,
+                      isTablet && styles.totalSumValueTablet,
+                      styles.totalSumUnvalidated,
+                    ]}
+                  >
                     {formatCurrency(totalSum.totalUnvalidatedCents)}
                   </Text>
                   <Text style={[styles.totalSumSubtext, isTablet && styles.totalSumSubtextTablet]}>
@@ -845,22 +863,47 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                   <Text style={[styles.totalSumLabel, isTablet && styles.totalSumLabelTablet]}>
                     Total Validado
                   </Text>
-                  <Text style={[styles.totalSumValue, isTablet && styles.totalSumValueTablet, styles.totalSumValidated]}>
+                  <Text
+                    style={[
+                      styles.totalSumValue,
+                      isTablet && styles.totalSumValueTablet,
+                      styles.totalSumValidated,
+                    ]}
+                  >
                     {formatCurrency(totalSum.totalValidatedCents)}
                   </Text>
                   <Text style={[styles.totalSumSubtext, isTablet && styles.totalSumSubtextTablet]}>
-                    {totalSum.validatedProducts} validado{totalSum.validatedProducts !== 1 ? 's' : ''}
+                    {totalSum.validatedProducts} validado
+                    {totalSum.validatedProducts !== 1 ? 's' : ''}
                   </Text>
                 </View>
               </View>
 
               {totalSum.differenceCents !== 0 && (
-                <View style={[styles.totalSumDifference, totalSum.differenceCents > 0 ? styles.totalSumDifferencePositive : styles.totalSumDifferenceNegative]}>
-                  <Text style={[styles.totalSumDifferenceLabel, isTablet && styles.totalSumDifferenceLabelTablet]}>
+                <View
+                  style={[
+                    styles.totalSumDifference,
+                    totalSum.differenceCents > 0
+                      ? styles.totalSumDifferencePositive
+                      : styles.totalSumDifferenceNegative,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.totalSumDifferenceLabel,
+                      isTablet && styles.totalSumDifferenceLabelTablet,
+                    ]}
+                  >
                     Diferencia:
                   </Text>
-                  <Text style={[styles.totalSumDifferenceValue, isTablet && styles.totalSumDifferenceValueTablet]}>
-                    {totalSum.differenceCents > 0 ? '+' : ''}{formatCurrency(totalSum.differenceCents)}
+                  <Text
+                    style={[
+                      styles.totalSumDifferenceValue,
+                      isTablet && styles.totalSumDifferenceValueTablet,
+                    ]}
+                  >
+                    {totalSum.differenceCents > 0 ? '+' : ''}
+                    {formatCurrency(totalSum.differenceCents)}
                   </Text>
                 </View>
               )}
@@ -899,7 +942,12 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           )}
 
           {canAddProducts() && (
-            <View style={[styles.headerActionsContainer, isTablet && styles.headerActionsContainerTablet]}>
+            <View
+              style={[
+                styles.headerActionsContainer,
+                isTablet && styles.headerActionsContainerTablet,
+              ]}
+            >
               <View style={styles.headerActions}>
                 {hasPermission('purchases.ocr.scan') && (
                   <TouchableOpacity
@@ -938,10 +986,18 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                 No se encontraron productos que coincidan con "{searchQuery}"
               </Text>
               <TouchableOpacity
-                style={[styles.clearSearchButtonLarge, isTablet && styles.clearSearchButtonLargeTablet]}
+                style={[
+                  styles.clearSearchButtonLarge,
+                  isTablet && styles.clearSearchButtonLargeTablet,
+                ]}
                 onPress={() => setSearchQuery('')}
               >
-                <Text style={[styles.clearSearchButtonLargeText, isTablet && styles.clearSearchButtonLargeTextTablet]}>
+                <Text
+                  style={[
+                    styles.clearSearchButtonLargeText,
+                    isTablet && styles.clearSearchButtonLargeTextTablet,
+                  ]}
+                >
                   Limpiar búsqueda
                 </Text>
               </TouchableOpacity>
@@ -1037,7 +1093,9 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {
+      return 'N/A';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       year: 'numeric',
@@ -1054,17 +1112,10 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
   );
 
   // Get validated presentation from history
-  const validatedPresentation = product.presentationHistory?.find(
-    (ph) => ph.type === 'VALIDATED'
-  );
+  const validatedPresentation = product.presentationHistory?.find((ph) => ph.type === 'VALIDATED');
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={modalStyles.overlay}>
         <View style={[modalStyles.container, isTablet && modalStyles.containerTablet]}>
           {/* Header */}
@@ -1089,7 +1140,11 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                 📝 Datos Preliminares (Registro Inicial)
               </Text>
               <View style={modalStyles.card}>
-                <InfoRow label="SKU" value={`${product.correlativeNumber ? `#${product.correlativeNumber} | ` : ''}${product.sku}`} isTablet={isTablet} />
+                <InfoRow
+                  label="SKU"
+                  value={`${product.correlativeNumber ? `#${product.correlativeNumber} | ` : ''}${product.sku}`}
+                  isTablet={isTablet}
+                />
                 <InfoRow label="Nombre" value={product.name} isTablet={isTablet} />
                 <InfoRow
                   label="Costo Unitario"
@@ -1148,7 +1203,9 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
             {(product.status === PurchaseProductStatus.VALIDATED ||
               product.status === PurchaseProductStatus.CLOSED) && (
               <View style={modalStyles.section}>
-                <Text style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}>
+                <Text
+                  style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}
+                >
                   ✅ Datos Validados
                 </Text>
                 <View style={[modalStyles.card, modalStyles.cardValidated]}>
@@ -1253,42 +1310,57 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
             )}
 
             {/* Comparación Section */}
-            {product.validatedStock !== undefined && product.validatedStock !== product.preliminaryStock && (
-              <View style={modalStyles.section}>
-                <Text style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}>
-                  📊 Diferencias
-                </Text>
-                <View style={modalStyles.card}>
-                  <View style={modalStyles.comparisonRow}>
-                    <Text style={[modalStyles.comparisonLabel, isTablet && modalStyles.comparisonLabelTablet]}>
-                      Stock:
-                    </Text>
-                    <View style={modalStyles.comparisonValues}>
-                      <Text style={[modalStyles.comparisonValue, isTablet && modalStyles.comparisonValueTablet]}>
-                        {product.preliminaryStock} → {product.validatedStock}
-                      </Text>
+            {product.validatedStock !== undefined &&
+              product.validatedStock !== product.preliminaryStock && (
+                <View style={modalStyles.section}>
+                  <Text
+                    style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}
+                  >
+                    📊 Diferencias
+                  </Text>
+                  <View style={modalStyles.card}>
+                    <View style={modalStyles.comparisonRow}>
                       <Text
                         style={[
-                          modalStyles.comparisonDiff,
-                          isTablet && modalStyles.comparisonDiffTablet,
-                          product.validatedStock > product.preliminaryStock
-                            ? modalStyles.comparisonDiffPositive
-                            : modalStyles.comparisonDiffNegative,
+                          modalStyles.comparisonLabel,
+                          isTablet && modalStyles.comparisonLabelTablet,
                         ]}
                       >
-                        {product.validatedStock > product.preliminaryStock ? '+' : ''}
-                        {product.validatedStock - product.preliminaryStock}
+                        Stock:
                       </Text>
+                      <View style={modalStyles.comparisonValues}>
+                        <Text
+                          style={[
+                            modalStyles.comparisonValue,
+                            isTablet && modalStyles.comparisonValueTablet,
+                          ]}
+                        >
+                          {product.preliminaryStock} → {product.validatedStock}
+                        </Text>
+                        <Text
+                          style={[
+                            modalStyles.comparisonDiff,
+                            isTablet && modalStyles.comparisonDiffTablet,
+                            product.validatedStock > product.preliminaryStock
+                              ? modalStyles.comparisonDiffPositive
+                              : modalStyles.comparisonDiffNegative,
+                          ]}
+                        >
+                          {product.validatedStock > product.preliminaryStock ? '+' : ''}
+                          {product.validatedStock - product.preliminaryStock}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </View>
-              </View>
-            )}
+              )}
 
             {/* Deuda Asignada Section */}
             {product.supplierLegalEntity && product.assignedDebtCents !== undefined && (
               <View style={modalStyles.section}>
-                <Text style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}>
+                <Text
+                  style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}
+                >
                   💰 Deuda Asignada
                 </Text>
                 <View style={modalStyles.card}>
@@ -1315,10 +1387,18 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
           {/* Footer */}
           <View style={modalStyles.footer}>
             <TouchableOpacity
-              style={[modalStyles.closeFooterButton, isTablet && modalStyles.closeFooterButtonTablet]}
+              style={[
+                modalStyles.closeFooterButton,
+                isTablet && modalStyles.closeFooterButtonTablet,
+              ]}
               onPress={onClose}
             >
-              <Text style={[modalStyles.closeFooterButtonText, isTablet && modalStyles.closeFooterButtonTextTablet]}>
+              <Text
+                style={[
+                  modalStyles.closeFooterButtonText,
+                  isTablet && modalStyles.closeFooterButtonTextTablet,
+                ]}
+              >
                 Cerrar
               </Text>
             </TouchableOpacity>
@@ -1339,9 +1419,7 @@ interface InfoRowProps {
 
 const InfoRow: React.FC<InfoRowProps> = ({ label, value, isTablet, highlight }) => (
   <View style={modalStyles.infoRow}>
-    <Text style={[modalStyles.infoLabel, isTablet && modalStyles.infoLabelTablet]}>
-      {label}:
-    </Text>
+    <Text style={[modalStyles.infoLabel, isTablet && modalStyles.infoLabelTablet]}>{label}:</Text>
     <Text
       style={[
         modalStyles.infoValue,
@@ -2275,4 +2353,3 @@ const modalStyles = StyleSheet.create({
 });
 
 export default PurchaseDetailScreen;
-

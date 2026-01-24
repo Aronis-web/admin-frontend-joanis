@@ -213,16 +213,10 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
       </View>
 
       <View style={styles.warehouseActions}>
-        <TouchableOpacity
-          style={styles.areasButton}
-          onPress={() => openAreasScreen(warehouse)}
-        >
+        <TouchableOpacity style={styles.areasButton} onPress={() => openAreasScreen(warehouse)}>
           <Text style={styles.areasButtonText}>📍 Áreas</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => openEditModal(warehouse)}
-        >
+        <TouchableOpacity style={styles.editButton} onPress={() => openEditModal(warehouse)}>
           <Text style={styles.editButtonText}>✏️</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -267,7 +261,10 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
           <Text style={styles.headerTitle}>Almacenes</Text>
           <Text style={styles.headerSubtitle}>🏪 {siteName}</Text>
         </View>
-        <ProtectedElement requiredPermissions={['warehouses.create']} fallback={<View style={styles.placeholder} />}>
+        <ProtectedElement
+          requiredPermissions={['warehouses.create']}
+          fallback={<View style={styles.placeholder} />}
+        >
           <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addButton}>
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
@@ -288,9 +285,7 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
       {/* Warehouses List */}
       <ScrollView
         style={styles.warehousesList}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
         {filteredWarehouses.length === 0 ? (
@@ -326,7 +321,9 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
               <TextInput
                 style={styles.input}
                 value={warehouseForm.code}
-                onChangeText={(text) => setWarehouseForm({ ...warehouseForm, code: text.toUpperCase() })}
+                onChangeText={(text) =>
+                  setWarehouseForm({ ...warehouseForm, code: text.toUpperCase() })
+                }
                 placeholder="ALM-01"
                 autoCapitalize="characters"
               />
@@ -371,7 +368,9 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
               <TextInput
                 style={styles.input}
                 value={warehouseForm.code}
-                onChangeText={(text) => setWarehouseForm({ ...warehouseForm, code: text.toUpperCase() })}
+                onChangeText={(text) =>
+                  setWarehouseForm({ ...warehouseForm, code: text.toUpperCase() })
+                }
                 placeholder="ALM-01"
                 autoCapitalize="characters"
               />

@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { User } from '@/services/api/users';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { UserScopesModal } from './UserScopesModal';
@@ -31,7 +24,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 }) => {
   const [showScopesModal, setShowScopesModal] = useState(false);
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   console.log('UserDetailModal - Rendering with user:', user);
   console.log('UserDetailModal - User roles:', user.roles);
@@ -50,7 +45,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   };
 
   const formatBirthDate = (dateString?: string) => {
-    if (!dateString) return undefined;
+    if (!dateString) {
+      return undefined;
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
@@ -60,20 +57,26 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   };
 
   const getDocumentTypeLabel = (type?: string) => {
-    if (!type) return undefined;
-    const option = DOCUMENT_TYPE_OPTIONS.find(opt => opt.value === type);
+    if (!type) {
+      return undefined;
+    }
+    const option = DOCUMENT_TYPE_OPTIONS.find((opt) => opt.value === type);
     return option ? option.label : type;
   };
 
   const getGenderLabel = (gender?: string) => {
-    if (!gender) return undefined;
-    const option = GENDER_OPTIONS.find(opt => opt.value === gender);
+    if (!gender) {
+      return undefined;
+    }
+    const option = GENDER_OPTIONS.find((opt) => opt.value === gender);
     return option ? option.label : gender;
   };
 
   const getMaritalStatusLabel = (status?: string) => {
-    if (!status) return undefined;
-    const option = MARITAL_STATUS_OPTIONS.find(opt => opt.value === status);
+    if (!status) {
+      return undefined;
+    }
+    const option = MARITAL_STATUS_OPTIONS.find((opt) => opt.value === status);
     return option ? option.label : status;
   };
 
@@ -89,7 +92,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const userStatus = user.status || (user.is_active ? 'active' : 'inactive');
 
   const renderInfoRow = (label: string, value: string | undefined, icon?: string) => {
-    if (!value) return null;
+    if (!value) {
+      return null;
+    }
 
     return (
       <View style={styles.infoRow}>
@@ -102,19 +107,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const renderSection = (title: string, children: React.ReactNode) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContent}>
-        {children}
-      </View>
+      <View style={styles.sectionContent}>{children}</View>
     </View>
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -122,17 +120,19 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
             <View style={styles.headerLeft}>
               <View style={styles.userAvatar}>
                 <Text style={styles.avatarText}>
-                  {user.username ? user.username.charAt(0).toUpperCase() :
-                   user.name ? user.name.charAt(0).toUpperCase() :
-                   user.email.charAt(0).toUpperCase()}
+                  {user.username
+                    ? user.username.charAt(0).toUpperCase()
+                    : user.name
+                      ? user.name.charAt(0).toUpperCase()
+                      : user.email.charAt(0).toUpperCase()}
                 </Text>
               </View>
               <View style={styles.headerInfo}>
-                <Text style={styles.modalTitle}>
-                  {user.username || user.name || user.email}
-                </Text>
+                <Text style={styles.modalTitle}>{user.username || user.name || user.email}</Text>
                 <View style={styles.statusBadge}>
-                  <View style={[styles.statusDot, { backgroundColor: getStatusColor(userStatus) }]} />
+                  <View
+                    style={[styles.statusDot, { backgroundColor: getStatusColor(userStatus) }]}
+                  />
                   <Text style={[styles.statusText, { color: getStatusColor(userStatus) }]}>
                     {getStatusText(userStatus)}
                   </Text>
@@ -145,12 +145,10 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           </View>
 
           {/* Content */}
-          <ScrollView
-            style={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {/* Información Personal */}
-            {renderSection('Información Personal', (
+            {renderSection(
+              'Información Personal',
               <>
                 {renderInfoRow('Nombre de Usuario', user.username)}
                 {renderInfoRow('Nombre', user.first_name)}
@@ -159,92 +157,111 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 {renderInfoRow('Email', user.email)}
                 {renderInfoRow('Teléfono', user.phone)}
               </>
-            ))}
+            )}
 
             {/* Worker Profile - Identification */}
-            {(user.document_type || user.document_number) && renderSection('Identificación', (
-              <>
-                {renderInfoRow('Tipo de Documento', getDocumentTypeLabel(user.document_type))}
-                {renderInfoRow('Número de Documento', user.document_number)}
-              </>
-            ))}
+            {(user.document_type || user.document_number) &&
+              renderSection(
+                'Identificación',
+                <>
+                  {renderInfoRow('Tipo de Documento', getDocumentTypeLabel(user.document_type))}
+                  {renderInfoRow('Número de Documento', user.document_number)}
+                </>
+              )}
 
             {/* Worker Profile - Personal Data */}
-            {(user.birth_date || user.gender || user.nationality || user.marital_status) && renderSection('Datos Personales', (
-              <>
-                {renderInfoRow('Fecha de Nacimiento', formatBirthDate(user.birth_date))}
-                {renderInfoRow('Género', getGenderLabel(user.gender))}
-                {renderInfoRow('Nacionalidad', user.nationality)}
-                {renderInfoRow('Estado Civil', getMaritalStatusLabel(user.marital_status))}
-              </>
-            ))}
+            {(user.birth_date || user.gender || user.nationality || user.marital_status) &&
+              renderSection(
+                'Datos Personales',
+                <>
+                  {renderInfoRow('Fecha de Nacimiento', formatBirthDate(user.birth_date))}
+                  {renderInfoRow('Género', getGenderLabel(user.gender))}
+                  {renderInfoRow('Nacionalidad', user.nationality)}
+                  {renderInfoRow('Estado Civil', getMaritalStatusLabel(user.marital_status))}
+                </>
+              )}
 
             {/* Worker Profile - Contact Information */}
-            {(user.address || user.ubigeo) && renderSection('Información de Contacto', (
-              <>
-                {renderInfoRow('Dirección', user.address)}
-                {renderInfoRow('Ubigeo', user.ubigeo)}
-              </>
-            ))}
+            {(user.address || user.ubigeo) &&
+              renderSection(
+                'Información de Contacto',
+                <>
+                  {renderInfoRow('Dirección', user.address)}
+                  {renderInfoRow('Ubigeo', user.ubigeo)}
+                </>
+              )}
 
             {/* Worker Profile - Emergency Contact */}
-            {(user.emergency_contact_name || user.emergency_contact_relationship || user.emergency_contact_phone) && renderSection('Contacto de Emergencia', (
-              <>
-                {renderInfoRow('Nombre', user.emergency_contact_name)}
-                {renderInfoRow('Relación', user.emergency_contact_relationship)}
-                {renderInfoRow('Teléfono', user.emergency_contact_phone)}
-              </>
-            ))}
+            {(user.emergency_contact_name ||
+              user.emergency_contact_relationship ||
+              user.emergency_contact_phone) &&
+              renderSection(
+                'Contacto de Emergencia',
+                <>
+                  {renderInfoRow('Nombre', user.emergency_contact_name)}
+                  {renderInfoRow('Relación', user.emergency_contact_relationship)}
+                  {renderInfoRow('Teléfono', user.emergency_contact_phone)}
+                </>
+              )}
 
             {/* Worker Profile - Additional Information */}
-            {(user.photo_url || user.epp_size) && renderSection('Información Adicional', (
-              <>
-                {renderInfoRow('URL de Foto', user.photo_url)}
-                {renderInfoRow('Talla de EPP', user.epp_size)}
-              </>
-            ))}
+            {(user.photo_url || user.epp_size) &&
+              renderSection(
+                'Información Adicional',
+                <>
+                  {renderInfoRow('URL de Foto', user.photo_url)}
+                  {renderInfoRow('Talla de EPP', user.epp_size)}
+                </>
+              )}
 
             {/* Roles */}
-            {user.roles && user.roles.length > 0 && renderSection('Roles', (
-              <View style={styles.tagsContainer}>
-                {user.roles.map((role) => (
-                  <View key={role.id} style={styles.tag}>
-                    <Text style={styles.tagText}>{role.name}</Text>
-                  </View>
-                ))}
-              </View>
-            ))}
+            {user.roles &&
+              user.roles.length > 0 &&
+              renderSection(
+                'Roles',
+                <View style={styles.tagsContainer}>
+                  {user.roles.map((role) => (
+                    <View key={role.id} style={styles.tag}>
+                      <Text style={styles.tagText}>{role.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
 
             {/* Permisos */}
-            {user.permissions && user.permissions.length > 0 && renderSection('Permisos', (
-              <View style={styles.tagsContainer}>
-                {user.permissions.map((permission) => (
-                  <View key={permission.key} style={[styles.tag, styles.permissionTag]}>
-                    <Text style={[styles.tagText, styles.permissionTagText]}>
-                      {permission.name || permission.key}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            ))}
+            {user.permissions &&
+              user.permissions.length > 0 &&
+              renderSection(
+                'Permisos',
+                <View style={styles.tagsContainer}>
+                  {user.permissions.map((permission) => (
+                    <View key={permission.key} style={[styles.tag, styles.permissionTag]}>
+                      <Text style={[styles.tagText, styles.permissionTagText]}>
+                        {permission.name || permission.key}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
 
             {/* Información del Sistema */}
-            {renderSection('Información del Sistema', (
+            {renderSection(
+              'Información del Sistema',
               <>
                 {renderInfoRow('ID', user.id)}
                 {renderInfoRow('Fecha de Creación', formatDate(user.createdAt))}
                 {renderInfoRow('Última Actualización', formatDate(user.updatedAt))}
-                {renderInfoRow('Estado Activo', user.is_active !== undefined ? (user.is_active ? 'Sí' : 'No') : undefined)}
+                {renderInfoRow(
+                  'Estado Activo',
+                  user.is_active !== undefined ? (user.is_active ? 'Sí' : 'No') : undefined
+                )}
               </>
-            ))}
+            )}
           </ScrollView>
 
           {/* Actions */}
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.button, styles.closeActionButton]}
-              onPress={onClose}
-            >
+            <TouchableOpacity style={[styles.button, styles.closeActionButton]} onPress={onClose}>
               <Text style={styles.closeActionButtonText}>Cerrar</Text>
             </TouchableOpacity>
 

@@ -21,7 +21,7 @@ import {
   userPermissionsApi,
   Role,
   Permission,
-  CreateRoleRequest
+  CreateRoleRequest,
 } from '@/services/api/roles';
 import { ProtectedRoute, ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -64,7 +64,6 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
   const [roleCode, setRoleCode] = useState('');
   const [roleName, setRoleName] = useState('');
   const [roleDescription, setRoleDescription] = useState('');
-
 
   const [roleSearchQuery, setRoleSearchQuery] = useState('');
   const { width, height } = useWindowDimensions();
@@ -114,17 +113,10 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
     }
   };
 
-
-
   // ALL hooks (useState, useEffect, etc.) must be declared before any early returns
   useEffect(() => {
-
     loadData();
   }, []);
-
-
-
-
 
   // Cargar roles cuando cambia la búsqueda
   useEffect(() => {
@@ -144,9 +136,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
         <Text style={styles.deniedMessage}>
           No tienes los permisos necesarios para acceder a esta sección.
         </Text>
-        <Text style={styles.deniedHint}>
-          Permisos requeridos: roles.read, permissions.read
-        </Text>
+        <Text style={styles.deniedHint}>Permisos requeridos: roles.read, permissions.read</Text>
       </View>
     );
   }
@@ -164,7 +154,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
       const roleData: CreateRoleRequest = {
         code: roleCode.toUpperCase(),
         name: roleName,
-        description: roleDescription
+        description: roleDescription,
       };
 
       const createdRole = await rolesApi.createRole(roleData);
@@ -204,7 +194,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
       setIsUpdatingRole(true);
       await rolesApi.updateRole(selectedRole.id, {
         name: roleName,
-        description: roleDescription
+        description: roleDescription,
       });
 
       Alert.alert('Éxito', 'Rol actualizado correctamente');
@@ -235,8 +225,8 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
             } catch (error: any) {
               Alert.alert('Error', error.message);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -255,7 +245,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
       const permissionsArray = Array.isArray(perms) ? perms : [];
 
       setRolePermissions(permissionsArray);
-      setSelectedPermissions(permissionsArray.map(p => p.key));
+      setSelectedPermissions(permissionsArray.map((p) => p.key));
       setShowRolePermissionsModal(true);
     } catch (error: any) {
       Alert.alert('Error', error.message);
@@ -263,22 +253,23 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
   };
 
   const handleUpdateRolePermissions = async () => {
-    if (!selectedRole) return;
+    if (!selectedRole) {
+      return;
+    }
 
     try {
       setIsUpdatingPermissions(true);
 
-
       // Ensure rolePermissions is an array before using map
       const currentPermsArray = Array.isArray(rolePermissions) ? rolePermissions : [];
-      const currentPerms = currentPermsArray.map(p => p.key);
+      const currentPerms = currentPermsArray.map((p) => p.key);
 
       // Ensure selectedPermissions is an array before filtering
       const selectedPermsArray = Array.isArray(selectedPermissions) ? selectedPermissions : [];
 
       // Calcular cambios para mostrar al usuario
-      const toAdd = selectedPermsArray.filter(p => !currentPerms.includes(p));
-      const toRemove = currentPerms.filter(p => !selectedPermsArray.includes(p));
+      const toAdd = selectedPermsArray.filter((p) => !currentPerms.includes(p));
+      const toRemove = currentPerms.filter((p) => !selectedPermsArray.includes(p));
 
       console.log('🔄 Actualizando permisos del rol:', selectedRole.name);
       console.log('  📊 Permisos actuales:', currentPerms.length);
@@ -342,9 +333,9 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
   };
 
   const togglePermission = (permissionKey: string) => {
-    setSelectedPermissions(prev =>
+    setSelectedPermissions((prev) =>
       prev.includes(permissionKey)
-        ? prev.filter(p => p !== permissionKey)
+        ? prev.filter((p) => p !== permissionKey)
         : [...prev, permissionKey]
     );
   };
@@ -358,7 +349,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
       return grouped;
     }
 
-    permissions.forEach(permission => {
+    permissions.forEach((permission) => {
       if (!grouped[permission.module]) {
         grouped[permission.module] = [];
       }
@@ -367,17 +358,19 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
 
     // Ordenar módulos alfabéticamente y permisos dentro de cada módulo
     const sortedGrouped: Record<string, Permission[]> = {};
-    Object.keys(grouped).sort().forEach(module => {
-      sortedGrouped[module] = grouped[module].sort((a, b) =>
-        a.description.localeCompare(b.description)
-      );
-    });
+    Object.keys(grouped)
+      .sort()
+      .forEach((module) => {
+        sortedGrouped[module] = grouped[module].sort((a, b) =>
+          a.description.localeCompare(b.description)
+        );
+      });
 
     return sortedGrouped;
   };
 
   const toggleModuleExpansion = (module: string) => {
-    setExpandedModules(prev => {
+    setExpandedModules((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(module)) {
         newSet.delete(module);
@@ -394,19 +387,17 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
       return;
     }
 
-    const modulePermissionKeys = modulePermissions.map(p => p.key);
-    const allSelected = modulePermissionKeys.every(key => selectedPermissions.includes(key));
+    const modulePermissionKeys = modulePermissions.map((p) => p.key);
+    const allSelected = modulePermissionKeys.every((key) => selectedPermissions.includes(key));
 
     if (allSelected) {
       // Deseleccionar todos los permisos del módulo
-      setSelectedPermissions(prev =>
-        prev.filter(key => !modulePermissionKeys.includes(key))
-      );
+      setSelectedPermissions((prev) => prev.filter((key) => !modulePermissionKeys.includes(key)));
     } else {
       // Seleccionar todos los permisos del módulo
-      setSelectedPermissions(prev => {
+      setSelectedPermissions((prev) => {
         const newSet = new Set(prev);
-        modulePermissionKeys.forEach(key => newSet.add(key));
+        modulePermissionKeys.forEach((key) => newSet.add(key));
         return Array.from(newSet);
       });
     }
@@ -419,12 +410,12 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
         count: 0,
         total: 0,
         isAllSelected: false,
-        isPartiallySelected: false
+        isPartiallySelected: false,
       };
     }
 
-    const modulePermissionKeys = modulePermissions.map(p => p.key);
-    const selectedCount = modulePermissionKeys.filter(key =>
+    const modulePermissionKeys = modulePermissions.map((p) => p.key);
+    const selectedCount = modulePermissionKeys.filter((key) =>
       selectedPermissions.includes(key)
     ).length;
 
@@ -432,11 +423,9 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
       count: selectedCount,
       total: modulePermissionKeys.length,
       isAllSelected: selectedCount === modulePermissionKeys.length,
-      isPartiallySelected: selectedCount > 0 && selectedCount < modulePermissionKeys.length
+      isPartiallySelected: selectedCount > 0 && selectedCount < modulePermissionKeys.length,
     };
   };
-
-
 
   const renderRole = ({ item }: { item: Role }) => (
     <View style={styles.roleCard}>
@@ -445,9 +434,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
         <Text style={styles.roleName}>{item.name}</Text>
       </View>
       <Text style={styles.roleDescription}>{item.description}</Text>
-      <Text style={styles.roleDate}>
-        Creado: {new Date(item.created_at).toLocaleDateString()}
-      </Text>
+      <Text style={styles.roleDate}>Creado: {new Date(item.created_at).toLocaleDateString()}</Text>
 
       <View style={styles.roleActions}>
         <ProtectedElement requiredPermissions={['roles.read']}>
@@ -484,7 +471,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
     <TouchableOpacity
       style={[
         styles.permissionItem,
-        selectedPermissions.includes(item.key) && styles.permissionItemSelected
+        selectedPermissions.includes(item.key) && styles.permissionItemSelected,
       ]}
       onPress={() => togglePermission(item.key)}
     >
@@ -492,13 +479,10 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
         <Text style={styles.permissionDescription}>{item.description}</Text>
         <Text style={styles.permissionKey}>{item.key}</Text>
       </View>
-      <View style={[
-        styles.checkbox,
-        selectedPermissions.includes(item.key) && styles.checkboxChecked
-      ]}>
-        {selectedPermissions.includes(item.key) && (
-          <Text style={styles.checkmark}>✓</Text>
-        )}
+      <View
+        style={[styles.checkbox, selectedPermissions.includes(item.key) && styles.checkboxChecked]}
+      >
+        {selectedPermissions.includes(item.key) && <Text style={styles.checkmark}>✓</Text>}
       </View>
     </TouchableOpacity>
   );
@@ -509,10 +493,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
 
     return (
       <View key={module} style={styles.moduleCard}>
-        <TouchableOpacity
-          style={styles.moduleHeader}
-          onPress={() => toggleModuleExpansion(module)}
-        >
+        <TouchableOpacity style={styles.moduleHeader} onPress={() => toggleModuleExpansion(module)}>
           <View style={styles.moduleInfo}>
             <Text style={styles.moduleName}>{module.toUpperCase()}</Text>
             <Text style={styles.moduleStatus}>
@@ -533,9 +514,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
               style={styles.expandButton}
               onPress={() => toggleModuleExpansion(module)}
             >
-              <Text style={styles.expandButtonText}>
-                {isExpanded ? '▼' : '▶'}
-              </Text>
+              <Text style={styles.expandButtonText}>{isExpanded ? '▼' : '▶'}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -543,9 +522,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
         {isExpanded && (
           <View style={styles.modulePermissions}>
             {modulePermissions.map((permission) => (
-              <View key={permission.key}>
-                {renderPermission({ item: permission })}
-              </View>
+              <View key={permission.key}>{renderPermission({ item: permission })}</View>
             ))}
           </View>
         )}
@@ -587,7 +564,10 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
           <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView style={[styles.content, isLandscape && styles.contentLandscape]} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={[styles.content, isLandscape && styles.contentLandscape]}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Roles Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Roles Existentes</Text>
@@ -606,9 +586,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
               <>
                 {/* Renderizando lista de roles */}
                 {roles.map((role) => (
-                  <View key={role.id}>
-                    {renderRole({ item: role })}
-                  </View>
+                  <View key={role.id}>{renderRole({ item: role })}</View>
                 ))}
               </>
             ) : (
@@ -620,16 +598,10 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
               </>
             )}
           </View>
-
-
         </ScrollView>
 
         {/* Create Role Modal */}
-        <Modal
-          visible={showCreateModal}
-          animationType="slide"
-          presentationStyle="pageSheet"
-        >
+        <Modal visible={showCreateModal} animationType="slide" presentationStyle="pageSheet">
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowCreateModal(false)}>
@@ -690,11 +662,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
         </Modal>
 
         {/* Edit Role Modal */}
-        <Modal
-          visible={showEditModal}
-          animationType="slide"
-          presentationStyle="pageSheet"
-        >
+        <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowEditModal(false)}>
@@ -754,9 +722,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
               <TouchableOpacity onPress={() => setShowRolePermissionsModal(false)}>
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>
-                Permisos de {selectedRole?.name}
-              </Text>
+              <Text style={styles.modalTitle}>Permisos de {selectedRole?.name}</Text>
               <TouchableOpacity
                 onPress={handleUpdateRolePermissions}
                 disabled={isUpdatingPermissions}
@@ -769,9 +735,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
 
             <ScrollView style={styles.modalContent}>
               <View style={styles.formGroup}>
-                <Text style={styles.label}>
-                  Permisos ({selectedPermissions.length})
-                </Text>
+                <Text style={styles.label}>Permisos ({selectedPermissions.length})</Text>
                 <ScrollView style={styles.permissionsList} showsVerticalScrollIndicator={true}>
                   {renderPermissionsByModule()}
                 </ScrollView>

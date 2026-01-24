@@ -65,21 +65,21 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
           limit: 100,
         });
         // Filter external companies on the client side
-        setCompanies(response.data.filter(c => c.companyType === 'EXTERNAL'));
+        setCompanies(response.data.filter((c) => c.companyType === 'EXTERNAL'));
       } else {
         // Load all companies first to get their types
         const companiesResponse = await companiesApi.getCompanies({ limit: 100 });
 
         // Create a map of companyId -> companyType for quick lookup
         const companyTypeMap = new Map<string, string>();
-        companiesResponse.data.forEach(company => {
+        companiesResponse.data.forEach((company) => {
           companyTypeMap.set(company.id, company.companyType);
         });
 
         console.log('📍 Companies loaded:', {
           total: companiesResponse.data.length,
-          internal: companiesResponse.data.filter(c => c.companyType === 'INTERNAL').length,
-          external: companiesResponse.data.filter(c => c.companyType === 'EXTERNAL').length
+          internal: companiesResponse.data.filter((c) => c.companyType === 'INTERNAL').length,
+          external: companiesResponse.data.filter((c) => c.companyType === 'EXTERNAL').length,
         });
 
         // Load all sites
@@ -87,16 +87,16 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
 
         console.log('📍 Sites loaded from API:', {
           total: sitesResponse.data.length,
-          sample: sitesResponse.data.slice(0, 3).map(s => ({
+          sample: sitesResponse.data.slice(0, 3).map((s) => ({
             id: s.id,
             name: s.name,
             companyId: s.companyId,
-            companyType: companyTypeMap.get(s.companyId)
-          }))
+            companyType: companyTypeMap.get(s.companyId),
+          })),
         });
 
         // Filter sites to show only those from INTERNAL companies
-        const internalSites = sitesResponse.data.filter(site => {
+        const internalSites = sitesResponse.data.filter((site) => {
           const companyType = companyTypeMap.get(site.companyId);
           if (companyType === 'INTERNAL') {
             return true;
@@ -107,7 +107,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
         console.log('📍 Filtered internal sites:', {
           total: sitesResponse.data.length,
           internal: internalSites.length,
-          filtered: sitesResponse.data.length - internalSites.length
+          filtered: sitesResponse.data.length - internalSites.length,
         });
 
         setSites(internalSites);
@@ -133,7 +133,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
     }
 
     // Check if already added
-    if (selectedParticipants.some(p => p.id === currentEntityId)) {
+    if (selectedParticipants.some((p) => p.id === currentEntityId)) {
       Alert.alert('Error', 'Este participante ya fue agregado a la lista');
       return;
     }
@@ -141,10 +141,10 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
     // Get entity name
     let entityName = '';
     if (participantType === ParticipantType.EXTERNAL_COMPANY) {
-      const company = companies.find(c => c.id === currentEntityId);
+      const company = companies.find((c) => c.id === currentEntityId);
       entityName = company?.alias || company?.name || '';
     } else {
-      const site = sites.find(s => s.id === currentEntityId);
+      const site = sites.find((s) => s.id === currentEntityId);
       entityName = site?.name || '';
     }
 
@@ -165,7 +165,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
   };
 
   const handleRemoveFromList = (id: string) => {
-    setSelectedParticipants(selectedParticipants.filter(p => p.id !== id));
+    setSelectedParticipants(selectedParticipants.filter((p) => p.id !== id));
   };
 
   const handleSaveAll = async () => {
@@ -220,26 +220,18 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
               ← Volver
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Agregar Participante
-          </Text>
+          <Text style={[styles.title, isTablet && styles.titleTablet]}>Agregar Participante</Text>
         </View>
 
         {/* Form */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
         >
           <View style={[styles.formCard, isTablet && styles.formCardTablet]}>
             {/* Participant Type */}
@@ -256,14 +248,8 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
                   }}
                   style={styles.picker}
                 >
-                  <Picker.Item
-                    label="Sede Interna"
-                    value={ParticipantType.INTERNAL_SITE}
-                  />
-                  <Picker.Item
-                    label="Empresa Externa"
-                    value={ParticipantType.EXTERNAL_COMPANY}
-                  />
+                  <Picker.Item label="Sede Interna" value={ParticipantType.INTERNAL_SITE} />
+                  <Picker.Item label="Empresa Externa" value={ParticipantType.EXTERNAL_COMPANY} />
                 </Picker>
               </View>
             </View>
@@ -278,10 +264,10 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
               <>
                 {participantType === ParticipantType.EXTERNAL_COMPANY && (
                   <View style={styles.formGroup}>
-                    <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                      Empresa *
-                    </Text>
-                    <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
+                    <Text style={[styles.label, isTablet && styles.labelTablet]}>Empresa *</Text>
+                    <View
+                      style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}
+                    >
                       <Picker
                         selectedValue={currentEntityId}
                         onValueChange={setCurrentEntityId}
@@ -302,10 +288,10 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
 
                 {participantType === ParticipantType.INTERNAL_SITE && (
                   <View style={styles.formGroup}>
-                    <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                      Sede *
-                    </Text>
-                    <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
+                    <Text style={[styles.label, isTablet && styles.labelTablet]}>Sede *</Text>
+                    <View
+                      style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}
+                    >
                       <Picker
                         selectedValue={currentEntityId}
                         onValueChange={setCurrentEntityId}
@@ -350,7 +336,9 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
               onPress={handleAddToList}
               disabled={loadingData}
             >
-              <Text style={[styles.addToListButtonText, isTablet && styles.addToListButtonTextTablet]}>
+              <Text
+                style={[styles.addToListButtonText, isTablet && styles.addToListButtonTextTablet]}
+              >
                 + Agregar a la Lista
               </Text>
             </TouchableOpacity>
@@ -361,31 +349,44 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
                 ℹ️ Información
               </Text>
               <Text style={[styles.infoText, isTablet && styles.infoTextTablet]}>
-                • El monto asignado determina el porcentaje de productos que recibirá este participante{'\n'}
-                • No se puede duplicar una empresa o sede en la misma campaña{'\n'}
-                • Solo se puede modificar en estado BORRADOR{'\n'}
-                • Puedes agregar varios participantes a la vez
+                • El monto asignado determina el porcentaje de productos que recibirá este
+                participante{'\n'}• No se puede duplicar una empresa o sede en la misma campaña
+                {'\n'}• Solo se puede modificar en estado BORRADOR{'\n'}• Puedes agregar varios
+                participantes a la vez
               </Text>
             </View>
           </View>
 
           {/* Selected Participants List */}
           {selectedParticipants.length > 0 && (
-            <View style={[styles.formCard, isTablet && styles.formCardTablet, styles.selectedListCard]}>
+            <View
+              style={[styles.formCard, isTablet && styles.formCardTablet, styles.selectedListCard]}
+            >
               <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
                 Participantes Seleccionados ({selectedParticipants.length})
               </Text>
 
               {selectedParticipants.map((participant) => (
-                <View key={participant.id} style={[styles.participantItem, isTablet && styles.participantItemTablet]}>
+                <View
+                  key={participant.id}
+                  style={[styles.participantItem, isTablet && styles.participantItemTablet]}
+                >
                   <View style={styles.participantInfo}>
-                    <Text style={[styles.participantName, isTablet && styles.participantNameTablet]}>
+                    <Text
+                      style={[styles.participantName, isTablet && styles.participantNameTablet]}
+                    >
                       {participant.name}
                     </Text>
-                    <Text style={[styles.participantType, isTablet && styles.participantTypeTablet]}>
-                      {participant.type === ParticipantType.EXTERNAL_COMPANY ? 'Empresa Externa' : 'Sede Interna'}
+                    <Text
+                      style={[styles.participantType, isTablet && styles.participantTypeTablet]}
+                    >
+                      {participant.type === ParticipantType.EXTERNAL_COMPANY
+                        ? 'Empresa Externa'
+                        : 'Sede Interna'}
                     </Text>
-                    <Text style={[styles.participantAmount, isTablet && styles.participantAmountTablet]}>
+                    <Text
+                      style={[styles.participantAmount, isTablet && styles.participantAmountTablet]}
+                    >
                       S/ {parseFloat(participant.assignedAmount).toFixed(2)}
                     </Text>
                   </View>
@@ -393,7 +394,9 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
                     style={[styles.removeButton, isTablet && styles.removeButtonTablet]}
                     onPress={() => handleRemoveFromList(participant.id)}
                   >
-                    <Text style={[styles.removeButtonText, isTablet && styles.removeButtonTextTablet]}>
+                    <Text
+                      style={[styles.removeButtonText, isTablet && styles.removeButtonTextTablet]}
+                    >
                       ✕
                     </Text>
                   </TouchableOpacity>
@@ -732,4 +735,3 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
-

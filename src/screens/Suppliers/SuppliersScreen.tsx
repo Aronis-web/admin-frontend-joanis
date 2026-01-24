@@ -60,11 +60,15 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
     } else {
       const filtered = suppliers.filter(
         (supplier) =>
-          (supplier.commercialName && supplier.commercialName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (supplier.commercialName &&
+            supplier.commercialName.toLowerCase().includes(searchQuery.toLowerCase())) ||
           (supplier.code && supplier.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (supplier.legalEntities && supplier.legalEntities.some(le =>
-            le.ruc.includes(searchQuery) || le.legalName.toLowerCase().includes(searchQuery.toLowerCase())
-          ))
+          (supplier.legalEntities &&
+            supplier.legalEntities.some(
+              (le) =>
+                le.ruc.includes(searchQuery) ||
+                le.legalName.toLowerCase().includes(searchQuery.toLowerCase())
+            ))
       );
       setFilteredSuppliers(filtered);
     }
@@ -76,7 +80,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
       const response = await suppliersService.getSuppliers({
         page,
         limit: pagination.limit,
-        isActive: true
+        isActive: true,
       });
 
       setSuppliers(response.data);
@@ -91,7 +95,8 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
       });
     } catch (error: any) {
       console.error('Error loading suppliers:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'No se pudieron cargar los proveedores';
+      const errorMessage =
+        error.response?.data?.message || error.message || 'No se pudieron cargar los proveedores';
       Alert.alert('Error', errorMessage);
       setSuppliers([]);
       setFilteredSuppliers([]);
@@ -135,20 +140,16 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que deseas cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-          },
+    Alert.alert('Cerrar Sesión', '¿Estás seguro de que deseas cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Sesión',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleSupplierPress = (supplier: Supplier) => {
@@ -160,26 +161,26 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
   };
 
   const formatCurrency = (cents?: number) => {
-    if (cents === undefined || cents === null) return 'S/ 0.00';
+    if (cents === undefined || cents === null) {
+      return 'S/ 0.00';
+    }
     return `S/ ${(cents / 100).toFixed(2)}`;
   };
 
   const getPrimaryLegalEntity = (supplier: Supplier) => {
-    return supplier.legalEntities?.find(le => le.isPrimary);
+    return supplier.legalEntities?.find((le) => le.isPrimary);
   };
 
   const renderSupplierCard = (supplier: Supplier) => {
     const primaryEntity = getPrimaryLegalEntity(supplier);
-    const totalDebt = supplier.companyDebts?.reduce((sum, debt) => sum + debt.totalDebtCents, 0) || 0;
+    const totalDebt =
+      supplier.companyDebts?.reduce((sum, debt) => sum + debt.totalDebtCents, 0) || 0;
     const unassignedBalance = supplier.unassignedBalance?.unassignedBalanceCents || 0;
 
     return (
       <TouchableOpacity
         key={supplier.id}
-        style={[
-          styles.supplierCard,
-          isTablet && styles.supplierCardTablet,
-        ]}
+        style={[styles.supplierCard, isTablet && styles.supplierCardTablet]}
         onPress={() => handleSupplierPress(supplier)}
         activeOpacity={0.7}
       >
@@ -201,9 +202,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
             )}
           </View>
           <View style={styles.statusBadge}>
-            <Text style={styles.statusBadgeText}>
-              {supplier.isActive ? '✓' : '✗'}
-            </Text>
+            <Text style={styles.statusBadgeText}>{supplier.isActive ? '✓' : '✗'}</Text>
           </View>
         </View>
 
@@ -227,7 +226,10 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
           {supplier.addressLine1 && (
             <View style={styles.detailRow}>
               <Text style={styles.detailIcon}>📍</Text>
-              <Text style={[styles.detailText, isTablet && styles.detailTextTablet]} numberOfLines={1}>
+              <Text
+                style={[styles.detailText, isTablet && styles.detailTextTablet]}
+                numberOfLines={1}
+              >
                 {supplier.addressLine1}
                 {supplier.district && `, ${supplier.district}`}
               </Text>
@@ -241,11 +243,13 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
               <Text style={[styles.debtLabel, isTablet && styles.debtLabelTablet]}>
                 Deuda Total:
               </Text>
-              <Text style={[
-                styles.debtAmount,
-                isTablet && styles.debtAmountTablet,
-                totalDebt > 0 && styles.debtAmountPositive
-              ]}>
+              <Text
+                style={[
+                  styles.debtAmount,
+                  isTablet && styles.debtAmountTablet,
+                  totalDebt > 0 && styles.debtAmountPositive,
+                ]}
+              >
                 {formatCurrency(totalDebt)}
               </Text>
             </View>
@@ -254,11 +258,13 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
                 <Text style={[styles.debtLabel, isTablet && styles.debtLabelTablet]}>
                   Sin Asignar:
                 </Text>
-                <Text style={[
-                  styles.debtAmount,
-                  isTablet && styles.debtAmountTablet,
-                  styles.debtAmountUnassigned
-                ]}>
+                <Text
+                  style={[
+                    styles.debtAmount,
+                    isTablet && styles.debtAmountTablet,
+                    styles.debtAmountUnassigned,
+                  ]}
+                >
                   {formatCurrency(unassignedBalance)}
                 </Text>
               </View>
@@ -315,23 +321,15 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
       </View>
 
       {/* Create Button */}
-      <ProtectedElement
-        requiredPermissions={['suppliers.create']}
-        fallback={null}
-      >
+      <ProtectedElement requiredPermissions={['suppliers.create']} fallback={null}>
         <AddButton onPress={handleCreateSupplier} icon="🏢" />
       </ProtectedElement>
 
       {/* Suppliers List */}
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[
-          styles.contentContainer,
-          isTablet && styles.contentContainerTablet,
-        ]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -347,10 +345,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
               {searchQuery ? 'No se encontraron proveedores' : 'No hay proveedores registrados'}
             </Text>
             {!searchQuery && (
-              <ProtectedElement
-                requiredPermissions={['suppliers.create']}
-                fallback={null}
-              >
+              <ProtectedElement requiredPermissions={['suppliers.create']} fallback={null}>
                 <TouchableOpacity
                   style={[styles.emptyButton, isTablet && styles.emptyButtonTablet]}
                   onPress={handleCreateSupplier}
@@ -363,7 +358,9 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
             )}
           </View>
         ) : (
-          <View style={[styles.suppliersGrid, isTablet && isLandscape && styles.suppliersGridLandscape]}>
+          <View
+            style={[styles.suppliersGrid, isTablet && isLandscape && styles.suppliersGridLandscape]}
+          >
             {filteredSuppliers.map(renderSupplierCard)}
           </View>
         )}

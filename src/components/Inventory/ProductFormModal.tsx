@@ -117,7 +117,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const loadAvailablePriceProfiles = async () => {
     try {
       setLoadingPriceProfiles(true);
-      const response = await priceProfilesApi.getPriceProfiles({ isActive: true, page: 1, limit: 100 });
+      const response = await priceProfilesApi.getPriceProfiles({
+        isActive: true,
+        page: 1,
+        limit: 100,
+      });
       setAvailablePriceProfiles(response.data || []);
       console.log('💰 Available price profiles loaded:', response.data?.length || 0);
     } catch (error: any) {
@@ -138,10 +142,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       console.log('📋 Site Name:', effectiveSite?.name);
 
       // Use warehousesApi with proper parameters
-      const warehouses = await warehousesApi.getWarehouses(
-        effectiveCompany?.id,
-        effectiveSite?.id
-      );
+      const warehouses = await warehousesApi.getWarehouses(effectiveCompany?.id, effectiveSite?.id);
 
       console.log('✅ Warehouses received from API:', warehouses?.length || 0);
       console.log('📦 Raw warehouses data:', JSON.stringify(warehouses, null, 2));
@@ -151,7 +152,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
       setAvailableWarehouses(filteredWarehouses);
       console.log('🏢 Available warehouses loaded:', filteredWarehouses.length);
-      console.log('🏢 Filtered warehouses:', filteredWarehouses.map(w => ({ id: w.id, name: w.name, isActive: w.isActive })));
+      console.log(
+        '🏢 Filtered warehouses:',
+        filteredWarehouses.map((w) => ({ id: w.id, name: w.name, isActive: w.isActive }))
+      );
 
       if (effectiveSite?.name) {
         console.log(`📍 Warehouses for site ${effectiveSite.name}:`, filteredWarehouses.length);
@@ -181,7 +185,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       console.log('🔄 Loading areas for warehouse:', warehouseId);
 
       // Find the warehouse in the availableWarehouses array
-      const selectedWarehouse = availableWarehouses.find(w => w.id === warehouseId);
+      const selectedWarehouse = availableWarehouses.find((w) => w.id === warehouseId);
 
       if (selectedWarehouse) {
         console.log('✅ Warehouse found in cache:', selectedWarehouse.name);
@@ -192,7 +196,15 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         console.log('📍 Available areas loaded from warehouse:', areas.length);
 
         if (areas.length > 0) {
-          console.log('📍 Areas list:', areas.map(a => ({ id: a.id, name: a.name, code: a.code, displayName: a.name || a.code })));
+          console.log(
+            '📍 Areas list:',
+            areas.map((a) => ({
+              id: a.id,
+              name: a.name,
+              code: a.code,
+              displayName: a.name || a.code,
+            }))
+          );
         } else {
           console.log('⚠️ No areas found for this warehouse');
         }
@@ -209,7 +221,15 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         console.log('📍 Available areas loaded from API:', areas?.length || 0);
 
         if (areas && areas.length > 0) {
-          console.log('📍 Areas list:', areas.map(a => ({ id: a.id, name: a.name, code: a.code, displayName: a.name || a.code })));
+          console.log(
+            '📍 Areas list:',
+            areas.map((a) => ({
+              id: a.id,
+              name: a.name,
+              code: a.code,
+              displayName: a.name || a.code,
+            }))
+          );
         }
       }
     } catch (error: any) {
@@ -230,7 +250,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       loadAreasForWarehouse(formData.warehouseId);
     } else {
       setAvailableAreas([]);
-      setFormData(prev => ({ ...prev, areaId: '' }));
+      setFormData((prev) => ({ ...prev, areaId: '' }));
     }
   }, [formData.warehouseId]);
 
@@ -239,7 +259,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       const productStatus: 'draft' | 'active' | 'archived' =
         product.status === 'inactive' || product.status === 'discontinued'
           ? 'archived'
-          : (product.status === 'draft' || product.status === 'active' || product.status === 'archived')
+          : product.status === 'draft' ||
+              product.status === 'active' ||
+              product.status === 'archived'
             ? product.status
             : 'draft';
       setFormData({
@@ -269,7 +291,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           }))
         );
       }
-
     } else {
       resetForm();
     }
@@ -336,7 +357,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       // Validación: Todas las presentaciones deben tener código y factor válido
       for (const p of presentations) {
         if (!p.presentationIdOrCode.trim()) {
-          Alert.alert('Error', 'Todas las presentaciones deben seleccionar una presentación del catálogo');
+          Alert.alert(
+            'Error',
+            'Todas las presentaciones deben seleccionar una presentación del catálogo'
+          );
           return false;
         }
         if (p.factorToBase <= 0) {
@@ -351,7 +375,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       }
 
       // Validación: No puede haber presentaciones duplicadas
-      const codes = presentations.map(p => p.presentationIdOrCode);
+      const codes = presentations.map((p) => p.presentationIdOrCode);
       const uniqueCodes = new Set(codes);
       if (codes.length !== uniqueCodes.size) {
         Alert.alert('Error', 'No puede haber presentaciones duplicadas');
@@ -381,7 +405,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     setLoading(true);
     try {
@@ -411,7 +437,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         console.log('✅ Product created successfully:', createdProduct.id);
 
         // Si se especificó stock inicial, crearlo automáticamente
-        if (formData.warehouseId && formData.initialStock && parseFloat(formData.initialStock) > 0) {
+        if (
+          formData.warehouseId &&
+          formData.initialStock &&
+          parseFloat(formData.initialStock) > 0
+        ) {
           try {
             await inventoryApi.adjustStock({
               productId: createdProduct.id,
@@ -422,9 +452,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               clientOperationId: `initial-stock-${createdProduct.id}-${Date.now()}`,
             });
 
-            const warehouseName = availableWarehouses.find(w => w.id === formData.warehouseId)?.name || 'almacén';
-            const selectedArea = formData.areaId ? availableAreas.find(a => a.id === formData.areaId) : null;
-            const areaName = selectedArea ? (selectedArea.name || selectedArea.code) : null;
+            const warehouseName =
+              availableWarehouses.find((w) => w.id === formData.warehouseId)?.name || 'almacén';
+            const selectedArea = formData.areaId
+              ? availableAreas.find((a) => a.id === formData.areaId)
+              : null;
+            const areaName = selectedArea ? selectedArea.name || selectedArea.code : null;
             const locationText = areaName ? `${warehouseName} - ${areaName}` : warehouseName;
 
             Alert.alert(
@@ -463,7 +496,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
         await productsApi.updateProduct(product!.id, updateData);
 
-        Alert.alert('Éxito', 'Producto actualizado correctamente. Los precios de venta se recalcularon automáticamente.');
+        Alert.alert(
+          'Éxito',
+          'Producto actualizado correctamente. Los precios de venta se recalcularon automáticamente.'
+        );
         onSuccess();
         onClose();
       }
@@ -481,7 +517,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       return [];
     }
 
-    const salePrices: { presentationIdOrCode: string; profileIdOrCode: string; priceCents: number }[] = [];
+    const salePrices: {
+      presentationIdOrCode: string;
+      profileIdOrCode: string;
+      priceCents: number;
+    }[] = [];
     const costCents = parseFloat(formData.costCents);
 
     if (isNaN(costCents) || costCents <= 0) {
@@ -492,9 +532,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     presentations.forEach((presentation) => {
       availablePriceProfiles.forEach((profile) => {
         // Calcular precio: costCents * factorToBase * factorToCost
-        const factorToCost = typeof profile.factorToCost === 'string'
-          ? parseFloat(profile.factorToCost)
-          : profile.factorToCost;
+        const factorToCost =
+          typeof profile.factorToCost === 'string'
+            ? parseFloat(profile.factorToCost)
+            : profile.factorToCost;
 
         const priceCents = Math.round(costCents * presentation.factorToBase * factorToCost);
 
@@ -538,21 +579,17 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         onPress: () => promptForInitialQuantity(createdProduct, w),
       }));
 
-      Alert.alert(
-        'Seleccionar Almacén',
-        'Elige el almacén donde deseas crear el stock inicial:',
-        [
-          ...warehouseOptions,
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-            onPress: () => {
-              onSuccess();
-              onClose();
-            },
+      Alert.alert('Seleccionar Almacén', 'Elige el almacén donde deseas crear el stock inicial:', [
+        ...warehouseOptions,
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+          onPress: () => {
+            onSuccess();
+            onClose();
           },
-        ]
-      );
+        },
+      ]);
     } catch (error: any) {
       console.error('Error loading warehouses:', error);
       Alert.alert(
@@ -613,7 +650,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               console.error('Error creating initial stock:', error);
               Alert.alert(
                 'Error',
-                error.message || 'No se pudo crear el stock inicial. Puedes crearlo manualmente desde la pantalla de inventario.'
+                error.message ||
+                  'No se pudo crear el stock inicial. Puedes crearlo manualmente desde la pantalla de inventario.'
               );
               onSuccess();
               onClose();
@@ -707,9 +745,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 <Text style={styles.label}>#Correlativo (Auto-generado)</Text>
                 <View style={styles.correlativeDisplay}>
                   <Text style={styles.correlativeText}>#{product.correlativeNumber}</Text>
-                  <Text style={styles.correlativeHint}>
-                    Número único e inmutable del producto
-                  </Text>
+                  <Text style={styles.correlativeHint}>Número único e inmutable del producto</Text>
                 </View>
               </View>
             )}
@@ -728,9 +764,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   editable={mode === 'create'}
                 />
                 {mode === 'create' && (
-                  <Text style={styles.hint}>
-                    ℹ️ Los SKUs duplicados están permitidos
-                  </Text>
+                  <Text style={styles.hint}>ℹ️ Los SKUs duplicados están permitidos</Text>
                 )}
               </View>
 
@@ -775,8 +809,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                       {formData.status === 'draft'
                         ? 'Borrador'
                         : formData.status === 'active'
-                        ? 'Activo'
-                        : 'Archivado'}
+                          ? 'Activo'
+                          : 'Archivado'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -834,7 +868,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     : 'Costo en centavos (ej: 1000 = S/ 10.00)'}
                 </Text>
                 <Text style={styles.infoText}>
-                  💡 Los precios de venta se calcularán automáticamente según los perfiles de precio configurados
+                  💡 Los precios de venta se calcularán automáticamente según los perfiles de precio
+                  configurados
                 </Text>
               </View>
 
@@ -856,21 +891,26 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           <View style={styles.infoSection}>
             <Text style={styles.infoTitle}>📸 Gestión de Imágenes</Text>
             <Text style={styles.infoText}>
-              Las imágenes del producto se gestionan por separado. Después de crear o editar el producto,
-              puedes usar el botón "📸 Fotos" en la lista de productos para agregar, ver o eliminar imágenes.
+              Las imágenes del producto se gestionan por separado. Después de crear o editar el
+              producto, puedes usar el botón "📸 Fotos" en la lista de productos para agregar, ver o
+              eliminar imágenes.
             </Text>
           </View>
 
           {/* Stock Inicial (solo en modo crear) */}
           {mode === 'create' && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Stock Inicial <Text style={styles.required}>*</Text></Text>
+              <Text style={styles.sectionTitle}>
+                Stock Inicial <Text style={styles.required}>*</Text>
+              </Text>
               <Text style={styles.infoText}>
                 📊 Debes crear stock inicial para este producto al momento de crearlo.
               </Text>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Almacén <Text style={styles.required}>*</Text></Text>
+                <Text style={styles.label}>
+                  Almacén <Text style={styles.required}>*</Text>
+                </Text>
                 {loadingWarehouses ? (
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator size="small" color="#3B82F6" />
@@ -883,7 +923,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         style={styles.picker}
                         onPress={() => {
                           if (availableWarehouses.length === 0) {
-                            Alert.alert('Sin almacenes', 'No hay almacenes disponibles. Por favor, crea uno primero.');
+                            Alert.alert(
+                              'Sin almacenes',
+                              'No hay almacenes disponibles. Por favor, crea uno primero.'
+                            );
                             return;
                           }
 
@@ -894,7 +937,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
                           Alert.alert('Seleccionar Almacén', '', [
                             ...options,
-                            { text: 'Ninguno', onPress: () => setFormData({ ...formData, warehouseId: '', areaId: '' }) },
+                            {
+                              text: 'Ninguno',
+                              onPress: () =>
+                                setFormData({ ...formData, warehouseId: '', areaId: '' }),
+                            },
                             { text: 'Cancelar', style: 'cancel' },
                           ]);
                         }}
@@ -902,8 +949,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         <Text style={styles.pickerText}>
                           {formData.warehouseId
                             ? (() => {
-                                const selected = availableWarehouses.find((w) => w.id === formData.warehouseId);
-                                return selected ? `${selected.name} (${selected.code})` : 'Seleccionar almacén...';
+                                const selected = availableWarehouses.find(
+                                  (w) => w.id === formData.warehouseId
+                                );
+                                return selected
+                                  ? `${selected.name} (${selected.code})`
+                                  : 'Seleccionar almacén...';
                               })()
                             : 'Seleccionar almacén...'}
                         </Text>
@@ -920,7 +971,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
               {formData.warehouseId && (
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>Área <Text style={styles.required}>*</Text></Text>
+                  <Text style={styles.label}>
+                    Área <Text style={styles.required}>*</Text>
+                  </Text>
                   {loadingAreas ? (
                     <View style={styles.loadingContainer}>
                       <ActivityIndicator size="small" color="#3B82F6" />
@@ -944,7 +997,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
                             Alert.alert('Seleccionar Área', '', [
                               ...options,
-                              { text: 'Ninguna', onPress: () => setFormData({ ...formData, areaId: '' }) },
+                              {
+                                text: 'Ninguna',
+                                onPress: () => setFormData({ ...formData, areaId: '' }),
+                              },
                               { text: 'Cancelar', style: 'cancel' },
                             ]);
                           }}
@@ -952,8 +1008,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                           <Text style={styles.pickerText}>
                             {formData.areaId
                               ? (() => {
-                                  const selected = availableAreas.find((a) => a.id === formData.areaId);
-                                  return selected ? (selected.name || selected.code || `Área ${selected.id.substring(0, 8)}`) : 'Seleccionar área...';
+                                  const selected = availableAreas.find(
+                                    (a) => a.id === formData.areaId
+                                  );
+                                  return selected
+                                    ? selected.name ||
+                                        selected.code ||
+                                        `Área ${selected.id.substring(0, 8)}`
+                                    : 'Seleccionar área...';
                                 })()
                               : 'Seleccionar área...'}
                           </Text>
@@ -971,7 +1033,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
               {formData.warehouseId && (
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>Cantidad Inicial (en unidades base) <Text style={styles.required}>*</Text></Text>
+                  <Text style={styles.label}>
+                    Cantidad Inicial (en unidades base) <Text style={styles.required}>*</Text>
+                  </Text>
                   <TextInput
                     style={styles.input}
                     value={formData.initialStock}
@@ -999,14 +1063,16 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </View>
 
               <Text style={styles.infoText}>
-                📦 Las presentaciones son del catálogo global, pero cada producto define sus propios factores de conversión.
+                📦 Las presentaciones son del catálogo global, pero cada producto define sus propios
+                factores de conversión.
                 {'\n'}
                 {'\n'}💡 Ejemplo: Leche Gloria 1L
                 {'\n'}• 1 Unidad (UN) = 1 unidad base (factor: 1) ✓ BASE
                 {'\n'}• 1 Paquete (PK) = 6 unidades (factor: 6)
                 {'\n'}• 1 Caja (CJ) = 24 unidades (factor: 24)
                 {'\n'}
-                {'\n'}⚠️ El costo se define por unidad base. Los precios de venta se calculan automáticamente según los perfiles de precio configurados.
+                {'\n'}⚠️ El costo se define por unidad base. Los precios de venta se calculan
+                automáticamente según los perfiles de precio configurados.
               </Text>
 
               {presentations.map((presentation, index) => (
@@ -1034,13 +1100,17 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                             style={styles.picker}
                             onPress={() => {
                               if (availablePresentations.length === 0) {
-                                Alert.alert('Sin presentaciones', 'No hay presentaciones disponibles. Por favor, crea una primero.');
+                                Alert.alert(
+                                  'Sin presentaciones',
+                                  'No hay presentaciones disponibles. Por favor, crea una primero.'
+                                );
                                 return;
                               }
 
                               const options = availablePresentations.map((p) => ({
                                 text: `${p.code} - ${p.name}`,
-                                onPress: () => updatePresentation(index, 'presentationIdOrCode', p.code),
+                                onPress: () =>
+                                  updatePresentation(index, 'presentationIdOrCode', p.code),
                               }));
 
                               Alert.alert('Seleccionar Presentación', '', [
@@ -1055,7 +1125,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                                     const selected = availablePresentations.find(
                                       (p) => p.code === presentation.presentationIdOrCode
                                     );
-                                    return selected ? `${selected.code} - ${selected.name}` : presentation.presentationIdOrCode;
+                                    return selected
+                                      ? `${selected.code} - ${selected.name}`
+                                      : presentation.presentationIdOrCode;
                                   })()
                                 : 'Seleccionar presentación...'}
                             </Text>
@@ -1100,7 +1172,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
                     <View style={[styles.formGroup, styles.formGroupHalf]}>
                       <Text style={styles.label}>
-                        Factor a Base {!presentation.isBase && <Text style={styles.required}>*</Text>}
+                        Factor a Base{' '}
+                        {!presentation.isBase && <Text style={styles.required}>*</Text>}
                       </Text>
                       <TextInput
                         style={[styles.input, presentation.isBase && styles.inputDisabled]}
@@ -1112,28 +1185,43 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                           }
                           console.log('✏️ Editando factor:', text);
                           const value = text.trim() === '' ? '' : parseFloat(text);
-                          if (text.trim() === '' || (!isNaN(value as number) && (value as number) > 0)) {
-                            updatePresentation(index, 'factorToBase', value === '' ? 1 : (value as number));
+                          if (
+                            text.trim() === '' ||
+                            (!isNaN(value as number) && (value as number) > 0)
+                          ) {
+                            updatePresentation(
+                              index,
+                              'factorToBase',
+                              value === '' ? 1 : (value as number)
+                            );
                           }
                         }}
-                        placeholder={presentation.isBase ? "1" : "Ej: 6, 12, 24"}
+                        placeholder={presentation.isBase ? '1' : 'Ej: 6, 12, 24'}
                         placeholderTextColor="#94A3B8"
                         keyboardType="numeric"
                         editable={!presentation.isBase}
-                        onFocus={() => console.log('🎯 Factor field focused - isBase:', presentation.isBase)}
+                        onFocus={() =>
+                          console.log('🎯 Factor field focused - isBase:', presentation.isBase)
+                        }
                       />
                       <Text style={styles.helpText}>
                         {presentation.isBase
                           ? '✓ La presentación base siempre tiene factor 1'
                           : presentation.presentationIdOrCode
-                          ? `Cuántas unidades base contiene 1 ${presentation.presentationIdOrCode}`
-                          : 'Cuántas unidades base contiene esta presentación'}
+                            ? `Cuántas unidades base contiene 1 ${presentation.presentationIdOrCode}`
+                            : 'Cuántas unidades base contiene esta presentación'}
                       </Text>
-                      {!presentation.isBase && presentation.factorToBase > 1 && formData.costCents && (
-                        <Text style={styles.calculationText}>
-                          💰 Costo por {presentation.presentationIdOrCode}: S/ {((parseFloat(formData.costCents) * presentation.factorToBase) / 100).toFixed(2)}
-                        </Text>
-                      )}
+                      {!presentation.isBase &&
+                        presentation.factorToBase > 1 &&
+                        formData.costCents && (
+                          <Text style={styles.calculationText}>
+                            💰 Costo por {presentation.presentationIdOrCode}: S/{' '}
+                            {(
+                              (parseFloat(formData.costCents) * presentation.factorToBase) /
+                              100
+                            ).toFixed(2)}
+                          </Text>
+                        )}
                     </View>
                   </View>
 
@@ -1178,51 +1266,61 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           )}
 
           {/* Preview de Precios de Venta (solo en modo crear) */}
-          {mode === 'create' && formData.costCents && parseFloat(formData.costCents) > 0 && availablePriceProfiles.length > 0 && presentations.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Vista Previa de Precios de Venta</Text>
-              <Text style={styles.infoText}>
-                💰 Los siguientes precios se generarán automáticamente al crear el producto:
-              </Text>
+          {mode === 'create' &&
+            formData.costCents &&
+            parseFloat(formData.costCents) > 0 &&
+            availablePriceProfiles.length > 0 &&
+            presentations.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Vista Previa de Precios de Venta</Text>
+                <Text style={styles.infoText}>
+                  💰 Los siguientes precios se generarán automáticamente al crear el producto:
+                </Text>
 
-              {presentations.map((presentation, presIndex) => {
-                const presentationData = availablePresentations.find(p => p.code === presentation.presentationIdOrCode);
-                const presentationName = presentationData ? `${presentationData.code} - ${presentationData.name}` : presentation.presentationIdOrCode;
+                {presentations.map((presentation, presIndex) => {
+                  const presentationData = availablePresentations.find(
+                    (p) => p.code === presentation.presentationIdOrCode
+                  );
+                  const presentationName = presentationData
+                    ? `${presentationData.code} - ${presentationData.name}`
+                    : presentation.presentationIdOrCode;
 
-                return (
-                  <View key={presIndex} style={styles.pricePreviewCard}>
-                    <Text style={styles.pricePreviewTitle}>
-                      📦 {presentationName} (Factor: {presentation.factorToBase})
-                    </Text>
+                  return (
+                    <View key={presIndex} style={styles.pricePreviewCard}>
+                      <Text style={styles.pricePreviewTitle}>
+                        📦 {presentationName} (Factor: {presentation.factorToBase})
+                      </Text>
 
-                    {availablePriceProfiles.map((profile, profIndex) => {
-                      const factorToCost = typeof profile.factorToCost === 'string'
-                        ? parseFloat(profile.factorToCost)
-                        : profile.factorToCost;
-                      const costCents = parseFloat(formData.costCents);
-                      const priceCents = Math.round(costCents * presentation.factorToBase * factorToCost);
-                      const priceInSoles = (priceCents / 100).toFixed(2);
+                      {availablePriceProfiles.map((profile, profIndex) => {
+                        const factorToCost =
+                          typeof profile.factorToCost === 'string'
+                            ? parseFloat(profile.factorToCost)
+                            : profile.factorToCost;
+                        const costCents = parseFloat(formData.costCents);
+                        const priceCents = Math.round(
+                          costCents * presentation.factorToBase * factorToCost
+                        );
+                        const priceInSoles = (priceCents / 100).toFixed(2);
 
-                      return (
-                        <View key={profIndex} style={styles.pricePreviewItem}>
-                          <Text style={styles.pricePreviewLabel}>
-                            {profile.name} (x{factorToCost}):
-                          </Text>
-                          <Text style={styles.pricePreviewValue}>
-                            S/ {priceInSoles}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                );
-              })}
+                        return (
+                          <View key={profIndex} style={styles.pricePreviewItem}>
+                            <Text style={styles.pricePreviewLabel}>
+                              {profile.name} (x{factorToCost}):
+                            </Text>
+                            <Text style={styles.pricePreviewValue}>S/ {priceInSoles}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  );
+                })}
 
-              <Text style={styles.helpText}>
-                ℹ️ Estos precios se pueden modificar posteriormente desde la gestión de precios de venta
-              </Text>
-            </View>
-          )}
+                <Text style={styles.helpText}>
+                  ℹ️ Estos precios se pueden modificar posteriormente desde la gestión de precios de
+                  venta
+                </Text>
+              </View>
+            )}
         </ScrollView>
 
         {/* Footer */}

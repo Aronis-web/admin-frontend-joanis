@@ -39,7 +39,10 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
 
   // Get companyId and companyName from route params or from currentCompany
   const companyId = (route.params?.companyId || currentCompany?.id || '') as string;
-  const companyName = (route.params?.companyName || currentCompany?.alias || currentCompany?.name || '') as string;
+  const companyName = (route.params?.companyName ||
+    currentCompany?.alias ||
+    currentCompany?.name ||
+    '') as string;
 
   const [sites, setSites] = useState<UserCompanySite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,8 +72,8 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
               index: 0,
               routes: [{ name: 'Login' }],
             });
-          }
-        }
+          },
+        },
       ]);
       return;
     }
@@ -96,17 +99,21 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       console.log('📦 Respuesta de scopes (raw):', JSON.stringify(userScopes, null, 2));
 
       // Filter scopes for the current company and site level
-      const companySiteScopes = userScopes.filter(scope => {
+      const companySiteScopes = userScopes.filter((scope) => {
         const matchesCompany = scope.companyId === companyId;
         const hasSite = scope.siteId !== null && scope.siteId !== undefined;
         const isSiteLevel = scope.level === 'SITE';
         return matchesCompany && hasSite && isSiteLevel;
       });
 
-      console.log('📋 Scopes filtrados para la empresa:', companySiteScopes.length, 'scopes encontrados');
+      console.log(
+        '📋 Scopes filtrados para la empresa:',
+        companySiteScopes.length,
+        'scopes encontrados'
+      );
 
       // Convert ResolvedScope to UserCompanySite format
-      const sitesArray: UserCompanySite[] = companySiteScopes.map(scope => ({
+      const sitesArray: UserCompanySite[] = companySiteScopes.map((scope) => ({
         id: scope.siteId!,
         siteId: scope.siteId!,
         companyId: scope.companyId,
@@ -186,7 +193,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
         siteName,
         siteCode,
         canSelect: site.canSelect,
-        rawSiteObject: site
+        rawSiteObject: site,
       });
 
       // Prepare site data
@@ -200,10 +207,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       console.log('📝 Datos de sede preparados:', siteData);
 
       // Save to AsyncStorage first
-      await AsyncStorage.setItem(
-        config.STORAGE_KEYS.CURRENT_SITE,
-        JSON.stringify(siteData)
-      );
+      await AsyncStorage.setItem(config.STORAGE_KEYS.CURRENT_SITE, JSON.stringify(siteData));
 
       console.log('💾 Sede guardada en AsyncStorage');
 
@@ -220,7 +224,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       console.log('✅ Tenant store actualizado con sede');
 
       // Give stores time to update before navigation check
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       console.log('🚀 Stores actualizados - Verificando estado de navegación...');
 
@@ -237,7 +241,6 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
         index: 0,
         routes: [{ name: 'Home' }],
       });
-
     } catch (error) {
       console.error('❌ Error selecting site:', error);
       Alert.alert('Error', 'No se pudo seleccionar la sede');
@@ -250,25 +253,21 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que deseas cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            // Navigate to login screen after logout
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          },
+    Alert.alert('Cerrar Sesión', '¿Estás seguro de que deseas cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Sesión',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          // Navigate to login screen after logout
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (loading) {
@@ -302,17 +301,21 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.infoCard}>
           <Text style={styles.infoIcon}>ℹ️</Text>
-          <Text style={styles.infoText}>
-            Selecciona la sede con la que deseas trabajar
-          </Text>
+          <Text style={styles.infoText}>Selecciona la sede con la que deseas trabajar</Text>
         </View>
 
         <View style={styles.sitesContainer}>
           {sites.map((userSite, index) => {
             // Handle different possible API response structures
-            const siteId = userSite.siteId || userSite.id || (userSite as any).Site?.id || `site-${index}`;
-            const siteName = userSite.site?.name || (userSite as any).Site?.name || (userSite as any).name || 'Sede sin nombre';
-            const siteCode = userSite.site?.code || (userSite as any).Site?.code || (userSite as any).code;
+            const siteId =
+              userSite.siteId || userSite.id || (userSite as any).Site?.id || `site-${index}`;
+            const siteName =
+              userSite.site?.name ||
+              (userSite as any).Site?.name ||
+              (userSite as any).name ||
+              'Sede sin nombre';
+            const siteCode =
+              userSite.site?.code || (userSite as any).Site?.code || (userSite as any).code;
             const canSelect = userSite.canSelect !== undefined ? userSite.canSelect : true;
 
             return (
@@ -333,9 +336,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
                   </View>
                   <View style={styles.siteInfo}>
                     <Text style={styles.siteName}>{siteName}</Text>
-                    {siteCode && (
-                      <Text style={styles.siteCode}>Código: {siteCode}</Text>
-                    )}
+                    {siteCode && <Text style={styles.siteCode}>Código: {siteCode}</Text>}
                     <View style={styles.siteFooter}>
                       {!canSelect && (
                         <View style={styles.restrictedBadge}>
@@ -362,7 +363,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            {sites.filter(s => s.canSelect).length} de {sites.length}{' '}
+            {sites.filter((s) => s.canSelect).length} de {sites.length}{' '}
             {sites.length === 1 ? 'sede disponible' : 'sedes disponibles'}
           </Text>
         </View>
@@ -551,4 +552,3 @@ const styles = StyleSheet.create({
 });
 
 export default SiteSelectionScreen;
-

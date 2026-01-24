@@ -59,7 +59,9 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
-  const [newImages, setNewImages] = useState<Array<{ uri: string; filename: string; mimeType?: string }>>([]);
+  const [newImages, setNewImages] = useState<
+    Array<{ uri: string; filename: string; mimeType?: string }>
+  >([]);
   const [generatingPromo, setGeneratingPromo] = useState(false);
   const [showPromoPreview, setShowPromoPreview] = useState(false);
   const [selectedImageForPromo, setSelectedImageForPromo] = useState<ProductImage | null>(null);
@@ -142,7 +144,9 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
   // Pick images from gallery
   const handlePickImages = async () => {
     const hasPermission = await requestPermissions();
-    if (!hasPermission) return;
+    if (!hasPermission) {
+      return;
+    }
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -205,21 +209,17 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
   // Remove new image (not yet uploaded)
   const handleRemoveNewImage = (index: number) => {
-    Alert.alert(
-      'Eliminar Imagen',
-      '¿Estás seguro de que deseas eliminar esta imagen?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => {
-            const updatedImages = newImages.filter((_, i) => i !== index);
-            setNewImages(updatedImages);
-          },
+    Alert.alert('Eliminar Imagen', '¿Estás seguro de que deseas eliminar esta imagen?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: () => {
+          const updatedImages = newImages.filter((_, i) => i !== index);
+          setNewImages(updatedImages);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Delete existing image from server
@@ -272,13 +272,8 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
       console.log(`📸 Uploading ${newImages.length} new images...`);
 
       // Upload each image individually
-      const uploadPromises = newImages.map(img =>
-        filesApi.uploadProductImage(
-          img.uri,
-          product.id,
-          img.filename,
-          img.mimeType
-        )
+      const uploadPromises = newImages.map((img) =>
+        filesApi.uploadProductImage(img.uri, product.id, img.filename, img.mimeType)
       );
 
       await Promise.all(uploadPromises);
@@ -330,7 +325,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
   };
 
   const handlePositionChange = (axis: 'x' | 'y', value: number) => {
-    setImagePosition(prev => ({
+    setImagePosition((prev) => ({
       ...prev,
       [axis]: value,
     }));
@@ -339,7 +334,10 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
   // Capture and save promotional image
   const handleSavePromoImage = async () => {
     if (!ViewShot || !FileSystem) {
-      Alert.alert('Error', 'Dependencias no instaladas. Instala: expo-file-system y react-native-view-shot');
+      Alert.alert(
+        'Error',
+        'Dependencias no instaladas. Instala: expo-file-system y react-native-view-shot'
+      );
       return;
     }
 
@@ -428,11 +426,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
               <View style={styles.imagesGrid}>
                 {productImages.map((image, index) => (
                   <View key={image.filename} style={styles.imageCard}>
-                    <Image
-                      source={{ uri: image.url }}
-                      style={styles.image}
-                      resizeMode="cover"
-                    />
+                    <Image source={{ uri: image.url }} style={styles.image} resizeMode="cover" />
                     {index === 0 && (
                       <View style={styles.mainImageBadge}>
                         <Text style={styles.mainImageBadgeText}>Principal</Text>
@@ -446,7 +440,10 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                         <Text style={styles.promoButtonText}>🎨</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[styles.deleteButton, deleting === image.filename && styles.deleteButtonDisabled]}
+                        style={[
+                          styles.deleteButton,
+                          deleting === image.filename && styles.deleteButtonDisabled,
+                        ]}
                         onPress={() => handleDeleteImage(image)}
                         disabled={deleting === image.filename}
                       >
@@ -468,9 +465,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
           {newImages.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                  📷 Nuevas Imágenes ({newImages.length})
-                </Text>
+                <Text style={styles.sectionTitle}>📷 Nuevas Imágenes ({newImages.length})</Text>
                 <TouchableOpacity
                   onPress={handleUploadImages}
                   style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]}
@@ -485,11 +480,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
               <View style={styles.imagesGrid}>
                 {newImages.map((image, index) => (
                   <View key={index} style={styles.imageCard}>
-                    <Image
-                      source={{ uri: image.uri }}
-                      style={styles.image}
-                      resizeMode="cover"
-                    />
+                    <Image source={{ uri: image.uri }} style={styles.image} resizeMode="cover" />
                     <TouchableOpacity
                       style={styles.deleteButton}
                       onPress={() => handleRemoveNewImage(index)}
@@ -519,9 +510,9 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
             </View>
 
             <Text style={styles.infoText}>
-              💡 Selecciona imágenes de la galería o toma fotos con la cámara.
-              Las imágenes seleccionadas aparecerán en la sección "Nuevas Imágenes"
-              y deberás subirlas manualmente.
+              💡 Selecciona imágenes de la galería o toma fotos con la cámara. Las imágenes
+              seleccionadas aparecerán en la sección "Nuevas Imágenes" y deberás subirlas
+              manualmente.
             </Text>
           </View>
         </ScrollView>
@@ -556,13 +547,15 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
               contentContainerStyle={styles.promoModalContent}
             >
               {ViewShot ? (
-                <View style={[
-                  styles.promoPreviewContainer,
-                  containerSize > 0 && {
-                    width: containerSize,
-                    height: containerSize,
-                  }
-                ]}>
+                <View
+                  style={[
+                    styles.promoPreviewContainer,
+                    containerSize > 0 && {
+                      width: containerSize,
+                      height: containerSize,
+                    },
+                  ]}
+                >
                   <View style={styles.promoImageContainer}>
                     <ViewShot
                       ref={viewShotRef}
@@ -574,11 +567,13 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                         borderRadius: 9,
                       }}
                     >
-                      <View style={{
-                        width: containerSize,
-                        height: containerSize,
-                        backgroundColor: '#000',
-                      }}>
+                      <View
+                        style={{
+                          width: containerSize,
+                          height: containerSize,
+                          backgroundColor: '#000',
+                        }}
+                      >
                         {selectedImageForPromo && (
                           <Image
                             source={{ uri: selectedImageForPromo.url }}
@@ -599,9 +594,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                         {/* Branding - Top */}
                         <View style={styles.promoBrandingTop}>
                           <View style={styles.promoBranding}>
-                            <Text style={styles.promoBrandingText}>
-                              🔥 ¡OFERTA ESPECIAL!
-                            </Text>
+                            <Text style={styles.promoBrandingText}>🔥 ¡OFERTA ESPECIAL!</Text>
                           </View>
                         </View>
 
@@ -609,7 +602,9 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                         <View style={styles.promoOverlay}>
                           {/* Product Title */}
                           <View style={styles.promoTitleContainer}>
-                            <Text style={styles.promoProductTitle} numberOfLines={2}>{product.title}</Text>
+                            <Text style={styles.promoProductTitle} numberOfLines={2}>
+                              {product.title}
+                            </Text>
                             <Text style={styles.promoProductSku}>SKU: {product.sku}</Text>
                           </View>
 
@@ -617,9 +612,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                           <View style={styles.promoPricesContainer}>
                             {salePrices.map((price: any, index: number) => (
                               <View key={index} style={styles.promoPriceCard}>
-                                <Text style={styles.promoPriceLabel}>
-                                  {price.profileName}:
-                                </Text>
+                                <Text style={styles.promoPriceLabel}>{price.profileName}:</Text>
                                 <Text style={styles.promoPriceValue}>
                                   {formatPrice(price.priceCents, product.currency)}
                                 </Text>
@@ -640,13 +633,15 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                   </View>
                 </View>
               ) : (
-                <View style={[
-                  styles.promoPreviewContainer,
-                  containerSize > 0 && {
-                    width: containerSize,
-                    height: containerSize,
-                  }
-                ]}>
+                <View
+                  style={[
+                    styles.promoPreviewContainer,
+                    containerSize > 0 && {
+                      width: containerSize,
+                      height: containerSize,
+                    },
+                  ]}
+                >
                   <View style={styles.promoImageContainer}>
                     {selectedImageForPromo && (
                       <Image
@@ -667,23 +662,21 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                     {/* Branding - Top */}
                     <View style={styles.promoBrandingTop}>
                       <View style={styles.promoBranding}>
-                        <Text style={styles.promoBrandingText}>
-                          🔥 ¡OFERTA ESPECIAL!
-                        </Text>
+                        <Text style={styles.promoBrandingText}>🔥 ¡OFERTA ESPECIAL!</Text>
                       </View>
                     </View>
 
                     <View style={styles.promoOverlay}>
                       <View style={styles.promoTitleContainer}>
-                        <Text style={styles.promoProductTitle} numberOfLines={2}>{product.title}</Text>
+                        <Text style={styles.promoProductTitle} numberOfLines={2}>
+                          {product.title}
+                        </Text>
                         <Text style={styles.promoProductSku}>SKU: {product.sku}</Text>
                       </View>
                       <View style={styles.promoPricesContainer}>
                         {salePrices.map((price: any, index: number) => (
                           <View key={index} style={styles.promoPriceCard}>
-                            <Text style={styles.promoPriceLabel}>
-                              {price.profileName}:
-                            </Text>
+                            <Text style={styles.promoPriceLabel}>{price.profileName}:</Text>
                             <Text style={styles.promoPriceValue}>
                               {formatPrice(price.priceCents, product.currency)}
                             </Text>
@@ -784,7 +777,8 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                   <Text style={styles.helpBadgeText}>📐 ÁREA DE CAPTURA</Text>
                 </View>
                 <Text style={styles.promoHelpText}>
-                  El borde morado muestra el área cuadrada que se guardará. Ajusta la imagen para que quede centrada dentro del cuadrado.
+                  El borde morado muestra el área cuadrada que se guardará. Ajusta la imagen para
+                  que quede centrada dentro del cuadrado.
                 </Text>
               </View>
             </ScrollView>

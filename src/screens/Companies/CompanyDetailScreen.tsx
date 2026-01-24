@@ -186,27 +186,23 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
   };
 
   const handleDeleteSite = (site: Site) => {
-    Alert.alert(
-      'Confirmar Eliminación',
-      `¿Estás seguro de eliminar la sede "${site.name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await companiesApi.deleteSite(site.id);
-              Alert.alert('Éxito', 'Sede eliminada correctamente');
-              loadSites();
-            } catch (error: any) {
-              console.error('Error deleting site:', error);
-              Alert.alert('Error', error.message || 'No se pudo eliminar la sede');
-            }
-          },
+    Alert.alert('Confirmar Eliminación', `¿Estás seguro de eliminar la sede "${site.name}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await companiesApi.deleteSite(site.id);
+            Alert.alert('Éxito', 'Sede eliminada correctamente');
+            loadSites();
+          } catch (error: any) {
+            console.error('Error deleting site:', error);
+            Alert.alert('Error', error.message || 'No se pudo eliminar la sede');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleCreatePaymentMethod = async () => {
@@ -367,7 +363,12 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Estado:</Text>
-          <View style={[styles.statusBadge, company?.isActive ? styles.statusActive : styles.statusInactive]}>
+          <View
+            style={[
+              styles.statusBadge,
+              company?.isActive ? styles.statusActive : styles.statusInactive,
+            ]}
+          >
             <Text style={styles.statusText}>{company?.isActive ? 'Activo' : 'Inactivo'}</Text>
           </View>
         </View>
@@ -399,27 +400,31 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
                 {item.phone && <Text style={styles.itemSubtitle}>📞 {item.phone}</Text>}
                 {item.fullAddress && <Text style={styles.itemSubtitle}>📍 {item.fullAddress}</Text>}
               </View>
-              <View style={[styles.statusBadge, item.isActive ? styles.statusActive : styles.statusInactive]}>
+              <View
+                style={[
+                  styles.statusBadge,
+                  item.isActive ? styles.statusActive : styles.statusInactive,
+                ]}
+              >
                 <Text style={styles.statusText}>{item.isActive ? 'Activo' : 'Inactivo'}</Text>
               </View>
             </View>
             <View style={styles.itemActions}>
               <TouchableOpacity
                 style={styles.warehousesButton}
-                onPress={() => navigation.navigate('Warehouses', {
-                  companyId: companyId,
-                  companyName: company?.alias || company?.name || '',
-                  siteId: item.id,
-                  siteName: item.name,
-                  siteCode: item.code,
-                })}
+                onPress={() =>
+                  navigation.navigate('Warehouses', {
+                    companyId: companyId,
+                    companyName: company?.alias || company?.name || '',
+                    siteId: item.id,
+                    siteName: item.name,
+                    siteCode: item.code,
+                  })
+                }
               >
                 <Text style={styles.warehousesButtonText}>📦 Almacenes</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => handleDeleteSite(item)}
-              >
+              <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteSite(item)}>
                 <Text style={styles.deleteButtonText}>🗑️ Eliminar</Text>
               </TouchableOpacity>
             </View>
@@ -431,10 +436,7 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
           </View>
         }
       />
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setShowCreateSiteModal(true)}
-      >
+      <TouchableOpacity style={styles.addButton} onPress={() => setShowCreateSiteModal(true)}>
         <Text style={styles.addButtonText}>+ Nueva Sede</Text>
       </TouchableOpacity>
     </View>
@@ -451,9 +453,16 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
               <View style={styles.itemInfo}>
                 <Text style={styles.itemTitle}>{item.name}</Text>
                 {item.alias && <Text style={styles.itemSubtitle}>Alias: {item.alias}</Text>}
-                {item.methodType && <Text style={styles.itemSubtitle}>Tipo: {item.methodType}</Text>}
+                {item.methodType && (
+                  <Text style={styles.itemSubtitle}>Tipo: {item.methodType}</Text>
+                )}
               </View>
-              <View style={[styles.statusBadge, item.isActive ? styles.statusActive : styles.statusInactive]}>
+              <View
+                style={[
+                  styles.statusBadge,
+                  item.isActive ? styles.statusActive : styles.statusInactive,
+                ]}
+              >
                 <Text style={styles.statusText}>{item.isActive ? 'Activo' : 'Inactivo'}</Text>
               </View>
             </View>
@@ -503,10 +512,7 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
           </View>
         }
       />
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setShowCreatePaymentModal(true)}
-      >
+      <TouchableOpacity style={styles.addButton} onPress={() => setShowCreatePaymentModal(true)}>
         <Text style={styles.addButtonText}>+ Nuevo Método de Pago</Text>
       </TouchableOpacity>
     </View>
@@ -607,16 +613,30 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
                 <View style={styles.radioGroup}>
                   <TouchableOpacity
                     style={styles.radioOption}
-                    onPress={() => setCompanyForm({ ...companyForm, companyType: CompanyType.EXTERNAL })}
+                    onPress={() =>
+                      setCompanyForm({ ...companyForm, companyType: CompanyType.EXTERNAL })
+                    }
                   >
-                    <View style={[styles.radio, companyForm.companyType === CompanyType.EXTERNAL && styles.radioSelected]} />
+                    <View
+                      style={[
+                        styles.radio,
+                        companyForm.companyType === CompanyType.EXTERNAL && styles.radioSelected,
+                      ]}
+                    />
                     <Text style={styles.radioLabel}>Externa</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.radioOption}
-                    onPress={() => setCompanyForm({ ...companyForm, companyType: CompanyType.INTERNAL })}
+                    onPress={() =>
+                      setCompanyForm({ ...companyForm, companyType: CompanyType.INTERNAL })
+                    }
                   >
-                    <View style={[styles.radio, companyForm.companyType === CompanyType.INTERNAL && styles.radioSelected]} />
+                    <View
+                      style={[
+                        styles.radio,
+                        companyForm.companyType === CompanyType.INTERNAL && styles.radioSelected,
+                      ]}
+                    />
                     <Text style={styles.radioLabel}>Interna</Text>
                   </TouchableOpacity>
                 </View>
@@ -625,7 +645,9 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
               <View style={styles.formGroup}>
                 <TouchableOpacity
                   style={styles.checkboxContainer}
-                  onPress={() => setCompanyForm({ ...companyForm, isActive: !companyForm.isActive })}
+                  onPress={() =>
+                    setCompanyForm({ ...companyForm, isActive: !companyForm.isActive })
+                  }
                 >
                   <View style={[styles.checkbox, companyForm.isActive && styles.checkboxChecked]}>
                     {companyForm.isActive && <Text style={styles.checkboxIcon}>✓</Text>}
@@ -800,7 +822,9 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
               <View style={styles.formGroup}>
                 <TouchableOpacity
                   style={styles.checkboxContainer}
-                  onPress={() => setPaymentForm({ ...paymentForm, isActive: !paymentForm.isActive })}
+                  onPress={() =>
+                    setPaymentForm({ ...paymentForm, isActive: !paymentForm.isActive })
+                  }
                 >
                   <View style={[styles.checkbox, paymentForm.isActive && styles.checkboxChecked]}>
                     {paymentForm.isActive && <Text style={styles.checkboxIcon}>✓</Text>}
@@ -850,16 +874,30 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
                 <View style={styles.radioGroup}>
                   <TouchableOpacity
                     style={styles.radioOption}
-                    onPress={() => setAccountForm({ ...accountForm, accountType: AccountType.SAVINGS })}
+                    onPress={() =>
+                      setAccountForm({ ...accountForm, accountType: AccountType.SAVINGS })
+                    }
                   >
-                    <View style={[styles.radio, accountForm.accountType === AccountType.SAVINGS && styles.radioSelected]} />
+                    <View
+                      style={[
+                        styles.radio,
+                        accountForm.accountType === AccountType.SAVINGS && styles.radioSelected,
+                      ]}
+                    />
                     <Text style={styles.radioLabel}>Ahorros</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.radioOption}
-                    onPress={() => setAccountForm({ ...accountForm, accountType: AccountType.CHECKING })}
+                    onPress={() =>
+                      setAccountForm({ ...accountForm, accountType: AccountType.CHECKING })
+                    }
                   >
-                    <View style={[styles.radio, accountForm.accountType === AccountType.CHECKING && styles.radioSelected]} />
+                    <View
+                      style={[
+                        styles.radio,
+                        accountForm.accountType === AccountType.CHECKING && styles.radioSelected,
+                      ]}
+                    />
                     <Text style={styles.radioLabel}>Corriente</Text>
                   </TouchableOpacity>
                 </View>
@@ -872,14 +910,24 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
                     style={styles.radioOption}
                     onPress={() => setAccountForm({ ...accountForm, currency: Currency.PEN })}
                   >
-                    <View style={[styles.radio, accountForm.currency === Currency.PEN && styles.radioSelected]} />
+                    <View
+                      style={[
+                        styles.radio,
+                        accountForm.currency === Currency.PEN && styles.radioSelected,
+                      ]}
+                    />
                     <Text style={styles.radioLabel}>PEN (S/)</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.radioOption}
                     onPress={() => setAccountForm({ ...accountForm, currency: Currency.USD })}
                   >
-                    <View style={[styles.radio, accountForm.currency === Currency.USD && styles.radioSelected]} />
+                    <View
+                      style={[
+                        styles.radio,
+                        accountForm.currency === Currency.USD && styles.radioSelected,
+                      ]}
+                    />
                     <Text style={styles.radioLabel}>USD ($)</Text>
                   </TouchableOpacity>
                 </View>
@@ -898,7 +946,9 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
               <View style={styles.formGroup}>
                 <TouchableOpacity
                   style={styles.checkboxContainer}
-                  onPress={() => setAccountForm({ ...accountForm, isActive: !accountForm.isActive })}
+                  onPress={() =>
+                    setAccountForm({ ...accountForm, isActive: !accountForm.isActive })
+                  }
                 >
                   <View style={[styles.checkbox, accountForm.isActive && styles.checkboxChecked]}>
                     {accountForm.isActive && <Text style={styles.checkboxIcon}>✓</Text>}

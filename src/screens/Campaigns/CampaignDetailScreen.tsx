@@ -67,14 +67,24 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<CampaignProduct | null>(null);
   const [showBannerModal, setShowBannerModal] = useState(false);
   const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
-  const [productSalePrices, setProductSalePrices] = useState<Record<string, ProductSalePrice[]>>({});
+  const [productSalePrices, setProductSalePrices] = useState<Record<string, ProductSalePrice[]>>(
+    {}
+  );
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
-  const [editingPrice, setEditingPrice] = useState<{productId: string, profileId: string, value: string} | null>(null);
-  const [editingCost, setEditingCost] = useState<{productId: string, value: string} | null>(null);
+  const [editingPrice, setEditingPrice] = useState<{
+    productId: string;
+    profileId: string;
+    value: string;
+  } | null>(null);
+  const [editingCost, setEditingCost] = useState<{ productId: string; value: string } | null>(null);
   const [savingPrice, setSavingPrice] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [distributionFilter, setDistributionFilter] = useState<'all' | 'generated' | 'not-generated'>('all');
-  const [participantTotals, setParticipantTotals] = useState<ParticipantTotalsResponse | null>(null);
+  const [distributionFilter, setDistributionFilter] = useState<
+    'all' | 'generated' | 'not-generated'
+  >('all');
+  const [participantTotals, setParticipantTotals] = useState<ParticipantTotalsResponse | null>(
+    null
+  );
   const [downloadingReport, setDownloadingReport] = useState(false);
   const { width, height } = useWindowDimensions();
   const hasLoadedRef = useRef(false);
@@ -97,19 +107,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // Load companies and sites for participants
       if (data.participants && data.participants.length > 0) {
         const companyIds = data.participants
-          .filter(p => p.participantType === 'EXTERNAL_COMPANY' && p.companyId)
-          .map(p => p.companyId!);
+          .filter((p) => p.participantType === 'EXTERNAL_COMPANY' && p.companyId)
+          .map((p) => p.companyId!);
 
         const siteIds = data.participants
-          .filter(p => p.participantType === 'INTERNAL_SITE' && p.siteId)
-          .map(p => p.siteId!);
+          .filter((p) => p.participantType === 'INTERNAL_SITE' && p.siteId)
+          .map((p) => p.siteId!);
 
         // Load companies
         if (companyIds.length > 0) {
           try {
             const companiesResponse = await companiesApi.getCompanies({ limit: 100 });
             const companiesMap: Record<string, Company> = {};
-            companiesResponse.data.forEach(company => {
+            companiesResponse.data.forEach((company) => {
               if (companyIds.includes(company.id)) {
                 companiesMap[company.id] = company;
               }
@@ -125,7 +135,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           try {
             const sitesResponse = await sitesApi.getSites({ limit: 100 });
             const sitesMap: Record<string, Site> = {};
-            sitesResponse.data.forEach(site => {
+            sitesResponse.data.forEach((site) => {
               if (siteIds.includes(site.id)) {
                 sitesMap[site.id] = site;
               }
@@ -156,10 +166,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         // Collect products that are already embedded in the response
         let embeddedCount = 0;
-        data.products.forEach(campaignProduct => {
+        data.products.forEach((campaignProduct) => {
           if (campaignProduct.product) {
             embeddedCount++;
-            logger.info(`✅ Embedded product found: ${campaignProduct.product.id} - ${campaignProduct.product.title || campaignProduct.product.sku}`);
+            logger.info(
+              `✅ Embedded product found: ${campaignProduct.product.id} - ${campaignProduct.product.title || campaignProduct.product.sku}`
+            );
             productsMap[campaignProduct.productId] = campaignProduct.product as any;
           }
         });
@@ -168,21 +180,26 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         // Find products that are NOT embedded and need to be fetched
         const missingProductIds = data.products
-          .filter(p => !p.product)
-          .map(p => p.productId)
+          .filter((p) => !p.product)
+          .map((p) => p.productId)
           .filter((id, index, self) => self.indexOf(id) === index); // unique IDs
 
         // Fetch missing products if any
         if (missingProductIds.length > 0) {
           try {
-            logger.info(`🔍 Fetching ${missingProductIds.length} missing products:`, missingProductIds.slice(0, 5));
+            logger.info(
+              `🔍 Fetching ${missingProductIds.length} missing products:`,
+              missingProductIds.slice(0, 5)
+            );
 
             // Try fetching products individually by ID since bulk fetch isn't working
             await Promise.all(
               missingProductIds.map(async (productId) => {
                 try {
                   const product = await productsApi.getProductById(productId);
-                  logger.info(`✅ Fetched product: ${product.id} - ${product.title || product.sku} - Costo: ${product.costCents}`);
+                  logger.info(
+                    `✅ Fetched product: ${product.id} - ${product.title || product.sku} - Costo: ${product.costCents}`
+                  );
                   productsMap[productId] = product;
                 } catch (error) {
                   logger.error(`❌ Error fetching product ${productId}:`, error);
@@ -220,7 +237,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   useFocusEffect(
     useCallback(() => {
       // Check if we should force reload (e.g., after editing a product)
-      const params = route.params as { campaignId: string; shouldReload?: boolean; skipReloadOnce?: boolean };
+      const params = route.params as {
+        campaignId: string;
+        shouldReload?: boolean;
+        skipReloadOnce?: boolean;
+      };
       const shouldReload = params?.shouldReload;
       const skipReloadOnce = params?.skipReloadOnce;
 
@@ -266,7 +287,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   };
 
   const handleActivate = async () => {
-    if (!campaign) return;
+    if (!campaign) {
+      return;
+    }
 
     Alert.alert(
       'Activar Campaña',
@@ -297,7 +320,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   };
 
   const handleClose = async () => {
-    if (!campaign) return;
+    if (!campaign) {
+      return;
+    }
 
     Alert.alert(
       'Cerrar Campaña',
@@ -314,10 +339,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               Alert.alert('Éxito', 'Campaña cerrada exitosamente');
               loadCampaign();
             } catch (error: any) {
-              Alert.alert(
-                'Error',
-                error.response?.data?.message || 'No se pudo cerrar la campaña'
-              );
+              Alert.alert('Error', error.response?.data?.message || 'No se pudo cerrar la campaña');
             } finally {
               setActionLoading(false);
             }
@@ -328,67 +350,73 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   };
 
   const handleCancel = async () => {
-    if (!campaign) return;
+    if (!campaign) {
+      return;
+    }
 
-    Alert.alert(
-      'Cancelar Campaña',
-      '¿Estás seguro de cancelar esta campaña?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Sí, Cancelar',
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              await campaignsService.cancelCampaign(campaignId);
-              Alert.alert('Éxito', 'Campaña cancelada exitosamente');
-              loadCampaign();
-            } catch (error: any) {
-              Alert.alert(
-                'Error',
-                error.response?.data?.message || 'No se pudo cancelar la campaña'
-              );
-            } finally {
-              setActionLoading(false);
-            }
-          },
+    Alert.alert('Cancelar Campaña', '¿Estás seguro de cancelar esta campaña?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Sí, Cancelar',
+        style: 'destructive',
+        onPress: async () => {
+          setActionLoading(true);
+          try {
+            await campaignsService.cancelCampaign(campaignId);
+            Alert.alert('Éxito', 'Campaña cancelada exitosamente');
+            loadCampaign();
+          } catch (error: any) {
+            Alert.alert('Error', error.response?.data?.message || 'No se pudo cancelar la campaña');
+          } finally {
+            setActionLoading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+  const formatDate = useCallback((dateString?: string) => {
+    if (!dateString) {
+      return 'N/A';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
-  };
+  }, []);
 
-  const getStatusBadgeStyle = (status: CampaignStatus) => {
-    return {
-      backgroundColor: CampaignStatusColors[status] + '20',
-      borderColor: CampaignStatusColors[status],
-    };
-  };
+  const getStatusBadgeStyle = useCallback(
+    (status: CampaignStatus) => {
+      return {
+        backgroundColor: CampaignStatusColors[status] + '20',
+        borderColor: CampaignStatusColors[status],
+      };
+    },
+    []
+  );
 
-  const getStatusTextStyle = (status: CampaignStatus) => {
-    return {
-      color: CampaignStatusColors[status],
-    };
-  };
+  const getStatusTextStyle = useCallback(
+    (status: CampaignStatus) => {
+      return {
+        color: CampaignStatusColors[status],
+      };
+    },
+    []
+  );
 
-  const renderTabs = () => {
-    const tabs: Array<{ key: TabType; label: string }> = [
+  const tabs = useMemo<Array<{ key: TabType; label: string }>>(
+    () => [
       { key: 'overview', label: 'Resumen' },
       { key: 'participants', label: 'Participantes' },
       { key: 'products', label: 'Productos' },
-    ];
+    ],
+    []
+  );
 
-    return (
+  const renderTabs = useMemo(
+    () => (
       <View style={styles.tabsContainer}>
         {tabs.map((tab) => (
           <TouchableOpacity
@@ -412,18 +440,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           </TouchableOpacity>
         ))}
       </View>
-    );
-  };
+    ),
+    [activeTab, isTablet, tabs]
+  );
 
   const renderOverview = () => {
-    if (!campaign) return null;
+    if (!campaign) {
+      return null;
+    }
 
     const totalParticipants = campaign.participants?.length || 0;
     const totalProducts = campaign.products?.length || 0;
     const activeProducts =
       campaign.products?.filter((p) => p.productStatus === 'ACTIVE').length || 0;
-    const generatedProducts =
-      campaign.products?.filter((p) => p.distributionGenerated).length || 0;
+    const generatedProducts = campaign.products?.filter((p) => p.distributionGenerated).length || 0;
 
     return (
       <View style={styles.overviewContainer}>
@@ -434,18 +464,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           </Text>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Código:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Código:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {campaign.code}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Nombre:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Nombre:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {campaign.name}
             </Text>
@@ -463,9 +489,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           )}
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Estado:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Estado:</Text>
             <View
               style={[
                 styles.statusBadge,
@@ -498,9 +522,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
           {campaign.endDate && (
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Fecha Fin:
-              </Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Fecha Fin:</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {formatDate(campaign.endDate)}
               </Text>
@@ -508,9 +530,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           )}
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Creado:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Creado:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {formatDate(campaign.createdAt)}
             </Text>
@@ -518,9 +538,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
           {campaign.closedAt && (
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Cerrado:
-              </Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Cerrado:</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {formatDate(campaign.closedAt)}
               </Text>
@@ -548,27 +566,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
                 {totalProducts}
               </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Productos
-              </Text>
+              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Productos</Text>
             </View>
 
             <View style={[styles.statCard, isTablet && styles.statCardTablet]}>
               <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
                 {activeProducts}
               </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Activos
-              </Text>
+              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Activos</Text>
             </View>
 
             <View style={[styles.statCard, isTablet && styles.statCardTablet]}>
               <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
                 {generatedProducts}
               </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Generados
-              </Text>
+              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Generados</Text>
             </View>
           </View>
         </View>
@@ -576,9 +588,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         {/* Notes */}
         {campaign.notes && (
           <View style={[styles.section, isTablet && styles.sectionTablet]}>
-            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-              Notas
-            </Text>
+            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>Notas</Text>
             <Text style={[styles.notesText, isTablet && styles.notesTextTablet]}>
               {campaign.notes}
             </Text>
@@ -601,7 +611,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');
       logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-      logger.info('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
@@ -651,76 +661,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       }
     } catch (error: any) {
       logger.error('Error downloading report:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudo descargar el reporte'
-      );
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte');
     } finally {
       setDownloadingReport(false);
     }
   };
 
-  const formatCurrency = (cents: number) => {
+  const formatCurrency = useCallback((cents: number) => {
     return `S/ ${(cents / 100).toFixed(2)}`;
-  };
+  }, []);
 
-  const handleOpenCopyParticipantsModal = async () => {
-    try {
-      setActionLoading(true);
-
-      // Load all campaigns except the current one, ordered by creation date (newest first)
-      const response = await campaignsService.getCampaigns({
-        limit: 100,
-        orderBy: 'createdAt',
-        orderDir: 'DESC'
-      });
-
-      // Filter campaigns that are not the current one
-      const otherCampaigns = response.data.filter(c => c.id !== campaignId);
-
-      if (otherCampaigns.length === 0) {
-        Alert.alert('Error', 'No hay otras campañas disponibles para copiar participantes');
-        setActionLoading(false);
-        return;
-      }
-
-      // Get the most recent campaign (first one after ordering by createdAt DESC)
-      const latestCampaign = otherCampaigns[0];
-
-      // Load the full campaign details with participants
-      logger.info('📥 Cargando participantes de la campaña:', latestCampaign.code);
-      const fullCampaign = await campaignsService.getCampaign(latestCampaign.id);
-
-      if (!fullCampaign.participants || fullCampaign.participants.length === 0) {
-        Alert.alert('Error', `La campaña "${latestCampaign.code} - ${latestCampaign.name}" no tiene participantes para copiar`);
-        setActionLoading(false);
-        return;
-      }
-
-      // Show confirmation dialog
-      Alert.alert(
-        'Copiar Participantes',
-        `¿Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campaña "${latestCampaign.code} - ${latestCampaign.name}"?`,
-        [
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-            onPress: () => setActionLoading(false)
-          },
-          {
-            text: 'Copiar',
-            onPress: () => handleCopyParticipantsFromCampaign(fullCampaign)
-          }
-        ]
-      );
-    } catch (error: any) {
-      logger.error('Error loading campaigns for copy:', error);
-      Alert.alert('Error', error.message || 'No se pudieron cargar las campañas');
-      setActionLoading(false);
-    }
-  };
-
-  const handleCopyParticipantsFromCampaign = async (sourceCampaign: Campaign) => {
+  const handleCopyParticipantsFromCampaign = useCallback(async (sourceCampaign: Campaign) => {
     try {
       if (!sourceCampaign || !sourceCampaign.participants) {
         Alert.alert('Error', 'No se encontraron participantes en la campaña seleccionada');
@@ -772,16 +723,78 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [campaignId, loadCampaign]);
+
+  const handleOpenCopyParticipantsModal = useCallback(async () => {
+    try {
+      setActionLoading(true);
+
+      // Load all campaigns except the current one, ordered by creation date (newest first)
+      const response = await campaignsService.getCampaigns({
+        limit: 100,
+        orderBy: 'createdAt',
+        orderDir: 'DESC',
+      });
+
+      // Filter campaigns that are not the current one
+      const otherCampaigns = response.data.filter((c) => c.id !== campaignId);
+
+      if (otherCampaigns.length === 0) {
+        Alert.alert('Error', 'No hay otras campañas disponibles para copiar participantes');
+        setActionLoading(false);
+        return;
+      }
+
+      // Get the most recent campaign (first one after ordering by createdAt DESC)
+      const latestCampaign = otherCampaigns[0];
+
+      // Load the full campaign details with participants
+      logger.info('📥 Cargando participantes de la campaña:', latestCampaign.code);
+      const fullCampaign = await campaignsService.getCampaign(latestCampaign.id);
+
+      if (!fullCampaign.participants || fullCampaign.participants.length === 0) {
+        Alert.alert(
+          'Error',
+          `La campaña "${latestCampaign.code} - ${latestCampaign.name}" no tiene participantes para copiar`
+        );
+        setActionLoading(false);
+        return;
+      }
+
+      // Show confirmation dialog
+      Alert.alert(
+        'Copiar Participantes',
+        `¿Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campaña "${latestCampaign.code} - ${latestCampaign.name}"?`,
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => setActionLoading(false),
+          },
+          {
+            text: 'Copiar',
+            onPress: () => handleCopyParticipantsFromCampaign(fullCampaign),
+          },
+        ]
+      );
+    } catch (error: any) {
+      logger.error('Error loading campaigns for copy:', error);
+      Alert.alert('Error', error.message || 'No se pudieron cargar las campañas');
+      setActionLoading(false);
+    }
+  }, [campaignId, handleCopyParticipantsFromCampaign]);
 
   const renderParticipants = () => {
-    if (!campaign) return null;
+    if (!campaign) {
+      return null;
+    }
 
     // Calculate total expected amount from all participants
-    const totalExpectedAmountCents = campaign.participants?.reduce(
-      (sum, participant) => sum + (participant.assignedAmountCents || 0),
-      0
-    ) || 0;
+    const totalExpectedAmountCents =
+      campaign.participants?.reduce(
+        (sum, participant) => sum + (participant.assignedAmountCents || 0),
+        0
+      ) || 0;
 
     return (
       <View style={styles.tabContent}>
@@ -790,7 +803,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
               Participantes ({campaign.participants?.length || 0})
             </Text>
-            {(campaign.status === CampaignStatus.DRAFT || campaign.status === CampaignStatus.ACTIVE) && (
+            {(campaign.status === CampaignStatus.DRAFT ||
+              campaign.status === CampaignStatus.ACTIVE) && (
               <View style={styles.headerButtons}>
                 <TouchableOpacity
                   style={[styles.copyButton, isTablet && styles.copyButtonTablet]}
@@ -802,9 +816,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.addButton, isTablet && styles.addButtonTablet]}
-                  onPress={() =>
-                    navigation.navigate('AddCampaignParticipant', { campaignId })
-                  }
+                  onPress={() => navigation.navigate('AddCampaignParticipant', { campaignId })}
                 >
                   <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
                     + Agregar
@@ -826,7 +838,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
                     Total Compra
                   </Text>
-                  <Text style={[styles.summaryValuePurchase, isTablet && styles.summaryValueTablet]}>
+                  <Text
+                    style={[styles.summaryValuePurchase, isTablet && styles.summaryValueTablet]}
+                  >
                     {formatCurrency(participantTotals.totalPurchaseCents)}
                   </Text>
                 </View>
@@ -847,7 +861,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   <Text style={[styles.summaryValueMargin, isTablet && styles.summaryValueTablet]}>
                     {formatCurrency(participantTotals.totalMarginCents)}
                   </Text>
-                  <Text style={[styles.summaryPercentage, isTablet && styles.summaryPercentageTablet]}>
+                  <Text
+                    style={[styles.summaryPercentage, isTablet && styles.summaryPercentageTablet]}
+                  >
                     ({participantTotals.totalMarginPercentage.toFixed(2)}%)
                   </Text>
                 </View>
@@ -856,7 +872,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
                     Total Esperado
                   </Text>
-                  <Text style={[styles.summaryValueExpected, isTablet && styles.summaryValueTablet]}>
+                  <Text
+                    style={[styles.summaryValueExpected, isTablet && styles.summaryValueTablet]}
+                  >
                     {formatCurrency(totalExpectedAmountCents)}
                   </Text>
                 </View>
@@ -876,10 +894,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               disabled={downloadingReport}
               activeOpacity={0.7}
             >
-              <Text style={[styles.downloadGeneralReportButtonText, isTablet && styles.downloadGeneralReportButtonTextTablet]}>
-                {downloadingReport
-                  ? '📄 Generando...'
-                  : '📄 Descargar Reporte General de Totales'}
+              <Text
+                style={[
+                  styles.downloadGeneralReportButtonText,
+                  isTablet && styles.downloadGeneralReportButtonTextTablet,
+                ]}
+              >
+                {downloadingReport ? '📄 Generando...' : '📄 Descargar Reporte General de Totales'}
               </Text>
             </TouchableOpacity>
           )}
@@ -892,11 +913,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             campaign.participants.map((participant) => {
               // Find totals for this participant
               const participantTotal = participantTotals?.participants.find(
-                p => p.participantId === participant.id
+                (p) => p.participantId === participant.id
               );
 
               return (
-                <View key={participant.id} style={[styles.participantCard, isTablet && styles.participantCardTablet]}>
+                <View
+                  key={participant.id}
+                  style={[styles.participantCard, isTablet && styles.participantCardTablet]}
+                >
                   <TouchableOpacity
                     style={styles.participantCardMain}
                     onPress={() =>
@@ -909,21 +933,37 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     <View style={styles.listItemContent}>
                       <View style={styles.participantHeader}>
                         <View style={{ flex: 1 }}>
-                          <Text style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}>
+                          <Text
+                            style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}
+                          >
                             {participant.participantType === 'EXTERNAL_COMPANY'
-                              ? (participant.company?.name || companies[participant.companyId!]?.name || `Empresa ID: ${participant.companyId}`)
-                              : (participant.site?.name || sites[participant.siteId!]?.name || `Sede ID: ${participant.siteId}`)}
+                              ? participant.company?.name ||
+                                companies[participant.companyId!]?.name ||
+                                `Empresa ID: ${participant.companyId}`
+                              : participant.site?.name ||
+                                sites[participant.siteId!]?.name ||
+                                `Sede ID: ${participant.siteId}`}
                           </Text>
-                          <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
+                          <Text
+                            style={[
+                              styles.listItemSubtitle,
+                              isTablet && styles.listItemSubtitleTablet,
+                            ]}
+                          >
                             {participant.participantType === 'EXTERNAL_COMPANY'
                               ? 'Empresa Externa'
                               : 'Sede Interna'}
-                            {(participant.site?.code || sites[participant.siteId!]?.code) && ` - ${participant.site?.code || sites[participant.siteId!]?.code}`}
+                            {(participant.site?.code || sites[participant.siteId!]?.code) &&
+                              ` - ${participant.site?.code || sites[participant.siteId!]?.code}`}
                           </Text>
                         </View>
-                        {(campaign.status === CampaignStatus.DRAFT || campaign.status === CampaignStatus.ACTIVE) && (
+                        {(campaign.status === CampaignStatus.DRAFT ||
+                          campaign.status === CampaignStatus.ACTIVE) && (
                           <TouchableOpacity
-                            style={[styles.editParticipantButton, isTablet && styles.editParticipantButtonTablet]}
+                            style={[
+                              styles.editParticipantButton,
+                              isTablet && styles.editParticipantButtonTablet,
+                            ]}
                             onPress={(e) => {
                               e.stopPropagation();
                               navigation.navigate('EditCampaignParticipant', {
@@ -933,7 +973,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               });
                             }}
                           >
-                            <Text style={[styles.editParticipantButtonText, isTablet && styles.editParticipantButtonTextTablet]}>
+                            <Text
+                              style={[
+                                styles.editParticipantButtonText,
+                                isTablet && styles.editParticipantButtonTextTablet,
+                              ]}
+                            >
                               ✏️ Editar
                             </Text>
                           </TouchableOpacity>
@@ -947,7 +992,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                             <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
                               Esperado:
                             </Text>
-                            <Text style={[styles.totalValueExpected, isTablet && styles.totalValueTablet]}>
+                            <Text
+                              style={[
+                                styles.totalValueExpected,
+                                isTablet && styles.totalValueTablet,
+                              ]}
+                            >
                               {formatCurrency(participant.assignedAmountCents)}
                             </Text>
                           </View>
@@ -955,7 +1005,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                             <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
                               Compra:
                             </Text>
-                            <Text style={[styles.totalValuePurchase, isTablet && styles.totalValueTablet]}>
+                            <Text
+                              style={[
+                                styles.totalValuePurchase,
+                                isTablet && styles.totalValueTablet,
+                              ]}
+                            >
                               {formatCurrency(participantTotal.totalPurchaseCents)}
                             </Text>
                           </View>
@@ -963,7 +1018,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                             <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
                               Venta:
                             </Text>
-                            <Text style={[styles.totalValueSale, isTablet && styles.totalValueTablet]}>
+                            <Text
+                              style={[styles.totalValueSale, isTablet && styles.totalValueTablet]}
+                            >
                               {formatCurrency(participantTotal.totalSaleCents)}
                             </Text>
                           </View>
@@ -972,10 +1029,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               Margen:
                             </Text>
                             <View style={styles.marginValueContainer}>
-                              <Text style={[styles.totalValueMargin, isTablet && styles.totalValueTablet]}>
+                              <Text
+                                style={[
+                                  styles.totalValueMargin,
+                                  isTablet && styles.totalValueTablet,
+                                ]}
+                              >
                                 {formatCurrency(participantTotal.marginCents)}
                               </Text>
-                              <Text style={[styles.marginPercentage, isTablet && styles.marginPercentageTablet]}>
+                              <Text
+                                style={[
+                                  styles.marginPercentage,
+                                  isTablet && styles.marginPercentageTablet,
+                                ]}
+                              >
                                 ({participantTotal.marginPercentage.toFixed(2)}%)
                               </Text>
                             </View>
@@ -994,7 +1061,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     );
   };
 
-  const handleDeleteProduct = async (product: CampaignProduct) => {
+  const handleDeleteProduct = useCallback(async (product: CampaignProduct) => {
     Alert.alert(
       'Eliminar Producto',
       `¿Estás seguro de eliminar "${product.product?.title || 'este producto'}" de la campaña?`,
@@ -1009,16 +1076,18 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               await campaignsService.deleteProduct(campaignId, product.id);
 
               // Update local state instead of reloading everything
-              setCampaign(prevCampaign => {
-                if (!prevCampaign || !prevCampaign.products) return prevCampaign;
+              setCampaign((prevCampaign) => {
+                if (!prevCampaign || !prevCampaign.products) {
+                  return prevCampaign;
+                }
                 return {
                   ...prevCampaign,
-                  products: prevCampaign.products.filter(p => p.id !== product.id),
+                  products: prevCampaign.products.filter((p) => p.id !== product.id),
                 };
               });
 
               // Remove from product sale prices
-              setProductSalePrices(prevPrices => {
+              setProductSalePrices((prevPrices) => {
                 const { [product.productId]: removed, ...rest } = prevPrices;
                 return rest;
               });
@@ -1034,21 +1103,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         },
       ]
     );
-  };
+  }, [campaignId]);
 
-  const handleShowBanner = (product: CampaignProduct) => {
+  const handleShowBanner = useCallback((product: CampaignProduct) => {
     setSelectedProduct(product);
     setShowBannerModal(true);
-  };
+  }, []);
 
-  const handleCloseBanner = () => {
+  const handleCloseBanner = useCallback(() => {
     setShowBannerModal(false);
     setSelectedProduct(null);
     // No need to reload campaign - the modal updates its own state locally
-  };
+  }, []);
 
-  const toggleProductExpanded = (productId: string) => {
-    setExpandedProducts(prev => {
+  const toggleProductExpanded = useCallback((productId: string) => {
+    setExpandedProducts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(productId)) {
         newSet.delete(productId);
@@ -1057,25 +1126,30 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleStartEditCost = (productId: string, currentCost: number) => {
+  const handleStartEditCost = useCallback((productId: string, currentCost: number) => {
     setEditingCost({
       productId,
       value: (currentCost / 100).toFixed(2),
     });
-  };
+  }, []);
 
-  const handleStartEditPrice = (productId: string, profileId: string, currentPrice: number) => {
-    setEditingPrice({
-      productId,
-      profileId,
-      value: (currentPrice / 100).toFixed(2),
-    });
-  };
+  const handleStartEditPrice = useCallback(
+    (productId: string, profileId: string, currentPrice: number) => {
+      setEditingPrice({
+        productId,
+        profileId,
+        value: (currentPrice / 100).toFixed(2),
+      });
+    },
+    []
+  );
 
-  const handleSaveCost = async (productId: string) => {
-    if (!editingCost || editingCost.productId !== productId) return;
+  const handleSaveCost = useCallback(async (productId: string) => {
+    if (!editingCost || editingCost.productId !== productId) {
+      return;
+    }
 
     try {
       setSavingPrice(true);
@@ -1084,8 +1158,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       await productsApi.updateProduct(productId, { costCents });
 
       // Update local state instead of reloading everything
-      setProducts(prevProducts => {
-        if (!prevProducts || !prevProducts[productId]) return prevProducts;
+      setProducts((prevProducts) => {
+        if (!prevProducts || !prevProducts[productId]) {
+          return prevProducts;
+        }
         return {
           ...prevProducts,
           [productId]: {
@@ -1103,10 +1179,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     } finally {
       setSavingPrice(false);
     }
-  };
+  }, [editingCost]);
 
-  const handleSavePrice = async (productId: string, profileId: string) => {
-    if (!editingPrice || editingPrice.productId !== productId || editingPrice.profileId !== profileId) return;
+  const handleSavePrice = useCallback(async (productId: string, profileId: string) => {
+    if (
+      !editingPrice ||
+      editingPrice.productId !== productId ||
+      editingPrice.profileId !== profileId
+    ) {
+      return;
+    }
 
     try {
       setSavingPrice(true);
@@ -1120,10 +1202,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       });
 
       // Update local state instead of reloading everything
-      setProductSalePrices(prevPrices => {
+      setProductSalePrices((prevPrices) => {
         const currentPrices = prevPrices[productId] || [];
         const existingIndex = currentPrices.findIndex(
-          p => p.profileId === profileId && p.presentationId === null
+          (p) => p.profileId === profileId && p.presentationId === null
         );
 
         let updatedPrices: ProductSalePrice[];
@@ -1161,18 +1243,22 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     } finally {
       setSavingPrice(false);
     }
-  };
+  }, [editingPrice]);
 
-  const getSalePriceForProfile = (productId: string, profileId: string): number => {
+  const getSalePriceForProfile = useCallback((productId: string, profileId: string): number => {
     const prices = productSalePrices[productId] || [];
-    const priceEntry = prices.find(p => p.profileId === profileId && p.presentationId === null);
+    const priceEntry = prices.find((p) => p.profileId === profileId && p.presentationId === null);
     return priceEntry?.priceCents || 0;
-  };
+  }, [productSalePrices]);
 
-  const handleCalculateFranquiciaFromSocia = async (productId: string) => {
+  const handleCalculateFranquiciaFromSocia = useCallback(async (productId: string) => {
     // Find Socia and Franquicia profiles
-    const sociaProfile = priceProfiles.find(p => p.code === 'SOCIA' || p.name.toLowerCase().includes('socia'));
-    const franquiciaProfile = priceProfiles.find(p => p.code === 'FRANQ' || p.name.toLowerCase().includes('franquicia'));
+    const sociaProfile = priceProfiles.find(
+      (p) => p.code === 'SOCIA' || p.name.toLowerCase().includes('socia')
+    );
+    const franquiciaProfile = priceProfiles.find(
+      (p) => p.code === 'FRANQ' || p.name.toLowerCase().includes('franquicia')
+    );
 
     if (!sociaProfile || !franquiciaProfile) {
       Alert.alert('Error', 'No se encontraron los perfiles de Precio Socia y Precio Franquicia');
@@ -1197,17 +1283,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       });
 
       // Update local state instead of reloading everything
-      setProductSalePrices(prevPrices => {
+      setProductSalePrices((prevPrices) => {
         const currentPrices = prevPrices[productId] || [];
         const existingIndex = currentPrices.findIndex(
-          p => p.profileId === franquiciaProfile.id && p.presentationId === null
+          (p) => p.profileId === franquiciaProfile.id && p.presentationId === null
         );
 
         let updatedPrices: ProductSalePrice[];
         if (existingIndex >= 0) {
           // Update existing price
           updatedPrices = [...currentPrices];
-          updatedPrices[existingIndex] = { ...updatedPrices[existingIndex], priceCents: franquiciaPriceCents };
+          updatedPrices[existingIndex] = {
+            ...updatedPrices[existingIndex],
+            priceCents: franquiciaPriceCents,
+          };
         } else {
           // Add new price
           const newPrice: ProductSalePrice = {
@@ -1230,31 +1319,36 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         };
       });
 
-      Alert.alert('Éxito', `Precio Franquicia calculado: S/ ${(franquiciaPriceCents / 100).toFixed(2)}`);
+      Alert.alert(
+        'Éxito',
+        `Precio Franquicia calculado: S/ ${(franquiciaPriceCents / 100).toFixed(2)}`
+      );
     } catch (error: any) {
       logger.error('Error calculating franquicia price:', error);
       Alert.alert('Error', error.message || 'No se pudo calcular el precio franquicia');
     } finally {
       setSavingPrice(false);
     }
-  };
+  }, [priceProfiles, getSalePriceForProfile]);
 
   const filteredProducts = useMemo(() => {
-    if (!campaign?.products) return [];
+    if (!campaign?.products) {
+      return [];
+    }
 
     let filtered = campaign.products;
 
     // Apply distribution filter
     if (distributionFilter === 'generated') {
-      filtered = filtered.filter(product => product.distributionGenerated);
+      filtered = filtered.filter((product) => product.distributionGenerated);
     } else if (distributionFilter === 'not-generated') {
-      filtered = filtered.filter(product => !product.distributionGenerated);
+      filtered = filtered.filter((product) => !product.distributionGenerated);
     }
 
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(product => {
+      filtered = filtered.filter((product) => {
         const productDetails = product.product || products[product.productId];
         const title = productDetails?.title?.toLowerCase() || '';
         const sku = productDetails?.sku?.toLowerCase() || '';
@@ -1268,7 +1362,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   }, [campaign?.products, products, searchQuery, distributionFilter]);
 
   const renderProducts = () => {
-    if (!campaign) return null;
+    if (!campaign) {
+      return null;
+    }
 
     return (
       <View style={styles.tabContent}>
@@ -1277,12 +1373,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
               Productos ({campaign.products?.length || 0})
             </Text>
-            {(campaign.status === CampaignStatus.DRAFT || campaign.status === CampaignStatus.ACTIVE) && (
+            {(campaign.status === CampaignStatus.DRAFT ||
+              campaign.status === CampaignStatus.ACTIVE) && (
               <TouchableOpacity
                 style={[styles.addButton, isTablet && styles.addButtonTablet]}
-                onPress={() =>
-                  navigation.navigate('AddCampaignProduct', { campaignId })
-                }
+                onPress={() => navigation.navigate('AddCampaignProduct', { campaignId })}
               >
                 <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
                   + Agregar
@@ -1345,7 +1440,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         distributionFilter === 'generated' && styles.filterButtonTextActive,
                       ]}
                     >
-                      ✓ Generado ({campaign.products.filter(p => p.distributionGenerated).length})
+                      ✓ Generado ({campaign.products.filter((p) => p.distributionGenerated).length})
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -1361,7 +1456,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         distributionFilter === 'not-generated' && styles.filterButtonTextActive,
                       ]}
                     >
-                      ✕ Sin generar ({campaign.products.filter(p => !p.distributionGenerated).length})
+                      ✕ Sin generar (
+                      {campaign.products.filter((p) => !p.distributionGenerated).length})
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1406,7 +1502,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   >
                     <View style={styles.listItemContent}>
                       <View style={styles.productTitleRow}>
-                        <Text style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}>
+                        <Text
+                          style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}
+                        >
                           {productDetails?.title || `Producto ID: ${product.productId}`}
                         </Text>
                         {isPreliminary && (
@@ -1415,13 +1513,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           </View>
                         )}
                       </View>
-                      <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
-                        SKU: {productDetails?.sku || 'N/A'} | Cant: {product.totalQuantityBase} | Costo: <Text style={styles.quickPriceValue}>S/ {(costCents / 100).toFixed(2)}</Text>
+                      <Text
+                        style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}
+                      >
+                        SKU: {productDetails?.sku || 'N/A'} | Cant: {product.totalQuantityBase} |
+                        Costo:{' '}
+                        <Text style={styles.quickPriceValue}>
+                          S/ {(costCents / 100).toFixed(2)}
+                        </Text>
                         {priceProfiles.slice(0, 2).map((profile, index) => {
                           const priceCents = getSalePriceForProfile(product.productId, profile.id);
                           return (
                             <Text key={profile.id}>
-                              {' | '}{profile.name}: <Text style={styles.quickPriceValue}>S/ {(priceCents / 100).toFixed(2)}</Text>
+                              {' | '}
+                              {profile.name}:{' '}
+                              <Text style={styles.quickPriceValue}>
+                                S/ {(priceCents / 100).toFixed(2)}
+                              </Text>
                             </Text>
                           );
                         })}
@@ -1469,7 +1577,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       <Text style={styles.productActionButtonText}>📊 Banner</Text>
                     </TouchableOpacity>
 
-                    {(campaign.status === CampaignStatus.DRAFT || campaign.status === CampaignStatus.ACTIVE) && (
+                    {(campaign.status === CampaignStatus.DRAFT ||
+                      campaign.status === CampaignStatus.ACTIVE) && (
                       <TouchableOpacity
                         style={[styles.productActionButton, styles.productDeleteButton]}
                         onPress={() => handleDeleteProduct(product)}
@@ -1491,7 +1600,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                             <TextInput
                               style={styles.priceInput}
                               value={editingCost.value}
-                              onChangeText={(text) => setEditingCost({...editingCost, value: text})}
+                              onChangeText={(text) =>
+                                setEditingCost({ ...editingCost, value: text })
+                              }
                               keyboardType="decimal-pad"
                               autoFocus
                               onSubmitEditing={() => handleSaveCost(product.productId)}
@@ -1530,8 +1641,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       {/* Price profiles rows */}
                       {priceProfiles.map((profile) => {
                         const priceCents = getSalePriceForProfile(product.productId, profile.id);
-                        const isEditingThis = editingPrice?.productId === product.productId && editingPrice?.profileId === profile.id;
-                        const isFranquicia = profile.code === 'FRANQ' || profile.name.toLowerCase().includes('franquicia');
+                        const isEditingThis =
+                          editingPrice?.productId === product.productId &&
+                          editingPrice?.profileId === profile.id;
+                        const isFranquicia =
+                          profile.code === 'FRANQ' ||
+                          profile.name.toLowerCase().includes('franquicia');
 
                         return (
                           <View key={profile.id} style={styles.priceRow}>
@@ -1542,10 +1657,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                                 <TextInput
                                   style={styles.priceInput}
                                   value={editingPrice.value}
-                                  onChangeText={(text) => setEditingPrice({...editingPrice, value: text})}
+                                  onChangeText={(text) =>
+                                    setEditingPrice({ ...editingPrice, value: text })
+                                  }
                                   keyboardType="decimal-pad"
                                   autoFocus
-                                  onSubmitEditing={() => handleSavePrice(product.productId, profile.id)}
+                                  onSubmitEditing={() =>
+                                    handleSavePrice(product.productId, profile.id)
+                                  }
                                 />
                                 <TouchableOpacity
                                   style={styles.saveButton}
@@ -1567,17 +1686,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               </View>
                             ) : (
                               <View style={styles.priceDisplayRow}>
-                                <Text style={styles.priceValue}>S/ {(priceCents / 100).toFixed(2)}</Text>
+                                <Text style={styles.priceValue}>
+                                  S/ {(priceCents / 100).toFixed(2)}
+                                </Text>
                                 <TouchableOpacity
                                   style={styles.editButton}
-                                  onPress={() => handleStartEditPrice(product.productId, profile.id, priceCents)}
+                                  onPress={() =>
+                                    handleStartEditPrice(product.productId, profile.id, priceCents)
+                                  }
                                 >
                                   <Text style={styles.editButtonText}>✏️</Text>
                                 </TouchableOpacity>
                                 {isFranquicia && (
                                   <TouchableOpacity
                                     style={styles.calculateButton}
-                                    onPress={() => handleCalculateFranquiciaFromSocia(product.productId)}
+                                    onPress={() =>
+                                      handleCalculateFranquiciaFromSocia(product.productId)
+                                    }
                                     disabled={savingPrice}
                                   >
                                     <Text style={styles.calculateButtonText}>🧮 /1.15</Text>
@@ -1619,32 +1744,22 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
               ← Volver
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            {campaign.code}
-          </Text>
+          <Text style={[styles.title, isTablet && styles.titleTablet]}>{campaign.code}</Text>
         </View>
 
         {/* Tabs */}
-        {renderTabs()}
+        {renderTabs}
 
         {/* Content */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {activeTab === 'overview' && renderOverview()}
           {activeTab === 'participants' && renderParticipants()}
@@ -1659,7 +1774,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               onPress={handleCancel}
               disabled={actionLoading}
             >
-              <Text style={[styles.cancelCampaignButtonText, isTablet && styles.cancelCampaignButtonTextTablet]}>
+              <Text
+                style={[
+                  styles.cancelCampaignButtonText,
+                  isTablet && styles.cancelCampaignButtonTextTablet,
+                ]}
+              >
                 Cancelar Campaña
               </Text>
             </TouchableOpacity>
@@ -1672,7 +1792,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               {actionLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={[styles.activateButtonText, isTablet && styles.activateButtonTextTablet]}>
+                <Text
+                  style={[styles.activateButtonText, isTablet && styles.activateButtonTextTablet]}
+                >
                   Activar Campaña
                 </Text>
               )}
@@ -1702,10 +1824,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         <CampaignProductBannerModal
           visible={showBannerModal}
           campaignProduct={selectedProduct}
-          productDetails={selectedProduct ? (selectedProduct.product || products[selectedProduct.productId]) : null}
+          productDetails={
+            selectedProduct ? selectedProduct.product || products[selectedProduct.productId] : null
+          }
           onClose={handleCloseBanner}
         />
-
       </SafeAreaView>
     </ScreenLayout>
   );

@@ -50,7 +50,9 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [siteId, setSiteId] = useState('');
-  const [templateExpenseType, setTemplateExpenseType] = useState<TemplateExpenseType>(TemplateExpenseType.RECURRENT);
+  const [templateExpenseType, setTemplateExpenseType] = useState<TemplateExpenseType>(
+    TemplateExpenseType.RECURRENT
+  );
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(RecurrenceType.REGULAR);
   const [frequency, setFrequency] = useState<TemplateFrequency>(TemplateFrequency.MONTHLY);
   const [dayOfWeek, setDayOfWeek] = useState<number | undefined>(undefined);
@@ -223,16 +225,12 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
         };
 
         await expensesService.updateTemplate(templateId, updateData);
-        Alert.alert(
-          'Éxito',
-          'Plantilla de gasto recurrente actualizada correctamente',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
+        Alert.alert('Éxito', 'Plantilla de gasto recurrente actualizada correctamente', [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]);
       } else {
         // Create new template
         const createData: CreateExpenseTemplateRequest = {
@@ -257,16 +255,12 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
         };
 
         await expensesService.createTemplate(createData);
-        Alert.alert(
-          'Éxito',
-          'Plantilla de gasto recurrente creada correctamente',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
+        Alert.alert('Éxito', 'Plantilla de gasto recurrente creada correctamente', [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]);
       }
     } catch (error: any) {
       console.error('Error saving template:', error);
@@ -278,7 +272,8 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
 
       Alert.alert(
         'Error',
-        error.response?.data?.message || `No se pudo ${route?.params?.templateId ? 'actualizar' : 'crear'} la plantilla`
+        error.response?.data?.message ||
+          `No se pudo ${route?.params?.templateId ? 'actualizar' : 'crear'} la plantilla`
       );
     } finally {
       setLoading(false);
@@ -293,18 +288,11 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
   ) => (
     <View style={styles.pickerContainer}>
       <Text style={styles.pickerLabel}>{label}</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.pickerScroll}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerScroll}>
         {options.map((option) => (
           <TouchableOpacity
             key={option.value}
-            style={[
-              styles.pickerOption,
-              value === option.value && styles.pickerOptionActive,
-            ]}
+            style={[styles.pickerOption, value === option.value && styles.pickerOptionActive]}
             onPress={() => onValueChange(option.value)}
           >
             <Text
@@ -333,9 +321,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>{label}</Text>
       <View style={styles.inputWrapper}>
-        {icon && (
-          <Ionicons name={icon as any} size={20} color="#64748B" style={styles.inputIcon} />
-        )}
+        {icon && <Ionicons name={icon as any} size={20} color="#64748B" style={styles.inputIcon} />}
         <TextInput
           style={[styles.input, multiline && styles.inputMultiline]}
           value={value}
@@ -368,10 +354,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           {days.map((day) => (
             <TouchableOpacity
               key={day.value}
-              style={[
-                styles.dayButton,
-                dayOfWeek === day.value && styles.dayButtonActive,
-              ]}
+              style={[styles.dayButton, dayOfWeek === day.value && styles.dayButtonActive]}
               onPress={() => setDayOfWeek(day.value)}
             >
               <Text
@@ -395,25 +378,15 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
     return (
       <View style={styles.pickerContainer}>
         <Text style={styles.pickerLabel}>Día del Mes</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.pickerScroll}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerScroll}>
           {days.map((day) => (
             <TouchableOpacity
               key={day}
-              style={[
-                styles.dayButton,
-                dayOfMonth === day && styles.dayButtonActive,
-              ]}
+              style={[styles.dayButton, dayOfMonth === day && styles.dayButtonActive]}
               onPress={() => setDayOfMonth(day)}
             >
               <Text
-                style={[
-                  styles.dayButtonText,
-                  dayOfMonth === day && styles.dayButtonTextActive,
-                ]}
+                style={[styles.dayButtonText, dayOfMonth === day && styles.dayButtonTextActive]}
               >
                 {day}
               </Text>
@@ -464,30 +437,20 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           )}
 
           {/* Sede Selection - Required */}
-          {renderPicker(
-            'Sede *',
-            siteId,
-            setSiteId,
-            [
-              { label: 'Seleccionar sede', value: '' },
-              ...sites.map((site) => ({
-                label: site.name,
-                value: site.id,
-              })),
-            ]
-          )}
+          {renderPicker('Sede *', siteId, setSiteId, [
+            { label: 'Seleccionar sede', value: '' },
+            ...sites.map((site) => ({
+              label: site.name,
+              value: site.id,
+            })),
+          ])}
 
           {renderInput('Monto (opcional)', amount, setAmount, 'Ej: 1500.00', 'decimal-pad', 'cash')}
-          {renderPicker(
-            'Moneda',
-            currency,
-            setCurrency,
-            [
-              { label: 'Soles (PEN)', value: 'PEN' },
-              { label: 'Dólares (USD)', value: 'USD' },
-              { label: 'Euros (EUR)', value: 'EUR' },
-            ]
-          )}
+          {renderPicker('Moneda', currency, setCurrency, [
+            { label: 'Soles (PEN)', value: 'PEN' },
+            { label: 'Dólares (USD)', value: 'USD' },
+            { label: 'Euros (EUR)', value: 'EUR' },
+          ])}
         </View>
 
         {/* Template Type */}
@@ -615,12 +578,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
               style={[styles.toggleButton, isActive && styles.toggleButtonActive]}
               onPress={() => setIsActive(true)}
             >
-              <Text
-                style={[
-                  styles.toggleButtonText,
-                  isActive && styles.toggleButtonTextActive,
-                ]}
-              >
+              <Text style={[styles.toggleButtonText, isActive && styles.toggleButtonTextActive]}>
                 Activo
               </Text>
             </TouchableOpacity>
@@ -628,12 +586,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
               style={[styles.toggleButton, !isActive && styles.toggleButtonActive]}
               onPress={() => setIsActive(false)}
             >
-              <Text
-                style={[
-                  styles.toggleButtonText,
-                  !isActive && styles.toggleButtonTextActive,
-                ]}
-              >
+              <Text style={[styles.toggleButtonText, !isActive && styles.toggleButtonTextActive]}>
                 Inactivo
               </Text>
             </TouchableOpacity>

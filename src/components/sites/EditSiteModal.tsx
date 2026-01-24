@@ -78,7 +78,8 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
       if (formData.code.length < 2 || formData.code.length > 20) {
         newErrors.code = 'El código debe tener entre 2 y 20 caracteres';
       } else if (!/^[A-Z0-9_-]+$/.test(formData.code)) {
-        newErrors.code = 'El código solo puede contener mayúsculas, números, guiones y guiones bajos';
+        newErrors.code =
+          'El código solo puede contener mayúsculas, números, guiones y guiones bajos';
       }
     }
 
@@ -110,7 +111,9 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!site) return;
+    if (!site) {
+      return;
+    }
 
     if (!validateForm()) {
       return;
@@ -168,29 +171,33 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
         siteData.postalCode = formData.postalCode.trim();
       }
 
-      if (formData.latitude !== undefined && formData.latitude !== null && formData.latitude !== '') {
+      if (
+        formData.latitude !== undefined &&
+        formData.latitude !== null &&
+        formData.latitude !== ''
+      ) {
         siteData.latitude = Number(formData.latitude);
       }
 
-      if (formData.longitude !== undefined && formData.longitude !== null && formData.longitude !== '') {
+      if (
+        formData.longitude !== undefined &&
+        formData.longitude !== null &&
+        formData.longitude !== ''
+      ) {
         siteData.longitude = Number(formData.longitude);
       }
 
       await sitesApi.updateSite(site.id, siteData);
 
-      Alert.alert(
-        'Éxito',
-        'Sede actualizada correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              onClose();
-              onSiteUpdated();
-            },
+      Alert.alert('Éxito', 'Sede actualizada correctamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            onClose();
+            onSiteUpdated();
           },
-        ]
-      );
+        },
+      ]);
     } catch (error: any) {
       console.error('Error updating site:', error);
       const errorMessage = error.response?.data?.message || 'Error al actualizar la sede';
@@ -200,16 +207,19 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
     }
   };
 
-  const updateField = (field: keyof UpdateSiteRequest, value: string | boolean | number | undefined) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const updateField = (
+    field: keyof UpdateSiteRequest,
+    value: string | boolean | number | undefined
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
   const handleLocationSelected = (locationData: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       latitude: locationData.latitude,
       longitude: locationData.longitude,
@@ -222,15 +232,12 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
     }));
   };
 
-  if (!site) return null;
+  if (!site) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}

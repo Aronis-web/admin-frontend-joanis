@@ -58,10 +58,7 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
       setStockItems(data || []);
     } catch (error: any) {
       console.error('❌ Error loading stock by areas:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo cargar el stock por áreas'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo cargar el stock por áreas');
     } finally {
       setLoading(false);
     }
@@ -70,11 +67,12 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
   const getTotalStock = () => {
     return stockItems.reduce((sum, item) => {
       // Use availableQuantityBase (stock disponible) instead of quantityBase (stock total)
-      const quantity = typeof item.availableQuantityBase === 'number'
-        ? item.availableQuantityBase
-        : (typeof item.quantityBase === 'string'
-          ? parseFloat(item.quantityBase)
-          : (item.quantityBase || 0));
+      const quantity =
+        typeof item.availableQuantityBase === 'number'
+          ? item.availableQuantityBase
+          : typeof item.quantityBase === 'string'
+            ? parseFloat(item.quantityBase)
+            : item.quantityBase || 0;
       return sum + quantity;
     }, 0);
   };
@@ -106,24 +104,15 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Text style={styles.headerTitle}>Stock por Áreas</Text>
-              {productTitle && (
-                <Text style={styles.headerSubtitle}>{productTitle}</Text>
-              )}
-              {productSku && (
-                <Text style={styles.headerSku}>SKU: {productSku}</Text>
-              )}
+              {productTitle && <Text style={styles.headerSubtitle}>{productTitle}</Text>}
+              {productSku && <Text style={styles.headerSku}>SKU: {productSku}</Text>}
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
@@ -155,12 +144,8 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                 {/* Total Stock Summary */}
                 <View style={[styles.summaryCard, { marginHorizontal: 20, marginBottom: 16 }]}>
                   <Text style={styles.summaryLabel}>Stock Disponible</Text>
-                  <Text style={styles.summaryValue}>
-                    {getTotalStock().toFixed(2)} unidades
-                  </Text>
-                  <Text style={styles.summarySubtext}>
-                    En {stockItems.length} ubicación(es)
-                  </Text>
+                  <Text style={styles.summaryValue}>{getTotalStock().toFixed(2)} unidades</Text>
+                  <Text style={styles.summarySubtext}>En {stockItems.length} ubicación(es)</Text>
                 </View>
 
                 {/* Warehouse Sections */}
@@ -169,29 +154,35 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                   const warehouseCode = items[0].warehouse?.code || 'N/A';
                   const warehouseTotal = items.reduce((sum, item) => {
                     // Use availableQuantityBase (stock disponible)
-                    const quantity = typeof item.availableQuantityBase === 'number'
-                      ? item.availableQuantityBase
-                      : (typeof item.quantityBase === 'string'
-                        ? parseFloat(item.quantityBase)
-                        : (item.quantityBase || 0));
+                    const quantity =
+                      typeof item.availableQuantityBase === 'number'
+                        ? item.availableQuantityBase
+                        : typeof item.quantityBase === 'string'
+                          ? parseFloat(item.quantityBase)
+                          : item.quantityBase || 0;
                     return sum + quantity;
                   }, 0);
 
-                  console.log('🎨 Rendering warehouse section:', warehouseName, 'with', items.length, 'areas');
+                  console.log(
+                    '🎨 Rendering warehouse section:',
+                    warehouseName,
+                    'with',
+                    items.length,
+                    'areas'
+                  );
 
                   return (
-                    <View key={warehouseId} style={[styles.warehouseSection, { marginBottom: 16, marginHorizontal: 20 }]}>
+                    <View
+                      key={warehouseId}
+                      style={[styles.warehouseSection, { marginBottom: 16, marginHorizontal: 20 }]}
+                    >
                       {/* Warehouse Header */}
                       <View style={styles.warehouseHeader}>
                         <View style={styles.warehouseHeaderLeft}>
                           <Text style={styles.warehouseIcon}>🏢</Text>
                           <View style={styles.warehouseHeaderInfo}>
-                            <Text style={styles.warehouseHeaderName}>
-                              {warehouseName}
-                            </Text>
-                            <Text style={styles.warehouseHeaderCode}>
-                              Código: {warehouseCode}
-                            </Text>
+                            <Text style={styles.warehouseHeaderName}>{warehouseName}</Text>
+                            <Text style={styles.warehouseHeaderCode}>Código: {warehouseCode}</Text>
                           </View>
                         </View>
                         <View style={styles.warehouseTotalBadge}>
@@ -205,13 +196,19 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                       {/* Areas within this warehouse */}
                       {items.map((item, index) => {
                         // Use availableQuantityBase (stock disponible)
-                        const quantity = typeof item.availableQuantityBase === 'number'
-                          ? item.availableQuantityBase
-                          : (typeof item.quantityBase === 'string'
-                            ? parseFloat(item.quantityBase)
-                            : (item.quantityBase || 0));
+                        const quantity =
+                          typeof item.availableQuantityBase === 'number'
+                            ? item.availableQuantityBase
+                            : typeof item.quantityBase === 'string'
+                              ? parseFloat(item.quantityBase)
+                              : item.quantityBase || 0;
 
-                        console.log('🎨 Rendering area:', item.area?.code || 'unknown', 'quantity:', quantity);
+                        console.log(
+                          '🎨 Rendering area:',
+                          item.area?.code || 'unknown',
+                          'quantity:',
+                          quantity
+                        );
 
                         return (
                           <View key={index} style={styles.areaCard}>
@@ -221,7 +218,7 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                                 <View style={styles.areaCardInfo}>
                                   <Text style={styles.areaCardName}>
                                     {item.area
-                                      ? (item.area.name || `Área ${item.area.code}` || 'Sin nombre')
+                                      ? item.area.name || `Área ${item.area.code}` || 'Sin nombre'
                                       : 'Sin área específica'}
                                   </Text>
                                   {item.area?.code && item.area?.name && (
@@ -232,14 +229,13 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                                 </View>
                               </View>
                               <View style={styles.areaQuantityBadge}>
-                                <Text style={styles.areaQuantityValue}>
-                                  {quantity.toFixed(2)}
-                                </Text>
+                                <Text style={styles.areaQuantityValue}>{quantity.toFixed(2)}</Text>
                               </View>
                             </View>
                             <View style={styles.areaCardFooter}>
                               <Text style={styles.areaUpdatedText}>
-                                Actualizado: {new Date(item.updatedAt).toLocaleDateString('es-ES', {
+                                Actualizado:{' '}
+                                {new Date(item.updatedAt).toLocaleDateString('es-ES', {
                                   year: 'numeric',
                                   month: 'short',
                                   day: 'numeric',
@@ -260,10 +256,7 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.closeFooterButton}
-              onPress={onClose}
-            >
+            <TouchableOpacity style={styles.closeFooterButton} onPress={onClose}>
               <Text style={styles.closeFooterButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>

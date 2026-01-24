@@ -34,7 +34,15 @@ interface ExpenseReportsScreenProps {
   navigation: any;
 }
 
-type ReportView = 'dashboard' | 'total' | 'recurring' | 'byCategory' | 'bySite' | 'comparison' | 'trends' | 'projections';
+type ReportView =
+  | 'dashboard'
+  | 'total'
+  | 'recurring'
+  | 'byCategory'
+  | 'bySite'
+  | 'comparison'
+  | 'trends'
+  | 'projections';
 
 export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -69,76 +77,79 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  const loadData = useCallback(async (view: ReportView) => {
-    try {
-      setLoading(true);
+  const loadData = useCallback(
+    async (view: ReportView) => {
+      try {
+        setLoading(true);
 
-      const baseParams = {
-        startDate,
-        endDate,
-        ...(selectedStatus && { status: selectedStatus }),
-        ...(selectedCategoryId && { categoryId: selectedCategoryId }),
-        ...(selectedSiteId && { siteId: selectedSiteId }),
-      };
+        const baseParams = {
+          startDate,
+          endDate,
+          ...(selectedStatus && { status: selectedStatus }),
+          ...(selectedCategoryId && { categoryId: selectedCategoryId }),
+          ...(selectedSiteId && { siteId: selectedSiteId }),
+        };
 
-      switch (view) {
-        case 'dashboard':
-          const dashboard = await expensesService.getDashboard({ startDate, endDate });
-          setDashboardData(dashboard);
-          break;
+        switch (view) {
+          case 'dashboard':
+            const dashboard = await expensesService.getDashboard({ startDate, endDate });
+            setDashboardData(dashboard);
+            break;
 
-        case 'total':
-          const total = await expensesService.getTotalExpensesSummary(baseParams);
-          setTotalData(total);
-          break;
+          case 'total':
+            const total = await expensesService.getTotalExpensesSummary(baseParams);
+            setTotalData(total);
+            break;
 
-        case 'recurring':
-          const recurring = await expensesService.getRecurringExpensesSummary(baseParams);
-          setRecurringData(recurring);
-          break;
+          case 'recurring':
+            const recurring = await expensesService.getRecurringExpensesSummary(baseParams);
+            setRecurringData(recurring);
+            break;
 
-        case 'byCategory':
-          const category = await expensesService.getSummaryByCategoryAndCurrency(baseParams);
-          setCategoryData(category);
-          break;
+          case 'byCategory':
+            const category = await expensesService.getSummaryByCategoryAndCurrency(baseParams);
+            setCategoryData(category);
+            break;
 
-        case 'bySite':
-          const site = await expensesService.getSummaryBySite(baseParams);
-          setSiteData(site);
-          break;
+          case 'bySite':
+            const site = await expensesService.getSummaryBySite(baseParams);
+            setSiteData(site);
+            break;
 
-        case 'comparison':
-          const midYear = new Date(new Date(startDate).getFullYear(), 5, 30);
-          const comparison = await expensesService.comparePeriods({
-            period1Start: startDate,
-            period1End: midYear.toISOString().split('T')[0],
-            period2Start: new Date(midYear.getTime() + 86400000).toISOString().split('T')[0],
-            period2End: endDate,
-          });
-          setComparisonData(comparison);
-          break;
+          case 'comparison':
+            const midYear = new Date(new Date(startDate).getFullYear(), 5, 30);
+            const comparison = await expensesService.comparePeriods({
+              period1Start: startDate,
+              period1End: midYear.toISOString().split('T')[0],
+              period2Start: new Date(midYear.getTime() + 86400000).toISOString().split('T')[0],
+              period2End: endDate,
+            });
+            setComparisonData(comparison);
+            break;
 
-        case 'trends':
-          const trends = await expensesService.getTrends({
-            startDate,
-            endDate,
-            groupBy: 'month',
-          });
-          setTrendsData(trends);
-          break;
+          case 'trends':
+            const trends = await expensesService.getTrends({
+              startDate,
+              endDate,
+              groupBy: 'month',
+            });
+            setTrendsData(trends);
+            break;
 
-        case 'projections':
-          const projections = await expensesService.getExpenseProjections({ months: 6 });
-          setProjectionsData(projections);
-          break;
+          case 'projections':
+            const projections = await expensesService.getExpenseProjections({ months: 6 });
+            setProjectionsData(projections);
+            break;
+        }
+      } catch (error: any) {
+        console.error('Error loading data:', error);
+        Alert.alert('Error', error.message || 'Error al cargar los datos');
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      console.error('Error loading data:', error);
-      Alert.alert('Error', error.message || 'Error al cargar los datos');
-    } finally {
-      setLoading(false);
-    }
-  }, [startDate, endDate, selectedStatus, selectedCategoryId, selectedSiteId]);
+    },
+    [startDate, endDate, selectedStatus, selectedCategoryId, selectedSiteId]
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -170,7 +181,9 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   );
 
   const renderDashboard = () => {
-    if (!dashboardData) return null;
+    if (!dashboardData) {
+      return null;
+    }
 
     return (
       <View style={styles.section}>
@@ -260,24 +273,24 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   };
 
   const renderTotal = () => {
-    if (!totalData) return null;
+    if (!totalData) {
+      return null;
+    }
 
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>💰 Resumen de Gastos Totales</Text>
         <View style={styles.cardGrid}>
-          {totalData.byCurrency.map((item) =>
-            renderCurrencyCard(item, 'Total', '#4F46E5')
-          )}
+          {totalData.byCurrency.map((item) => renderCurrencyCard(item, 'Total', '#4F46E5'))}
         </View>
-        <Text style={styles.infoText}>
-          Total de gastos: {totalData.totalExpenseCount}
-        </Text>
+        <Text style={styles.infoText}>Total de gastos: {totalData.totalExpenseCount}</Text>
 
         {/* Filters Applied */}
         <View style={styles.filtersApplied}>
           <Text style={styles.filtersTitle}>Filtros aplicados:</Text>
-          <Text style={styles.filterText}>Período: {totalData.filters.startDate} - {totalData.filters.endDate}</Text>
+          <Text style={styles.filterText}>
+            Período: {totalData.filters.startDate} - {totalData.filters.endDate}
+          </Text>
           {totalData.filters.status && (
             <Text style={styles.filterText}>Estado: {totalData.filters.status}</Text>
           )}
@@ -290,7 +303,9 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   };
 
   const renderRecurring = () => {
-    if (!recurringData) return null;
+    if (!recurringData) {
+      return null;
+    }
 
     return (
       <View style={styles.section}>
@@ -308,7 +323,9 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   };
 
   const renderByCategory = () => {
-    if (!categoryData) return null;
+    if (!categoryData) {
+      return null;
+    }
 
     return (
       <View style={styles.section}>
@@ -328,20 +345,18 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
                 </View>
               ))}
             </View>
-            <Text style={styles.categoryTotal}>
-              Total: {category.totalExpenseCount} gastos
-            </Text>
+            <Text style={styles.categoryTotal}>Total: {category.totalExpenseCount} gastos</Text>
           </View>
         ))}
-        <Text style={styles.infoText}>
-          Total general: {categoryData.totalExpenseCount} gastos
-        </Text>
+        <Text style={styles.infoText}>Total general: {categoryData.totalExpenseCount} gastos</Text>
       </View>
     );
   };
 
   const renderBySite = () => {
-    if (!siteData) return null;
+    if (!siteData) {
+      return null;
+    }
 
     return (
       <View style={styles.section}>
@@ -361,20 +376,18 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
                 </View>
               ))}
             </View>
-            <Text style={styles.categoryTotal}>
-              Total: {site.totalExpenseCount} gastos
-            </Text>
+            <Text style={styles.categoryTotal}>Total: {site.totalExpenseCount} gastos</Text>
           </View>
         ))}
-        <Text style={styles.infoText}>
-          Total general: {siteData.totalExpenseCount} gastos
-        </Text>
+        <Text style={styles.infoText}>Total general: {siteData.totalExpenseCount} gastos</Text>
       </View>
     );
   };
 
   const renderComparison = () => {
-    if (!comparisonData) return null;
+    if (!comparisonData) {
+      return null;
+    }
 
     return (
       <View style={styles.section}>
@@ -403,11 +416,14 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
 
             <View style={styles.comparisonDifference}>
               <Text style={styles.comparisonDiffLabel}>Diferencia</Text>
-              <Text style={[
-                styles.comparisonDiffAmount,
-                { color: item.percentageChange >= 0 ? '#EF4444' : '#10B981' }
-              ]}>
-                {item.percentageChange >= 0 ? '+' : ''}{item.percentageChange.toFixed(1)}%
+              <Text
+                style={[
+                  styles.comparisonDiffAmount,
+                  { color: item.percentageChange >= 0 ? '#EF4444' : '#10B981' },
+                ]}
+              >
+                {item.percentageChange >= 0 ? '+' : ''}
+                {item.percentageChange.toFixed(1)}%
               </Text>
               <Text style={styles.comparisonDiffValue}>
                 {formatCurrency(Math.abs(item.differenceAmountCents), item.currency)}
@@ -420,7 +436,9 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   };
 
   const renderTrends = () => {
-    if (!trendsData) return null;
+    if (!trendsData) {
+      return null;
+    }
 
     return (
       <View style={styles.section}>
@@ -449,7 +467,9 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   };
 
   const renderProjections = () => {
-    if (!projectionsData) return null;
+    if (!projectionsData) {
+      return null;
+    }
 
     return (
       <View style={styles.section}>
@@ -481,9 +501,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
                 {formatCurrency(projection.projectedAmountCents, projection.currency)}
               </Text>
             </View>
-            <Text style={styles.projectionCount}>
-              {projection.expectedCount} gastos esperados
-            </Text>
+            <Text style={styles.projectionCount}>{projection.expectedCount} gastos esperados</Text>
           </View>
         ))}
       </View>
@@ -570,10 +588,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
         </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.applyButton}
-        onPress={() => loadData(activeView)}
-      >
+      <TouchableOpacity style={styles.applyButton} onPress={() => loadData(activeView)}>
         <Text style={styles.applyButtonText}>Aplicar Filtros</Text>
       </TouchableOpacity>
     </View>
@@ -612,9 +627,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
         <ScrollView
           style={styles.content}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
           {renderContent()}
         </ScrollView>

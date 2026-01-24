@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { purchasesService } from '@/services/api';
+import { usePurchases } from '@/hooks/api';
 import {
   Purchase,
   PurchaseStatus,
   PurchaseStatusLabels,
   PurchaseStatusColors,
+  QueryPurchasesParams,
 } from '@/types/purchases';
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -28,16 +29,9 @@ interface PurchasesScreenProps {
 }
 
 export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) => {
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<PurchaseStatus | 'ALL'>('ALL');
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const { currentCompany, currentSite } = useAuthStore();
   const { width, height } = useWindowDimensions();
@@ -45,110 +39,116 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  const loadPurchases = useCallback(async (page: number = 1) => {
-    try {
-      setLoading(true);
+  // Build query params
+  const queryParams = useMemo<QueryPurchasesParams>(() => {
+    const params: QueryPurchasesParams = {
+      page,
+      limit,
+    };
 
-      const params: any = {
-        page,
-        limit: pagination.limit,
-      };
-
-      if (selectedStatus !== 'ALL') {
-        params.status = selectedStatus;
-      }
-
-      const response = await purchasesService.getPurchases(params);
-      setPurchases(response.data);
-
-      // Update pagination info - API returns flat structure
-      const totalPages = Math.ceil(response.total / response.limit);
-      setPagination({
-        page: response.page,
-        limit: response.limit,
-        total: response.total,
-        totalPages: totalPages,
-      });
-    } catch (error: any) {
-      console.error('Error loading purchases:', error);
-      Alert.alert('Error', 'No se pudieron cargar las compras');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    if (selectedStatus !== 'ALL') {
+      params.status = selectedStatus;
     }
-  }, [selectedStatus, pagination.limit]);
+
+    return params;
+  }, [page, limit, selectedStatus]);
+
+  // Fetch purchases with React Query
+  const { data, isLoading, isRefetching, refetch } = usePurchases(queryParams);
+
+  const purchases = data?.data || [];
+  const pagination = useMemo(
+    () => ({
+      page: data?.page || 1,
+      limit: data?.limit || limit,
+      total: data?.total || 0,
+      totalPages: Math.ceil((data?.total || 0) / (data?.limit || limit)),
+    }),
+    [data, limit]
+  );
 
   // Auto-reload purchases when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       console.log('📱 PurchasesScreen focused - reloading purchases...');
-      setLoading(true);
-      loadPurchases();
-    }, [loadPurchases])
+      refetch();
+    }, [refetch])
   );
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadPurchases(1);
-  };
+  const handleRefresh = useCallback(() => {
+    setPage(1);
+    refetch();
+  }, [refetch]);
 
-  const handlePreviousPage = () => {
-    if (pagination.page > 1) {
-      loadPurchases(pagination.page - 1);
+  const handlePreviousPage = useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1);
     }
-  };
+  }, [page]);
 
-  const handleNextPage = () => {
-    if (pagination.page < pagination.totalPages) {
-      loadPurchases(pagination.page + 1);
+  const handleNextPage = useCallback(() => {
+    if (page < pagination.totalPages) {
+      setPage(page + 1);
     }
-  };
+  }, [page, pagination.totalPages]);
 
-  const handleCreatePurchase = () => {
+  const handleCreatePurchase = useCallback(() => {
     navigation.navigate('CreatePurchase');
-  };
+  }, [navigation]);
 
-  const handlePurchasePress = (purchase: Purchase) => {
-    navigation.navigate('PurchaseDetail', { purchaseId: purchase.id });
-  };
+  const handlePurchasePress = useCallback(
+    (purchase: Purchase) => {
+      navigation.navigate('PurchaseDetail', { purchaseId: purchase.id });
+    },
+    [navigation]
+  );
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
-  };
+  }, []);
 
-  const formatCurrency = (cents: number) => {
+  const formatCurrency = useCallback((cents: number) => {
     return `S/ ${(cents / 100).toFixed(2)}`;
-  };
+  }, []);
 
-  const getStatusBadgeStyle = (status: PurchaseStatus) => {
-    return {
-      backgroundColor: PurchaseStatusColors[status] + '20',
-      borderColor: PurchaseStatusColors[status],
-    };
-  };
+  const getStatusBadgeStyle = useCallback(
+    (status: PurchaseStatus) => {
+      return {
+        backgroundColor: PurchaseStatusColors[status] + '20',
+        borderColor: PurchaseStatusColors[status],
+      };
+    },
+    []
+  );
 
-  const getStatusTextStyle = (status: PurchaseStatus) => {
-    return {
-      color: PurchaseStatusColors[status],
-    };
-  };
+  const getStatusTextStyle = useCallback(
+    (status: PurchaseStatus) => {
+      return {
+        color: PurchaseStatusColors[status],
+      };
+    },
+    []
+  );
 
-  const renderStatusFilter = () => {
-    const statuses: Array<PurchaseStatus | 'ALL'> = [
+  const statuses = useMemo<Array<PurchaseStatus | 'ALL'>>(
+    () => [
       'ALL',
       PurchaseStatus.DRAFT,
       PurchaseStatus.IN_CAPTURE,
       PurchaseStatus.IN_VALIDATION,
       PurchaseStatus.VALIDATED,
       PurchaseStatus.CLOSED,
-    ];
+    ],
+    []
+  );
 
-    return (
+  const renderStatusFilter = useMemo(
+    () => (
       <View style={styles.filterWrapper}>
         <ScrollView
           horizontal
@@ -163,7 +163,10 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
                 isTablet && styles.filterButtonTablet,
                 selectedStatus === status && styles.filterButtonActive,
               ]}
-              onPress={() => setSelectedStatus(status)}
+              onPress={() => {
+                setSelectedStatus(status);
+                setPage(1); // Reset to page 1 when changing filter
+              }}
             >
               <Text
                 style={[
@@ -178,10 +181,11 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           ))}
         </ScrollView>
       </View>
-    );
-  };
+    ),
+    [statuses, selectedStatus, isTablet]
+  );
 
-  const renderPurchaseCard = (purchase: Purchase) => {
+  const renderPurchaseCard = useCallback((purchase: Purchase) => {
     const totalProducts = purchase.products?.length || 0;
     const validatedProducts =
       purchase.products?.filter((p) => p.status === 'VALIDATED').length || 0;
@@ -223,30 +227,21 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
         <View style={styles.cardBody}>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Proveedor:
-            </Text>
-            <Text
-              style={[styles.infoValue, isTablet && styles.infoValueTablet]}
-              numberOfLines={1}
-            >
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Proveedor:</Text>
+            <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]} numberOfLines={1}>
               {purchase.supplier?.commercialName || 'N/A'}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Guía:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Guía:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {purchase.guideNumber}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Productos:
-            </Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Productos:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {validatedProducts}/{totalProducts}
             </Text>
@@ -261,9 +256,9 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [isTablet, handlePurchasePress, getStatusBadgeStyle, getStatusTextStyle, formatDate, formatCurrency]);
 
-  if (loading) {
+  if (isLoading && !isRefetching) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
@@ -280,95 +275,91 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <View>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>
-              Compras
-            </Text>
+            <Text style={[styles.title, isTablet && styles.titleTablet]}>Compras</Text>
             <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
               Gestión de compras y validación de productos
             </Text>
           </View>
         </View>
 
-      {/* Status Filter */}
-      {renderStatusFilter()}
+        {/* Status Filter */}
+        {renderStatusFilter}
 
-      {/* Purchases List */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={[
-          styles.contentContainer,
-          isTablet && styles.contentContainerTablet,
-        ]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      >
-        {purchases.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>📦</Text>
-            <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-              No hay compras registradas
-            </Text>
-            <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-              Crea una nueva compra para comenzar
-            </Text>
+        {/* Purchases List */}
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={[
+            styles.contentContainer,
+            isTablet && styles.contentContainerTablet,
+          ]}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
+        >
+          {purchases.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>📦</Text>
+              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+                No hay compras registradas
+              </Text>
+              <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
+                Crea una nueva compra para comenzar
+              </Text>
+            </View>
+          ) : (
+            purchases.map(renderPurchaseCard)
+          )}
+
+          <View style={styles.bottomSpacer} />
+        </ScrollView>
+
+        {/* Pagination Controls */}
+        {pagination.total > 0 && (
+          <View style={styles.paginationContainer}>
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                pagination.page === 1 && styles.paginationButtonDisabled,
+              ]}
+              onPress={handlePreviousPage}
+              disabled={pagination.page === 1}
+            >
+              <Text
+                style={[
+                  styles.paginationButtonText,
+                  pagination.page === 1 && styles.paginationButtonTextDisabled,
+                ]}
+              >
+                ← Anterior
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.paginationInfo}>
+              <Text style={styles.paginationText}>
+                Pág. {pagination.page}/{pagination.totalPages}
+              </Text>
+              <Text style={styles.paginationSubtext}>
+                {purchases.length} de {pagination.total}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
+              ]}
+              onPress={handleNextPage}
+              disabled={pagination.page >= pagination.totalPages}
+            >
+              <Text
+                style={[
+                  styles.paginationButtonText,
+                  pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
+                ]}
+              >
+                Siguiente →
+              </Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          purchases.map(renderPurchaseCard)
         )}
-
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
-
-      {/* Pagination Controls */}
-      {pagination.total > 0 && (
-        <View style={styles.paginationContainer}>
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page === 1 && styles.paginationButtonDisabled,
-            ]}
-            onPress={handlePreviousPage}
-            disabled={pagination.page === 1}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page === 1 && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              ← Anterior
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.paginationInfo}>
-            <Text style={styles.paginationText}>
-              Pág. {pagination.page}/{pagination.totalPages}
-            </Text>
-            <Text style={styles.paginationSubtext}>
-              {purchases.length} de {pagination.total}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-            ]}
-            onPress={handleNextPage}
-            disabled={pagination.page >= pagination.totalPages}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              Siguiente →
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
         {/* Add Button */}
         <AddButton onPress={handleCreatePurchase} icon="+" />

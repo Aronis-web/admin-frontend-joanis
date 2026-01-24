@@ -87,11 +87,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       console.log('📦 Products found:', response.products?.length || 0, 'products');
 
       if (response.products && response.products.length > 0) {
-        console.log('📊 Product statuses:', response.products.map(p => ({
-          sku: p.sku,
-          name: p.name,
-          status: p.status
-        })));
+        console.log(
+          '📊 Product statuses:',
+          response.products.map((p) => ({
+            sku: p.sku,
+            name: p.name,
+            status: p.status,
+          }))
+        );
 
         // Filter on frontend to include both active and preliminary
         const filteredProducts = response.products.filter(
@@ -132,7 +135,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       );
 
       if (filteredProducts.length === 0) {
-        Alert.alert('Sin resultados', 'No se encontraron productos activos o preliminares con ese criterio');
+        Alert.alert(
+          'Sin resultados',
+          'No se encontraron productos activos o preliminares con ese criterio'
+        );
       } else {
         setSearchResults(filteredProducts);
       }
@@ -155,7 +161,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         // No enviamos precios - se configurarán después en la tabla
       });
 
-      Alert.alert('Éxito', `${product.title} agregado a la transmisión. Ahora puedes editar los precios en la tabla.`);
+      Alert.alert(
+        'Éxito',
+        `${product.title} agregado a la transmisión. Ahora puedes editar los precios en la tabla.`
+      );
       handleReset();
       onProductAdded();
     } catch (error: any) {
@@ -180,101 +189,88 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={handleCancel}
-    >
+    <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={handleCancel}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
       >
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={handleCancel}
-        />
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleCancel} />
 
         <View style={[styles.modal, isTablet && styles.modalTablet]}>
           <View style={styles.header}>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>
-              Agregar Producto
-            </Text>
+            <Text style={[styles.title, isTablet && styles.titleTablet]}>Agregar Producto</Text>
             <TouchableOpacity onPress={handleCancel} disabled={adding || searching}>
               <Text style={styles.closeButton}>✕</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                <View style={styles.searchSection}>
-                  <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                    Buscar Producto
-                  </Text>
-                  <View style={styles.searchContainer}>
-                    <TextInput
-                      style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-                      value={searchQuery}
-                      onChangeText={setSearchQuery}
-                      placeholder="Escribe al menos 2 caracteres..."
-                      placeholderTextColor="#9CA3AF"
-                      editable={!adding}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                    {searching && (
-                      <View style={styles.searchingIndicator}>
-                        <ActivityIndicator color="#0EA5E9" size="small" />
-                      </View>
-                    )}
-                  </View>
-                  {searchQuery.trim().length > 0 && searchQuery.trim().length < 2 && (
-                    <Text style={styles.searchHint}>
-                      Escribe al menos 2 caracteres para buscar
-                    </Text>
-                  )}
-                </View>
-
-                {searchResults.length > 0 && (
-                  <View style={styles.resultsContainer}>
-                    <Text style={styles.resultsTitle}>
-                      Resultados ({searchResults.length})
-                    </Text>
-                    {searchResults.map((product) => (
-                      <TouchableOpacity
-                        key={product.id}
-                        style={styles.resultItem}
-                        onPress={() => handleSelectProduct(product)}
-                        disabled={adding}
-                      >
-                        <View style={styles.resultInfo}>
-                          <Text style={styles.resultTitle}>{product.title}</Text>
-                          <Text style={styles.resultSku}>SKU: {product.sku}</Text>
-                          {product.costCents && (
-                            <Text style={styles.resultCost}>
-                              Costo: S/ {(product.costCents / 100).toFixed(2)}
-                            </Text>
-                          )}
-                          <View style={styles.resultBadge}>
-                            <Text style={styles.resultBadgeText}>{product.status}</Text>
-                          </View>
-                        </View>
-                        {adding ? (
-                          <ActivityIndicator color="#0EA5E9" size="small" />
-                        ) : (
-                          <Text style={styles.resultArrow}>+ Agregar</Text>
-                        )}
-                      </TouchableOpacity>
-                    ))}
+            <View style={styles.searchSection}>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Buscar Producto</Text>
+              <View style={styles.searchContainer}>
+                <TextInput
+                  style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Escribe al menos 2 caracteres..."
+                  placeholderTextColor="#9CA3AF"
+                  editable={!adding}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {searching && (
+                  <View style={styles.searchingIndicator}>
+                    <ActivityIndicator color="#0EA5E9" size="small" />
                   </View>
                 )}
+              </View>
+              {searchQuery.trim().length > 0 && searchQuery.trim().length < 2 && (
+                <Text style={styles.searchHint}>Escribe al menos 2 caracteres para buscar</Text>
+              )}
+            </View>
+
+            {searchResults.length > 0 && (
+              <View style={styles.resultsContainer}>
+                <Text style={styles.resultsTitle}>Resultados ({searchResults.length})</Text>
+                {searchResults.map((product) => (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={styles.resultItem}
+                    onPress={() => handleSelectProduct(product)}
+                    disabled={adding}
+                  >
+                    <View style={styles.resultInfo}>
+                      <Text style={styles.resultTitle}>{product.title}</Text>
+                      <Text style={styles.resultSku}>SKU: {product.sku}</Text>
+                      {product.costCents && (
+                        <Text style={styles.resultCost}>
+                          Costo: S/ {(product.costCents / 100).toFixed(2)}
+                        </Text>
+                      )}
+                      <View style={styles.resultBadge}>
+                        <Text style={styles.resultBadgeText}>{product.status}</Text>
+                      </View>
+                    </View>
+                    {adding ? (
+                      <ActivityIndicator color="#0EA5E9" size="small" />
+                    ) : (
+                      <Text style={styles.resultArrow}>+ Agregar</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 
             {priceProfile && (
               <View style={styles.priceProfileInfo}>
                 <Text style={styles.priceProfileLabel}>📊 Perfil de Precio Activo</Text>
                 <Text style={styles.priceProfileName}>{priceProfile.name}</Text>
                 <Text style={styles.priceProfileFactor}>
-                  Factor: {typeof priceProfile.factorToCost === 'string' ? priceProfile.factorToCost : priceProfile.factorToCost.toFixed(2)}x
+                  Factor:{' '}
+                  {typeof priceProfile.factorToCost === 'string'
+                    ? priceProfile.factorToCost
+                    : priceProfile.factorToCost.toFixed(2)}
+                  x
                 </Text>
                 <Text style={styles.priceProfileHint}>
                   💡 Los precios se editarán después en la tabla

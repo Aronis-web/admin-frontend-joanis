@@ -36,14 +36,9 @@ interface AddProductScreenProps {
   };
 }
 
-export const AddProductScreen: React.FC<AddProductScreenProps> = ({
-  navigation,
-  route,
-}) => {
+export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, route }) => {
   const { campaignId } = route.params;
-  const [sourceType, setSourceType] = useState<ProductSourceType>(
-    ProductSourceType.INVENTORY
-  );
+  const [sourceType, setSourceType] = useState<ProductSourceType>(ProductSourceType.INVENTORY);
   const [products, setProducts] = useState<any[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
@@ -55,13 +50,16 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
   const [selectedPurchaseId, setSelectedPurchaseId] = useState<string>('');
   const [purchaseProducts, setPurchaseProducts] = useState<any[]>([]);
   const [selectedPurchaseProducts, setSelectedPurchaseProducts] = useState<
-    Array<{ productId: string; quantity: number; productStatus: ProductStatus; distributionType: DistributionType }>
+    Array<{
+      productId: string;
+      quantity: number;
+      productStatus: ProductStatus;
+      distributionType: DistributionType;
+    }>
   >([]);
   const [totalQuantity, setTotalQuantity] = useState('');
   const [productStatus, setProductStatus] = useState<ProductStatus>(ProductStatus.PRELIMINARY);
-  const [distributionType, setDistributionType] = useState<DistributionType>(
-    DistributionType.ALL
-  );
+  const [distributionType, setDistributionType] = useState<DistributionType>(DistributionType.ALL);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [campaignProducts, setCampaignProducts] = useState<string[]>([]);
@@ -85,14 +83,15 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
   const loadCampaignProducts = async () => {
     try {
       const campaign = await campaignsService.getCampaign(campaignId);
-      const productIds = campaign.products?.map(p => p.productId) || [];
+      const productIds = campaign.products?.map((p) => p.productId) || [];
       setCampaignProducts(productIds);
 
       // Extract unique purchase IDs from campaign products
-      const purchaseIds = campaign.products
-        ?.filter(p => p.sourceType === ProductSourceType.PURCHASE && p.purchaseId)
-        .map(p => p.purchaseId!)
-        .filter((id, index, self) => self.indexOf(id) === index) || [];
+      const purchaseIds =
+        campaign.products
+          ?.filter((p) => p.sourceType === ProductSourceType.PURCHASE && p.purchaseId)
+          .map((p) => p.purchaseId!)
+          .filter((id, index, self) => self.indexOf(id) === index) || [];
       setCampaignPurchases(purchaseIds);
     } catch (error) {
       console.error('Error loading campaign products:', error);
@@ -108,7 +107,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
         // Load products using admin endpoint to include preliminary products
         console.log('📦 Loading products with params:', {
           limit: 100,
-          status: 'active,preliminary'
+          status: 'active,preliminary',
         });
 
         // Don't load all products on mount - we'll search on demand
@@ -119,14 +118,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
           const stockResponse = await inventoryApi.getAllStock({});
           console.log('📦 Stock items loaded:', {
             count: stockResponse.length,
-            sample: stockResponse.slice(0, 3).map(item => ({
+            sample: stockResponse.slice(0, 3).map((item) => ({
               productId: item.productId,
               productSku: item.product?.sku,
               quantityBase: item.quantityBase,
-            }))
+            })),
           });
           // Convert StockItemResponse to StockItem format
-          const stockItemsData: StockItem[] = stockResponse.map(item => ({
+          const stockItemsData: StockItem[] = stockResponse.map((item) => ({
             id: `${item.productId}-${item.warehouseId}-${item.areaId || 'no-area'}`,
             productId: item.productId,
             warehouseId: item.warehouseId,
@@ -149,12 +148,15 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
           limit: 100,
         });
         // Filter purchases that have products available (IN_CAPTURE, IN_VALIDATION, VALIDATED, or CLOSED)
-        setPurchases(response.data.filter(p =>
-          p.status === 'IN_CAPTURE' ||
-          p.status === 'IN_VALIDATION' ||
-          p.status === 'VALIDATED' ||
-          p.status === 'CLOSED'
-        ) || []);
+        setPurchases(
+          response.data.filter(
+            (p) =>
+              p.status === 'IN_CAPTURE' ||
+              p.status === 'IN_VALIDATION' ||
+              p.status === 'VALIDATED' ||
+              p.status === 'CLOSED'
+          ) || []
+        );
       }
     } catch (error: any) {
       console.error('Error loading data:', error);
@@ -168,29 +170,29 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
     try {
       console.log('🛒 Loading purchase products with params:', {
         purchaseId: selectedPurchaseId,
-        includeProductStatus: 'active,preliminary'
+        includeProductStatus: 'active,preliminary',
       });
 
       const products = await purchasesService.getPurchaseProducts(selectedPurchaseId, {
-        includeProductStatus: 'active,preliminary' // Include products with active or preliminary status
+        includeProductStatus: 'active,preliminary', // Include products with active or preliminary status
       });
 
       console.log('🛒 Purchase products received from backend:', {
         total: products.length,
-        products: products.map(p => ({
+        products: products.map((p) => ({
           id: p.id,
           productId: p.productId,
           sku: p.sku,
           purchaseProductStatus: p.status,
           productStatus: p.product?.status,
           productTitle: p.product?.title,
-          hasProductRelation: !!p.product
-        }))
+          hasProductRelation: !!p.product,
+        })),
       });
 
       // Include both VALIDATED and PRELIMINARY purchase products
-      const availableProducts = products.filter((p) =>
-        p.status === 'VALIDATED' || p.status === 'PRELIMINARY'
+      const availableProducts = products.filter(
+        (p) => p.status === 'VALIDATED' || p.status === 'PRELIMINARY'
       );
       console.log('🛒 Available products (VALIDATED + PRELIMINARY):', availableProducts.length);
 
@@ -202,7 +204,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
   };
 
   const togglePurchaseExpansion = (purchaseId: string) => {
-    setExpandedPurchases(prev => {
+    setExpandedPurchases((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(purchaseId)) {
         newSet.delete(purchaseId);
@@ -229,12 +231,13 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
 
     try {
       // Get the selected product to determine its status
-      const selectedProduct = products.find(p => p.id === selectedProductId);
+      const selectedProduct = products.find((p) => p.id === selectedProductId);
 
       // Use the actual product status from the inventory, similar to purchase flow
-      const actualProductStatus = selectedProduct?.status === 'preliminary'
-        ? ProductStatus.PRELIMINARY
-        : ProductStatus.ACTIVE;
+      const actualProductStatus =
+        selectedProduct?.status === 'preliminary'
+          ? ProductStatus.PRELIMINARY
+          : ProductStatus.ACTIVE;
 
       const data: AddProductRequest = {
         productId: selectedProductId,
@@ -254,10 +257,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
       ]);
     } catch (error: any) {
       console.error('Error adding product:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo agregar el producto'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo agregar el producto');
     } finally {
       setLoading(false);
     }
@@ -293,10 +293,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
       ]);
     } catch (error: any) {
       console.error('Error adding products:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudieron agregar los productos'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudieron agregar los productos');
     } finally {
       setLoading(false);
     }
@@ -311,14 +308,16 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
       );
     } else {
       // Use the actual product status from the inventory, not hardcoded ACTIVE
-      const productStatus = product.product?.status === 'preliminary'
-        ? ProductStatus.PRELIMINARY
-        : ProductStatus.ACTIVE;
+      const productStatus =
+        product.product?.status === 'preliminary'
+          ? ProductStatus.PRELIMINARY
+          : ProductStatus.ACTIVE;
 
       // Use preliminary stock for PRELIMINARY purchase products, validated stock for VALIDATED
-      const stockQuantity = product.status === 'PRELIMINARY'
-        ? (product.preliminaryStock || 0)
-        : (product.validatedStock || 0);
+      const stockQuantity =
+        product.status === 'PRELIMINARY'
+          ? product.preliminaryStock || 0
+          : product.validatedStock || 0;
 
       setSelectedPurchaseProducts([
         ...selectedPurchaseProducts,
@@ -346,16 +345,16 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
 
   const getProductStock = (productId: string): number => {
     // Filter stock items for this product
-    const productStockItems = stockItems.filter(item => item.productId === productId);
+    const productStockItems = stockItems.filter((item) => item.productId === productId);
 
     console.log('🔍 Getting stock for product:', {
       productId,
       stockItemsCount: productStockItems.length,
-      stockItems: productStockItems.map(item => ({
+      stockItems: productStockItems.map((item) => ({
         warehouseId: item.warehouseId,
         areaId: item.areaId,
         quantityBase: item.quantityBase,
-      }))
+      })),
     });
 
     if (productStockItems.length === 0) {
@@ -365,11 +364,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
 
     const totalStock = productStockItems.reduce((total: number, item: StockItem) => {
       // Use availableQuantityBase (stock disponible) instead of quantityBase (stock total)
-      const quantity = typeof item.availableQuantityBase === 'number'
-        ? item.availableQuantityBase
-        : (typeof item.quantityBase === 'string'
-          ? parseFloat(item.quantityBase)
-          : (item.quantityBase || 0));
+      const quantity =
+        typeof item.availableQuantityBase === 'number'
+          ? item.availableQuantityBase
+          : typeof item.quantityBase === 'string'
+            ? parseFloat(item.quantityBase)
+            : item.quantityBase || 0;
       return total + quantity;
     }, 0);
 
@@ -401,7 +401,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
         {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'X-App-Id': config.APP_ID,
           },
         }
@@ -473,7 +473,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
       );
     }
 
-    const selectedProduct = products.find(p => p.id === selectedProductId);
+    const selectedProduct = products.find((p) => p.id === selectedProductId);
     const availableStock = selectedProduct ? getProductStock(selectedProductId) : 0;
     const filteredProducts = getFilteredProducts();
 
@@ -481,9 +481,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
       <>
         {/* Product Search */}
         <View style={styles.formGroup}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Producto *
-          </Text>
+          <Text style={[styles.label, isTablet && styles.labelTablet]}>Producto *</Text>
           <TextInput
             style={[styles.input, isTablet && styles.inputTablet]}
             value={productSearchQuery}
@@ -495,7 +493,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
 
           {/* Product Suggestions */}
           {showProductSuggestions && filteredProducts.length > 0 && (
-            <View style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}>
+            <View
+              style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}
+            >
               <ScrollView
                 style={styles.suggestionsList}
                 keyboardShouldPersistTaps="handled"
@@ -513,10 +513,15 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
                         styles.suggestionItem,
                         isTablet && styles.suggestionItemTablet,
                         isPreliminary && styles.suggestionItemPreliminary,
-                        isAlreadyAdded && styles.suggestionItemDisabled
+                        isAlreadyAdded && styles.suggestionItemDisabled,
                       ]}
                       onPress={() => {
-                        console.log('🖱️ Suggestion clicked:', product.sku, 'Already added:', isAlreadyAdded);
+                        console.log(
+                          '🖱️ Suggestion clicked:',
+                          product.sku,
+                          'Already added:',
+                          isAlreadyAdded
+                        );
                         if (!isAlreadyAdded) {
                           handleSelectProduct(product);
                         } else {
@@ -526,12 +531,15 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
                       activeOpacity={isAlreadyAdded ? 1 : 0.7}
                     >
                       <View style={styles.suggestionContent}>
-                        <Text style={[
-                          styles.suggestionTitle,
-                          isTablet && styles.suggestionTitleTablet,
-                          isAlreadyAdded && styles.suggestionTitleDisabled
-                        ]}>
-                          {product.correlativeNumber && `#${product.correlativeNumber} | `}{product.sku} - {product.title}
+                        <Text
+                          style={[
+                            styles.suggestionTitle,
+                            isTablet && styles.suggestionTitleTablet,
+                            isAlreadyAdded && styles.suggestionTitleDisabled,
+                          ]}
+                        >
+                          {product.correlativeNumber && `#${product.correlativeNumber} | `}
+                          {product.sku} - {product.title}
                           {isAlreadyAdded && ' (Ya agregado)'}
                         </Text>
                         {isPreliminary && (
@@ -540,10 +548,21 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
                           </Text>
                         )}
                         <View style={styles.suggestionMeta}>
-                          <Text style={[styles.suggestionStock, isTablet && styles.suggestionStockTablet, stock > 0 ? styles.stockAvailable : styles.stockUnavailable]}>
+                          <Text
+                            style={[
+                              styles.suggestionStock,
+                              isTablet && styles.suggestionStockTablet,
+                              stock > 0 ? styles.stockAvailable : styles.stockUnavailable,
+                            ]}
+                          >
                             Stock: {stock}
                           </Text>
-                          <Text style={[styles.suggestionStatus, isTablet && styles.suggestionStatusTablet]}>
+                          <Text
+                            style={[
+                              styles.suggestionStatus,
+                              isTablet && styles.suggestionStatusTablet,
+                            ]}
+                          >
                             {product.status === 'active' ? '✓ Activo' : '⚠ Preliminar'}
                           </Text>
                         </View>
@@ -557,9 +576,13 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
 
           {/* No products message */}
           {showProductSuggestions && filteredProducts.length === 0 && products.length > 0 && (
-            <View style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}>
+            <View
+              style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}
+            >
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No se encontraron productos con ese criterio de búsqueda</Text>
+                <Text style={styles.emptyText}>
+                  No se encontraron productos con ese criterio de búsqueda
+                </Text>
               </View>
             </View>
           )}
@@ -576,193 +599,181 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
               <Text style={[styles.stockLabel, isTablet && styles.stockLabelTablet]}>
                 Stock Disponible:
               </Text>
-              <Text style={[
-                styles.stockValue,
-                isTablet && styles.stockValueTablet,
-                availableStock > 0 ? styles.stockAvailable : styles.stockUnavailable
-              ]}>
+              <Text
+                style={[
+                  styles.stockValue,
+                  isTablet && styles.stockValueTablet,
+                  availableStock > 0 ? styles.stockAvailable : styles.stockUnavailable,
+                ]}
+              >
                 {availableStock} unidades
               </Text>
             </View>
           )}
         </View>
 
-      {/* Total Quantity */}
-      <View style={styles.formGroup}>
-        <Text style={[styles.label, isTablet && styles.labelTablet]}>
-          Cantidad Total *
-        </Text>
-        <TextInput
-          style={[styles.input, isTablet && styles.inputTablet]}
-          value={totalQuantity}
-          onChangeText={setTotalQuantity}
-          placeholder="Ej: 1000"
-          placeholderTextColor="#94A3B8"
-          keyboardType="decimal-pad"
-        />
-      </View>
-
-      {/* Product Status - Info only */}
-      {selectedProduct && (
+        {/* Total Quantity */}
         <View style={styles.formGroup}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Estado del Producto
-          </Text>
-          <View style={[
-            styles.statusDisplay,
-            isTablet && styles.statusDisplayTablet,
-            selectedProduct.status === 'preliminary' && styles.statusDisplayPreliminary
-          ]}>
-            <Text style={[styles.statusText, isTablet && styles.statusTextTablet]}>
-              {selectedProduct.status === 'preliminary' ? '⚠️ Preliminar (Por validar)' : '✓ Activo'}
+          <Text style={[styles.label, isTablet && styles.labelTablet]}>Cantidad Total *</Text>
+          <TextInput
+            style={[styles.input, isTablet && styles.inputTablet]}
+            value={totalQuantity}
+            onChangeText={setTotalQuantity}
+            placeholder="Ej: 1000"
+            placeholderTextColor="#94A3B8"
+            keyboardType="decimal-pad"
+          />
+        </View>
+
+        {/* Product Status - Info only */}
+        {selectedProduct && (
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, isTablet && styles.labelTablet]}>Estado del Producto</Text>
+            <View
+              style={[
+                styles.statusDisplay,
+                isTablet && styles.statusDisplayTablet,
+                selectedProduct.status === 'preliminary' && styles.statusDisplayPreliminary,
+              ]}
+            >
+              <Text style={[styles.statusText, isTablet && styles.statusTextTablet]}>
+                {selectedProduct.status === 'preliminary'
+                  ? '⚠️ Preliminar (Por validar)'
+                  : '✓ Activo'}
+              </Text>
+            </View>
+            <Text style={[styles.hint, isTablet && styles.hintTablet]}>
+              {selectedProduct.status === 'preliminary'
+                ? 'Este producto está en estado preliminar. Se agregará a la campaña como PRELIMINAR hasta que se valide el ingreso.'
+                : 'El producto se agregará con estado PENDIENTE. Deberás generar la distribución para asignar cantidades a los participantes.'}
             </Text>
           </View>
+        )}
+
+        {/* Distribution Type */}
+        <View style={styles.formGroup}>
+          <Text style={[styles.label, isTablet && styles.labelTablet]}>Tipo de Distribución *</Text>
+          <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
+            <Picker
+              selectedValue={distributionType}
+              onValueChange={setDistributionType}
+              style={styles.picker}
+            >
+              {Object.values(DistributionType).map((type) => (
+                <Picker.Item key={type} label={DistributionTypeLabels[type]} value={type} />
+              ))}
+            </Picker>
+          </View>
           <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-            {selectedProduct.status === 'preliminary'
-              ? 'Este producto está en estado preliminar. Se agregará a la campaña como PRELIMINAR hasta que se valide el ingreso.'
-              : 'El producto se agregará con estado PENDIENTE. Deberás generar la distribución para asignar cantidades a los participantes.'}
+            {DistributionTypeDescriptions[distributionType]}
           </Text>
         </View>
-      )}
-
-      {/* Distribution Type */}
-      <View style={styles.formGroup}>
-        <Text style={[styles.label, isTablet && styles.labelTablet]}>
-          Tipo de Distribución *
-        </Text>
-        <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
-          <Picker
-            selectedValue={distributionType}
-            onValueChange={setDistributionType}
-            style={styles.picker}
-          >
-            {Object.values(DistributionType).map((type) => (
-              <Picker.Item
-                key={type}
-                label={DistributionTypeLabels[type]}
-                value={type}
-              />
-            ))}
-          </Picker>
-        </View>
-        <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-          {DistributionTypeDescriptions[distributionType]}
-        </Text>
-      </View>
       </>
     );
   };
 
   const renderFromPurchaseForm = () => {
     // Separate purchases into already added and not added
-    const addedPurchases = purchases.filter(p => campaignPurchases.includes(p.id));
-    const notAddedPurchases = purchases.filter(p => !campaignPurchases.includes(p.id));
+    const addedPurchases = purchases.filter((p) => campaignPurchases.includes(p.id));
+    const notAddedPurchases = purchases.filter((p) => !campaignPurchases.includes(p.id));
 
     return (
-    <>
-      {/* Already Added Purchases */}
-      {addedPurchases.length > 0 && (
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Compras Ya Agregadas ({addedPurchases.length})
-          </Text>
-          <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-            Estas compras ya tienen productos en la campaña. Puedes expandirlas para agregar más productos.
-          </Text>
-          {addedPurchases.map((purchase) => {
-            const isExpanded = expandedPurchases.has(purchase.id);
-            const isSelected = selectedPurchaseId === purchase.id;
+      <>
+        {/* Already Added Purchases */}
+        {addedPurchases.length > 0 && (
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, isTablet && styles.labelTablet]}>
+              Compras Ya Agregadas ({addedPurchases.length})
+            </Text>
+            <Text style={[styles.hint, isTablet && styles.hintTablet]}>
+              Estas compras ya tienen productos en la campaña. Puedes expandirlas para agregar más
+              productos.
+            </Text>
+            {addedPurchases.map((purchase) => {
+              const isExpanded = expandedPurchases.has(purchase.id);
+              const isSelected = selectedPurchaseId === purchase.id;
 
-            return (
-              <View key={purchase.id} style={styles.purchaseCard}>
-                <TouchableOpacity
-                  style={[
-                    styles.purchaseHeader,
-                    isSelected && styles.purchaseHeaderSelected,
-                  ]}
-                  onPress={() => {
-                    if (isExpanded) {
-                      togglePurchaseExpansion(purchase.id);
-                      if (selectedPurchaseId === purchase.id) {
-                        setSelectedPurchaseId('');
+              return (
+                <View key={purchase.id} style={styles.purchaseCard}>
+                  <TouchableOpacity
+                    style={[styles.purchaseHeader, isSelected && styles.purchaseHeaderSelected]}
+                    onPress={() => {
+                      if (isExpanded) {
+                        togglePurchaseExpansion(purchase.id);
+                        if (selectedPurchaseId === purchase.id) {
+                          setSelectedPurchaseId('');
+                        }
+                      } else {
+                        togglePurchaseExpansion(purchase.id);
+                        setSelectedPurchaseId(purchase.id);
                       }
-                    } else {
-                      togglePurchaseExpansion(purchase.id);
-                      setSelectedPurchaseId(purchase.id);
-                    }
-                  }}
-                >
-                  <View style={styles.purchaseHeaderContent}>
-                    <Text style={styles.purchaseHeaderIcon}>
-                      {isExpanded ? '▼' : '▶'}
-                    </Text>
-                    <View style={styles.purchaseHeaderInfo}>
-                      <Text style={styles.purchaseHeaderTitle}>
-                        {purchase.code} - {purchase.supplier?.commercialName}
-                      </Text>
-                      <Text style={styles.purchaseHeaderBadge}>✓ Ya agregada</Text>
+                    }}
+                  >
+                    <View style={styles.purchaseHeaderContent}>
+                      <Text style={styles.purchaseHeaderIcon}>{isExpanded ? '▼' : '▶'}</Text>
+                      <View style={styles.purchaseHeaderInfo}>
+                        <Text style={styles.purchaseHeaderTitle}>
+                          {purchase.code} - {purchase.supplier?.commercialName}
+                        </Text>
+                        <Text style={styles.purchaseHeaderBadge}>✓ Ya agregada</Text>
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-                {isExpanded && isSelected && purchaseProducts.length > 0 && (
-                  <View style={styles.purchaseProductsContainer}>
-                    {renderPurchaseProducts()}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
-      )}
+                  </TouchableOpacity>
+                  {isExpanded && isSelected && purchaseProducts.length > 0 && (
+                    <View style={styles.purchaseProductsContainer}>{renderPurchaseProducts()}</View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
 
-      {/* Purchase Selection - Not Added */}
-      <View style={styles.formGroup}>
-        <Text style={[styles.label, isTablet && styles.labelTablet]}>
-          {addedPurchases.length > 0 ? 'Otras Compras Disponibles' : 'Compra *'}
-        </Text>
-        <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
-          <Picker
-            selectedValue={selectedPurchaseId}
-            onValueChange={(value) => {
-              setSelectedPurchaseId(value);
-              // Collapse all expanded purchases when selecting a new one
-              setExpandedPurchases(new Set());
-            }}
-            style={styles.picker}
-          >
-            <Picker.Item label="Seleccionar compra..." value="" />
-            {notAddedPurchases.map((purchase) => (
-              <Picker.Item
-                key={purchase.id}
-                label={`${purchase.code} - ${purchase.supplier?.commercialName}`}
-                value={purchase.id}
-              />
-            ))}
-          </Picker>
-        </View>
-      </View>
-
-      {/* Purchase Products - Only show for non-expanded purchases */}
-      {selectedPurchaseId && !expandedPurchases.has(selectedPurchaseId) && purchaseProducts.length > 0 && (
+        {/* Purchase Selection - Not Added */}
         <View style={styles.formGroup}>
           <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Productos de la Compra
+            {addedPurchases.length > 0 ? 'Otras Compras Disponibles' : 'Compra *'}
           </Text>
-          {renderPurchaseProducts()}
+          <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
+            <Picker
+              selectedValue={selectedPurchaseId}
+              onValueChange={(value) => {
+                setSelectedPurchaseId(value);
+                // Collapse all expanded purchases when selecting a new one
+                setExpandedPurchases(new Set());
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Seleccionar compra..." value="" />
+              {notAddedPurchases.map((purchase) => (
+                <Picker.Item
+                  key={purchase.id}
+                  label={`${purchase.code} - ${purchase.supplier?.commercialName}`}
+                  value={purchase.id}
+                />
+              ))}
+            </Picker>
+          </View>
         </View>
-      )}
-    </>
-  );
+
+        {/* Purchase Products - Only show for non-expanded purchases */}
+        {selectedPurchaseId &&
+          !expandedPurchases.has(selectedPurchaseId) &&
+          purchaseProducts.length > 0 && (
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                Productos de la Compra
+              </Text>
+              {renderPurchaseProducts()}
+            </View>
+          )}
+      </>
+    );
   };
 
   const renderPurchaseProducts = () => {
     return purchaseProducts.map((product) => {
-      const isSelected = selectedPurchaseProducts.find(
-        (p) => p.productId === product.productId
-      );
-      const config = selectedPurchaseProducts.find(
-        (p) => p.productId === product.productId
-      );
+      const isSelected = selectedPurchaseProducts.find((p) => p.productId === product.productId);
+      const config = selectedPurchaseProducts.find((p) => p.productId === product.productId);
       const isAlreadyAdded = campaignProducts.includes(product.productId);
       const isPreliminary = (product.product?.status as any) === 'preliminary';
 
@@ -772,7 +783,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
           style={[
             styles.productItem,
             isPreliminary && styles.productItemPreliminary,
-            isAlreadyAdded && styles.productItemDisabled
+            isAlreadyAdded && styles.productItemDisabled,
           ]}
         >
           <TouchableOpacity
@@ -794,10 +805,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
               {isSelected && <Text style={styles.checkmark}>✓</Text>}
             </View>
             <View style={styles.productInfo}>
-              <Text style={[
-                styles.productName,
-                isAlreadyAdded && styles.productNameDisabled
-              ]}>
+              <Text style={[styles.productName, isAlreadyAdded && styles.productNameDisabled]}>
                 {product.product?.title || product.name}
                 {isAlreadyAdded && ' (Ya agregado)'}
               </Text>
@@ -807,7 +815,11 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
                 </Text>
               )}
               <Text style={styles.productDetails}>
-                {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku} | Stock: {product.status === 'PRELIMINARY' ? product.preliminaryStock : product.validatedStock}
+                {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku}{' '}
+                | Stock:{' '}
+                {product.status === 'PRELIMINARY'
+                  ? product.preliminaryStock
+                  : product.validatedStock}
                 {product.product?.status === 'preliminary' && ' ⚠ Preliminar'}
               </Text>
             </View>
@@ -819,11 +831,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
                 style={[styles.smallInput, isTablet && styles.smallInputTablet]}
                 value={config.quantity.toString()}
                 onChangeText={(value) =>
-                  updatePurchaseProductConfig(
-                    product.productId,
-                    'quantity',
-                    parseFloat(value) || 0
-                  )
+                  updatePurchaseProductConfig(product.productId, 'quantity', parseFloat(value) || 0)
                 }
                 placeholder="Cantidad"
                 keyboardType="decimal-pad"
@@ -840,26 +848,18 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
               ← Volver
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Agregar Producto
-          </Text>
+          <Text style={[styles.title, isTablet && styles.titleTablet]}>Agregar Producto</Text>
         </View>
 
         {/* Form */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
         >
           <View style={[styles.formCard, isTablet && styles.formCardTablet]}>
             {/* Source Type */}
@@ -879,10 +879,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({
                   style={styles.picker}
                 >
                   <Picker.Item label="Desde Inventario" value={ProductSourceType.INVENTORY} />
-                  <Picker.Item
-                    label="Desde Compra"
-                    value={ProductSourceType.PURCHASE}
-                  />
+                  <Picker.Item label="Desde Compra" value={ProductSourceType.PURCHASE} />
                 </Picker>
               </View>
             </View>
@@ -1396,4 +1393,3 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
-

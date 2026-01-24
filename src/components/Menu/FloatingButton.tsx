@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 
 interface FloatingButtonProps {
   onPress: () => void;
@@ -14,10 +8,7 @@ interface FloatingButtonProps {
 
 const { width: screenWidth } = Dimensions.get('window');
 
-export const FloatingButton: React.FC<FloatingButtonProps> = ({
-  onPress,
-  isVisible,
-}) => {
+export const FloatingButton: React.FC<FloatingButtonProps> = ({ onPress, isVisible }) => {
   const slideAnim = React.useRef(new Animated.Value(100)).current;
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
@@ -69,25 +60,20 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
     onPress();
   };
 
-  if (!isVisible) return null;
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <Animated.View
       style={[
         styles.container,
         {
-          transform: [
-            { translateX: slideAnim },
-            { scale: scaleAnim },
-          ],
+          transform: [{ translateX: slideAnim }, { scale: scaleAnim }],
         },
       ]}
     >
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handlePress}
-        activeOpacity={0.8}
-      >
+      <TouchableOpacity style={styles.button} onPress={handlePress} activeOpacity={0.8}>
         <Text style={styles.buttonText}>☰</Text>
       </TouchableOpacity>
     </Animated.View>

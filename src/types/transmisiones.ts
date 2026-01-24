@@ -202,10 +202,10 @@ export const getTransmisionStatusLabel = (status: TransmisionStatus): string => 
 // Helper function to get transmision status color
 export const getTransmisionStatusColor = (status: TransmisionStatus): string => {
   const colors: Record<TransmisionStatus, string> = {
-    [TransmisionStatus.DRAFT]: '#6B7280',        // Gray
-    [TransmisionStatus.IN_PROGRESS]: '#0EA5E9',  // Blue
-    [TransmisionStatus.COMPLETED]: '#10B981',    // Green
-    [TransmisionStatus.CANCELLED]: '#EF4444',    // Red
+    [TransmisionStatus.DRAFT]: '#6B7280', // Gray
+    [TransmisionStatus.IN_PROGRESS]: '#0EA5E9', // Blue
+    [TransmisionStatus.COMPLETED]: '#10B981', // Green
+    [TransmisionStatus.CANCELLED]: '#EF4444', // Red
   };
   return colors[status];
 };
@@ -226,12 +226,12 @@ export const getProductStatusLabel = (status: ProductStatus): string => {
 // Helper function to get product status color
 export const getProductStatusColor = (status: ProductStatus): string => {
   const colors: Record<ProductStatus, string> = {
-    [ProductStatus.PRELIMINARY]: '#F59E0B',      // Orange
-    [ProductStatus.ACTIVE]: '#10B981',           // Green
-    [ProductStatus.INACTIVE]: '#6B7280',         // Gray
-    [ProductStatus.DISCONTINUED]: '#EF4444',     // Red
-    [ProductStatus.DRAFT]: '#6B7280',            // Gray
-    [ProductStatus.ARCHIVED]: '#9CA3AF',         // Light Gray
+    [ProductStatus.PRELIMINARY]: '#F59E0B', // Orange
+    [ProductStatus.ACTIVE]: '#10B981', // Green
+    [ProductStatus.INACTIVE]: '#6B7280', // Gray
+    [ProductStatus.DISCONTINUED]: '#EF4444', // Red
+    [ProductStatus.DRAFT]: '#6B7280', // Gray
+    [ProductStatus.ARCHIVED]: '#9CA3AF', // Light Gray
   };
   return colors[status];
 };
@@ -248,7 +248,9 @@ export const isProductActive = (status: ProductStatus): boolean => {
 
 // Helper function to calculate profit margin
 export const calculateProfitMargin = (costCents: number, salePriceCents: number): number => {
-  if (costCents === 0) return 0;
+  if (costCents === 0) {
+    return 0;
+  }
   return ((salePriceCents - costCents) / costCents) * 100;
 };
 

@@ -56,7 +56,8 @@ class CampaignsService {
   async getCampaign(id: string): Promise<Campaign> {
     return apiClient.get<Campaign>(`${this.basePath}/${id}`, {
       params: {
-        include: 'participants.company,participants.site,participants.priceProfile,products.product.category,products.product.presentations,products.product.salePrices,products.product.stockItems.warehouse,products.product.stockItems.area,products.customDistributions.items',
+        include:
+          'participants.company,participants.site,participants.priceProfile,products.product.category,products.product.presentations,products.product.salePrices,products.product.stockItems.warehouse,products.product.stockItems.area,products.customDistributions.items',
       },
     });
   }
@@ -121,10 +122,7 @@ class CampaignsService {
     campaignId: string,
     data: AddParticipantRequest
   ): Promise<CampaignParticipant> {
-    return apiClient.post<CampaignParticipant>(
-      `${this.basePath}/${campaignId}/participants`,
-      data
-    );
+    return apiClient.post<CampaignParticipant>(`${this.basePath}/${campaignId}/participants`, data);
   }
 
   /**
@@ -145,9 +143,7 @@ class CampaignsService {
    * Delete a participant (only in DRAFT status)
    */
   async deleteParticipant(campaignId: string, participantId: string): Promise<void> {
-    return apiClient.delete<void>(
-      `${this.basePath}/${campaignId}/participants/${participantId}`
-    );
+    return apiClient.delete<void>(`${this.basePath}/${campaignId}/participants/${participantId}`);
   }
 
   // ============================================
@@ -160,7 +156,8 @@ class CampaignsService {
   async getProducts(campaignId: string): Promise<CampaignProduct[]> {
     return apiClient.get<CampaignProduct[]>(`${this.basePath}/${campaignId}/products`, {
       params: {
-        include: 'product.category,product.presentations,product.salePrices,product.stockItems.warehouse,product.stockItems.area,purchase',
+        include:
+          'product.category,product.presentations,product.salePrices,product.stockItems.warehouse,product.stockItems.area,purchase',
       },
     });
   }
@@ -171,7 +168,8 @@ class CampaignsService {
   async getProduct(campaignId: string, productId: string): Promise<CampaignProduct> {
     return apiClient.get<CampaignProduct>(`${this.basePath}/${campaignId}/products/${productId}`, {
       params: {
-        include: 'product.category,product.presentations,product.salePrices,product.stockItems.warehouse,product.stockItems.area,purchase',
+        include:
+          'product.category,product.presentations,product.salePrices,product.stockItems.warehouse,product.stockItems.area,purchase',
       },
     });
   }
@@ -295,10 +293,9 @@ class CampaignsService {
    * Export participant totals as PDF
    */
   async exportParticipantTotalsPdf(campaignId: string): Promise<Blob> {
-    return apiClient.get<Blob>(
-      `${this.basePath}/${campaignId}/participant-totals/export-pdf`,
-      { responseType: 'blob' }
-    );
+    return apiClient.get<Blob>(`${this.basePath}/${campaignId}/participant-totals/export-pdf`, {
+      responseType: 'blob',
+    });
   }
 
   // ============================================
@@ -356,10 +353,7 @@ class CampaignsService {
       notes?: string;
     }
   ): Promise<any> {
-    return apiClient.post<any>(
-      `${this.basePath}/${campaignId}/participants`,
-      data
-    );
+    return apiClient.post<any>(`${this.basePath}/${campaignId}/participants`, data);
   }
 
   // ============================================
@@ -381,10 +375,7 @@ class CampaignsService {
       }>;
     }
   ): Promise<any> {
-    return apiClient.post<any>(
-      `${this.basePath}/${campaignId}/custom-distributions`,
-      data
-    );
+    return apiClient.post<any>(`${this.basePath}/${campaignId}/custom-distributions`, data);
   }
 }
 

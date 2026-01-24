@@ -44,7 +44,9 @@ export const usePermissionError = () => {
     (error?: any) => {
       const errorToHandle = error || permissionError;
 
-      if (!errorToHandle) return;
+      if (!errorToHandle) {
+        return;
+      }
 
       const message = errorToHandle.permissionMessage || errorToHandle.message;
       const permissions = errorToHandle.requiredPermissions || [];
@@ -52,7 +54,8 @@ export const usePermissionError = () => {
       let alertMessage = message;
 
       if (permissions.length > 0) {
-        alertMessage += '\n\nPermisos requeridos:\n' + permissions.map((p: string) => `• ${p}`).join('\n');
+        alertMessage +=
+          '\n\nPermisos requeridos:\n' + permissions.map((p: string) => `• ${p}`).join('\n');
       }
 
       Alert.alert(

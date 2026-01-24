@@ -11,7 +11,7 @@ interface SplashScreenProps {
   text?: string;
 }
 
-export const SplashScreen: React.FC<SplashScreenProps> = ({ text = "Iniciando aplicación..." }) => {
+export const SplashScreen: React.FC<SplashScreenProps> = ({ text = 'Iniciando aplicación...' }) => {
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -69,7 +69,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ text = "Iniciando ap
           <Circle cx="482" cy="420" r="8" fill="#1F2A44" />
           <Circle cx="562" cy="340" r="8" fill="#1F2A44" />
           <Circle cx="642" cy="380" r="8" fill="#1F2A44" />
-          <Path d="M322 400 L402 360 L482 420 L562 340 L642 380" stroke="#1F2A44" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
+          <Path
+            d="M322 400 L402 360 L482 420 L562 340 L642 380"
+            stroke="#1F2A44"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.3"
+          />
           <Rect x="292" y="660" width="140" height="80" rx="15" fill="#1ECAD0" opacity="0.2" />
           <Rect x="442" y="660" width="140" height="80" rx="15" fill="#DCC8FF" opacity="0.3" />
           <Rect x="592" y="660" width="140" height="80" rx="15" fill="#A88CFF" opacity="0.2" />

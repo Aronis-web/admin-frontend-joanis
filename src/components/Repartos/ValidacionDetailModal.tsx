@@ -42,7 +42,9 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
   }, [visible, repartoProductoId, validacionProp]);
 
   const loadValidacion = async () => {
-    if (!repartoProductoId) return;
+    if (!repartoProductoId) {
+      return;
+    }
 
     setLoading(true);
     try {
@@ -62,10 +64,14 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
     }
   };
 
-  if (!validacion && !loading) return null;
+  if (!validacion && !loading) {
+    return null;
+  }
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {
+      return 'N/A';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
@@ -77,12 +83,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
           {/* Header */}
@@ -105,95 +106,109 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
             <>
               {/* Content */}
               <ScrollView style={styles.modalBody}>
-            {/* Validation Info */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-                Información de Validación
-              </Text>
-
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                  Cantidad Validada:
-                </Text>
-                <Text style={[styles.infoValue, styles.highlightValue, isTablet && styles.infoValueTablet]}>
-                  {validacion.validatedQuantity || validacion.validatedQuantityBase} unidades
-                </Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                  Validado por:
-                </Text>
-                <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                  {validacion.validator?.name || validacion.validatedByName || validacion.validator?.email || 'N/A'}
-                </Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                  Fecha de Validación:
-                </Text>
-                <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                  {formatDate(validacion.validatedAt)}
-                </Text>
-              </View>
-
-              {validacion.notes && (
-                <View style={styles.infoRow}>
-                  <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                    Notas:
+                {/* Validation Info */}
+                <View style={styles.section}>
+                  <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                    Información de Validación
                   </Text>
-                  <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                    {validacion.notes}
+
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                      Cantidad Validada:
+                    </Text>
+                    <Text
+                      style={[
+                        styles.infoValue,
+                        styles.highlightValue,
+                        isTablet && styles.infoValueTablet,
+                      ]}
+                    >
+                      {validacion.validatedQuantity || validacion.validatedQuantityBase} unidades
+                    </Text>
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                      Validado por:
+                    </Text>
+                    <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                      {validacion.validator?.name ||
+                        validacion.validatedByName ||
+                        validacion.validator?.email ||
+                        'N/A'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                      Fecha de Validación:
+                    </Text>
+                    <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                      {formatDate(validacion.validatedAt)}
+                    </Text>
+                  </View>
+
+                  {validacion.notes && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                        Notas:
+                      </Text>
+                      <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                        {validacion.notes}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Photo */}
+                {validacion.photoUrl && (
+                  <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                      Foto de Validación
+                    </Text>
+                    <View style={styles.imageContainer}>
+                      <Image
+                        source={{ uri: validacion.photoUrl }}
+                        style={styles.image}
+                        resizeMode="contain"
+                      />
+                    </View>
+                  </View>
+                )}
+
+                {/* Signature */}
+                {validacion.signatureUrl && (
+                  <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                      Firma de Validación
+                    </Text>
+                    <View style={styles.imageContainer}>
+                      <Image
+                        source={{ uri: validacion.signatureUrl }}
+                        style={styles.signatureImage}
+                        resizeMode="contain"
+                      />
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
+
+              {/* Footer */}
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={[styles.closeFooterButton, isTablet && styles.closeFooterButtonTablet]}
+                  onPress={onClose}
+                >
+                  <Text
+                    style={[
+                      styles.closeFooterButtonText,
+                      isTablet && styles.closeFooterButtonTextTablet,
+                    ]}
+                  >
+                    Cerrar
                   </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Photo */}
-            {validacion.photoUrl && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-                  Foto de Validación
-                </Text>
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={{ uri: validacion.photoUrl }}
-                    style={styles.image}
-                    resizeMode="contain"
-                  />
-                </View>
+                </TouchableOpacity>
               </View>
-            )}
-
-            {/* Signature */}
-            {validacion.signatureUrl && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-                  Firma de Validación
-                </Text>
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={{ uri: validacion.signatureUrl }}
-                    style={styles.signatureImage}
-                    resizeMode="contain"
-                  />
-                </View>
-              </View>
-            )}
-          </ScrollView>
-
-          {/* Footer */}
-          <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={[styles.closeFooterButton, isTablet && styles.closeFooterButtonTablet]}
-              onPress={onClose}
-            >
-              <Text style={[styles.closeFooterButtonText, isTablet && styles.closeFooterButtonTextTablet]}>
-                Cerrar
-              </Text>
-            </TouchableOpacity>
-          </View>
             </>
           ) : null}
         </View>

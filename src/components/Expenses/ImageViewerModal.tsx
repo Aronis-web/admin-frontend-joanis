@@ -51,7 +51,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
         method: 'GET',
         headers: {
           'X-App-Id': config.APP_ID,
-          'Accept': 'image/*',
+          Accept: 'image/*',
         },
       });
 
@@ -102,12 +102,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -148,11 +143,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
             </View>
           )}
           {!loading && !error && imageData && (
-            <Image
-              source={{ uri: imageData }}
-              style={styles.image}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: imageData }} style={styles.image} resizeMode="contain" />
           )}
           {!loading && !error && !imageData && !imageUrl && (
             <View style={styles.errorContainer}>

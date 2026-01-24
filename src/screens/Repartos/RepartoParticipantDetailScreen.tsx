@@ -19,7 +19,11 @@ import * as Sharing from 'expo-sharing';
 import { campaignsService, repartosService } from '@/services/api';
 import { CampaignParticipant, ParticipantType } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { ValidacionSalidaModal, ValidacionDetailModal, CircularProgress } from '@/components/Repartos';
+import {
+  ValidacionSalidaModal,
+  ValidacionDetailModal,
+  CircularProgress,
+} from '@/components/Repartos';
 import { useAuthStore } from '@/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
 import logger from '@/utils/logger';
@@ -184,7 +188,10 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           // Si no hay presentationInfo pero el reparto tiene presentationId/factorToBase,
           // construir un presentationInfo temporal
           if (!presentationInfo && reparto.presentationId && reparto.factorToBase) {
-            console.log('⚠️ WORKAROUND: Construyendo presentationInfo temporal para reparto:', reparto.repartoCode);
+            console.log(
+              '⚠️ WORKAROUND: Construyendo presentationInfo temporal para reparto:',
+              reparto.repartoCode
+            );
             presentationInfo = {
               hasPresentations: true,
               largestFactor: reparto.factorToBase,
@@ -200,22 +207,33 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           }
 
           // Construir array de presentations basado en presentationInfo
-          let presentations: any[] | undefined = undefined;
+          let presentations: any[] | undefined;
           if (presentationInfo?.largestPresentation) {
-            presentations = [{
-              id: `${productGroup.productId}-${presentationInfo.largestPresentation.id}`,
-              presentationId: presentationInfo.largestPresentation.id,
-              factorToBase: presentationInfo.largestPresentation.factorToBase,
-              isBase: false,
-              presentation: {
-                id: presentationInfo.largestPresentation.id,
-                code: presentationInfo.largestPresentation.name.toUpperCase(),
-                name: presentationInfo.largestPresentation.name,
+            presentations = [
+              {
+                id: `${productGroup.productId}-${presentationInfo.largestPresentation.id}`,
+                presentationId: presentationInfo.largestPresentation.id,
+                factorToBase: presentationInfo.largestPresentation.factorToBase,
+                isBase: false,
+                presentation: {
+                  id: presentationInfo.largestPresentation.id,
+                  code: presentationInfo.largestPresentation.name.toUpperCase(),
+                  name: presentationInfo.largestPresentation.name,
+                },
               },
-            }];
-            console.log('✅ Presentations construido para producto:', productGroup.productName, presentations);
+            ];
+            console.log(
+              '✅ Presentations construido para producto:',
+              productGroup.productName,
+              presentations
+            );
           } else {
-            console.log('⚠️ No se pudo construir presentations para:', productGroup.productName, 'presentationInfo:', presentationInfo);
+            console.log(
+              '⚠️ No se pudo construir presentations para:',
+              productGroup.productName,
+              'presentationInfo:',
+              presentationInfo
+            );
           }
 
           productosAsignados.push({
@@ -308,7 +326,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     signatureUrl: string;
     notes?: string;
   }) => {
-    if (!selectedProducto) return;
+    if (!selectedProducto) {
+      return;
+    }
 
     setActionLoading(true);
     try {
@@ -325,10 +345,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       setSelectedProducto(null);
       loadData();
     } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo validar la salida'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo validar la salida');
       throw error;
     } finally {
       setActionLoading(false);
@@ -358,7 +375,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');
       logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-      logger.info('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
@@ -408,10 +425,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       }
     } catch (error: any) {
       logger.error('Error downloading participant report:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudo descargar el reporte del participante'
-      );
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte del participante');
     } finally {
       setDownloadingReport(false);
     }
@@ -463,14 +477,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     // Determinar la cantidad a mostrar (priorizar quantityBase, luego quantityAssigned)
     const quantity = producto.quantityBase
       ? parseInt(producto.quantityBase)
-      : (producto.quantityAssigned || 0);
+      : producto.quantityAssigned || 0;
 
     // Determinar el estado a mostrar
     const productStatus = producto.validationStatus || producto.status || 'PENDING';
 
     // ✅ SOLO mostrar por presentación si la VALIDACIÓN fue por presentación
     // Esto se determina verificando si existe validacion.presentationInfo con roundingApplied
-    const wasValidatedByPresentation = productStatus === 'VALIDATED' &&
+    const wasValidatedByPresentation =
+      productStatus === 'VALIDATED' &&
       producto.validacion?.presentationInfo?.roundingApplied === true;
 
     // Calcular cantidades en presentación SOLO si fue validado por presentación
@@ -488,10 +503,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     }
 
     return (
-      <View
-        key={producto.id}
-        style={[styles.card, isTablet && styles.cardTablet]}
-      >
+      <View key={producto.id} style={[styles.card, isTablet && styles.cardTablet]}>
         <View style={styles.cardHeader}>
           <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
             {producto.product?.title || producto.product?.name || 'Producto'}
@@ -522,28 +534,37 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>SKU:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {producto.product?.correlativeNumber && `#${producto.product.correlativeNumber} | `}{producto.product?.sku || 'N/A'}
+              {producto.product?.correlativeNumber && `#${producto.product.correlativeNumber} | `}
+              {producto.product?.sku || 'N/A'}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Cantidad Asignada:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+              Cantidad Asignada:
+            </Text>
             <Text style={[styles.quantityValue, isTablet && styles.quantityValueTablet]}>
               {wasValidatedByPresentation
                 ? `${quantityInPresentation} ${presentationName} (${quantity} unidades)`
-                : `${quantity} unidades`
-              }
+                : `${quantity} unidades`}
             </Text>
           </View>
 
           {producto.quantityValidated !== undefined && producto.quantityValidated > 0 && (
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Cantidad Validada:</Text>
-              <Text style={[styles.quantityValue, isTablet && styles.quantityValueTablet, { color: '#10B981' }]}>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                Cantidad Validada:
+              </Text>
+              <Text
+                style={[
+                  styles.quantityValue,
+                  isTablet && styles.quantityValueTablet,
+                  { color: '#10B981' },
+                ]}
+              >
                 {wasValidatedByPresentation
                   ? `${validatedInPresentation} ${presentationName} (${producto.quantityValidated} unidades)`
-                  : `${producto.quantityValidated} unidades`
-                }
+                  : `${producto.quantityValidated} unidades`}
               </Text>
             </View>
           )}
@@ -630,16 +651,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       : participant.site?.name || 'Sede';
 
   const totalQuantity = productos.reduce((sum, p) => {
-    const quantity = p.quantityBase
-      ? parseInt(p.quantityBase)
-      : (p.quantityAssigned || 0);
+    const quantity = p.quantityBase ? parseInt(p.quantityBase) : p.quantityAssigned || 0;
     return sum + quantity;
   }, 0);
 
   // Calcular progreso de validación del participante (productos validados)
   const totalProductos = productos.length;
-  const productosValidados = productos.filter(p => p.validationStatus === 'VALIDATED').length;
-  const progressPercentage = totalProductos > 0 ? Math.round((productosValidados / totalProductos) * 100) : 0;
+  const productosValidados = productos.filter((p) => p.validationStatus === 'VALIDATED').length;
+  const progressPercentage =
+    totalProductos > 0 ? Math.round((productosValidados / totalProductos) * 100) : 0;
 
   // Calcular estadísticas de productos filtrados
   const filteredCount = filteredProductos.length;
@@ -699,7 +719,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               Productos Validados:
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet, { marginRight: 12 }]}>
+              <Text
+                style={[styles.infoValue, isTablet && styles.infoValueTablet, { marginRight: 12 }]}
+              >
                 {productosValidados} / {totalProductos}
               </Text>
               {/* Barra de progreso circular del participante */}
@@ -723,10 +745,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               disabled={downloadingReport}
               activeOpacity={0.7}
             >
-              <Text style={[styles.downloadReportButtonText, isTablet && styles.downloadReportButtonTextTablet]}>
-                {downloadingReport
-                  ? '📄 Generando Reporte...'
-                  : '📄 Descargar Reporte de Totales'}
+              <Text
+                style={[
+                  styles.downloadReportButtonText,
+                  isTablet && styles.downloadReportButtonTextTablet,
+                ]}
+              >
+                {downloadingReport ? '📄 Generando Reporte...' : '📄 Descargar Reporte de Totales'}
               </Text>
             </TouchableOpacity>
           )}
@@ -735,13 +760,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         {/* Products List */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           <View style={styles.headerSection}>
             <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
@@ -762,11 +782,12 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   autoCorrect={false}
                 />
                 {searchQuery.length > 0 && (
-                  <TouchableOpacity
-                    onPress={() => setSearchQuery('')}
-                    style={styles.clearButton}
-                  >
-                    <Text style={[styles.clearButtonText, isTablet && styles.clearButtonTextTablet]}>✕</Text>
+                  <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                    <Text
+                      style={[styles.clearButtonText, isTablet && styles.clearButtonTextTablet]}
+                    >
+                      ✕
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -777,8 +798,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               <Text style={[styles.searchResults, isTablet && styles.searchResultsTablet]}>
                 {filteredCount === 0
                   ? 'No se encontraron productos'
-                  : `Mostrando ${filteredCount} de ${totalProductos} producto${totalProductos !== 1 ? 's' : ''}`
-                }
+                  : `Mostrando ${filteredCount} de ${totalProductos} producto${totalProductos !== 1 ? 's' : ''}`}
               </Text>
             )}
           </View>
@@ -807,33 +827,41 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         </ScrollView>
 
         {/* Validation Modal */}
-        {selectedProducto && (() => {
-          console.log('🔍 selectedProducto.product?.presentations:', selectedProducto.product?.presentations);
-          console.log('🔍 selectedProducto completo:', JSON.stringify(selectedProducto, null, 2));
-          return (
-            <ValidacionSalidaModal
-              visible={validationModalVisible}
-              producto={{
-                id: selectedProducto.id,
-                product: {
-                  title: selectedProducto.product?.title || selectedProducto.product?.name || 'Producto',
-                  sku: `${selectedProducto.product?.correlativeNumber ? `#${selectedProducto.product.correlativeNumber} | ` : ''}${selectedProducto.product?.sku || 'N/A'}`,
-                  presentations: selectedProducto.product?.presentations, // ✅ Dentro de product
-                },
-                quantityBase: selectedProducto.quantityBase || String(selectedProducto.quantityAssigned || 0),
-                // ✅ Pasar información de presentación
-                presentationInfo: selectedProducto.presentationInfo,
-                presentationId: selectedProducto.presentationId,
-                factorToBase: selectedProducto.factorToBase,
-              }}
-              onClose={() => {
-                setValidationModalVisible(false);
-                setSelectedProducto(null);
-              }}
-              onValidate={handleSaveValidation}
-            />
-          );
-        })()}
+        {selectedProducto &&
+          (() => {
+            console.log(
+              '🔍 selectedProducto.product?.presentations:',
+              selectedProducto.product?.presentations
+            );
+            console.log('🔍 selectedProducto completo:', JSON.stringify(selectedProducto, null, 2));
+            return (
+              <ValidacionSalidaModal
+                visible={validationModalVisible}
+                producto={{
+                  id: selectedProducto.id,
+                  product: {
+                    title:
+                      selectedProducto.product?.title ||
+                      selectedProducto.product?.name ||
+                      'Producto',
+                    sku: `${selectedProducto.product?.correlativeNumber ? `#${selectedProducto.product.correlativeNumber} | ` : ''}${selectedProducto.product?.sku || 'N/A'}`,
+                    presentations: selectedProducto.product?.presentations, // ✅ Dentro de product
+                  },
+                  quantityBase:
+                    selectedProducto.quantityBase || String(selectedProducto.quantityAssigned || 0),
+                  // ✅ Pasar información de presentación
+                  presentationInfo: selectedProducto.presentationInfo,
+                  presentationId: selectedProducto.presentationId,
+                  factorToBase: selectedProducto.factorToBase,
+                }}
+                onClose={() => {
+                  setValidationModalVisible(false);
+                  setSelectedProducto(null);
+                }}
+                onValidate={handleSaveValidation}
+              />
+            );
+          })()}
 
         {/* Validation Detail Modal */}
         <ValidacionDetailModal

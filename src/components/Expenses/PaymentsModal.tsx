@@ -31,7 +31,9 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{ url: string; fileName: string } | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; fileName: string } | null>(
+    null
+  );
 
   useEffect(() => {
     if (visible && expenseId) {
@@ -43,7 +45,9 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
   }, [visible, expenseId]);
 
   const loadPayments = async () => {
-    if (!expenseId) return;
+    if (!expenseId) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -108,8 +112,9 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
         return;
       }
 
-      const isImage = attachment.mimeType?.startsWith('image/') ||
-                      attachment.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+      const isImage =
+        attachment.mimeType?.startsWith('image/') ||
+        attachment.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
 
       console.log('🖼️ PaymentsModal - Opening attachment in modal:', {
         fileName,
@@ -129,25 +134,21 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
         console.log('✅ PaymentsModal - Image viewer should now be visible');
       } else {
         // For PDFs and other files, show alert with option to open externally
-        Alert.alert(
-          'Abrir Archivo',
-          `¿Deseas abrir ${fileName}?`,
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Abrir',
-              onPress: async () => {
-                const { Linking } = require('react-native');
-                const canOpen = await Linking.canOpenURL(url);
-                if (canOpen) {
-                  await Linking.openURL(url);
-                } else {
-                  Alert.alert('Error', 'No se pudo abrir el archivo');
-                }
-              },
+        Alert.alert('Abrir Archivo', `¿Deseas abrir ${fileName}?`, [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Abrir',
+            onPress: async () => {
+              const { Linking } = require('react-native');
+              const canOpen = await Linking.canOpenURL(url);
+              if (canOpen) {
+                await Linking.openURL(url);
+              } else {
+                Alert.alert('Error', 'No se pudo abrir el archivo');
+              }
             },
-          ]
-        );
+          },
+        ]);
       }
     } catch (error) {
       console.error('❌ PaymentsModal - Error handling attachment:', error);
@@ -163,30 +164,24 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
 
   const getTotalPaid = () => {
     return payments.reduce((sum, payment) => {
-      const amountCents = typeof payment.amountCents === 'string'
-        ? parseInt(payment.amountCents, 10)
-        : payment.amountCents;
+      const amountCents =
+        typeof payment.amountCents === 'string'
+          ? parseInt(payment.amountCents, 10)
+          : payment.amountCents;
       return sum + (amountCents || 0);
     }, 0);
   };
 
   return (
     <>
-      <Modal
-        visible={visible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={onClose}
-      >
+      <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
         <View style={styles.container}>
           <View style={styles.modalContent}>
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerLeft}>
                 <Text style={styles.headerTitle}>Pagos Registrados</Text>
-                {expenseCode && (
-                  <Text style={styles.headerSubtitle}>{expenseCode}</Text>
-                )}
+                {expenseCode && <Text style={styles.headerSubtitle}>{expenseCode}</Text>}
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <Ionicons name="close" size={28} color="#1E293B" />

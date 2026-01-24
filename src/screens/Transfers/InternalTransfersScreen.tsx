@@ -179,7 +179,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
       setLoadingProducts(true);
       const response = await productsApi.getAllProducts({
         limit: 1000,
-        include: 'stockItems'
+        include: 'stockItems',
       });
       setProducts(response.products || []);
     } catch (error: any) {
@@ -237,7 +237,10 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
   };
 
   const addTransferItem = () => {
-    setTransferItems([...transferItems, { productId: '', quantity: '', notes: '', product: undefined }]);
+    setTransferItems([
+      ...transferItems,
+      { productId: '', quantity: '', notes: '', product: undefined },
+    ]);
   };
 
   const removeTransferItem = (index: number) => {
@@ -265,7 +268,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
     newItems[index] = {
       ...newItems[index],
       productId: product.id,
-      product: product
+      product: product,
     };
     setTransferItems(newItems);
   };
@@ -296,7 +299,9 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
       return false;
     }
 
-    const validItems = transferItems.filter((item) => item.productId && parseFloat(item.quantity) > 0);
+    const validItems = transferItems.filter(
+      (item) => item.productId && parseFloat(item.quantity) > 0
+    );
     if (validItems.length === 0) {
       Alert.alert('Error', 'Agrega al menos un producto con cantidad válida');
       return false;
@@ -306,7 +311,9 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
   };
 
   const handleCreateTransfer = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     try {
       setCreating(true);
@@ -372,7 +379,10 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
       console.log('👤 User ID:', userId);
 
       if (!userId) {
-        Alert.alert('Error', 'No se pudo identificar el usuario. Por favor, inicia sesión nuevamente.');
+        Alert.alert(
+          'Error',
+          'No se pudo identificar el usuario. Por favor, inicia sesión nuevamente.'
+        );
         return;
       }
 
@@ -383,7 +393,10 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
     } catch (error: any) {
       console.error('❌ Error executing transfer:', error);
       console.error('❌ Error details:', error.response?.data);
-      Alert.alert('Error', error.response?.data?.message || error.message || 'No se pudo ejecutar el traslado');
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || error.message || 'No se pudo ejecutar el traslado'
+      );
     } finally {
       setCreating(false);
     }
@@ -411,7 +424,10 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                 console.log('👤 User ID:', userId);
 
                 if (!userId) {
-                  Alert.alert('Error', 'No se pudo identificar el usuario. Por favor, inicia sesión nuevamente.');
+                  Alert.alert(
+                    'Error',
+                    'No se pudo identificar el usuario. Por favor, inicia sesión nuevamente.'
+                  );
                   return;
                 }
 
@@ -422,7 +438,12 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
               } catch (error: any) {
                 console.error('❌ Error executing transfer:', error);
                 console.error('❌ Error details:', error.response?.data);
-                Alert.alert('Error', error.response?.data?.message || error.message || 'No se pudo ejecutar el traslado');
+                Alert.alert(
+                  'Error',
+                  error.response?.data?.message ||
+                    error.message ||
+                    'No se pudo ejecutar el traslado'
+                );
               }
             },
           },
@@ -456,9 +477,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
     return (
       <FlatList
         data={filteredTransfers}
-        renderItem={({ item }) => (
-          <TransferCard transfer={item} onPress={handleTransferPress} />
-        )}
+        renderItem={({ item }) => <TransferCard transfer={item} onPress={handleTransferPress} />}
         keyExtractor={(item) => item.id}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -476,9 +495,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Traslados Internos</Text>
-          <Text style={styles.headerSubtitle}>
-            {effectiveSite?.name || 'Todas las sedes'}
-          </Text>
+          <Text style={styles.headerSubtitle}>{effectiveSite?.name || 'Todas las sedes'}</Text>
         </View>
       </View>
 
@@ -551,7 +568,10 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                     style={styles.picker}
                     enabled={!loadingOriginAreas}
                   >
-                    <Picker.Item label={loadingOriginAreas ? "Cargando áreas..." : "Seleccionar área..."} value="" />
+                    <Picker.Item
+                      label={loadingOriginAreas ? 'Cargando áreas...' : 'Seleccionar área...'}
+                      value=""
+                    />
                     {originAreas.map((area) => (
                       <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
                     ))}
@@ -595,7 +615,10 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                     style={styles.picker}
                     enabled={!loadingDestinationAreas}
                   >
-                    <Picker.Item label={loadingDestinationAreas ? "Cargando áreas..." : "Seleccionar área..."} value="" />
+                    <Picker.Item
+                      label={loadingDestinationAreas ? 'Cargando áreas...' : 'Seleccionar área...'}
+                      value=""
+                    />
                     {destinationAreas.map((area) => (
                       <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
                     ))}
@@ -693,9 +716,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
             <TouchableOpacity onPress={() => setIsDetailModalVisible(false)}>
               <Text style={styles.modalCloseText}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>
-              {selectedTransfer?.transferNumber || 'Detalle'}
-            </Text>
+            <Text style={styles.modalTitle}>{selectedTransfer?.transferNumber || 'Detalle'}</Text>
             <View style={{ width: 24 }} />
           </View>
 
@@ -703,19 +724,13 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
             <ScrollView style={styles.modalContent}>
               <View style={styles.detailSection}>
                 <Text style={styles.detailLabel}>Estado</Text>
-                <Text style={styles.detailValue}>
-                  {selectedTransfer.status}
-                </Text>
+                <Text style={styles.detailValue}>{selectedTransfer.status}</Text>
               </View>
 
               <View style={styles.detailSection}>
                 <Text style={styles.detailLabel}>Origen</Text>
-                <Text style={styles.detailValue}>
-                  {selectedTransfer.originWarehouse?.name}
-                </Text>
-                <Text style={styles.detailSubvalue}>
-                  {selectedTransfer.originSite?.name}
-                </Text>
+                <Text style={styles.detailValue}>{selectedTransfer.originWarehouse?.name}</Text>
+                <Text style={styles.detailSubvalue}>{selectedTransfer.originSite?.name}</Text>
               </View>
 
               <View style={styles.detailSection}>
@@ -723,9 +738,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                 <Text style={styles.detailValue}>
                   {selectedTransfer.destinationWarehouse?.name}
                 </Text>
-                <Text style={styles.detailSubvalue}>
-                  {selectedTransfer.destinationSite?.name}
-                </Text>
+                <Text style={styles.detailSubvalue}>{selectedTransfer.destinationSite?.name}</Text>
               </View>
 
               {selectedTransfer.notes && (
@@ -743,10 +756,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
               </View>
 
               {selectedTransfer.status === TransferStatus.DRAFT && (
-                <TouchableOpacity
-                  style={styles.executeButton}
-                  onPress={handleExecuteFromDetail}
-                >
+                <TouchableOpacity style={styles.executeButton} onPress={handleExecuteFromDetail}>
                   <Text style={styles.executeButtonText}>⚡ Ejecutar Traslado</Text>
                 </TouchableOpacity>
               )}

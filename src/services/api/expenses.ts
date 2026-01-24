@@ -203,11 +203,21 @@ class ExpensesService {
     formData.append('paymentMethod', data.paymentMethod);
     formData.append('paymentDate', data.paymentDate);
 
-    if (data.currency) formData.append('currency', data.currency);
-    if (data.bankName) formData.append('bankName', data.bankName);
-    if (data.accountNumber) formData.append('accountNumber', data.accountNumber);
-    if (data.transactionReference) formData.append('transactionReference', data.transactionReference);
-    if (data.notes) formData.append('notes', data.notes);
+    if (data.currency) {
+      formData.append('currency', data.currency);
+    }
+    if (data.bankName) {
+      formData.append('bankName', data.bankName);
+    }
+    if (data.accountNumber) {
+      formData.append('accountNumber', data.accountNumber);
+    }
+    if (data.transactionReference) {
+      formData.append('transactionReference', data.transactionReference);
+    }
+    if (data.notes) {
+      formData.append('notes', data.notes);
+    }
 
     // Don't set Content-Type manually - let axios set it with the boundary
     return apiClient.post(`${this.basePath}/${expenseId}/payments/with-file`, formData);
@@ -244,8 +254,12 @@ class ExpensesService {
     formData.append('paymentMethod', data.paymentMethod);
     formData.append('paymentDate', data.paymentDate);
 
-    if (data.transactionReference) formData.append('transactionReference', data.transactionReference);
-    if (data.notes) formData.append('notes', data.notes);
+    if (data.transactionReference) {
+      formData.append('transactionReference', data.transactionReference);
+    }
+    if (data.notes) {
+      formData.append('notes', data.notes);
+    }
 
     // Don't set Content-Type manually - let axios set it with the boundary
     return apiClient.post(`${this.basePath}/${expenseId}/payments/partial/with-file`, formData);
@@ -381,7 +395,10 @@ class ExpensesService {
   /**
    * Update an expense projection
    */
-  async updateProjection(id: string, data: UpdateExpenseProjectionRequest): Promise<ExpenseProjection> {
+  async updateProjection(
+    id: string,
+    data: UpdateExpenseProjectionRequest
+  ): Promise<ExpenseProjection> {
     return apiClient.patch<ExpenseProjection>(`${this.projectionsPath}/${id}`, data);
   }
 
@@ -462,64 +479,105 @@ class ExpensesService {
    * 1. Get Total Expenses Summary
    * GET /admin/expenses/summary/total
    */
-  async getTotalExpensesSummary(params: import('@/types/expenses').SummaryQueryParams): Promise<import('@/types/expenses').TotalExpensesSummaryResponse> {
-    return apiClient.get<import('@/types/expenses').TotalExpensesSummaryResponse>(`${this.basePath}/summary/total`, { params });
+  async getTotalExpensesSummary(
+    params: import('@/types/expenses').SummaryQueryParams
+  ): Promise<import('@/types/expenses').TotalExpensesSummaryResponse> {
+    return apiClient.get<import('@/types/expenses').TotalExpensesSummaryResponse>(
+      `${this.basePath}/summary/total`,
+      { params }
+    );
   }
 
   /**
    * 2. Get Recurring Expenses Summary
    * GET /admin/expenses/summary/recurring
    */
-  async getRecurringExpensesSummary(params: import('@/types/expenses').SummaryQueryParams): Promise<import('@/types/expenses').RecurringExpensesSummaryResponse> {
-    return apiClient.get<import('@/types/expenses').RecurringExpensesSummaryResponse>(`${this.basePath}/summary/recurring`, { params });
+  async getRecurringExpensesSummary(
+    params: import('@/types/expenses').SummaryQueryParams
+  ): Promise<import('@/types/expenses').RecurringExpensesSummaryResponse> {
+    return apiClient.get<import('@/types/expenses').RecurringExpensesSummaryResponse>(
+      `${this.basePath}/summary/recurring`,
+      { params }
+    );
   }
 
   /**
    * 3. Get Summary by Category and Currency
    * GET /admin/expenses/summary/by-category-currency
    */
-  async getSummaryByCategoryAndCurrency(params: Partial<import('@/types/expenses').SummaryQueryParams>): Promise<import('@/types/expenses').SummaryByCategoryResponse> {
-    return apiClient.get<import('@/types/expenses').SummaryByCategoryResponse>(`${this.basePath}/summary/by-category-currency`, { params });
+  async getSummaryByCategoryAndCurrency(
+    params: Partial<import('@/types/expenses').SummaryQueryParams>
+  ): Promise<import('@/types/expenses').SummaryByCategoryResponse> {
+    return apiClient.get<import('@/types/expenses').SummaryByCategoryResponse>(
+      `${this.basePath}/summary/by-category-currency`,
+      { params }
+    );
   }
 
   /**
    * 4. Get Summary by Site
    * GET /admin/expenses/summary/by-site
    */
-  async getSummaryBySite(params: Partial<import('@/types/expenses').SummaryQueryParams>): Promise<import('@/types/expenses').SummaryBySiteResponse> {
-    return apiClient.get<import('@/types/expenses').SummaryBySiteResponse>(`${this.basePath}/summary/by-site`, { params });
+  async getSummaryBySite(
+    params: Partial<import('@/types/expenses').SummaryQueryParams>
+  ): Promise<import('@/types/expenses').SummaryBySiteResponse> {
+    return apiClient.get<import('@/types/expenses').SummaryBySiteResponse>(
+      `${this.basePath}/summary/by-site`,
+      { params }
+    );
   }
 
   /**
    * 5. Compare Periods
    * GET /admin/expenses/summary/compare
    */
-  async comparePeriods(params: import('@/types/expenses').ComparisonQueryParams): Promise<import('@/types/expenses').PeriodComparisonResponse> {
-    return apiClient.get<import('@/types/expenses').PeriodComparisonResponse>(`${this.basePath}/summary/compare`, { params });
+  async comparePeriods(
+    params: import('@/types/expenses').ComparisonQueryParams
+  ): Promise<import('@/types/expenses').PeriodComparisonResponse> {
+    return apiClient.get<import('@/types/expenses').PeriodComparisonResponse>(
+      `${this.basePath}/summary/compare`,
+      { params }
+    );
   }
 
   /**
    * 6. Get Trends
    * GET /admin/expenses/summary/trends
    */
-  async getTrends(params: import('@/types/expenses').TrendsQueryParams): Promise<import('@/types/expenses').TrendsResponse> {
-    return apiClient.get<import('@/types/expenses').TrendsResponse>(`${this.basePath}/summary/trends`, { params });
+  async getTrends(
+    params: import('@/types/expenses').TrendsQueryParams
+  ): Promise<import('@/types/expenses').TrendsResponse> {
+    return apiClient.get<import('@/types/expenses').TrendsResponse>(
+      `${this.basePath}/summary/trends`,
+      { params }
+    );
   }
 
   /**
    * 7. Get Projections
    * GET /admin/expenses/summary/projections
    */
-  async getExpenseProjections(params?: import('@/types/expenses').ProjectionsQueryParams): Promise<import('@/types/expenses').ProjectionsResponse> {
-    return apiClient.get<import('@/types/expenses').ProjectionsResponse>(`${this.basePath}/summary/projections`, { params });
+  async getExpenseProjections(
+    params?: import('@/types/expenses').ProjectionsQueryParams
+  ): Promise<import('@/types/expenses').ProjectionsResponse> {
+    return apiClient.get<import('@/types/expenses').ProjectionsResponse>(
+      `${this.basePath}/summary/projections`,
+      { params }
+    );
   }
 
   /**
    * 8. Get Dashboard
    * GET /admin/expenses/summary/dashboard
    */
-  async getDashboard(params: { startDate: string; endDate: string }): Promise<import('@/types/expenses').DashboardResponse> {
-    return apiClient.get<import('@/types/expenses').DashboardResponse>(`${this.basePath}/summary/dashboard`, { params });
+  async getDashboard(params: {
+    startDate: string;
+    endDate: string;
+  }): Promise<import('@/types/expenses').DashboardResponse> {
+    return apiClient.get<import('@/types/expenses').DashboardResponse>(
+      `${this.basePath}/summary/dashboard`,
+      { params }
+    );
   }
 
   // ============================================

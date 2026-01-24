@@ -10,29 +10,33 @@ export const useRoles = () => {
   }, [user?.roles]);
 
   const hasRole = (roleCode: string): boolean => {
-    return roles.some(role => role.code === roleCode);
+    return roles.some((role) => role.code === roleCode);
   };
 
   const hasAnyRole = (roleCodes: string[]): boolean => {
-    if (roleCodes.length === 0) return true;
-    return roleCodes.some(code => hasRole(code));
+    if (roleCodes.length === 0) {
+      return true;
+    }
+    return roleCodes.some((code) => hasRole(code));
   };
 
   const hasAllRoles = (roleCodes: string[]): boolean => {
-    if (roleCodes.length === 0) return true;
-    return roleCodes.every(code => hasRole(code));
+    if (roleCodes.length === 0) {
+      return true;
+    }
+    return roleCodes.every((code) => hasRole(code));
   };
 
   const getRoleCodes = (): string[] => {
-    return roles.map(role => role.code);
+    return roles.map((role) => role.code);
   };
 
   const getRoleNames = (): string[] => {
-    return roles.map(role => role.name);
+    return roles.map((role) => role.name);
   };
 
   const getRoleDescriptions = (): string[] => {
-    return roles.map(role => role.description);
+    return roles.map((role) => role.description);
   };
 
   // Common role checks

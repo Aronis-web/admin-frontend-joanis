@@ -80,7 +80,7 @@ export const warehousesApi = {
    */
   async getWarehousesBySiteCode(siteCode: string): Promise<Warehouse[]> {
     const warehouses = await this.getWarehouses();
-    return warehouses.filter(w => w.siteCode === siteCode);
+    return warehouses.filter((w) => w.siteCode === siteCode);
   },
 };
 
@@ -117,10 +117,7 @@ export const warehouseAreasApi = {
     warehouseId: string,
     areaData: CreateWarehouseAreaRequest
   ): Promise<WarehouseArea> {
-    return apiClient.post<WarehouseArea>(
-      `/inventory/warehouses/${warehouseId}/areas`,
-      areaData
-    );
+    return apiClient.post<WarehouseArea>(`/inventory/warehouses/${warehouseId}/areas`, areaData);
   },
 
   /**

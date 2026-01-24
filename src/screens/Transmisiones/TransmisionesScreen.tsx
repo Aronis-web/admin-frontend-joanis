@@ -45,38 +45,41 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  const loadTransmisiones = useCallback(async (page: number = 1) => {
-    try {
-      setLoading(true);
+  const loadTransmisiones = useCallback(
+    async (page: number = 1) => {
+      try {
+        setLoading(true);
 
-      const params: any = {
-        page,
-        limit: pagination.limit,
-        sortBy: 'createdAt',
-        sortOrder: 'DESC',
-      };
+        const params: any = {
+          page,
+          limit: pagination.limit,
+          sortBy: 'createdAt',
+          sortOrder: 'DESC',
+        };
 
-      if (selectedStatus !== 'ALL') {
-        params.status = selectedStatus;
+        if (selectedStatus !== 'ALL') {
+          params.status = selectedStatus;
+        }
+
+        const response = await transmisionesApi.getTransmisiones(params);
+        setTransmisiones(response.items);
+
+        setPagination({
+          page: response.page,
+          limit: response.limit,
+          total: response.total,
+          totalPages: response.totalPages,
+        });
+      } catch (error: any) {
+        console.error('Error loading transmisiones:', error);
+        Alert.alert('Error', 'No se pudieron cargar las transmisiones');
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-
-      const response = await transmisionesApi.getTransmisiones(params);
-      setTransmisiones(response.items);
-
-      setPagination({
-        page: response.page,
-        limit: response.limit,
-        total: response.total,
-        totalPages: response.totalPages,
-      });
-    } catch (error: any) {
-      console.error('Error loading transmisiones:', error);
-      Alert.alert('Error', 'No se pudieron cargar las transmisiones');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [selectedStatus, pagination.limit]);
+    },
+    [selectedStatus, pagination.limit]
+  );
 
   // Auto-reload transmisiones when screen comes into focus
   useFocusEffect(
@@ -249,12 +252,17 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
   };
 
   const renderPagination = () => {
-    if (pagination.totalPages <= 1) return null;
+    if (pagination.totalPages <= 1) {
+      return null;
+    }
 
     return (
       <View style={styles.pagination}>
         <TouchableOpacity
-          style={[styles.paginationButton, pagination.page === 1 && styles.paginationButtonDisabled]}
+          style={[
+            styles.paginationButton,
+            pagination.page === 1 && styles.paginationButtonDisabled,
+          ]}
           onPress={handlePreviousPage}
           disabled={pagination.page === 1}
         >

@@ -28,11 +28,21 @@ export const CircularProgressFallback: React.FC<CircularProgressFallbackProps> =
 }) => {
   // Determinar color basado en el progreso
   const getProgressColor = () => {
-    if (color) return color;
-    if (progress === 100) return '#10B981'; // Verde - Completado
-    if (progress >= 75) return '#3B82F6'; // Azul - Casi completo
-    if (progress >= 50) return '#F59E0B'; // Naranja - En progreso
-    if (progress >= 25) return '#EF4444'; // Rojo - Poco progreso
+    if (color) {
+      return color;
+    }
+    if (progress === 100) {
+      return '#10B981';
+    } // Verde - Completado
+    if (progress >= 75) {
+      return '#3B82F6';
+    } // Azul - Casi completo
+    if (progress >= 50) {
+      return '#F59E0B';
+    } // Naranja - En progreso
+    if (progress >= 25) {
+      return '#EF4444';
+    } // Rojo - Poco progreso
     return '#94A3B8'; // Gris - Muy poco progreso
   };
 

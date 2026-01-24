@@ -210,7 +210,9 @@ export const balancesApi = {
    * GET /admin/balances/:balanceId/operations/:id
    */
   async getBalanceOperationById(balanceId: string, operationId: string): Promise<BalanceOperation> {
-    return apiClient.get<BalanceOperation>(`/admin/balances/${balanceId}/operations/${operationId}`);
+    return apiClient.get<BalanceOperation>(
+      `/admin/balances/${balanceId}/operations/${operationId}`
+    );
   },
 
   /**
@@ -251,10 +253,7 @@ export const balancesApi = {
    * Get operations by type
    * GET /admin/balances/:balanceId/operations/type/:operationType
    */
-  async getOperationsByType(
-    balanceId: string,
-    operationType: string
-  ): Promise<BalanceOperation[]> {
+  async getOperationsByType(balanceId: string, operationType: string): Promise<BalanceOperation[]> {
     return apiClient.get<BalanceOperation[]>(
       `/admin/balances/${balanceId}/operations/type/${operationType}`
     );

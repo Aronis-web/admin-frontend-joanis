@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,13 +16,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { campaignsService, repartosService } from '@/services/api';
+import { repartosService } from '@/services/api';
 import {
   Campaign,
   CampaignStatus,
   CampaignStatusLabels,
   CampaignStatusColors,
 } from '@/types/campaigns';
+import { useCampaigns } from '@/hooks/api';
 import { RepartoProducto, RepartoProductoValidationStatus } from '@/types/repartos';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProductSelectionModal, CircularProgress } from '@/components/Repartos';
@@ -32,9 +33,6 @@ interface RepartosScreenProps {
 }
 
 export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) => {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL'>('ALL');
   const [exportingCampaignId, setExportingCampaignId] = useState<string | null>(null);
   const [showProductSelectionModal, setShowProductSelectionModal] = useState(false);
@@ -48,65 +46,63 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
 
-  const loadCampaigns = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const params: any = {};
-
-      if (selectedStatus !== 'ALL') {
-        params.status = selectedStatus;
-      }
-
-      const response = await campaignsService.getCampaigns(params);
-
-      // Remove duplicate products from each campaign to avoid React key warnings
-      const cleanedCampaigns = response.data.map((campaign: Campaign) => {
-        if (campaign.products && campaign.products.length > 0) {
-          // Group products by productId to remove duplicates
-          const uniqueProductsMap = new Map();
-          campaign.products.forEach((product: any) => {
-            const productId = product.productId || product.id;
-            if (productId && !uniqueProductsMap.has(productId)) {
-              uniqueProductsMap.set(productId, product);
-            }
-          });
-          return {
-            ...campaign,
-            products: Array.from(uniqueProductsMap.values()),
-          };
-        }
-        return campaign;
-      });
-
-      setCampaigns(cleanedCampaigns);
-    } catch (error: any) {
-      console.error('Error loading campaigns:', error);
-      Alert.alert('Error', 'No se pudieron cargar las campañas');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  // Build query params
+  const queryParams = useMemo(() => {
+    const params: any = {};
+    if (selectedStatus !== 'ALL') {
+      params.status = selectedStatus;
     }
+    return params;
   }, [selectedStatus]);
+
+  // React Query hook
+  const { data, isLoading, isRefetching, refetch } = useCampaigns(queryParams);
+
+  // Clean campaigns data - remove duplicate products
+  const campaigns = useMemo(() => {
+    if (!data?.data) return [];
+
+    return data.data.map((campaign: Campaign) => {
+      if (campaign.products && campaign.products.length > 0) {
+        // Group products by productId to remove duplicates
+        const uniqueProductsMap = new Map();
+        campaign.products.forEach((product: any) => {
+          const productId = product.productId || product.id;
+          if (productId && !uniqueProductsMap.has(productId)) {
+            uniqueProductsMap.set(productId, product);
+          }
+        });
+        return {
+          ...campaign,
+          products: Array.from(uniqueProductsMap.values()),
+        };
+      }
+      return campaign;
+    });
+  }, [data]);
 
   useFocusEffect(
     useCallback(() => {
-      console.log('📱 RepartosScreen focused - reloading campaigns...');
-      setLoading(true);
-      loadCampaigns();
-    }, [loadCampaigns])
+      refetch();
+    }, [refetch])
   );
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadCampaigns();
-  };
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
-  const handleCampaignPress = (campaign: Campaign) => {
-    navigation.navigate('RepartoCampaignDetail', { campaignId: campaign.id });
-  };
+  const handleCampaignPress = useCallback(
+    (campaign: Campaign) => {
+      navigation.navigate('RepartoCampaignDetail', { campaignId: campaign.id });
+    },
+    [navigation]
+  );
 
-  const handleOpenProductSelection = async (campaignId: string, campaignName: string, campaignCode: string) => {
+  const handleOpenProductSelection = useCallback(async (
+    campaignId: string,
+    campaignName: string,
+    campaignCode: string
+  ) => {
     try {
       // Load repartos for this campaign to get all products
       const repartos = await repartosService.getRepartosByCampaign(campaignId);
@@ -148,10 +144,12 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       console.error('Error loading products:', error);
       Alert.alert('No se pudieron cargar los productos de la campaña');
     }
-  };
+  }, []);
 
-  const handleExportDistributionSheets = async (selectedProductIds: string[]) => {
-    if (!selectedCampaign) return;
+  const handleExportDistributionSheets = useCallback(async (selectedProductIds: string[]) => {
+    if (!selectedCampaign) {
+      return;
+    }
 
     try {
       setExportingCampaignId(selectedCampaign.id);
@@ -169,7 +167,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       const endTime = new Date().getTime();
       console.log('✅ PDF descargado del servidor');
       console.log('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-      console.log('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+      console.log('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
       console.log('🕐 Timestamp actual:', new Date().toISOString());
 
       if (Platform.OS === 'web') {
@@ -185,7 +183,10 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         // Clean up the blob URL after a short delay
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
 
-        Alert.alert('Éxito', `Las hojas de reparto de "${selectedCampaign.name}" se están descargando`);
+        Alert.alert(
+          'Éxito',
+          `Las hojas de reparto de "${selectedCampaign.name}" se están descargando`
+        );
       } else {
         // For mobile (iOS/Android), save to file system and share
         // Use timestamp in filename to avoid caching issues
@@ -221,48 +222,50 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       }
     } catch (error: any) {
       console.error('Error exporting distribution sheets:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudieron exportar las hojas de reparto'
-      );
+      Alert.alert('Error', error.message || 'No se pudieron exportar las hojas de reparto');
     } finally {
       setExportingCampaignId(null);
     }
-  };
+  }, [selectedCampaign]);
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+  const formatDate = useCallback((dateString?: string) => {
+    if (!dateString) {
+      return 'N/A';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
-  };
+  }, []);
 
-  const getStatusBadgeStyle = (status: CampaignStatus) => {
+  const getStatusBadgeStyle = useCallback((status: CampaignStatus) => {
     return {
       backgroundColor: CampaignStatusColors[status] + '20',
       borderColor: CampaignStatusColors[status],
     };
-  };
+  }, []);
 
-  const getStatusTextStyle = (status: CampaignStatus) => {
+  const getStatusTextStyle = useCallback((status: CampaignStatus) => {
     return {
       color: CampaignStatusColors[status],
     };
-  };
+  }, []);
 
-  const renderStatusFilter = () => {
-    const statuses: Array<CampaignStatus | 'ALL'> = [
+  const statuses: Array<CampaignStatus | 'ALL'> = useMemo(
+    () => [
       'ALL',
       CampaignStatus.ACTIVE,
       CampaignStatus.DRAFT,
       CampaignStatus.COMPLETED,
       CampaignStatus.CLOSED,
       CampaignStatus.CANCELLED,
-    ];
+    ],
+    []
+  );
 
+  const renderStatusFilter = useMemo(() => {
     return (
       <View style={styles.filterWrapper}>
         <ScrollView
@@ -294,156 +297,161 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         </ScrollView>
       </View>
     );
-  };
+  }, [statuses, isTablet, selectedStatus]);
 
-  const renderCampaignCard = useCallback((campaign: Campaign) => {
-    const totalParticipantes = campaign.participants?.length || 0;
-    const totalProductos = campaign.products?.length || 0;
-    const isExporting = exportingCampaignId === campaign.id;
+  const renderCampaignCard = useCallback(
+    (campaign: Campaign) => {
+      const totalParticipantes = campaign.participants?.length || 0;
+      const totalProductos = campaign.products?.length || 0;
+      const isExporting = exportingCampaignId === campaign.id;
 
-    // Calcular progreso de validación (cantidad de productos validados, no cantidades)
-    let totalProductosValidacion = 0;
-    let productosValidados = 0;
+      // Calcular progreso de validación (cantidad de productos validados, no cantidades)
+      let totalProductosValidacion = 0;
+      let productosValidados = 0;
 
-    // Contar productos validados de todos los participantes
-    campaign.participants?.forEach((participant: any) => {
-      if (participant.repartoParticipante?.productos) {
-        participant.repartoParticipante.productos.forEach((producto: any) => {
-          totalProductosValidacion++;
-          if (producto.validationStatus === RepartoProductoValidationStatus.VALIDATED) {
-            productosValidados++;
-          }
-        });
-      }
-    });
+      // Contar productos validados de todos los participantes
+      campaign.participants?.forEach((participant: any) => {
+        if (participant.repartoParticipante?.productos) {
+          participant.repartoParticipante.productos.forEach((producto: any) => {
+            totalProductosValidacion++;
+            if (producto.validationStatus === RepartoProductoValidationStatus.VALIDATED) {
+              productosValidados++;
+            }
+          });
+        }
+      });
 
-    const validationProgress = totalProductosValidacion > 0
-      ? (productosValidados / totalProductosValidacion) * 100
-      : 0;
+      const validationProgress =
+        totalProductosValidacion > 0 ? (productosValidados / totalProductosValidacion) * 100 : 0;
 
-    return (
-      <View key={campaign.id} style={[styles.card, isTablet && styles.cardTablet]}>
-        <TouchableOpacity
-          onPress={() => handleCampaignPress(campaign)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderLeft}>
-              <Text style={[styles.cardCode, isTablet && styles.cardCodeTablet]}>
-                {campaign.code}
-              </Text>
-              <View
-                style={[
-                  styles.statusBadge,
-                  isTablet && styles.statusBadgeTablet,
-                  getStatusBadgeStyle(campaign.status),
-                ]}
-              >
-                <Text
+      return (
+        <View key={campaign.id} style={[styles.card, isTablet && styles.cardTablet]}>
+          <TouchableOpacity onPress={() => handleCampaignPress(campaign)} activeOpacity={0.7}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderLeft}>
+                <Text style={[styles.cardCode, isTablet && styles.cardCodeTablet]}>
+                  {campaign.code}
+                </Text>
+                <View
                   style={[
-                    styles.statusText,
-                    isTablet && styles.statusTextTablet,
-                    getStatusTextStyle(campaign.status),
+                    styles.statusBadge,
+                    isTablet && styles.statusBadgeTablet,
+                    getStatusBadgeStyle(campaign.status),
                   ]}
                 >
-                  {CampaignStatusLabels[campaign.status]}
-                </Text>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      isTablet && styles.statusTextTablet,
+                      getStatusTextStyle(campaign.status),
+                    ]}
+                  >
+                    {CampaignStatusLabels[campaign.status]}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          <View style={styles.cardBody}>
-            <Text
-              style={[styles.repartoName, isTablet && styles.repartoNameTablet]}
-              numberOfLines={2}
-            >
-              {campaign.name}
-            </Text>
-
-            {campaign.description && (
+            <View style={styles.cardBody}>
               <Text
-                style={[styles.repartoDescription, isTablet && styles.repartoDescriptionTablet]}
+                style={[styles.repartoName, isTablet && styles.repartoNameTablet]}
                 numberOfLines={2}
               >
-                {campaign.description}
+                {campaign.name}
               </Text>
-            )}
 
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                  {totalParticipantes}
+              {campaign.description && (
+                <Text
+                  style={[styles.repartoDescription, isTablet && styles.repartoDescriptionTablet]}
+                  numberOfLines={2}
+                >
+                  {campaign.description}
                 </Text>
-                <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                  Participantes
-                </Text>
-              </View>
+              )}
 
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                  {totalProductos}
-                </Text>
-                <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                  Productos
-                </Text>
-              </View>
-
-              {/* Circular Progress for Validation */}
-              {totalProductosValidacion > 0 && (
+              <View style={styles.statsRow}>
                 <View style={styles.statItem}>
-                  <CircularProgress
-                    size={isTablet ? 70 : 60}
-                    strokeWidth={isTablet ? 7 : 6}
-                    progress={validationProgress}
-                    total={totalProductosValidacion}
-                    validated={productosValidados}
-                    fontSize={isTablet ? 14 : 12}
-                  />
-                  <Text style={[styles.statLabel, isTablet && styles.statLabelTablet, { marginTop: 4 }]}>
-                    Productos Validados
+                  <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                    {totalParticipantes}
+                  </Text>
+                  <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
+                    Participantes
+                  </Text>
+                </View>
+
+                <View style={styles.statItem}>
+                  <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                    {totalProductos}
+                  </Text>
+                  <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
+                    Productos
+                  </Text>
+                </View>
+
+                {/* Circular Progress for Validation */}
+                {totalProductosValidacion > 0 && (
+                  <View style={styles.statItem}>
+                    <CircularProgress
+                      size={isTablet ? 70 : 60}
+                      strokeWidth={isTablet ? 7 : 6}
+                      progress={validationProgress}
+                      total={totalProductosValidacion}
+                      validated={productosValidados}
+                      fontSize={isTablet ? 14 : 12}
+                    />
+                    <Text
+                      style={[
+                        styles.statLabel,
+                        isTablet && styles.statLabelTablet,
+                        { marginTop: 4 },
+                      ]}
+                    >
+                      Productos Validados
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {campaign.startDate && (
+                <View style={styles.dateRow}>
+                  <Text style={[styles.dateLabel, isTablet && styles.dateLabelTablet]}>
+                    Fecha inicio:
+                  </Text>
+                  <Text style={[styles.dateValue, isTablet && styles.dateValueTablet]}>
+                    {formatDate(campaign.startDate)}
                   </Text>
                 </View>
               )}
             </View>
 
-            {campaign.startDate && (
-              <View style={styles.dateRow}>
-                <Text style={[styles.dateLabel, isTablet && styles.dateLabelTablet]}>
-                  Fecha inicio:
-                </Text>
-                <Text style={[styles.dateValue, isTablet && styles.dateValueTablet]}>
-                  {formatDate(campaign.startDate)}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.cardFooter}>
-            <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
-              Creado: {formatDate(campaign.createdAt)}
-            </Text>
-            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Export Button */}
-        {totalParticipantes > 0 && totalProductos > 0 && (
-          <TouchableOpacity
-            style={[styles.exportButton, isTablet && styles.exportButtonTablet]}
-            onPress={() => handleOpenProductSelection(campaign.id, campaign.name, campaign.code)}
-            disabled={isExporting}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.exportButtonText, isTablet && styles.exportButtonTextTablet]}>
-              {isExporting ? '📄 Generando...' : '📄 Descargar Hojas de Reparto'}
-            </Text>
+            <View style={styles.cardFooter}>
+              <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
+                Creado: {formatDate(campaign.createdAt)}
+              </Text>
+              <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+            </View>
           </TouchableOpacity>
-        )}
-      </View>
-    );
-  }, [isTablet, exportingCampaignId, handleCampaignPress, handleOpenProductSelection, formatDate]);
 
-  if (loading) {
+          {/* Export Button */}
+          {totalParticipantes > 0 && totalProductos > 0 && (
+            <TouchableOpacity
+              style={[styles.exportButton, isTablet && styles.exportButtonTablet]}
+              onPress={() => handleOpenProductSelection(campaign.id, campaign.name, campaign.code)}
+              disabled={isExporting}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.exportButtonText, isTablet && styles.exportButtonTextTablet]}>
+                {isExporting ? '📄 Generando...' : '📄 Descargar Hojas de Reparto'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    },
+    [isTablet, exportingCampaignId, handleCampaignPress, handleOpenProductSelection, formatDate]
+  );
+
+  if (isLoading && !isRefetching) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
@@ -460,9 +468,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <View>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>
-              Repartos
-            </Text>
+            <Text style={[styles.title, isTablet && styles.titleTablet]}>Repartos</Text>
             <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
               Selecciona una campaña para ver sus repartos
             </Text>
@@ -470,18 +476,13 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         </View>
 
         {/* Status Filter */}
-        {renderStatusFilter()}
+        {renderStatusFilter}
 
         {/* Campaigns List */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
         >
           {campaigns.length === 0 ? (
             <View style={styles.emptyContainer}>

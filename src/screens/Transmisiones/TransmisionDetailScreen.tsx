@@ -1,4 +1,4 @@
- import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -175,7 +175,9 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
   };
 
   const renderHeader = () => {
-    if (!transmision) return null;
+    if (!transmision) {
+      return null;
+    }
 
     if (editMode) {
       return (
@@ -213,10 +215,7 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
               {Object.values(TransmisionStatus).map((s) => (
                 <TouchableOpacity
                   key={s}
-                  style={[
-                    styles.statusButton,
-                    editedStatus === s && styles.statusButtonActive,
-                  ]}
+                  style={[styles.statusButton, editedStatus === s && styles.statusButtonActive]}
                   onPress={() => setEditedStatus(s)}
                 >
                   <Text
@@ -271,7 +270,9 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
 
         <View style={styles.miniStats}>
           <Text style={styles.miniStatText}>
-            📦 {products.length} productos • 🔄 {products.filter((p) => isProductPreliminary(p.productStatus)).length} preliminares • ✅ {products.filter((p) => isProductActive(p.productStatus)).length} activos
+            📦 {products.length} productos • 🔄{' '}
+            {products.filter((p) => isProductPreliminary(p.productStatus)).length} preliminares • ✅{' '}
+            {products.filter((p) => isProductActive(p.productStatus)).length} activos
           </Text>
         </View>
 
@@ -331,37 +332,37 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
-        {renderHeader()}
+          {renderHeader()}
 
+          {!editMode && (
+            <TransmisionProductsList
+              transmisionId={transmisionId}
+              products={products}
+              onProductsChanged={loadTransmision}
+            />
+          )}
+        </ScrollView>
+
+        {/* Floating Add Product Button - Above drawer menu */}
         {!editMode && (
-          <TransmisionProductsList
-            transmisionId={transmisionId}
-            products={products}
-            onProductsChanged={loadTransmision}
-          />
+          <View style={styles.floatingButtonContainer} pointerEvents="box-none">
+            <TouchableOpacity
+              style={styles.floatingButton}
+              onPress={handleAddProduct}
+              activeOpacity={0.9}
+            >
+              <Ionicons name="add" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         )}
-      </ScrollView>
 
-      {/* Floating Add Product Button - Above drawer menu */}
-      {!editMode && (
-        <View style={styles.floatingButtonContainer} pointerEvents="box-none">
-          <TouchableOpacity
-            style={styles.floatingButton}
-            onPress={handleAddProduct}
-            activeOpacity={0.9}
-          >
-            <Ionicons name="add" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <AddProductModal
-        visible={addProductModalVisible}
-        transmisionId={transmisionId}
-        priceProfile={transmision?.priceProfile}
-        onClose={() => setAddProductModalVisible(false)}
-        onProductAdded={handleProductAdded}
-      />
+        <AddProductModal
+          visible={addProductModalVisible}
+          transmisionId={transmisionId}
+          priceProfile={transmision?.priceProfile}
+          onClose={() => setAddProductModalVisible(false)}
+          onProductAdded={handleProductAdded}
+        />
       </SafeAreaView>
     </ScreenLayout>
   );

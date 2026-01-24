@@ -21,7 +21,9 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onPress })
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
+        <Text style={styles.categoryName} numberOfLines={1}>
+          {category.name}
+        </Text>
         <Text style={styles.categoryCode}>{category.code}</Text>
         {category.description && (
           <Text style={styles.categoryDescription} numberOfLines={2}>

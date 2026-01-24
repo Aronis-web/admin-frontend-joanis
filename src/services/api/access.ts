@@ -70,7 +70,16 @@ export const accessApi = {
    * ```
    */
   async checkScope(params: CheckScopeParams): Promise<CheckAccessResponse> {
-    const { userId, appId, companyId, siteId, warehouseId, areaId, canRead = true, canWrite = false } = params;
+    const {
+      userId,
+      appId,
+      companyId,
+      siteId,
+      warehouseId,
+      areaId,
+      canRead = true,
+      canWrite = false,
+    } = params;
 
     return scopesApi.checkAccess(userId, appId, {
       companyId,
@@ -97,7 +106,7 @@ export const accessApi = {
     const resolvedScopes = await scopesApi.getUserResolvedScopes(userId, appId);
 
     // Convertir ResolvedScope a UserAccessibleScope
-    const scopes: UserAccessibleScope[] = resolvedScopes.map(scope => ({
+    const scopes: UserAccessibleScope[] = resolvedScopes.map((scope) => ({
       companyId: scope.companyId,
       siteId: scope.siteId,
       warehouseId: scope.warehouseId,
@@ -214,11 +223,11 @@ export const accessApi = {
 
       // Ordenar por nivel de acceso (GLOBAL > COMPANY > SITE > WAREHOUSE > AREA)
       const levelPriority: Record<string, number> = {
-        'GLOBAL': 0,
-        'COMPANY': 1,
-        'SITE': 2,
-        'WAREHOUSE': 3,
-        'AREA': 4,
+        GLOBAL: 0,
+        COMPANY: 1,
+        SITE: 2,
+        WAREHOUSE: 3,
+        AREA: 4,
       };
 
       const sortedScopes = response.scopes.sort((a, b) => {

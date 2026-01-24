@@ -43,9 +43,9 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
       const response = await usersApi.getUsers({ limit: 100, status: 'active' });
 
       // Filter out users who are already admins
-      const currentAdminIds = site?.admins?.map(admin => admin.userId) || [];
+      const currentAdminIds = site?.admins?.map((admin) => admin.userId) || [];
       const users = response?.data || [];
-      const available = users.filter(user => !currentAdminIds.includes(user.id));
+      const available = users.filter((user) => !currentAdminIds.includes(user.id));
 
       setAvailableUsers(available);
     } catch (error: any) {
@@ -57,7 +57,9 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
   };
 
   const handleAddAdmin = async (userId: string) => {
-    if (!site) return;
+    if (!site) {
+      return;
+    }
 
     setAddingAdmin(true);
     try {
@@ -75,7 +77,9 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
   };
 
   const handleRemoveAdmin = async (userId: string, userName: string) => {
-    if (!site) return;
+    if (!site) {
+      return;
+    }
 
     Alert.alert(
       'Confirmar Eliminación',
@@ -97,7 +101,8 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
               loadAvailableUsers();
             } catch (error: any) {
               console.error('Error removing admin:', error);
-              const errorMessage = error.response?.data?.message || 'Error al remover administrador';
+              const errorMessage =
+                error.response?.data?.message || 'Error al remover administrador';
               Alert.alert('Error', errorMessage);
             } finally {
               setRemovingAdminId(null);
@@ -108,15 +113,12 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
     );
   };
 
-  if (!site) return null;
+  if (!site) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -135,41 +137,36 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
                 {site.admins && site.admins.length > 0 ? (
                   <View style={styles.adminsList}>
                     {site.admins.map((admin) => {
-                      const userName = admin.user?.name || admin.user?.username || admin.user?.email || 'Usuario';
+                      const userName =
+                        admin.user?.name || admin.user?.username || admin.user?.email || 'Usuario';
                       const userEmail = admin.user?.email || '';
                       const avatarLetter = userName.charAt(0).toUpperCase();
 
                       return (
                         <View key={admin.id} style={styles.adminItem}>
                           <View style={styles.adminAvatar}>
-                            <Text style={styles.adminAvatarText}>
-                              {avatarLetter}
-                            </Text>
+                            <Text style={styles.adminAvatarText}>{avatarLetter}</Text>
                           </View>
                           <View style={styles.adminInfo}>
-                            <Text style={styles.adminName}>
-                              {userName}
-                            </Text>
-                            {userEmail && (
-                              <Text style={styles.adminEmail}>{userEmail}</Text>
-                            )}
+                            <Text style={styles.adminName}>{userName}</Text>
+                            {userEmail && <Text style={styles.adminEmail}>{userEmail}</Text>}
                           </View>
-                          <ProtectedElement requiredPermissions={['sites.admins.remove']} fallback={null}>
+                          <ProtectedElement
+                            requiredPermissions={['sites.admins.remove']}
+                            fallback={null}
+                          >
                             <TouchableOpacity
                               style={styles.removeButton}
-                              onPress={() => handleRemoveAdmin(
-                                admin.userId,
-                                userName
+                              onPress={() => handleRemoveAdmin(admin.userId, userName)}
+                              disabled={removingAdminId === admin.userId}
+                            >
+                              {removingAdminId === admin.userId ? (
+                                <ActivityIndicator size="small" color="#EF4444" />
+                              ) : (
+                                <Text style={styles.removeButtonText}>✕</Text>
                               )}
-                            disabled={removingAdminId === admin.userId}
-                          >
-                            {removingAdminId === admin.userId ? (
-                              <ActivityIndicator size="small" color="#EF4444" />
-                            ) : (
-                              <Text style={styles.removeButtonText}>✕</Text>
-                            )}
-                          </TouchableOpacity>
-                        </ProtectedElement>
+                            </TouchableOpacity>
+                          </ProtectedElement>
                         </View>
                       );
                     })}
@@ -203,14 +200,10 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
                           disabled={addingAdmin}
                         >
                           <View style={styles.userAvatar}>
-                            <Text style={styles.userAvatarText}>
-                              {avatarLetter}
-                            </Text>
+                            <Text style={styles.userAvatarText}>{avatarLetter}</Text>
                           </View>
                           <View style={styles.userInfo}>
-                            <Text style={styles.userName}>
-                              {userName}
-                            </Text>
+                            <Text style={styles.userName}>{userName}</Text>
                             <Text style={styles.userEmail}>{user.email}</Text>
                           </View>
                           <View style={styles.addButton}>
@@ -221,9 +214,7 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
                     })}
                   </View>
                 ) : (
-                  <Text style={styles.emptyText}>
-                    No hay usuarios disponibles para agregar
-                  </Text>
+                  <Text style={styles.emptyText}>No hay usuarios disponibles para agregar</Text>
                 )}
               </View>
             </ProtectedElement>
@@ -231,10 +222,7 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
 
           {/* Actions */}
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.button, styles.closeActionButton]}
-              onPress={onClose}
-            >
+            <TouchableOpacity style={[styles.button, styles.closeActionButton]} onPress={onClose}>
               <Text style={styles.closeActionButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>

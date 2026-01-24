@@ -25,10 +25,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   return (
     <View style={styles.paginationContainer}>
       <TouchableOpacity
-        style={[
-          styles.paginationButton,
-          currentPage === 1 && styles.paginationButtonDisabled,
-        ]}
+        style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
         onPress={onPreviousPage}
         disabled={currentPage === 1}
       >

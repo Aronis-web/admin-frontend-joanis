@@ -189,10 +189,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       }
     } catch (error: any) {
       logger.error('Error exporting distribution sheets:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudieron exportar las hojas de reparto'
-      );
+      Alert.alert('Error', error.message || 'No se pudieron exportar las hojas de reparto');
     } finally {
       setExportingPdf(false);
     }
@@ -219,7 +216,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');
       logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-      logger.info('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
@@ -269,10 +266,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       }
     } catch (error: any) {
       logger.error('Error downloading general report:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudo descargar el reporte general'
-      );
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte general');
     } finally {
       setDownloadingGeneralReport(false);
     }
@@ -307,12 +301,15 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       const firstRepartoId = participantRepartos[0].id;
 
       // Call the API to get the PDF blob for this participant
-      const pdfBlob = await repartosService.exportRepartoTotalsReport(firstRepartoId, participant.id);
+      const pdfBlob = await repartosService.exportRepartoTotalsReport(
+        firstRepartoId,
+        participant.id
+      );
 
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');
       logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-      logger.info('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
@@ -362,149 +359,161 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       }
     } catch (error: any) {
       logger.error('Error downloading participant report:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudo descargar el reporte del participante'
-      );
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte del participante');
     } finally {
       setDownloadingParticipantId(null);
     }
   };
 
-  const renderParticipantCard = useCallback((participant: CampaignParticipant) => {
-    const participantName =
-      participant.participantType === ParticipantType.EXTERNAL_COMPANY
-        ? participant.company?.alias || participant.company?.name || 'Empresa'
-        : participant.site?.name || 'Sede';
+  const renderParticipantCard = useCallback(
+    (participant: CampaignParticipant) => {
+      const participantName =
+        participant.participantType === ParticipantType.EXTERNAL_COMPANY
+          ? participant.company?.alias || participant.company?.name || 'Empresa'
+          : participant.site?.name || 'Sede';
 
-    const participantCode =
-      participant.participantType === ParticipantType.EXTERNAL_COMPANY
-        ? participant.company?.ruc || ''
-        : participant.site?.code || '';
+      const participantCode =
+        participant.participantType === ParticipantType.EXTERNAL_COMPANY
+          ? participant.company?.ruc || ''
+          : participant.site?.code || '';
 
-    // Contar productos asignados a este participante en los repartos
-    const productosAsignados = repartos.reduce((count, reparto) => {
-      const participanteReparto = reparto.participantes?.find(
-        (p: any) => p.campaignParticipantId === participant.id
-      );
-      return count + (participanteReparto?.productos?.length || 0);
-    }, 0);
+      // Contar productos asignados a este participante en los repartos
+      const productosAsignados = repartos.reduce((count, reparto) => {
+        const participanteReparto = reparto.participantes?.find(
+          (p: any) => p.campaignParticipantId === participant.id
+        );
+        return count + (participanteReparto?.productos?.length || 0);
+      }, 0);
 
-    // Calcular progreso de validación del participante
-    let totalProductos = 0;
-    let productosValidados = 0;
+      // Calcular progreso de validación del participante
+      let totalProductos = 0;
+      let productosValidados = 0;
 
-    repartos.forEach((reparto) => {
-      const participanteReparto = reparto.participantes?.find(
-        (p: any) => p.campaignParticipantId === participant.id
-      );
-      if (participanteReparto?.productos) {
-        totalProductos += participanteReparto.productos.length;
-        productosValidados += participanteReparto.productos.filter(
-          (prod: any) => prod.validationStatus === 'VALIDATED'
-        ).length;
-      }
-    });
+      repartos.forEach((reparto) => {
+        const participanteReparto = reparto.participantes?.find(
+          (p: any) => p.campaignParticipantId === participant.id
+        );
+        if (participanteReparto?.productos) {
+          totalProductos += participanteReparto.productos.length;
+          productosValidados += participanteReparto.productos.filter(
+            (prod: any) => prod.validationStatus === 'VALIDATED'
+          ).length;
+        }
+      });
 
-    const progressPercentage = totalProductos > 0 ? Math.round((productosValidados / totalProductos) * 100) : 0;
+      const progressPercentage =
+        totalProductos > 0 ? Math.round((productosValidados / totalProductos) * 100) : 0;
 
-    return (
-      <TouchableOpacity
-        key={participant.id}
-        style={[styles.card, isTablet && styles.cardTablet]}
-        onPress={() => handleParticipantPress(participant)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderLeft}>
-            <Text style={[styles.participantName, isTablet && styles.participantNameTablet]}>
-              {participantName}
-            </Text>
-            <View
-              style={[
-                styles.typeBadge,
-                isTablet && styles.typeBadgeTablet,
-                participant.participantType === ParticipantType.EXTERNAL_COMPANY
-                  ? styles.typeBadgeCompany
-                  : styles.typeBadgeSite,
-              ]}
-            >
-              <Text style={[styles.typeText, isTablet && styles.typeTextTablet]}>
-                {participant.participantType === ParticipantType.EXTERNAL_COMPANY
-                  ? '🏢 Empresa'
-                  : '🏛️ Sede'}
+      return (
+        <TouchableOpacity
+          key={participant.id}
+          style={[styles.card, isTablet && styles.cardTablet]}
+          onPress={() => handleParticipantPress(participant)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <Text style={[styles.participantName, isTablet && styles.participantNameTablet]}>
+                {participantName}
               </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.cardBody}>
-          {participantCode && (
-            <Text style={[styles.participantCode, isTablet && styles.participantCodeTablet]}>
-              {participantCode}
-            </Text>
-          )}
-
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                Productos asignados
-              </Text>
-              <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                {productosAsignados}
-              </Text>
-            </View>
-          </View>
-
-          {/* Progress Row */}
-          {totalProductos > 0 && (
-            <View style={styles.progressRow}>
-              <View style={styles.progressInfo}>
-                <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                  Productos validados
-                </Text>
-                <Text style={[styles.progressText, isTablet && styles.progressTextTablet]}>
-                  {productosValidados} / {totalProductos}
+              <View
+                style={[
+                  styles.typeBadge,
+                  isTablet && styles.typeBadgeTablet,
+                  participant.participantType === ParticipantType.EXTERNAL_COMPANY
+                    ? styles.typeBadgeCompany
+                    : styles.typeBadgeSite,
+                ]}
+              >
+                <Text style={[styles.typeText, isTablet && styles.typeTextTablet]}>
+                  {participant.participantType === ParticipantType.EXTERNAL_COMPANY
+                    ? '🏢 Empresa'
+                    : '🏛️ Sede'}
                 </Text>
               </View>
-              <CircularProgress
-                progress={progressPercentage}
-                size={isTablet ? 50 : 40}
-                strokeWidth={isTablet ? 5 : 4}
-              />
             </View>
-          )}
-        </View>
+          </View>
 
-        <View style={styles.cardFooter}>
-          <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
-            Ver productos de reparto
-          </Text>
-          <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
-        </View>
+          <View style={styles.cardBody}>
+            {participantCode && (
+              <Text style={[styles.participantCode, isTablet && styles.participantCodeTablet]}>
+                {participantCode}
+              </Text>
+            )}
 
-        {/* Download Report Button */}
-        {productosAsignados > 0 && (
-          <TouchableOpacity
-            style={[
-              styles.downloadParticipantButton,
-              isTablet && styles.downloadParticipantButtonTablet,
-              downloadingParticipantId === participant.id && styles.downloadButtonDisabled,
-            ]}
-            onPress={(e) => handleDownloadParticipantReport(participant, e)}
-            disabled={downloadingParticipantId === participant.id}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.downloadParticipantButtonText, isTablet && styles.downloadParticipantButtonTextTablet]}>
-              {downloadingParticipantId === participant.id
-                ? '📄 Generando...'
-                : '📄 Descargar Reporte de Reparto'}
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
+                  Productos asignados
+                </Text>
+                <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                  {productosAsignados}
+                </Text>
+              </View>
+            </View>
+
+            {/* Progress Row */}
+            {totalProductos > 0 && (
+              <View style={styles.progressRow}>
+                <View style={styles.progressInfo}>
+                  <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
+                    Productos validados
+                  </Text>
+                  <Text style={[styles.progressText, isTablet && styles.progressTextTablet]}>
+                    {productosValidados} / {totalProductos}
+                  </Text>
+                </View>
+                <CircularProgress
+                  progress={progressPercentage}
+                  size={isTablet ? 50 : 40}
+                  strokeWidth={isTablet ? 5 : 4}
+                />
+              </View>
+            )}
+          </View>
+
+          <View style={styles.cardFooter}>
+            <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
+              Ver productos de reparto
             </Text>
-          </TouchableOpacity>
-        )}
-      </TouchableOpacity>
-    );
-  }, [isTablet, repartos, handleParticipantPress, downloadingParticipantId, handleDownloadParticipantReport]);
+            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+          </View>
+
+          {/* Download Report Button */}
+          {productosAsignados > 0 && (
+            <TouchableOpacity
+              style={[
+                styles.downloadParticipantButton,
+                isTablet && styles.downloadParticipantButtonTablet,
+                downloadingParticipantId === participant.id && styles.downloadButtonDisabled,
+              ]}
+              onPress={(e) => handleDownloadParticipantReport(participant, e)}
+              disabled={downloadingParticipantId === participant.id}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.downloadParticipantButtonText,
+                  isTablet && styles.downloadParticipantButtonTextTablet,
+                ]}
+              >
+                {downloadingParticipantId === participant.id
+                  ? '📄 Generando...'
+                  : '📄 Descargar Reporte de Reparto'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+      );
+    },
+    [
+      isTablet,
+      repartos,
+      handleParticipantPress,
+      downloadingParticipantId,
+      handleDownloadParticipantReport,
+    ]
+  );
 
   if (loading) {
     return (
@@ -584,7 +593,12 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
               disabled={downloadingGeneralReport}
               activeOpacity={0.7}
             >
-              <Text style={[styles.generalReportButtonText, isTablet && styles.generalReportButtonTextTablet]}>
+              <Text
+                style={[
+                  styles.generalReportButtonText,
+                  isTablet && styles.generalReportButtonTextTablet,
+                ]}
+              >
                 {downloadingGeneralReport
                   ? '📊 Generando Reporte...'
                   : '📊 Descargar Reporte General de Totales'}
@@ -596,13 +610,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         {/* Participants List */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
             Participantes
@@ -619,17 +628,29 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
               .slice()
               .sort((a, b) => {
                 // Primero sedes (INTERNAL_SITE), luego empresas (EXTERNAL_COMPANY)
-                if (a.participantType === ParticipantType.INTERNAL_SITE && b.participantType !== ParticipantType.INTERNAL_SITE) return -1;
-                if (a.participantType !== ParticipantType.INTERNAL_SITE && b.participantType === ParticipantType.INTERNAL_SITE) return 1;
+                if (
+                  a.participantType === ParticipantType.INTERNAL_SITE &&
+                  b.participantType !== ParticipantType.INTERNAL_SITE
+                ) {
+                  return -1;
+                }
+                if (
+                  a.participantType !== ParticipantType.INTERNAL_SITE &&
+                  b.participantType === ParticipantType.INTERNAL_SITE
+                ) {
+                  return 1;
+                }
 
                 // Ordenar alfabéticamente dentro de cada grupo
-                const nameA = a.participantType === ParticipantType.EXTERNAL_COMPANY
-                  ? (a.company?.alias || a.company?.name || '')
-                  : (a.site?.name || '');
+                const nameA =
+                  a.participantType === ParticipantType.EXTERNAL_COMPANY
+                    ? a.company?.alias || a.company?.name || ''
+                    : a.site?.name || '';
 
-                const nameB = b.participantType === ParticipantType.EXTERNAL_COMPANY
-                  ? (b.company?.alias || b.company?.name || '')
-                  : (b.site?.name || '');
+                const nameB =
+                  b.participantType === ParticipantType.EXTERNAL_COMPANY
+                    ? b.company?.alias || b.company?.name || ''
+                    : b.site?.name || '';
 
                 return nameA.localeCompare(nameB);
               })

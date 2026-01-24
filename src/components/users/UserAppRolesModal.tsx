@@ -96,7 +96,7 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
   // Filter warehouses when site changes
   useEffect(() => {
     if (selectedSiteId && warehouses.length > 0) {
-      const filtered = warehouses.filter(w => w.siteId === selectedSiteId);
+      const filtered = warehouses.filter((w) => w.siteId === selectedSiteId);
       setFilteredWarehouses(filtered);
     } else {
       setFilteredWarehouses(warehouses);
@@ -211,27 +211,40 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
   const validateScopeHierarchy = (): boolean => {
     // Validar que la sede pertenece a la empresa
     if (scopeLevel === 'site' && selectedSiteId && selectedCompanyId) {
-      const site = sites.find(s => s.id === selectedSiteId);
+      const site = sites.find((s) => s.id === selectedSiteId);
       if (site && site.companyId !== selectedCompanyId) {
-        Alert.alert('Error de Jerarquía', 'La sede seleccionada no pertenece a la empresa seleccionada');
+        Alert.alert(
+          'Error de Jerarquía',
+          'La sede seleccionada no pertenece a la empresa seleccionada'
+        );
         return false;
       }
     }
 
     // Validar que el almacén pertenece a la sede
-    if ((scopeLevel === 'warehouse' || scopeLevel === 'area') && selectedWarehouseId && selectedSiteId) {
-      const warehouse = warehouses.find(w => w.id === selectedWarehouseId);
+    if (
+      (scopeLevel === 'warehouse' || scopeLevel === 'area') &&
+      selectedWarehouseId &&
+      selectedSiteId
+    ) {
+      const warehouse = warehouses.find((w) => w.id === selectedWarehouseId);
       if (warehouse && warehouse.siteId !== selectedSiteId) {
-        Alert.alert('Error de Jerarquía', 'El almacén seleccionado no pertenece a la sede seleccionada');
+        Alert.alert(
+          'Error de Jerarquía',
+          'El almacén seleccionado no pertenece a la sede seleccionada'
+        );
         return false;
       }
     }
 
     // Validar que el área pertenece al almacén
     if (scopeLevel === 'area' && selectedAreaId && selectedWarehouseId) {
-      const area = filteredAreas.find(a => a.id === selectedAreaId);
+      const area = filteredAreas.find((a) => a.id === selectedAreaId);
       if (area && area.warehouseId !== selectedWarehouseId) {
-        Alert.alert('Error de Jerarquía', 'El área seleccionada no pertenece al almacén seleccionado');
+        Alert.alert(
+          'Error de Jerarquía',
+          'El área seleccionada no pertenece al almacén seleccionado'
+        );
         return false;
       }
     }
@@ -390,8 +403,8 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
     // Nivel AREA (más específico)
     if (role.warehouseId && role.siteId) {
       // TODO: Cuando el backend soporte areaId, agregar lógica para áreas
-      const warehouse = warehouses.find(w => w.id === role.warehouseId);
-      const site = sites.find(s => s.id === role.siteId);
+      const warehouse = warehouses.find((w) => w.id === role.warehouseId);
+      const site = sites.find((s) => s.id === role.siteId);
       if (warehouse && site) {
         return `🏢 ${warehouse.name} (${site.name})`;
       }
@@ -399,7 +412,7 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
     }
     // Nivel SITE
     if (role.siteId) {
-      const site = sites.find(s => s.id === role.siteId);
+      const site = sites.find((s) => s.id === role.siteId);
       if (site) {
         return `📍 ${site.name}`;
       }
@@ -407,7 +420,7 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
     }
     // Nivel COMPANY
     if (role.companyId) {
-      const company = companies.find(c => c.id === role.companyId);
+      const company = companies.find((c) => c.id === role.companyId);
       if (company) {
         return `🏢 ${company.name}`;
       }
@@ -504,20 +517,13 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
           </View>
         )}
 
-        <Text style={styles.assignedDate}>
-          Asignado: {formatDate(role.assignedAt)}
-        </Text>
+        <Text style={styles.assignedDate}>Asignado: {formatDate(role.assignedAt)}</Text>
       </View>
     );
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -536,7 +542,8 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
             {/* Info Card */}
             <View style={styles.infoCard}>
               <Text style={styles.infoText}>
-                Gestiona los roles del usuario en diferentes apps y define el alcance (scope) de sus permisos.
+                Gestiona los roles del usuario en diferentes apps y define el alcance (scope) de sus
+                permisos.
               </Text>
             </View>
 
@@ -550,10 +557,7 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
 
             {/* Add Role Button */}
             {!showAddForm && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowAddForm(true)}
-              >
+              <TouchableOpacity style={styles.addButton} onPress={() => setShowAddForm(true)}>
                 <Text style={styles.addButtonText}>+ Asignar App y Rol</Text>
               </TouchableOpacity>
             )}
@@ -721,7 +725,9 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
                           {companies.map((company) => (
                             <Picker.Item
                               key={company.id}
-                              label={company.ruc ? `${company.name} (${company.ruc})` : company.name}
+                              label={
+                                company.ruc ? `${company.name} (${company.ruc})` : company.name
+                              }
                               value={company.id}
                             />
                           ))}
@@ -730,90 +736,102 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
                     </View>
 
                     {/* Site Selector */}
-                    {(scopeLevel === 'site' || scopeLevel === 'warehouse' || scopeLevel === 'area') && selectedCompanyId && (
-                      <View style={styles.formGroup}>
-                        <Text style={styles.label}>Sede</Text>
-                        <View style={styles.pickerContainer}>
-                          <Picker
-                            selectedValue={selectedSiteId}
-                            onValueChange={(value) => {
-                              setSelectedSiteId(value);
-                              setSelectedWarehouseId('');
-                              setSelectedAreaId('');
-                            }}
-                            style={styles.picker}
-                          >
-                            <Picker.Item label="Seleccionar sede..." value="" />
-                            {sites.map((site) => (
-                              <Picker.Item
-                                key={site.id}
-                                label={`${site.code} - ${site.name}`}
-                                value={site.id}
-                              />
-                            ))}
-                          </Picker>
+                    {(scopeLevel === 'site' ||
+                      scopeLevel === 'warehouse' ||
+                      scopeLevel === 'area') &&
+                      selectedCompanyId && (
+                        <View style={styles.formGroup}>
+                          <Text style={styles.label}>Sede</Text>
+                          <View style={styles.pickerContainer}>
+                            <Picker
+                              selectedValue={selectedSiteId}
+                              onValueChange={(value) => {
+                                setSelectedSiteId(value);
+                                setSelectedWarehouseId('');
+                                setSelectedAreaId('');
+                              }}
+                              style={styles.picker}
+                            >
+                              <Picker.Item label="Seleccionar sede..." value="" />
+                              {sites.map((site) => (
+                                <Picker.Item
+                                  key={site.id}
+                                  label={`${site.code} - ${site.name}`}
+                                  value={site.id}
+                                />
+                              ))}
+                            </Picker>
+                          </View>
                         </View>
-                      </View>
-                    )}
+                      )}
 
                     {/* Warehouse Selector */}
-                    {(scopeLevel === 'warehouse' || scopeLevel === 'area') && selectedCompanyId && selectedSiteId && (
-                      <View style={styles.formGroup}>
-                        <Text style={styles.label}>Almacén</Text>
-                        <View style={styles.pickerContainer}>
-                          <Picker
-                            selectedValue={selectedWarehouseId}
-                            onValueChange={(value) => {
-                              setSelectedWarehouseId(value);
-                              setSelectedAreaId('');
-                            }}
-                            style={styles.picker}
-                          >
-                            <Picker.Item label="Seleccionar almacén..." value="" />
-                            {filteredWarehouses.map((warehouse) => (
-                              <Picker.Item
-                                key={warehouse.id}
-                                label={warehouse.code ? `${warehouse.code} - ${warehouse.name}` : warehouse.name}
-                                value={warehouse.id}
-                              />
-                            ))}
-                          </Picker>
+                    {(scopeLevel === 'warehouse' || scopeLevel === 'area') &&
+                      selectedCompanyId &&
+                      selectedSiteId && (
+                        <View style={styles.formGroup}>
+                          <Text style={styles.label}>Almacén</Text>
+                          <View style={styles.pickerContainer}>
+                            <Picker
+                              selectedValue={selectedWarehouseId}
+                              onValueChange={(value) => {
+                                setSelectedWarehouseId(value);
+                                setSelectedAreaId('');
+                              }}
+                              style={styles.picker}
+                            >
+                              <Picker.Item label="Seleccionar almacén..." value="" />
+                              {filteredWarehouses.map((warehouse) => (
+                                <Picker.Item
+                                  key={warehouse.id}
+                                  label={
+                                    warehouse.code
+                                      ? `${warehouse.code} - ${warehouse.name}`
+                                      : warehouse.name
+                                  }
+                                  value={warehouse.id}
+                                />
+                              ))}
+                            </Picker>
+                          </View>
+                          {selectedSiteId && filteredWarehouses.length === 0 && (
+                            <Text style={styles.hint}>
+                              ⚠️ No hay almacenes disponibles para esta sede
+                            </Text>
+                          )}
                         </View>
-                        {selectedSiteId && filteredWarehouses.length === 0 && (
-                          <Text style={styles.hint}>
-                            ⚠️ No hay almacenes disponibles para esta sede
-                          </Text>
-                        )}
-                      </View>
-                    )}
+                      )}
 
                     {/* Area Selector - NUEVO */}
-                    {scopeLevel === 'area' && selectedCompanyId && selectedSiteId && selectedWarehouseId && (
-                      <View style={styles.formGroup}>
-                        <Text style={styles.label}>Área</Text>
-                        <View style={styles.pickerContainer}>
-                          <Picker
-                            selectedValue={selectedAreaId}
-                            onValueChange={setSelectedAreaId}
-                            style={styles.picker}
-                          >
-                            <Picker.Item label="Seleccionar área..." value="" />
-                            {filteredAreas.map((area) => (
-                              <Picker.Item
-                                key={area.id}
-                                label={area.code ? `${area.code} - ${area.name}` : area.name}
-                                value={area.id}
-                              />
-                            ))}
-                          </Picker>
+                    {scopeLevel === 'area' &&
+                      selectedCompanyId &&
+                      selectedSiteId &&
+                      selectedWarehouseId && (
+                        <View style={styles.formGroup}>
+                          <Text style={styles.label}>Área</Text>
+                          <View style={styles.pickerContainer}>
+                            <Picker
+                              selectedValue={selectedAreaId}
+                              onValueChange={setSelectedAreaId}
+                              style={styles.picker}
+                            >
+                              <Picker.Item label="Seleccionar área..." value="" />
+                              {filteredAreas.map((area) => (
+                                <Picker.Item
+                                  key={area.id}
+                                  label={area.code ? `${area.code} - ${area.name}` : area.name}
+                                  value={area.id}
+                                />
+                              ))}
+                            </Picker>
+                          </View>
+                          {selectedWarehouseId && filteredAreas.length === 0 && (
+                            <Text style={styles.hint}>
+                              ⚠️ No hay áreas disponibles para este almacén
+                            </Text>
+                          )}
                         </View>
-                        {selectedWarehouseId && filteredAreas.length === 0 && (
-                          <Text style={styles.hint}>
-                            ⚠️ No hay áreas disponibles para este almacén
-                          </Text>
-                        )}
-                      </View>
-                    )}
+                      )}
                   </>
                 )}
 
@@ -846,9 +864,7 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
 
             {/* Roles List */}
             <View style={styles.rolesList}>
-              <Text style={styles.sectionTitle}>
-                Roles Asignados ({userRoles.length})
-              </Text>
+              <Text style={styles.sectionTitle}>Roles Asignados ({userRoles.length})</Text>
 
               {loading ? (
                 <View style={styles.loadingContainer}>

@@ -17,7 +17,12 @@ import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
-import { presentationsApi, Presentation, CreatePresentationDto, UpdatePresentationDto } from '@/services/api';
+import {
+  presentationsApi,
+  Presentation,
+  CreatePresentationDto,
+  UpdatePresentationDto,
+} from '@/services/api';
 import { AddButton } from '@/components/Navigation/AddButton';
 
 interface PresentationsScreenProps {
@@ -63,7 +68,8 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
     } else {
       const filtered = presentations.filter(
         (presentation) =>
-          (presentation.code && presentation.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (presentation.code &&
+            presentation.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
           (presentation.name && presentation.name.toLowerCase().includes(searchQuery.toLowerCase()))
       );
       setFilteredPresentations(filtered);
@@ -80,7 +86,10 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
     } catch (error: any) {
       console.error('❌ Error loading presentations:', error);
       console.error('❌ Error response:', error.response?.data);
-      const errorMessage = error.response?.data?.message || error.message || 'No se pudieron cargar las presentaciones';
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'No se pudieron cargar las presentaciones';
       Alert.alert('Error', errorMessage);
       setPresentations([]);
       setFilteredPresentations([]);
@@ -113,20 +122,16 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
 
   const handleLogout = async () => {
     setIsMenuVisible(false);
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que deseas cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-          },
+    Alert.alert('Cerrar Sesión', '¿Estás seguro de que deseas cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Sesión',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleCreatePresentation = () => {
@@ -250,7 +255,8 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
         <View style={styles.infoBannerContent}>
           <Text style={styles.infoBannerTitle}>Catálogo Global de Presentaciones</Text>
           <Text style={styles.infoBannerText}>
-            Las presentaciones son globales y compartidas por todos los productos. Cada producto elige cuáles usar y define sus factores de conversión.
+            Las presentaciones son globales y compartidas por todos los productos. Cada producto
+            elige cuáles usar y define sus factores de conversión.
           </Text>
         </View>
       </View>
@@ -280,13 +286,13 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
         </View>
         <View style={[styles.statCard, { backgroundColor: '#F0FDF4' }]}>
           <Text style={styles.statValue}>
-            {filteredPresentations.filter(p => p.isBase).length}
+            {filteredPresentations.filter((p) => p.isBase).length}
           </Text>
           <Text style={styles.statLabel}>Base</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
           <Text style={styles.statValue}>
-            {filteredPresentations.filter(p => !p.isBase).length}
+            {filteredPresentations.filter((p) => !p.isBase).length}
           </Text>
           <Text style={styles.statLabel}>No Base</Text>
         </View>
@@ -304,9 +310,7 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
       {/* Presentations List */}
       <ScrollView
         style={[styles.content, isLandscape && styles.contentLandscape]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {filteredPresentations.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -340,7 +344,9 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
                       </View>
                       <Text style={styles.presentationName}>{presentation.name}</Text>
                       {presentation.description && (
-                        <Text style={styles.presentationDescription}>{presentation.description}</Text>
+                        <Text style={styles.presentationDescription}>
+                          {presentation.description}
+                        </Text>
                       )}
                     </View>
                   </View>
@@ -470,10 +476,7 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.button, styles.submitButton]}
-              onPress={handleSubmit}
-            >
+            <TouchableOpacity style={[styles.button, styles.submitButton]} onPress={handleSubmit}>
               <Text style={styles.submitButtonText}>
                 {modalMode === 'create' ? 'Crear' : 'Actualizar'}
               </Text>
@@ -839,4 +842,3 @@ const styles = StyleSheet.create({
 });
 
 export default PresentationsScreen;
-

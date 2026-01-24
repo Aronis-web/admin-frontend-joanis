@@ -19,13 +19,17 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
   onDelete,
 }) => {
   const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
+    if (!dateString) {
+      return '-';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   const formatAmount = (amountCents?: number, currency?: string) => {
-    if (!amountCents) return 'S/ 0.00';
+    if (!amountCents) {
+      return 'S/ 0.00';
+    }
     const amount = amountCents / 100; // Convert cents to main currency unit
     const currencySymbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : 'S/';
     return `${currencySymbol} ${amount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -36,7 +40,9 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.nameContainer}>
-            <Text style={styles.templateName} numberOfLines={1}>{template.name}</Text>
+            <Text style={styles.templateName} numberOfLines={1}>
+              {template.name}
+            </Text>
             {!template.isActive && (
               <View style={styles.inactiveBadge}>
                 <Text style={styles.inactiveBadgeText}>Inactivo</Text>
@@ -44,10 +50,17 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
             )}
           </View>
           {template.description && (
-            <Text style={styles.description} numberOfLines={2}>{template.description}</Text>
+            <Text style={styles.description} numberOfLines={2}>
+              {template.description}
+            </Text>
           )}
         </View>
-        <View style={[styles.statusIndicator, { backgroundColor: template.isActive ? '#10B981' : '#94A3B8' }]} />
+        <View
+          style={[
+            styles.statusIndicator,
+            { backgroundColor: template.isActive ? '#10B981' : '#94A3B8' },
+          ]}
+        />
       </View>
 
       <View style={styles.divider} />
@@ -56,7 +69,9 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         <View style={styles.row}>
           <View style={styles.infoItem}>
             <Text style={styles.label}>Monto Base</Text>
-            <Text style={styles.amountValue}>{formatAmount(template.amountCents, template.currency)}</Text>
+            <Text style={styles.amountValue}>
+              {formatAmount(template.amountCents, template.currency)}
+            </Text>
           </View>
           <View style={styles.infoItem}>
             <Text style={styles.label}>Frecuencia</Text>
@@ -81,7 +96,9 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         {template.site && (
           <View style={styles.siteContainer}>
             <Ionicons name="business" size={14} color="#6366F1" />
-            <Text style={styles.siteText} numberOfLines={1}>{template.site.name}</Text>
+            <Text style={styles.siteText} numberOfLines={1}>
+              {template.site.name}
+            </Text>
           </View>
         )}
 

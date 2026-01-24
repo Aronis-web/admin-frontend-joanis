@@ -53,19 +53,19 @@ interface BackendUsersResponse {
 
 // Backend CreateUserDto structure
 export interface CreateUserRequest {
-  username: string;        // Required - unique
-  email: string;           // Required - unique, email format
-  password: string;        // Required - minimum 6 characters
-  first_name?: string;     // Optional
-  last_name?: string;      // Optional
-  is_active?: boolean;     // Optional - default: true
-  roleIds?: string[];      // Optional - Array of role UUIDs
-  roleCodes?: string[];    // Optional - Array of role codes (e.g., ['ADMIN', 'USER'])
+  username: string; // Required - unique
+  email: string; // Required - unique, email format
+  password: string; // Required - minimum 6 characters
+  first_name?: string; // Optional
+  last_name?: string; // Optional
+  is_active?: boolean; // Optional - default: true
+  roleIds?: string[]; // Optional - Array of role UUIDs
+  roleCodes?: string[]; // Optional - Array of role codes (e.g., ['ADMIN', 'USER'])
 
   // Worker Profile Fields (all optional)
   document_type?: 'DNI' | 'CE' | 'PASAPORTE';
   document_number?: string;
-  birth_date?: string;     // ISO 8601 format (YYYY-MM-DD)
+  birth_date?: string; // ISO 8601 format (YYYY-MM-DD)
   gender?: 'M' | 'F' | 'OTRO';
   nationality?: string;
   marital_status?: 'SOLTERO' | 'CASADO' | 'DIVORCIADO' | 'VIUDO' | 'CONVIVIENTE';
@@ -85,14 +85,14 @@ export interface UpdateUserRequest {
   first_name?: string;
   last_name?: string;
   is_active?: boolean;
-  roleIds?: string[];      // Optional - Array of role UUIDs (replaces all existing roles)
-  roleCodes?: string[];    // Optional - Array of role codes (replaces all existing roles)
-  password?: string;       // Optional - For changing password
+  roleIds?: string[]; // Optional - Array of role UUIDs (replaces all existing roles)
+  roleCodes?: string[]; // Optional - Array of role codes (replaces all existing roles)
+  password?: string; // Optional - For changing password
 
   // Worker Profile Fields (all optional)
   document_type?: 'DNI' | 'CE' | 'PASAPORTE';
   document_number?: string;
-  birth_date?: string;     // ISO 8601 format (YYYY-MM-DD)
+  birth_date?: string; // ISO 8601 format (YYYY-MM-DD)
   gender?: 'M' | 'F' | 'OTRO';
   nationality?: string;
   marital_status?: 'SOLTERO' | 'CASADO' | 'DIVORCIADO' | 'VIUDO' | 'CONVIVIENTE';
@@ -243,7 +243,9 @@ export const usersApi = {
    * Get user effective permissions (including inherited from roles)
    */
   async getUserEffectivePermissions(id: string): Promise<Array<{ key: string; name: string }>> {
-    return apiClient.get<Array<{ key: string; name: string }>>(`/users/${id}/effective-permissions`);
+    return apiClient.get<Array<{ key: string; name: string }>>(
+      `/users/${id}/effective-permissions`
+    );
   },
 };
 

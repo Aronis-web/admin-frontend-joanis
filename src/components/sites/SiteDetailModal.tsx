@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Site } from '@/types/sites';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
@@ -43,7 +35,9 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
   const [selectedArea, setSelectedArea] = useState<WarehouseArea | null>(null);
 
-  if (!site) return null;
+  if (!site) {
+    return null;
+  }
 
   const handleDelete = () => {
     Alert.alert(
@@ -96,7 +90,9 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
   };
 
   const renderInfoRow = (label: string, value: string | number | undefined, icon?: string) => {
-    if (!value && value !== 0) return null;
+    if (!value && value !== 0) {
+      return null;
+    }
 
     return (
       <View style={styles.infoRow}>
@@ -109,19 +105,12 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
   const renderSection = (title: string, children: React.ReactNode) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContent}>
-        {children}
-      </View>
+      <View style={styles.sectionContent}>{children}</View>
     </View>
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -136,7 +125,9 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
                   <Text style={styles.codeText}>{site.code}</Text>
                 </View>
                 <View style={styles.statusBadge}>
-                  <View style={[styles.statusDot, { backgroundColor: getStatusColor(site.isActive) }]} />
+                  <View
+                    style={[styles.statusDot, { backgroundColor: getStatusColor(site.isActive) }]}
+                  />
                   <Text style={[styles.statusText, { color: getStatusColor(site.isActive) }]}>
                     {getStatusText(site.isActive)}
                   </Text>
@@ -161,29 +152,31 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
             )}
 
             {/* Address Information */}
-            {(site.fullAddress || site.addressLine1 || site.district) && renderSection(
-              'Dirección',
-              <>
-                {renderInfoRow('Dirección Completa', site.fullAddress, '📍')}
-                {renderInfoRow('Dirección Línea 1', site.addressLine1)}
-                {renderInfoRow('Dirección Línea 2', site.addressLine2)}
-                {renderInfoRow('Número Exterior', site.numberExt)}
-                {renderInfoRow('Distrito', site.district)}
-                {renderInfoRow('Provincia', site.province)}
-                {renderInfoRow('Departamento', site.department)}
-                {renderInfoRow('País', site.country)}
-                {renderInfoRow('Código Postal', site.postalCode)}
-              </>
-            )}
+            {(site.fullAddress || site.addressLine1 || site.district) &&
+              renderSection(
+                'Dirección',
+                <>
+                  {renderInfoRow('Dirección Completa', site.fullAddress, '📍')}
+                  {renderInfoRow('Dirección Línea 1', site.addressLine1)}
+                  {renderInfoRow('Dirección Línea 2', site.addressLine2)}
+                  {renderInfoRow('Número Exterior', site.numberExt)}
+                  {renderInfoRow('Distrito', site.district)}
+                  {renderInfoRow('Provincia', site.province)}
+                  {renderInfoRow('Departamento', site.department)}
+                  {renderInfoRow('País', site.country)}
+                  {renderInfoRow('Código Postal', site.postalCode)}
+                </>
+              )}
 
             {/* GPS Coordinates */}
-            {(site.latitude || site.longitude) && renderSection(
-              'Coordenadas GPS',
-              <>
-                {renderInfoRow('Latitud', site.latitude?.toString())}
-                {renderInfoRow('Longitud', site.longitude?.toString())}
-              </>
-            )}
+            {(site.latitude || site.longitude) &&
+              renderSection(
+                'Coordenadas GPS',
+                <>
+                  {renderInfoRow('Latitud', site.latitude?.toString())}
+                  {renderInfoRow('Longitud', site.longitude?.toString())}
+                </>
+              )}
 
             {/* Warehouses */}
             <ProtectedElement requiredPermissions={['inventory.warehouses.list']} fallback={null}>
@@ -212,34 +205,37 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
                   {site.admins && site.admins.length > 0 ? (
                     <>
                       {site.admins.map((admin, index) => {
-                        const userName = admin.user?.name || admin.user?.username || admin.user?.email || 'Usuario';
+                        const userName =
+                          admin.user?.name ||
+                          admin.user?.username ||
+                          admin.user?.email ||
+                          'Usuario';
                         const userEmail = admin.user?.email || '';
                         const avatarLetter = userName.charAt(0).toUpperCase();
 
                         return (
                           <View key={admin.id} style={styles.adminItem}>
                             <View style={styles.adminAvatar}>
-                              <Text style={styles.adminAvatarText}>
-                                {avatarLetter}
-                              </Text>
+                              <Text style={styles.adminAvatarText}>{avatarLetter}</Text>
                             </View>
                             <View style={styles.adminInfo}>
-                              <Text style={styles.adminName}>
-                                {userName}
-                              </Text>
-                              {userEmail && (
-                                <Text style={styles.adminEmail}>{userEmail}</Text>
-                              )}
+                              <Text style={styles.adminName}>{userName}</Text>
+                              {userEmail && <Text style={styles.adminEmail}>{userEmail}</Text>}
                             </View>
                           </View>
                         );
                       })}
-                      <ProtectedElement requiredPermissions={['sites.admins.add', 'sites.admins.remove']} fallback={null}>
+                      <ProtectedElement
+                        requiredPermissions={['sites.admins.add', 'sites.admins.remove']}
+                        fallback={null}
+                      >
                         <TouchableOpacity
                           style={styles.manageAdminsButton}
                           onPress={() => setShowManageAdminsModal(true)}
                         >
-                          <Text style={styles.manageAdminsButtonText}>Gestionar Administradores</Text>
+                          <Text style={styles.manageAdminsButtonText}>
+                            Gestionar Administradores
+                          </Text>
                         </TouchableOpacity>
                       </ProtectedElement>
                     </>
@@ -273,18 +269,12 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
 
           {/* Actions */}
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.button, styles.closeActionButton]}
-              onPress={onClose}
-            >
+            <TouchableOpacity style={[styles.button, styles.closeActionButton]} onPress={onClose}>
               <Text style={styles.closeActionButtonText}>Cerrar</Text>
             </TouchableOpacity>
 
             <ProtectedElement requiredPermissions={['sites.delete']} fallback={null}>
-              <TouchableOpacity
-                style={[styles.button, styles.deleteButton]}
-                onPress={handleDelete}
-              >
+              <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={handleDelete}>
                 <Text style={styles.deleteButtonText}>Eliminar</Text>
               </TouchableOpacity>
             </ProtectedElement>

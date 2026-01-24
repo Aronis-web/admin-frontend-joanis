@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '@/utils/config';
+import secureStorage from '@/utils/secureStorage';
 import { authService } from '@/services/AuthService';
 import { PermissionCheck, Permission } from '@/types/auth';
 import type { User, Role } from '@/types/auth';
 import { Company } from '@/types/companies';
+import { setSentryUser, clearSentryUser } from '@/config/sentry';
 
 export interface CurrentCompany {
   id: string;
@@ -112,7 +114,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async (user, accessToken) => {
     try {
-      console.log('🔐 Store login called with user:', user?.id, 'token length:', accessToken?.length);
+      console.log(
+        '🔐 Store login called with user:',
+        user?.id,
+        'token length:',
+        accessToken?.length
+      );
 
       // Validate user data
       if (!user || !user.id) {
@@ -130,9 +137,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user.roles = [];
       }
 
-      console.log('💾 Storing user in AsyncStorage...');
-      // Store in AsyncStorage
-      await AsyncStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, accessToken);
+      console.log('💾 Storing user in secure storage...');
+      // Store sensitive data in secure storage (encrypted)
+      await secureStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, accessToken);
+      // Store non-sensitive user data in AsyncStorage
       await AsyncStorage.setItem(config.STORAGE_KEYS.USER, JSON.stringify(user));
 
       // Sync with AuthService
@@ -144,6 +152,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         token: accessToken,
         isAuthenticated: true,
         error: null,
+      });
+
+      // Set Sentry user context
+      setSentryUser({
+        id: user.id,
+        email: user.email,
+        username: user.name,
       });
 
       console.log('✅ Login completed successfully');
@@ -182,18 +197,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_COMPANY);
       await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_SITE);
 
-      // Store in AsyncStorage
-      await AsyncStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, response.accessToken);
-      await AsyncStorage.setItem(config.STORAGE_KEYS.USER, JSON.stringify(response.user));
-      await AsyncStorage.setItem(config.STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
+      // Store sensitive data in secure storage (encrypted)
+      await secureStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, response.accessToken);
+      await secureStorage.setItem(config.STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
 
       const expiresAt = response.accessTokenExpiresIn
-        ? Date.now() + (response.accessTokenExpiresIn * 1000)
+        ? Date.now() + response.accessTokenExpiresIn * 1000
         : null;
 
       if (expiresAt) {
-        await AsyncStorage.setItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT, expiresAt.toString());
+        await secureStorage.setItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT, expiresAt.toString());
       }
+
+      // Store non-sensitive user data in AsyncStorage
+      await AsyncStorage.setItem(config.STORAGE_KEYS.USER, JSON.stringify(response.user));
 
       // IMPORTANT: Sync token with AuthService so API requests include Authorization header
       // AuthService already has the token from the login call, but we ensure it's synced
@@ -233,6 +250,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ currentCompany: null, currentSite: null });
     await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_COMPANY);
     await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_SITE);
+
+    // Clear Sentry user context
+    clearSentryUser();
   },
 
   updateUser: (userData) => {
@@ -256,10 +276,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: true });
       console.log('🔐 Starting auth initialization...');
 
-      const token = await AsyncStorage.getItem(config.STORAGE_KEYS.AUTH_TOKEN);
-      const refreshToken = await AsyncStorage.getItem(config.STORAGE_KEYS.REFRESH_TOKEN);
+      // Restore sensitive data from secure storage
+      const token = await secureStorage.getItem(config.STORAGE_KEYS.AUTH_TOKEN);
+      const refreshToken = await secureStorage.getItem(config.STORAGE_KEYS.REFRESH_TOKEN);
+      const tokenExpiresAtStr = await secureStorage.getItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
+
+      // Restore non-sensitive data from AsyncStorage
       const userJson = await AsyncStorage.getItem(config.STORAGE_KEYS.USER);
-      const tokenExpiresAtStr = await AsyncStorage.getItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
       const companyJson = await AsyncStorage.getItem(config.STORAGE_KEYS.CURRENT_COMPANY);
       const siteJson = await AsyncStorage.getItem(config.STORAGE_KEYS.CURRENT_SITE);
 
@@ -329,7 +352,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           // Continue without company/site
         }
 
-        set({ user, token, refreshToken, tokenExpiresAt, isAuthenticated: true, currentCompany, currentSite });
+        set({
+          user,
+          token,
+          refreshToken,
+          tokenExpiresAt,
+          isAuthenticated: true,
+          currentCompany,
+          currentSite,
+        });
         console.log('✅ Auth initialized successfully');
       } else {
         console.log('ℹ️ No stored auth data found');
@@ -367,13 +398,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Function to clear invalid auth data
   clearInvalidAuth: async () => {
     try {
-      await AsyncStorage.removeItem(config.STORAGE_KEYS.AUTH_TOKEN);
-      await AsyncStorage.removeItem(config.STORAGE_KEYS.REFRESH_TOKEN);
+      // Clear sensitive data from secure storage
+      await secureStorage.deleteItem(config.STORAGE_KEYS.AUTH_TOKEN);
+      await secureStorage.deleteItem(config.STORAGE_KEYS.REFRESH_TOKEN);
+      await secureStorage.deleteItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
+
+      // Clear non-sensitive data from AsyncStorage
       await AsyncStorage.removeItem(config.STORAGE_KEYS.USER);
-      await AsyncStorage.removeItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
       await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_COMPANY);
       await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_SITE);
-      set({ user: null, token: null, refreshToken: null, tokenExpiresAt: null, isAuthenticated: false, error: null, currentCompany: null, currentSite: null });
+      set({
+        user: null,
+        token: null,
+        refreshToken: null,
+        tokenExpiresAt: null,
+        isAuthenticated: false,
+        error: null,
+        currentCompany: null,
+        currentSite: null,
+      });
       // Clear AuthService token
       authService.setAccessToken(null);
     } catch (error) {
@@ -384,46 +427,60 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Check if token is expired
   isTokenExpired: () => {
     const { tokenExpiresAt } = get();
-    if (!tokenExpiresAt) return false;
+    if (!tokenExpiresAt) {
+      return false;
+    }
     return Date.now() >= tokenExpiresAt;
   },
 
   // Check if token should be refreshed (within 5 minutes of expiration)
   shouldRefreshToken: () => {
     const { tokenExpiresAt } = get();
-    if (!tokenExpiresAt) return false;
+    if (!tokenExpiresAt) {
+      return false;
+    }
     const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
-    return Date.now() >= (tokenExpiresAt - fiveMinutes);
+    return Date.now() >= tokenExpiresAt - fiveMinutes;
   },
 
   // Permission checking methods
   hasPermission: (permission: Permission) => {
     const { user } = get();
-    if (!user || !user.permissions) return false;
+    if (!user || !user.permissions) {
+      return false;
+    }
     return user.permissions.includes(permission);
   },
 
   hasAnyPermission: (permissions: Permission[]) => {
     const { user } = get();
-    if (!user || !user.permissions) return false;
-    return permissions.some(permission => user.permissions!.includes(permission));
+    if (!user || !user.permissions) {
+      return false;
+    }
+    return permissions.some((permission) => user.permissions!.includes(permission));
   },
 
   hasAllPermissions: (permissions: Permission[]) => {
     const { user } = get();
-    if (!user || !user.permissions) return false;
-    return permissions.every(permission => user.permissions!.includes(permission));
+    if (!user || !user.permissions) {
+      return false;
+    }
+    return permissions.every((permission) => user.permissions!.includes(permission));
   },
 
   hasRole: (roleCode: string) => {
     const { user } = get();
-    if (!user || !user.roles) return false;
-    return user.roles.some(role => role.code === roleCode);
+    if (!user || !user.roles) {
+      return false;
+    }
+    return user.roles.some((role) => role.code === roleCode);
   },
 
   hasAnyRole: (roleCodes: string[]) => {
     const { user } = get();
-    if (!user || !user.roles) return false;
-    return roleCodes.some(roleCode => user.roles!.some(role => role.code === roleCode));
+    if (!user || !user.roles) {
+      return false;
+    }
+    return roleCodes.some((roleCode) => user.roles!.some((role) => role.code === roleCode));
   },
 }));

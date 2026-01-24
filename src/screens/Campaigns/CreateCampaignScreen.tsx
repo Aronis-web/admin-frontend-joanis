@@ -23,9 +23,7 @@ interface CreateCampaignScreenProps {
   navigation: any;
 }
 
-export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
-  navigation,
-}) => {
+export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navigation }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -59,7 +57,9 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
   };
 
   const formatDate = (date: Date | undefined): string => {
-    if (!date) return '';
+    if (!date) {
+      return '';
+    }
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -67,7 +67,9 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
   };
 
   const formatDisplayDate = (date: Date | undefined): string => {
-    if (!date) return 'Seleccionar fecha';
+    if (!date) {
+      return 'Seleccionar fecha';
+    }
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
@@ -108,24 +110,17 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
 
       const campaign = await campaignsService.createCampaign(data);
 
-      Alert.alert(
-        'Éxito',
-        'Campaña creada exitosamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              navigation.replace('CampaignDetail', { campaignId: campaign.id });
-            },
+      Alert.alert('Éxito', 'Campaña creada exitosamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            navigation.replace('CampaignDetail', { campaignId: campaign.id });
           },
-        ]
-      );
+        },
+      ]);
     } catch (error: any) {
       console.error('Error creating campaign:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo crear la campaña'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo crear la campaña');
     } finally {
       setLoading(false);
     }
@@ -136,26 +131,18 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
               ← Volver
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Nueva Campaña
-          </Text>
+          <Text style={[styles.title, isTablet && styles.titleTablet]}>Nueva Campaña</Text>
         </View>
 
         {/* Form */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isTablet && styles.scrollContentTablet,
-          ]}
+          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
         >
           <View style={[styles.formCard, isTablet && styles.formCardTablet]}>
             {/* Name */}
@@ -174,9 +161,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
 
             {/* Description */}
             <View style={styles.formGroup}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Descripción
-              </Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Descripción</Text>
               <TextInput
                 style={[
                   styles.input,
@@ -196,15 +181,19 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
 
             {/* Start Date */}
             <View style={styles.formGroup}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Fecha de Inicio
-              </Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Fecha de Inicio</Text>
               <TouchableOpacity
                 style={[styles.dateButton, isTablet && styles.dateButtonTablet]}
                 onPress={() => setShowStartDatePicker(true)}
               >
                 <Ionicons name="calendar-outline" size={20} color="#6366F1" />
-                <Text style={[styles.dateButtonText, isTablet && styles.dateButtonTextTablet, !startDate && styles.dateButtonPlaceholder]}>
+                <Text
+                  style={[
+                    styles.dateButtonText,
+                    isTablet && styles.dateButtonTextTablet,
+                    !startDate && styles.dateButtonPlaceholder,
+                  ]}
+                >
                   {formatDisplayDate(startDate)}
                 </Text>
               </TouchableOpacity>
@@ -212,15 +201,19 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
 
             {/* End Date */}
             <View style={styles.formGroup}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Fecha de Fin
-              </Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Fecha de Fin</Text>
               <TouchableOpacity
                 style={[styles.dateButton, isTablet && styles.dateButtonTablet]}
                 onPress={() => setShowEndDatePicker(true)}
               >
                 <Ionicons name="calendar-outline" size={20} color="#6366F1" />
-                <Text style={[styles.dateButtonText, isTablet && styles.dateButtonTextTablet, !endDate && styles.dateButtonPlaceholder]}>
+                <Text
+                  style={[
+                    styles.dateButtonText,
+                    isTablet && styles.dateButtonTextTablet,
+                    !endDate && styles.dateButtonPlaceholder,
+                  ]}
+                >
                   {formatDisplayDate(endDate)}
                 </Text>
               </TouchableOpacity>
@@ -228,9 +221,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
 
             {/* Notes */}
             <View style={styles.formGroup}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Notas
-              </Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Notas</Text>
               <TextInput
                 style={[
                   styles.input,
@@ -284,11 +275,10 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({
                 ℹ️ Información
               </Text>
               <Text style={[styles.infoText, isTablet && styles.infoTextTablet]}>
-                • La campaña se creará en estado BORRADOR{'\n'}
-                • Podrás agregar participantes y productos después{'\n'}
-                • Las fechas son opcionales{'\n'}
-                • La sede de remanente es OBLIGATORIA y absorberá las unidades del redondeo{'\n'}
-                • Debes activar la campaña para generar repartos
+                • La campaña se creará en estado BORRADOR{'\n'}• Podrás agregar participantes y
+                productos después{'\n'}• Las fechas son opcionales{'\n'}• La sede de remanente es
+                OBLIGATORIA y absorberá las unidades del redondeo{'\n'}• Debes activar la campaña
+                para generar repartos
               </Text>
             </View>
           </View>
@@ -576,4 +566,3 @@ const styles = StyleSheet.create({
     height: 50,
   },
 });
-

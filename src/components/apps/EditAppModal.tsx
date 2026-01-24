@@ -60,7 +60,9 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!app) return;
+    if (!app) {
+      return;
+    }
 
     if (!validateForm()) {
       return;
@@ -74,7 +76,10 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
         appData.name = formData.name.trim();
       }
 
-      if (formData.description !== undefined && formData.description.trim() !== (app.description || '')) {
+      if (
+        formData.description !== undefined &&
+        formData.description.trim() !== (app.description || '')
+      ) {
         appData.description = formData.description.trim();
       }
 
@@ -90,19 +95,15 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
 
       await appsApi.updateApp(app.id, appData);
 
-      Alert.alert(
-        'Éxito',
-        'App actualizada correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              handleClose();
-              onAppUpdated();
-            },
+      Alert.alert('Éxito', 'App actualizada correctamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            handleClose();
+            onAppUpdated();
           },
-        ]
-      );
+        },
+      ]);
     } catch (error: any) {
       console.error('Error updating app:', error);
       const errorMessage = error.response?.data?.message || 'Error al actualizar la app';
@@ -118,22 +119,19 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
   };
 
   const updateField = (field: keyof UpdateAppDto, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
-  if (!app) return null;
+  if (!app) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -209,11 +207,7 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={handleClose}
-              disabled={loading}
-            >
+            <TouchableOpacity style={styles.cancelButton} onPress={handleClose} disabled={loading}>
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
 

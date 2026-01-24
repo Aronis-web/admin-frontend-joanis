@@ -22,7 +22,7 @@ export interface Warehouse {
   siteCode: string; // Legacy field, kept for compatibility
   name: string;
   isActive?: boolean; // Optional flag to filter active warehouses
-   createdAt: string;
+  createdAt: string;
   areas?: WarehouseArea[];
   site?: {
     id: string;

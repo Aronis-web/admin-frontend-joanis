@@ -29,7 +29,7 @@ export type {
   UsersResponse,
   CreateUserRequest,
   UpdateUserRequest,
-  GetUsersParams
+  GetUsersParams,
 } from './users';
 
 // RBAC exports
@@ -38,24 +38,18 @@ export {
   permissionsApi,
   rolePermissionsApi,
   userRolesApi,
-  userPermissionsApi
+  userPermissionsApi,
 } from './roles';
 export type {
   Role,
   Permission,
   CreateRoleRequest,
   CreateRoleResponse,
-  GetPermissionsParams
+  GetPermissionsParams,
 } from './roles';
 
 // Apps exports
-export {
-  appsApi,
-  scopesApi,
-  appPermissionsApi,
-  userAppRolesApi,
-  AppType
-} from './apps';
+export { appsApi, scopesApi, appPermissionsApi, userAppRolesApi, AppType } from './apps';
 export type {
   App,
   Scope,
@@ -69,7 +63,7 @@ export type {
   PermissionsResponse,
   GetAppsParams,
   GetScopesParams,
-  GetPermissionsParams as GetAppPermissionsParams
+  GetPermissionsParams as GetAppPermissionsParams,
 } from './apps';
 
 // Scopes exports (nuevo módulo de scopes)
@@ -91,7 +85,7 @@ export type {
   UserScope,
   AssignUserScopeDto,
   UpdateUserScopeDto,
-  UserScopesPaginatedResponse
+  UserScopesPaginatedResponse,
 } from './scopes';
 
 // Companies exports (Multi-Tenancy)
@@ -112,7 +106,7 @@ export type {
   AppScopeLevel,
   AppScope,
   TenantContext,
-  TenantHeaders
+  TenantHeaders,
 } from '@/types/companies';
 
 // Sites exports
@@ -125,7 +119,7 @@ export type {
   CreateSiteRequest,
   UpdateSiteRequest,
   GetSitesParams,
-  AddAdminRequest
+  AddAdminRequest,
 } from '@/types/sites';
 
 // Warehouses exports
@@ -151,14 +145,14 @@ export type {
   CreateWarehouseAreaRequest,
   UpdateWarehouseAreaRequest,
   WarehousesResponse,
-  WarehouseAreasResponse
+  WarehouseAreasResponse,
 } from '@/types/warehouses';
 
 export type {
   CheckScopeParams,
   CheckScopeResponse,
   UserAccessibleScope,
-  UserScopesResponse
+  UserScopesResponse,
 } from './access';
 
 // Price Profiles exports
@@ -172,7 +166,7 @@ export type {
   GetPriceProfilesParams,
   UpdateSalePriceRequest,
   ProductSalePricesResponse,
-  RecalculatePricesResponse
+  RecalculatePricesResponse,
 } from '@/types/price-profiles';
 
 // Presentations exports
@@ -182,7 +176,7 @@ export type {
   PresentationsResponse,
   CreatePresentationDto,
   UpdatePresentationDto,
-  GetPresentationsParams
+  GetPresentationsParams,
 } from './presentations';
 
 // Suppliers exports
@@ -222,7 +216,7 @@ export type {
   LocationSource,
   BankAccountType,
   TransactionType,
-  PaymentStatus
+  PaymentStatus,
 } from '@/types/suppliers';
 
 // Purchases exports
@@ -253,7 +247,7 @@ export type {
   PurchaseProductStatusLabels,
   GuideTypeLabels,
   PurchaseStatusColors,
-  PurchaseProductStatusColors
+  PurchaseProductStatusColors,
 } from '@/types/purchases';
 
 // Expenses exports
@@ -310,7 +304,7 @@ export type {
   PaymentStatusLabels,
   ExpenseStatusColors,
   ProjectStatusColors,
-  PaymentStatusColors
+  PaymentStatusColors,
 } from '@/types/expenses';
 
 // Campaigns exports
@@ -351,7 +345,7 @@ export type {
   ProductSourceTypeLabels,
   CampaignStatusColors,
   ProductStatusColors,
-  DistributionTypeDescriptions
+  DistributionTypeDescriptions,
 } from '@/types/campaigns';
 
 // Repartos exports
@@ -374,7 +368,7 @@ export type {
   RepartoProductoValidationStatusLabels,
   RepartoStatusColors,
   RepartoProductoStatusColors,
-  RepartoProductoValidationStatusColors
+  RepartoProductoValidationStatusColors,
 } from '@/types/repartos';
 
 // Balances exports
@@ -393,9 +387,8 @@ export type {
   PaginatedResponse,
   BalanceType,
   BalanceStatus,
-  OperationType
+  OperationType,
 } from '@/types/balances';
-
 
 // Transmisiones exports
 export { transmisionesApi } from './transmisiones';
@@ -417,6 +410,5 @@ export type {
   TransmisionStatusLabels,
   TransmisionStatusColors,
   ProductStatusLabels,
-  ProductStatusColors
+  ProductStatusColors,
 } from '@/types/transmisiones';
-

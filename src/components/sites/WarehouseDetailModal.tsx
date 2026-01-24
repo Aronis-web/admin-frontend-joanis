@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { warehousesApi, warehouseAreasApi } from '@/services/api';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
@@ -43,7 +35,9 @@ export const WarehouseDetailModal: React.FC<WarehouseDetailModalProps> = ({
   }, [visible, warehouse]);
 
   const loadAreas = async () => {
-    if (!warehouse) return;
+    if (!warehouse) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -59,7 +53,9 @@ export const WarehouseDetailModal: React.FC<WarehouseDetailModalProps> = ({
   };
 
   const handleDeleteWarehouse = () => {
-    if (!warehouse) return;
+    if (!warehouse) {
+      return;
+    }
 
     Alert.alert(
       'Confirmar Eliminación',
@@ -130,15 +126,12 @@ export const WarehouseDetailModal: React.FC<WarehouseDetailModalProps> = ({
     });
   };
 
-  if (!warehouse) return null;
+  if (!warehouse) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -203,9 +196,7 @@ export const WarehouseDetailModal: React.FC<WarehouseDetailModalProps> = ({
               ) : areas.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>No hay áreas registradas</Text>
-                  <Text style={styles.emptySubtext}>
-                    Crea un área para organizar el inventario
-                  </Text>
+                  <Text style={styles.emptySubtext}>Crea un área para organizar el inventario</Text>
                 </View>
               ) : (
                 <View style={styles.areasContainer}>
@@ -221,12 +212,13 @@ export const WarehouseDetailModal: React.FC<WarehouseDetailModalProps> = ({
                         </View>
                         <View style={styles.areaDetails}>
                           <Text style={styles.areaCode}>{area.code}</Text>
-                          {area.name && (
-                            <Text style={styles.areaName}>{area.name}</Text>
-                          )}
+                          {area.name && <Text style={styles.areaName}>{area.name}</Text>}
                         </View>
                       </TouchableOpacity>
-                      <ProtectedElement requiredPermissions={['inventory.areas.delete']} fallback={null}>
+                      <ProtectedElement
+                        requiredPermissions={['inventory.areas.delete']}
+                        fallback={null}
+                      >
                         <TouchableOpacity
                           style={styles.deleteIconButton}
                           onPress={() => handleDeleteArea(area)}
@@ -243,10 +235,7 @@ export const WarehouseDetailModal: React.FC<WarehouseDetailModalProps> = ({
 
           {/* Actions */}
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.button, styles.closeActionButton]}
-              onPress={onClose}
-            >
+            <TouchableOpacity style={[styles.button, styles.closeActionButton]} onPress={onClose}>
               <Text style={styles.closeActionButtonText}>Cerrar</Text>
             </TouchableOpacity>
 

@@ -12,7 +12,7 @@ interface AuthErrorHandlerProps {
 export const AuthErrorHandler: React.FC<AuthErrorHandlerProps> = ({
   children,
   onError,
-  fallback
+  fallback,
 }) => {
   const { error, setError, logout } = useAuthStore();
 
@@ -41,27 +41,24 @@ export const AuthErrorHandler: React.FC<AuthErrorHandlerProps> = ({
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Sesión Expirada',
-      'Tu sesión ha expirado. Por favor inicia sesión nuevamente.',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Iniciar Sesión',
-          onPress: () => logout(),
-        },
-      ]
-    );
+    Alert.alert('Sesión Expirada', 'Tu sesión ha expirado. Por favor inicia sesión nuevamente.', [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+      {
+        text: 'Iniciar Sesión',
+        onPress: () => logout(),
+      },
+    ]);
   };
 
   if (error) {
     // Check if it's a session expired error
-    const isSessionExpired = error.toLowerCase().includes('expir') ||
-                           error.toLowerCase().includes('token') ||
-                           error.toLowerCase().includes('unauthorized');
+    const isSessionExpired =
+      error.toLowerCase().includes('expir') ||
+      error.toLowerCase().includes('token') ||
+      error.toLowerCase().includes('unauthorized');
 
     if (fallback) {
       return <>{fallback}</>;
@@ -76,18 +73,12 @@ export const AuthErrorHandler: React.FC<AuthErrorHandlerProps> = ({
 
           <View style={styles.buttonContainer}>
             {isSessionExpired ? (
-              <TouchableOpacity
-                style={[styles.button, styles.logoutButton]}
-                onPress={handleLogout}
-              >
+              <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
                 <Text style={styles.buttonText}>Iniciar Sesión</Text>
               </TouchableOpacity>
             ) : (
               <>
-                <TouchableOpacity
-                  style={[styles.button, styles.retryButton]}
-                  onPress={handleRetry}
-                >
+                <TouchableOpacity style={[styles.button, styles.retryButton]} onPress={handleRetry}>
                   <Text style={styles.buttonText}>Reintentar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -170,13 +161,16 @@ interface AuthErrorDisplayProps {
 export const AuthErrorDisplay: React.FC<AuthErrorDisplayProps> = ({
   error,
   onDismiss,
-  type = 'card'
+  type = 'card',
 }) => {
-  if (!error) return null;
+  if (!error) {
+    return null;
+  }
 
-  const isSessionExpired = error.toLowerCase().includes('expir') ||
-                         error.toLowerCase().includes('token') ||
-                         error.toLowerCase().includes('unauthorized');
+  const isSessionExpired =
+    error.toLowerCase().includes('expir') ||
+    error.toLowerCase().includes('token') ||
+    error.toLowerCase().includes('unauthorized');
 
   if (type === 'banner') {
     return (

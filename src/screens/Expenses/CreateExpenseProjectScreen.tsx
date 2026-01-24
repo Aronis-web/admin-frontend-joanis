@@ -41,7 +41,9 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
     endDate: '',
     status: ProjectStatus.PLANNING,
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof CreateExpenseProjectRequest, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof CreateExpenseProjectRequest, string>>>(
+    {}
+  );
 
   useEffect(() => {
     loadSites();
@@ -97,22 +99,15 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
         description: formData.description?.trim(),
       });
 
-      Alert.alert(
-        'Éxito',
-        'Proyecto creado correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+      Alert.alert('Éxito', 'Proyecto creado correctamente', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
     } catch (error: any) {
       console.error('Error creating project:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo crear el proyecto'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo crear el proyecto');
     } finally {
       setLoading(false);
     }
@@ -122,14 +117,16 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
     field: K,
     value: CreateExpenseProjectRequest[K]
   ) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
   const formatDateDisplay = (dateString: string): string => {
-    if (!dateString) return '';
+    if (!dateString) {
+      return '';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
       day: '2-digit',
@@ -161,11 +158,7 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
             <Ionicons name="arrow-back" size={24} color="#1E293B" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Nuevo Proyecto</Text>
-          <TouchableOpacity
-            onPress={handleSubmit}
-            style={styles.saveButton}
-            disabled={loading}
-          >
+          <TouchableOpacity onPress={handleSubmit} style={styles.saveButton} disabled={loading}>
             {loading ? (
               <ActivityIndicator size="small" color="#6366F1" />
             ) : (
@@ -275,7 +268,9 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
                 disabled={loading}
               >
                 <Text style={formData.endDate ? styles.dateText : styles.datePlaceholder}>
-                  {formData.endDate ? formatDateDisplay(formData.endDate) : 'Seleccionar fecha (opcional)'}
+                  {formData.endDate
+                    ? formatDateDisplay(formData.endDate)
+                    : 'Seleccionar fecha (opcional)'}
                 </Text>
                 <Ionicons name="calendar" size={20} color="#6366F1" />
               </TouchableOpacity>
@@ -286,9 +281,7 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
           <View style={styles.infoSection}>
             <View style={styles.infoItem}>
               <Ionicons name="information-circle" size={20} color="#6366F1" />
-              <Text style={styles.infoText}>
-                El proyecto se creará con estado "Planificación"
-              </Text>
+              <Text style={styles.infoText}>El proyecto se creará con estado "Planificación"</Text>
             </View>
           </View>
         </ScrollView>

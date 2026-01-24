@@ -70,7 +70,9 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
   };
 
   const handleRegister = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     const result = await register({
       name: formData.name,
@@ -82,11 +84,9 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     if (!result.success) {
       Alert.alert('Error', result.error || 'No se pudo completar el registro');
     } else {
-      Alert.alert(
-        '¡Registro Exitoso!',
-        'Tu cuenta ha sido creada correctamente.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('¡Registro Exitoso!', 'Tu cuenta ha sido creada correctamente.', [
+        { text: 'OK' },
+      ]);
       // La navegación se maneja automáticamente por el cambio de estado de autenticación
     }
   };
@@ -100,10 +100,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={styles.title}>Crear Cuenta</Text>
           <Text style={styles.subtitle}>Completa tus datos para registrarte</Text>
@@ -278,4 +275,3 @@ const styles = StyleSheet.create({
 });
 
 export default RegisterScreen;
-

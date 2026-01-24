@@ -15,14 +15,8 @@ interface ScreenLayoutProps {
  * Navigation is now handled by the universal FloatingActionButton
  * which is integrated at the app level.
  */
-export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
-  children,
-}) => {
-  return (
-    <View style={styles.container}>
-      {children}
-    </View>
-  );
+export const ScreenLayout: React.FC<ScreenLayoutProps> = ({ children }) => {
+  return <View style={styles.container}>{children}</View>;
 };
 
 const styles = StyleSheet.create({

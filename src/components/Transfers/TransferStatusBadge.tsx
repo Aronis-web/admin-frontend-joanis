@@ -7,7 +7,10 @@ interface TransferStatusBadgeProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-export const TransferStatusBadge: React.FC<TransferStatusBadgeProps> = ({ status, size = 'medium' }) => {
+export const TransferStatusBadge: React.FC<TransferStatusBadgeProps> = ({
+  status,
+  size = 'medium',
+}) => {
   const color = getTransferStatusColor(status);
   const label = getTransferStatusLabel(status);
 
@@ -28,7 +31,9 @@ export const TransferStatusBadge: React.FC<TransferStatusBadgeProps> = ({ status
         },
       ]}
     >
-      <Text style={[styles.badgeText, { color, fontSize: sizeStyles[size].fontSize }]}>{label}</Text>
+      <Text style={[styles.badgeText, { color, fontSize: sizeStyles[size].fontSize }]}>
+        {label}
+      </Text>
     </View>
   );
 };

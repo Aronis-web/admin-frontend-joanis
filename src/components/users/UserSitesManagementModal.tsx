@@ -57,10 +57,7 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
   const loadData = async () => {
     setLoading(true);
     try {
-      await Promise.all([
-        loadAllSites(),
-        loadUserSites(),
-      ]);
+      await Promise.all([loadAllSites(), loadUserSites()]);
     } catch (error) {
       console.error('Error loading data:', error);
       Alert.alert('Error', 'No se pudo cargar la información');
@@ -73,7 +70,7 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
     try {
       const response = await sitesApi.getSites({ limit: 100, isActive: true });
       // Filtrar solo las sedes de la empresa actual
-      const companySites = response.data.filter(site => site.companyId === companyId);
+      const companySites = response.data.filter((site) => site.companyId === companyId);
       setAllSites(companySites);
     } catch (error) {
       console.error('Error loading sites:', error);
@@ -109,10 +106,14 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
 
   const handleSave = async () => {
     if (selectedSites.size === 0) {
-      Alert.alert('Advertencia', '¿Estás seguro de que deseas quitar todas las sedes del usuario?', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Continuar', onPress: () => saveChanges() },
-      ]);
+      Alert.alert(
+        'Advertencia',
+        '¿Estás seguro de que deseas quitar todas las sedes del usuario?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Continuar', onPress: () => saveChanges() },
+        ]
+      );
       return;
     }
 
@@ -140,7 +141,7 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
 
   const renderSiteCard = (site: Site) => {
     const isSelected = selectedSites.has(site.id);
-    const userSite = userSites.find(us => us.siteId === site.id);
+    const userSite = userSites.find((us) => us.siteId === site.id);
 
     return (
       <TouchableOpacity
@@ -172,24 +173,15 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
           <View style={styles.modalHeader}>
             <View>
               <Text style={styles.modalTitle}>📍 Gestión de Sedes</Text>
-              <Text style={styles.modalSubtitle}>
-                Usuario: {userName}
-              </Text>
-              <Text style={styles.modalSubtitle}>
-                Empresa: {companyName}
-              </Text>
+              <Text style={styles.modalSubtitle}>Usuario: {userName}</Text>
+              <Text style={styles.modalSubtitle}>Empresa: {companyName}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
@@ -254,9 +246,7 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
                       </Text>
                     </View>
                   ) : (
-                    <View style={styles.sitesList}>
-                      {allSites.map(renderSiteCard)}
-                    </View>
+                    <View style={styles.sitesList}>{allSites.map(renderSiteCard)}</View>
                   )}
                 </View>
               </>
@@ -265,11 +255,7 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={onClose}
-              disabled={loading}
-            >
+            <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={loading}>
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity

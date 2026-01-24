@@ -58,7 +58,9 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
   }, [visible, product?.id]); // Usar product.id en lugar de product para detectar cambios
 
   const loadData = async () => {
-    if (!product) return;
+    if (!product) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -83,9 +85,10 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
           (sp: any) => sp.profileId === profile.id && sp.presentationId === null
         );
 
-        const factorToCost = typeof profile.factorToCost === 'string'
-          ? parseFloat(profile.factorToCost)
-          : profile.factorToCost;
+        const factorToCost =
+          typeof profile.factorToCost === 'string'
+            ? parseFloat(profile.factorToCost)
+            : profile.factorToCost;
 
         const calculatedPriceCents = priceProfilesApi.calculatePrice(
           product.costCents || 0,
@@ -122,9 +125,7 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
 
     // Evitar múltiples puntos decimales
     const parts = sanitizedValue.split('.');
-    const finalValue = parts.length > 2
-      ? parts[0] + '.' + parts.slice(1).join('')
-      : sanitizedValue;
+    const finalValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : sanitizedValue;
 
     setPriceFormData((prev) =>
       prev.map((item) =>
@@ -156,7 +157,9 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
   };
 
   const handleSavePrice = async (priceData: PriceFormData) => {
-    if (!product) return;
+    if (!product) {
+      return;
+    }
 
     try {
       setSaving(true);
@@ -187,7 +190,9 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
   };
 
   const handleRecalculateAll = async () => {
-    if (!product) return;
+    if (!product) {
+      return;
+    }
 
     Alert.alert(
       'Recalcular Precios',
@@ -224,20 +229,19 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
   };
 
   const calculateMargin = (costCents: number, priceCents: number): string => {
-    if (costCents === 0) return '0%';
+    if (costCents === 0) {
+      return '0%';
+    }
     const margin = ((priceCents - costCents) / costCents) * 100;
     return `${margin.toFixed(1)}%`;
   };
 
-  if (!product) return null;
+  if (!product) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           {/* Header */}
@@ -265,9 +269,7 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
               <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
                 {priceFormData.length === 0 ? (
                   <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>
-                      No hay perfiles de precio activos
-                    </Text>
+                    <Text style={styles.emptyText}>No hay perfiles de precio activos</Text>
                   </View>
                 ) : (
                   priceFormData.map((priceData) => (
@@ -323,7 +325,9 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
                           <TouchableOpacity
                             style={[
                               styles.saveButton,
-                              saving && editingPriceId === priceData.profileId && styles.saveButtonDisabled,
+                              saving &&
+                                editingPriceId === priceData.profileId &&
+                                styles.saveButtonDisabled,
                             ]}
                             onPress={() => handleSavePrice(priceData)}
                             disabled={saving}
@@ -369,9 +373,7 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
                   onPress={handleRecalculateAll}
                   disabled={saving}
                 >
-                  <Text style={styles.recalculateButtonText}>
-                    🔄 Recalcular Todos
-                  </Text>
+                  <Text style={styles.recalculateButtonText}>🔄 Recalcular Todos</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.closeFooterButton}

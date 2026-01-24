@@ -62,7 +62,9 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
   }, [visible, operation]);
 
   const handleSave = async () => {
-    if (!operation) return;
+    if (!operation) {
+      return;
+    }
 
     // Validation
     if (!amountCents || parseFloat(amountCents) <= 0) {
@@ -83,37 +85,25 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
         notes: notes.trim() || undefined,
       };
 
-      await balancesApi.updateBalanceOperation(
-        operation.balanceId,
-        operation.id,
-        updateData
-      );
+      await balancesApi.updateBalanceOperation(operation.balanceId, operation.id, updateData);
 
       Alert.alert('Éxito', 'Operación actualizada correctamente');
       onSuccess();
       onClose();
     } catch (error: any) {
       console.error('Error updating operation:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo actualizar la operación'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo actualizar la operación');
     } finally {
       setSaving(false);
     }
   };
 
-
-
-  if (!operation) return null;
+  if (!operation) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -169,10 +159,7 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
             {/* Operation Date */}
             <View style={styles.section}>
               <Text style={styles.label}>Fecha de Operación *</Text>
-              <DatePickerButton
-                date={operationDate}
-                onPress={() => setShowDatePicker(true)}
-              />
+              <DatePickerButton date={operationDate} onPress={() => setShowDatePicker(true)} />
             </View>
 
             {/* Payment Method */}
@@ -269,11 +256,7 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={onClose}
-              disabled={saving}
-            >
+            <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={saving}>
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity

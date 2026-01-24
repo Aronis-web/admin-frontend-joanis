@@ -21,9 +21,7 @@ interface ExpenseCategoriesScreenProps {
   navigation: any;
 }
 
-export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = ({
-  navigation,
-}) => {
+export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = ({ navigation }) => {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,16 +89,10 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {categories.map((category) => (
-          <CategoryCard
-            key={category.id}
-            category={category}
-            onPress={handleCategoryPress}
-          />
+          <CategoryCard key={category.id} category={category} onPress={handleCategoryPress} />
         ))}
       </ScrollView>
     );

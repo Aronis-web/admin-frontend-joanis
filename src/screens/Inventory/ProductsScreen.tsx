@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { ProductImagesModal } from '@/components/Inventory/ProductImagesModal';
 import { ProductPriceProfilesModal } from '@/components/Inventory/ProductPriceProfilesModal';
 import { productsApi, Product } from '@/services/api/products';
 import { AddButton } from '@/components/Navigation/AddButton';
+import { useProducts } from '@/hooks/api/useProducts';
 
 interface ProductsScreenProps {
   navigation: any;
@@ -29,13 +30,9 @@ interface ProductsScreenProps {
 
 export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) => {
   const { user, logout } = useAuthStore();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'sku' | 'correlative'>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all'); // Default to 'all' to show all products
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isProductModalVisible, setIsProductModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -45,129 +42,48 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const [selectedProductForImages, setSelectedProductForImages] = useState<Product | null>(null);
   const [isPriceProfilesModalVisible, setIsPriceProfilesModalVisible] = useState(false);
   const [selectedProductForPrices, setSelectedProductForPrices] = useState<Product | null>(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  const loadProducts = async (page: number = 1) => {
-    try {
-      setLoading(true);
-
-      // Try admin endpoint first
-      let productsData: any[] = [];
-      let responseData: any;
-      try {
-        // Pass status filter to backend for proper pagination
-        const filters: any = {
-          page,
-          limit: pagination.limit
-        };
-
-        // Only add status filter if not 'all'
-        if (statusFilter !== 'all') {
-          filters.status = statusFilter;
-        }
-
-        responseData = await productsApi.getAllProducts(filters);
-        productsData = responseData.products || [];
-      } catch (adminError: any) {
-        // If admin endpoint fails (403), try public catalog endpoint
-        if (adminError.response?.status === 403) {
-          console.log('Admin endpoint forbidden, trying public catalog...');
-          const filters: any = {
-            page,
-            limit: pagination.limit
-          };
-
-          if (statusFilter !== 'all') {
-            filters.status = statusFilter;
-          }
-
-          responseData = await productsApi.getProducts(filters);
-          productsData = responseData.products || [];
-        } else {
-          throw adminError;
-        }
-      }
-
-      // Load images for each product
-      console.log('🔍 Loading images for', productsData.length, 'products...');
-      console.log('🔍 First product from API:', productsData[0]);
-      const productsWithImages = await Promise.all(
-        productsData.map(async (product) => {
-          try {
-            const imagesResponse = await productsApi.getProductImages(product.id);
-            if (imagesResponse.success && imagesResponse.images.length > 0) {
-              return {
-                ...product,
-                imageUrl: imagesResponse.images[0].url,
-                imageUrls: imagesResponse.images.map(img => img.url),
-              };
-            }
-          } catch (error) {
-            console.log(`⚠️ No images found for product ${product.id}`);
-          }
-          return product;
-        })
-      );
-
-      console.log('🔍 Products loaded:', productsWithImages.length);
-      console.log('🔍 Products status breakdown:', {
-        total: productsWithImages.length,
-        active: productsWithImages.filter(p => p.status === 'active').length,
-        draft: productsWithImages.filter(p => p.status === 'draft').length,
-        archived: productsWithImages.filter(p => p.status === 'archived').length,
-        other: productsWithImages.filter(p => !['active', 'draft', 'archived'].includes(p.status)).length,
-        statuses: [...new Set(productsWithImages.map(p => p.status))],
-      });
-
-      setProducts(productsWithImages);
-      setFilteredProducts(productsWithImages);
-
-      // Update pagination info - API returns flat structure
-      const totalPages = Math.ceil(responseData.total / responseData.limit);
-      setPagination({
-        page: responseData.page,
-        limit: responseData.limit,
-        total: responseData.total,
-        totalPages: totalPages,
-      });
-    } catch (error: any) {
-      console.error('Error loading products:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'No se pudieron cargar los productos';
-      Alert.alert('Error', errorMessage);
-      setProducts([]);
-      setFilteredProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Auto-reload products when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      console.log('📱 ProductsScreen focused - reloading products...');
-      setStatusFilter('all'); // Reset filter to show all products
-      loadProducts();
-    }, [])
+  // ✅ React Query: Reemplaza loadProducts() con caché automático
+  const filters = useMemo(
+    () => ({
+      page,
+      limit,
+      ...(statusFilter !== 'all' && { status: statusFilter }),
+    }),
+    [page, statusFilter]
   );
 
-  useEffect(() => {
+  const {
+    data: productsResponse,
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useProducts(filters);
+
+  // Extraer productos y paginación de la respuesta
+  const products = useMemo(() => productsResponse?.products || [], [productsResponse]);
+  const pagination = useMemo(
+    () => ({
+      page: productsResponse?.page || 1,
+      limit: productsResponse?.limit || limit,
+      total: productsResponse?.total || 0,
+      totalPages: productsResponse?.totalPages || 0,
+    }),
+    [productsResponse]
+  );
+
+  // ✅ Filtrado local con useMemo (optimizado)
+  const filteredProducts = useMemo(() => {
     if (!Array.isArray(products) || products.length === 0) {
-      setFilteredProducts([]);
-      return;
+      return [];
     }
 
     let filtered = [...products];
-
-    // Note: Status filter is now handled by the backend
-    // Only apply search query filter here
 
     // Filter by search query
     if (searchQuery.trim() !== '') {
@@ -175,13 +91,10 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
       filtered = filtered.filter((product) => {
         if (searchType === 'correlative') {
-          // Búsqueda por número correlativo
           return product.correlativeNumber && product.correlativeNumber.toString().includes(query);
         } else if (searchType === 'sku') {
-          // Búsqueda solo por SKU
           return product.sku && product.sku.toLowerCase().includes(query);
         } else {
-          // Búsqueda en todos los campos (all)
           return (
             (product.title && product.title.toLowerCase().includes(query)) ||
             (product.sku && product.sku.toLowerCase().includes(query)) ||
@@ -191,55 +104,50 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       });
     }
 
-    console.log('🔍 Filter applied:', {
-      statusFilter,
-      searchQuery,
-      searchType,
-      totalProducts: products.length,
-      filteredCount: filtered.length,
-    });
+    return filtered;
+  }, [products, searchQuery, searchType]);
 
-    setFilteredProducts(filtered);
-  }, [searchQuery, products, searchType]);
+  // Auto-reload products when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('📱 ProductsScreen focused - refetching products...');
+      refetch();
+    }, [refetch])
+  );
 
-  // Reload from page 1 when status filter changes
+  // Reset to page 1 when status filter changes
   useEffect(() => {
-    loadProducts(1);
+    setPage(1);
   }, [statusFilter]);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadProducts(1);
-    setRefreshing(false);
-  };
+  // ✅ Handlers simplificados
+  const onRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
-  const handlePreviousPage = () => {
+  const handlePreviousPage = useCallback(() => {
     if (pagination.page > 1) {
-      loadProducts(pagination.page - 1);
+      setPage(pagination.page - 1);
     }
-  };
+  }, [pagination.page]);
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     if (pagination.page < pagination.totalPages) {
-      loadProducts(pagination.page + 1);
+      setPage(pagination.page + 1);
     }
-  };
+  }, [pagination.page, pagination.totalPages]);
 
   const handleLogout = async () => {
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que deseas cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-          },
+    Alert.alert('Cerrar Sesión', '¿Estás seguro de que deseas cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Sesión',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const getStatusColor = (status: string) => {
@@ -271,7 +179,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   // Detectar SKUs duplicados
   const getDuplicateSKUs = () => {
     const skuCount = new Map<string, number>();
-    products.forEach(p => {
+    products.forEach((p) => {
       if (p.sku) {
         skuCount.set(p.sku, (skuCount.get(p.sku) || 0) + 1);
       }
@@ -303,7 +211,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           productWithImages = {
             ...product,
             imageUrl: imagesResponse.images[0].url,
-            imageUrls: imagesResponse.images.map(img => img.url),
+            imageUrls: imagesResponse.images.map((img) => img.url),
           };
         }
       } catch (error) {
@@ -331,34 +239,30 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   };
 
   const handleDeleteProduct = (product: Product) => {
-    Alert.alert(
-      'Eliminar Producto',
-      `¿Estás seguro de que deseas eliminar "${product.title}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await productsApi.deleteProduct(product.id);
-              Alert.alert('Éxito', 'Producto eliminado correctamente');
-              loadProducts();
-            } catch (error: any) {
-              console.error('Error deleting product:', error);
-              Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
-            }
-          },
+    Alert.alert('Eliminar Producto', `¿Estás seguro de que deseas eliminar "${product.title}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await productsApi.deleteProduct(product.id);
+            Alert.alert('Éxito', 'Producto eliminado correctamente');
+            refetch();
+          } catch (error: any) {
+            console.error('Error deleting product:', error);
+            Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const handleProductSuccess = () => {
-    loadProducts();
-  };
+  const handleProductSuccess = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
-  if (loading) {
+  if (isLoading && !productsResponse) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
@@ -395,8 +299,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             searchType === 'correlative'
               ? 'Buscar por #correlativo...'
               : searchType === 'sku'
-              ? 'Buscar por SKU...'
-              : 'Buscar por nombre, SKU o #correlativo...'
+                ? 'Buscar por SKU...'
+                : 'Buscar por nombre, SKU o #correlativo...'
           }
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -418,7 +322,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             style={[styles.filterChip, searchType === 'all' && styles.filterChipActive]}
             onPress={() => setSearchType('all')}
           >
-            <Text style={[styles.filterChipText, searchType === 'all' && styles.filterChipTextActive]}>
+            <Text
+              style={[styles.filterChipText, searchType === 'all' && styles.filterChipTextActive]}
+            >
               Todos
             </Text>
           </TouchableOpacity>
@@ -426,7 +332,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             style={[styles.filterChip, searchType === 'sku' && styles.filterChipActive]}
             onPress={() => setSearchType('sku')}
           >
-            <Text style={[styles.filterChipText, searchType === 'sku' && styles.filterChipTextActive]}>
+            <Text
+              style={[styles.filterChipText, searchType === 'sku' && styles.filterChipTextActive]}
+            >
               SKU
             </Text>
           </TouchableOpacity>
@@ -434,7 +342,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             style={[styles.filterChip, searchType === 'correlative' && styles.filterChipActive]}
             onPress={() => setSearchType('correlative')}
           >
-            <Text style={[styles.filterChipText, searchType === 'correlative' && styles.filterChipTextActive]}>
+            <Text
+              style={[
+                styles.filterChipText,
+                searchType === 'correlative' && styles.filterChipTextActive,
+              ]}
+            >
               #Correlativo
             </Text>
           </TouchableOpacity>
@@ -448,7 +361,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           <View style={styles.warningContent}>
             <Text style={styles.warningTitle}>SKUs Duplicados Detectados</Text>
             <Text style={styles.warningText}>
-              Hay {duplicateSKUs.length} SKU(s) con productos duplicados. Usa el número correlativo para identificarlos de forma única.
+              Hay {duplicateSKUs.length} SKU(s) con productos duplicados. Usa el número correlativo
+              para identificarlos de forma única.
             </Text>
           </View>
         </View>
@@ -462,7 +376,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             style={[styles.filterChip, statusFilter === 'all' && styles.filterChipActive]}
             onPress={() => setStatusFilter('all')}
           >
-            <Text style={[styles.filterChipText, statusFilter === 'all' && styles.filterChipTextActive]}>
+            <Text
+              style={[styles.filterChipText, statusFilter === 'all' && styles.filterChipTextActive]}
+            >
               Todos
             </Text>
           </TouchableOpacity>
@@ -470,7 +386,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             style={[styles.filterChip, statusFilter === 'preliminary' && styles.filterChipActive]}
             onPress={() => setStatusFilter('preliminary')}
           >
-            <Text style={[styles.filterChipText, statusFilter === 'preliminary' && styles.filterChipTextActive]}>
+            <Text
+              style={[
+                styles.filterChipText,
+                statusFilter === 'preliminary' && styles.filterChipTextActive,
+              ]}
+            >
               Preliminares
             </Text>
           </TouchableOpacity>
@@ -478,7 +399,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             style={[styles.filterChip, statusFilter === 'active' && styles.filterChipActive]}
             onPress={() => setStatusFilter('active')}
           >
-            <Text style={[styles.filterChipText, statusFilter === 'active' && styles.filterChipTextActive]}>
+            <Text
+              style={[
+                styles.filterChipText,
+                statusFilter === 'active' && styles.filterChipTextActive,
+              ]}
+            >
               Activos
             </Text>
           </TouchableOpacity>
@@ -486,7 +412,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             style={[styles.filterChip, statusFilter === 'draft' && styles.filterChipActive]}
             onPress={() => setStatusFilter('draft')}
           >
-            <Text style={[styles.filterChipText, statusFilter === 'draft' && styles.filterChipTextActive]}>
+            <Text
+              style={[
+                styles.filterChipText,
+                statusFilter === 'draft' && styles.filterChipTextActive,
+              ]}
+            >
               Borradores
             </Text>
           </TouchableOpacity>
@@ -494,7 +425,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             style={[styles.filterChip, statusFilter === 'archived' && styles.filterChipActive]}
             onPress={() => setStatusFilter('archived')}
           >
-            <Text style={[styles.filterChipText, statusFilter === 'archived' && styles.filterChipTextActive]}>
+            <Text
+              style={[
+                styles.filterChipText,
+                statusFilter === 'archived' && styles.filterChipTextActive,
+              ]}
+            >
               Archivados
             </Text>
           </TouchableOpacity>
@@ -509,13 +445,13 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         </View>
         <View style={[styles.statCard, { backgroundColor: '#F0FDF4' }]}>
           <Text style={styles.statValue}>
-            {filteredProducts.filter(p => p.status === 'active').length}
+            {filteredProducts.filter((p) => p.status === 'active').length}
           </Text>
           <Text style={styles.statLabel}>Activos</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
           <Text style={styles.statValue}>
-            {filteredProducts.filter(p => p.status === 'draft').length}
+            {filteredProducts.filter((p) => p.status === 'draft').length}
           </Text>
           <Text style={styles.statLabel}>Borradores</Text>
         </View>
@@ -533,9 +469,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       {/* Products List */}
       <ScrollView
         style={[styles.content, isLandscape && styles.contentLandscape]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
       >
         {filteredProducts.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -558,7 +492,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                   <View style={styles.productHeader}>
                     {/* Product Image Thumbnail */}
                     {(() => {
-                      const hasImage = product.imageUrl || (product.imageUrls && product.imageUrls.length > 0);
+                      const hasImage =
+                        product.imageUrl || (product.imageUrls && product.imageUrls.length > 0);
                       const imageUri = product.imageUrl || product.imageUrls?.[0];
                       if (index === 0) {
                         console.log('🖼️ Product image check:', {
@@ -566,7 +501,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                           hasImage,
                           imageUrl: product.imageUrl,
                           imageUrls: product.imageUrls,
-                          imageUri
+                          imageUri,
                         });
                       }
                       return hasImage ? (
@@ -574,7 +509,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                           source={{ uri: imageUri }}
                           style={styles.productThumbnail}
                           resizeMode="cover"
-                          onError={(e) => console.log('❌ Image load error:', imageUri, e.nativeEvent.error)}
+                          onError={(e) =>
+                            console.log('❌ Image load error:', imageUri, e.nativeEvent.error)
+                          }
                           onLoad={() => index === 0 && console.log('✅ Image loaded:', imageUri)}
                         />
                       ) : (
@@ -587,7 +524,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                       <Text style={styles.productTitle}>{product.title}</Text>
                       <View style={styles.productMetaRow}>
                         {product.correlativeNumber && (
-                          <Text style={styles.productCorrelative}>#{product.correlativeNumber}</Text>
+                          <Text style={styles.productCorrelative}>
+                            #{product.correlativeNumber}
+                          </Text>
                         )}
                         <Text style={styles.productSku}>SKU: {product.sku}</Text>
                         {hasDuplicateSKU(product.sku) && (
@@ -662,7 +601,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                     style={[styles.actionButton, styles.pricesButton]}
                     onPress={() => handleManagePrices(product)}
                   >
-                    <Text style={[styles.actionButtonText, styles.pricesButtonText]}>💰 Precios</Text>
+                    <Text style={[styles.actionButtonText, styles.pricesButtonText]}>
+                      💰 Precios
+                    </Text>
                   </TouchableOpacity>
 
                   <ProtectedElement
@@ -700,7 +641,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       </ScrollView>
 
       {/* Pagination Controls */}
-      {!loading && pagination.total > 0 && !searchQuery && (
+      {!isLoading && pagination.total > 0 && !searchQuery && (
         <View style={styles.paginationContainer}>
           <TouchableOpacity
             style={[
@@ -778,11 +719,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
       {/* Product View Modal */}
       {viewProduct && (
-        <Modal
-          visible={isViewModalVisible}
-          animationType="slide"
-          transparent={false}
-        >
+        <Modal visible={isViewModalVisible} animationType="slide" transparent={false}>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity
@@ -798,40 +735,55 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             <ScrollView style={styles.modalContent}>
               {/* Product Images */}
               {(() => {
-                const hasImages = viewProduct.imageUrl || (viewProduct.imageUrls && viewProduct.imageUrls.length > 0);
+                const hasImages =
+                  viewProduct.imageUrl ||
+                  (viewProduct.imageUrls && viewProduct.imageUrls.length > 0);
                 console.log('🖼️ View Product images:', {
                   title: viewProduct.title,
                   hasImages,
                   imageUrl: viewProduct.imageUrl,
-                  imageUrls: viewProduct.imageUrls
+                  imageUrls: viewProduct.imageUrls,
                 });
-                return hasImages && (
-                  <View style={styles.viewSection}>
-                    <Text style={styles.viewSectionTitle}>🖼️ Imágenes del Producto</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      <View style={styles.imageGallery}>
-                        {viewProduct.imageUrl && (
-                          <Image
-                            source={{ uri: viewProduct.imageUrl }}
-                            style={styles.productImage}
-                            resizeMode="cover"
-                            onError={(e) => console.log('❌ View image load error:', viewProduct.imageUrl, e.nativeEvent.error)}
-                            onLoad={() => console.log('✅ View image loaded:', viewProduct.imageUrl)}
-                          />
-                        )}
-                        {viewProduct.imageUrls && viewProduct.imageUrls.map((url, idx) => (
-                          <Image
-                            key={idx}
-                            source={{ uri: url }}
-                            style={styles.productImage}
-                            resizeMode="cover"
-                            onError={(e) => console.log('❌ View image load error:', url, e.nativeEvent.error)}
-                            onLoad={() => console.log('✅ View image loaded:', url)}
-                          />
-                        ))}
-                      </View>
-                    </ScrollView>
-                  </View>
+                return (
+                  hasImages && (
+                    <View style={styles.viewSection}>
+                      <Text style={styles.viewSectionTitle}>🖼️ Imágenes del Producto</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        <View style={styles.imageGallery}>
+                          {viewProduct.imageUrl && (
+                            <Image
+                              source={{ uri: viewProduct.imageUrl }}
+                              style={styles.productImage}
+                              resizeMode="cover"
+                              onError={(e) =>
+                                console.log(
+                                  '❌ View image load error:',
+                                  viewProduct.imageUrl,
+                                  e.nativeEvent.error
+                                )
+                              }
+                              onLoad={() =>
+                                console.log('✅ View image loaded:', viewProduct.imageUrl)
+                              }
+                            />
+                          )}
+                          {viewProduct.imageUrls &&
+                            viewProduct.imageUrls.map((url, idx) => (
+                              <Image
+                                key={idx}
+                                source={{ uri: url }}
+                                style={styles.productImage}
+                                resizeMode="cover"
+                                onError={(e) =>
+                                  console.log('❌ View image load error:', url, e.nativeEvent.error)
+                                }
+                                onLoad={() => console.log('✅ View image loaded:', url)}
+                              />
+                            ))}
+                        </View>
+                      </ScrollView>
+                    </View>
+                  )
                 );
               })()}
 
@@ -914,7 +866,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
               {/* Presentaciones */}
               {viewProduct.presentations && viewProduct.presentations.length > 0 && (
                 <View style={styles.viewSection}>
-                  <Text style={styles.viewSectionTitle}>📦 Presentaciones ({viewProduct.presentations.length})</Text>
+                  <Text style={styles.viewSectionTitle}>
+                    📦 Presentaciones ({viewProduct.presentations.length})
+                  </Text>
                   {viewProduct.presentations.map((pres, index) => (
                     <View key={index} style={styles.presentationViewCard}>
                       <View style={styles.presentationViewHeader}>
@@ -951,7 +905,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
               {/* Precios de Venta */}
               {viewProduct.salePrices && viewProduct.salePrices.length > 0 && (
                 <View style={styles.viewSection}>
-                  <Text style={styles.viewSectionTitle}>💵 Precios de Venta ({viewProduct.salePrices.length})</Text>
+                  <Text style={styles.viewSectionTitle}>
+                    💵 Precios de Venta ({viewProduct.salePrices.length})
+                  </Text>
                   {viewProduct.salePrices.map((price, index) => (
                     <View key={index} style={styles.priceViewCard}>
                       <View style={styles.viewRow}>
@@ -960,7 +916,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                       </View>
                       <View style={styles.viewRow}>
                         <Text style={styles.viewLabel}>Presentación:</Text>
-                        <Text style={styles.viewValue}>{price.presentation?.name || price.presentation?.code || 'N/A'}</Text>
+                        <Text style={styles.viewValue}>
+                          {price.presentation?.name || price.presentation?.code || 'N/A'}
+                        </Text>
                       </View>
                       <View style={styles.viewRow}>
                         <Text style={styles.viewLabel}>Precio:</Text>
@@ -976,7 +934,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
               {/* Stock */}
               {viewProduct.stockItems && viewProduct.stockItems.length > 0 && (
                 <View style={styles.viewSection}>
-                  <Text style={styles.viewSectionTitle}>📊 Stock ({viewProduct.stockItems.length} ubicaciones)</Text>
+                  <Text style={styles.viewSectionTitle}>
+                    📊 Stock ({viewProduct.stockItems.length} ubicaciones)
+                  </Text>
                   {viewProduct.stockItems.map((stock, index) => (
                     <View key={index} style={styles.stockViewCard}>
                       <View style={styles.viewRow}>

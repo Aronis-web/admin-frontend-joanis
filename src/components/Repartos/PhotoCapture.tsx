@@ -18,10 +18,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permiso Requerido',
-        'Se necesita permiso para acceder a la cámara'
-      );
+      Alert.alert('Permiso Requerido', 'Se necesita permiso para acceder a la cámara');
       return false;
     }
     return true;
@@ -29,7 +26,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   const handleTakePhoto = async () => {
     const hasPermission = await requestCameraPermission();
-    if (!hasPermission) return;
+    if (!hasPermission) {
+      return;
+    }
 
     try {
       const result = await ImagePicker.launchCameraAsync({
@@ -81,9 +80,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Foto del Producto</Text>
-      <Text style={styles.subtitle}>
-        Toma una foto del producto que se está entregando
-      </Text>
+      <Text style={styles.subtitle}>Toma una foto del producto que se está entregando</Text>
 
       <View style={styles.photoContainer}>
         {photo ? (

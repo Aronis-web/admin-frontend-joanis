@@ -44,7 +44,9 @@ export const ProductBannerModal: React.FC<ProductBannerModalProps> = ({
   }, [visible, product?.productId]);
 
   const fetchStockData = async () => {
-    if (!product?.productId) return;
+    if (!product?.productId) {
+      return;
+    }
 
     const isPrelim = isProductPreliminary(product.productStatus);
 
@@ -77,10 +79,15 @@ export const ProductBannerModal: React.FC<ProductBannerModalProps> = ({
               });
 
               // Find the product in this purchase
-              const foundProduct = products.find(p => p.productId === product.productId);
+              const foundProduct = products.find((p) => p.productId === product.productId);
               if (foundProduct && foundProduct.preliminaryStock) {
                 prelimStock = foundProduct.preliminaryStock;
-                console.log('✅ Found preliminary stock:', prelimStock, 'in purchase:', purchase.id);
+                console.log(
+                  '✅ Found preliminary stock:',
+                  prelimStock,
+                  'in purchase:',
+                  purchase.id
+                );
                 break; // Found it, stop searching
               }
             } catch (err) {
@@ -118,7 +125,9 @@ export const ProductBannerModal: React.FC<ProductBannerModalProps> = ({
     }
   };
 
-  if (!product) return null;
+  if (!product) {
+    return null;
+  }
 
   const isPreliminary = isProductPreliminary(product.productStatus);
   const costCents = product.costCents || 0;
@@ -126,18 +135,11 @@ export const ProductBannerModal: React.FC<ProductBannerModalProps> = ({
   const precioFranquicia = Math.round(costCents * 1.13);
 
   // Determine which stock to show
-  const stockValue = isPreliminary
-    ? stockData.preliminaryStock
-    : stockData.stock;
+  const stockValue = isPreliminary ? stockData.preliminaryStock : stockData.stock;
   const stockLabel = isPreliminary ? 'Stock Preliminar' : 'Stock';
 
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={[styles.container, isTablet && styles.containerTablet]}>
           {/* Close Button */}
@@ -160,7 +162,13 @@ export const ProductBannerModal: React.FC<ProductBannerModalProps> = ({
             {/* Product Name Banner */}
             <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
               <Text style={styles.bannerLabel}>PRODUCTO</Text>
-              <Text style={[styles.bannerValue, styles.bannerValueName, isTablet && styles.bannerValueTablet]}>
+              <Text
+                style={[
+                  styles.bannerValue,
+                  styles.bannerValueName,
+                  isTablet && styles.bannerValueTablet,
+                ]}
+              >
                 {product.product?.title || 'Sin nombre'}
               </Text>
             </View>
@@ -174,21 +182,25 @@ export const ProductBannerModal: React.FC<ProductBannerModalProps> = ({
                   <Text style={styles.loadingStockText}>Cargando stock...</Text>
                 </View>
               ) : (
-                <Text style={[styles.bannerValue, styles.stockValue, isTablet && styles.bannerValueTablet]}>
+                <Text
+                  style={[
+                    styles.bannerValue,
+                    styles.stockValue,
+                    isTablet && styles.bannerValueTablet,
+                  ]}
+                >
                   {stockValue !== undefined && stockValue !== null ? stockValue : 'N/A'}
                 </Text>
               )}
-              {isPreliminary && (
-                <Text style={styles.preliminaryNote}>
-                  ⚠️ Producto Preliminar
-                </Text>
-              )}
+              {isPreliminary && <Text style={styles.preliminaryNote}>⚠️ Producto Preliminar</Text>}
             </View>
 
             {/* Cost Banner */}
             <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
               <Text style={styles.bannerLabel}>COSTO</Text>
-              <Text style={[styles.bannerValue, styles.costValue, isTablet && styles.bannerValueTablet]}>
+              <Text
+                style={[styles.bannerValue, styles.costValue, isTablet && styles.bannerValueTablet]}
+              >
                 {formatCentsToCurrency(costCents)}
               </Text>
             </View>
@@ -200,24 +212,33 @@ export const ProductBannerModal: React.FC<ProductBannerModalProps> = ({
               </View>
               <Text style={[styles.bannerLabel, styles.bannerLabelHighlight]}>PRECIO SOCIA</Text>
               <View style={styles.priceHighlightContainer}>
-                <Text style={[styles.bannerValue, styles.priceSociaValue, styles.priceSociaValueHighlight, isTablet && styles.bannerValueTabletHighlight]}>
+                <Text
+                  style={[
+                    styles.bannerValue,
+                    styles.priceSociaValue,
+                    styles.priceSociaValueHighlight,
+                    isTablet && styles.bannerValueTabletHighlight,
+                  ]}
+                >
                   {formatCentsToCurrency(precioSocia)}
                 </Text>
               </View>
-              <Text style={styles.calculationNoteHighlight}>
-                💰 Costo × 1.30 💰
-              </Text>
+              <Text style={styles.calculationNoteHighlight}>💰 Costo × 1.30 💰</Text>
             </View>
 
             {/* Precio Franquicia Banner */}
             <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
               <Text style={styles.bannerLabel}>PRECIO FRANQUICIA</Text>
-              <Text style={[styles.bannerValue, styles.priceFranquiciaValue, isTablet && styles.bannerValueTablet]}>
+              <Text
+                style={[
+                  styles.bannerValue,
+                  styles.priceFranquiciaValue,
+                  isTablet && styles.bannerValueTablet,
+                ]}
+              >
                 {formatCentsToCurrency(precioFranquicia)}
               </Text>
-              <Text style={styles.calculationNote}>
-                Costo × 1.13
-              </Text>
+              <Text style={styles.calculationNote}>Costo × 1.13</Text>
             </View>
           </ScrollView>
         </View>

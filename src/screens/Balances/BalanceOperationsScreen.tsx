@@ -34,7 +34,10 @@ interface BalanceOperationsScreenProps {
   route: any;
 }
 
-export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = ({ navigation, route }) => {
+export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = ({
+  navigation,
+  route,
+}) => {
   const { balanceId, balance } = route.params || {};
   const { currentSite } = useAuthStore();
 
@@ -68,7 +71,9 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
     reference: '',
     notes: '',
   });
-  const [selectedFiles, setSelectedFiles] = useState<Array<{uri: string; filename: string; mimeType: string}>>([]);
+  const [selectedFiles, setSelectedFiles] = useState<
+    Array<{ uri: string; filename: string; mimeType: string }>
+  >([]);
 
   // Filter states
   const [filterType, setFilterType] = useState<OperationType | ''>('');
@@ -167,7 +172,7 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
     }
 
     // Auto-set emitter to current site if operation requires emitter and none is set
-    let emitterCompanyId = formData.emitterCompanyId;
+    const emitterCompanyId = formData.emitterCompanyId;
     let emitterSiteId = formData.emitterSiteId;
 
     if (
@@ -212,12 +217,12 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
       if (selectedFiles.length > 0) {
         try {
           console.log(`📎 Uploading ${selectedFiles.length} file(s)...`);
-          await filesApi.uploadBalanceOperationFiles(
-            selectedFiles,
-            createdOperation.id
-          );
+          await filesApi.uploadBalanceOperationFiles(selectedFiles, createdOperation.id);
           console.log('✅ Files uploaded successfully');
-          Alert.alert('Éxito', `Operación creada con ${selectedFiles.length} archivo(s) adjunto(s)`);
+          Alert.alert(
+            'Éxito',
+            `Operación creada con ${selectedFiles.length} archivo(s) adjunto(s)`
+          );
         } catch (fileError: any) {
           console.error('❌ Error uploading files:', fileError);
           Alert.alert(
@@ -258,20 +263,23 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
     setSelectedFiles([]);
   };
 
-  const validateFiles = (files: Array<{uri: string; filename: string; mimeType: string}>) => {
+  const validateFiles = (files: Array<{ uri: string; filename: string; mimeType: string }>) => {
     const MAX_FILES = 10;
     const ALLOWED_TYPES = [
-      'image/jpeg', 'image/jpg', 'image/png', 'image/heic',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/heic',
       'application/pdf',
       'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ];
 
     if (files.length > MAX_FILES) {
       throw new Error(`Máximo ${MAX_FILES} archivos permitidos`);
     }
 
-    files.forEach(file => {
+    files.forEach((file) => {
       if (!ALLOWED_TYPES.includes(file.mimeType)) {
         throw new Error(`Tipo de archivo no permitido: ${file.mimeType}`);
       }
@@ -294,10 +302,12 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newFiles = result.assets.map(asset => ({
+        const newFiles = result.assets.map((asset) => ({
           uri: asset.uri,
           filename: asset.fileName || `archivo_${Date.now()}.${asset.uri.split('.').pop()}`,
-          mimeType: asset.mimeType || (asset.uri.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+          mimeType:
+            asset.mimeType ||
+            (asset.uri.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
         }));
 
         try {
@@ -348,24 +358,20 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
   };
 
   const handleFileOptions = () => {
-    Alert.alert(
-      'Seleccionar Archivo',
-      'Elige una opción',
-      [
-        {
-          text: 'Tomar Foto',
-          onPress: handleTakePhoto,
-        },
-        {
-          text: 'Seleccionar de Galería',
-          onPress: handlePickFile,
-        },
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-      ]
-    );
+    Alert.alert('Seleccionar Archivo', 'Elige una opción', [
+      {
+        text: 'Tomar Foto',
+        onPress: handleTakePhoto,
+      },
+      {
+        text: 'Seleccionar de Galería',
+        onPress: handlePickFile,
+      },
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+    ]);
   };
 
   const filteredOperations = operations.filter((operation) => {
@@ -381,13 +387,15 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
   });
 
   const renderOperationItem = ({ item }: { item: BalanceOperation }) => (
-    <TouchableOpacity
-      style={styles.operationItem}
-      onPress={() => openDetailModal(item)}
-    >
+    <TouchableOpacity style={styles.operationItem} onPress={() => openDetailModal(item)}>
       <View style={styles.operationHeader}>
         <View style={styles.operationInfo}>
-          <View style={[styles.typeBadge, { backgroundColor: getOperationTypeColor(item.operationType) }]}>
+          <View
+            style={[
+              styles.typeBadge,
+              { backgroundColor: getOperationTypeColor(item.operationType) },
+            ]}
+          >
             <Text style={styles.typeBadgeText}>{getOperationTypeLabel(item.operationType)}</Text>
           </View>
           <Text style={styles.operationDate}>
@@ -398,23 +406,15 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
       </View>
 
       {item.emitterCompany && (
-        <Text style={styles.operationEmitter}>
-          Emisor: {item.emitterCompany.name}
-        </Text>
+        <Text style={styles.operationEmitter}>Emisor: {item.emitterCompany.name}</Text>
       )}
       {item.emitterSite && (
-        <Text style={styles.operationEmitter}>
-          Emisor: {item.emitterSite.name}
-        </Text>
+        <Text style={styles.operationEmitter}>Emisor: {item.emitterSite.name}</Text>
       )}
 
-      {item.description && (
-        <Text style={styles.operationDescription}>{item.description}</Text>
-      )}
+      {item.description && <Text style={styles.operationDescription}>{item.description}</Text>}
 
-      {item.reference && (
-        <Text style={styles.operationReference}>Ref: {item.reference}</Text>
-      )}
+      {item.reference && <Text style={styles.operationReference}>Ref: {item.reference}</Text>}
     </TouchableOpacity>
   );
 
@@ -437,12 +437,15 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
                   styles.typeButton,
                   formData.operationType === OperationType.DISTRIBUTED && styles.typeButtonActive,
                 ]}
-                onPress={() => setFormData({ ...formData, operationType: OperationType.DISTRIBUTED })}
+                onPress={() =>
+                  setFormData({ ...formData, operationType: OperationType.DISTRIBUTED })
+                }
               >
                 <Text
                   style={[
                     styles.typeButtonText,
-                    formData.operationType === OperationType.DISTRIBUTED && styles.typeButtonTextActive,
+                    formData.operationType === OperationType.DISTRIBUTED &&
+                      styles.typeButtonTextActive,
                   ]}
                 >
                   Repartido
@@ -506,7 +509,8 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
                 <Text
                   style={[
                     styles.typeButtonText,
-                    formData.operationType === OperationType.RETURNED && styles.typeButtonTextActive,
+                    formData.operationType === OperationType.RETURNED &&
+                      styles.typeButtonTextActive,
                   ]}
                 >
                   Devuelto
@@ -586,17 +590,14 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
                   {formData.operationType === OperationType.PAID
                     ? '📎 Adjunta comprobantes de pago, transferencias, etc.'
                     : formData.operationType === OperationType.SOLD
-                    ? '📎 Adjunta facturas, tickets de venta, etc.'
-                    : formData.operationType === OperationType.DISTRIBUTED
-                    ? '📎 Adjunta guías de remisión, comprobantes de entrega, fotos, etc.'
-                    : formData.operationType === OperationType.RETURNED
-                    ? '📎 Adjunta comprobantes de devolución, fotos, etc.'
-                    : '📎 Puedes adjuntar comprobantes, facturas, fotos, etc.'}
+                      ? '📎 Adjunta facturas, tickets de venta, etc.'
+                      : formData.operationType === OperationType.DISTRIBUTED
+                        ? '📎 Adjunta guías de remisión, comprobantes de entrega, fotos, etc.'
+                        : formData.operationType === OperationType.RETURNED
+                          ? '📎 Adjunta comprobantes de devolución, fotos, etc.'
+                          : '📎 Puedes adjuntar comprobantes, facturas, fotos, etc.'}
                 </Text>
-                <TouchableOpacity
-                  style={styles.fileUploadButton}
-                  onPress={handleFileOptions}
-                >
+                <TouchableOpacity style={styles.fileUploadButton} onPress={handleFileOptions}>
                   <Text style={styles.fileUploadButtonText}>📎 Seleccionar Archivos</Text>
                 </TouchableOpacity>
                 {selectedFiles.length > 0 && (
@@ -611,9 +612,11 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
                             {file.mimeType.split('/')[0] === 'image' ? '📷 Imagen' : '📄 Documento'}
                           </Text>
                         </View>
-                        <TouchableOpacity onPress={() => {
-                          setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
-                        }}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+                          }}
+                        >
                           <Text style={styles.fileRemove}>✕</Text>
                         </TouchableOpacity>
                       </View>
@@ -646,8 +649,6 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
     </Modal>
   );
 
-
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -657,10 +658,7 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
         <Text style={styles.headerTitle}>
           Operaciones {balanceData ? `- ${balanceData.code}` : ''}
         </Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowCreateModal(true)}
-        >
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowCreateModal(true)}>
           <Text style={styles.addButtonText}>+ Nueva</Text>
         </TouchableOpacity>
       </View>
@@ -668,7 +666,9 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
       {!balanceId ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Error: No se proporcionó un ID de balance válido.</Text>
-          <Text style={styles.errorSubtext}>Por favor, navegue a esta pantalla desde la lista de balances.</Text>
+          <Text style={styles.errorSubtext}>
+            Por favor, navegue a esta pantalla desde la lista de balances.
+          </Text>
         </View>
       ) : (
         <>
@@ -692,7 +692,10 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, filterType === OperationType.DISTRIBUTED && styles.filterButtonActive]}
+              style={[
+                styles.filterButton,
+                filterType === OperationType.DISTRIBUTED && styles.filterButtonActive,
+              ]}
               onPress={() => setFilterType(OperationType.DISTRIBUTED)}
             >
               <Text
@@ -705,7 +708,10 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, filterType === OperationType.SOLD && styles.filterButtonActive]}
+              style={[
+                styles.filterButton,
+                filterType === OperationType.SOLD && styles.filterButtonActive,
+              ]}
               onPress={() => setFilterType(OperationType.SOLD)}
             >
               <Text
@@ -718,7 +724,10 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, filterType === OperationType.TO_PAY && styles.filterButtonActive]}
+              style={[
+                styles.filterButton,
+                filterType === OperationType.TO_PAY && styles.filterButtonActive,
+              ]}
               onPress={() => setFilterType(OperationType.TO_PAY)}
             >
               <Text
@@ -731,7 +740,10 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, filterType === OperationType.PAID && styles.filterButtonActive]}
+              style={[
+                styles.filterButton,
+                filterType === OperationType.PAID && styles.filterButtonActive,
+              ]}
               onPress={() => setFilterType(OperationType.PAID)}
             >
               <Text
@@ -744,7 +756,10 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.filterButton, filterType === OperationType.RETURNED && styles.filterButtonActive]}
+              style={[
+                styles.filterButton,
+                filterType === OperationType.RETURNED && styles.filterButtonActive,
+              ]}
               onPress={() => setFilterType(OperationType.RETURNED)}
             >
               <Text

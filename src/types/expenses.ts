@@ -33,7 +33,7 @@ export enum ExpenseType {
  * Template Expense Type - Distinguishes between recurring and semi-recurring templates
  */
 export enum TemplateExpenseType {
-  RECURRENT = 'RECURRENT',           // Generates multiple times according to frequency
+  RECURRENT = 'RECURRENT', // Generates multiple times according to frequency
   SEMI_RECURRENT = 'SEMI_RECURRENT', // Generates once and then deactivates
 }
 

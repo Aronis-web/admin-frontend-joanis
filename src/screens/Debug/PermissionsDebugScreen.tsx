@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
 
@@ -126,7 +120,8 @@ export const PermissionsDebugScreen: React.FC<PermissionsDebugScreenProps> = ({ 
         <View style={styles.noteBox}>
           <Text style={styles.noteTitle}>💡 Nota Importante</Text>
           <Text style={styles.noteText}>
-            Si acabas de asignar permisos en el backend, necesitas cerrar sesión y volver a iniciar sesión para que se actualicen en el frontend.
+            Si acabas de asignar permisos en el backend, necesitas cerrar sesión y volver a iniciar
+            sesión para que se actualicen en el frontend.
           </Text>
         </View>
       </ScrollView>
@@ -296,4 +291,3 @@ const styles = StyleSheet.create({
 });
 
 export default PermissionsDebugScreen;
-

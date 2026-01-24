@@ -45,9 +45,13 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
     quantityOfPresentations: number;
   }
   const [presentations, setPresentations] = useState<Presentation[]>([]);
-  const [productPresentations, setProductPresentations] = useState<ProductPresentationWithQuantity[]>([]);
+  const [productPresentations, setProductPresentations] = useState<
+    ProductPresentationWithQuantity[]
+  >([]);
   const [showAddPresentation, setShowAddPresentation] = useState(false);
-  const [selectedPresentationForQuantity, setSelectedPresentationForQuantity] = useState<string | null>(null);
+  const [selectedPresentationForQuantity, setSelectedPresentationForQuantity] = useState<
+    string | null
+  >(null);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -73,7 +77,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
     try {
       setInitialLoading(true);
       const products = await purchasesService.getPurchaseProducts(purchaseId);
-      const product = products.find(p => p.id === productId);
+      const product = products.find((p) => p.id === productId);
 
       if (product) {
         setSku(product.sku);
@@ -116,7 +120,11 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
           setProductPresentations(preliminaryPresentations);
 
           // If there's a saved presentation quantity, restore it
-          if (product.preliminaryPresentationQuantity !== undefined && product.preliminaryPresentationQuantity !== null && product.preliminaryPresentationQuantity > 0) {
+          if (
+            product.preliminaryPresentationQuantity !== undefined &&
+            product.preliminaryPresentationQuantity !== null &&
+            product.preliminaryPresentationQuantity > 0
+          ) {
             // Find the first presentation and set its quantity (assuming only one has quantity)
             if (preliminaryPresentations.length > 0) {
               const firstPresentationId = preliminaryPresentations[0].presentationId;
@@ -142,21 +150,25 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
     }
   };
 
-  const handleAddPresentation = (presentationId: string, factorToBase: string, presentationNotes: string) => {
+  const handleAddPresentation = (
+    presentationId: string,
+    factorToBase: string,
+    presentationNotes: string
+  ) => {
     const factor = parseFloat(factorToBase);
     if (isNaN(factor) || !isFinite(factor) || factor < 1) {
       Alert.alert('Error', 'El factor de conversión debe ser un número válido mayor o igual a 1');
       return;
     }
 
-    const presentation = presentations.find(p => p.id === presentationId);
+    const presentation = presentations.find((p) => p.id === presentationId);
     if (!presentation) {
       Alert.alert('Error', 'Presentación no encontrada');
       return;
     }
 
     // Check if presentation already exists
-    if (productPresentations.some(p => p.presentationId === presentationId)) {
+    if (productPresentations.some((p) => p.presentationId === presentationId)) {
       Alert.alert('Error', 'Esta presentación ya fue agregada');
       return;
     }
@@ -174,7 +186,9 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
   };
 
   const handleRemovePresentation = (presentationId: string) => {
-    setProductPresentations(productPresentations.filter(p => p.presentationId !== presentationId));
+    setProductPresentations(
+      productPresentations.filter((p) => p.presentationId !== presentationId)
+    );
     // If this was the selected presentation for quantity, clear it
     if (selectedPresentationForQuantity === presentationId) {
       setSelectedPresentationForQuantity(null);
@@ -189,7 +203,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
     // Only calculate from the selected presentation for quantity
     if (selectedPresentationForQuantity) {
       const selectedPres = productPresentations.find(
-        p => p.presentationId === selectedPresentationForQuantity
+        (p) => p.presentationId === selectedPresentationForQuantity
       );
       if (selectedPres) {
         presentationUnits = selectedPres.quantityOfPresentations * selectedPres.factorToBase;
@@ -233,7 +247,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
     let preliminaryPresentationQuantity = 0;
     if (selectedPresentationForQuantity) {
       const selectedPres = productPresentations.find(
-        p => p.presentationId === selectedPresentationForQuantity
+        (p) => p.presentationId === selectedPresentationForQuantity
       );
       if (selectedPres) {
         preliminaryPresentationQuantity = selectedPres.quantityOfPresentations;
@@ -241,11 +255,13 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
     }
 
     // Validate presentations before sending
-    const validPresentations = productPresentations.map(p => {
+    const validPresentations = productPresentations.map((p) => {
       const factor = Number(p.factorToBase);
       if (!isFinite(factor) || isNaN(factor) || factor < 1) {
         console.error('❌ Invalid factorToBase detected:', p);
-        throw new Error(`Presentación inválida: el factor de conversión debe ser >= 1 (valor actual: ${p.factorToBase})`);
+        throw new Error(
+          `Presentación inválida: el factor de conversión debe ser >= 1 (valor actual: ${p.factorToBase})`
+        );
       }
       return {
         presentationId: p.presentationId,
@@ -299,9 +315,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Editar Producto
-          </Text>
+          <Text style={[styles.title, isTablet && styles.titleTablet]}>Editar Producto</Text>
           <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
             Datos preliminares del producto
           </Text>
@@ -310,10 +324,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[
-          styles.contentContainer,
-          isTablet && styles.contentContainerTablet,
-        ]}
+        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
       >
         {/* SKU */}
         <View style={styles.section}>
@@ -361,9 +372,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
 
         {/* Notes */}
         <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Notas
-          </Text>
+          <Text style={[styles.label, isTablet && styles.labelTablet]}>Notas</Text>
           <TextInput
             style={[styles.input, styles.textArea, isTablet && styles.inputTablet]}
             value={notes}
@@ -401,11 +410,16 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
           ) : (
             <View style={styles.presentationsList}>
               {productPresentations.map((pp, index) => {
-                const presentation = presentations.find(p => p.id === pp.presentationId);
+                const presentation = presentations.find((p) => p.id === pp.presentationId);
                 return (
-                  <View key={pp.presentationId} style={[styles.presentationCard, isTablet && styles.presentationCardTablet]}>
+                  <View
+                    key={pp.presentationId}
+                    style={[styles.presentationCard, isTablet && styles.presentationCardTablet]}
+                  >
                     <View style={styles.presentationHeader}>
-                      <Text style={[styles.presentationName, isTablet && styles.presentationNameTablet]}>
+                      <Text
+                        style={[styles.presentationName, isTablet && styles.presentationNameTablet]}
+                      >
                         {presentation?.name || 'Presentación'}
                       </Text>
                       <TouchableOpacity
@@ -417,11 +431,21 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
                     </View>
 
                     <View style={styles.presentationDetails}>
-                      <Text style={[styles.presentationFactor, isTablet && styles.presentationFactorTablet]}>
+                      <Text
+                        style={[
+                          styles.presentationFactor,
+                          isTablet && styles.presentationFactorTablet,
+                        ]}
+                      >
                         Factor: {pp.factorToBase}x
                       </Text>
                       {pp.notes && (
-                        <Text style={[styles.presentationNotes, isTablet && styles.presentationNotesTablet]}>
+                        <Text
+                          style={[
+                            styles.presentationNotes,
+                            isTablet && styles.presentationNotesTablet,
+                          ]}
+                        >
                           {pp.notes}
                         </Text>
                       )}
@@ -430,13 +454,16 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
                     {/* Quantity of Presentations - Only for selected presentation */}
                     <View style={styles.quantitySection}>
                       <View style={styles.quantityHeaderRow}>
-                        <Text style={[styles.quantityLabel, isTablet && styles.quantityLabelTablet]}>
+                        <Text
+                          style={[styles.quantityLabel, isTablet && styles.quantityLabelTablet]}
+                        >
                           Cantidad de Presentaciones:
                         </Text>
                         <TouchableOpacity
                           style={[
                             styles.selectForQuantityButton,
-                            selectedPresentationForQuantity === pp.presentationId && styles.selectForQuantityButtonActive,
+                            selectedPresentationForQuantity === pp.presentationId &&
+                              styles.selectForQuantityButtonActive,
                           ]}
                           onPress={() => {
                             if (selectedPresentationForQuantity === pp.presentationId) {
@@ -450,17 +477,23 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
                               setSelectedPresentationForQuantity(pp.presentationId);
                               const newPresentations = productPresentations.map((p, i) => ({
                                 ...p,
-                                quantityOfPresentations: i === index ? p.quantityOfPresentations : 0,
+                                quantityOfPresentations:
+                                  i === index ? p.quantityOfPresentations : 0,
                               }));
                               setProductPresentations(newPresentations);
                             }
                           }}
                         >
-                          <Text style={[
-                            styles.selectForQuantityButtonText,
-                            selectedPresentationForQuantity === pp.presentationId && styles.selectForQuantityButtonTextActive,
-                          ]}>
-                            {selectedPresentationForQuantity === pp.presentationId ? '✓ Seleccionada' : 'Seleccionar'}
+                          <Text
+                            style={[
+                              styles.selectForQuantityButtonText,
+                              selectedPresentationForQuantity === pp.presentationId &&
+                                styles.selectForQuantityButtonTextActive,
+                            ]}
+                          >
+                            {selectedPresentationForQuantity === pp.presentationId
+                              ? '✓ Seleccionada'
+                              : 'Seleccionar'}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -468,27 +501,42 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
                         style={[
                           styles.quantityInput,
                           isTablet && styles.quantityInputTablet,
-                          selectedPresentationForQuantity !== pp.presentationId && styles.quantityInputDisabled,
+                          selectedPresentationForQuantity !== pp.presentationId &&
+                            styles.quantityInputDisabled,
                         ]}
                         value={pp.quantityOfPresentations.toString()}
                         onChangeText={(text) => {
                           if (selectedPresentationForQuantity === pp.presentationId) {
                             const newPresentations = [...productPresentations];
                             const parsedValue = parseInt(text);
-                            newPresentations[index].quantityOfPresentations = isNaN(parsedValue) ? 0 : parsedValue;
+                            newPresentations[index].quantityOfPresentations = isNaN(parsedValue)
+                              ? 0
+                              : parsedValue;
                             setProductPresentations(newPresentations);
                           }
                         }}
-                        placeholder={selectedPresentationForQuantity === pp.presentationId ? "Ej: 5" : "Seleccione esta presentación primero"}
+                        placeholder={
+                          selectedPresentationForQuantity === pp.presentationId
+                            ? 'Ej: 5'
+                            : 'Seleccione esta presentación primero'
+                        }
                         placeholderTextColor="#94A3B8"
                         keyboardType="number-pad"
                         editable={selectedPresentationForQuantity === pp.presentationId}
                       />
-                      {selectedPresentationForQuantity === pp.presentationId && pp.quantityOfPresentations > 0 && (
-                        <Text style={[styles.hint, isTablet && styles.hintTablet, styles.calculationHint]}>
-                          = {pp.quantityOfPresentations} × {pp.factorToBase} = {pp.quantityOfPresentations * pp.factorToBase} unidades
-                        </Text>
-                      )}
+                      {selectedPresentationForQuantity === pp.presentationId &&
+                        pp.quantityOfPresentations > 0 && (
+                          <Text
+                            style={[
+                              styles.hint,
+                              isTablet && styles.hintTablet,
+                              styles.calculationHint,
+                            ]}
+                          >
+                            = {pp.quantityOfPresentations} × {pp.factorToBase} ={' '}
+                            {pp.quantityOfPresentations * pp.factorToBase} unidades
+                          </Text>
+                        )}
                     </View>
                   </View>
                 );
@@ -543,8 +591,8 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
         <View style={styles.infoBox}>
           <Text style={[styles.infoIcon, isTablet && styles.infoIconTablet]}>ℹ️</Text>
           <Text style={[styles.infoText, isTablet && styles.infoTextTablet]}>
-            Estos datos son preliminares. Podrás validar y completar la información del
-            producto en la siguiente etapa.
+            Estos datos son preliminares. Podrás validar y completar la información del producto en
+            la siguiente etapa.
           </Text>
         </View>
 
@@ -997,7 +1045,7 @@ const AddPresentationModal: React.FC<AddPresentationModalProps> = ({
   const [presentationNotes, setPresentationNotes] = useState('');
   const [showPresentationSelector, setShowPresentationSelector] = useState(false);
 
-  const selectedPresentation = presentations.find(p => p.id === selectedPresentationId);
+  const selectedPresentation = presentations.find((p) => p.id === selectedPresentationId);
 
   const handleAdd = () => {
     if (!selectedPresentationId) {
@@ -1068,7 +1116,8 @@ const AddPresentationModal: React.FC<AddPresentationModalProps> = ({
                       style={[
                         modalStyles.optionText,
                         isTablet && modalStyles.optionTextTablet,
-                        selectedPresentationId === presentation.id && modalStyles.optionTextSelected,
+                        selectedPresentationId === presentation.id &&
+                          modalStyles.optionTextSelected,
                       ]}
                     >
                       {presentation.name}
@@ -1099,9 +1148,7 @@ const AddPresentationModal: React.FC<AddPresentationModalProps> = ({
 
           {/* Notes */}
           <View style={modalStyles.section}>
-            <Text style={[modalStyles.label, isTablet && modalStyles.labelTablet]}>
-              Notas
-            </Text>
+            <Text style={[modalStyles.label, isTablet && modalStyles.labelTablet]}>Notas</Text>
             <TextInput
               style={[modalStyles.input, modalStyles.textArea, isTablet && modalStyles.inputTablet]}
               value={presentationNotes}
@@ -1120,7 +1167,9 @@ const AddPresentationModal: React.FC<AddPresentationModalProps> = ({
             style={[modalStyles.cancelButton, isTablet && modalStyles.cancelButtonTablet]}
             onPress={onCancel}
           >
-            <Text style={[modalStyles.cancelButtonText, isTablet && modalStyles.cancelButtonTextTablet]}>
+            <Text
+              style={[modalStyles.cancelButtonText, isTablet && modalStyles.cancelButtonTextTablet]}
+            >
               Cancelar
             </Text>
           </TouchableOpacity>
@@ -1355,4 +1404,3 @@ const modalStyles = StyleSheet.create({
 });
 
 export default EditPurchaseProductScreen;
-

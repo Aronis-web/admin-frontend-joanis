@@ -92,10 +92,7 @@ export const CreateTransmisionScreen: React.FC<CreateTransmisionScreenProps> = (
   };
 
   const renderStatusSelector = () => {
-    const statuses = [
-      TransmisionStatus.DRAFT,
-      TransmisionStatus.IN_PROGRESS,
-    ];
+    const statuses = [TransmisionStatus.DRAFT, TransmisionStatus.IN_PROGRESS];
 
     return (
       <View style={styles.section}>
@@ -141,89 +138,90 @@ export const CreateTransmisionScreen: React.FC<CreateTransmisionScreenProps> = (
         </View>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Nombre <Text style={styles.required}>*</Text>
-          </Text>
-          <TextInput
-            style={[styles.input, isTablet && styles.inputTablet]}
-            value={name}
-            onChangeText={setName}
-            placeholder="Ej: Transmisión Enero 2024"
-            placeholderTextColor="#9CA3AF"
-            editable={!loading}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>Descripción</Text>
-          <TextInput
-            style={[styles.input, styles.textArea, isTablet && styles.inputTablet]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Descripción opcional de la transmisión"
-            placeholderTextColor="#9CA3AF"
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-            editable={!loading}
-          />
-        </View>
-
-        {renderStatusSelector()}
-
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Perfil de Precio (Opcional)
-          </Text>
-          {loadingProfiles ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color="#0EA5E9" size="small" />
-              <Text style={styles.loadingText}>Cargando perfiles...</Text>
-            </View>
-          ) : (
-            <>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={priceProfileId}
-                  onValueChange={(value) => setPriceProfileId(value)}
-                  enabled={!loading}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Sin perfil de precio" value="" />
-                  {priceProfiles.map((profile) => (
-                    <Picker.Item
-                      key={profile.id}
-                      label={`${profile.name} (Factor: ${typeof profile.factorToCost === 'string' ? profile.factorToCost : profile.factorToCost.toFixed(2)}x)`}
-                      value={profile.id}
-                    />
-                  ))}
-                </Picker>
-              </View>
-              <Text style={styles.hint}>
-                💡 Si seleccionas un perfil, los precios de venta se calcularán automáticamente al agregar productos
-              </Text>
-            </>
-          )}
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.createButton,
-            isTablet && styles.createButtonTablet,
-            loading && styles.createButtonDisabled,
-          ]}
-          onPress={handleCreate}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
-              Crear Transmisión
+          <View style={styles.section}>
+            <Text style={[styles.label, isTablet && styles.labelTablet]}>
+              Nombre <Text style={styles.required}>*</Text>
             </Text>
-          )}
-        </TouchableOpacity>
+            <TextInput
+              style={[styles.input, isTablet && styles.inputTablet]}
+              value={name}
+              onChangeText={setName}
+              placeholder="Ej: Transmisión Enero 2024"
+              placeholderTextColor="#9CA3AF"
+              editable={!loading}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.label, isTablet && styles.labelTablet]}>Descripción</Text>
+            <TextInput
+              style={[styles.input, styles.textArea, isTablet && styles.inputTablet]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Descripción opcional de la transmisión"
+              placeholderTextColor="#9CA3AF"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              editable={!loading}
+            />
+          </View>
+
+          {renderStatusSelector()}
+
+          <View style={styles.section}>
+            <Text style={[styles.label, isTablet && styles.labelTablet]}>
+              Perfil de Precio (Opcional)
+            </Text>
+            {loadingProfiles ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator color="#0EA5E9" size="small" />
+                <Text style={styles.loadingText}>Cargando perfiles...</Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={priceProfileId}
+                    onValueChange={(value) => setPriceProfileId(value)}
+                    enabled={!loading}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Sin perfil de precio" value="" />
+                    {priceProfiles.map((profile) => (
+                      <Picker.Item
+                        key={profile.id}
+                        label={`${profile.name} (Factor: ${typeof profile.factorToCost === 'string' ? profile.factorToCost : profile.factorToCost.toFixed(2)}x)`}
+                        value={profile.id}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+                <Text style={styles.hint}>
+                  💡 Si seleccionas un perfil, los precios de venta se calcularán automáticamente al
+                  agregar productos
+                </Text>
+              </>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.createButton,
+              isTablet && styles.createButtonTablet,
+              loading && styles.createButtonDisabled,
+            ]}
+            onPress={handleCreate}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
+                Crear Transmisión
+              </Text>
+            )}
+          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     </ScreenLayout>

@@ -22,10 +22,7 @@ interface AssignDebtScreenProps {
   };
 }
 
-export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({
-  navigation,
-  route,
-}) => {
+export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, route }) => {
   const { purchaseId } = route.params;
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -218,10 +215,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[
-          styles.contentContainer,
-          isTablet && styles.contentContainerTablet,
-        ]}
+        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
       >
         {/* Summary Card */}
         <View style={[styles.summaryCard, isTablet && styles.summaryCardTablet]}>
@@ -329,7 +323,8 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({
                     {product.name}
                   </Text>
                   <Text style={[styles.productSku, isTablet && styles.productSkuTablet]}>
-                    {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku}
+                    {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU:{' '}
+                    {product.sku}
                   </Text>
                 </View>
               </View>
@@ -374,9 +369,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({
                 </Text>
                 <TouchableOpacity
                   style={[styles.selector, isTablet && styles.selectorTablet]}
-                  onPress={() =>
-                    setShowSelector(showSelector === product.id ? null : product.id)
-                  }
+                  onPress={() => setShowSelector(showSelector === product.id ? null : product.id)}
                   disabled={actionLoading}
                 >
                   <Text
@@ -390,9 +383,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({
                       ? getLegalEntityName(selectedLegalEntities[product.id])
                       : 'Seleccionar razón social'}
                   </Text>
-                  <Text style={styles.selectorIcon}>
-                    {showSelector === product.id ? '▲' : '▼'}
-                  </Text>
+                  <Text style={styles.selectorIcon}>{showSelector === product.id ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
 
                 {showSelector === product.id && (
@@ -421,10 +412,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({
                             {entity.legalName}
                           </Text>
                           <Text
-                            style={[
-                              styles.optionSubtext,
-                              isTablet && styles.optionSubtextTablet,
-                            ]}
+                            style={[styles.optionSubtext, isTablet && styles.optionSubtextTablet]}
                           >
                             RUC: {entity.ruc}
                           </Text>
@@ -885,4 +873,3 @@ const styles = StyleSheet.create({
 });
 
 export default AssignDebtScreen;
-

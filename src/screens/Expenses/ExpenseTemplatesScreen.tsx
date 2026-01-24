@@ -228,24 +228,20 @@ export const ExpenseTemplatesScreen: React.FC = () => {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        {templates.length === 0 ? (
-          renderEmptyState()
-        ) : (
-          templates.map((template) => (
-            <TemplateCard
-              key={template.id}
-              template={template}
-              onPress={handleTemplatePress}
-              onGenerate={canGenerate ? handleGenerateExpense : undefined}
-              onEdit={canUpdate ? handleEditTemplate : undefined}
-              onDelete={canDelete ? handleDeleteTemplate : undefined}
-            />
-          ))
-        )}
+        {templates.length === 0
+          ? renderEmptyState()
+          : templates.map((template) => (
+              <TemplateCard
+                key={template.id}
+                template={template}
+                onPress={handleTemplatePress}
+                onGenerate={canGenerate ? handleGenerateExpense : undefined}
+                onEdit={canUpdate ? handleEditTemplate : undefined}
+                onDelete={canDelete ? handleDeleteTemplate : undefined}
+              />
+            ))}
       </ScrollView>
 
       {/* Pagination Controls */}

@@ -40,7 +40,7 @@
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBWLYNj3GR7rtyYlenKw3Bvyg6_bUce3BA"
+          "apiKey": "@env:EXPO_PUBLIC_GOOGLE_MAPS_API_KEY"
         }
       },
       "softwareKeyboardLayoutMode": "pan",
@@ -62,7 +62,8 @@
           "savePhotosPermission": "Permitir que $(PRODUCT_NAME) guarde fotos y archivos.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "@sentry/react-native"
     ]
   }
 }

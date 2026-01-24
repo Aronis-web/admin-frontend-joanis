@@ -66,14 +66,10 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
     }
 
     if (salePrice < cost) {
-      Alert.alert(
-        'Advertencia',
-        'El precio de venta es menor que el costo. ¿Deseas continuar?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Continuar', onPress: () => performSave(cost, salePrice) },
-        ]
-      );
+      Alert.alert('Advertencia', 'El precio de venta es menor que el costo. ¿Deseas continuar?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Continuar', onPress: () => performSave(cost, salePrice) },
+      ]);
       return;
     }
 
@@ -122,21 +118,12 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
   const margin = calculateCurrentMargin();
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={handleCancel}
-    >
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={handleCancel}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
       >
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={handleCancel}
-        />
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleCancel} />
 
         <View style={[styles.modal, isTablet && styles.modalTablet]}>
           <View style={styles.header}>
@@ -155,9 +142,7 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
 
           <View style={styles.content}>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Costo (S/)
-              </Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Costo (S/)</Text>
               <TextInput
                 style={[styles.input, isTablet && styles.inputTablet]}
                 value={costInput}

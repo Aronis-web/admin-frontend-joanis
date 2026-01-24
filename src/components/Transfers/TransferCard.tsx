@@ -10,7 +10,9 @@ interface TransferCardProps {
 
 export const TransferCard: React.FC<TransferCardProps> = ({ transfer, onPress }) => {
   const formatDate = (dateString?: string | null) => {
-    if (!dateString) return '-';
+    if (!dateString) {
+      return '-';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
   };

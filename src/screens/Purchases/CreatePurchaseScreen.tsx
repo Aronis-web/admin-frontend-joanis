@@ -19,9 +19,7 @@ interface CreatePurchaseScreenProps {
   navigation: any;
 }
 
-export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({
-  navigation,
-}) => {
+export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navigation }) => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [guideNumber, setGuideNumber] = useState('');
@@ -90,7 +88,9 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({
   };
 
   const renderSupplierPicker = () => {
-    if (!showSupplierPicker) return null;
+    if (!showSupplierPicker) {
+      return null;
+    }
 
     return (
       <View style={styles.pickerOverlay}>
@@ -125,7 +125,9 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({
                 >
                   {supplier.commercialName}
                 </Text>
-                <Text style={[styles.pickerItemSubtext, isTablet && styles.pickerItemSubtextTablet]}>
+                <Text
+                  style={[styles.pickerItemSubtext, isTablet && styles.pickerItemSubtextTablet]}
+                >
                   {supplier.code}
                 </Text>
               </TouchableOpacity>
@@ -137,7 +139,9 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({
   };
 
   const renderGuideTypePicker = () => {
-    if (!showGuideTypePicker) return null;
+    if (!showGuideTypePicker) {
+      return null;
+    }
 
     const guideTypes = Object.values(GuideType);
 
@@ -156,10 +160,7 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({
             {guideTypes.map((type) => (
               <TouchableOpacity
                 key={type}
-                style={[
-                  styles.pickerItem,
-                  guideType === type && styles.pickerItemSelected,
-                ]}
+                style={[styles.pickerItem, guideType === type && styles.pickerItemSelected]}
                 onPress={() => {
                   setGuideType(type);
                   setShowGuideTypePicker(false);
@@ -197,16 +198,11 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Nueva Compra
-          </Text>
+          <Text style={[styles.title, isTablet && styles.titleTablet]}>Nueva Compra</Text>
           <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
             Ingreso de guía de compra
           </Text>
@@ -215,10 +211,7 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[
-          styles.contentContainer,
-          isTablet && styles.contentContainerTablet,
-        ]}
+        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
       >
         {/* Supplier Selection */}
         <View style={styles.section}>
@@ -603,4 +596,3 @@ const styles = StyleSheet.create({
 });
 
 export default CreatePurchaseScreen;
-

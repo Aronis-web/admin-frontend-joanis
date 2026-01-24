@@ -178,7 +178,9 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
   };
 
   const loadUserScopes = async () => {
-    if (!selectedAppId) return;
+    if (!selectedAppId) {
+      return;
+    }
 
     setLoadingScopes(true);
     try {
@@ -240,7 +242,10 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
     }
   };
 
-  const handleUpdateScope = async (userScopeId: string, updates: { canRead: boolean; canWrite: boolean }) => {
+  const handleUpdateScope = async (
+    userScopeId: string,
+    updates: { canRead: boolean; canWrite: boolean }
+  ) => {
     try {
       await scopesApi.updateUserScope(userScopeId, updates);
       Alert.alert('Éxito', 'Scope actualizado correctamente');
@@ -252,27 +257,23 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
   };
 
   const handleRevokeScope = (userScopeId: string) => {
-    Alert.alert(
-      'Confirmar',
-      '¿Estás seguro de que deseas revocar este scope?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Revocar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await scopesApi.revokeUserScope(userScopeId);
-              Alert.alert('Éxito', 'Scope revocado correctamente');
-              loadUserScopes();
-            } catch (error: any) {
-              console.error('Error revoking scope:', error);
-              Alert.alert('Error', error.message || 'No se pudo revocar el scope');
-            }
-          },
+    Alert.alert('Confirmar', '¿Estás seguro de que deseas revocar este scope?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Revocar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await scopesApi.revokeUserScope(userScopeId);
+            Alert.alert('Éxito', 'Scope revocado correctamente');
+            loadUserScopes();
+          } catch (error: any) {
+            console.error('Error revoking scope:', error);
+            Alert.alert('Error', error.message || 'No se pudo revocar el scope');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const resetForm = () => {
@@ -286,10 +287,10 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
   };
 
   const getScopeLabel = (scope: UserScope): string => {
-    const company = companies.find(c => c.id === scope.companyId);
-    const site = sites.find(s => s.id === scope.siteId);
-    const warehouse = warehouses.find(w => w.id === scope.warehouseId);
-    const area = areas.find(a => a.id === scope.areaId);
+    const company = companies.find((c) => c.id === scope.companyId);
+    const site = sites.find((s) => s.id === scope.siteId);
+    const warehouse = warehouses.find((w) => w.id === scope.warehouseId);
+    const area = areas.find((a) => a.id === scope.areaId);
 
     switch (scope.level) {
       case 'AREA':
@@ -307,10 +308,10 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
 
   const getLevelColor = (level: string): string => {
     const colors: Record<string, string> = {
-      'COMPANY': '#3B82F6',
-      'SITE': '#10B981',
-      'WAREHOUSE': '#F59E0B',
-      'AREA': '#8B5CF6',
+      COMPANY: '#3B82F6',
+      SITE: '#10B981',
+      WAREHOUSE: '#F59E0B',
+      AREA: '#8B5CF6',
     };
     return colors[level] || '#6B7280';
   };
@@ -329,7 +330,9 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
           <Text style={styles.permissionLabel}>Lectura:</Text>
           <Switch
             value={scope.canRead}
-            onValueChange={(value) => handleUpdateScope(scope.id, { canRead: value, canWrite: scope.canWrite })}
+            onValueChange={(value) =>
+              handleUpdateScope(scope.id, { canRead: value, canWrite: scope.canWrite })
+            }
             trackColor={{ false: '#CBD5E1', true: '#10B981' }}
             thumbColor={scope.canRead ? '#FFFFFF' : '#94A3B8'}
           />
@@ -338,29 +341,23 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
           <Text style={styles.permissionLabel}>Escritura:</Text>
           <Switch
             value={scope.canWrite}
-            onValueChange={(value) => handleUpdateScope(scope.id, { canRead: scope.canRead, canWrite: value })}
+            onValueChange={(value) =>
+              handleUpdateScope(scope.id, { canRead: scope.canRead, canWrite: value })
+            }
             trackColor={{ false: '#CBD5E1', true: '#3B82F6' }}
             thumbColor={scope.canWrite ? '#FFFFFF' : '#94A3B8'}
           />
         </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.revokeButton}
-        onPress={() => handleRevokeScope(scope.id)}
-      >
+      <TouchableOpacity style={styles.revokeButton} onPress={() => handleRevokeScope(scope.id)}>
         <Text style={styles.revokeButtonText}>🗑️ Revocar Scope</Text>
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -387,11 +384,7 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
                 >
                   <Picker.Item label="Seleccionar aplicación..." value="" />
                   {apps.map((app) => (
-                    <Picker.Item
-                      key={app.id}
-                      label={app.name}
-                      value={app.id}
-                    />
+                    <Picker.Item key={app.id} label={app.name} value={app.id} />
                   ))}
                 </Picker>
               </View>
@@ -399,10 +392,7 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
 
             {/* Add Scope Button */}
             {!showAddForm && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowAddForm(true)}
-              >
+              <TouchableOpacity style={styles.addButton} onPress={() => setShowAddForm(true)}>
                 <Text style={styles.addButtonText}>+ Asignar Nuevo Scope</Text>
               </TouchableOpacity>
             )}
@@ -464,7 +454,10 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
                 </View>
 
                 {/* Site Selector - Optional, visible if company selected or level is SITE+ */}
-                {(selectedCompany || scopeLevel === 'SITE' || scopeLevel === 'WAREHOUSE' || scopeLevel === 'AREA') && (
+                {(selectedCompany ||
+                  scopeLevel === 'SITE' ||
+                  scopeLevel === 'WAREHOUSE' ||
+                  scopeLevel === 'AREA') && (
                   <View style={styles.formGroup}>
                     <Text style={styles.label}>Sede (Opcional):</Text>
                     <View style={styles.pickerContainer}>
@@ -521,11 +514,7 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
                       >
                         <Picker.Item label="Seleccionar área..." value="" />
                         {areas.map((area) => (
-                          <Picker.Item
-                            key={area.id}
-                            label={area.name}
-                            value={area.id}
-                          />
+                          <Picker.Item key={area.id} label={area.name} value={area.id} />
                         ))}
                       </Picker>
                     </View>
@@ -590,25 +579,17 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
                   <Text style={styles.loadingText}>Cargando scopes...</Text>
                 </View>
               ) : userScopes.length > 0 ? (
-                <View style={styles.scopesList}>
-                  {userScopes.map(renderScopeCard)}
-                </View>
+                <View style={styles.scopesList}>{userScopes.map(renderScopeCard)}</View>
               ) : selectedAppId ? (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyStateIcon}>🎯</Text>
-                  <Text style={styles.emptyStateText}>
-                    Este usuario no tiene scopes asignados
-                  </Text>
-                  <Text style={styles.emptyStateSubtext}>
-                    Asigna un scope para comenzar
-                  </Text>
+                  <Text style={styles.emptyStateText}>Este usuario no tiene scopes asignados</Text>
+                  <Text style={styles.emptyStateSubtext}>Asigna un scope para comenzar</Text>
                 </View>
               ) : (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyStateIcon}>📱</Text>
-                  <Text style={styles.emptyStateText}>
-                    Selecciona una aplicación
-                  </Text>
+                  <Text style={styles.emptyStateText}>Selecciona una aplicación</Text>
                   <Text style={styles.emptyStateSubtext}>
                     Elige una app para ver o asignar scopes
                   </Text>
@@ -623,13 +604,15 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
                 • <Text style={styles.infoBold}>Niveles:</Text> Compañía, Sede, Almacén y Área
               </Text>
               <Text style={styles.infoText}>
-                • <Text style={styles.infoBold}>Sede y Almacén:</Text> Son opcionales, puedes asignar scope a nivel de compañía
+                • <Text style={styles.infoBold}>Sede y Almacén:</Text> Son opcionales, puedes
+                asignar scope a nivel de compañía
               </Text>
               <Text style={styles.infoText}>
                 • <Text style={styles.infoBold}>Permisos:</Text> Lectura y Escritura independientes
               </Text>
               <Text style={styles.infoText}>
-                • <Text style={styles.infoBold}>Jerarquía:</Text> Compañía {'>'} Sede {'>'} Almacén {'>'} Área
+                • <Text style={styles.infoBold}>Jerarquía:</Text> Compañía {'>'} Sede {'>'} Almacén{' '}
+                {'>'} Área
               </Text>
             </View>
           </ScrollView>

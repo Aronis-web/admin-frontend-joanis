@@ -27,10 +27,7 @@ interface ExpenseDetailScreenProps {
   };
 }
 
-export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
-  navigation,
-  route,
-}) => {
+export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ navigation, route }) => {
   const { expenseId, action } = route.params;
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +125,9 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
   }, [action, expense, payments]);
 
   const formatDate = (dateString?: string | null) => {
-    if (!dateString) return '-';
+    if (!dateString) {
+      return '-';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
@@ -147,27 +146,23 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
   };
 
   const handleCancel = async () => {
-    Alert.alert(
-      'Cancelar Gasto',
-      '¿Estás seguro de que deseas cancelar este gasto?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Sí, cancelar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // TODO: Implement cancelExpense in service
-              console.log('Cancel expense:', expenseId);
-              Alert.alert('Éxito', 'Gasto cancelado correctamente');
-              navigation.goBack();
-            } catch (error: any) {
-              Alert.alert('Error', 'No se pudo cancelar el gasto');
-            }
-          },
+    Alert.alert('Cancelar Gasto', '¿Estás seguro de que deseas cancelar este gasto?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Sí, cancelar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            // TODO: Implement cancelExpense in service
+            console.log('Cancel expense:', expenseId);
+            Alert.alert('Éxito', 'Gasto cancelado correctamente');
+            navigation.goBack();
+          } catch (error: any) {
+            Alert.alert('Error', 'No se pudo cancelar el gasto');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleConfigureRecurrence = () => {
@@ -246,17 +241,21 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
   }
 
   const getPaymentProgress = () => {
-    const paidAmount = typeof (expense as any).paidAmountCents === 'string'
-      ? parseInt((expense as any).paidAmountCents) || 0
-      : (expense as any).paidAmountCents || 0;
-    if (!expense.amountCents || expense.amountCents === 0) return 0;
+    const paidAmount =
+      typeof (expense as any).paidAmountCents === 'string'
+        ? parseInt((expense as any).paidAmountCents) || 0
+        : (expense as any).paidAmountCents || 0;
+    if (!expense.amountCents || expense.amountCents === 0) {
+      return 0;
+    }
     return (paidAmount / expense.amountCents) * 100;
   };
 
   const paymentProgress = getPaymentProgress();
-  const paidAmount = typeof (expense as any).paidAmountCents === 'string'
-    ? parseInt((expense as any).paidAmountCents) || 0
-    : (expense as any).paidAmountCents || 0;
+  const paidAmount =
+    typeof (expense as any).paidAmountCents === 'string'
+      ? parseInt((expense as any).paidAmountCents) || 0
+      : (expense as any).paidAmountCents || 0;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -279,9 +278,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
             {/* @ts-ignore - TypeScript cache issue with ExpenseStatus enum */}
             <ExpenseStatusBadge status={expense.status || 'ACTIVE'} size="medium" />
           </View>
-          {expense.description && (
-            <Text style={styles.description}>{expense.description}</Text>
-          )}
+          {expense.description && <Text style={styles.description}>{expense.description}</Text>}
         </View>
 
         {/* Amount Card */}
@@ -291,7 +288,9 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
             <View style={styles.amountRow}>
               <Text style={styles.amountLabel}>Total:</Text>
               {/* @ts-ignore - amountCents can be string or number */}
-              <Text style={styles.amountValue}>{formatAmount(expense.amountCents ? Number(expense.amountCents) : 0)}</Text>
+              <Text style={styles.amountValue}>
+                {formatAmount(expense.amountCents ? Number(expense.amountCents) : 0)}
+              </Text>
             </View>
             {paidAmount > 0 && (
               <>
@@ -302,7 +301,9 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
                 <View style={styles.amountRow}>
                   <Text style={styles.amountLabelSecondary}>Pendiente:</Text>
                   <Text style={styles.amountValuePending}>
-                    {formatAmount((expense.amountCents ? Number(expense.amountCents) : 0) - paidAmount)}
+                    {formatAmount(
+                      (expense.amountCents ? Number(expense.amountCents) : 0) - paidAmount
+                    )}
                   </Text>
                 </View>
                 <View style={styles.progressBar}>
@@ -365,25 +366,33 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
               {(expense as any).paymentInfo.beneficiaryName && (
                 <View style={styles.paymentInfoRow}>
                   <Text style={styles.paymentInfoLabel}>Beneficiario:</Text>
-                  <Text style={styles.paymentInfoValue}>{(expense as any).paymentInfo.beneficiaryName}</Text>
+                  <Text style={styles.paymentInfoValue}>
+                    {(expense as any).paymentInfo.beneficiaryName}
+                  </Text>
                 </View>
               )}
               {(expense as any).paymentInfo.beneficiaryRuc && (
                 <View style={styles.paymentInfoRow}>
                   <Text style={styles.paymentInfoLabel}>RUC:</Text>
-                  <Text style={styles.paymentInfoValue}>{(expense as any).paymentInfo.beneficiaryRuc}</Text>
+                  <Text style={styles.paymentInfoValue}>
+                    {(expense as any).paymentInfo.beneficiaryRuc}
+                  </Text>
                 </View>
               )}
               {(expense as any).paymentInfo.bankName && (
                 <View style={styles.paymentInfoRow}>
                   <Text style={styles.paymentInfoLabel}>Banco:</Text>
-                  <Text style={styles.paymentInfoValue}>{(expense as any).paymentInfo.bankName}</Text>
+                  <Text style={styles.paymentInfoValue}>
+                    {(expense as any).paymentInfo.bankName}
+                  </Text>
                 </View>
               )}
               {(expense as any).paymentInfo.accountNumber && (
                 <View style={styles.paymentInfoRow}>
                   <Text style={styles.paymentInfoLabel}>Cuenta:</Text>
-                  <Text style={styles.paymentInfoValue}>{(expense as any).paymentInfo.accountNumber}</Text>
+                  <Text style={styles.paymentInfoValue}>
+                    {(expense as any).paymentInfo.accountNumber}
+                  </Text>
                 </View>
               )}
               {(expense as any).paymentInfo.cci && (
@@ -403,9 +412,12 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
           const isPaid = expense.status === 'PAID';
           const hasTotalPaid = expense.totalPaidCents && expense.totalPaidCents > 0;
 
-          const shouldShowPayments = hasPaymentsArray || hasPaymentIndicators || isPaid || hasTotalPaid;
+          const shouldShowPayments =
+            hasPaymentsArray || hasPaymentIndicators || isPaid || hasTotalPaid;
 
-          if (!shouldShowPayments) return null;
+          if (!shouldShowPayments) {
+            return null;
+          }
 
           // Case 1: Payments loaded successfully
           if (hasPaymentsArray) {
@@ -436,7 +448,9 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
 
           // Case 2: Payments exist but not loaded - show reload option
           const paymentCount = expense.paymentsCount || '?';
-          const totalPaid = expense.totalPaidCents ? (expense.totalPaidCents / 100).toFixed(2) : '0.00';
+          const totalPaid = expense.totalPaidCents
+            ? (expense.totalPaidCents / 100).toFixed(2)
+            : '0.00';
 
           return (
             <View ref={paymentsRef} style={styles.card}>
@@ -448,7 +462,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
                   disabled={loadingPayments}
                 >
                   <Ionicons
-                    name={loadingPayments ? "hourglass-outline" : "refresh-outline"}
+                    name={loadingPayments ? 'hourglass-outline' : 'refresh-outline'}
                     size={18}
                     color="#6366F1"
                   />
@@ -463,9 +477,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({
                   <Text style={styles.paymentSummaryTitle}>
                     {isPaid ? 'Gasto Pagado' : 'Pagos Registrados'}
                   </Text>
-                  <Text style={styles.paymentSummaryText}>
-                    Total pagado: S/ {totalPaid}
-                  </Text>
+                  <Text style={styles.paymentSummaryText}>Total pagado: S/ {totalPaid}</Text>
                   {hasPaymentIndicators && (
                     <Text style={styles.paymentSummaryText}>
                       Número de pagos: {expense.paymentsCount}

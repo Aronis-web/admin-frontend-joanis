@@ -56,7 +56,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswordFields, setShowPasswordFields] = useState(false);
 
-  const [errors, setErrors] = useState<Partial<Record<keyof UpdateUserRequest | 'password' | 'confirmPassword', string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof UpdateUserRequest | 'password' | 'confirmPassword', string>>
+  >({});
   const [loading, setLoading] = useState(false);
 
   // Initialize form data when user changes or modal becomes visible
@@ -64,7 +66,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     if (user && visible) {
       console.log('EditUserModal - Initializing form with user:', user);
       console.log('EditUserModal - User roles:', user.roles);
-      const roleIds = user.roles ? user.roles.map(role => role.id) : [];
+      const roleIds = user.roles ? user.roles.map((role) => role.id) : [];
       console.log('EditUserModal - Extracted roleIds:', roleIds);
 
       setFormData({
@@ -90,7 +92,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         photo_url: user.photo_url || '',
         epp_size: user.epp_size,
       });
-      
+
       // Reset password fields
       setPassword('');
       setConfirmPassword('');
@@ -99,10 +101,16 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   }, [user, visible]);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof UpdateUserRequest | 'password' | 'confirmPassword', string>> = {};
+    const newErrors: Partial<
+      Record<keyof UpdateUserRequest | 'password' | 'confirmPassword', string>
+    > = {};
 
     // Username validation (optional but if provided must be valid)
-    if (formData.username && formData.username.trim().length > 0 && formData.username.trim().length < 3) {
+    if (
+      formData.username &&
+      formData.username.trim().length > 0 &&
+      formData.username.trim().length < 3
+    ) {
       newErrors.username = 'El nombre de usuario debe tener al menos 3 caracteres';
     }
 
@@ -133,7 +141,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     if (!validateForm()) {
       return;
@@ -174,16 +184,24 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       }
 
       // Add worker profile fields if provided
-      if (formData.document_type !== undefined) userData.document_type = formData.document_type;
+      if (formData.document_type !== undefined) {
+        userData.document_type = formData.document_type;
+      }
       if (formData.document_number !== undefined && formData.document_number?.trim()) {
         userData.document_number = formData.document_number.trim();
       }
-      if (formData.birth_date !== undefined) userData.birth_date = formData.birth_date;
-      if (formData.gender !== undefined) userData.gender = formData.gender;
+      if (formData.birth_date !== undefined) {
+        userData.birth_date = formData.birth_date;
+      }
+      if (formData.gender !== undefined) {
+        userData.gender = formData.gender;
+      }
       if (formData.nationality !== undefined && formData.nationality?.trim()) {
         userData.nationality = formData.nationality.trim();
       }
-      if (formData.marital_status !== undefined) userData.marital_status = formData.marital_status;
+      if (formData.marital_status !== undefined) {
+        userData.marital_status = formData.marital_status;
+      }
       if (formData.address !== undefined && formData.address?.trim()) {
         userData.address = formData.address.trim();
       }
@@ -193,35 +211,42 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       if (formData.phone !== undefined && formData.phone?.trim()) {
         userData.phone = formData.phone.trim();
       }
-      if (formData.emergency_contact_name !== undefined && formData.emergency_contact_name?.trim()) {
+      if (
+        formData.emergency_contact_name !== undefined &&
+        formData.emergency_contact_name?.trim()
+      ) {
         userData.emergency_contact_name = formData.emergency_contact_name.trim();
       }
-      if (formData.emergency_contact_relationship !== undefined && formData.emergency_contact_relationship?.trim()) {
+      if (
+        formData.emergency_contact_relationship !== undefined &&
+        formData.emergency_contact_relationship?.trim()
+      ) {
         userData.emergency_contact_relationship = formData.emergency_contact_relationship.trim();
       }
-      if (formData.emergency_contact_phone !== undefined && formData.emergency_contact_phone?.trim()) {
+      if (
+        formData.emergency_contact_phone !== undefined &&
+        formData.emergency_contact_phone?.trim()
+      ) {
         userData.emergency_contact_phone = formData.emergency_contact_phone.trim();
       }
       if (formData.photo_url !== undefined && formData.photo_url?.trim()) {
         userData.photo_url = formData.photo_url.trim();
       }
-      if (formData.epp_size !== undefined) userData.epp_size = formData.epp_size;
+      if (formData.epp_size !== undefined) {
+        userData.epp_size = formData.epp_size;
+      }
 
       await usersApi.updateUser(user.id, userData);
 
-      Alert.alert(
-        'Éxito',
-        'Usuario actualizado correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              handleClose();
-              onUserUpdated();
-            },
+      Alert.alert('Éxito', 'Usuario actualizado correctamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            handleClose();
+            onUserUpdated();
           },
-        ]
-      );
+        },
+      ]);
     } catch (error: any) {
       console.error('Error updating user:', error);
       const errorMessage = error.response?.data?.message || 'Error al actualizar el usuario';
@@ -240,22 +265,19 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   };
 
   const updateField = (field: keyof UpdateUserRequest, value: string | boolean | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -263,9 +285,11 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
             <View style={styles.headerLeft}>
               <View style={styles.userAvatar}>
                 <Text style={styles.avatarText}>
-                  {user.username ? user.username.charAt(0).toUpperCase() :
-                   user.name ? user.name.charAt(0).toUpperCase() :
-                   user.email.charAt(0).toUpperCase()}
+                  {user.username
+                    ? user.username.charAt(0).toUpperCase()
+                    : user.name
+                      ? user.name.charAt(0).toUpperCase()
+                      : user.email.charAt(0).toUpperCase()}
                 </Text>
               </View>
               <Text style={styles.modalTitle}>Editar Usuario</Text>
@@ -289,7 +313,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
             <FormTextInput
               label="Nombre de Usuario"
-              placeholder={user.username || "johndoe"}
+              placeholder={user.username || 'johndoe'}
               value={formData.username}
               onChangeText={(text) => updateField('username', text)}
               error={errors.username}
@@ -299,7 +323,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
             <FormTextInput
               label="Email"
-              placeholder={user.email || "john.doe@example.com"}
+              placeholder={user.email || 'john.doe@example.com'}
               value={formData.email}
               onChangeText={(text) => updateField('email', text)}
               error={errors.email}
@@ -310,7 +334,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
             <FormTextInput
               label="Nombre"
-              placeholder={user.first_name || "John"}
+              placeholder={user.first_name || 'John'}
               value={formData.first_name}
               onChangeText={(text) => updateField('first_name', text)}
               editable={!loading}
@@ -318,7 +342,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
             <FormTextInput
               label="Apellido"
-              placeholder={user.last_name || "Doe"}
+              placeholder={user.last_name || 'Doe'}
               value={formData.last_name}
               onChangeText={(text) => updateField('last_name', text)}
               editable={!loading}
@@ -332,7 +356,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                 disabled={loading}
               >
                 <Text style={styles.passwordToggleText}>
-                  {showPasswordFields ? '🔒 Cancelar cambio de contraseña' : '🔑 Cambiar contraseña'}
+                  {showPasswordFields
+                    ? '🔒 Cancelar cambio de contraseña'
+                    : '🔑 Cambiar contraseña'}
                 </Text>
               </TouchableOpacity>
 
@@ -345,7 +371,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                     onChangeText={(text) => {
                       setPassword(text);
                       if (errors.password) {
-                        setErrors(prev => ({ ...prev, password: undefined }));
+                        setErrors((prev) => ({ ...prev, password: undefined }));
                       }
                     }}
                     error={errors.password}
@@ -361,7 +387,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                     onChangeText={(text) => {
                       setConfirmPassword(text);
                       if (errors.confirmPassword) {
-                        setErrors(prev => ({ ...prev, confirmPassword: undefined }));
+                        setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
                       }
                     }}
                     error={errors.confirmPassword}

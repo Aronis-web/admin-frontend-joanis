@@ -15,7 +15,9 @@ import { getRouteParams, RouteProp } from '@/types/navigation';
  * @param screenName - The name of the screen (for error messages)
  * @returns The route parameters or null if validation fails
  */
-export function validateRouteParams<T extends keyof import('@/types/navigation').RootStackParamList>(
+export function validateRouteParams<
+  T extends keyof import('@/types/navigation').RootStackParamList,
+>(
   route: RouteProp<T>,
   screenName: string
 ): import('@/types/navigation').RootStackParamList[T] | null {
@@ -40,11 +42,7 @@ export function validateRouteParams<T extends keyof import('@/types/navigation')
  * @param screenName - The name of the screen (for error messages)
  * @returns true if valid, false otherwise
  */
-export function validateRequiredParam(
-  value: any,
-  paramName: string,
-  screenName: string
-): boolean {
+export function validateRequiredParam(value: any, paramName: string, screenName: string): boolean {
   if (!value) {
     Alert.alert(
       'Error de Navegación',

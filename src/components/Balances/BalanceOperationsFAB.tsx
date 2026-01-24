@@ -174,11 +174,7 @@ export const BalanceOperationsFAB: React.FC<BalanceOperationsFABProps> = ({
         ]}
         pointerEvents={isOpen ? 'auto' : 'none'}
       >
-        <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          onPress={toggleMenu}
-          activeOpacity={1}
-        />
+        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={toggleMenu} activeOpacity={1} />
       </Animated.View>
 
       {/* Container for all buttons */}
@@ -266,9 +262,7 @@ export const BalanceOperationsFAB: React.FC<BalanceOperationsFABProps> = ({
             onPress={toggleMenu}
             activeOpacity={0.9}
           >
-            <Text style={[styles.mainFabIcon, isTablet && styles.mainFabIconTablet]}>
-              +
-            </Text>
+            <Text style={[styles.mainFabIcon, isTablet && styles.mainFabIconTablet]}>+</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>

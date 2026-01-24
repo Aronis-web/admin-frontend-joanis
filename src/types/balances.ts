@@ -20,10 +20,10 @@ export enum BalanceStatus {
 // Operation Types
 export enum OperationType {
   DISTRIBUTED = 'DISTRIBUTED', // Monto repartido (emisor → receptor)
-  SOLD = 'SOLD',               // Monto vendido por el receptor
-  TO_PAY = 'TO_PAY',           // Monto que debe pagar el receptor
-  PAID = 'PAID',               // Monto pagado por el receptor
-  RETURNED = 'RETURNED',       // Monto devuelto por el receptor al emisor
+  SOLD = 'SOLD', // Monto vendido por el receptor
+  TO_PAY = 'TO_PAY', // Monto que debe pagar el receptor
+  PAID = 'PAID', // Monto pagado por el receptor
+  RETURNED = 'RETURNED', // Monto devuelto por el receptor al emisor
 }
 
 // Payment Methods
@@ -260,10 +260,10 @@ export const getOperationTypeLabel = (type: OperationType): string => {
 export const getOperationTypeColor = (type: OperationType): string => {
   const colors: Record<OperationType, string> = {
     [OperationType.DISTRIBUTED]: '#0EA5E9', // Blue
-    [OperationType.SOLD]: '#10B981',        // Green
-    [OperationType.TO_PAY]: '#F59E0B',      // Orange
-    [OperationType.PAID]: '#8B5CF6',        // Purple
-    [OperationType.RETURNED]: '#EF4444',    // Red
+    [OperationType.SOLD]: '#10B981', // Green
+    [OperationType.TO_PAY]: '#F59E0B', // Orange
+    [OperationType.PAID]: '#8B5CF6', // Purple
+    [OperationType.RETURNED]: '#EF4444', // Red
   };
   return colors[type];
 };
@@ -290,9 +290,9 @@ export const getBalanceStatusLabel = (status: BalanceStatus): string => {
 // Helper function to get balance status color
 export const getBalanceStatusColor = (status: BalanceStatus): string => {
   const colors: Record<BalanceStatus, string> = {
-    [BalanceStatus.ACTIVE]: '#10B981',   // Green
+    [BalanceStatus.ACTIVE]: '#10B981', // Green
     [BalanceStatus.INACTIVE]: '#F59E0B', // Orange
-    [BalanceStatus.CLOSED]: '#6B7280',   // Gray
+    [BalanceStatus.CLOSED]: '#6B7280', // Gray
   };
   return colors[status];
 };
@@ -336,8 +336,10 @@ export const getAllowedPaymentMethods = (
   }
 
   // For INTERNAL balances, all methods are allowed for SOLD, TO_PAY, and PAID
-  if (balanceType === BalanceType.INTERNAL &&
-      [OperationType.SOLD, OperationType.TO_PAY, OperationType.PAID].includes(operationType)) {
+  if (
+    balanceType === BalanceType.INTERNAL &&
+    [OperationType.SOLD, OperationType.TO_PAY, OperationType.PAID].includes(operationType)
+  ) {
     return [PaymentMethod.IZIPAY, PaymentMethod.PROSEGUR, PaymentMethod.TRANSFERENCIA_BANCARIA];
   }
 

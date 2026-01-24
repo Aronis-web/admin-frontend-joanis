@@ -133,10 +133,17 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                       </View>
                     </View>
                     <View style={styles.stockInfo}>
-                      <Text style={[styles.stockText, getProductStock(item) === 0 && styles.stockTextZero]}>
+                      <Text
+                        style={[
+                          styles.stockText,
+                          getProductStock(item) === 0 && styles.stockTextZero,
+                        ]}
+                      >
                         Stock: {getProductStock(item).toFixed(2)}
                       </Text>
-                      {getProductStock(item) === 0 && <Text style={styles.noStockBadge}>Sin stock</Text>}
+                      {getProductStock(item) === 0 && (
+                        <Text style={styles.noStockBadge}>Sin stock</Text>
+                      )}
                     </View>
                   </TouchableOpacity>
                 ))}

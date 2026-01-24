@@ -26,13 +26,17 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
   onViewPayments,
 }) => {
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {
+      return 'N/A';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   const formatAmount = (amountCents?: number, currency?: string) => {
-    if (!amountCents) return 'S/ 0.00';
+    if (!amountCents) {
+      return 'S/ 0.00';
+    }
     const amount = amountCents / 100; // Convert cents to main currency unit
     const currencySymbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : 'S/';
     return `${currencySymbol} ${amount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -42,22 +46,28 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
 
   // Calculate payment progress
   const getPaymentProgress = () => {
-    const targetAmount = expense.actualAmountCents || expense.estimatedAmountCents || expense.amountCents || 0;
+    const targetAmount =
+      expense.actualAmountCents || expense.estimatedAmountCents || expense.amountCents || 0;
     const paidAmount = expense.totalPaidCents || 0;
-    if (!targetAmount || targetAmount === 0) return 0;
+    if (!targetAmount || targetAmount === 0) {
+      return 0;
+    }
     return (paidAmount / targetAmount) * 100;
   };
 
   const paymentProgress = getPaymentProgress();
   const remainingAmount = expense.remainingAmountCents || 0;
-  const targetAmount = expense.actualAmountCents || expense.estimatedAmountCents || expense.amountCents || 0;
+  const targetAmount =
+    expense.actualAmountCents || expense.estimatedAmountCents || expense.amountCents || 0;
   const paidAmount = expense.totalPaidCents || 0;
 
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(expense)} activeOpacity={0.7}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.expenseName} numberOfLines={1}>{expense.name}</Text>
+          <Text style={styles.expenseName} numberOfLines={1}>
+            {expense.name}
+          </Text>
           {expense.template && (
             <View style={styles.templateBadge}>
               <Ionicons name="repeat-outline" size={12} color="#6366F1" />
@@ -86,7 +96,9 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
               </View>
             )}
             <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${Math.min(paymentProgress, 100)}%` }]} />
+              <View
+                style={[styles.progressFill, { width: `${Math.min(paymentProgress, 100)}%` }]}
+              />
             </View>
             <Text style={styles.paymentPercentage}>{paymentProgress.toFixed(1)}% completado</Text>
           </View>
@@ -130,15 +142,20 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
         {/* Site and Project Info */}
         <View style={styles.metaInfoContainer}>
           <View style={styles.metaInfoItem}>
-            <Ionicons name="business" size={12} color={expense.site ? "#6366F1" : "#94A3B8"} />
-            <Text style={[styles.metaInfoText, !expense.site && styles.metaInfoTextMuted]} numberOfLines={1}>
+            <Ionicons name="business" size={12} color={expense.site ? '#6366F1' : '#94A3B8'} />
+            <Text
+              style={[styles.metaInfoText, !expense.site && styles.metaInfoTextMuted]}
+              numberOfLines={1}
+            >
               {expense.site ? expense.site.name : 'Sin sede asignada'}
             </Text>
           </View>
           {expense.project && (
             <View style={styles.metaInfoItem}>
               <Ionicons name="folder-open" size={12} color="#10B981" />
-              <Text style={styles.metaInfoText} numberOfLines={1}>{expense.project.name}</Text>
+              <Text style={styles.metaInfoText} numberOfLines={1}>
+                {expense.project.name}
+              </Text>
             </View>
           )}
         </View>
@@ -154,7 +171,9 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
 
         {expense.notes && (
           <View style={styles.notesContainer}>
-            <Text style={styles.notesText} numberOfLines={2}>{expense.notes}</Text>
+            <Text style={styles.notesText} numberOfLines={2}>
+              {expense.notes}
+            </Text>
           </View>
         )}
 
@@ -172,20 +191,23 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 <Text style={[styles.actionButtonText, { color: '#10B981' }]}>Pagar</Text>
               </TouchableOpacity>
             )}
-            {onViewPayments && (expense.paymentsCount && expense.paymentsCount > 0 || expense.totalPaidCents && expense.totalPaidCents > 0 || expense.status === 'PAID') && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.viewPaymentsButton]}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onViewPayments(expense);
-                }}
-              >
-                <Ionicons name="list-outline" size={16} color="#6366F1" />
-                <Text style={[styles.actionButtonText, { color: '#6366F1' }]}>
-                  Ver Pagos {expense.paymentsCount ? `(${expense.paymentsCount})` : ''}
-                </Text>
-              </TouchableOpacity>
-            )}
+            {onViewPayments &&
+              ((expense.paymentsCount && expense.paymentsCount > 0) ||
+                (expense.totalPaidCents && expense.totalPaidCents > 0) ||
+                expense.status === 'PAID') && (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.viewPaymentsButton]}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onViewPayments(expense);
+                  }}
+                >
+                  <Ionicons name="list-outline" size={16} color="#6366F1" />
+                  <Text style={[styles.actionButtonText, { color: '#6366F1' }]}>
+                    Ver Pagos {expense.paymentsCount ? `(${expense.paymentsCount})` : ''}
+                  </Text>
+                </TouchableOpacity>
+              )}
             {onReconcileAmount && !expense.actualAmountCents && (
               <TouchableOpacity
                 style={styles.actionButton}

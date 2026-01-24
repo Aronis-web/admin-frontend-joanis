@@ -14,7 +14,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { priceProfilesApi } from '@/services/api';
-import { PriceProfile, CreatePriceProfileRequest, UpdatePriceProfileRequest } from '@/types/price-profiles';
+import {
+  PriceProfile,
+  CreatePriceProfileRequest,
+  UpdatePriceProfileRequest,
+} from '@/types/price-profiles';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { AddButton } from '@/components/Navigation/AddButton';
@@ -114,7 +118,9 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
   };
 
   const handleUpdateProfile = async () => {
-    if (!selectedProfile) return;
+    if (!selectedProfile) {
+      return;
+    }
 
     if (!formData.name.trim()) {
       Alert.alert('Error', 'El nombre es requerido');
@@ -219,56 +225,68 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
   const renderProfileItem = ({ item }: { item: PriceProfile }) => {
     console.log('🎨 Rendering profile item:', item);
     return (
-    <View style={styles.profileCard}>
-      <View style={styles.profileHeader}>
-        <View style={styles.profileInfo}>
-          <View style={styles.profileTitleRow}>
-            <Text style={styles.profileName}>{item.name}</Text>
-            <View style={styles.codeBadge}>
-              <Text style={styles.codeText}>{item.code}</Text>
+      <View style={styles.profileCard}>
+        <View style={styles.profileHeader}>
+          <View style={styles.profileInfo}>
+            <View style={styles.profileTitleRow}>
+              <Text style={styles.profileName}>{item.name}</Text>
+              <View style={styles.codeBadge}>
+                <Text style={styles.codeText}>{item.code}</Text>
+              </View>
+            </View>
+            <View style={styles.profileMetrics}>
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>Factor</Text>
+                <Text style={styles.metricValue}>
+                  {getNumericFactor(item.factorToCost).toFixed(4)}x
+                </Text>
+              </View>
+              <View style={styles.metricDivider} />
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>Margen</Text>
+                <Text style={styles.metricValue}>{calculateMargin(item.factorToCost)}%</Text>
+              </View>
             </View>
           </View>
-          <View style={styles.profileMetrics}>
-            <View style={styles.metricItem}>
-              <Text style={styles.metricLabel}>Factor</Text>
-              <Text style={styles.metricValue}>{getNumericFactor(item.factorToCost).toFixed(4)}x</Text>
-            </View>
-            <View style={styles.metricDivider} />
-            <View style={styles.metricItem}>
-              <Text style={styles.metricLabel}>Margen</Text>
-              <Text style={styles.metricValue}>{calculateMargin(item.factorToCost)}%</Text>
-            </View>
+          <View
+            style={[
+              styles.statusBadge,
+              item.isActive ? styles.statusActive : styles.statusInactive,
+            ]}
+          >
+            <Text style={styles.statusText}>{item.isActive ? 'Activo' : 'Inactivo'}</Text>
           </View>
         </View>
-        <View style={[styles.statusBadge, item.isActive ? styles.statusActive : styles.statusInactive]}>
-          <Text style={styles.statusText}>{item.isActive ? 'Activo' : 'Inactivo'}</Text>
+
+        <View style={styles.profileActions}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.editButton]}
+            onPress={() => openEditModal(item)}
+          >
+            <Text style={styles.actionButtonText}>✏️ Editar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.deleteButton]}
+            onPress={() => handleDeleteProfile(item)}
+          >
+            <Text style={styles.actionButtonText}>🗑️ Eliminar</Text>
+          </TouchableOpacity>
         </View>
+
+        <Text style={styles.profileDate}>
+          Creado: {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
       </View>
-
-      <View style={styles.profileActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.editButton]}
-          onPress={() => openEditModal(item)}
-        >
-          <Text style={styles.actionButtonText}>✏️ Editar</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => handleDeleteProfile(item)}
-        >
-          <Text style={styles.actionButtonText}>🗑️ Eliminar</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.profileDate}>
-        Creado: {new Date(item.createdAt).toLocaleDateString()}
-      </Text>
-    </View>
     );
   };
 
-  const renderModal = (visible: boolean, onClose: () => void, onSave: () => void, title: string) => (
+  const renderModal = (
+    visible: boolean,
+    onClose: () => void,
+    onSave: () => void,
+    title: string
+  ) => (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -310,10 +328,12 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
                 keyboardType="decimal-pad"
               />
               <Text style={styles.helperText}>
-                Factor {formData.factorToCost} = {calculateMargin(parseFloat(formData.factorToCost) || 1)}% de margen
+                Factor {formData.factorToCost} ={' '}
+                {calculateMargin(parseFloat(formData.factorToCost) || 1)}% de margen
               </Text>
               <Text style={styles.helperText}>
-                Ejemplo: Costo S/ 10.00 → Venta S/ {(10 * (parseFloat(formData.factorToCost) || 1)).toFixed(2)}
+                Ejemplo: Costo S/ 10.00 → Venta S/{' '}
+                {(10 * (parseFloat(formData.factorToCost) || 1)).toFixed(2)}
               </Text>
             </View>
 
@@ -374,7 +394,8 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
       <View style={styles.infoBanner}>
         <Text style={styles.infoBannerIcon}>💡</Text>
         <Text style={styles.infoBannerText}>
-          Los perfiles de precio definen diferentes estrategias de precios (Mayorista, Franquicia, Público, etc.)
+          Los perfiles de precio definen diferentes estrategias de precios (Mayorista, Franquicia,
+          Público, etc.)
         </Text>
       </View>
 

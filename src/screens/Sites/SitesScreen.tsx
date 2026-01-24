@@ -232,13 +232,13 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
               📍 {site.fullAddress}
             </Text>
           )}
-          {site.phone && (
-            <Text style={styles.sitePhone}>📞 {site.phone}</Text>
-          )}
+          {site.phone && <Text style={styles.sitePhone}>📞 {site.phone}</Text>}
         </View>
       </View>
       <View style={styles.siteStatus}>
-        <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(site.isActive) }]} />
+        <View
+          style={[styles.statusIndicator, { backgroundColor: getStatusColor(site.isActive) }]}
+        />
         <Text style={[styles.statusText, { color: getStatusColor(site.isActive) }]}>
           {getStatusText(site.isActive)}
         </Text>
@@ -308,7 +308,10 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
           <Text style={styles.headerTitle}>Gestión de Sedes</Text>
           {companyName && <Text style={styles.headerSubtitle}>🏭 {companyName}</Text>}
         </View>
-        <ProtectedElement requiredPermissions={['sites.create']} fallback={<View style={styles.placeholder} />}>
+        <ProtectedElement
+          requiredPermissions={['sites.create']}
+          fallback={<View style={styles.placeholder} />}
+        >
           <TouchableOpacity onPress={handleCreateSite} style={styles.addButton}>
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
@@ -329,9 +332,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
       {/* Sites List */}
       <ScrollView
         style={[styles.sitesList, isLandscape && styles.sitesListLandscape]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
         {filteredSites.length === 0 ? (
@@ -618,4 +619,3 @@ const styles = StyleSheet.create({
 });
 
 export default SitesScreen;
-

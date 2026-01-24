@@ -83,17 +83,17 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
       if (status !== 'granted') {
         console.log('⚠️ [LocationPicker] Permiso de ubicación denegado');
-        Alert.alert(
-          'Permiso Denegado',
-          'Se necesita permiso de ubicación para usar el mapa'
-        );
+        Alert.alert('Permiso Denegado', 'Se necesita permiso de ubicación para usar el mapa');
       } else {
         console.log('✅ [LocationPicker] Permiso de ubicación concedido');
       }
     } catch (error) {
       console.error('❌ [LocationPicker] Error requesting location permission:', error);
       console.error('❌ [LocationPicker] Error tipo:', typeof error);
-      console.error('❌ [LocationPicker] Error mensaje:', error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        '❌ [LocationPicker] Error mensaje:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
     }
   };
 
@@ -120,7 +120,10 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     } catch (error) {
       console.error('❌ [LocationPicker] Error getting current location:', error);
       console.error('❌ [LocationPicker] Error tipo:', typeof error);
-      console.error('❌ [LocationPicker] Error mensaje:', error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        '❌ [LocationPicker] Error mensaje:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       Alert.alert('Error', 'No se pudo obtener la ubicación actual');
     } finally {
       setLoading(false);
@@ -152,11 +155,14 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         // Safely build address line with defensive checks
         const addressPartsArray = [address.street, address.streetNumber];
         console.log('🗺️ [LocationPicker] addressPartsArray antes de filter:', addressPartsArray);
-        console.log('🗺️ [LocationPicker] Es addressPartsArray un array?:', Array.isArray(addressPartsArray));
+        console.log(
+          '🗺️ [LocationPicker] Es addressPartsArray un array?:',
+          Array.isArray(addressPartsArray)
+        );
 
         // Ensure we have an array before filtering
         const addressParts = Array.isArray(addressPartsArray)
-          ? addressPartsArray.filter(part => part != null && part !== '')
+          ? addressPartsArray.filter((part) => part != null && part !== '')
           : [];
 
         console.log('🗺️ [LocationPicker] addressParts después de filter:', addressParts);
@@ -184,8 +190,14 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     } catch (error) {
       console.error('❌ [LocationPicker] Error en reverseGeocode:', error);
       console.error('❌ [LocationPicker] Error tipo:', typeof error);
-      console.error('❌ [LocationPicker] Error mensaje:', error instanceof Error ? error.message : 'Unknown error');
-      console.error('❌ [LocationPicker] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      console.error(
+        '❌ [LocationPicker] Error mensaje:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      console.error(
+        '❌ [LocationPicker] Error stack:',
+        error instanceof Error ? error.stack : 'No stack'
+      );
       Alert.alert('Error', 'No se pudo obtener la dirección de esta ubicación');
     } finally {
       setLoading(false);
@@ -197,17 +209,26 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     try {
       console.log('🗺️ [LocationPicker] handleMapPress - evento recibido:', event);
       console.log('🗺️ [LocationPicker] handleMapPress - nativeEvent:', event?.nativeEvent);
-      console.log('🗺️ [LocationPicker] handleMapPress - coordinate:', event?.nativeEvent?.coordinate);
+      console.log(
+        '🗺️ [LocationPicker] handleMapPress - coordinate:',
+        event?.nativeEvent?.coordinate
+      );
 
       const { latitude, longitude } = event.nativeEvent.coordinate;
-      console.log('🗺️ [LocationPicker] handleMapPress - coordenadas extraídas:', { latitude, longitude });
+      console.log('🗺️ [LocationPicker] handleMapPress - coordenadas extraídas:', {
+        latitude,
+        longitude,
+      });
 
       setSelectedLocation({ latitude, longitude });
       await reverseGeocode(latitude, longitude);
     } catch (error) {
       console.error('❌ [LocationPicker] Error en handleMapPress:', error);
       console.error('❌ [LocationPicker] Error tipo:', typeof error);
-      console.error('❌ [LocationPicker] Error mensaje:', error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        '❌ [LocationPicker] Error mensaje:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
     }
   };
 
@@ -220,7 +241,8 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     }
 
     try {
-      const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBWLYNj3GR7rtyYlenKw3Bvyg6_bUce3BA';
+      const apiKey =
+        process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBWLYNj3GR7rtyYlenKw3Bvyg6_bUce3BA';
       const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${apiKey}&language=es&components=country:pe`;
 
       console.log('🔍 [LocationPicker] Buscando lugares:', text);
@@ -260,7 +282,8 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       Keyboard.dismiss();
 
       // Get place details
-      const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBWLYNj3GR7rtyYlenKw3Bvyg6_bUce3BA';
+      const apiKey =
+        process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBWLYNj3GR7rtyYlenKw3Bvyg6_bUce3BA';
       const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${apiKey}&language=es`;
 
       console.log('🔍 [LocationPicker] Obteniendo detalles del lugar...');
@@ -281,12 +304,15 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         // Animate map to new location
         if (mapRef.current) {
           console.log('🔍 [LocationPicker] Animando mapa a nueva ubicación');
-          mapRef.current.animateToRegion({
-            latitude: lat,
-            longitude: lng,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }, 1000);
+          mapRef.current.animateToRegion(
+            {
+              latitude: lat,
+              longitude: lng,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            },
+            1000
+          );
         }
 
         await reverseGeocode(lat, lng);
@@ -301,9 +327,15 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     try {
       console.log('🔍 [LocationPicker] handlePlaceSelected LLAMADO');
       console.log('🔍 [LocationPicker] handlePlaceSelected - data:', JSON.stringify(data, null, 2));
-      console.log('🔍 [LocationPicker] handlePlaceSelected - details:', JSON.stringify(details, null, 2));
+      console.log(
+        '🔍 [LocationPicker] handlePlaceSelected - details:',
+        JSON.stringify(details, null, 2)
+      );
       console.log('🔍 [LocationPicker] handlePlaceSelected - geometry:', details?.geometry);
-      console.log('🔍 [LocationPicker] handlePlaceSelected - location:', details?.geometry?.location);
+      console.log(
+        '🔍 [LocationPicker] handlePlaceSelected - location:',
+        details?.geometry?.location
+      );
 
       // Intentar obtener coordenadas de diferentes formatos posibles
       let lat: number | null = null;
@@ -342,12 +374,15 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         // Animate map to new location
         if (mapRef.current) {
           console.log('🔍 [LocationPicker] Animando mapa a nueva ubicación:', newLocation);
-          mapRef.current.animateToRegion({
-            latitude: lat,
-            longitude: lng,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }, 1000);
+          mapRef.current.animateToRegion(
+            {
+              latitude: lat,
+              longitude: lng,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            },
+            1000
+          );
         } else {
           console.log('⚠️ [LocationPicker] mapRef.current es null');
         }
@@ -368,7 +403,10 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     } catch (error) {
       console.error('❌ [LocationPicker] Error en handlePlaceSelected:', error);
       console.error('❌ [LocationPicker] Error tipo:', typeof error);
-      console.error('❌ [LocationPicker] Error mensaje:', error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        '❌ [LocationPicker] Error mensaje:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       Alert.alert('Error', 'Ocurrió un error al seleccionar el lugar');
     }
   };
@@ -393,12 +431,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   console.log('🎨 [LocationPicker] addressInfo:', addressInfo);
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -490,17 +523,26 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               try {
                 console.log('🎯 [LocationPicker] Marker onDragEnd - evento:', e);
                 console.log('🎯 [LocationPicker] Marker onDragEnd - nativeEvent:', e?.nativeEvent);
-                console.log('🎯 [LocationPicker] Marker onDragEnd - coordinate:', e?.nativeEvent?.coordinate);
+                console.log(
+                  '🎯 [LocationPicker] Marker onDragEnd - coordinate:',
+                  e?.nativeEvent?.coordinate
+                );
 
                 const { latitude, longitude } = e.nativeEvent.coordinate;
-                console.log('🎯 [LocationPicker] Marker onDragEnd - coordenadas:', { latitude, longitude });
+                console.log('🎯 [LocationPicker] Marker onDragEnd - coordenadas:', {
+                  latitude,
+                  longitude,
+                });
 
                 setSelectedLocation({ latitude, longitude });
                 await reverseGeocode(latitude, longitude);
               } catch (error) {
                 console.error('❌ [LocationPicker] Error en Marker onDragEnd:', error);
                 console.error('❌ [LocationPicker] Error tipo:', typeof error);
-                console.error('❌ [LocationPicker] Error mensaje:', error instanceof Error ? error.message : 'Unknown error');
+                console.error(
+                  '❌ [LocationPicker] Error mensaje:',
+                  error instanceof Error ? error.message : 'Unknown error'
+                );
               }
             }}
           />
@@ -552,17 +594,11 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
         {/* Actions */}
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.button, styles.cancelButton]}
-            onPress={onClose}
-          >
+          <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
             <Text style={styles.cancelButtonText}>Cancelar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.confirmButton]}
-            onPress={handleConfirm}
-          >
+          <TouchableOpacity style={[styles.button, styles.confirmButton]} onPress={handleConfirm}>
             <Text style={styles.confirmButtonText}>Confirmar Ubicación</Text>
           </TouchableOpacity>
         </View>

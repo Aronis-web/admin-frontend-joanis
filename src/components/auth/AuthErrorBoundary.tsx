@@ -7,10 +7,7 @@ interface AuthErrorBoundaryProps {
   onRetry?: () => void;
 }
 
-export const AuthErrorBoundary: React.FC<AuthErrorBoundaryProps> = ({
-  error,
-  onRetry
-}) => {
+export const AuthErrorBoundary: React.FC<AuthErrorBoundaryProps> = ({ error, onRetry }) => {
   const { clearInvalidAuth } = useAuthStore();
 
   const handleClearAndRetry = () => {
@@ -20,7 +17,9 @@ export const AuthErrorBoundary: React.FC<AuthErrorBoundaryProps> = ({
     }
   };
 
-  if (!error) return null;
+  if (!error) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
@@ -30,10 +29,7 @@ export const AuthErrorBoundary: React.FC<AuthErrorBoundaryProps> = ({
         <Text style={styles.errorMessage}>{error}</Text>
 
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={handleClearAndRetry}
-          >
+          <TouchableOpacity style={styles.retryButton} onPress={handleClearAndRetry}>
             <Text style={styles.retryButtonText}>Limpiar Datos y Reintentar</Text>
           </TouchableOpacity>
         </View>

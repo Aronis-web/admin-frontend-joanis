@@ -13,7 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { warehouseAreasApi } from '@/services/api';
-import { WarehouseArea, CreateWarehouseAreaRequest, UpdateWarehouseAreaRequest } from '@/types/warehouses';
+import {
+  WarehouseArea,
+  CreateWarehouseAreaRequest,
+  UpdateWarehouseAreaRequest,
+} from '@/types/warehouses';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 
 interface WarehouseAreasScreenProps {
@@ -32,8 +36,20 @@ interface WarehouseAreasScreenProps {
   };
 }
 
-export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({ navigation, route }) => {
-  const { companyId, companyName, siteId, siteName, siteCode, warehouseId, warehouseName, warehouseCode } = route.params;
+export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
+  navigation,
+  route,
+}) => {
+  const {
+    companyId,
+    companyName,
+    siteId,
+    siteName,
+    siteCode,
+    warehouseId,
+    warehouseName,
+    warehouseCode,
+  } = route.params;
 
   const [areas, setAreas] = useState<WarehouseArea[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,7 +147,10 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({ navi
         name: areaForm.name || undefined,
       };
 
-      await warehouseAreasApi.updateWarehouseArea(selectedArea.id, data as UpdateWarehouseAreaRequest);
+      await warehouseAreasApi.updateWarehouseArea(
+        selectedArea.id,
+        data as UpdateWarehouseAreaRequest
+      );
       Alert.alert('Éxito', 'Área actualizada correctamente');
       setShowEditModal(false);
       setSelectedArea(null);
@@ -196,16 +215,10 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({ navi
       </View>
 
       <View style={styles.areaActions}>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => openEditModal(area)}
-        >
+        <TouchableOpacity style={styles.editButton} onPress={() => openEditModal(area)}>
           <Text style={styles.editButtonText}>✏️ Editar</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteArea(area)}
-        >
+        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteArea(area)}>
           <Text style={styles.deleteButtonText}>🗑️ Eliminar</Text>
         </TouchableOpacity>
       </View>
@@ -244,7 +257,10 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({ navi
           <Text style={styles.headerTitle}>Áreas</Text>
           <Text style={styles.headerSubtitle}>📦 {warehouseName}</Text>
         </View>
-        <ProtectedElement requiredPermissions={['areas.create']} fallback={<View style={styles.placeholder} />}>
+        <ProtectedElement
+          requiredPermissions={['areas.create']}
+          fallback={<View style={styles.placeholder} />}
+        >
           <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addButton}>
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>
@@ -265,9 +281,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({ navi
       {/* Areas List */}
       <ScrollView
         style={styles.areasList}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
         {filteredAreas.length === 0 ? (

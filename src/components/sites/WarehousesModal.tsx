@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Site } from '@/types/sites';
 import { Warehouse } from '@/types/warehouses';
 import { warehousesApi } from '@/services/api';
@@ -38,7 +30,9 @@ export const WarehousesModal: React.FC<WarehousesModalProps> = ({
   }, [visible, site]);
 
   const loadWarehouses = async () => {
-    if (!site) return;
+    if (!site) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -81,15 +75,12 @@ export const WarehousesModal: React.FC<WarehousesModalProps> = ({
     );
   };
 
-  if (!site) return null;
+  if (!site) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -144,7 +135,10 @@ export const WarehousesModal: React.FC<WarehousesModalProps> = ({
                       )}
                     </View>
                   </View>
-                  <ProtectedElement requiredPermissions={['inventory.warehouses.delete']} fallback={null}>
+                  <ProtectedElement
+                    requiredPermissions={['inventory.warehouses.delete']}
+                    fallback={null}
+                  >
                     <TouchableOpacity
                       style={styles.deleteIconButton}
                       onPress={(e) => {
@@ -162,10 +156,7 @@ export const WarehousesModal: React.FC<WarehousesModalProps> = ({
 
           {/* Actions */}
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.button, styles.closeActionButton]}
-              onPress={onClose}
-            >
+            <TouchableOpacity style={[styles.button, styles.closeActionButton]} onPress={onClose}>
               <Text style={styles.closeActionButtonText}>Cerrar</Text>
             </TouchableOpacity>
 
