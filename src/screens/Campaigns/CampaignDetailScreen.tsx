@@ -179,8 +179,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             await Promise.all(
               missingProductIds.map(async (productId) => {
                 try {
-                  const product = await productsApi.getProduct(productId);
-                  logger.info(`✅ Fetched product: ${product.id} - ${product.title || product.sku}`);
+                  const product = await productsApi.getProductById(productId);
+                  logger.info(`✅ Fetched product: ${product.id} - ${product.title || product.sku} - Costo: ${product.costCents}`);
                   productsMap[productId] = product;
                 } catch (error) {
                   logger.error(`❌ Error fetching product ${productId}:`, error);
