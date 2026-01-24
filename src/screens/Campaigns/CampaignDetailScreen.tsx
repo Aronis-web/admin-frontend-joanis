@@ -10,9 +10,12 @@ import {
   RefreshControl,
   useWindowDimensions,
   TextInput,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { campaignsService } from '@/services/api';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
@@ -29,6 +32,7 @@ import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { Product } from '@/services/api/products';
 import { PriceProfile, ProductSalePrice } from '@/types/price-profiles';
+import { ParticipantTotalsResponse } from '@/types/participant-totals';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
 
@@ -66,6 +70,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [savingPrice, setSavingPrice] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [distributionFilter, setDistributionFilter] = useState<'all' | 'generated' | 'not-generated'>('all');
+  const [participantTotals, setParticipantTotals] = useState<ParticipantTotalsResponse | null>(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
   const { width, height } = useWindowDimensions();
   const hasLoadedRef = useRef(false);
 
@@ -124,6 +130,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           } catch (error) {
             logger.error('Error loading sites:', error);
           }
+        }
+      }
+
+      // Load participant totals
+      if (data.participants && data.participants.length > 0) {
+        try {
+          const totalsResponse = await campaignsService.getParticipantTotals(campaignId);
+          setParticipantTotals(totalsResponse);
+        } catch (error) {
+          logger.error('Error loading participant totals:', error);
         }
       }
 
@@ -529,6 +545,82 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     );
   };
 
+  const handleDownloadGeneralReport = async () => {
+    try {
+      setDownloadingReport(true);
+
+      logger.info('🔄 Descargando reporte general de totales...');
+      const startTime = new Date().getTime();
+
+      // Call the API to get the PDF blob
+      const pdfBlob = await campaignsService.exportParticipantTotalsPdf(campaignId);
+
+      const endTime = new Date().getTime();
+      logger.info('✅ PDF descargado del servidor');
+      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+      logger.info('⏱️ Tiempo de descarga:', (endTime - startTime), 'ms');
+
+      if (Platform.OS === 'web') {
+        // For web, create a download link using blob URL
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `reporte-totales-${campaign?.code || campaignId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up the blob URL after a short delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+
+        Alert.alert('Éxito', 'El reporte se está descargando');
+      } else {
+        // For mobile (iOS/Android), save to file system and share
+        const timestamp = new Date().getTime();
+        const fileName = `reporte-totales-${timestamp}.pdf`;
+        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
+
+        // Convert blob to array buffer using FileReader
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(pdfBlob);
+        });
+
+        // Write to file
+        await file.create();
+        const writer = file.writableStream().getWriter();
+        await writer.write(new Uint8Array(arrayBuffer));
+        await writer.close();
+
+        // Share the file
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: 'Reporte de Totales',
+            UTI: 'com.adobe.pdf',
+          });
+        } else {
+          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
+        }
+      }
+    } catch (error: any) {
+      logger.error('Error downloading report:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'No se pudo descargar el reporte'
+      );
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
+
+  const formatCurrency = (cents: number) => {
+    return `S/ ${(cents / 100).toFixed(2)}`;
+  };
+
   const renderParticipants = () => {
     if (!campaign) return null;
 
@@ -553,41 +645,95 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             )}
           </View>
 
+          {/* Download General Report Button */}
+          {participantTotals && campaign.participants && campaign.participants.length > 0 && (
+            <TouchableOpacity
+              style={[
+                styles.downloadGeneralReportButton,
+                isTablet && styles.downloadGeneralReportButtonTablet,
+                downloadingReport && styles.downloadButtonDisabled,
+              ]}
+              onPress={handleDownloadGeneralReport}
+              disabled={downloadingReport}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.downloadGeneralReportButtonText, isTablet && styles.downloadGeneralReportButtonTextTablet]}>
+                {downloadingReport
+                  ? '📄 Generando...'
+                  : '📄 Descargar Reporte General de Totales'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {!campaign.participants || campaign.participants.length === 0 ? (
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
               No hay participantes agregados
             </Text>
           ) : (
-            campaign.participants.map((participant) => (
-              <TouchableOpacity
-                key={participant.id}
-                style={[styles.listItem, isTablet && styles.listItemTablet]}
-                onPress={() =>
-                  navigation.navigate('ParticipantDetail', {
-                    campaignId,
-                    participantId: participant.id,
-                  })
-                }
-              >
-                <View style={styles.listItemContent}>
-                  <Text style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}>
-                    {participant.participantType === 'EXTERNAL_COMPANY'
-                      ? (participant.company?.name || companies[participant.companyId!]?.name || `Empresa ID: ${participant.companyId}`)
-                      : (participant.site?.name || sites[participant.siteId!]?.name || `Sede ID: ${participant.siteId}`)}
-                  </Text>
-                  <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
-                    {participant.participantType === 'EXTERNAL_COMPANY'
-                      ? 'Empresa Externa'
-                      : 'Sede Interna'}
-                    {(participant.site?.code || sites[participant.siteId!]?.code) && ` - ${participant.site?.code || sites[participant.siteId!]?.code}`}
-                  </Text>
-                  <Text style={[styles.listItemAmount, isTablet && styles.listItemAmountTablet]}>
-                    Monto: S/ {(participant.assignedAmountCents / 100).toFixed(2)}
-                  </Text>
-                </View>
-                <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
-              </TouchableOpacity>
-            ))
+            campaign.participants.map((participant) => {
+              // Find totals for this participant
+              const participantTotal = participantTotals?.participants.find(
+                p => p.participantId === participant.id
+              );
+
+              return (
+                <TouchableOpacity
+                  key={participant.id}
+                  style={[styles.participantCard, isTablet && styles.participantCardTablet]}
+                  onPress={() =>
+                    navigation.navigate('ParticipantDetail', {
+                      campaignId,
+                      participantId: participant.id,
+                    })
+                  }
+                >
+                  <View style={styles.listItemContent}>
+                    <Text style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}>
+                      {participant.participantType === 'EXTERNAL_COMPANY'
+                        ? (participant.company?.name || companies[participant.companyId!]?.name || `Empresa ID: ${participant.companyId}`)
+                        : (participant.site?.name || sites[participant.siteId!]?.name || `Sede ID: ${participant.siteId}`)}
+                    </Text>
+                    <Text style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}>
+                      {participant.participantType === 'EXTERNAL_COMPANY'
+                        ? 'Empresa Externa'
+                        : 'Sede Interna'}
+                      {(participant.site?.code || sites[participant.siteId!]?.code) && ` - ${participant.site?.code || sites[participant.siteId!]?.code}`}
+                    </Text>
+
+                    {/* Totals Display */}
+                    {participantTotal && (
+                      <View style={styles.totalsContainer}>
+                        <View style={styles.totalRow}>
+                          <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
+                            Compra:
+                          </Text>
+                          <Text style={[styles.totalValuePurchase, isTablet && styles.totalValueTablet]}>
+                            {formatCurrency(participantTotal.totalPurchaseCents)}
+                          </Text>
+                        </View>
+                        <View style={styles.totalRow}>
+                          <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
+                            Venta:
+                          </Text>
+                          <Text style={[styles.totalValueSale, isTablet && styles.totalValueTablet]}>
+                            {formatCurrency(participantTotal.totalSaleCents)}
+                          </Text>
+                        </View>
+                        <View style={styles.totalRow}>
+                          <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
+                            Margen:
+                          </Text>
+                          <Text style={[styles.totalValueMargin, isTablet && styles.totalValueTablet]}>
+                            {formatCurrency(participantTotal.marginCents)} ({participantTotal.marginPercentage.toFixed(2)}%)
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+                </TouchableOpacity>
+              );
+            })
           )}
         </View>
       </View>
@@ -1563,6 +1709,89 @@ const styles = StyleSheet.create({
   },
   listItemAmountTablet: {
     fontSize: 16,
+  },
+  participantCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  participantCardTablet: {
+    borderRadius: 12,
+  },
+  participantCardMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  totalsContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 6,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalLabel: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  totalLabelTablet: {
+    fontSize: 15,
+  },
+  totalValuePurchase: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  totalValueSale: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  totalValueMargin: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  totalValueTablet: {
+    fontSize: 16,
+  },
+  downloadGeneralReportButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  downloadGeneralReportButtonTablet: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    marginBottom: 20,
+  },
+  downloadGeneralReportButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  downloadGeneralReportButtonTextTablet: {
+    fontSize: 16,
+  },
+  downloadButtonDisabled: {
+    opacity: 0.5,
   },
   quickPriceValue: {
     fontWeight: '700',
