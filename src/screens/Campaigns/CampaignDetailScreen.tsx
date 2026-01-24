@@ -173,21 +173,22 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         // Fetch missing products if any
         if (missingProductIds.length > 0) {
           try {
-            logger.info(`Fetching ${missingProductIds.length} missing products:`, missingProductIds);
-            // Use admin endpoint to get both active and preliminary products with full details
-            const productsResponse = await productsApi.getAllProducts({
-              limit: 1000,
-              status: 'active,preliminary,inactive,draft', // Include all product statuses
-              include: 'category,presentations,salePrices,stockItems' // Include all related data
-            });
-            const productsList = productsResponse.products || [];
-            logger.info(`Fetched ${productsList.length} products from admin endpoint`);
-            productsList.forEach(product => {
-              if (missingProductIds.includes(product.id)) {
-                logger.info(`Adding product to map: ${product.id} - ${product.title}`);
-                productsMap[product.id] = product;
-              }
-            });
+            logger.info(`🔍 Fetching ${missingProductIds.length} missing products:`, missingProductIds.slice(0, 5));
+
+            // Try fetching products individually by ID since bulk fetch isn't working
+            await Promise.all(
+              missingProductIds.map(async (productId) => {
+                try {
+                  const product = await productsApi.getProduct(productId);
+                  logger.info(`✅ Fetched product: ${product.id} - ${product.title || product.sku}`);
+                  productsMap[productId] = product;
+                } catch (error) {
+                  logger.error(`❌ Error fetching product ${productId}:`, error);
+                }
+              })
+            );
+
+            logger.info(`✅ Successfully fetched ${Object.keys(productsMap).length} products`);
           } catch (error) {
             logger.error('Error loading missing products:', error);
           }
