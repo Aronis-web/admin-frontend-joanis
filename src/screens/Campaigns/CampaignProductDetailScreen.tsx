@@ -565,12 +565,20 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
   };
 
   const recalculateDistributions = async (newTotalQuantity: number) => {
-    if (!adjustedDistribution) return;
+    if (!adjustedDistribution || !product) return;
 
+    setPreviewLoading(true);
     try {
       logger.debug('🔄 [RECALC] Recalculando distribuciones con nueva cantidad:', newTotalQuantity);
 
-      // Call the preview API with the new total quantity
+      // First, update the product with the new total quantity
+      await campaignsService.updateProduct(campaignId, productId, {
+        totalQuantityBase: newTotalQuantity,
+      });
+
+      logger.debug('✅ [RECALC] Producto actualizado con nueva cantidad');
+
+      // Then, get the updated preview with participant preferences
       const participantPreferences = Object.values(editableDistributions).map(dist => ({
         participantId: dist.participantId,
         roundingFactor: globalRoundingFactor,
@@ -580,13 +588,14 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       const updatedPreview = await campaignsService.getDistributionPreview(
         campaignId,
         productId,
-        {
-          participantPreferences,
-          totalQuantity: newTotalQuantity,
-        }
+        { participantPreferences }
       );
 
-      logger.debug('✅ [RECALC] Preview actualizado recibido');
+      logger.debug('✅ [RECALC] Preview actualizado recibido:', {
+        totalQuantity: updatedPreview.totalQuantity,
+        totalDistributed: updatedPreview.totalDistributed,
+        remainder: updatedPreview.remainder,
+      });
 
       setAdjustedDistribution(updatedPreview);
 
@@ -608,7 +617,12 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       logger.debug('✅ [RECALC] Distribuciones actualizadas');
     } catch (error: any) {
       logger.error('❌ [RECALC] Error recalculando distribuciones:', error);
-      Alert.alert('Error', 'No se pudo recalcular las distribuciones');
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'No se pudo recalcular las distribuciones'
+      );
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
