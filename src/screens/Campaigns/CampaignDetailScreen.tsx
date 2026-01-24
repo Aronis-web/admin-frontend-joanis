@@ -246,11 +246,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         loadCampaign();
       }
 
-      // Reset the ref when the screen is unmounted (navigating away)
-      return () => {
-        // This cleanup runs when navigating away from the screen
-        hasLoadedRef.current = false;
-      };
+      // Don't reset hasLoadedRef on cleanup - keep the campaign loaded
+      // Only reset when explicitly needed (e.g., shouldReload param)
     }, [loadCampaign, route.params?.shouldReload, navigation])
   );
 
