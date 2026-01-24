@@ -721,7 +721,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         Alert.alert(
           'Éxito',
           `Se copiaron ${successCount} participante(s) correctamente${errorCount > 0 ? `. ${errorCount} fallaron.` : ''}`,
-          [{ text: 'OK', onPress: () => loadData() }]
+          [{ text: 'OK', onPress: () => loadCampaign() }]
         );
       } else {
         Alert.alert('Error', 'No se pudo copiar ningún participante');
