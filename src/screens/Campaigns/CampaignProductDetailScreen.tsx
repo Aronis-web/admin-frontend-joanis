@@ -577,7 +577,8 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     // Primero, calcular cantidades redondeadas para cada participante
     Object.values(editableDistributions).forEach(dist => {
       const exactQuantity = (dist.percentage / 100) * newTotalQuantity;
-      const roundedQuantity = Math.floor(exactQuantity);
+      // Redondear: si es >= 0.5 redondea hacia arriba, si no hacia abajo
+      const roundedQuantity = Math.round(exactQuantity);
 
       newDistributions[dist.participantId] = {
         ...dist,
