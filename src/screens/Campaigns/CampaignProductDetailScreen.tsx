@@ -564,6 +564,54 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     return true;
   };
 
+  const recalculateDistributions = async (newTotalQuantity: number) => {
+    if (!adjustedDistribution) return;
+
+    try {
+      logger.debug('🔄 [RECALC] Recalculando distribuciones con nueva cantidad:', newTotalQuantity);
+
+      // Call the preview API with the new total quantity
+      const participantPreferences = Object.values(editableDistributions).map(dist => ({
+        participantId: dist.participantId,
+        roundingFactor: globalRoundingFactor,
+        presentationId: selectedPresentationId || undefined,
+      }));
+
+      const updatedPreview = await campaignsService.getDistributionPreview(
+        campaignId,
+        productId,
+        {
+          participantPreferences,
+          totalQuantity: newTotalQuantity,
+        }
+      );
+
+      logger.debug('✅ [RECALC] Preview actualizado recibido');
+
+      setAdjustedDistribution(updatedPreview);
+
+      // Update editable distributions with new values
+      const newDistributions: typeof editableDistributions = {};
+      updatedPreview.preview.forEach(item => {
+        newDistributions[item.participantId] = {
+          participantId: item.participantId,
+          participantName: item.participantName,
+          quantityBase: item.calculatedQuantity,
+          roundingFactor: item.roundingFactor,
+          presentationId: item.presentationId,
+          quantityPresentation: item.quantityPresentation,
+          percentage: item.percentage,
+        };
+      });
+      setEditableDistributions(newDistributions);
+
+      logger.debug('✅ [RECALC] Distribuciones actualizadas');
+    } catch (error: any) {
+      logger.error('❌ [RECALC] Error recalculando distribuciones:', error);
+      Alert.alert('Error', 'No se pudo recalcular las distribuciones');
+    }
+  };
+
   const validateDistributions = (): boolean => {
     const totalDistributed = getTotalDistributed();
     const productTotal = editableTotalQuantity;
@@ -1397,11 +1445,23 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                               const newQuantity = parseInt(text) || 0;
                               setEditableTotalQuantity(newQuantity);
                             }}
+                            onBlur={() => {
+                              // Recalculate distributions when user finishes editing
+                              if (editableTotalQuantity !== adjustedDistribution?.totalQuantity) {
+                                recalculateDistributions(editableTotalQuantity);
+                              }
+                            }}
                           />
                           <Text style={styles.editableTotalQuantityUnit}>unidades</Text>
                         </View>
+                        <TouchableOpacity
+                          style={styles.recalculateButton}
+                          onPress={() => recalculateDistributions(editableTotalQuantity)}
+                        >
+                          <Text style={styles.recalculateButtonText}>🔄 Actualizar Distribuciones</Text>
+                        </TouchableOpacity>
                         <Text style={styles.editableTotalQuantityHint}>
-                          💡 Puedes modificar la cantidad total según el stock disponible
+                          💡 Modifica la cantidad y presiona "Actualizar Distribuciones" para recalcular
                         </Text>
                       </View>
                       <View style={styles.previewSummaryRow}>
@@ -2799,6 +2859,26 @@ const styles = StyleSheet.create({
     color: '#0369A1',
     fontStyle: 'italic',
     lineHeight: 16,
+  },
+  recalculateButton: {
+    backgroundColor: '#0EA5E9',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  recalculateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   // Editable Distribution Styles
   editableItem: {
