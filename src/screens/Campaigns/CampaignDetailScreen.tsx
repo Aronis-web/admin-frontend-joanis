@@ -147,42 +147,60 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
       // Load products for campaign products
       if (data.products && data.products.length > 0) {
+        // First, use products that come embedded in the campaign response
+        const productsMap: Record<string, Product> = {};
+
+        // Collect products that are already embedded in the response
+        data.products.forEach(campaignProduct => {
+          if (campaignProduct.product) {
+            productsMap[campaignProduct.productId] = campaignProduct.product as any;
+          }
+        });
+
+        // Find products that are NOT embedded and need to be fetched
+        const missingProductIds = data.products
+          .filter(p => !p.product)
+          .map(p => p.productId)
+          .filter((id, index, self) => self.indexOf(id) === index); // unique IDs
+
+        // Fetch missing products if any
+        if (missingProductIds.length > 0) {
+          try {
+            logger.info(`Fetching ${missingProductIds.length} missing products:`, missingProductIds);
+            const productsResponse = await productsApi.getProducts({ limit: 1000 });
+            const productsList = productsResponse.products || [];
+            productsList.forEach(product => {
+              if (missingProductIds.includes(product.id)) {
+                productsMap[product.id] = product;
+              }
+            });
+          } catch (error) {
+            logger.error('Error loading missing products:', error);
+          }
+        }
+
+        setProducts(productsMap);
+
+        // Load sale prices for each product
         const productIds = data.products
           .map(p => p.productId)
           .filter((id, index, self) => self.indexOf(id) === index); // unique IDs
 
-        if (productIds.length > 0) {
-          try {
-            const productsResponse = await productsApi.getProducts({ limit: 1000 });
-            const productsMap: Record<string, Product> = {};
-            const productsList = productsResponse.products || [];
-            productsList.forEach(product => {
-              if (productIds.includes(product.id)) {
-                productsMap[product.id] = product;
-              }
-            });
-            setProducts(productsMap);
-
-            // Load sale prices for each product
-            const salePricesMap: Record<string, ProductSalePrice[]> = {};
-            await Promise.all(
-              productIds.map(async (productId) => {
-                try {
-                  const salePricesResponse = await priceProfilesApi.getProductSalePrices(productId);
-                  // The API returns {productId, productSku, costCents, salePrices: [...]}
-                  const prices = (salePricesResponse as any).salePrices || salePricesResponse.data || [];
-                  salePricesMap[productId] = prices;
-                } catch (error) {
-                  logger.error(`Error loading sale prices for product ${productId}:`, error);
-                  salePricesMap[productId] = [];
-                }
-              })
-            );
-            setProductSalePrices(salePricesMap);
-          } catch (error) {
-            logger.error('Error loading products:', error);
-          }
-        }
+        const salePricesMap: Record<string, ProductSalePrice[]> = {};
+        await Promise.all(
+          productIds.map(async (productId) => {
+            try {
+              const salePricesResponse = await priceProfilesApi.getProductSalePrices(productId);
+              // The API returns {productId, productSku, costCents, salePrices: [...]}
+              const prices = (salePricesResponse as any).salePrices || salePricesResponse.data || [];
+              salePricesMap[productId] = prices;
+            } catch (error) {
+              logger.error(`Error loading sale prices for product ${productId}:`, error);
+              salePricesMap[productId] = [];
+            }
+          })
+        );
+        setProductSalePrices(salePricesMap);
       }
     } catch (error: any) {
       logger.error('Error loading campaign:', error);
