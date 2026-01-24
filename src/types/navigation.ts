@@ -108,6 +108,8 @@ export type MainStackParamList = {
   CreateCampaign: undefined;
   CampaignDetail: {
     campaignId: string;
+    shouldReload?: boolean;
+    skipReloadOnce?: boolean;
   };
   AddCampaignParticipant: {
     campaignId: string;
@@ -122,6 +124,7 @@ export type MainStackParamList = {
   CampaignProductDetail: {
     campaignId: string;
     productId: string;
+    fromCampaignDetail?: boolean;
   };
   ManageCustomDistribution: {
     campaignId: string;

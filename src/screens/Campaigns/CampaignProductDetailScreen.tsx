@@ -37,6 +37,7 @@ interface CampaignProductDetailScreenProps {
     params: {
       campaignId: string;
       productId: string;
+      fromCampaignDetail?: boolean;
     };
   };
 }
@@ -45,7 +46,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
   navigation,
   route,
 }) => {
-  const { campaignId, productId } = route.params;
+  const { campaignId, productId, fromCampaignDetail } = route.params;
   const [product, setProduct] = useState<CampaignProduct | null>(null);
   const [preview, setPreview] = useState<DistributionPreviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -710,7 +711,17 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (fromCampaignDetail) {
+                // Navigate back with skipReloadOnce flag to prevent reload
+                navigation.navigate('CampaignDetail', {
+                  campaignId,
+                  skipReloadOnce: true,
+                });
+              } else {
+                navigation.goBack();
+              }
+            }}
             style={styles.backButton}
           >
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>

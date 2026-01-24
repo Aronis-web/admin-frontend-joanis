@@ -43,6 +43,8 @@ interface CampaignDetailScreenProps {
   route: {
     params: {
       campaignId: string;
+      shouldReload?: boolean;
+      skipReloadOnce?: boolean;
     };
   };
 }
@@ -234,21 +236,30 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     useCallback(() => {
       // Check if we should force reload (e.g., after editing a product)
       const shouldReload = route.params?.shouldReload;
+      const skipReloadOnce = route.params?.skipReloadOnce;
 
       if (shouldReload) {
         // Clear the param to avoid reloading again
         navigation.setParams({ shouldReload: undefined } as any);
         hasLoadedRef.current = true;
         loadCampaign();
+      } else if (skipReloadOnce) {
+        // Skip reload this time (coming back from product detail)
+        navigation.setParams({ skipReloadOnce: undefined } as any);
+        // Don't reload, just mark as loaded
+        hasLoadedRef.current = true;
       } else if (!hasLoadedRef.current) {
         // Only load on first mount, not on every focus
         hasLoadedRef.current = true;
         loadCampaign();
       }
 
-      // Don't reset hasLoadedRef on cleanup - keep the campaign loaded
-      // Only reset when explicitly needed (e.g., shouldReload param)
-    }, [loadCampaign, route.params?.shouldReload, navigation])
+      // Reset the ref when the screen is unmounted (navigating away)
+      return () => {
+        // This cleanup runs when navigating away from the screen
+        hasLoadedRef.current = false;
+      };
+    }, [loadCampaign, route.params?.shouldReload, route.params?.skipReloadOnce, navigation])
   );
 
   const handleRefresh = () => {
@@ -1391,6 +1402,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       navigation.navigate('CampaignProductDetail', {
                         campaignId,
                         productId: product.id,
+                        fromCampaignDetail: true,
                       })
                     }
                   >
