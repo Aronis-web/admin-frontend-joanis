@@ -74,10 +74,6 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [distributionFilter, setDistributionFilter] = useState<'all' | 'generated' | 'not-generated'>('all');
   const [participantTotals, setParticipantTotals] = useState<ParticipantTotalsResponse | null>(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
-  const [showCopyCampaignModal, setShowCopyCampaignModal] = useState(false);
-  const [availableCampaigns, setAvailableCampaigns] = useState<Campaign[]>([]);
-  const [selectedCampaignToCopy, setSelectedCampaignToCopy] = useState<string>('');
-  const [copyingParticipants, setCopyingParticipants] = useState(false);
   const { width, height } = useWindowDimensions();
   const hasLoadedRef = useRef(false);
 
@@ -630,34 +626,54 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const handleOpenCopyParticipantsModal = async () => {
     try {
       setActionLoading(true);
-      // Load all campaigns except the current one
+
+      // Load all campaigns except the current one, ordered by creation date (newest first)
       const response = await campaignsService.getCampaigns({
         limit: 100,
-        include: 'participants.company,participants.site,participants.priceProfile'
+        include: 'participants.company,participants.site,participants.priceProfile',
+        orderBy: 'createdAt',
+        orderDir: 'DESC'
       });
+
+      // Filter campaigns that have participants and are not the current one
       const otherCampaigns = response.data.filter(c => c.id !== campaignId && c.participants && c.participants.length > 0);
-      setAvailableCampaigns(otherCampaigns);
-      setShowCopyCampaignModal(true);
+
+      if (otherCampaigns.length === 0) {
+        Alert.alert('Error', 'No hay campañas con participantes para copiar');
+        setActionLoading(false);
+        return;
+      }
+
+      // Get the most recent campaign (first one after ordering by createdAt DESC)
+      const latestCampaign = otherCampaigns[0];
+
+      // Show confirmation dialog
+      Alert.alert(
+        'Copiar Participantes',
+        `¿Deseas copiar los ${latestCampaign.participants?.length || 0} participante(s) de la campaña "${latestCampaign.code} - ${latestCampaign.name}"?`,
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => setActionLoading(false)
+          },
+          {
+            text: 'Copiar',
+            onPress: () => handleCopyParticipantsFromCampaign(latestCampaign)
+          }
+        ]
+      );
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudieron cargar las campañas');
-    } finally {
       setActionLoading(false);
     }
   };
 
-  const handleCopyParticipants = async () => {
-    if (!selectedCampaignToCopy) {
-      Alert.alert('Error', 'Por favor selecciona una campaña');
-      return;
-    }
-
+  const handleCopyParticipantsFromCampaign = async (sourceCampaign: Campaign) => {
     try {
-      setCopyingParticipants(true);
-
-      // Get participants from selected campaign
-      const sourceCampaign = availableCampaigns.find(c => c.id === selectedCampaignToCopy);
       if (!sourceCampaign || !sourceCampaign.participants) {
         Alert.alert('Error', 'No se encontraron participantes en la campaña seleccionada');
+        setActionLoading(false);
         return;
       }
 
@@ -691,9 +707,6 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         }
       }
 
-      setShowCopyCampaignModal(false);
-      setSelectedCampaignToCopy('');
-
       if (successCount > 0) {
         Alert.alert(
           'Éxito',
@@ -706,7 +719,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudieron copiar los participantes');
     } finally {
-      setCopyingParticipants(false);
+      setActionLoading(false);
     }
   };
 
@@ -1628,73 +1641,6 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           onClose={handleCloseBanner}
         />
 
-        {/* Copy Participants Modal */}
-        <Modal
-          visible={showCopyCampaignModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowCopyCampaignModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
-              <Text style={[styles.modalTitle, isTablet && styles.modalTitleTablet]}>
-                Copiar Participantes
-              </Text>
-              <Text style={[styles.modalDescription, isTablet && styles.modalDescriptionTablet]}>
-                Selecciona una campaña para copiar sus participantes:
-              </Text>
-
-              <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
-                <Picker
-                  selectedValue={selectedCampaignToCopy}
-                  onValueChange={(value) => setSelectedCampaignToCopy(value)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecciona una campaña..." value="" />
-                  {availableCampaigns.map((camp) => (
-                    <Picker.Item
-                      key={camp.id}
-                      label={`${camp.code} - ${camp.name} (${camp.participants?.length || 0} participantes)`}
-                      value={camp.id}
-                    />
-                  ))}
-                </Picker>
-              </View>
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalCancelButton, isTablet && styles.modalButtonTablet]}
-                  onPress={() => {
-                    setShowCopyCampaignModal(false);
-                    setSelectedCampaignToCopy('');
-                  }}
-                  disabled={copyingParticipants}
-                >
-                  <Text style={[styles.modalCancelButtonText, isTablet && styles.modalButtonTextTablet]}>
-                    Cancelar
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modalConfirmButton,
-                    isTablet && styles.modalButtonTablet,
-                    copyingParticipants && styles.modalButtonDisabled,
-                  ]}
-                  onPress={handleCopyParticipants}
-                  disabled={copyingParticipants}
-                >
-                  {copyingParticipants ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <Text style={[styles.modalConfirmButtonText, isTablet && styles.modalButtonTextTablet]}>
-                      Copiar
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </SafeAreaView>
     </ScreenLayout>
   );
