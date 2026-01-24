@@ -85,12 +85,21 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
   // Editable total quantity - allows modifying the total quantity to distribute
   const [editableTotalQuantity, setEditableTotalQuantity] = useState<number>(0);
 
+  // Local stock data fetched from inventory API
+  const [localStockData, setLocalStockData] = useState<StockDetailByWarehouse[] | undefined>(undefined);
+
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
 
   // Helper function to convert product stockItems to stockDetails format
   const getStockDetailsFromProduct = useCallback((): StockDetailByWarehouse[] | undefined => {
+    // First check if we have local stock data from the API call
+    if (localStockData && localStockData.length > 0) {
+      logger.debug('✅ [STOCK] Usando stock local del API:', localStockData);
+      return localStockData;
+    }
+
     logger.debug('🔍 [STOCK] Verificando stockItems del producto:', {
       hasProduct: !!product,
       hasProductData: !!product?.product,
@@ -113,7 +122,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
     logger.debug('✅ [STOCK] Stock details generados desde producto:', stockDetails);
     return stockDetails;
-  }, [product]);
+  }, [product, localStockData]);
 
   const loadProduct = useCallback(async () => {
     try {
@@ -224,28 +233,17 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
         stockData: stockData,
       });
 
-      // Actualizar el producto con los stockItems obtenidos
+      // Guardar en estado local sin actualizar el producto (evita recargar la campaña)
       if (stockData && stockData.length > 0) {
-        setProduct(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            product: {
-              ...prev.product!,
-              stockItems: stockData.map(item => ({
-                productId: item.productId,
-                warehouseId: item.warehouseId,
-                areaId: item.areaId,
-                quantityBase: item.quantityBase,
-                reservedQuantityBase: item.reservedQuantityBase,
-                availableQuantityBase: item.availableQuantityBase,
-                updatedAt: item.updatedAt,
-                warehouse: item.warehouse,
-                area: item.area,
-              })),
-            },
-          };
-        });
+        const stockDetails: StockDetailByWarehouse[] = stockData.map(item => ({
+          warehouse: item.warehouse?.name || 'Almacén desconocido',
+          total: item.quantityBase || 0,
+          reserved: item.reservedQuantityBase || 0,
+          available: item.availableQuantityBase || item.quantityBase || 0,
+        }));
+
+        setLocalStockData(stockDetails);
+        logger.debug('✅ [STOCK] Stock guardado en estado local:', stockDetails);
       }
     } catch (error: any) {
       logger.error('❌ [STOCK] Error obteniendo stock del API:', error);
