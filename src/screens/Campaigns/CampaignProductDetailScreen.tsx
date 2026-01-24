@@ -1209,6 +1209,53 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                       )}
                     </View>
 
+                    {/* Stock Information - Solo si viene de compra */}
+                    {product?.sourceType === 'PURCHASE' && product?.purchaseProduct && (
+                      <View style={styles.stockInfoSection}>
+                        <Text style={styles.stockInfoTitle}>📦 Información de Stock</Text>
+
+                        {product.purchaseProduct.validatedStock !== undefined && (
+                          <View style={styles.stockInfoRow}>
+                            <Text style={styles.stockInfoLabel}>Stock Validado (Compra):</Text>
+                            <Text style={styles.stockInfoValue}>
+                              {product.purchaseProduct.validatedStock} unidades
+                            </Text>
+                          </View>
+                        )}
+
+                        <View style={styles.stockInfoRow}>
+                          <Text style={styles.stockInfoLabel}>Stock Actual (Campaña):</Text>
+                          <Text style={[
+                            styles.stockInfoValue,
+                            product.purchaseProduct.validatedStock !== undefined &&
+                            product.totalQuantityBase !== product.purchaseProduct.validatedStock &&
+                            styles.stockInfoValueDifferent
+                          ]}>
+                            {product.totalQuantityBase} unidades
+                          </Text>
+                        </View>
+
+                        {product.purchaseProduct.validatedStock !== undefined &&
+                         product.totalQuantityBase !== product.purchaseProduct.validatedStock && (
+                          <View style={styles.stockDifferenceWarning}>
+                            <Text style={styles.stockDifferenceWarningIcon}>⚠️</Text>
+                            <View style={styles.stockDifferenceWarningTextContainer}>
+                              <Text style={styles.stockDifferenceWarningTitle}>
+                                Diferencia detectada
+                              </Text>
+                              <Text style={styles.stockDifferenceWarningText}>
+                                El stock actual ({product.totalQuantityBase}) difiere del stock validado en la compra ({product.purchaseProduct.validatedStock}).
+                                {product.totalQuantityBase > product.purchaseProduct.validatedStock
+                                  ? ` Hay ${product.totalQuantityBase - product.purchaseProduct.validatedStock} unidades adicionales.`
+                                  : ` Faltan ${product.purchaseProduct.validatedStock - product.totalQuantityBase} unidades.`
+                                }
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
                     {/* Resumen de Distribución */}
                     <View style={styles.previewSection}>
                       <Text style={styles.previewSectionTitle}>Resumen</Text>
@@ -2419,6 +2466,68 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  // Stock Info Styles
+  stockInfoSection: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#0EA5E9',
+  },
+  stockInfoTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0C4A6E',
+    marginBottom: 12,
+  },
+  stockInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stockInfoLabel: {
+    fontSize: 13,
+    color: '#075985',
+    fontWeight: '500',
+  },
+  stockInfoValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0C4A6E',
+  },
+  stockInfoValueDifferent: {
+    color: '#DC2626',
+  },
+  stockDifferenceWarning: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 6,
+    padding: 10,
+    marginTop: 8,
+    gap: 10,
+  },
+  stockDifferenceWarningIcon: {
+    fontSize: 18,
+  },
+  stockDifferenceWarningTextContainer: {
+    flex: 1,
+  },
+  stockDifferenceWarningTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  stockDifferenceWarningText: {
+    fontSize: 12,
+    color: '#92400E',
+    lineHeight: 16,
+  },
+  previewSummaryError: {
+    color: '#EF4444',
+  },
   // Include in Sheet Checkbox Styles
   includeInSheetGlobalContainer: {
     flexDirection: 'row',
@@ -2558,7 +2667,8 @@ const styles = StyleSheet.create({
   },
   editableQuantityLabel: {
     fontSize: 13,
-    color: '#64748B',
+    fontWeight: '600',
+    color: '#475569',
     minWidth: 70,
   },
   editableQuantityInput: {
@@ -2567,28 +2677,24 @@ const styles = StyleSheet.create({
     borderColor: '#CBD5E1',
     borderRadius: 6,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     fontSize: 14,
-    fontWeight: '600',
     color: '#1E293B',
     backgroundColor: '#FFFFFF',
+    fontWeight: '600',
   },
   editableQuantityUnit: {
     fontSize: 13,
     color: '#64748B',
   },
   presentationEquivalence: {
-    marginTop: 4,
+    marginTop: 6,
     paddingLeft: 78,
   },
   presentationEquivalenceText: {
     fontSize: 12,
-    color: '#10B981',
-    fontWeight: '600',
-  },
-  previewSummaryError: {
-    color: '#EF4444',
-    fontWeight: '700',
+    color: '#6366F1',
+    fontStyle: 'italic',
   },
 });
 

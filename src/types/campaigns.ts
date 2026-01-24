@@ -171,6 +171,11 @@ export interface CampaignProduct {
     code: string;
     guideNumber: string;
   };
+  purchaseProduct?: {
+    id: string;
+    validatedStock?: number;
+    preliminaryStock?: number;
+  };
   addedByUser?: {
     id: string;
     name?: string;
