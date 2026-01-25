@@ -54,13 +54,23 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
         }
       } else if (mode === 'campaign' && campaignProducts) {
         // Para campaña, enviar los correlativos de los productos
+        logger.info('📦 Campaign products received:', campaignProducts.length);
+
         const correlatives = campaignProducts
-          .map((cp) => cp.product?.correlativeNumber)
+          .map((cp) => {
+            const correlative = cp.product?.correlativeNumber;
+            logger.info(`Product ${cp.productId}: correlative = ${correlative}`);
+            return correlative;
+          })
           .filter((num): num is number => num !== undefined && num !== null);
 
-        if (correlatives.length > 0) {
-          filters.correlatives = correlatives;
+        logger.info('📊 Correlatives extracted:', correlatives);
+
+        if (correlatives.length === 0) {
+          throw new Error('No se encontraron números correlativos en los productos de la campaña. Asegúrate de que los productos tengan información completa.');
         }
+
+        filters.correlatives = correlatives;
       }
 
       const response = await productsApi.downloadBulkUpdateFormat(filters);
