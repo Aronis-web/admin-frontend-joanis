@@ -793,7 +793,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     // Calculate total expected amount from all participants
     const totalExpectedAmountCents =
       campaign.participants?.reduce(
-        (sum, participant) => sum + (participant.assignedAmountCents || 0),
+        (sum, participant) => sum + (Number(participant.assignedAmountCents) || 0),
         0
       ) || 0;
 
