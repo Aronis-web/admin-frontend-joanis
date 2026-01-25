@@ -114,15 +114,16 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
 
       // Convert ResolvedScope to UserCompanySite format
       const sitesArray: UserCompanySite[] = companySiteScopes.map((scope) => ({
-        id: scope.siteId!,
+        userId: user.id,
         siteId: scope.siteId!,
-        companyId: scope.companyId,
+        companyId: scope.companyId || companyId,
         site: {
           id: scope.siteId!,
           name: scope.site_name || scope.site?.name || 'Sede sin nombre',
-          code: scope.site?.code || '',
+          code: (scope.site as any)?.code || '',
         },
         canSelect: true, // If user has scope, they can select it
+        createdAt: new Date().toISOString(),
       }));
 
       console.log('📋 Sedes procesadas:', sitesArray.length, 'sedes encontradas');
@@ -131,7 +132,14 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
         console.log(`  Sede ${index + 1} - KEYS:`, Object.keys(site));
       });
 
-      if (sitesArray.length === 0) {
+      // Sort sites alphabetically by name
+      const sortedSites = sitesArray.sort((a, b) => {
+        const nameA = (a.site?.name || '').toLowerCase();
+        const nameB = (b.site?.name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+
+      if (sortedSites.length === 0) {
         Alert.alert(
           'Sin Sedes',
           'No tienes acceso a ninguna sede en esta empresa. Contacta al administrador.',
@@ -153,12 +161,12 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
         return;
       }
 
-      setSites(sitesArray);
+      setSites(sortedSites);
 
       // If user has only one site, auto-select it and proceed to home
-      if (sitesArray.length === 1) {
+      if (sortedSites.length === 1) {
         console.log('✨ Solo hay 1 sede, auto-seleccionando...');
-        await handleSiteSelect(sitesArray[0]);
+        await handleSiteSelect(sortedSites[0]);
       }
     } catch (error: any) {
       console.error('❌ Error loading sites:', error);
@@ -176,7 +184,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
   const handleSiteSelect = async (site: UserCompanySite) => {
     try {
       // Handle different possible API response structures
-      const siteId = site.siteId || site.id || (site as any).Site?.id;
+      const siteId = site.siteId || (site as any).Site?.id;
       const siteName = site.site?.name || (site as any).Site?.name || (site as any).name || '';
       const siteCode = site.site?.code || (site as any).Site?.code || (site as any).code || '';
 
@@ -308,7 +316,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
           {sites.map((userSite, index) => {
             // Handle different possible API response structures
             const siteId =
-              userSite.siteId || userSite.id || (userSite as any).Site?.id || `site-${index}`;
+              userSite.siteId || (userSite as any).Site?.id || `site-${index}`;
             const siteName =
               userSite.site?.name ||
               (userSite as any).Site?.name ||

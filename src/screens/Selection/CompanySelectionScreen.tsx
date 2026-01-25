@@ -69,7 +69,23 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
         return;
       }
 
-      setCompanies(userCompanies);
+      // Sort companies: INTERNAL first, then EXTERNAL
+      const sortedCompanies = userCompanies.sort((a, b) => {
+        // If both are the same type, maintain original order
+        if (a.companyType === b.companyType) {
+          return 0;
+        }
+        // INTERNAL companies come first
+        if (a.companyType === 'INTERNAL') {
+          return -1;
+        }
+        if (b.companyType === 'INTERNAL') {
+          return 1;
+        }
+        return 0;
+      });
+
+      setCompanies(sortedCompanies);
 
       // If user has only one company, auto-select it and proceed to site selection
       if (userCompanies.length === 1) {
