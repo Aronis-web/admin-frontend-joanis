@@ -1940,7 +1940,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           onClose={() => setIsBulkUpdateModalVisible(false)}
           onSuccess={loadCampaign}
           mode="campaign"
-          campaignId={campaignId}
+          campaignProducts={campaign?.products}
         />
 
         {/* Floating Action Button for Bulk Update */}

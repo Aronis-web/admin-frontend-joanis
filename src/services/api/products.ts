@@ -474,7 +474,6 @@ export const productsApi = {
     correlatives?: number[];
     fromDate?: string;
     toDate?: string;
-    campaignId?: string;
   }): Promise<Blob> => {
     return apiClient.post('/admin/products/bulk/download-update-format', filters, {
       responseType: 'blob',

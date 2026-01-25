@@ -22,7 +22,7 @@ interface BulkUpdateModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   mode: 'products' | 'campaign';
-  campaignId?: string;
+  campaignProducts?: Array<{ productId: string; product?: { correlativeNumber?: number } }>;
 }
 
 export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
@@ -30,7 +30,7 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
   onClose,
   onSuccess,
   mode,
-  campaignId,
+  campaignProducts,
 }) => {
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState('');
@@ -52,9 +52,15 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
         if (toDate) {
           filters.toDate = toDate;
         }
-      } else if (mode === 'campaign' && campaignId) {
-        // Para campaña, enviar el campaignId
-        filters.campaignId = campaignId;
+      } else if (mode === 'campaign' && campaignProducts) {
+        // Para campaña, enviar los correlativos de los productos
+        const correlatives = campaignProducts
+          .map((cp) => cp.product?.correlativeNumber)
+          .filter((num): num is number => num !== undefined && num !== null);
+
+        if (correlatives.length > 0) {
+          filters.correlatives = correlatives;
+        }
       }
 
       const blob = await productsApi.downloadBulkUpdateFormat(filters);
