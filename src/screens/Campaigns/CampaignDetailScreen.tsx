@@ -219,11 +219,32 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         setProducts(productsMap);
 
-        // OPTIMIZATION: Removed sale-prices loading from here
-        // Sale prices are not needed in the list view and were causing 20+ requests
-        // They can be loaded on-demand if needed in the future
-        // This reduces initial load from 21 requests to just 1 request
-        logger.debug('⚡ [PERF] Skipping sale-prices loading for better performance');
+        // OPTIMIZATION: Cargar precios de venta para todos los productos visibles
+        // Esto permite mostrar los primeros 2 perfiles en la vista de lista
+        // Se cargan en paralelo para mejor rendimiento
+        logger.debug('⚡ [PERF] Cargando precios de venta para productos visibles...');
+
+        const productIds = data.products.map(p => p.productId);
+        const salePricesPromises = productIds.map(productId =>
+          priceProfilesApi.getProductSalePrices(productId)
+            .then((response) => {
+              const salePricesArray = (response as any).salePrices || response.data || [];
+              return { productId, salePrices: salePricesArray };
+            })
+            .catch((error) => {
+              logger.error(`Error loading prices for product ${productId}:`, error);
+              return { productId, salePrices: [] };
+            })
+        );
+
+        Promise.all(salePricesPromises).then((results) => {
+          const salePricesMap: Record<string, any[]> = {};
+          results.forEach(({ productId, salePrices }) => {
+            salePricesMap[productId] = salePrices;
+          });
+          setProductSalePrices(salePricesMap);
+          logger.debug('✅ [PERF] Precios de venta cargados para todos los productos');
+        });
       }
     } catch (error: any) {
       logger.error('Error loading campaign:', error);
@@ -242,17 +263,43 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         campaignId: string;
         shouldReload?: boolean;
         skipReloadOnce?: boolean;
+        updatedProductId?: string;
       };
       const shouldReload = params?.shouldReload;
       const skipReloadOnce = params?.skipReloadOnce;
+      const updatedProductId = params?.updatedProductId;
 
       logger.debug('🔄 [CAMPAIGN] useFocusEffect triggered:', {
         shouldReload,
         skipReloadOnce,
+        updatedProductId,
         hasLoaded: hasLoadedRef.current,
       });
 
-      if (shouldReload) {
+      if (updatedProductId) {
+        // OPTIMIZATION: Solo actualizar el producto específico sin recargar toda la campaña
+        logger.debug('⚡ [CAMPAIGN] Actualizando solo producto:', updatedProductId);
+        navigation.setParams({ updatedProductId: undefined } as any);
+
+        // Actualizar solo el producto específico en el estado
+        campaignsService.getProduct(campaignId, updatedProductId)
+          .then((updatedProduct) => {
+            setCampaign((prevCampaign) => {
+              if (!prevCampaign) return prevCampaign;
+
+              return {
+                ...prevCampaign,
+                products: prevCampaign.products?.map((p) =>
+                  p.id === updatedProductId ? updatedProduct : p
+                ),
+              };
+            });
+            logger.debug('✅ [CAMPAIGN] Producto actualizado en estado local');
+          })
+          .catch((error) => {
+            logger.error('❌ [CAMPAIGN] Error actualizando producto:', error);
+          });
+      } else if (shouldReload) {
         // Clear the param to avoid reloading again
         logger.debug('🔄 [CAMPAIGN] Reloading due to shouldReload param');
         navigation.setParams({ shouldReload: undefined } as any);
@@ -278,7 +325,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // The cleanup runs when navigating to ANY screen (including child screens like ProductDetail)
       // We only want to reload when explicitly requested via shouldReload param
       // This prevents unnecessary reloads and improves performance significantly
-    }, [loadCampaign, route.params?.shouldReload, route.params?.skipReloadOnce, navigation])
+    }, [loadCampaign, route.params?.shouldReload, route.params?.skipReloadOnce, route.params?.updatedProductId, navigation, campaignId])
   );
 
   const handleRefresh = () => {
@@ -1117,17 +1164,39 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     // No need to reload campaign - the modal updates its own state locally
   }, []);
 
-  const toggleProductExpanded = useCallback((productId: string) => {
+  const toggleProductExpanded = useCallback(async (productId: string) => {
     setExpandedProducts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(productId)) {
         newSet.delete(productId);
       } else {
         newSet.add(productId);
+
+        // OPTIMIZATION: Cargar precios solo cuando se expande por primera vez
+        // Solo si no están ya cargados
+        if (!productSalePrices[productId]) {
+          logger.debug('⚡ [PERF] Cargando precios para producto expandido:', productId);
+
+          // Cargar precios en background
+          priceProfilesApi.getProductSalePrices(productId)
+            .then((response) => {
+              const salePricesArray = (response as any).salePrices || response.data || [];
+
+              setProductSalePrices((prevPrices) => ({
+                ...prevPrices,
+                [productId]: salePricesArray,
+              }));
+
+              logger.debug('✅ [PERF] Precios cargados para producto:', productId);
+            })
+            .catch((error) => {
+              logger.error('❌ [PERF] Error cargando precios:', error);
+            });
+        }
       }
       return newSet;
     });
-  }, []);
+  }, [productSalePrices]);
 
   const handleStartEditCost = useCallback((productId: string, currentCost: number) => {
     setEditingCost({

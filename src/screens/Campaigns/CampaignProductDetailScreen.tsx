@@ -734,7 +734,18 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
         [
           {
             text: 'OK',
-            onPress: () => loadProduct(),
+            onPress: () => {
+              // Si venimos de CampaignDetail, navegar de vuelta con updatedProductId
+              // Esto actualiza SOLO este producto sin recargar toda la campaña
+              if (fromCampaignDetail) {
+                navigation.navigate('CampaignDetail', {
+                  campaignId,
+                  updatedProductId: productId,
+                });
+              } else {
+                loadProduct();
+              }
+            },
           },
         ]
       );
