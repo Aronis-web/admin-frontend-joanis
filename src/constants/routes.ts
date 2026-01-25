@@ -153,7 +153,7 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
 export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>> = {
   // Products & Inventory
   PRODUCTS: 'products.read',
-  STOCK: 'stock.read',
+  STOCK: 'products.read',
 
   // Purchases
   PURCHASES: 'purchases.read',
@@ -178,10 +178,10 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   TEMPLATE_EXPENSES: 'expenses.templates.read',
 
   // Transfers
-  INTERNAL_TRANSFERS: 'transfers.view.all',
-  EXTERNAL_TRANSFERS: 'transfers.view.all',
-  TRANSFER_DETAIL: 'transfers.view.all',
-  RECEPTIONS: 'receptions.validate',
+  INTERNAL_TRANSFERS: 'transfers.read',
+  EXTERNAL_TRANSFERS: 'transfers.read',
+  TRANSFER_DETAIL: 'transfers.read',
+  RECEPTIONS: 'transfers.receive',
 
   // Suppliers
   SUPPLIERS: 'suppliers.read',
@@ -201,7 +201,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Users & Permissions
   USERS: 'users.read',
-  ROLES_PERMISSIONS: 'roles.manage',
+  ROLES_PERMISSIONS: 'roles.read',
   PERMISSIONS_DEBUG: 'permissions.read',
 
   // Company & Sites

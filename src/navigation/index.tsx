@@ -199,7 +199,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['users.read', 'users.manage', 'users.create']}>
+          <ProtectedRoute requiredPermissions={['users.read', 'users.create', 'users.update']} requireAll={false}>
             <UsersScreen {...props} />
           </ProtectedRoute>
         )}
@@ -211,7 +211,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['roles.manage']}>
+          <ProtectedRoute requiredPermissions={['roles.read', 'permissions.read']} requireAll={false}>
             <RolesPermissionsScreen {...props} />
           </ProtectedRoute>
         )}
@@ -261,7 +261,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['stock.read', 'stock.write', 'inventory.read']}>
+          <ProtectedRoute requiredPermissions={['products.read']} requireAll={false}>
             <StockScreen {...props} />
           </ProtectedRoute>
         )}
@@ -289,10 +289,10 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute
             requiredPermissions={[
-              'transfers.view.all',
               'transfers.read',
-              'transfers.create.internal',
+              'transfers.create',
             ]}
+            requireAll={false}
           >
             <InternalTransfersScreen {...props} />
           </ProtectedRoute>
@@ -307,10 +307,10 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute
             requiredPermissions={[
-              'transfers.view.all',
               'transfers.read',
-              'transfers.create.external',
+              'transfers.create',
             ]}
+            requireAll={false}
           >
             <ExternalTransfersScreen {...props} />
           </ProtectedRoute>
@@ -325,10 +325,11 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute
             requiredPermissions={[
-              'receptions.validate',
-              'receptions.complete',
-              'transfers.view.all',
+              'transfers.receive',
+              'transfers.validate',
+              'transfers.complete',
             ]}
+            requireAll={false}
           >
             <ReceptionsScreen {...props} />
           </ProtectedRoute>

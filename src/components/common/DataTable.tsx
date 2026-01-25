@@ -1,0 +1,192 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+} from 'react-native';
+
+export interface Column<T> {
+  key: string;
+  title: string;
+  width?: number | string;
+  flex?: number;
+  render?: (item: T) => React.ReactNode;
+  align?: 'left' | 'center' | 'right';
+}
+
+interface DataTableProps<T> {
+  data: T[];
+  columns: Column<T>[];
+  onRowPress?: (item: T) => void;
+  loading?: boolean;
+  emptyMessage?: string;
+  keyExtractor?: (item: T, index: number) => string;
+  style?: any;
+  headerStyle?: any;
+  rowStyle?: any;
+}
+
+export const DataTable = <T extends Record<string, any>>({
+  data,
+  columns,
+  onRowPress,
+  loading = false,
+  emptyMessage = 'No hay datos disponibles',
+  keyExtractor,
+  style,
+  headerStyle,
+  rowStyle,
+}: DataTableProps<T>) => {
+  const renderHeader = () => (
+    <View style={[styles.headerRow, headerStyle]}>
+      {columns.map((column) => (
+        <View
+          key={column.key}
+          style={[
+            styles.headerCell,
+            column.width ? { width: column.width } : undefined,
+            column.flex ? { flex: column.flex } : undefined,
+            column.align ? { alignItems: getAlignment(column.align) } : undefined,
+          ]}
+        >
+          <Text style={styles.headerText}>{column.title}</Text>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderRow = ({ item, index }: { item: T; index: number }) => {
+    const isEven = index % 2 === 0;
+    return (
+      <TouchableOpacity
+        style={[
+          styles.row,
+          isEven && styles.rowEven,
+          rowStyle,
+        ]}
+        onPress={() => onRowPress?.(item)}
+        disabled={!onRowPress}
+      >
+        {columns.map((column) => (
+          <View
+            key={column.key}
+            style={[
+              styles.cell,
+              column.width ? { width: column.width } : undefined,
+              column.flex ? { flex: column.flex } : undefined,
+              column.align ? { alignItems: getAlignment(column.align) } : undefined,
+            ]}
+          >
+            {column.render ? (
+              column.render(item)
+            ) : (
+              <Text style={styles.cellText} numberOfLines={2}>
+                {item[column.key]?.toString() || '-'}
+              </Text>
+            )}
+          </View>
+        ))}
+      </TouchableOpacity>
+    );
+  };
+
+  const renderEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>{emptyMessage}</Text>
+    </View>
+  );
+
+  const renderFooter = () => {
+    if (!loading) return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color="#007AFF" />
+      </View>
+    );
+  };
+
+  const getAlignment = (align: 'left' | 'center' | 'right') => {
+    switch (align) {
+      case 'left':
+        return 'flex-start';
+      case 'center':
+        return 'center';
+      case 'right':
+        return 'flex-end';
+      default:
+        return 'flex-start';
+    }
+  };
+
+  return (
+    <View style={[styles.container, style]}>
+      {renderHeader()}
+      <FlatList
+        data={data}
+        renderItem={renderRow}
+        keyExtractor={keyExtractor || ((item, index) => index.toString())}
+        ListEmptyComponent={!loading ? renderEmpty : null}
+        ListFooterComponent={renderFooter}
+        showsVerticalScrollIndicator={true}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    backgroundColor: '#f8f9fa',
+    borderBottomWidth: 2,
+    borderBottomColor: '#dee2e6',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  headerCell: {
+    justifyContent: 'center',
+  },
+  headerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#495057',
+    textTransform: 'uppercase',
+  },
+  row: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  rowEven: {
+    backgroundColor: '#f8f9fa',
+  },
+  cell: {
+    justifyContent: 'center',
+  },
+  cellText: {
+    fontSize: 14,
+    color: '#212529',
+  },
+  emptyContainer: {
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6c757d',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+});

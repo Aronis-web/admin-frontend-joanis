@@ -72,7 +72,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Stock',
         route: MAIN_ROUTES.STOCK,
         color: '#10B981',
-        requiredPermissions: ['stock.read', 'stock.write', 'inventory.read'],
+        requiredPermissions: ['products.read'],
       },
     ],
   },
@@ -136,7 +136,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Traslado Interno',
         route: MAIN_ROUTES.INTERNAL_TRANSFERS,
         color: '#EC4899',
-        requiredPermissions: ['transfers.view.all', 'transfers.read', 'transfers.create.internal'],
+        requiredPermissions: ['transfers.read', 'transfers.create'],
       },
       {
         id: 'external-transfers',
@@ -144,7 +144,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Traslado Externo',
         route: MAIN_ROUTES.EXTERNAL_TRANSFERS,
         color: '#14B8A6',
-        requiredPermissions: ['transfers.view.all', 'transfers.read', 'transfers.create.external'],
+        requiredPermissions: ['transfers.read', 'transfers.create'],
       },
       {
         id: 'receptions',
@@ -152,7 +152,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Recepciones',
         route: MAIN_ROUTES.RECEPTIONS,
         color: '#06B6D4',
-        requiredPermissions: ['receptions.validate', 'receptions.complete', 'transfers.view.all'],
+        requiredPermissions: ['transfers.receive', 'transfers.validate', 'transfers.complete'],
       },
     ],
   },
@@ -283,7 +283,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Usuarios',
         route: MAIN_ROUTES.USERS,
         color: '#8B5CF6',
-        requiredPermissions: ['users.read', 'users.manage', 'users.create'],
+        requiredPermissions: ['users.read', 'users.create', 'users.update'],
       },
       {
         id: 'roles',
@@ -291,7 +291,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Roles y Permisos',
         route: MAIN_ROUTES.ROLES_PERMISSIONS,
         color: '#EF4444',
-        requiredPermissions: ['roles.manage'],
+        requiredPermissions: ['roles.read', 'roles.create', 'roles.update', 'permissions.read'],
       },
       // Productos Config
       {

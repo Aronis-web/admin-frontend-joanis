@@ -57,23 +57,8 @@ export const initSentry = () => {
       enableAutoPerformanceTracing: true,
       enableOutOfMemoryTracking: true,
 
-      // Integrations
-      integrations: [
-        new Sentry.ReactNativeTracing({
-          // Routing instrumentation for React Navigation
-          routingInstrumentation: new Sentry.ReactNavigationInstrumentation(),
-
-          // Track user interactions
-          tracingOrigins: ['localhost', config.API_URL],
-
-          // Enable automatic performance monitoring
-          enableUserInteractionTracing: true,
-          enableStallTracking: true,
-        }),
-      ],
-
       // Before send hook - filter sensitive data
-      beforeSend(event: Sentry.Event, hint?: Sentry.EventHint) {
+      beforeSend(event, hint) {
         // Remove sensitive data from events
         if (event.request) {
           // Remove authorization headers
@@ -83,7 +68,7 @@ export const initSentry = () => {
           }
 
           // Remove sensitive query parameters
-          if (event.request.query_string) {
+          if (event.request.query_string && typeof event.request.query_string === 'string') {
             event.request.query_string = event.request.query_string
               .replace(/token=[^&]*/gi, 'token=[REDACTED]')
               .replace(/password=[^&]*/gi, 'password=[REDACTED]');
@@ -101,7 +86,7 @@ export const initSentry = () => {
       },
 
       // Before breadcrumb hook - filter sensitive breadcrumbs
-      beforeBreadcrumb(breadcrumb: Sentry.Breadcrumb, hint?: Sentry.BreadcrumbHint) {
+      beforeBreadcrumb(breadcrumb, hint) {
         // Don't log console.log breadcrumbs in production
         if (!__DEV__ && breadcrumb.category === 'console') {
           return null;
@@ -208,12 +193,17 @@ export const captureMessage = (
 };
 
 /**
- * Start a performance transaction
+ * Add a performance breadcrumb
  */
-export const startTransaction = (name: string, op: string) => {
-  return Sentry.startTransaction({
-    name,
-    op,
+export const trackPerformance = (name: string, duration: number, metadata?: Record<string, any>) => {
+  Sentry.addBreadcrumb({
+    category: 'performance',
+    message: `${name} - ${duration}ms`,
+    level: 'info',
+    data: {
+      duration_ms: duration,
+      ...metadata,
+    },
   });
 };
 
