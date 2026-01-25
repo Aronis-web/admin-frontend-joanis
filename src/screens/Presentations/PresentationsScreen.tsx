@@ -24,6 +24,8 @@ import {
   UpdatePresentationDto,
 } from '@/services/api';
 import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
+import { PERMISSIONS } from '@/constants/permissions';
 
 interface PresentationsScreenProps {
   navigation: any;
@@ -300,7 +302,7 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
 
       {/* Action Buttons */}
       <ProtectedElement
-        requiredPermissions={['presentations.create']}
+        requiredPermissions={[PERMISSIONS.PRESENTATIONS.CREATE]}
         requireAll={false}
         fallback={null}
       >
@@ -354,33 +356,25 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
 
                 {/* Action Buttons */}
                 <View style={styles.presentationActions}>
-                  <ProtectedElement
-                    requiredPermissions={['presentations.update']}
-                    requireAll={false}
-                    fallback={null}
+                  <ProtectedTouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleEditPresentation(presentation)}
+                    requiredPermissions={[PERMISSIONS.PRESENTATIONS.UPDATE]}
+                    hideIfNoPermission={true}
                   >
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleEditPresentation(presentation)}
-                    >
-                      <Text style={styles.actionButtonText}>✏️ Editar</Text>
-                    </TouchableOpacity>
-                  </ProtectedElement>
+                    <Text style={styles.actionButtonText}>✏️ Editar</Text>
+                  </ProtectedTouchableOpacity>
 
-                  <ProtectedElement
-                    requiredPermissions={['presentations.delete']}
-                    requireAll={false}
-                    fallback={null}
+                  <ProtectedTouchableOpacity
+                    style={[styles.actionButton, styles.deleteButton]}
+                    onPress={() => handleDeletePresentation(presentation)}
+                    requiredPermissions={[PERMISSIONS.PRESENTATIONS.DELETE]}
+                    hideIfNoPermission={true}
                   >
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.deleteButton]}
-                      onPress={() => handleDeletePresentation(presentation)}
-                    >
-                      <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
-                        🗑️ Eliminar
-                      </Text>
-                    </TouchableOpacity>
-                  </ProtectedElement>
+                    <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
+                      🗑️ Eliminar
+                    </Text>
+                  </ProtectedTouchableOpacity>
                 </View>
               </View>
             ))}

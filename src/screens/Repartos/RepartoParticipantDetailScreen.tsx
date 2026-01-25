@@ -247,6 +247,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               name: productGroup.productName,
               title: productGroup.productName,
               sku: productGroup.productSku,
+              correlativeNumber: productGroup.productCorrelativeNumber, // ✅ Agregar correlativo
               presentations: presentations, // ✅ Construido desde presentationInfo
             },
             quantityAssigned: reparto.quantityAssigned,
@@ -261,7 +262,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       });
 
       console.log('📊 Total productos asignados:', productosAsignados.length);
-      setProductos(productosAsignados);
+
+      // ✅ Ordenar productos por correlativo antes de setear
+      const sortedProductos = productosAsignados.sort((a, b) => {
+        const correlativeA = a.product?.correlativeNumber || 0;
+        const correlativeB = b.product?.correlativeNumber || 0;
+        return correlativeA - correlativeB;
+      });
+
+      setProductos(sortedProductos);
 
       // Guardar el repartoId para usar en el reporte
       if (firstRepartoId) {

@@ -35,6 +35,7 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
   const [cost, setCost] = useState('');
   const [looseUnits, setLooseUnits] = useState('0'); // Unidades sueltas
   const [notes, setNotes] = useState('');
+  const [reference, setReference] = useState(''); // ✅ Campo guía/referencia
   const [loading, setLoading] = useState(false);
   const [loadingPresentations, setLoadingPresentations] = useState(false);
 
@@ -189,6 +190,7 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
           notes: p.notes,
         })),
         notes: notes.trim() || undefined,
+        reference: reference.trim() || undefined, // ✅ Agregar referencia/guía
       });
 
       Alert.alert('Éxito', 'Producto agregado correctamente', [
@@ -262,6 +264,18 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
             placeholder="Ej: 15.50"
             placeholderTextColor="#94A3B8"
             keyboardType="decimal-pad"
+          />
+        </View>
+
+        {/* Reference/Guide */}
+        <View style={styles.section}>
+          <Text style={[styles.label, isTablet && styles.labelTablet]}>Guía/Referencia</Text>
+          <TextInput
+            style={[styles.input, isTablet && styles.inputTablet]}
+            value={reference}
+            onChangeText={setReference}
+            placeholder="Ej: Guía de remisión, número de lote, etc."
+            placeholderTextColor="#94A3B8"
           />
         </View>
 

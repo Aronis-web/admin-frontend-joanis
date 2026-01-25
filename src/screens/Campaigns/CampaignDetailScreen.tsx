@@ -12,6 +12,7 @@ import {
   TextInput,
   Platform,
   Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -1500,6 +1501,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       })
                     }
                   >
+                    {/* ✅ Product Image */}
+                    {(productDetails as any)?.imageUrl && (
+                      <Image
+                        source={{ uri: (productDetails as any).imageUrl }}
+                        style={styles.productImage}
+                        resizeMode="cover"
+                      />
+                    )}
                     <View style={styles.listItemContent}>
                       <View style={styles.productTitleRow}>
                         <Text
@@ -2398,6 +2407,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 12,
+  },
+  productImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F1F5F9',
   },
   productCardActions: {
     flexDirection: 'row',

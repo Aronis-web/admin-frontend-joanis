@@ -33,7 +33,8 @@ interface RepartosScreenProps {
 }
 
 export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) => {
-  const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL'>('ALL');
+  // ✅ Por defecto mostrar todas menos canceladas y borrador
+  const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL' | 'NOT_CANCELLED_DRAFT'>('NOT_CANCELLED_DRAFT');
   const [exportingCampaignId, setExportingCampaignId] = useState<string | null>(null);
   const [showProductSelectionModal, setShowProductSelectionModal] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<{
@@ -49,7 +50,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   // Build query params
   const queryParams = useMemo(() => {
     const params: any = {};
-    if (selectedStatus !== 'ALL') {
+    if (selectedStatus !== 'ALL' && selectedStatus !== 'NOT_CANCELLED_DRAFT') {
       params.status = selectedStatus;
     }
     return params;
@@ -58,11 +59,11 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   // React Query hook
   const { data, isLoading, isRefetching, refetch } = useCampaigns(queryParams);
 
-  // Clean campaigns data - remove duplicate products
+  // Clean campaigns data - remove duplicate products and filter by status
   const campaigns = useMemo(() => {
     if (!data?.data) return [];
 
-    return data.data.map((campaign: Campaign) => {
+    const allCampaigns = data.data.map((campaign: Campaign) => {
       if (campaign.products && campaign.products.length > 0) {
         // Group products by productId to remove duplicates
         const uniqueProductsMap = new Map();
@@ -79,7 +80,15 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       }
       return campaign;
     });
-  }, [data]);
+
+    // ✅ Filtrar canceladas y borrador si selectedStatus es 'NOT_CANCELLED_DRAFT'
+    if (selectedStatus === 'NOT_CANCELLED_DRAFT') {
+      return allCampaigns.filter(
+        (c) => c.status !== CampaignStatus.CANCELLED && c.status !== CampaignStatus.DRAFT
+      );
+    }
+    return allCampaigns;
+  }, [data, selectedStatus]);
 
   useFocusEffect(
     useCallback(() => {
@@ -253,8 +262,9 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     };
   }, []);
 
-  const statuses: Array<CampaignStatus | 'ALL'> = useMemo(
+  const statuses: Array<CampaignStatus | 'ALL' | 'NOT_CANCELLED_DRAFT'> = useMemo(
     () => [
+      'NOT_CANCELLED_DRAFT', // ✅ Por defecto
       'ALL',
       CampaignStatus.ACTIVE,
       CampaignStatus.DRAFT,
@@ -264,6 +274,12 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     ],
     []
   );
+
+  const getStatusLabel = useCallback((status: CampaignStatus | 'ALL' | 'NOT_CANCELLED_DRAFT') => {
+    if (status === 'ALL') return 'Todos';
+    if (status === 'NOT_CANCELLED_DRAFT') return 'Activas'; // Todas menos canceladas y borrador
+    return CampaignStatusLabels[status];
+  }, []);
 
   const renderStatusFilter = useMemo(() => {
     return (
@@ -290,7 +306,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                   selectedStatus === status && styles.filterButtonTextActive,
                 ]}
               >
-                {status === 'ALL' ? 'Todos' : CampaignStatusLabels[status]}
+                {getStatusLabel(status)}
               </Text>
             </TouchableOpacity>
           ))}

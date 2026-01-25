@@ -31,7 +31,8 @@ interface CampaignsScreenProps {
 }
 
 export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) => {
-  const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL'>('ALL');
+  // ✅ Por defecto mostrar todas menos canceladas
+  const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL' | 'NOT_CANCELLED'>('NOT_CANCELLED');
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -46,7 +47,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
     () => ({
       page,
       limit,
-      ...(selectedStatus !== 'ALL' && { status: selectedStatus }),
+      ...(selectedStatus !== 'ALL' && selectedStatus !== 'NOT_CANCELLED' && { status: selectedStatus }),
     }),
     [page, selectedStatus]
   );
@@ -59,7 +60,14 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   } = useCampaigns(params);
 
   // Extraer campaigns y paginación de la respuesta
-  const campaigns = useMemo(() => campaignsResponse?.data || [], [campaignsResponse]);
+  const campaigns = useMemo(() => {
+    const allCampaigns = campaignsResponse?.data || [];
+    // ✅ Filtrar canceladas si selectedStatus es 'NOT_CANCELLED'
+    if (selectedStatus === 'NOT_CANCELLED') {
+      return allCampaigns.filter((c) => c.status !== CampaignStatus.CANCELLED);
+    }
+    return allCampaigns;
+  }, [campaignsResponse, selectedStatus]);
   const pagination = useMemo(
     () => ({
       page: campaignsResponse?.page || 1,
@@ -134,13 +142,20 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   };
 
   const renderStatusFilter = () => {
-    const statuses: Array<CampaignStatus | 'ALL'> = [
+    const statuses: Array<CampaignStatus | 'ALL' | 'NOT_CANCELLED'> = [
+      'NOT_CANCELLED', // ✅ Por defecto
       'ALL',
       CampaignStatus.DRAFT,
       CampaignStatus.ACTIVE,
       CampaignStatus.CLOSED,
       CampaignStatus.CANCELLED,
     ];
+
+    const getStatusLabel = (status: CampaignStatus | 'ALL' | 'NOT_CANCELLED') => {
+      if (status === 'ALL') return 'Todos';
+      if (status === 'NOT_CANCELLED') return 'Activas'; // Todas menos canceladas
+      return CampaignStatusLabels[status];
+    };
 
     return (
       <View style={styles.filterWrapper}>
@@ -166,7 +181,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
                   selectedStatus === status && styles.filterButtonTextActive,
                 ]}
               >
-                {status === 'ALL' ? 'Todos' : CampaignStatusLabels[status]}
+                {getStatusLabel(status)}
               </Text>
             </TouchableOpacity>
           ))}

@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { userPermissionsApi } from '@/services/api/roles';
+import {
+  hasPermissionWithHierarchy,
+  hasAnyPermissionWithHierarchy,
+  hasAllPermissionsWithHierarchy,
+  getEffectivePermissions,
+} from '@/utils/permissionHierarchy';
 
 export const usePermissions = () => {
   const { user, clearInvalidAuth } = useAuthStore();
@@ -99,7 +105,8 @@ export const usePermissions = () => {
     if (!Array.isArray(permissions)) {
       return false;
     }
-    return permissions.includes(permission);
+    // Usar jerarquía de permisos
+    return hasPermissionWithHierarchy(permissions, permission);
   };
 
   const hasAnyPermission = (perms: string[]): boolean => {
@@ -109,7 +116,8 @@ export const usePermissions = () => {
     if (!Array.isArray(permissions)) {
       return false;
     }
-    return perms.some((perm) => permissions.includes(perm));
+    // Usar jerarquía de permisos
+    return hasAnyPermissionWithHierarchy(permissions, perms);
   };
 
   const hasAllPermissions = (perms: string[]): boolean => {
@@ -119,7 +127,8 @@ export const usePermissions = () => {
     if (!Array.isArray(permissions)) {
       return false;
     }
-    return perms.every((perm) => permissions.includes(perm));
+    // Usar jerarquía de permisos
+    return hasAllPermissionsWithHierarchy(permissions, perms);
   };
 
   const hasModuleAccess = (module: string): boolean => {
@@ -139,8 +148,12 @@ export const usePermissions = () => {
     return permissions.filter((perm) => perm.startsWith(`${module}.`));
   };
 
+  // Obtener permisos efectivos (incluyendo heredados)
+  const effectivePermissions = getEffectivePermissions(permissions);
+
   return {
     permissions,
+    effectivePermissions,
     loading,
     error,
     refreshPermissions,

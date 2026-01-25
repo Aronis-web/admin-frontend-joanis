@@ -58,6 +58,10 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   const [selectedAreaId, setSelectedAreaId] = useState<string>('all');
   const [showAreaPicker, setShowAreaPicker] = useState(false);
 
+  // ✅ Stock level filter state
+  const [stockLevelFilter, setStockLevelFilter] = useState<'all' | 'normal' | 'no-stock'>('normal');
+  const [showStockLevelPicker, setShowStockLevelPicker] = useState(false);
+
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
@@ -153,7 +157,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
       grouped[item.productId].push(item);
     });
 
-    return Object.entries(grouped).map(([productId, items]) => ({
+    const allProducts = Object.entries(grouped).map(([productId, items]) => ({
       productId,
       productTitle: items[0].productTitle || 'Sin nombre',
       productSku: items[0].productSku || 'Sin SKU',
@@ -170,7 +174,15 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
       items,
       minStockAlert: items[0].minStockAlert,
     }));
-  }, [filteredStockItems]);
+
+    // ✅ Aplicar filtro de nivel de stock
+    if (stockLevelFilter === 'normal') {
+      return allProducts.filter((p) => p.totalStock > 0);
+    } else if (stockLevelFilter === 'no-stock') {
+      return allProducts.filter((p) => p.totalStock === 0);
+    }
+    return allProducts;
+  }, [filteredStockItems, stockLevelFilter]);
 
   // ✅ Handlers simplificados
   const onRefresh = useCallback(() => {
@@ -295,6 +307,24 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
       <View style={styles.container}>
         {/* Filters Container */}
         <View style={styles.filtersWrapper}>
+          {/* Stock Level Filter */}
+          <View style={styles.filterContainer}>
+            <Text style={styles.filterLabel}>Nivel de Stock:</Text>
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setShowStockLevelPicker(true)}
+            >
+              <Text style={styles.filterButtonText}>
+                {stockLevelFilter === 'all'
+                  ? 'Todos'
+                  : stockLevelFilter === 'normal'
+                    ? 'Stock Normal'
+                    : 'Sin Stock'}
+              </Text>
+              <Text style={styles.filterButtonIcon}>▼</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Warehouse Filter */}
           <View style={styles.filterContainer}>
             <Text style={styles.filterLabel}>Almacén:</Text>
@@ -493,6 +523,88 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                     </TouchableOpacity>
                   ))
                 )}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Stock Level Picker Modal */}
+        <Modal
+          visible={showStockLevelPicker}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowStockLevelPicker(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowStockLevelPicker(false)}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Seleccionar Nivel de Stock</Text>
+                <TouchableOpacity onPress={() => setShowStockLevelPicker(false)}>
+                  <Text style={styles.modalCloseButton}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.modalList}>
+                <TouchableOpacity
+                  style={[
+                    styles.modalItem,
+                    stockLevelFilter === 'normal' && styles.modalItemSelected,
+                  ]}
+                  onPress={() => {
+                    setStockLevelFilter('normal');
+                    setShowStockLevelPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      stockLevelFilter === 'normal' && styles.modalItemTextSelected,
+                    ]}
+                  >
+                    Stock Normal (con stock)
+                  </Text>
+                  {stockLevelFilter === 'normal' && <Text style={styles.modalItemCheck}>✓</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalItem,
+                    stockLevelFilter === 'no-stock' && styles.modalItemSelected,
+                  ]}
+                  onPress={() => {
+                    setStockLevelFilter('no-stock');
+                    setShowStockLevelPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      stockLevelFilter === 'no-stock' && styles.modalItemTextSelected,
+                    ]}
+                  >
+                    Sin Stock
+                  </Text>
+                  {stockLevelFilter === 'no-stock' && <Text style={styles.modalItemCheck}>✓</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalItem, stockLevelFilter === 'all' && styles.modalItemSelected]}
+                  onPress={() => {
+                    setStockLevelFilter('all');
+                    setShowStockLevelPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      stockLevelFilter === 'all' && styles.modalItemTextSelected,
+                    ]}
+                  >
+                    Todos
+                  </Text>
+                  {stockLevelFilter === 'all' && <Text style={styles.modalItemCheck}>✓</Text>}
+                </TouchableOpacity>
               </ScrollView>
             </View>
           </TouchableOpacity>

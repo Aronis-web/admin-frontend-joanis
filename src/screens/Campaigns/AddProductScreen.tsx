@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
@@ -530,6 +531,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                       }}
                       activeOpacity={isAlreadyAdded ? 1 : 0.7}
                     >
+                      {/* ✅ Product Image */}
+                      {product.imageUrl && (
+                        <Image
+                          source={{ uri: product.imageUrl }}
+                          style={styles.suggestionImage}
+                          resizeMode="cover"
+                        />
+                      )}
                       <View style={styles.suggestionContent}>
                         <Text
                           style={[
@@ -1134,9 +1143,11 @@ const styles = StyleSheet.create({
     maxHeight: 300,
   },
   suggestionItem: {
+    flexDirection: 'row', // ✅ Para alinear imagen y contenido
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
+    alignItems: 'center',
   },
   suggestionItemTablet: {
     padding: 16,
@@ -1152,6 +1163,13 @@ const styles = StyleSheet.create({
   },
   suggestionContent: {
     flex: 1,
+  },
+  suggestionImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F1F5F9',
   },
   suggestionTitle: {
     fontSize: 14,

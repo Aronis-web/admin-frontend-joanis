@@ -23,6 +23,8 @@ import { ProductPriceProfilesModal } from '@/components/Inventory/ProductPricePr
 import { productsApi, Product } from '@/services/api/products';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { useProducts } from '@/hooks/api/useProducts';
+import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
+import { PERMISSIONS } from '@/constants/permissions';
 
 interface ProductsScreenProps {
   navigation: any;
@@ -459,7 +461,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
       {/* Action Buttons */}
       <ProtectedElement
-        requiredPermissions={['products.create']}
+        requiredPermissions={[PERMISSIONS.PRODUCTS.CREATE]}
         requireAll={false}
         fallback={null}
       >
@@ -606,33 +608,25 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                     </Text>
                   </TouchableOpacity>
 
-                  <ProtectedElement
-                    requiredPermissions={['products.update']}
-                    requireAll={false}
-                    fallback={null}
+                  <ProtectedTouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleEditProduct(product)}
+                    requiredPermissions={[PERMISSIONS.PRODUCTS.UPDATE]}
+                    hideIfNoPermission={true}
                   >
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleEditProduct(product)}
-                    >
-                      <Text style={styles.actionButtonText}>✏️ Editar</Text>
-                    </TouchableOpacity>
-                  </ProtectedElement>
+                    <Text style={styles.actionButtonText}>✏️ Editar</Text>
+                  </ProtectedTouchableOpacity>
 
-                  <ProtectedElement
-                    requiredPermissions={['products.delete']}
-                    requireAll={false}
-                    fallback={null}
+                  <ProtectedTouchableOpacity
+                    style={[styles.actionButton, styles.deleteButton]}
+                    onPress={() => handleDeleteProduct(product)}
+                    requiredPermissions={[PERMISSIONS.PRODUCTS.DELETE]}
+                    hideIfNoPermission={true}
                   >
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.deleteButton]}
-                      onPress={() => handleDeleteProduct(product)}
-                    >
-                      <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
-                        🗑️ Eliminar
-                      </Text>
-                    </TouchableOpacity>
-                  </ProtectedElement>
+                    <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
+                      🗑️ Eliminar
+                    </Text>
+                  </ProtectedTouchableOpacity>
                 </View>
               </View>
             ))}

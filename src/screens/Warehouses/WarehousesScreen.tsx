@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { warehousesApi } from '@/services/api';
 import { Warehouse, CreateWarehouseRequest, UpdateWarehouseRequest } from '@/types/warehouses';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
+import { PERMISSIONS } from '@/constants/permissions';
 
 interface WarehousesScreenProps {
   navigation: any;
@@ -216,15 +218,22 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
         <TouchableOpacity style={styles.areasButton} onPress={() => openAreasScreen(warehouse)}>
           <Text style={styles.areasButtonText}>📍 Áreas</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.editButton} onPress={() => openEditModal(warehouse)}>
+        <ProtectedTouchableOpacity
+          style={styles.editButton}
+          onPress={() => openEditModal(warehouse)}
+          requiredPermissions={[PERMISSIONS.WAREHOUSES.UPDATE]}
+          hideIfNoPermission={true}
+        >
           <Text style={styles.editButtonText}>✏️</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </ProtectedTouchableOpacity>
+        <ProtectedTouchableOpacity
           style={styles.deleteButton}
           onPress={() => handleDeleteWarehouse(warehouse)}
+          requiredPermissions={[PERMISSIONS.WAREHOUSES.DELETE]}
+          hideIfNoPermission={true}
         >
           <Text style={styles.deleteButtonText}>🗑️</Text>
-        </TouchableOpacity>
+        </ProtectedTouchableOpacity>
       </View>
     </View>
   );
@@ -261,14 +270,15 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
           <Text style={styles.headerTitle}>Almacenes</Text>
           <Text style={styles.headerSubtitle}>🏪 {siteName}</Text>
         </View>
-        <ProtectedElement
-          requiredPermissions={['warehouses.create']}
+        <ProtectedTouchableOpacity
+          onPress={() => setShowCreateModal(true)}
+          style={styles.addButton}
+          requiredPermissions={[PERMISSIONS.WAREHOUSES.CREATE]}
+          hideIfNoPermission={false}
           fallback={<View style={styles.placeholder} />}
         >
-          <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addButton}>
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
-        </ProtectedElement>
+          <Text style={styles.addButtonText}>+</Text>
+        </ProtectedTouchableOpacity>
       </View>
 
       {/* Search Bar */}

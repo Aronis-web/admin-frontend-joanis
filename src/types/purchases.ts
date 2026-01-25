@@ -310,6 +310,7 @@ export interface AddProductRequest {
   preliminaryLooseUnits?: number; // OPCIONAL: Unidades sueltas
   presentations: ProductPresentationConfig[]; // OBLIGATORIO: Array de presentaciones con sus factores base
   notes?: string; // OPCIONAL: Notas generales del producto
+  reference?: string; // OPCIONAL: Guía/Referencia del producto
 }
 
 /**
