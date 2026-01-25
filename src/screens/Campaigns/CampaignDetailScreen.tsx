@@ -1941,6 +1941,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           onSuccess={loadCampaign}
           mode="campaign"
           campaignProducts={campaign?.products}
+          productsMap={products}
         />
 
         {/* Floating Action Button for Bulk Update */}

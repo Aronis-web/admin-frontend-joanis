@@ -23,6 +23,7 @@ interface BulkUpdateModalProps {
   onSuccess?: () => void;
   mode: 'products' | 'campaign';
   campaignProducts?: Array<{ productId: string; product?: { correlativeNumber?: number } }>;
+  productsMap?: Record<string, { correlativeNumber?: number }>;
 }
 
 export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
@@ -31,6 +32,7 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
   onSuccess,
   mode,
   campaignProducts,
+  productsMap,
 }) => {
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState('');
@@ -55,10 +57,18 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
       } else if (mode === 'campaign' && campaignProducts) {
         // Para campaña, enviar los correlativos de los productos
         logger.info('📦 Campaign products received:', campaignProducts.length);
+        logger.info('📦 Products map available:', productsMap ? Object.keys(productsMap).length : 0);
 
         const correlatives = campaignProducts
           .map((cp) => {
-            const correlative = cp.product?.correlativeNumber;
+            // Primero intentar obtener del producto embebido
+            let correlative = cp.product?.correlativeNumber;
+
+            // Si no está en el producto embebido, buscar en el productsMap
+            if (!correlative && productsMap && productsMap[cp.productId]) {
+              correlative = productsMap[cp.productId].correlativeNumber;
+            }
+
             logger.info(`Product ${cp.productId}: correlative = ${correlative}`);
             return correlative;
           })
