@@ -38,8 +38,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        setPhoto(result.assets[0].uri);
+      console.log('📷 Camera result:', result);
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const photoUri = result.assets[0].uri;
+        console.log('✅ Photo captured:', photoUri);
+        setPhoto(photoUri);
+      } else {
+        console.log('❌ Photo capture canceled or no assets');
       }
     } catch (error) {
       console.error('Error taking photo:', error);
@@ -56,8 +62,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        setPhoto(result.assets[0].uri);
+      console.log('🖼️ Gallery result:', result);
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const photoUri = result.assets[0].uri;
+        console.log('✅ Photo selected:', photoUri);
+        setPhoto(photoUri);
+      } else {
+        console.log('❌ Photo selection canceled or no assets');
       }
     } catch (error) {
       console.error('Error selecting photo:', error);
