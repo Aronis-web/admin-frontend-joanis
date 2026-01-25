@@ -464,6 +464,42 @@ export const productsApi = {
   }> => {
     return apiClient.get(`/admin/products/bulk/history/${id}`);
   },
+
+  // ========== BULK UPDATE ENDPOINTS ==========
+
+  // Download bulk update format - POST /admin/products/bulk/download-update-format
+  downloadBulkUpdateFormat: async (filters?: {
+    fromCorrelative?: number;
+    toCorrelative?: number;
+    correlatives?: number[];
+    fromDate?: string;
+    toDate?: string;
+    campaignId?: string;
+  }): Promise<Blob> => {
+    return apiClient.post('/admin/products/bulk/download-update-format', filters, {
+      responseType: 'blob',
+    });
+  },
+
+  // Upload bulk update file - POST /admin/products/bulk/update
+  uploadBulkUpdate: async (
+    file: File | Blob | any
+  ): Promise<{
+    successCount: number;
+    errorCount: number;
+    totalRows: number;
+    errors: Array<{
+      row: number;
+      error: string;
+      correlative?: number;
+      sku?: string;
+    }>;
+    updatedProductIds: string[];
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post('/admin/products/bulk/update', formData);
+  },
 };
 
 // Example usage functions as specified in the documentation

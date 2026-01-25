@@ -1201,23 +1201,39 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                       </Text>
                     </View>
 
-                    {/* Advertencia Importante */}
-                    <View style={styles.warningBox}>
-                      <Text style={styles.warningTitle}>⚠️ Importante</Text>
-                      <Text style={styles.warningText}>
-                        Esta acción creará los registros de distribución y NO se puede deshacer.
-                        Revisa cuidadosamente las cantidades antes de confirmar.
-                      </Text>
-                    </View>
+                    {/* Advertencia de diferencia entre stock disponible y cantidad a distribuir */}
+                    {(() => {
+                      const stockDetails =
+                        adjustedDistribution.stockDetails || localStockData || [];
+                      const totalAvailableStock = stockDetails.reduce(
+                        (sum, stock) => sum + stock.available,
+                        0
+                      );
+                      const quantityToDistribute = editableTotalQuantity || adjustedDistribution.totalQuantity;
 
-                    {/* Información sobre generación automática */}
-                    <View style={styles.infoBoxModal}>
-                      <Text style={styles.infoBoxTitle}>ℹ️ Generación Automática</Text>
-                      <Text style={styles.infoBoxText}>
-                        Al confirmar, se creará automáticamente un reparto con las cantidades
-                        calculadas y se reservará el stock necesario.
-                      </Text>
-                    </View>
+                      if (totalAvailableStock !== quantityToDistribute && totalAvailableStock > 0) {
+                        return (
+                          <View style={styles.stockDifferenceWarning}>
+                            <Text style={styles.stockDifferenceWarningIcon}>⚠️</Text>
+                            <View style={styles.stockDifferenceWarningTextContainer}>
+                              <Text style={styles.stockDifferenceWarningTitle}>
+                                Stock disponible y cantidad a distribuir son diferentes
+                              </Text>
+                              <Text style={styles.stockDifferenceWarningText}>
+                                Stock disponible: {totalAvailableStock} unidades{'\n'}
+                                Cantidad a distribuir: {quantityToDistribute} unidades
+                                {totalAvailableStock < quantityToDistribute
+                                  ? '\n\n⚠️ No hay suficiente stock disponible'
+                                  : totalAvailableStock > quantityToDistribute
+                                  ? '\n\nℹ️ Quedará stock sin distribuir'
+                                  : ''}
+                              </Text>
+                            </View>
+                          </View>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     {/* Selector de Presentación */}
                     {product?.product?.presentations &&
@@ -1788,27 +1804,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                       </TouchableOpacity>
                     </View>
 
-                    {/* Información sobre ajustes */}
-                    <View style={styles.infoBox}>
-                      <Text style={styles.infoTitle}>ℹ️ Información Importante</Text>
-                      <Text style={styles.infoText}>
-                        {selectedDistributionType === DistributionType.CUSTOM ? (
-                          <>
-                            • Ingresa las cantidades manualmente para cada participante{'\n'}• La
-                            suma NO debe exceder el total disponible{'\n'}• Puedes dejar
-                            participantes en 0 si no recibirán producto{'\n'}• Una vez generado, el
-                            reparto NO se puede modificar
-                          </>
-                        ) : (
-                          <>
-                            • Las cantidades se calculan proporcionalmente según los montos
-                            asignados{'\n'}• El remanente por redondeo se distribuirá
-                            automáticamente{'\n'}• Puedes cambiar el tipo de distribución antes de
-                            generar{'\n'}• Una vez generado, el reparto NO se puede modificar
-                          </>
-                        )}
-                      </Text>
-                    </View>
+
                   </>
                 )}
               </ScrollView>

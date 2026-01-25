@@ -25,6 +25,7 @@ import { AddButton } from '@/components/Navigation/AddButton';
 import { useProducts } from '@/hooks/api/useProducts';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 import { PERMISSIONS } from '@/constants/permissions';
+import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
 
 interface ProductsScreenProps {
   navigation: any;
@@ -46,6 +47,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const [selectedProductForPrices, setSelectedProductForPrices] = useState<Product | null>(null);
   const [page, setPage] = useState(1);
   const limit = 20;
+  const [isBulkUpdateModalVisible, setIsBulkUpdateModalVisible] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
@@ -460,13 +462,26 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       </View>
 
       {/* Action Buttons */}
-      <ProtectedElement
-        requiredPermissions={[PERMISSIONS.PRODUCTS.CREATE]}
-        requireAll={false}
-        fallback={null}
-      >
-        <AddButton onPress={handleCreateProduct} icon="📦" />
-      </ProtectedElement>
+      <View style={styles.floatingButtonsContainer} pointerEvents="box-none">
+        <ProtectedElement
+          requiredPermissions={[PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE]}
+          requireAll={false}
+          fallback={null}
+        >
+          <AddButton
+            onPress={() => setIsBulkUpdateModalVisible(true)}
+            icon="📊"
+            label="Actualizar"
+          />
+        </ProtectedElement>
+        <ProtectedElement
+          requiredPermissions={[PERMISSIONS.PRODUCTS.CREATE]}
+          requireAll={false}
+          fallback={null}
+        >
+          <AddButton onPress={handleCreateProduct} icon="📦" />
+        </ProtectedElement>
+      </View>
 
       {/* Products List */}
       <ScrollView
@@ -997,6 +1012,14 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           </SafeAreaView>
         </Modal>
       )}
+
+      {/* Bulk Update Modal */}
+      <BulkUpdateModal
+        visible={isBulkUpdateModalVisible}
+        onClose={() => setIsBulkUpdateModalVisible(false)}
+        onSuccess={handleProductSuccess}
+        mode="products"
+      />
     </SafeAreaView>
   );
 };
@@ -1603,6 +1626,13 @@ const styles = StyleSheet.create({
   },
   paginationButtonTextDisabled: {
     color: '#94A3B8',
+  },
+  floatingButtonsContainer: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    zIndex: 9998,
+    pointerEvents: 'box-none',
   },
 });
 

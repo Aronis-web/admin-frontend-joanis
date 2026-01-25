@@ -30,6 +30,8 @@ export const PERMISSIONS = {
     READ: 'products.read',
     UPDATE: 'products.update',
     DELETE: 'products.delete',
+    PRICES_DOWNLOAD: 'products.prices.download',
+    PRICES_UPDATE: 'products.prices.update',
   },
 
   // ========== CATEGORÍAS ==========

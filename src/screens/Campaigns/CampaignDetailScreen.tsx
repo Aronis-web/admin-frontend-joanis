@@ -38,6 +38,10 @@ import { PriceProfile, ProductSalePrice } from '@/types/price-profiles';
 import { ParticipantTotalsResponse } from '@/types/participant-totals';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
+import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
+import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import { PERMISSIONS } from '@/constants/permissions';
 
 interface CampaignDetailScreenProps {
   navigation: any;
@@ -46,6 +50,7 @@ interface CampaignDetailScreenProps {
       campaignId: string;
       shouldReload?: boolean;
       skipReloadOnce?: boolean;
+      updatedProductId?: string;
     };
   };
 }
@@ -89,6 +94,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [downloadingReport, setDownloadingReport] = useState(false);
   const { width, height } = useWindowDimensions();
   const hasLoadedRef = useRef(false);
+  const [isBulkUpdateModalVisible, setIsBulkUpdateModalVisible] = useState(false);
 
   const isTablet = width >= 768 || height >= 768;
 
@@ -222,29 +228,42 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         // OPTIMIZATION: Cargar precios de venta para todos los productos visibles
         // Esto permite mostrar los primeros 2 perfiles en la vista de lista
         // Se cargan en paralelo para mejor rendimiento
+        // Solo se cargan para productos que existen en el catálogo (no preliminares)
         logger.debug('⚡ [PERF] Cargando precios de venta para productos visibles...');
 
-        const productIds = data.products.map(p => p.productId);
-        const salePricesPromises = productIds.map(productId =>
-          priceProfilesApi.getProductSalePrices(productId)
-            .then((response) => {
-              const salePricesArray = (response as any).salePrices || response.data || [];
-              return { productId, salePrices: salePricesArray };
-            })
-            .catch((error) => {
-              logger.error(`Error loading prices for product ${productId}:`, error);
-              return { productId, salePrices: [] };
-            })
-        );
+        const productIds = data.products
+          .filter(p => {
+            // Solo cargar precios para productos que tienen datos embebidos o están en productsMap
+            const productExists = p.product || productsMap[p.productId];
+            const isPreliminary = productExists && (productExists as any).status === 'preliminary';
+            return productExists && !isPreliminary;
+          })
+          .map(p => p.productId);
 
-        Promise.all(salePricesPromises).then((results) => {
-          const salePricesMap: Record<string, any[]> = {};
-          results.forEach(({ productId, salePrices }) => {
-            salePricesMap[productId] = salePrices;
+        if (productIds.length > 0) {
+          const salePricesPromises = productIds.map(productId =>
+            priceProfilesApi.getProductSalePrices(productId)
+              .then((response) => {
+                const salePricesArray = (response as any).salePrices || response.data || [];
+                return { productId, salePrices: salePricesArray };
+              })
+              .catch((error) => {
+                logger.debug(`⚠️ [PERF] No se pudieron cargar precios para producto ${productId} (puede ser preliminar o no existir)`);
+                return { productId, salePrices: [] };
+              })
+          );
+
+          Promise.all(salePricesPromises).then((results) => {
+            const salePricesMap: Record<string, any[]> = {};
+            results.forEach(({ productId, salePrices }) => {
+              salePricesMap[productId] = salePrices;
+            });
+            setProductSalePrices(salePricesMap);
+            logger.debug(`✅ [PERF] Precios de venta cargados para ${Object.keys(salePricesMap).length} productos`);
           });
-          setProductSalePrices(salePricesMap);
-          logger.debug('✅ [PERF] Precios de venta cargados para todos los productos');
-        });
+        } else {
+          logger.debug('⚠️ [PERF] No hay productos válidos para cargar precios');
+        }
       }
     } catch (error: any) {
       logger.error('Error loading campaign:', error);
@@ -1173,30 +1192,37 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         newSet.add(productId);
 
         // OPTIMIZATION: Cargar precios solo cuando se expande por primera vez
-        // Solo si no están ya cargados
+        // Solo si no están ya cargados y el producto existe en el catálogo
         if (!productSalePrices[productId]) {
-          logger.debug('⚡ [PERF] Cargando precios para producto expandido:', productId);
+          const productDetails = products[productId];
+          const isPreliminary = productDetails && (productDetails as any).status === 'preliminary';
 
-          // Cargar precios en background
-          priceProfilesApi.getProductSalePrices(productId)
-            .then((response) => {
-              const salePricesArray = (response as any).salePrices || response.data || [];
+          if (productDetails && !isPreliminary) {
+            logger.debug('⚡ [PERF] Cargando precios para producto expandido:', productId);
 
-              setProductSalePrices((prevPrices) => ({
-                ...prevPrices,
-                [productId]: salePricesArray,
-              }));
+            // Cargar precios en background
+            priceProfilesApi.getProductSalePrices(productId)
+              .then((response) => {
+                const salePricesArray = (response as any).salePrices || response.data || [];
 
-              logger.debug('✅ [PERF] Precios cargados para producto:', productId);
-            })
-            .catch((error) => {
-              logger.error('❌ [PERF] Error cargando precios:', error);
-            });
+                setProductSalePrices((prevPrices) => ({
+                  ...prevPrices,
+                  [productId]: salePricesArray,
+                }));
+
+                logger.debug('✅ [PERF] Precios cargados para producto:', productId);
+              })
+              .catch((error) => {
+                logger.debug('⚠️ [PERF] No se pudieron cargar precios para producto (puede ser preliminar o no existir)');
+              });
+          } else {
+            logger.debug('⚠️ [PERF] Producto preliminar o no existe, no se cargan precios');
+          }
         }
       }
       return newSet;
     });
-  }, [productSalePrices]);
+  }, [productSalePrices, products]);
 
   const handleStartEditCost = useCallback((productId: string, currentCost: number) => {
     setEditingCost({
@@ -1907,6 +1933,32 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           }
           onClose={handleCloseBanner}
         />
+
+        {/* Bulk Update Modal */}
+        <BulkUpdateModal
+          visible={isBulkUpdateModalVisible}
+          onClose={() => setIsBulkUpdateModalVisible(false)}
+          onSuccess={loadCampaign}
+          mode="campaign"
+          campaignId={campaignId}
+        />
+
+        {/* Floating Action Button for Bulk Update */}
+        {activeTab === 'products' && campaign?.products && campaign.products.length > 0 && (
+          <View style={styles.floatingButtonContainer} pointerEvents="box-none">
+            <ProtectedElement
+              requiredPermissions={[PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE]}
+              requireAll={false}
+              fallback={null}
+            >
+              <AddButton
+                onPress={() => setIsBulkUpdateModalVisible(true)}
+                icon="📊"
+                label="Actualizar"
+              />
+            </ProtectedElement>
+          </View>
+        )}
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -2868,5 +2920,12 @@ const styles = StyleSheet.create({
   },
   modalButtonTextTablet: {
     fontSize: 16,
+  },
+  floatingButtonContainer: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    zIndex: 9998,
+    pointerEvents: 'box-none',
   },
 });
