@@ -71,70 +71,60 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
 
       if (Platform.OS === 'web') {
         // Web: Create download link
-        const url = window.URL.createObjectURL(response);
+        const blobUrl = URL.createObjectURL(response);
         const link = document.createElement('a');
-        link.href = url;
+        link.href = blobUrl;
         link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+
+        // Clean up the blob URL after a short delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+
+        Alert.alert(
+          'Éxito',
+          'Formato descargado correctamente. Modifica el archivo y súbelo para actualizar los productos.'
+        );
       } else {
-        // Mobile: The response is already a blob with _data property
-        // We need to read it as base64 using FileReader API available in RN
-        const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+        // Mobile: Use new FileSystem API (same as CampaignDetailScreen)
+        const timestamp = new Date().getTime();
+        const fileName = `productos_actualizacion_${timestamp}.xlsx`;
+        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
 
-        // In React Native, the blob response has a special structure
-        // We can use FileReader from react-native to convert it
-        if (typeof response === 'object' && response._data) {
-          // Use the blob's data method to get base64
+        // Convert blob to array buffer using FileReader
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onloadend = async () => {
-            try {
-              const base64data = reader.result as string;
-              const base64 = base64data.split(',')[1];
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(response);
+        });
 
-              await FileSystem.writeAsStringAsync(fileUri, base64, {
-                encoding: 'base64',
-              });
+        // Write to file
+        await file.create();
+        const writer = file.writableStream().getWriter();
+        await writer.write(new Uint8Array(arrayBuffer));
+        await writer.close();
 
-              logger.info('✅ Archivo guardado exitosamente:', fileUri);
+        logger.info('✅ Archivo guardado exitosamente:', file.uri);
 
-              // Share the file
-              if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(fileUri, {
-                  mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                  dialogTitle: 'Guardar formato de actualización',
-                  UTI: 'com.microsoft.excel.xlsx',
-                });
-                Alert.alert(
-                  'Éxito',
-                  'Formato descargado correctamente. Modifica el archivo y súbelo para actualizar los productos.'
-                );
-              } else {
-                Alert.alert('Éxito', `Archivo guardado en: ${fileUri}`);
-              }
-            } catch (error) {
-              logger.error('❌ Error saving file:', error);
-              Alert.alert('Error', 'No se pudo guardar el archivo');
-            }
-          };
-          reader.onerror = () => {
-            logger.error('❌ Error reading blob');
-            Alert.alert('Error', 'No se pudo leer el archivo');
-          };
-          reader.readAsDataURL(response as Blob);
+        // Share the file
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            dialogTitle: 'Formato de Actualización',
+            UTI: 'org.openxmlformats.spreadsheetml.sheet',
+          });
         } else {
-          Alert.alert('Error', 'Formato de respuesta no válido');
+          Alert.alert('Éxito', `Archivo guardado en: ${file.uri}`);
         }
-        return; // Exit early for mobile, alert is shown in callback
-      }
 
-      // Web success message
-      Alert.alert(
-        'Éxito',
-        'Formato descargado correctamente. Modifica el archivo y súbelo para actualizar los productos.'
-      );
+        Alert.alert(
+          'Éxito',
+          'Formato descargado correctamente. Modifica el archivo y súbelo para actualizar los productos.'
+        );
+      }
     } catch (error: any) {
       logger.error('❌ Error descargando formato:', error);
       Alert.alert(
