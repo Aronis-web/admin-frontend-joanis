@@ -1954,8 +1954,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             >
               <AddButton
                 onPress={() => setIsBulkUpdateModalVisible(true)}
-                icon="📊"
-                label="Actualizar"
+                icon="💵"
+                label="Precios"
               />
             </ProtectedElement>
           </View>

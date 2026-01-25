@@ -464,22 +464,26 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       {/* Action Buttons */}
       <View style={styles.floatingButtonsContainer} pointerEvents="box-none">
         <ProtectedElement
-          requiredPermissions={[PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE]}
-          requireAll={false}
-          fallback={null}
-        >
-          <AddButton
-            onPress={() => setIsBulkUpdateModalVisible(true)}
-            icon="📊"
-            label="Actualizar"
-          />
-        </ProtectedElement>
-        <ProtectedElement
           requiredPermissions={[PERMISSIONS.PRODUCTS.CREATE]}
           requireAll={false}
           fallback={null}
         >
-          <AddButton onPress={handleCreateProduct} icon="📦" />
+          <View style={styles.fabWrapper}>
+            <AddButton onPress={handleCreateProduct} icon="📦" />
+          </View>
+        </ProtectedElement>
+        <ProtectedElement
+          requiredPermissions={[PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE]}
+          requireAll={false}
+          fallback={null}
+        >
+          <View style={styles.fabWrapper}>
+            <AddButton
+              onPress={() => setIsBulkUpdateModalVisible(true)}
+              icon="💵"
+              label="Precios"
+            />
+          </View>
         </ProtectedElement>
       </View>
 
@@ -1633,6 +1637,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 9998,
     pointerEvents: 'box-none',
+    flexDirection: 'column-reverse',
+    gap: 10,
+  },
+  fabWrapper: {
+    pointerEvents: 'auto',
   },
 });
 
