@@ -24,12 +24,17 @@ import { ReconcileAmountModal } from '@/components/Expenses/ReconcileAmountModal
 import { PaymentsModal } from '@/components/Expenses/PaymentsModal';
 import { ExpenseReportModal } from '@/components/Expenses/ExpenseReportModal';
 import { usePermissions } from '@/hooks/usePermissions';
+import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
+import { useScreenTracking } from '@/hooks/useScreenTracking';
 
 interface ExpensesScreenProps {
   navigation: any;
 }
 
 export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) => {
+  // Screen tracking
+  useScreenTracking('ExpensesScreen', 'ExpensesScreen');
+
   const [selectedStatus, setSelectedStatus] = useState<ExpenseStatus | 'ALL'>('ALL');
   const [reconcileModalVisible, setReconcileModalVisible] = useState(false);
   const [paymentsModalVisible, setPaymentsModalVisible] = useState(false);
@@ -200,51 +205,32 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
     setPaymentsModalVisible(true);
   }, []);
 
-  const statuses: Array<ExpenseStatus | 'ALL'> = useMemo(
-    () => [
-      'ALL',
-      ExpenseStatus.PENDING,
-      ExpenseStatus.APPROVED,
-      ExpenseStatus.PAID,
-      ExpenseStatus.CANCELLED,
-    ],
-    []
-  );
+  // Status filter options using new StatusFilter component
+  const statusOptions: StatusOption[] = useMemo(() => {
+    const getStatusColor = (status: ExpenseStatus | 'ALL'): string => {
+      if (status === 'ALL') return '#6366F1';
+      switch (status) {
+        case ExpenseStatus.PENDING:
+          return '#F59E0B';
+        case ExpenseStatus.APPROVED:
+          return '#10B981';
+        case ExpenseStatus.PAID:
+          return '#3B82F6';
+        case ExpenseStatus.CANCELLED:
+          return '#EF4444';
+        default:
+          return '#6B7280';
+      }
+    };
 
-  const renderStatusFilter = useMemo(() => {
-    return (
-      <View style={styles.filterWrapper}>
-        <Text style={styles.filterLabel}>Estado:</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContent}
-        >
-          {statuses.map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.filterButton,
-                isTablet && styles.filterButtonTablet,
-                selectedStatus === status && styles.filterButtonActive,
-              ]}
-              onPress={() => setSelectedStatus(status)}
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  isTablet && styles.filterButtonTextTablet,
-                  selectedStatus === status && styles.filterButtonTextActive,
-                ]}
-              >
-                {status === 'ALL' ? 'Todos' : ExpenseStatusLabels[status]}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  }, [statuses, isTablet, selectedStatus]);
+    return [
+      { value: 'ALL', label: 'Todos', color: '#6366F1' },
+      { value: ExpenseStatus.PENDING, label: ExpenseStatusLabels[ExpenseStatus.PENDING], color: getStatusColor(ExpenseStatus.PENDING) },
+      { value: ExpenseStatus.APPROVED, label: ExpenseStatusLabels[ExpenseStatus.APPROVED], color: getStatusColor(ExpenseStatus.APPROVED) },
+      { value: ExpenseStatus.PAID, label: ExpenseStatusLabels[ExpenseStatus.PAID], color: getStatusColor(ExpenseStatus.PAID) },
+      { value: ExpenseStatus.CANCELLED, label: ExpenseStatusLabels[ExpenseStatus.CANCELLED], color: getStatusColor(ExpenseStatus.CANCELLED) },
+    ];
+  }, []);
 
   const renderContent = () => {
     if (isLoading && !isRefetching) {
@@ -349,7 +335,12 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
         </TouchableOpacity>
       </View>
       <View style={styles.container}>
-        {renderStatusFilter}
+        <StatusFilter
+          statuses={statusOptions}
+          selectedStatus={selectedStatus}
+          onStatusChange={(status) => setSelectedStatus(status as ExpenseStatus | 'ALL')}
+          style={styles.statusFilter}
+        />
         {renderContent()}
 
         {/* Download Report Button - Above Add Button */}
@@ -423,49 +414,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
-  filterWrapper: {
+  statusFilter: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
-  },
-  filterLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 8,
-  },
-  filterContent: {
-    paddingRight: 16,
-    gap: 8,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  filterButtonTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  filterButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  filterButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  filterButtonTextTablet: {
-    fontSize: 14,
-  },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
   },
   scrollView: {
     flex: 1,

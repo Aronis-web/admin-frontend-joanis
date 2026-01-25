@@ -23,13 +23,21 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { AddButton } from '@/components/Navigation/AddButton';
+import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
+import { SearchBar } from '@/components/common/SearchBar';
+import { useScreenTracking } from '@/hooks/useScreenTracking';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface PurchasesScreenProps {
   navigation: any;
 }
 
 export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) => {
+  // Screen tracking
+  useScreenTracking('PurchasesScreen', 'PurchasesScreen');
+
   const [selectedStatus, setSelectedStatus] = useState<PurchaseStatus | 'ALL'>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -38,6 +46,9 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
+
+  // Debounce search term
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   // Build query params
   const queryParams = useMemo<QueryPurchasesParams>(() => {
@@ -50,8 +61,12 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
       params.status = selectedStatus;
     }
 
+    if (debouncedSearchTerm) {
+      params.search = debouncedSearchTerm;
+    }
+
     return params;
-  }, [page, limit, selectedStatus]);
+  }, [page, limit, selectedStatus, debouncedSearchTerm]);
 
   // Fetch purchases with React Query
   const { data, isLoading, isRefetching, refetch } = usePurchases(queryParams);
@@ -147,43 +162,23 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
     []
   );
 
-  const renderStatusFilter = useMemo(
-    () => (
-      <View style={styles.filterWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContent}
-        >
-          {statuses.map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.filterButton,
-                isTablet && styles.filterButtonTablet,
-                selectedStatus === status && styles.filterButtonActive,
-              ]}
-              onPress={() => {
-                setSelectedStatus(status);
-                setPage(1); // Reset to page 1 when changing filter
-              }}
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  isTablet && styles.filterButtonTextTablet,
-                  selectedStatus === status && styles.filterButtonTextActive,
-                ]}
-              >
-                {status === 'ALL' ? 'Todos' : PurchaseStatusLabels[status]}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    ),
-    [statuses, selectedStatus, isTablet]
-  );
+  // Status filter options using new StatusFilter component
+  const statusOptions: StatusOption[] = useMemo(() => {
+    const getStatusColor = (status: PurchaseStatus | 'ALL'): string => {
+      if (status === 'ALL') return '#6366F1';
+      return PurchaseStatusColors[status] || '#6B7280';
+    };
+
+    return [
+      { value: 'ALL', label: 'Todos', color: '#6366F1' },
+      { value: PurchaseStatus.DRAFT, label: PurchaseStatusLabels[PurchaseStatus.DRAFT], color: getStatusColor(PurchaseStatus.DRAFT) },
+      { value: PurchaseStatus.IN_CAPTURE, label: PurchaseStatusLabels[PurchaseStatus.IN_CAPTURE], color: getStatusColor(PurchaseStatus.IN_CAPTURE) },
+      { value: PurchaseStatus.IN_VALIDATION, label: PurchaseStatusLabels[PurchaseStatus.IN_VALIDATION], color: getStatusColor(PurchaseStatus.IN_VALIDATION) },
+      { value: PurchaseStatus.VALIDATED, label: PurchaseStatusLabels[PurchaseStatus.VALIDATED], color: getStatusColor(PurchaseStatus.VALIDATED) },
+      { value: PurchaseStatus.CLOSED, label: PurchaseStatusLabels[PurchaseStatus.CLOSED], color: getStatusColor(PurchaseStatus.CLOSED) },
+      { value: PurchaseStatus.CANCELLED, label: PurchaseStatusLabels[PurchaseStatus.CANCELLED], color: getStatusColor(PurchaseStatus.CANCELLED) },
+    ];
+  }, []);
 
   const renderPurchaseCard = useCallback((purchase: Purchase) => {
     const totalProducts = purchase.products?.length || 0;
@@ -282,8 +277,26 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           </View>
         </View>
 
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <SearchBar
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            placeholder="Buscar por código, proveedor..."
+            onClear={() => setSearchTerm('')}
+          />
+        </View>
+
         {/* Status Filter */}
-        {renderStatusFilter}
+        <StatusFilter
+          statuses={statusOptions}
+          selectedStatus={selectedStatus}
+          onStatusChange={(status) => {
+            setSelectedStatus(status as PurchaseStatus | 'ALL');
+            setPage(1);
+          }}
+          style={styles.statusFilter}
+        />
 
         {/* Purchases List */}
         <ScrollView
@@ -410,44 +423,17 @@ const styles = StyleSheet.create({
   subtitleTablet: {
     fontSize: 16,
   },
-  filterWrapper: {
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
-  filterContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginRight: 8,
-  },
-  filterButtonTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  filterButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  filterButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  filterButtonTextTablet: {
-    fontSize: 15,
-  },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
+  statusFilter: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   content: {
     flex: 1,

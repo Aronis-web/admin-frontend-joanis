@@ -25,12 +25,16 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { AddButton } from '@/components/Navigation/AddButton';
 import logger from '@/utils/logger';
 import { useCampaigns } from '@/hooks/api/useCampaigns';
+import { useScreenTracking } from '@/hooks/useScreenTracking';
 
 interface CampaignsScreenProps {
   navigation: any;
 }
 
 export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) => {
+  // Screen tracking
+  useScreenTracking('CampaignsScreen', 'CampaignsScreen');
+
   // ✅ Por defecto mostrar todas menos canceladas
   const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL' | 'NOT_CANCELLED'>('NOT_CANCELLED');
   const [page, setPage] = useState(1);

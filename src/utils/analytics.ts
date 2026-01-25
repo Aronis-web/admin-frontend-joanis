@@ -4,9 +4,16 @@ import { logger } from './logger';
  * Analytics Tracking Utility
  *
  * This module provides a centralized way to track user events and screen views.
- * Currently logs events to console and Sentry. Can be extended to support
- * Firebase Analytics, Mixpanel, or other analytics services.
+ * Currently logs events to console and Sentry.
+ *
+ * To enable Firebase Analytics:
+ * 1. Install: npx expo install @react-native-firebase/app @react-native-firebase/analytics
+ * 2. Configure Firebase in your app.json
+ * 3. Uncomment the Firebase code below
  */
+
+// Uncomment when Firebase is installed:
+// import analytics from '@react-native-firebase/analytics';
 
 export interface AnalyticsEvent {
   name: string;
@@ -41,10 +48,10 @@ export const trackEvent = async (
       logger.info(`📊 Analytics Event: ${eventName}`, params);
     }
 
-    // TODO: Add Firebase Analytics integration
+    // Firebase Analytics integration (uncomment when installed)
     // await analytics().logEvent(eventName, params);
 
-    // TODO: Add Mixpanel integration
+    // Mixpanel integration (uncomment when installed)
     // Mixpanel.track(eventName, params);
 
   } catch (error) {
@@ -75,7 +82,7 @@ export const trackScreen = async (
       logger.info(`📱 Screen View: ${screenName}`, params);
     }
 
-    // TODO: Add Firebase Analytics integration
+    // Firebase Analytics integration (uncomment when installed)
     // await analytics().logScreenView({
     //   screen_name: screenName,
     //   screen_class: screenClass || screenName,
@@ -98,7 +105,7 @@ export const setUserProperties = async (
       logger.info('👤 User Properties:', properties);
     }
 
-    // TODO: Add Firebase Analytics integration
+    // Firebase Analytics integration (uncomment when installed)
     // await analytics().setUserProperties(properties);
 
   } catch (error) {
@@ -116,7 +123,7 @@ export const setUserId = async (userId: string): Promise<void> => {
       logger.info('👤 User ID:', userId);
     }
 
-    // TODO: Add Firebase Analytics integration
+    // Firebase Analytics integration (uncomment when installed)
     // await analytics().setUserId(userId);
 
   } catch (error) {

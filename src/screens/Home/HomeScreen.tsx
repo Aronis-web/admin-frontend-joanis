@@ -15,12 +15,16 @@ import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '@/utils/config';
 import QRCodeStyled from 'react-native-qrcode-styled';
+import { useScreenTracking } from '@/hooks/useScreenTracking';
 
 interface HomeScreenProps {
   navigation: any;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+  // Screen tracking
+  useScreenTracking('HomeScreen', 'HomeScreen');
+
   const { user, logout, currentCompany, currentSite, setCurrentCompany, setCurrentSite } =
     useAuthStore();
   const { width, height } = useWindowDimensions();
