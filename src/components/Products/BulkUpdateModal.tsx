@@ -63,7 +63,7 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
         }
       }
 
-      const blob = await productsApi.downloadBulkUpdateFormat(filters);
+      const response = await productsApi.downloadBulkUpdateFormat(filters);
 
       // Generate filename with current date
       const today = new Date().toISOString().split('T')[0];
@@ -71,7 +71,7 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
 
       if (Platform.OS === 'web') {
         // Web: Create download link
-        const url = window.URL.createObjectURL(blob);
+        const url = window.URL.createObjectURL(response);
         const link = document.createElement('a');
         link.href = url;
         link.download = filename;
@@ -80,33 +80,57 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       } else {
-        // Mobile: Save to file system and share
+        // Mobile: The response is already a blob with _data property
+        // We need to read it as base64 using FileReader API available in RN
         const fileUri = `${FileSystem.cacheDirectory}${filename}`;
 
-        // Convert blob to base64
-        const reader = new FileReader();
-        reader.readAsDataURL(blob as Blob);
-        reader.onloadend = async () => {
-          const base64data = reader.result as string;
-          const base64 = base64data.split(',')[1];
+        // In React Native, the blob response has a special structure
+        // We can use FileReader from react-native to convert it
+        if (typeof response === 'object' && response._data) {
+          // Use the blob's data method to get base64
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            try {
+              const base64data = reader.result as string;
+              const base64 = base64data.split(',')[1];
 
-          await FileSystem.writeAsStringAsync(fileUri, base64, {
-            encoding: 'base64',
-          });
+              await FileSystem.writeAsStringAsync(fileUri, base64, {
+                encoding: 'base64',
+              });
 
-          // Share the file
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(fileUri, {
-              mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              dialogTitle: 'Guardar formato de actualización',
-              UTI: 'com.microsoft.excel.xlsx',
-            });
-          } else {
-            Alert.alert('Éxito', `Archivo guardado en: ${fileUri}`);
-          }
-        };
+              logger.info('✅ Archivo guardado exitosamente:', fileUri);
+
+              // Share the file
+              if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri, {
+                  mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  dialogTitle: 'Guardar formato de actualización',
+                  UTI: 'com.microsoft.excel.xlsx',
+                });
+                Alert.alert(
+                  'Éxito',
+                  'Formato descargado correctamente. Modifica el archivo y súbelo para actualizar los productos.'
+                );
+              } else {
+                Alert.alert('Éxito', `Archivo guardado en: ${fileUri}`);
+              }
+            } catch (error) {
+              logger.error('❌ Error saving file:', error);
+              Alert.alert('Error', 'No se pudo guardar el archivo');
+            }
+          };
+          reader.onerror = () => {
+            logger.error('❌ Error reading blob');
+            Alert.alert('Error', 'No se pudo leer el archivo');
+          };
+          reader.readAsDataURL(response as Blob);
+        } else {
+          Alert.alert('Error', 'Formato de respuesta no válido');
+        }
+        return; // Exit early for mobile, alert is shown in callback
       }
 
+      // Web success message
       Alert.alert(
         'Éxito',
         'Formato descargado correctamente. Modifica el archivo y súbelo para actualizar los productos.'
