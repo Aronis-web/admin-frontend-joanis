@@ -12,6 +12,7 @@ import {
   ValidacionSalida,
   RepartoStatus,
   RepartoProgressResponse,
+  ParticipantCampaignProgressResponse,
 } from '@/types/repartos';
 
 /**
@@ -162,6 +163,19 @@ class RepartosService {
    */
   async getRepartoProgress(repartoId: string): Promise<RepartoProgressResponse> {
     return apiClient.get<RepartoProgressResponse>(`${this.basePath}/${repartoId}/progress`);
+  }
+
+  /**
+   * Get participant campaign progress
+   * Shows validation progress for all repartos of a participant in a campaign
+   */
+  async getParticipantCampaignProgress(
+    campaignParticipantId: string,
+    campaignId: string
+  ): Promise<ParticipantCampaignProgressResponse> {
+    return apiClient.get<ParticipantCampaignProgressResponse>(
+      `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/progress`
+    );
   }
 
   /**

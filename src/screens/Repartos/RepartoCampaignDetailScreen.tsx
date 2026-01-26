@@ -48,6 +48,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
   const [allProducts, setAllProducts] = useState<RepartoProducto[]>([]);
   const [downloadingParticipantId, setDownloadingParticipantId] = useState<string | null>(null);
   const [downloadingGeneralReport, setDownloadingGeneralReport] = useState(false);
+  const [participantProgress, setParticipantProgress] = useState<Map<string, { validated: number; total: number; percentage: number }>>(new Map());
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -68,6 +69,36 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       // Cargar repartos de la campaña
       const repartosData = await repartosService.getRepartosByCampaign(campaignId);
       setRepartos(repartosData);
+
+      // Cargar progreso de cada participante
+      const progressMap = new Map<string, { validated: number; total: number; percentage: number }>();
+
+      await Promise.all(
+        participantsData.map(async (participant) => {
+          try {
+            const progressData = await repartosService.getParticipantCampaignProgress(
+              participant.id,
+              campaignId
+            );
+
+            progressMap.set(participant.id, {
+              validated: progressData.overallProgress.productsValidated,
+              total: progressData.overallProgress.productsAssigned,
+              percentage: progressData.overallProgress.productsPercentage,
+            });
+          } catch (error) {
+            logger.error(`Error loading progress for participant ${participant.id}:`, error);
+            // Si falla, usar valores por defecto
+            progressMap.set(participant.id, {
+              validated: 0,
+              total: 0,
+              percentage: 0,
+            });
+          }
+        })
+      );
+
+      setParticipantProgress(progressMap);
     } catch (error: any) {
       logger.error('Error loading campaign data:', error);
       Alert.alert('Error', 'No se pudo cargar la información de la campaña');
@@ -377,32 +408,16 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           ? participant.company?.ruc || ''
           : participant.site?.code || '';
 
-      // Contar productos asignados a este participante en los repartos
-      const productosAsignados = repartos.reduce((count, reparto) => {
-        const participanteReparto = reparto.participantes?.find(
-          (p: any) => p.campaignParticipantId === participant.id
-        );
-        return count + (participanteReparto?.productos?.length || 0);
-      }, 0);
+      // Obtener progreso del participante desde el estado
+      const progress = participantProgress.get(participant.id) || {
+        validated: 0,
+        total: 0,
+        percentage: 0,
+      };
 
-      // Calcular progreso de validación del participante
-      let totalProductos = 0;
-      let productosValidados = 0;
-
-      repartos.forEach((reparto) => {
-        const participanteReparto = reparto.participantes?.find(
-          (p: any) => p.campaignParticipantId === participant.id
-        );
-        if (participanteReparto?.productos) {
-          totalProductos += participanteReparto.productos.length;
-          productosValidados += participanteReparto.productos.filter(
-            (prod: any) => prod.validationStatus === 'VALIDATED'
-          ).length;
-        }
-      });
-
-      const progressPercentage =
-        totalProductos > 0 ? Math.round((productosValidados / totalProductos) * 100) : 0;
+      const totalProductos = progress.total;
+      const productosValidados = progress.validated;
+      const progressPercentage = progress.percentage;
 
       return (
         <TouchableOpacity
@@ -441,17 +456,6 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
               </Text>
             )}
 
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                  Productos asignados
-                </Text>
-                <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                  {productosAsignados}
-                </Text>
-              </View>
-            </View>
-
             {/* Progress Row */}
             {totalProductos > 0 && (
               <View style={styles.progressRow}>
@@ -465,8 +469,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                 </View>
                 <CircularProgress
                   progress={progressPercentage}
-                  size={isTablet ? 50 : 40}
-                  strokeWidth={isTablet ? 5 : 4}
+                  size={isTablet ? 60 : 50}
+                  strokeWidth={isTablet ? 6 : 5}
                 />
               </View>
             )}
@@ -480,7 +484,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           </View>
 
           {/* Download Report Button */}
-          {productosAsignados > 0 && (
+          {totalProductos > 0 && (
             <TouchableOpacity
               style={[
                 styles.downloadParticipantButton,
@@ -508,7 +512,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     },
     [
       isTablet,
-      repartos,
+      participantProgress,
       handleParticipantPress,
       downloadingParticipantId,
       handleDownloadParticipantReport,
@@ -880,22 +884,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    marginTop: 12,
   },
   progressInfo: {
     flex: 1,
   },
   progressText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#6366F1',
     marginTop: 4,
   },
   progressTextTablet: {
-    fontSize: 16,
+    fontSize: 18,
   },
   cardFooter: {
     flexDirection: 'row',

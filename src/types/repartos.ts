@@ -442,3 +442,30 @@ export interface RepartoProgressResponse {
   overallProgress: ProgressInfo;
   participants: ParticipantProgress[];
 }
+
+/**
+ * Reparto Detail for Participant Progress
+ */
+export interface RepartoDetail {
+  repartoId: string;
+  repartoCode: string;
+  repartoName: string;
+  repartoStatus: string;
+  scheduledDate?: string;
+  isCompleted: boolean;
+  progress: ProgressInfo;
+}
+
+/**
+ * Participant Campaign Progress Response
+ */
+export interface ParticipantCampaignProgressResponse {
+  campaignId: string;
+  campaignName: string;
+  campaignCode: string;
+  participantId: string;
+  participantName: string;
+  participantType: string;
+  overallProgress: ProgressInfo;
+  repartos: RepartoDetail[];
+}
