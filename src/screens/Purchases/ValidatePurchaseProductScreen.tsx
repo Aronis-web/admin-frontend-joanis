@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { purchasesService } from '@/services/api';
 import { inventoryApi } from '@/services/api/inventory';
 import { presentationsApi } from '@/services/api/presentations';
+import { filesApi } from '@/services/api/files';
 import { PurchaseProduct, PurchaseProductStatus } from '@/types/purchases';
 import type { Warehouse, WarehouseArea } from '@/services/api/inventory';
 import type { Presentation } from '@/services/api/presentations';
@@ -290,6 +291,56 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     return loose + presentationUnits;
   };
 
+  /**
+   * Upload photo and signature to server before validation
+   * Returns the URLs of uploaded files
+   */
+  const uploadValidationFiles = async (): Promise<{
+    photoUrl?: string;
+    signatureUrl?: string;
+  }> => {
+    const result: { photoUrl?: string; signatureUrl?: string } = {};
+
+    try {
+      // Upload photo if exists
+      if (photoUri) {
+        console.log('📸 Uploading validation photo...');
+        const photoFilename = `validacion-${Date.now()}.jpg`;
+        const photoResponse = await filesApi.uploadByCategory(
+          photoUri,
+          photoFilename,
+          'PURCHASES_VALIDACIONES_FOTOS',
+          purchaseId,
+          'image/jpeg'
+        );
+        result.photoUrl = photoResponse.url;
+        console.log('✅ Photo uploaded:', result.photoUrl);
+      }
+
+      // Upload signature if exists
+      if (signatureUri) {
+        console.log('✍️ Uploading validation signature...');
+        const signatureFilename = `firma-${Date.now()}.png`;
+        const signatureResponse = await filesApi.uploadByCategory(
+          signatureUri,
+          signatureFilename,
+          'PURCHASES_VALIDACIONES_FIRMAS',
+          purchaseId,
+          'image/png'
+        );
+        result.signatureUrl = signatureResponse.url;
+        console.log('✅ Signature uploaded:', result.signatureUrl);
+      }
+
+      return result;
+    } catch (error: any) {
+      console.error('❌ Error uploading validation files:', error);
+      throw new Error(
+        error.message || 'No se pudieron subir las fotos de validación al servidor'
+      );
+    }
+  };
+
   const handleSaveValidation = async () => {
     if (!product) {
       return;
@@ -356,6 +407,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
     setActionLoading(true);
     try {
+      // Upload photos and signature first
+      console.log('📤 Uploading validation files...');
+      const uploadedFiles = await uploadValidationFiles();
+      console.log('✅ Files uploaded successfully:', uploadedFiles);
+
+      // Then validate with the uploaded URLs
       await purchasesService.validateProduct(purchaseId, productId, {
         sku: sku.trim(),
         name: name.trim(),
@@ -372,14 +429,15 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           notes: p.notes.trim() || undefined,
         })) : undefined,
         barcode: barcode.trim() || undefined,
-        photoUrl: photoUri,
-        signatureUrl: signatureUri,
+        photoUrl: uploadedFiles.photoUrl,
+        signatureUrl: uploadedFiles.signatureUrl,
         validationNotes: validationNotes.trim() || undefined,
       });
 
       Alert.alert('Éxito', 'Datos de validación guardados');
       await loadData();
     } catch (error: any) {
+      console.error('❌ Error in handleSaveValidation:', error);
       Alert.alert('Error', error.message || 'No se pudo guardar la validación');
     } finally {
       setActionLoading(false);
@@ -461,6 +519,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           onPress: async () => {
             setActionLoading(true);
             try {
+              // Upload photos and signature first
+              console.log('📤 Uploading validation files before closing...');
+              const uploadedFiles = await uploadValidationFiles();
+              console.log('✅ Files uploaded successfully:', uploadedFiles);
+
               // First save current validation data
               await purchasesService.validateProduct(purchaseId, productId, {
                 sku: sku.trim(),
@@ -478,8 +541,8 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                   notes: p.notes.trim() || undefined,
                 })) : undefined,
                 barcode: barcode.trim() || undefined,
-                photoUrl: photoUri,
-                signatureUrl: signatureUri,
+                photoUrl: uploadedFiles.photoUrl,
+                signatureUrl: uploadedFiles.signatureUrl,
                 validationNotes: validationNotes.trim() || undefined,
               });
 
@@ -490,6 +553,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 { text: 'OK', onPress: () => navigation.goBack() },
               ]);
             } catch (error: any) {
+              console.error('❌ Error in handleCloseValidation:', error);
               Alert.alert('Error', error.message || 'No se pudo cerrar la validación');
             } finally {
               setActionLoading(false);

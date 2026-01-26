@@ -353,24 +353,24 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     try {
       logger.info('📤 Subiendo imágenes de validación al servidor...');
 
-      // Subir foto al servidor
+      // Subir foto al servidor usando la categoría correcta
       const photoFilename = `photo_${selectedProducto.id}_${Date.now()}.jpg`;
       const photoUploadResult = await filesApi.uploadByCategory(
         data.photoUrl,
         photoFilename,
-        'repartos/validaciones',
-        selectedProducto.id,
+        'CAMPAIGNS_REPARTOS_VALIDACIONES_FOTOS',
+        selectedProducto.repartoId,
         'image/jpeg'
       );
       logger.info('✅ Foto subida:', photoUploadResult.url);
 
-      // Subir firma al servidor
+      // Subir firma al servidor usando la categoría correcta
       const signatureFilename = `signature_${selectedProducto.id}_${Date.now()}.png`;
       const signatureUploadResult = await filesApi.uploadByCategory(
         data.signatureUrl,
         signatureFilename,
-        'repartos/validaciones',
-        selectedProducto.id,
+        'CAMPAIGNS_REPARTOS_VALIDACIONES_FIRMAS',
+        selectedProducto.repartoId,
         'image/png'
       );
       logger.info('✅ Firma subida:', signatureUploadResult.url);
