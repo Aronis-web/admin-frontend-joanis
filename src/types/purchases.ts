@@ -216,6 +216,7 @@ export interface PurchaseProduct {
     email: string;
   };
   presentationHistory?: PurchaseProductPresentationHistory[];
+  validations?: PurchaseProductValidation[]; // Historial de validaciones con fotos y firmas
 }
 
 /**

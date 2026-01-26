@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   Modal,
   TextInput,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -1382,6 +1383,129 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                 </View>
               </View>
             )}
+
+            {/* Validaciones con Fotos y Firmas Section */}
+            {product.validations && product.validations.length > 0 && (
+              <View style={modalStyles.section}>
+                <Text
+                  style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}
+                >
+                  📸 Historial de Validaciones
+                </Text>
+                {product.validations.map((validation, index) => (
+                  <View
+                    key={validation.id}
+                    style={[modalStyles.card, modalStyles.validationCard]}
+                  >
+                    <Text
+                      style={[
+                        modalStyles.validationTitle,
+                        isTablet && modalStyles.validationTitleTablet,
+                      ]}
+                    >
+                      Validación #{index + 1}
+                    </Text>
+
+                    <InfoRow
+                      label="Fecha"
+                      value={formatDate(validation.validatedAt)}
+                      isTablet={isTablet}
+                    />
+                    {validation.validatedByUser && (
+                      <InfoRow
+                        label="Validado por"
+                        value={validation.validatedByUser.name || validation.validatedByUser.email}
+                        isTablet={isTablet}
+                      />
+                    )}
+                    <InfoRow
+                      label="Stock Validado"
+                      value={`${validation.validatedStock} unidades`}
+                      isTablet={isTablet}
+                    />
+                    {validation.barcodeAdded && (
+                      <InfoRow
+                        label="Código de Barras"
+                        value={validation.barcodeAdded}
+                        isTablet={isTablet}
+                      />
+                    )}
+                    {validation.notes && (
+                      <InfoRow label="Notas" value={validation.notes} isTablet={isTablet} />
+                    )}
+
+                    {/* Foto de Validación */}
+                    {validation.photoUrl && (
+                      <View style={modalStyles.photoSection}>
+                        <Text
+                          style={[
+                            modalStyles.photoLabel,
+                            isTablet && modalStyles.photoLabelTablet,
+                          ]}
+                        >
+                          📸 Foto de Validación:
+                        </Text>
+                        <Image
+                          source={{ uri: validation.photoUrl }}
+                          style={[modalStyles.validationImage, isTablet && modalStyles.validationImageTablet]}
+                          resizeMode="cover"
+                        />
+                      </View>
+                    )}
+
+                    {/* Firma de Validación */}
+                    {validation.signatureUrl && (
+                      <View style={modalStyles.photoSection}>
+                        <Text
+                          style={[
+                            modalStyles.photoLabel,
+                            isTablet && modalStyles.photoLabelTablet,
+                          ]}
+                        >
+                          ✍️ Firma de Validación:
+                        </Text>
+                        <Image
+                          source={{ uri: validation.signatureUrl }}
+                          style={[modalStyles.signatureImage, isTablet && modalStyles.signatureImageTablet]}
+                          resizeMode="contain"
+                        />
+                      </View>
+                    )}
+
+                    {/* Fotos Adicionales */}
+                    {validation.photosAdded && validation.photosAdded.length > 0 && (
+                      <View style={modalStyles.photoSection}>
+                        <Text
+                          style={[
+                            modalStyles.photoLabel,
+                            isTablet && modalStyles.photoLabelTablet,
+                          ]}
+                        >
+                          📷 Fotos Adicionales ({validation.photosAdded.length}):
+                        </Text>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          style={modalStyles.photosScroll}
+                        >
+                          {validation.photosAdded.map((photoUrl, photoIndex) => (
+                            <Image
+                              key={photoIndex}
+                              source={{ uri: photoUrl }}
+                              style={[
+                                modalStyles.additionalPhoto,
+                                isTablet && modalStyles.additionalPhotoTablet,
+                              ]}
+                              resizeMode="cover"
+                            />
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
           </ScrollView>
 
           {/* Footer */}
@@ -2325,6 +2449,73 @@ const modalStyles = StyleSheet.create({
   comparisonDiffNegative: {
     color: '#EF4444',
     backgroundColor: '#FEE2E2',
+  },
+  validationCard: {
+    marginBottom: 16,
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  validationTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#92400E',
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+  },
+  validationTitleTablet: {
+    fontSize: 17,
+  },
+  photoSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  photoLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  photoLabelTablet: {
+    fontSize: 16,
+  },
+  validationImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  validationImageTablet: {
+    height: 300,
+    borderRadius: 14,
+  },
+  signatureImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  signatureImageTablet: {
+    height: 200,
+    borderRadius: 14,
+  },
+  photosScroll: {
+    marginTop: 8,
+  },
+  additionalPhoto: {
+    width: 120,
+    height: 120,
+    borderRadius: 10,
+    marginRight: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  additionalPhotoTablet: {
+    width: 160,
+    height: 160,
+    borderRadius: 12,
   },
   footer: {
     padding: 24,
