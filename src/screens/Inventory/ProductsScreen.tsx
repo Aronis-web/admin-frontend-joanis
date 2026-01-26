@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,7 @@ interface ProductsScreenProps {
 export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) => {
   const { user, logout } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'sku' | 'correlative'>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isProductModalVisible, setIsProductModalVisible] = useState(false);
@@ -48,18 +49,43 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const [page, setPage] = useState(1);
   const limit = 20;
   const [isBulkUpdateModalVisible, setIsBulkUpdateModalVisible] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
+  // ✅ Debounce search query para evitar múltiples llamadas al API
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      // Reset a página 1 cuando cambia la búsqueda
+      if (searchQuery !== debouncedSearchQuery) {
+        setPage(1);
+      }
+    }, 500); // 500ms de delay
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
+
   // ✅ React Query: Reemplaza loadProducts() con caché automático
+  // Ahora incluye búsqueda del lado del servidor y carga de imágenes
   const filters = useMemo(
     () => ({
       page,
       limit,
       ...(statusFilter !== 'all' && { status: statusFilter }),
+      ...(debouncedSearchQuery.trim() && { q: debouncedSearchQuery.trim() }),
+      include: 'images', // ✅ Incluir imágenes en la respuesta
     }),
-    [page, statusFilter]
+    [page, statusFilter, debouncedSearchQuery]
   );
 
   const {
@@ -81,35 +107,11 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     [productsResponse]
   );
 
-  // ✅ Filtrado local con useMemo (optimizado)
+  // ✅ Ya no necesitamos filtrado local - el servidor hace la búsqueda
+  // Los productos ya vienen filtrados desde el backend
   const filteredProducts = useMemo(() => {
-    if (!Array.isArray(products) || products.length === 0) {
-      return [];
-    }
-
-    let filtered = [...products];
-
-    // Filter by search query
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase().trim();
-
-      filtered = filtered.filter((product) => {
-        if (searchType === 'correlative') {
-          return product.correlativeNumber && product.correlativeNumber.toString().includes(query);
-        } else if (searchType === 'sku') {
-          return product.sku && product.sku.toLowerCase().includes(query);
-        } else {
-          return (
-            (product.title && product.title.toLowerCase().includes(query)) ||
-            (product.sku && product.sku.toLowerCase().includes(query)) ||
-            (product.correlativeNumber && product.correlativeNumber.toString().includes(query))
-          );
-        }
-      });
-    }
-
-    return filtered;
-  }, [products, searchQuery, searchType]);
+    return products;
+  }, [products]);
 
   // Auto-reload products when screen comes into focus
   useFocusEffect(
@@ -316,6 +318,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             <Text style={styles.clearIcon}>✕</Text>
           </TouchableOpacity>
         )}
+        {searchQuery !== debouncedSearchQuery && (
+          <ActivityIndicator size="small" color="#3B82F6" style={styles.searchLoader} />
+        )}
       </View>
 
       {/* Search Type Filter */}
@@ -497,7 +502,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             <Text style={styles.emptyIcon}>📦</Text>
             <Text style={styles.emptyTitle}>No hay productos</Text>
             <Text style={styles.emptyText}>
-              {searchQuery
+              {debouncedSearchQuery
                 ? 'No se encontraron productos con ese criterio de búsqueda'
                 : 'Comienza creando tu primer producto'}
             </Text>
@@ -654,7 +659,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       </ScrollView>
 
       {/* Pagination Controls */}
-      {!isLoading && pagination.total > 0 && !searchQuery && (
+      {!isLoading && pagination.total > 0 && (
         <View style={styles.paginationContainer}>
           <TouchableOpacity
             style={[
@@ -680,6 +685,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             </Text>
             <Text style={styles.paginationSubtext}>
               {filteredProducts.length} de {pagination.total}
+              {debouncedSearchQuery && ' (filtrados)'}
             </Text>
           </View>
 
@@ -1086,6 +1092,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#94A3B8',
     paddingHorizontal: 8,
+  },
+  searchLoader: {
+    marginLeft: 8,
   },
   filterContainer: {
     flexDirection: 'row',
