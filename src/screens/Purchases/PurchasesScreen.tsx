@@ -29,7 +29,7 @@ import { SearchBar } from '@/components/common/SearchBar';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
 import { useDebounce } from '@/hooks/useDebounce';
 import { purchasesService } from '@/services/api';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { logger } from '@/utils/logger';
 import { CircularProgress } from '@/components/Repartos';
