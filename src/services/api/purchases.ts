@@ -1,4 +1,7 @@
 import { apiClient } from './client';
+import { config } from '@/utils/config';
+import { useAuthStore } from '@/store/auth';
+import { useTenantStore } from '@/store/tenant';
 import {
   Purchase,
   PurchasesResponse,
@@ -325,6 +328,77 @@ class PurchasesService {
   async scanDocument(uri: string, filename: string, mimeType: string): Promise<OcrScanResponse> {
     // Use the new batch endpoint with a single file
     return this.scanDocuments([{ uri, filename, mimeType }]);
+  }
+
+  // ============================================
+  // Reports
+  // ============================================
+
+  /**
+   * Download purchase report PDF
+   * Returns a blob that can be used to download/view the PDF
+   * @param purchaseId - ID of the purchase
+   */
+  async downloadPurchaseReportPdf(purchaseId: string): Promise<Blob> {
+    // Get fresh token and context
+    const authStore = useAuthStore.getState();
+    const tenantStore = useTenantStore.getState();
+
+    // Check if token should be refreshed and refresh if needed
+    if (authStore.shouldRefreshToken()) {
+      console.log('🔄 Token needs refresh, refreshing...');
+      await authStore.refreshAccessToken();
+    }
+
+    const token = authStore.token;
+    const userId = authStore.user?.id;
+    const companyId = tenantStore.selectedCompany?.id || authStore.currentCompany?.id;
+    const siteId = tenantStore.selectedSite?.id || authStore.currentSite?.id;
+
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+
+    const headers: Record<string, string> = {
+      'X-App-Id': config.APP_ID,
+      Authorization: `Bearer ${token}`,
+    };
+
+    if (userId) {
+      headers['X-User-Id'] = userId;
+    }
+    if (companyId) {
+      headers['X-Company-Id'] = companyId;
+    }
+    if (siteId) {
+      headers['X-Site-Id'] = siteId;
+    }
+
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+
+    // Build URL with query parameters
+    const urlParams = new URLSearchParams();
+    urlParams.append('t', timestamp.toString());
+
+    const url = `${config.API_URL}${this.basePath}/${purchaseId}/report/pdf?${urlParams.toString()}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    return await response.blob();
   }
 }
 

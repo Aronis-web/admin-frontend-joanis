@@ -66,7 +66,27 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
     try {
       const fetchedFiles = await filesApi.getBalanceOperationFiles(operation.id);
       console.log('✅ Files loaded:', fetchedFiles);
-      setFiles(fetchedFiles || []);
+
+      // Get signed URLs for each file if not already present
+      const filesWithSignedUrls = await Promise.all(
+        (fetchedFiles || []).map(async (file) => {
+          if (file.signedUrl) {
+            return file;
+          }
+
+          try {
+            // Use the file's filePath to get a signed URL
+            const signedUrl = await filesApi.getPrivateFileUrl(file.filePath);
+            console.log('🔗 Got signed URL for file:', file.originalName);
+            return { ...file, signedUrl };
+          } catch (error) {
+            console.error('❌ Error getting signed URL for file:', file.originalName, error);
+            return file;
+          }
+        })
+      );
+
+      setFiles(filesWithSignedUrls);
     } catch (error) {
       console.error('❌ Error loading files:', error);
       setFiles([]);

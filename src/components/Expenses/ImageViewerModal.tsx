@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { config } from '@/utils/config';
+import { useAuthStore } from '@/store/auth';
 
 interface ImageViewerModalProps {
   visible: boolean;
@@ -46,13 +47,24 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
     try {
       console.log('🖼️ Loading image from signed URL:', url);
 
-      // El backend requiere el header X-App-Id incluso para archivos privados
+      // Get the JWT token from auth store
+      const token = useAuthStore.getState().token;
+
+      // El backend requiere el header X-App-Id y Authorization para archivos privados
+      const headers: Record<string, string> = {
+        'X-App-Id': config.APP_ID,
+        Accept: 'image/*',
+      };
+
+      // Add Authorization header if token is available
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('🔑 Adding Authorization header with JWT token');
+      }
+
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'X-App-Id': config.APP_ID,
-          Accept: 'image/*',
-        },
+        headers,
       });
 
       console.log('📡 Image fetch response:', {

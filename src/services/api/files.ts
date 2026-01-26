@@ -166,7 +166,7 @@ export const filesApi = {
 
   /**
    * Upload file by category using FormData (recommended)
-   * POST /files/upload/category
+   * POST /files/upload/category/multipart
    */
   uploadByCategory: async (
     fileUri: string,
@@ -189,7 +189,7 @@ export const filesApi = {
 
     // Don't set Content-Type manually - let axios set it with the boundary
     return apiClient.post<{ success: boolean; url: string; path: string; category: string }>(
-      '/files/upload/category',
+      '/files/upload/category/multipart',
       formData
     );
   },

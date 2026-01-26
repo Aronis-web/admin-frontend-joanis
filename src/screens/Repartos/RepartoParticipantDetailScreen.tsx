@@ -17,7 +17,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { campaignsService, repartosService } from '@/services/api';
-import { filesApi } from '@/services/api/files';
 import { CampaignParticipant, ParticipantType } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import {
@@ -59,6 +58,7 @@ interface PresentationInfo {
 interface ProductoReparto {
   id: string;
   productId: string;
+  repartoId: string; // ✅ Necesario para subir archivos al servidor
   presentationId?: string;
   factorToBase?: number;
   presentationInfo?: PresentationInfo;
@@ -249,6 +249,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           productosAsignados.push({
             id: reparto.repartoProductoId,
             productId: productGroup.productId,
+            repartoId: reparto.repartoId, // ✅ Necesario para subir archivos al servidor
             presentationId: reparto.presentationId, // Información de presentación
             factorToBase: reparto.factorToBase, // Factor de conversión
             presentationInfo: presentationInfo, // ✅ Info completa de presentación (del backend o construida)
@@ -351,35 +352,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
     setActionLoading(true);
     try {
-      logger.info('📤 Subiendo imágenes de validación al servidor...');
+      // ✅ El modal ya subió las fotos al servidor, aquí solo enviamos la validación
+      logger.info('📤 Enviando validación al servidor con URLs ya subidas...');
 
-      // Subir foto al servidor usando la categoría correcta
-      const photoFilename = `photo_${selectedProducto.id}_${Date.now()}.jpg`;
-      const photoUploadResult = await filesApi.uploadByCategory(
-        data.photoUrl,
-        photoFilename,
-        'CAMPAIGNS_REPARTOS_VALIDACIONES_FOTOS',
-        selectedProducto.repartoId,
-        'image/jpeg'
-      );
-      logger.info('✅ Foto subida:', photoUploadResult.url);
-
-      // Subir firma al servidor usando la categoría correcta
-      const signatureFilename = `signature_${selectedProducto.id}_${Date.now()}.png`;
-      const signatureUploadResult = await filesApi.uploadByCategory(
-        data.signatureUrl,
-        signatureFilename,
-        'CAMPAIGNS_REPARTOS_VALIDACIONES_FIRMAS',
-        selectedProducto.repartoId,
-        'image/png'
-      );
-      logger.info('✅ Firma subida:', signatureUploadResult.url);
-
-      // Enviar validación con las URLs del servidor
       await repartosService.validarSalida(selectedProducto.id, {
         validatedQuantityBase: data.validatedQuantityBase,
-        photoUrl: photoUploadResult.url,
-        signatureUrl: signatureUploadResult.url,
+        photoUrl: data.photoUrl, // ✅ Ya es URL del servidor
+        signatureUrl: data.signatureUrl, // ✅ Ya es URL del servidor
         validatedByName: user?.name || user?.email || 'Usuario',
         notes: data.notes,
       });

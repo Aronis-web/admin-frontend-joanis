@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -27,6 +28,10 @@ import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
 import { SearchBar } from '@/components/common/SearchBar';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
 import { useDebounce } from '@/hooks/useDebounce';
+import { purchasesService } from '@/services/api';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import { logger } from '@/utils/logger';
 
 interface PurchasesScreenProps {
   navigation: any;
@@ -39,6 +44,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   const [selectedStatus, setSelectedStatus] = useState<PurchaseStatus | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
+  const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
   const limit = 20;
 
   const { currentCompany, currentSite } = useAuthStore();
@@ -118,6 +124,81 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
     [navigation]
   );
 
+  const handleDownloadReport = useCallback(
+    async (purchase: Purchase, event: any) => {
+      // Prevent navigation to detail screen
+      event.stopPropagation();
+
+      try {
+        setDownloadingReportId(purchase.id);
+
+        logger.info('🔄 Descargando reporte de compra...');
+        const startTime = new Date().getTime();
+
+        // Call the API to get the PDF blob
+        const pdfBlob = await purchasesService.downloadPurchaseReportPdf(purchase.id);
+
+        const endTime = new Date().getTime();
+        logger.info('✅ PDF descargado del servidor');
+        logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+        logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
+
+        if (Platform.OS === 'web') {
+          // For web, create a download link using blob URL
+          const blobUrl = URL.createObjectURL(pdfBlob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = `reporte-compra-${purchase.code}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          // Clean up the blob URL after a short delay
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+
+          Alert.alert('Éxito', 'El reporte se está descargando');
+        } else {
+          // For mobile (iOS/Android), save to file system and share
+          const timestamp = new Date().getTime();
+          const fileName = `reporte-compra-${purchase.code}-${timestamp}.pdf`;
+          const file = new FileSystem.File(FileSystem.Paths.document, fileName);
+
+          // Convert blob to array buffer using FileReader
+          const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as ArrayBuffer);
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(pdfBlob);
+          });
+
+          // Write to file
+          await file.create();
+          const writer = file.writableStream().getWriter();
+          await writer.write(new Uint8Array(arrayBuffer));
+          await writer.close();
+
+          // Share the file
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
+            await Sharing.shareAsync(file.uri, {
+              mimeType: 'application/pdf',
+              dialogTitle: `Reporte de Compra - ${purchase.code}`,
+              UTI: 'com.adobe.pdf',
+            });
+          } else {
+            Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
+          }
+        }
+      } catch (error: any) {
+        logger.error('Error downloading report:', error);
+        Alert.alert('Error', error.message || 'No se pudo descargar el reporte');
+      } finally {
+        setDownloadingReportId(null);
+      }
+    },
+    []
+  );
+
   const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
@@ -184,6 +265,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
     const totalProducts = purchase.products?.length || 0;
     const validatedProducts =
       purchase.products?.filter((p) => p.status === 'VALIDATED').length || 0;
+    const isDownloading = downloadingReportId === purchase.id;
 
     return (
       <TouchableOpacity
@@ -247,11 +329,31 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
             Creado: {formatDate(purchase.createdAt)}
           </Text>
-          <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              style={[
+                styles.downloadButton,
+                isTablet && styles.downloadButtonTablet,
+                isDownloading && styles.downloadButtonDisabled,
+              ]}
+              onPress={(e) => handleDownloadReport(purchase, e)}
+              disabled={isDownloading}
+              activeOpacity={0.7}
+            >
+              {isDownloading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={[styles.downloadButtonText, isTablet && styles.downloadButtonTextTablet]}>
+                  📄 Reporte
+                </Text>
+              )}
+            </TouchableOpacity>
+            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
-  }, [isTablet, handlePurchasePress, getStatusBadgeStyle, getStatusTextStyle, formatDate, formatCurrency]);
+  }, [isTablet, handlePurchasePress, handleDownloadReport, getStatusBadgeStyle, getStatusTextStyle, formatDate, formatCurrency, downloadingReportId]);
 
   if (isLoading && !isRefetching) {
     return (
@@ -549,6 +651,37 @@ const styles = StyleSheet.create({
   },
   footerTextTablet: {
     fontSize: 14,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  downloadButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    minWidth: 90,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  downloadButtonTablet: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    minWidth: 100,
+  },
+  downloadButtonDisabled: {
+    backgroundColor: '#94A3B8',
+    opacity: 0.7,
+  },
+  downloadButtonText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  downloadButtonTextTablet: {
+    fontSize: 12,
   },
   arrowIcon: {
     fontSize: 24,

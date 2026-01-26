@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { PhotoCapture } from './PhotoCapture';
 import { SignatureCapture } from './SignatureCapture';
+import { filesApi } from '@/services/api/files';
+import logger from '@/utils/logger';
 
 interface PresentationInfo {
   hasPresentations: boolean;
@@ -32,10 +34,12 @@ interface ValidacionSalidaModalProps {
   visible: boolean;
   producto: {
     id: string;
+    repartoId: string; // ✅ Necesario para subir archivos al servidor
     presentationId?: string;
     factorToBase?: number;
     presentationInfo?: PresentationInfo;
     product?: {
+      id: string; // ✅ ID del producto para subir foto al catálogo
       title: string;
       sku: string;
       presentations?: Array<{
@@ -178,8 +182,10 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
   }, [visible, producto, hasPresentations]);
 
   const handlePhotoCapture = (uri: string) => {
+    console.log('📸 Photo captured in modal:', uri);
     setPhotoUri(uri);
     setStep('form');
+    console.log('✅ Photo URI set, returning to form');
   };
 
   const handleSignatureCapture = (signature: string) => {
@@ -232,9 +238,14 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
   };
 
   const handleValidate = async () => {
+    if (!producto) {
+      Alert.alert('Error', 'No se encontró información del producto');
+      return;
+    }
+
     const quantityInBase = getQuantityInBase();
     const assignedQuantity =
-      producto?.quantityAssigned || parseFloat(producto?.quantityBase || '0');
+      producto.quantityAssigned || parseFloat(producto.quantityBase || '0');
 
     if (isNaN(quantityInBase) || quantityInBase < 0) {
       Alert.alert('Error', 'Por favor ingresa una cantidad válida');
@@ -263,11 +274,35 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
     setLoading(true);
     try {
-      // ✅ NUEVO: Construir datos de validación con presentaciones opcionales
+      // ✅ PASO 1: Subir foto de validación al servidor
+      logger.info('📸 Subiendo foto de validación al servidor...');
+      const photoFilename = `photo_${producto.id}_${Date.now()}.jpg`;
+      const photoUploadResult = await filesApi.uploadByCategory(
+        photoUri,
+        photoFilename,
+        'CAMPAIGNS_REPARTOS_VALIDACIONES_FOTOS',
+        producto.repartoId || undefined, // ✅ repartoId es opcional
+        'image/jpeg'
+      );
+      logger.info('✅ Foto de validación subida:', photoUploadResult.url);
+
+      // ✅ PASO 2: Subir firma al servidor
+      logger.info('✍️ Subiendo firma de validación al servidor...');
+      const signatureFilename = `signature_${producto.id}_${Date.now()}.png`;
+      const signatureUploadResult = await filesApi.uploadByCategory(
+        signatureUri,
+        signatureFilename,
+        'CAMPAIGNS_REPARTOS_VALIDACIONES_FIRMAS',
+        producto.repartoId || undefined, // ✅ repartoId es opcional
+        'image/png'
+      );
+      logger.info('✅ Firma subida:', signatureUploadResult.url);
+
+      // ✅ PASO 3: Construir datos de validación con URLs del servidor
       const validationData: any = {
         validatedQuantityBase: String(quantityInBase), // ✅ Backend espera validatedQuantityBase como string
-        photoUrl: photoUri,
-        signatureUrl: signatureUri,
+        photoUrl: photoUploadResult.url, // ✅ URL del servidor, no URI local
+        signatureUrl: signatureUploadResult.url, // ✅ URL del servidor, no URI local
         notes: notes || undefined,
       };
 
@@ -290,10 +325,12 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
         validationData.validatedLooseUnits = looseUnits;
       }
 
+      // ✅ PASO 4: Enviar validación con URLs del servidor
       await onValidate(validationData);
       onClose();
-    } catch (error) {
-      // Error handling is done in parent component
+    } catch (error: any) {
+      logger.error('❌ Error en validación:', error);
+      Alert.alert('Error', error.message || 'No se pudo completar la validación');
     } finally {
       setLoading(false);
     }
@@ -457,21 +494,40 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
             {/* Photo */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Foto del Producto *</Text>
+              <Text style={styles.inputLabel}>Foto de Validación *</Text>
               {photoUri ? (
                 <View style={styles.capturedContainer}>
-                  <Image source={{ uri: photoUri }} style={styles.capturedPhoto} />
-                  <TouchableOpacity style={styles.recaptureButton} onPress={() => setStep('photo')}>
+                  <Image
+                    source={{ uri: photoUri }}
+                    style={styles.capturedPhoto}
+                    onLoad={() => console.log('✅ Photo image loaded successfully')}
+                    onError={(error) => console.error('❌ Photo image load error:', error)}
+                  />
+                  <TouchableOpacity style={styles.recaptureButton} onPress={() => {
+                    console.log('🔄 Retaking photo...');
+                    setStep('photo');
+                  }}>
                     <Text style={styles.recaptureButtonText}>📷 Cambiar Foto</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity style={styles.captureButton} onPress={() => setStep('photo')}>
+                <TouchableOpacity style={styles.captureButton} onPress={() => {
+                  console.log('📸 Opening photo capture...');
+                  setStep('photo');
+                }}>
                   <Text style={styles.captureButtonIcon}>📷</Text>
-                  <Text style={styles.captureButtonText}>Tomar Foto</Text>
+                  <Text style={styles.captureButtonText}>Tomar Foto de Validación</Text>
                 </TouchableOpacity>
               )}
+              {/* Debug info */}
+              {__DEV__ && (
+                <Text style={{ fontSize: 10, color: '#999', marginTop: 4 }}>
+                  Photo URI: {photoUri ? 'Set ✓' : 'Not set ✗'}
+                </Text>
+              )}
             </View>
+
+            {/* ✅ Product Photo - REMOVED: Not needed for repartos, only for purchases */}
 
             {/* Signature */}
             <View style={styles.inputGroup}>

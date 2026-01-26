@@ -13,7 +13,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { repartosService } from '@/services/api';
-import { filesApi } from '@/services/api/files';
 import logger from '@/utils/logger';
 import {
   Reparto,
@@ -158,35 +157,13 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
 
     setActionLoading(true);
     try {
-      logger.info('📤 Subiendo imágenes de validación al servidor...');
+      // ✅ El modal ya subió las fotos al servidor, aquí solo enviamos la validación
+      logger.info('📤 Enviando validación al servidor con URLs ya subidas...');
 
-      // Subir foto al servidor usando la categoría correcta
-      const photoFilename = `photo_${selectedProducto.id}_${Date.now()}.jpg`;
-      const photoUploadResult = await filesApi.uploadByCategory(
-        data.photoUrl,
-        photoFilename,
-        'CAMPAIGNS_REPARTOS_VALIDACIONES_FOTOS',
-        selectedProducto.repartoId,
-        'image/jpeg'
-      );
-      logger.info('✅ Foto subida:', photoUploadResult.url);
-
-      // Subir firma al servidor usando la categoría correcta
-      const signatureFilename = `signature_${selectedProducto.id}_${Date.now()}.png`;
-      const signatureUploadResult = await filesApi.uploadByCategory(
-        data.signatureUrl,
-        signatureFilename,
-        'CAMPAIGNS_REPARTOS_VALIDACIONES_FIRMAS',
-        selectedProducto.repartoId,
-        'image/png'
-      );
-      logger.info('✅ Firma subida:', signatureUploadResult.url);
-
-      // Enviar validación con las URLs del servidor
       await repartosService.validarSalida(selectedProducto.id, {
         validatedQuantityBase: data.validatedQuantityBase,
-        photoUrl: photoUploadResult.url,
-        signatureUrl: signatureUploadResult.url,
+        photoUrl: data.photoUrl, // ✅ Ya es URL del servidor
+        signatureUrl: data.signatureUrl, // ✅ Ya es URL del servidor
         validatedByName: user?.name || user?.email || 'Usuario',
         notes: data.notes,
       });

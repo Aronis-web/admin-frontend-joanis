@@ -60,8 +60,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   // Photo and Signature
   const [photoUri, setPhotoUri] = useState<string | undefined>();
   const [signatureUri, setSignatureUri] = useState<string | undefined>();
+  const [productPhotoUri, setProductPhotoUri] = useState<string | undefined>(); // ✅ Foto del producto
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [showSignatureCapture, setShowSignatureCapture] = useState(false);
+  const [showProductPhotoCapture, setShowProductPhotoCapture] = useState(false); // ✅ Modal para foto del producto
 
   // Presentations from product (preliminary presentations)
   interface ValidatedPresentation {
@@ -247,6 +249,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       // Reset photo and signature when loading
       setPhotoUri(undefined);
       setSignatureUri(undefined);
+      setProductPhotoUri(undefined);
     } catch (error: any) {
       console.error('Error loading data:', error);
       Alert.alert('Error', 'No se pudo cargar los datos');
@@ -298,11 +301,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const uploadValidationFiles = async (): Promise<{
     photoUrl?: string;
     signatureUrl?: string;
+    productPhotoUrl?: string;
   }> => {
-    const result: { photoUrl?: string; signatureUrl?: string } = {};
+    const result: { photoUrl?: string; signatureUrl?: string; productPhotoUrl?: string } = {};
 
     try {
-      // Upload photo if exists
+      // Upload validation photo if exists
       if (photoUri) {
         console.log('📸 Uploading validation photo...');
         const photoFilename = `validacion-${Date.now()}.jpg`;
@@ -314,7 +318,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           'image/jpeg'
         );
         result.photoUrl = photoResponse.url;
-        console.log('✅ Photo uploaded:', result.photoUrl);
+        console.log('✅ Validation photo uploaded:', result.photoUrl);
       }
 
       // Upload signature if exists
@@ -330,6 +334,20 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         );
         result.signatureUrl = signatureResponse.url;
         console.log('✅ Signature uploaded:', result.signatureUrl);
+      }
+
+      // ✅ Upload product photo if exists (goes to product catalog)
+      if (productPhotoUri && product?.productId) {
+        console.log('🖼️ Uploading product photo to catalog...');
+        const productPhotoFilename = `producto-${Date.now()}.jpg`;
+        const productPhotoResponse = await filesApi.uploadProductImage(
+          productPhotoUri,
+          product.productId,
+          productPhotoFilename,
+          'image/jpeg'
+        );
+        result.productPhotoUrl = productPhotoResponse.url;
+        console.log('✅ Product photo uploaded to catalog:', result.productPhotoUrl);
       }
 
       return result;
@@ -1206,6 +1224,35 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               </Text>
             </View>
 
+            {/* ✅ Product Photo Capture */}
+            <View style={styles.section}>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>Foto del Producto (Catálogo)</Text>
+              {productPhotoUri ? (
+                <View style={styles.capturedContainer}>
+                  <Image source={{ uri: productPhotoUri }} style={styles.capturedPhoto} />
+                  <TouchableOpacity
+                    style={styles.recaptureButton}
+                    onPress={() => setShowProductPhotoCapture(true)}
+                    disabled={!canEdit()}
+                  >
+                    <Text style={styles.recaptureButtonText}>🖼️ Cambiar Foto</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={() => setShowProductPhotoCapture(true)}
+                  disabled={!canEdit()}
+                >
+                  <Text style={styles.captureButtonIcon}>🖼️</Text>
+                  <Text style={styles.captureButtonText}>Tomar Foto del Producto</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
+                Foto del producto para el catálogo (opcional)
+              </Text>
+            </View>
+
             {/* Signature Capture */}
             <View style={styles.section}>
               <Text style={[styles.label, isTablet && styles.labelTablet]}>
@@ -1506,6 +1553,24 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             }}
             onCancel={() => setShowPhotoCapture(false)}
             currentPhoto={photoUri}
+          />
+        </Modal>
+      )}
+
+      {/* ✅ Product Photo Capture Modal */}
+      {showProductPhotoCapture && (
+        <Modal
+          visible={showProductPhotoCapture}
+          animationType="slide"
+          onRequestClose={() => setShowProductPhotoCapture(false)}
+        >
+          <PhotoCapture
+            onPhotoCapture={(uri) => {
+              setProductPhotoUri(uri);
+              setShowProductPhotoCapture(false);
+            }}
+            onCancel={() => setShowProductPhotoCapture(false)}
+            currentPhoto={productPhotoUri}
           />
         </Modal>
       )}
