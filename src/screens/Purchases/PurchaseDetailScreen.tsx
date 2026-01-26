@@ -73,6 +73,13 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         purchasesService.getPurchaseProducts(purchaseId),
         purchasesService.getPurchaseTotalSum(purchaseId).catch(() => null), // Don't fail if endpoint not available yet
       ]);
+
+      // Debug: Log para verificar si vienen las validaciones
+      console.log('📦 Products data:', JSON.stringify(productsData, null, 2));
+      if (productsData.length > 0) {
+        console.log('🔍 First product validations:', productsData[0].validations);
+      }
+
       setPurchase(purchaseData);
       setProducts(productsData);
       setTotalSum(totalSumData);
