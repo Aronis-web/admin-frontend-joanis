@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { campaignsService, repartosService } from '@/services/api';
+import { filesApi } from '@/services/api/files';
 import { CampaignParticipant, ParticipantType } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import {
@@ -341,10 +342,35 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
     setActionLoading(true);
     try {
+      logger.info('📤 Subiendo imágenes de validación al servidor...');
+
+      // Subir foto al servidor
+      const photoFilename = `photo_${selectedProducto.id}_${Date.now()}.jpg`;
+      const photoUploadResult = await filesApi.uploadByCategory(
+        data.photoUrl,
+        photoFilename,
+        'repartos/validaciones',
+        selectedProducto.id,
+        'image/jpeg'
+      );
+      logger.info('✅ Foto subida:', photoUploadResult.url);
+
+      // Subir firma al servidor
+      const signatureFilename = `signature_${selectedProducto.id}_${Date.now()}.png`;
+      const signatureUploadResult = await filesApi.uploadByCategory(
+        data.signatureUrl,
+        signatureFilename,
+        'repartos/validaciones',
+        selectedProducto.id,
+        'image/png'
+      );
+      logger.info('✅ Firma subida:', signatureUploadResult.url);
+
+      // Enviar validación con las URLs del servidor
       await repartosService.validarSalida(selectedProducto.id, {
         validatedQuantityBase: data.validatedQuantityBase,
-        photoUrl: data.photoUrl,
-        signatureUrl: data.signatureUrl,
+        photoUrl: photoUploadResult.url,
+        signatureUrl: signatureUploadResult.url,
         validatedByName: user?.name || user?.email || 'Usuario',
         notes: data.notes,
       });
@@ -354,6 +380,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       setSelectedProducto(null);
       loadData();
     } catch (error: any) {
+      logger.error('Error validando salida:', error);
       Alert.alert('Error', error.response?.data?.message || 'No se pudo validar la salida');
       throw error;
     } finally {
