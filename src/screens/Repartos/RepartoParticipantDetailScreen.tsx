@@ -24,7 +24,10 @@ import {
   ValidacionSalidaModal,
   ValidacionDetailModal,
   CircularProgress,
+  DiscrepanciasModal,
+  NotasDiscrepanciaModal,
 } from '@/components/Repartos';
+import { TransferReportDiscrepancy } from '@/types/consolidated-reports';
 import { useAuthStore } from '@/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
 import logger from '@/utils/logger';
@@ -129,6 +132,12 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const [searchQuery, setSearchQuery] = useState('');
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [repartoId, setRepartoId] = useState<string | null>(null);
+  const [generatingConsolidated, setGeneratingConsolidated] = useState(false);
+  const [consolidatedTransferGenerated, setConsolidatedTransferGenerated] = useState(false);
+  const [discrepanciasModalVisible, setDiscrepanciasModalVisible] = useState(false);
+  const [notasModalVisible, setNotasModalVisible] = useState(false);
+  const [currentReportId, setCurrentReportId] = useState<string | null>(null);
+  const [selectedDiscrepancy, setSelectedDiscrepancy] = useState<TransferReportDiscrepancy | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -467,6 +476,109 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     }
   };
 
+  const handleGenerateConsolidatedTransfer = async () => {
+    if (!participant) {
+      Alert.alert('Error', 'No se pudo obtener la información del participante');
+      return;
+    }
+
+    const participantName =
+      participant.participantType === ParticipantType.EXTERNAL_COMPANY
+        ? participant.company?.alias || participant.company?.name || 'Empresa'
+        : participant.site?.name || 'Sede';
+
+    // Confirmar acción
+    Alert.alert(
+      'Cerrar Consolidado de Repartos',
+      `¿Estás seguro de que deseas cerrar el consolidado de repartos para ${participantName}?\n\n` +
+        'Esta acción:\n' +
+        '• Liberará TODAS las reservas de stock\n' +
+        '• Descontará SOLO el stock validado\n' +
+        '• Creará el traslado consolidado\n' +
+        '• Generará un reporte de discrepancias si hay diferencias',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Confirmar',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setGeneratingConsolidated(true);
+              logger.info('🔄 Generando traslado consolidado para:', participantName);
+
+              const response = await repartosService.generateConsolidatedTransfer(
+                participantId,
+                campaignId,
+                {
+                  notes: `Traslado consolidado para ${participantName}`,
+                }
+              );
+
+              logger.info('✅ Traslado consolidado generado:', response);
+
+              // Mostrar resumen
+              const hasDiscrepancies = response.summary.productsWithDiscrepancies > 0;
+
+              let message = `Traslado consolidado generado exitosamente:\n\n`;
+              message += `📦 Total productos: ${response.summary.totalProducts}\n`;
+              message += `✅ Cantidad validada: ${response.summary.totalValidated} unidades\n`;
+              message += `📤 Cantidad transferida: ${response.summary.totalTransferred} unidades\n`;
+
+              if (hasDiscrepancies) {
+                message += `\n⚠️ Discrepancias encontradas:\n`;
+                message += `• ${response.summary.productsWithDiscrepancies} productos con diferencias\n`;
+                message += `• ${response.summary.totalDifference} unidades de diferencia\n`;
+                message += `\n📝 Se ha creado un reporte de discrepancias que puedes gestionar ahora.`;
+              }
+
+              Alert.alert(
+                'Éxito',
+                message,
+                [
+                  {
+                    text: hasDiscrepancies ? 'Ver Discrepancias' : 'Aceptar',
+                    onPress: () => {
+                      setConsolidatedTransferGenerated(true);
+                      if (hasDiscrepancies && response.report) {
+                        // Abrir modal de discrepancias
+                        setCurrentReportId(response.report.id);
+                        setDiscrepanciasModalVisible(true);
+                      }
+                      loadData(); // Recargar datos
+                    },
+                  },
+                ]
+              );
+            } catch (error: any) {
+              logger.error('Error generando traslado consolidado:', error);
+              Alert.alert(
+                'Error',
+                error.response?.data?.message || 'No se pudo generar el traslado consolidado'
+              );
+            } finally {
+              setGeneratingConsolidated(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleManageDiscrepancyNotes = (discrepancy: TransferReportDiscrepancy) => {
+    setSelectedDiscrepancy(discrepancy);
+    setNotasModalVisible(true);
+  };
+
+  const handleNotesUpdated = () => {
+    // Recargar el modal de discrepancias si está abierto
+    if (discrepanciasModalVisible) {
+      // El modal de discrepancias se recargará automáticamente
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
@@ -791,6 +903,41 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               </Text>
             </TouchableOpacity>
           )}
+
+          {/* Generate Consolidated Transfer Button */}
+          {hasPermission('repartos.validate') &&
+           productos.length > 0 &&
+           productosValidados === totalProductos &&
+           !consolidatedTransferGenerated && (
+            <TouchableOpacity
+              style={[
+                styles.consolidatedButton,
+                isTablet && styles.consolidatedButtonTablet,
+                generatingConsolidated && styles.downloadButtonDisabled,
+              ]}
+              onPress={handleGenerateConsolidatedTransfer}
+              disabled={generatingConsolidated}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.consolidatedButtonText,
+                  isTablet && styles.consolidatedButtonTextTablet,
+                ]}
+              >
+                {generatingConsolidated ? '🔄 Generando Traslado...' : '✅ Cerrar Consolidado de Repartos'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Consolidated Transfer Generated Message */}
+          {consolidatedTransferGenerated && (
+            <View style={[styles.successMessage, isTablet && styles.successMessageTablet]}>
+              <Text style={[styles.successMessageText, isTablet && styles.successMessageTextTablet]}>
+                ✅ Traslado consolidado generado exitosamente
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Products List */}
@@ -908,6 +1055,29 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             setSelectedProducto(null);
           }}
         />
+
+        {/* Discrepancias Modal */}
+        <DiscrepanciasModal
+          visible={discrepanciasModalVisible}
+          reportId={currentReportId}
+          onClose={() => {
+            setDiscrepanciasModalVisible(false);
+            setCurrentReportId(null);
+          }}
+          onManageNotes={handleManageDiscrepancyNotes}
+        />
+
+        {/* Notas Discrepancia Modal */}
+        <NotasDiscrepanciaModal
+          visible={notasModalVisible}
+          reportId={currentReportId}
+          discrepancy={selectedDiscrepancy}
+          onClose={() => {
+            setNotasModalVisible(false);
+            setSelectedDiscrepancy(null);
+          }}
+          onNotesUpdated={handleNotesUpdated}
+        />
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -1000,6 +1170,76 @@ const styles = StyleSheet.create({
   infoSectionTablet: {
     paddingHorizontal: 32,
     paddingVertical: 16,
+  },
+  downloadReportButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  downloadReportButtonTablet: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
+  downloadReportButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  downloadReportButtonTextTablet: {
+    fontSize: 16,
+  },
+  downloadButtonDisabled: {
+    opacity: 0.5,
+  },
+  consolidatedButton: {
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#059669',
+  },
+  consolidatedButtonTablet: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
+  consolidatedButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  consolidatedButtonTextTablet: {
+    fontSize: 17,
+  },
+  successMessage: {
+    backgroundColor: '#D1FAE5',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  successMessageTablet: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
+  successMessageText: {
+    color: '#065F46',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  successMessageTextTablet: {
+    fontSize: 16,
   },
   scrollView: {
     flex: 1,
@@ -1179,35 +1419,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   buttonDisabled: {
-    opacity: 0.5,
-  },
-  downloadReportButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  downloadReportButtonTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    marginTop: 16,
-  },
-  downloadReportButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  downloadReportButtonTextTablet: {
-    fontSize: 16,
-  },
-  downloadButtonDisabled: {
     opacity: 0.5,
   },
   headerSection: {

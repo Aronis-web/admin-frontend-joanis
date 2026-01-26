@@ -15,6 +15,19 @@ import {
   ParticipantCampaignProgressResponse,
   CampaignProgressResponse,
 } from '@/types/repartos';
+import {
+  GenerateConsolidatedTransferRequest,
+  GenerateConsolidatedTransferResponse,
+  ConsolidatedTransferReport,
+  TransferReportDiscrepancy,
+  DiscrepancyNote,
+  CreateDiscrepancyNoteRequest,
+  UpdateDiscrepancyNoteRequest,
+  CloseDiscrepancyNoteRequest,
+  UpdateDiscrepancyStatusRequest,
+  CloseReportRequest,
+  ReportStatsResponse,
+} from '@/types/consolidated-reports';
 
 /**
  * Repartos API Service
@@ -406,6 +419,170 @@ class RepartosService {
     }
 
     return await response.blob();
+  }
+
+  // ============================================
+  // Consolidated Transfer Reports
+  // ============================================
+
+  /**
+   * Generate consolidated transfer for a participant in a campaign
+   * This will:
+   * - Release ALL reservations
+   * - Deduct ONLY validated stock
+   * - Create transfer with validated quantities
+   * - Automatically create report if there are discrepancies
+   */
+  async generateConsolidatedTransfer(
+    campaignParticipantId: string,
+    campaignId: string,
+    data: GenerateConsolidatedTransferRequest
+  ): Promise<GenerateConsolidatedTransferResponse> {
+    return apiClient.post<GenerateConsolidatedTransferResponse>(
+      `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/generate-consolidated-transfer`,
+      data
+    );
+  }
+
+  /**
+   * Get consolidated transfer report by ID
+   */
+  async getReport(reportId: string): Promise<ConsolidatedTransferReport> {
+    return apiClient.get<ConsolidatedTransferReport>(`/admin/campaigns/reports/${reportId}`);
+  }
+
+  /**
+   * Get report by transfer ID
+   */
+  async getReportByTransfer(transferId: string): Promise<ConsolidatedTransferReport> {
+    return apiClient.get<ConsolidatedTransferReport>(
+      `/admin/campaigns/reports/transfer/${transferId}`
+    );
+  }
+
+  /**
+   * Get all reports for a campaign
+   */
+  async getReportsByCampaign(campaignId: string): Promise<ConsolidatedTransferReport[]> {
+    return apiClient.get<ConsolidatedTransferReport[]>(
+      `/admin/campaigns/reports/campaign/${campaignId}`
+    );
+  }
+
+  /**
+   * Get report statistics for a campaign
+   */
+  async getReportStats(campaignId: string): Promise<ReportStatsResponse> {
+    return apiClient.get<ReportStatsResponse>(
+      `/admin/campaigns/reports/campaign/${campaignId}/stats`
+    );
+  }
+
+  /**
+   * Close a report
+   */
+  async closeReport(reportId: string, data: CloseReportRequest): Promise<ConsolidatedTransferReport> {
+    return apiClient.post<ConsolidatedTransferReport>(
+      `/admin/campaigns/reports/${reportId}/close`,
+      data
+    );
+  }
+
+  // ============================================
+  // Discrepancies Management
+  // ============================================
+
+  /**
+   * Get a specific discrepancy
+   */
+  async getDiscrepancy(reportId: string, discrepancyId: string): Promise<TransferReportDiscrepancy> {
+    return apiClient.get<TransferReportDiscrepancy>(
+      `/admin/campaigns/reports/${reportId}/discrepancies/${discrepancyId}`
+    );
+  }
+
+  /**
+   * Update discrepancy status
+   */
+  async updateDiscrepancyStatus(
+    reportId: string,
+    discrepancyId: string,
+    data: UpdateDiscrepancyStatusRequest
+  ): Promise<TransferReportDiscrepancy> {
+    return apiClient.patch<TransferReportDiscrepancy>(
+      `/admin/campaigns/reports/${reportId}/discrepancies/${discrepancyId}/status`,
+      data
+    );
+  }
+
+  // ============================================
+  // Discrepancy Notes Management (CRUD)
+  // ============================================
+
+  /**
+   * Create a note for a discrepancy
+   */
+  async createDiscrepancyNote(
+    reportId: string,
+    discrepancyId: string,
+    data: CreateDiscrepancyNoteRequest
+  ): Promise<DiscrepancyNote> {
+    return apiClient.post<DiscrepancyNote>(
+      `/admin/campaigns/reports/${reportId}/discrepancies/${discrepancyId}/notes`,
+      data
+    );
+  }
+
+  /**
+   * Get all notes for a discrepancy
+   */
+  async getDiscrepancyNotes(reportId: string, discrepancyId: string): Promise<DiscrepancyNote[]> {
+    return apiClient.get<DiscrepancyNote[]>(
+      `/admin/campaigns/reports/${reportId}/discrepancies/${discrepancyId}/notes`
+    );
+  }
+
+  /**
+   * Update a discrepancy note
+   */
+  async updateDiscrepancyNote(
+    reportId: string,
+    discrepancyId: string,
+    noteId: string,
+    data: UpdateDiscrepancyNoteRequest
+  ): Promise<DiscrepancyNote> {
+    return apiClient.patch<DiscrepancyNote>(
+      `/admin/campaigns/reports/${reportId}/discrepancies/${discrepancyId}/notes/${noteId}`,
+      data
+    );
+  }
+
+  /**
+   * Close a discrepancy note
+   */
+  async closeDiscrepancyNote(
+    reportId: string,
+    discrepancyId: string,
+    noteId: string,
+    data: CloseDiscrepancyNoteRequest
+  ): Promise<DiscrepancyNote> {
+    return apiClient.post<DiscrepancyNote>(
+      `/admin/campaigns/reports/${reportId}/discrepancies/${discrepancyId}/notes/${noteId}/close`,
+      data
+    );
+  }
+
+  /**
+   * Delete a discrepancy note
+   */
+  async deleteDiscrepancyNote(
+    reportId: string,
+    discrepancyId: string,
+    noteId: string
+  ): Promise<void> {
+    return apiClient.delete<void>(
+      `/admin/campaigns/reports/${reportId}/discrepancies/${discrepancyId}/notes/${noteId}`
+    );
   }
 }
 
