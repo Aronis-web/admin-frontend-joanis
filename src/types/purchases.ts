@@ -446,6 +446,31 @@ export interface PurchaseTotalSumResponse {
 }
 
 /**
+ * Purchase Validation Progress Response
+ */
+export interface PurchaseValidationProgressResponse {
+  purchaseId: string;
+  purchaseCode: string;
+  purchaseStatus: PurchaseStatus;
+  supplierName: string;
+  totalProducts: number;
+  productsValidated: number;
+  productsInValidation: number;
+  productsPreliminary: number;
+  productsRejected: number;
+  productsClosed: number;
+  validationProgressPercentage: number;
+  totalPreliminaryCents: number;
+  totalValidatedCents: number;
+  totalDifferenceCents: number;
+  totalPreliminaryStock: number;
+  totalValidatedStock: number;
+  totalStockDifference: number;
+  productsWithPhotos: number;
+  products?: PurchaseProduct[];
+}
+
+/**
  * Status Labels for UI
  */
 export const PurchaseStatusLabels: Record<PurchaseStatus, string> = {

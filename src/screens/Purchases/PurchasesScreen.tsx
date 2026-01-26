@@ -32,6 +32,9 @@ import { purchasesService } from '@/services/api';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { logger } from '@/utils/logger';
+import { CircularProgress } from '@/components/Repartos';
+import type { PurchaseValidationProgressResponse } from '@/types/purchases';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface PurchasesScreenProps {
   navigation: any;
@@ -45,10 +48,12 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
+  const [purchaseProgress, setPurchaseProgress] = useState<Map<string, PurchaseValidationProgressResponse>>(new Map());
   const limit = 20;
 
   const { currentCompany, currentSite } = useAuthStore();
   const { width, height } = useWindowDimensions();
+  const { hasPermission } = usePermissions();
 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
@@ -86,6 +91,53 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
       totalPages: Math.ceil((data?.total || 0) / (data?.limit || limit)),
     }),
     [data, limit]
+  );
+
+  // Load purchase progress for all purchases
+  const loadPurchaseProgress = useCallback(async (purchaseIds: string[]) => {
+    const progressMap = new Map<string, PurchaseValidationProgressResponse>();
+
+    for (const purchaseId of purchaseIds) {
+      try {
+        const progressData = await purchasesService.getPurchaseValidationProgress(purchaseId);
+        progressMap.set(purchaseId, progressData);
+      } catch (error) {
+        logger.error(`Error loading progress for purchase ${purchaseId}:`, error);
+        // Set default values on error
+        progressMap.set(purchaseId, {
+          purchaseId,
+          purchaseCode: '',
+          purchaseStatus: PurchaseStatus.DRAFT,
+          supplierName: '',
+          totalProducts: 0,
+          productsValidated: 0,
+          productsInValidation: 0,
+          productsPreliminary: 0,
+          productsRejected: 0,
+          productsClosed: 0,
+          validationProgressPercentage: 0,
+          totalPreliminaryCents: 0,
+          totalValidatedCents: 0,
+          totalDifferenceCents: 0,
+          totalPreliminaryStock: 0,
+          totalValidatedStock: 0,
+          totalStockDifference: 0,
+          productsWithPhotos: 0,
+        });
+      }
+    }
+
+    setPurchaseProgress(progressMap);
+  }, []);
+
+  // Load progress when purchases change
+  useFocusEffect(
+    useCallback(() => {
+      if (purchases.length > 0) {
+        const purchaseIds = purchases.map((p) => p.id);
+        loadPurchaseProgress(purchaseIds);
+      }
+    }, [purchases, loadPurchaseProgress])
   );
 
   // Auto-reload purchases when screen comes into focus
@@ -267,6 +319,12 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
       purchase.products?.filter((p) => p.status === 'VALIDATED').length || 0;
     const isDownloading = downloadingReportId === purchase.id;
 
+    // Get progress data from state
+    const progress = purchaseProgress.get(purchase.id);
+    const progressPercentage = progress?.validationProgressPercentage || 0;
+    const progressTotal = progress?.totalProducts || totalProducts;
+    const progressValidated = progress?.productsValidated || validatedProducts;
+
     return (
       <TouchableOpacity
         key={purchase.id}
@@ -323,6 +381,23 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
               {validatedProducts}/{totalProducts}
             </Text>
           </View>
+
+          {/* Circular Progress for Validation */}
+          {progressTotal > 0 && (
+            <View style={styles.progressContainer}>
+              <CircularProgress
+                size={isTablet ? 70 : 60}
+                strokeWidth={isTablet ? 7 : 6}
+                progress={progressPercentage}
+                total={progressTotal}
+                validated={progressValidated}
+                fontSize={isTablet ? 14 : 12}
+              />
+              <Text style={[styles.progressLabel, isTablet && styles.progressLabelTablet]}>
+                Validación
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.cardFooter}>
@@ -330,30 +405,32 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             Creado: {formatDate(purchase.createdAt)}
           </Text>
           <View style={styles.cardActions}>
-            <TouchableOpacity
-              style={[
-                styles.downloadButton,
-                isTablet && styles.downloadButtonTablet,
-                isDownloading && styles.downloadButtonDisabled,
-              ]}
-              onPress={(e) => handleDownloadReport(purchase, e)}
-              disabled={isDownloading}
-              activeOpacity={0.7}
-            >
-              {isDownloading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={[styles.downloadButtonText, isTablet && styles.downloadButtonTextTablet]}>
-                  📄 Reporte
-                </Text>
-              )}
-            </TouchableOpacity>
+            {hasPermission('purchases.reports.download') && (
+              <TouchableOpacity
+                style={[
+                  styles.downloadButton,
+                  isTablet && styles.downloadButtonTablet,
+                  isDownloading && styles.downloadButtonDisabled,
+                ]}
+                onPress={(e) => handleDownloadReport(purchase, e)}
+                disabled={isDownloading}
+                activeOpacity={0.7}
+              >
+                {isDownloading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={[styles.downloadButtonText, isTablet && styles.downloadButtonTextTablet]}>
+                    📄 Reporte
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
             <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
           </View>
         </View>
       </TouchableOpacity>
     );
-  }, [isTablet, handlePurchasePress, handleDownloadReport, getStatusBadgeStyle, getStatusTextStyle, formatDate, formatCurrency, downloadingReportId]);
+  }, [isTablet, handlePurchasePress, handleDownloadReport, getStatusBadgeStyle, getStatusTextStyle, formatDate, formatCurrency, downloadingReportId, purchaseProgress, hasPermission]);
 
   if (isLoading && !isRefetching) {
     return (
@@ -613,6 +690,22 @@ const styles = StyleSheet.create({
   cardBody: {
     gap: 8,
     marginBottom: 16,
+  },
+  progressContainer: {
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  progressLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 6,
+  },
+  progressLabelTablet: {
+    fontSize: 12,
   },
   infoRow: {
     flexDirection: 'row',

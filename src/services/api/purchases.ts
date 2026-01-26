@@ -20,6 +20,7 @@ import {
   PurchaseStatusHistory,
   OcrScanResponse,
   PurchaseTotalSumResponse,
+  PurchaseValidationProgressResponse,
 } from '@/types/purchases';
 
 /**
@@ -100,6 +101,13 @@ class PurchasesService {
    */
   async getPurchaseTotalSum(id: string): Promise<PurchaseTotalSumResponse> {
     return apiClient.get<PurchaseTotalSumResponse>(`${this.basePath}/${id}/total-sum`);
+  }
+
+  /**
+   * Get purchase validation progress
+   */
+  async getPurchaseValidationProgress(id: string): Promise<PurchaseValidationProgressResponse> {
+    return apiClient.get<PurchaseValidationProgressResponse>(`${this.basePath}/${id}/validation-progress`);
   }
 
   // ============================================
