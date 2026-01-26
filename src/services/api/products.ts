@@ -92,6 +92,7 @@ export interface Product {
   minStockAlert: number;
   imageUrl?: string; // Main product image URL
   imageUrls?: string[]; // Multiple product images
+  photos?: string[]; // ✅ NUEVO - URLs de fotos del producto (v2 endpoint con includePhotos=true)
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -143,6 +144,8 @@ export interface ProductFilters {
   q?: string;
   include?: string;
   status?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 // Legacy interfaces for backward compatibility
@@ -344,6 +347,118 @@ export const productsApi = {
     return apiClient.get<ProductListResponse>('/catalog/products', {
       params: { q: query, page },
     });
+  },
+
+  // ========== V2 OPTIMIZED ENDPOINTS (New) ==========
+
+  /**
+   * Búsqueda optimizada de productos (v2)
+   * Usa caché Redis, Full-Text Search y ordenamiento por relevancia
+   * GET /admin/products/v2/search
+   */
+  searchProductsV2: async (params: {
+    q: string;
+    limit?: number;
+    status?: string;
+    categoryId?: string;
+    includePhotos?: boolean; // ✅ Nuevo: Incluir fotos en la respuesta
+  }): Promise<{
+    results: Product[];
+    total: number;
+    limit: number;
+    hasMore: boolean;
+    searchTime: number;
+    cached: boolean;
+  }> => {
+    return apiClient.get('/admin/products/v2/search', { params });
+  },
+
+  /**
+   * Listado paginado optimizado de productos (v2)
+   * GET /admin/products/v2/list
+   */
+  getProductsV2: async (params?: {
+    page?: number;
+    limit?: number;
+    categoryId?: string;
+    status?: string;
+    q?: string;
+    includePhotos?: boolean; // ✅ Nuevo: Incluir fotos en la respuesta
+    sortBy?: string; // ✅ Campo por el cual ordenar
+    sortOrder?: 'asc' | 'desc'; // ✅ Dirección del ordenamiento
+  }): Promise<{
+    products: Product[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+    cached?: boolean; // ✅ Opcional: Indica si la respuesta viene de caché
+  }> => {
+    return apiClient.get('/admin/products/v2/list', { params });
+  },
+
+  /**
+   * Conteo de productos cacheado (v2)
+   * GET /admin/products/v2/count
+   */
+  getProductsCountV2: async (params?: {
+    status?: string;
+  }): Promise<{
+    count: number;
+    cached: boolean;
+  }> => {
+    return apiClient.get('/admin/products/v2/count', { params });
+  },
+
+  /**
+   * Invalidar caché de productos (v2)
+   * DELETE /admin/products/v2/cache
+   */
+  invalidateProductsCacheV2: async (): Promise<void> => {
+    return apiClient.delete('/admin/products/v2/cache');
+  },
+
+  /**
+   * Búsqueda pública optimizada (v2)
+   * GET /catalog/products/v2/search
+   */
+  searchProductsPublicV2: async (params: {
+    q: string;
+    limit?: number;
+    categoryId?: string;
+    includePhotos?: boolean; // ✅ Nuevo: Incluir fotos en la respuesta
+  }): Promise<{
+    results: Product[];
+    total: number;
+    limit: number;
+    hasMore: boolean;
+    searchTime: number;
+    cached: boolean;
+  }> => {
+    return apiClient.get('/catalog/products/v2/search', { params });
+  },
+
+  /**
+   * Listado público optimizado (v2)
+   * GET /catalog/products/v2/list
+   */
+  getProductsPublicV2: async (params?: {
+    page?: number;
+    limit?: number;
+    categoryId?: string;
+    q?: string;
+    includePhotos?: boolean; // ✅ Nuevo: Incluir fotos en la respuesta
+  }): Promise<{
+    products: Product[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+    cached?: boolean; // ✅ Opcional: Indica si la respuesta viene de caché
+  }> => {
+    return apiClient.get('/catalog/products/v2/list', { params });
   },
 
   getFeaturedProducts: async (): Promise<Product[]> => {

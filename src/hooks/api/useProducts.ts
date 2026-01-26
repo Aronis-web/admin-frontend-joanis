@@ -17,11 +17,24 @@ export const productKeys = {
 /**
  * Hook para obtener lista de productos con filtros
  * Incluye caché automático y refetch inteligente
+ * ✅ Usa endpoint v2 optimizado con includePhotos
  */
 export const useProducts = (filters?: ProductFilters) => {
   return useQuery({
     queryKey: productKeys.list(filters),
-    queryFn: () => productsApi.getAllProducts(filters),
+    queryFn: () => {
+      // ✅ Usar endpoint v2 optimizado con fotos
+      return productsApi.getProductsV2({
+        page: filters?.page,
+        limit: filters?.limit,
+        categoryId: filters?.categoryId,
+        status: filters?.status,
+        q: filters?.q,
+        includePhotos: true, // ✅ Incluir fotos para miniaturas
+        sortBy: filters?.sortBy, // ✅ Pasar sortBy al API
+        sortOrder: filters?.sortOrder, // ✅ Pasar sortOrder al API
+      });
+    },
     staleTime: 5 * 60 * 1000, // 5 minutos
     gcTime: 10 * 60 * 1000, // 10 minutos
   });
