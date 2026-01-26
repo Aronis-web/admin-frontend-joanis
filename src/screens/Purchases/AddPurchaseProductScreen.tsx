@@ -191,7 +191,6 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
           notes: p.notes,
         })) : undefined,
         notes: notes.trim() || undefined,
-        reference: reference.trim() || undefined, // ✅ Agregar referencia/guía
       });
 
       Alert.alert('Éxito', 'Producto agregado correctamente', [
