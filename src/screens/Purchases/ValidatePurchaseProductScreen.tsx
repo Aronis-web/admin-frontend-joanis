@@ -421,16 +421,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       return;
     }
 
-    if (validatedPresentations.length === 0) {
-      Alert.alert('Error', 'Debe tener al menos una presentación validada');
-      return;
-    }
+    // Presentaciones ahora son opcionales
+    // if (validatedPresentations.length === 0) {
+    //   Alert.alert('Error', 'Debe tener al menos una presentación validada');
+    //   return;
+    // }
 
-    // Validate all presentations have valid data
-    for (const pres of validatedPresentations) {
-      if (!pres.presentationId || pres.factorToBase <= 0) {
-        Alert.alert('Error', 'Todas las presentaciones deben tener un factor válido');
-        return;
+    // Validate all presentations have valid data (only if there are presentations)
+    if (validatedPresentations.length > 0) {
+      for (const pres of validatedPresentations) {
+        if (!pres.presentationId || pres.factorToBase <= 0) {
+          Alert.alert('Error', 'Todas las presentaciones deben tener un factor válido');
+          return;
+        }
       }
     }
 
