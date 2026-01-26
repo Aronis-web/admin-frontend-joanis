@@ -325,16 +325,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       return;
     }
 
-    if (validatedPresentations.length === 0) {
-      Alert.alert('Error', 'Debe tener al menos una presentación validada');
-      return;
-    }
+    // Presentaciones ahora son opcionales
+    // if (validatedPresentations.length === 0) {
+    //   Alert.alert('Error', 'Debe tener al menos una presentación validada');
+    //   return;
+    // }
 
-    // Validate all presentations have valid data
-    for (const pres of validatedPresentations) {
-      if (!pres.presentationId || pres.factorToBase <= 0) {
-        Alert.alert('Error', 'Todas las presentaciones deben tener un factor válido');
-        return;
+    // Validate all presentations have valid data (only if there are presentations)
+    if (validatedPresentations.length > 0) {
+      for (const pres of validatedPresentations) {
+        if (!pres.presentationId || pres.factorToBase <= 0) {
+          Alert.alert('Error', 'Todas las presentaciones deben tener un factor válido');
+          return;
+        }
       }
     }
 
@@ -363,11 +366,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         validatedPresentationQuantity: validatedPresentationQuantity,
         warehouseId: selectedWarehouse.id,
         areaId: selectedArea?.id,
-        presentations: validatedPresentations.map((p) => ({
+        presentations: validatedPresentations.length > 0 ? validatedPresentations.map((p) => ({
           presentationId: p.presentationId,
           factorToBase: Number(p.factorToBase),
           notes: p.notes.trim() || undefined,
-        })),
+        })) : undefined,
         barcode: barcode.trim() || undefined,
         photoUrl: photoUri,
         signatureUrl: signatureUri,
@@ -466,11 +469,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 validatedPresentationQuantity: validatedPresentationQuantity,
                 warehouseId: selectedWarehouse.id,
                 areaId: selectedArea?.id,
-                presentations: validatedPresentations.map((p) => ({
+                presentations: validatedPresentations.length > 0 ? validatedPresentations.map((p) => ({
                   presentationId: p.presentationId,
                   factorToBase: Number(p.factorToBase),
                   notes: p.notes.trim() || undefined,
-                })),
+                })) : undefined,
                 barcode: barcode.trim() || undefined,
                 photoUrl: photoUri,
                 signatureUrl: signatureUri,
@@ -835,7 +838,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             <View style={styles.section}>
               <View style={styles.presentationHeaderRow}>
                 <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                  Presentaciones Validadas <Text style={styles.required}>*</Text>
+                  Presentaciones Validadas (Opcional)
                 </Text>
                 {canEdit() && (
                   <TouchableOpacity
@@ -857,7 +860,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 )}
               </View>
               <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Presentaciones del producto. Confirme o edite los factores de conversión.
+                Presentaciones del producto (opcional). Confirme o edite los factores de conversión.
               </Text>
 
               {validatedPresentations.map((pres, index) => (

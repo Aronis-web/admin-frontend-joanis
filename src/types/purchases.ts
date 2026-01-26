@@ -354,7 +354,7 @@ export interface ValidateProductRequest {
   validatedLooseUnits?: number; // OPCIONAL: Unidades sueltas validadas
   warehouseId: string;
   areaId?: string;
-  presentations: ValidatedPresentationConfig[]; // OBLIGATORIO: Array de presentaciones validadas
+  presentations?: ValidatedPresentationConfig[]; // OPCIONAL: Array de presentaciones validadas
   barcode?: string;
   productPhotos?: string[];
   photoUrl?: string; // OPCIONAL: URL de la foto de validación
