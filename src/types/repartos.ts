@@ -469,3 +469,63 @@ export interface ParticipantCampaignProgressResponse {
   overallProgress: ProgressInfo;
   repartos: RepartoDetail[];
 }
+
+/**
+ * Campaign Overall Progress Info
+ */
+export interface CampaignOverallProgress {
+  totalRepartos: number;
+  repartosCompleted: number;
+  repartosPercentage: number;
+  totalParticipants: number;
+  productsAssigned: number;
+  productsValidated: number;
+  productsPercentage: number;
+  quantityAssigned: number;
+  quantityValidated: number;
+  quantityPercentage: number;
+}
+
+/**
+ * Participant Campaign Summary
+ */
+export interface ParticipantCampaignSummary {
+  participantId: string;
+  participantName: string;
+  participantType: string;
+  progress: {
+    repartosCount: number;
+    repartosCompleted: number;
+    repartosPercentage: number;
+    productsAssigned: number;
+    productsValidated: number;
+    productsPercentage: number;
+    quantityAssigned: number;
+    quantityValidated: number;
+    quantityPercentage: number;
+  };
+  repartos: Array<{
+    repartoId: string;
+    repartoCode: string;
+    repartoName: string;
+    repartoStatus: string;
+    scheduledDate?: string;
+    isCompleted: boolean;
+    productsAssigned: number;
+    productsValidated: number;
+    quantityAssigned: number;
+    quantityValidated: number;
+  }>;
+}
+
+/**
+ * Campaign Progress Response
+ */
+export interface CampaignProgressResponse {
+  campaignId: string;
+  campaignName: string;
+  campaignCode: string;
+  campaignStatus: string;
+  overallProgress: CampaignOverallProgress;
+  participants: ParticipantCampaignSummary[];
+}

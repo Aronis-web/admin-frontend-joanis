@@ -43,6 +43,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     code: string;
   } | null>(null);
   const [allProducts, setAllProducts] = useState<RepartoProducto[]>([]);
+  const [campaignProgress, setCampaignProgress] = useState<Map<string, { validated: number; total: number; percentage: number }>>(new Map());
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -90,10 +91,47 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     return allCampaigns;
   }, [data, selectedStatus]);
 
+  // Cargar progreso de campañas
+  const loadCampaignProgress = useCallback(async (campaignIds: string[]) => {
+    const progressMap = new Map<string, { validated: number; total: number; percentage: number }>();
+
+    await Promise.all(
+      campaignIds.map(async (campaignId) => {
+        try {
+          const progressData = await repartosService.getCampaignProgress(campaignId);
+          progressMap.set(campaignId, {
+            validated: progressData.overallProgress.productsValidated,
+            total: progressData.overallProgress.productsAssigned,
+            percentage: progressData.overallProgress.productsPercentage,
+          });
+        } catch (error) {
+          // Si falla, usar valores por defecto
+          progressMap.set(campaignId, {
+            validated: 0,
+            total: 0,
+            percentage: 0,
+          });
+        }
+      })
+    );
+
+    setCampaignProgress(progressMap);
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       refetch();
     }, [refetch])
+  );
+
+  // Cargar progreso cuando cambien las campañas
+  useFocusEffect(
+    useCallback(() => {
+      if (campaigns.length > 0) {
+        const campaignIds = campaigns.map((c) => c.id);
+        loadCampaignProgress(campaignIds);
+      }
+    }, [campaigns, loadCampaignProgress])
   );
 
   const handleRefresh = useCallback(() => {
@@ -321,24 +359,16 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       const totalProductos = campaign.products?.length || 0;
       const isExporting = exportingCampaignId === campaign.id;
 
-      // Calcular progreso de validación (cantidad de productos validados, no cantidades)
-      let totalProductosValidacion = 0;
-      let productosValidados = 0;
+      // Obtener progreso de la campaña desde el estado
+      const progress = campaignProgress.get(campaign.id) || {
+        validated: 0,
+        total: 0,
+        percentage: 0,
+      };
 
-      // Contar productos validados de todos los participantes
-      campaign.participants?.forEach((participant: any) => {
-        if (participant.repartoParticipante?.productos) {
-          participant.repartoParticipante.productos.forEach((producto: any) => {
-            totalProductosValidacion++;
-            if (producto.validationStatus === RepartoProductoValidationStatus.VALIDATED) {
-              productosValidados++;
-            }
-          });
-        }
-      });
-
-      const validationProgress =
-        totalProductosValidacion > 0 ? (productosValidados / totalProductosValidacion) * 100 : 0;
+      const totalProductosValidacion = progress.total;
+      const productosValidados = progress.validated;
+      const validationProgress = progress.percentage;
 
       return (
         <View key={campaign.id} style={[styles.card, isTablet && styles.cardTablet]}>
@@ -408,21 +438,21 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                 {totalProductosValidacion > 0 && (
                   <View style={styles.statItem}>
                     <CircularProgress
-                      size={isTablet ? 70 : 60}
-                      strokeWidth={isTablet ? 7 : 6}
+                      size={isTablet ? 80 : 70}
+                      strokeWidth={isTablet ? 8 : 7}
                       progress={validationProgress}
                       total={totalProductosValidacion}
                       validated={productosValidados}
-                      fontSize={isTablet ? 14 : 12}
+                      fontSize={isTablet ? 16 : 14}
                     />
                     <Text
                       style={[
                         styles.statLabel,
                         isTablet && styles.statLabelTablet,
-                        { marginTop: 4 },
+                        { marginTop: 8 },
                       ]}
                     >
-                      Productos Validados
+                      Validación
                     </Text>
                   </View>
                 )}
@@ -464,7 +494,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         </View>
       );
     },
-    [isTablet, exportingCampaignId, handleCampaignPress, handleOpenProductSelection, formatDate]
+    [isTablet, exportingCampaignId, campaignProgress, handleCampaignPress, handleOpenProductSelection, formatDate]
   );
 
   if (isLoading && !isRefetching) {
