@@ -494,6 +494,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       product.status === PurchaseProductStatus.IN_VALIDATION;
     const canValidate =
       product.status !== PurchaseProductStatus.VALIDATED &&
+      product.status !== PurchaseProductStatus.CLOSED &&
+      product.status !== PurchaseProductStatus.REJECTED &&
       purchase?.status !== PurchaseStatus.CLOSED &&
       purchase?.status !== PurchaseStatus.CANCELLED;
 
