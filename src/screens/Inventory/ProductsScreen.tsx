@@ -66,7 +66,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       if (searchQuery !== debouncedSearchQuery) {
         setPage(1);
       }
-    }, 500); // 500ms de delay
+    }, 800); // 800ms de delay (aumentado para permitir escribir)
 
     return () => {
       if (debounceTimerRef.current) {
@@ -84,6 +84,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       ...(statusFilter !== 'all' && { status: statusFilter }),
       ...(debouncedSearchQuery.trim() && { q: debouncedSearchQuery.trim() }),
       include: 'images', // ✅ Incluir imágenes en la respuesta
+      sortBy: 'correlativeNumber', // ✅ Ordenar por número correlativo
+      sortOrder: 'desc', // ✅ De mayor a menor (descendente)
     }),
     [page, statusFilter, debouncedSearchQuery]
   );
@@ -518,13 +520,18 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                   <View style={styles.productHeader}>
                     {/* Product Image Thumbnail */}
                     {(() => {
+                      // ✅ Priorizar photos (v2) sobre imageUrl/imageUrls
                       const hasImage =
-                        product.imageUrl || (product.imageUrls && product.imageUrls.length > 0);
-                      const imageUri = product.imageUrl || product.imageUrls?.[0];
+                        (product.photos && product.photos.length > 0) ||
+                        product.imageUrl ||
+                        (product.imageUrls && product.imageUrls.length > 0);
+                      const imageUri =
+                        product.photos?.[0] || product.imageUrl || product.imageUrls?.[0];
                       if (index === 0) {
                         console.log('🖼️ Product image check:', {
                           title: product.title,
                           hasImage,
+                          photos: product.photos,
                           imageUrl: product.imageUrl,
                           imageUrls: product.imageUrls,
                           imageUri,
@@ -1642,15 +1649,16 @@ const styles = StyleSheet.create({
   },
   floatingButtonsContainer: {
     position: 'absolute',
-    right: 0,
-    bottom: 0,
+    right: 16,
+    bottom: 80,
     zIndex: 9998,
     pointerEvents: 'box-none',
     flexDirection: 'column-reverse',
-    gap: 10,
+    gap: 16,
   },
   fabWrapper: {
     pointerEvents: 'auto',
+    marginBottom: 4,
   },
 });
 
