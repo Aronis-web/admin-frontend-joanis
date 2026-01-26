@@ -20,6 +20,7 @@ class AuthService {
   private accessToken: string | null = null;
   private refreshTokenValue: string | null = null;
   private tokenExpiresAt: number | null = null;
+  private refreshPromise: Promise<RefreshTokenResponse> | null = null;
 
   constructor() {
     this.restoreAuth();
@@ -93,9 +94,36 @@ class AuthService {
   /**
    * Refresh access token
    * POST /auth/refresh
+   *
+   * This method implements deduplication to prevent multiple simultaneous refresh calls
+   * which can cause race conditions and token reuse detection on the backend.
    */
   async refreshToken(): Promise<RefreshTokenResponse> {
+    // If there's already a refresh in progress, return the existing promise
+    if (this.refreshPromise) {
+      console.log('🔄 Token refresh already in progress, reusing existing promise');
+      return this.refreshPromise;
+    }
+
+    // Create a new refresh promise
+    this.refreshPromise = this.performTokenRefresh();
+
     try {
+      const result = await this.refreshPromise;
+      return result;
+    } finally {
+      // Clear the promise after completion (success or failure)
+      this.refreshPromise = null;
+    }
+  }
+
+  /**
+   * Internal method to perform the actual token refresh
+   */
+  private async performTokenRefresh(): Promise<RefreshTokenResponse> {
+    try {
+      console.log('🔄 Starting token refresh...');
+
       const headers: Record<string, string> = {
         'X-App-Id': this.appId,
       };
@@ -118,6 +146,7 @@ class AuthService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Token refresh failed:', response.status, errorData.message);
         throw this.createAuthError(response.status, errorData.message || 'Token refresh failed');
       }
 
@@ -126,8 +155,10 @@ class AuthService {
       // Update stored tokens
       await this.updateTokens(data);
 
+      console.log('✅ Token refresh successful');
       return data;
     } catch (error) {
+      console.error('❌ Token refresh error:', error);
       if (error instanceof AuthError) {
         throw error;
       }

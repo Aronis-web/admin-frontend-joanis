@@ -352,11 +352,8 @@ class PurchasesService {
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
 
-    // Check if token should be refreshed and refresh if needed
-    if (authStore.shouldRefreshToken()) {
-      console.log('🔄 Token needs refresh, refreshing...');
-      await authStore.refreshAccessToken();
-    }
+    // REMOVED: Proactive token refresh to prevent race conditions
+    // Token refresh will happen automatically on 401 errors via apiClient interceptor
 
     const token = authStore.token;
     const userId = authStore.user?.id;

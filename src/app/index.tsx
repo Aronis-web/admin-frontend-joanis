@@ -62,15 +62,9 @@ export const App = () => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
         console.log('📱 App has come to the foreground!');
-        // App has come to the foreground - refresh auth if needed
-        const { shouldRefreshToken, refreshAccessToken, isAuthenticated } = useAuthStore.getState();
-
-        if (isAuthenticated && shouldRefreshToken()) {
-          console.log('🔄 Refreshing token on app foreground...');
-          refreshAccessToken().catch((error) => {
-            console.error('❌ Failed to refresh token on foreground:', error);
-          });
-        }
+        // REMOVED: Proactive token refresh on foreground to prevent race conditions
+        // Token refresh will happen automatically on 401 errors when making API calls
+        // This prevents unnecessary refresh calls when the app comes to foreground
       } else if (nextAppState.match(/inactive|background/)) {
         console.log('📱 App has gone to the background');
         // App is going to background - state is already persisted by navigation

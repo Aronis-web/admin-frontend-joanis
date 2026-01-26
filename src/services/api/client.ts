@@ -66,14 +66,9 @@ class ApiClient {
         const { token, user, currentCompany, currentSite } = authStore;
         const { selectedCompany, selectedSite, selectedWarehouse } = tenantStore;
 
-        // Check if we need to refresh token proactively
-        if (authService.shouldRefreshToken() && authService.getAccessToken()) {
-          try {
-            await authService.refreshToken();
-          } catch (error) {
-            console.warn('Proactive token refresh failed:', error);
-          }
-        }
+        // REMOVED: Proactive token refresh to prevent race conditions
+        // Token refresh will only happen reactively on 401 errors
+        // This prevents multiple simultaneous refresh calls
 
         // Detect if this is a FormData request
         const isFormData = requestConfig.data instanceof FormData;
