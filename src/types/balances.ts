@@ -73,6 +73,7 @@ export interface BalanceOperationFile {
   uploadedBy: string;
   createdAt: string;
   deletedAt?: string;
+  signedUrl?: string;
 }
 
 // Balance Operation Entity
