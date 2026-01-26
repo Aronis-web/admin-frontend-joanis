@@ -157,10 +157,11 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
       return;
     }
 
-    if (productPresentations.length === 0) {
-      Alert.alert('Error', 'Debe agregar al menos una presentación');
-      return;
-    }
+    // Validación de presentaciones - ahora es opcional
+    // if (productPresentations.length === 0) {
+    //   Alert.alert('Error', 'Debe agregar al menos una presentación');
+    //   return;
+    // }
 
     const totalStock = calculateTotalStock();
 
@@ -184,11 +185,11 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
         preliminaryStock: totalStock,
         preliminaryLooseUnits: looseUnitsValue,
         preliminaryPresentationQuantity: preliminaryPresentationQuantity,
-        presentations: productPresentations.map((p) => ({
+        presentations: productPresentations.length > 0 ? productPresentations.map((p) => ({
           presentationId: p.presentationId,
           factorToBase: p.factorToBase,
           notes: p.notes,
-        })),
+        })) : undefined,
         notes: notes.trim() || undefined,
         reference: reference.trim() || undefined, // ✅ Agregar referencia/guía
       });
@@ -297,7 +298,7 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.label, isTablet && styles.labelTablet]}>
-              Presentaciones <Text style={styles.required}>*</Text>
+              Presentaciones (Opcional)
             </Text>
             <TouchableOpacity
               style={[styles.addPresentationButton, isTablet && styles.addPresentationButtonTablet]}
@@ -313,7 +314,7 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
                 No hay presentaciones agregadas
               </Text>
               <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Agrega al menos una presentación con su factor de conversión
+                Puedes agregar presentaciones con su factor de conversión (opcional)
               </Text>
             </View>
           ) : (
@@ -467,7 +468,7 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
         {/* Loose Units */}
         <View style={styles.section}>
           <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Unidades Sueltas <Text style={styles.required}>*</Text>
+            Unidades Sueltas
           </Text>
           <TextInput
             style={[styles.input, isTablet && styles.inputTablet]}

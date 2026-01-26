@@ -308,7 +308,7 @@ export interface AddProductRequest {
   preliminaryStock: number;
   preliminaryPresentationQuantity?: number; // OPCIONAL: Cantidad de presentaciones
   preliminaryLooseUnits?: number; // OPCIONAL: Unidades sueltas
-  presentations: ProductPresentationConfig[]; // OBLIGATORIO: Array de presentaciones con sus factores base
+  presentations?: ProductPresentationConfig[]; // OPCIONAL: Array de presentaciones con sus factores base
   notes?: string; // OPCIONAL: Notas generales del producto
   reference?: string; // OPCIONAL: Guía/Referencia del producto
 }
