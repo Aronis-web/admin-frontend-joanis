@@ -1650,15 +1650,16 @@ const styles = StyleSheet.create({
   floatingButtonsContainer: {
     position: 'absolute',
     right: 16,
-    bottom: 80,
+    bottom: 100,
     zIndex: 9998,
     pointerEvents: 'box-none',
     flexDirection: 'column-reverse',
-    gap: 16,
+    alignItems: 'flex-end',
+    gap: 12,
   },
   fabWrapper: {
     pointerEvents: 'auto',
-    marginBottom: 4,
+    marginVertical: 6,
   },
 });
 
