@@ -470,13 +470,27 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             style={[styles.input, isTablet && styles.inputTablet]}
             value={productSearchQuery}
             onChangeText={handleProductSearchChange}
-            onFocus={() => setShowProductSuggestions(productSearchQuery.length > 0)}
+            onFocus={() => {
+              if (productSearchQuery.length >= 2 && products.length > 0) {
+                setShowProductSuggestions(true);
+              }
+            }}
             placeholder="Buscar por #correlativo, SKU, nombre o descripción..."
             placeholderTextColor="#94A3B8"
           />
 
+          {/* Loading indicator */}
+          {isSearching && (
+            <View style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}>
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#6366F1" />
+                <Text style={styles.loadingText}>Buscando productos...</Text>
+              </View>
+            </View>
+          )}
+
           {/* Product Suggestions */}
-          {showProductSuggestions && filteredProducts.length > 0 && (
+          {!isSearching && showProductSuggestions && filteredProducts.length > 0 && (
             <View
               style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}
             >
@@ -573,7 +587,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           )}
 
           {/* No products message */}
-          {showProductSuggestions && filteredProducts.length === 0 && products.length > 0 && (
+          {!isSearching && showProductSuggestions && filteredProducts.length === 0 && productSearchQuery.length >= 2 && (
             <View
               style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}
             >
@@ -582,13 +596,6 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                   No se encontraron productos con ese criterio de búsqueda
                 </Text>
               </View>
-            </View>
-          )}
-
-          {/* No products available at all */}
-          {products.length === 0 && (
-            <View style={styles.infoContainer}>
-              <Text style={styles.infoText}>⚠️ No hay productos disponibles en el inventario</Text>
             </View>
           )}
 
