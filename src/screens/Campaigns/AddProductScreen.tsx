@@ -398,6 +398,18 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       console.log('⚡ Search time:', response.searchTime, 'ms');
       console.log('💾 Cached:', response.cached);
 
+      // Log product statuses for debugging
+      const statusCounts = response.results.reduce((acc: any, p: any) => {
+        acc[p.status] = (acc[p.status] || 0) + 1;
+        return acc;
+      }, {});
+      console.log('📊 Products by status:', statusCounts);
+      console.log('📦 Sample products:', response.results.slice(0, 3).map((p: any) => ({
+        sku: p.sku,
+        title: p.title,
+        status: p.status,
+      })));
+
       setProducts(response.results);
       setShowProductSuggestions(response.results.length > 0);
     } catch (error) {
