@@ -251,6 +251,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     try {
       logger.debug('📡 [MODAL] Llamando a preview inicial (sin preferencias)...');
       // Primero obtener preview inicial para saber cuántos participantes hay
+      // NOTA: El backend debe manejar la lógica de filtrado de participantes:
+      // - Si solo hay sedes internas, distribuir solo entre sedes
+      // - Si hay empresas externas, incluir todos los participantes
       const initialPreview = await campaignsService.getDistributionPreview(
         campaignId,
         productId,
@@ -303,8 +306,17 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
       setAdjustedDistribution(previewDataWithPreferences);
 
-      // Initialize editable total quantity
-      setEditableTotalQuantity(previewDataWithPreferences.totalQuantity);
+      // Initialize editable total quantity with available stock (if available), otherwise use totalQuantity
+      const stockDetails = previewDataWithPreferences.stockDetails || localStockData || [];
+      const totalAvailableStock = stockDetails.reduce(
+        (sum, stock) => sum + stock.available,
+        0
+      );
+      const initialQuantity = totalAvailableStock > 0
+        ? totalAvailableStock
+        : previewDataWithPreferences.totalQuantity;
+
+      setEditableTotalQuantity(initialQuantity);
 
       // Inicializar distribuciones editables desde el preview
       const initialDistributions: typeof editableDistributions = {};
@@ -598,23 +610,23 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     let totalDistributed = 0;
     let remainderParticipantId: string | null = null;
 
-    // Primero, calcular cantidades redondeadas para cada participante
+    // Primero, calcular cantidades usando Math.floor para evitar excedentes
     Object.values(editableDistributions).forEach((dist) => {
       const exactQuantity = (dist.percentage / 100) * newTotalQuantity;
-      // Redondear: si es >= 0.5 redondea hacia arriba, si no hacia abajo
-      const roundedQuantity = Math.round(exactQuantity);
+      // Usar Math.floor para asegurar que nunca excedemos el total
+      const flooredQuantity = Math.floor(exactQuantity);
 
       newDistributions[dist.participantId] = {
         ...dist,
-        quantityBase: roundedQuantity,
+        quantityBase: flooredQuantity,
         quantityPresentation:
-          globalRoundingFactor > 1 ? Math.floor(roundedQuantity / globalRoundingFactor) : undefined,
+          globalRoundingFactor > 1 ? Math.floor(flooredQuantity / globalRoundingFactor) : undefined,
       };
 
-      totalDistributed += roundedQuantity;
+      totalDistributed += flooredQuantity;
     });
 
-    // Calcular remanente
+    // Calcular remanente (ahora siempre será >= 0)
     const remainder = newTotalQuantity - totalDistributed;
 
     // Asignar remanente a la sede de ajuste (o al primer participante si no hay sede de ajuste)
