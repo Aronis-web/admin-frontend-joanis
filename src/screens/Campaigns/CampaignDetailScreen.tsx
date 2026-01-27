@@ -23,6 +23,7 @@ import { campaignsService } from '@/services/api';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
 import { productsApi, priceProfilesApi } from '@/services/api';
+import { inventoryApi, StockItem } from '@/services/api/inventory';
 import logger from '@/utils/logger';
 import {
   Campaign,
@@ -30,6 +31,10 @@ import {
   CampaignStatusLabels,
   CampaignStatusColors,
   CampaignProduct,
+  ProductSourceType,
+  ProductStatus,
+  DistributionType,
+  AddProductRequest,
 } from '@/types/campaigns';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
@@ -97,6 +102,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [isBulkUpdateModalVisible, setIsBulkUpdateModalVisible] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+
+  // Quick add product states
+  const [globalSearchResults, setGlobalSearchResults] = useState<any[]>([]);
+  const [showGlobalSearchSuggestions, setShowGlobalSearchSuggestions] = useState(false);
+  const [isGlobalSearching, setIsGlobalSearching] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [addingQuickProduct, setAddingQuickProduct] = useState(false);
 
   const isTablet = width >= 768 || height >= 768;
 
@@ -347,6 +360,156 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // This prevents unnecessary reloads and improves performance significantly
     }, [loadCampaign, route.params?.shouldReload, route.params?.skipReloadOnce, route.params?.updatedProductId, navigation, campaignId])
   );
+
+  // Load stock items on mount for quick add functionality
+  React.useEffect(() => {
+    loadStockItems();
+  }, []);
+
+  // Load stock items for quick add functionality
+  const loadStockItems = useCallback(async () => {
+    try {
+      const stockResponse = await inventoryApi.getAllStock({});
+      const stockItemsData: StockItem[] = stockResponse.map((item) => ({
+        id: `${item.productId}-${item.warehouseId}-${item.areaId || 'no-area'}`,
+        productId: item.productId,
+        warehouseId: item.warehouseId,
+        areaId: item.areaId || undefined,
+        quantityBase: item.quantityBase,
+        updatedAt: item.updatedAt,
+        productTitle: item.product?.title,
+        productSku: item.product?.sku,
+        warehouseName: item.warehouse?.name,
+        areaName: item.area?.name,
+      }));
+      setStockItems(stockItemsData);
+    } catch (error) {
+      console.error('Error loading stock:', error);
+      setStockItems([]);
+    }
+  }, []);
+
+  // Get product stock from inventory
+  const getProductStock = useCallback((productId: string): number => {
+    const productStockItems = stockItems.filter((item) => item.productId === productId);
+    if (productStockItems.length === 0) {
+      return 0;
+    }
+    const totalStock = productStockItems.reduce((total: number, item: StockItem) => {
+      const quantity =
+        typeof item.availableQuantityBase === 'number'
+          ? item.availableQuantityBase
+          : typeof item.quantityBase === 'string'
+            ? parseFloat(item.quantityBase)
+            : item.quantityBase || 0;
+      return total + quantity;
+    }, 0);
+    return totalStock;
+  }, [stockItems]);
+
+  // Global search for products not in campaign
+  const searchGlobalProducts = useCallback(async (query: string) => {
+    if (!query || query.trim().length < 2) {
+      setGlobalSearchResults([]);
+      setShowGlobalSearchSuggestions(false);
+      return;
+    }
+
+    try {
+      setIsGlobalSearching(true);
+      console.log('🔍 Global search:', query);
+
+      try {
+        const response = await productsApi.searchProductsV2({
+          q: query.trim(),
+          limit: 20,
+          status: 'active,preliminary',
+          includePhotos: true,
+        });
+        setGlobalSearchResults(response.results);
+        setShowGlobalSearchSuggestions(response.results.length > 0);
+      } catch (v2Error) {
+        console.warn('⚠️ V2 endpoint failed, falling back to v1:', v2Error);
+        const response = await productsApi.getProducts({
+          q: query.trim(),
+          limit: 20,
+        });
+        setGlobalSearchResults(response.products);
+        setShowGlobalSearchSuggestions(response.products.length > 0);
+      }
+    } catch (error) {
+      console.error('Error searching products:', error);
+    } finally {
+      setIsGlobalSearching(false);
+    }
+  }, []);
+
+  // Handle search query change with debounce
+  const handleSearchQueryChange = useCallback((text: string) => {
+    setSearchQuery(text);
+
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // If query is empty, hide suggestions
+    if (!text.trim()) {
+      setGlobalSearchResults([]);
+      setShowGlobalSearchSuggestions(false);
+      return;
+    }
+
+    // Set new timeout for debounced search
+    const timeout = setTimeout(() => {
+      searchGlobalProducts(text);
+    }, 800);
+
+    setSearchTimeout(timeout);
+  }, [searchTimeout, searchGlobalProducts]);
+
+  // Quick add product with available stock
+  const handleQuickAddProduct = useCallback(async (product: any) => {
+    if (!campaign) return;
+
+    const availableStock = getProductStock(product.id);
+
+    if (availableStock <= 0) {
+      Alert.alert('Sin stock', 'Este producto no tiene stock disponible');
+      return;
+    }
+
+    setAddingQuickProduct(true);
+    try {
+      const actualProductStatus =
+        product.status === 'preliminary'
+          ? ProductStatus.PRELIMINARY
+          : ProductStatus.ACTIVE;
+
+      const data: AddProductRequest = {
+        productId: product.id,
+        sourceType: ProductSourceType.INVENTORY,
+        totalQuantity: availableStock,
+        productStatus: actualProductStatus,
+        distributionType: DistributionType.ALL,
+      };
+
+      await campaignsService.addProduct(campaignId, data);
+
+      Alert.alert('Éxito', `Producto agregado con ${availableStock} unidades`);
+
+      // Clear search and reload campaign
+      setSearchQuery('');
+      setGlobalSearchResults([]);
+      setShowGlobalSearchSuggestions(false);
+      loadCampaign();
+    } catch (error: any) {
+      console.error('Error adding product:', error);
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo agregar el producto');
+    } finally {
+      setAddingQuickProduct(false);
+    }
+  }, [campaign, campaignId, getProductStock, loadCampaign]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -1510,13 +1673,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                   placeholder="Buscar por nombre, SKU o cantidad..."
                   value={searchQuery}
-                  onChangeText={setSearchQuery}
+                  onChangeText={handleSearchQueryChange}
                   placeholderTextColor="#94A3B8"
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity
                     style={styles.clearSearchButton}
-                    onPress={() => setSearchQuery('')}
+                    onPress={() => {
+                      setSearchQuery('');
+                      setGlobalSearchResults([]);
+                      setShowGlobalSearchSuggestions(false);
+                    }}
                   >
                     <Text style={styles.clearSearchText}>✕</Text>
                   </TouchableOpacity>
@@ -1586,9 +1753,105 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               No hay productos agregados
             </Text>
           ) : filteredProducts.length === 0 ? (
-            <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-              No se encontraron productos que coincidan con "{searchQuery}"
-            </Text>
+            <>
+              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+                No se encontraron productos en la campaña que coincidan con "{searchQuery}"
+              </Text>
+
+              {/* Loading indicator for global search */}
+              {isGlobalSearching && (
+                <View style={styles.globalSearchLoading}>
+                  <ActivityIndicator size="small" color="#6366F1" />
+                  <Text style={styles.globalSearchLoadingText}>Buscando en todos los productos...</Text>
+                </View>
+              )}
+
+              {/* Global search suggestions */}
+              {!isGlobalSearching && showGlobalSearchSuggestions && globalSearchResults.length > 0 && (
+                <View style={styles.globalSearchContainer}>
+                  <Text style={styles.globalSearchTitle}>
+                    💡 Productos disponibles para agregar ({globalSearchResults.length})
+                  </Text>
+                  <Text style={styles.globalSearchHint}>
+                    Toca un producto para agregarlo rápidamente con todo su stock disponible
+                  </Text>
+                  <ScrollView style={styles.globalSearchList} nestedScrollEnabled>
+                    {globalSearchResults.slice(0, 10).map((product) => {
+                      const stock = getProductStock(product.id);
+                      const isAlreadyAdded = campaign.products?.some(p => p.productId === product.id);
+                      const isPreliminary = (product.status as any) === 'preliminary';
+
+                      return (
+                        <TouchableOpacity
+                          key={product.id}
+                          style={[
+                            styles.globalSearchItem,
+                            isPreliminary && styles.globalSearchItemPreliminary,
+                            isAlreadyAdded && styles.globalSearchItemDisabled,
+                          ]}
+                          onPress={() => {
+                            if (!isAlreadyAdded && !addingQuickProduct) {
+                              handleQuickAddProduct(product);
+                            }
+                          }}
+                          disabled={isAlreadyAdded || addingQuickProduct}
+                          activeOpacity={isAlreadyAdded ? 1 : 0.7}
+                        >
+                          {product.photos && product.photos.length > 0 ? (
+                            <Image
+                              source={{ uri: product.photos[0] }}
+                              style={styles.globalSearchImage}
+                              resizeMode="cover"
+                            />
+                          ) : product.imageUrl ? (
+                            <Image
+                              source={{ uri: product.imageUrl }}
+                              style={styles.globalSearchImage}
+                              resizeMode="cover"
+                            />
+                          ) : null}
+                          <View style={styles.globalSearchContent}>
+                            <Text
+                              style={[
+                                styles.globalSearchItemTitle,
+                                isAlreadyAdded && styles.globalSearchItemTitleDisabled,
+                              ]}
+                            >
+                              {product.correlativeNumber && `#${product.correlativeNumber} | `}
+                              {product.sku} - {product.title}
+                              {isAlreadyAdded && ' (Ya agregado)'}
+                            </Text>
+                            {isPreliminary && (
+                              <Text style={styles.globalSearchWarning}>
+                                ⚠️ Producto por validar Ingreso
+                              </Text>
+                            )}
+                            <View style={styles.globalSearchMeta}>
+                              <Text
+                                style={[
+                                  styles.globalSearchStock,
+                                  stock > 0 ? styles.stockAvailable : styles.stockUnavailable,
+                                ]}
+                              >
+                                Stock disponible: {stock}
+                              </Text>
+                              <Text style={styles.globalSearchStatus}>
+                                {product.status === 'active' ? '✓ Activo' : '⚠ Preliminar'}
+                              </Text>
+                            </View>
+                          </View>
+                          {!isAlreadyAdded && stock > 0 && (
+                            <View style={styles.globalSearchAction}>
+                              <Text style={styles.globalSearchActionText}>+ Agregar</Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+            </>
           ) : (
             filteredProducts.map((product) => {
               // ✅ PRIORIZAR batch endpoint sobre producto embebido (batch tiene photoUrls)
@@ -3096,5 +3359,113 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#FFFFFF',
     fontWeight: 'bold',
+  },
+  // Global search styles
+  globalSearchLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 12,
+  },
+  globalSearchLoadingText: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  globalSearchContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  globalSearchTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  globalSearchHint: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  globalSearchList: {
+    maxHeight: 400,
+  },
+  globalSearchItem: {
+    flexDirection: 'row',
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  globalSearchItemPreliminary: {
+    backgroundColor: '#FEF3C7',
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
+  },
+  globalSearchItemDisabled: {
+    backgroundColor: '#F1F5F9',
+    opacity: 0.6,
+  },
+  globalSearchImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  globalSearchContent: {
+    flex: 1,
+  },
+  globalSearchItemTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  globalSearchItemTitleDisabled: {
+    color: '#94A3B8',
+  },
+  globalSearchWarning: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  globalSearchMeta: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  globalSearchStock: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  globalSearchStatus: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  globalSearchAction: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  globalSearchActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  stockAvailable: {
+    color: '#10B981',
+  },
+  stockUnavailable: {
+    color: '#EF4444',
   },
 });
