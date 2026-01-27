@@ -314,17 +314,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           ? ProductStatus.PRELIMINARY
           : ProductStatus.ACTIVE;
 
-      // Use preliminary stock for PRELIMINARY purchase products, validated stock for VALIDATED
-      const stockQuantity =
-        product.status === 'PRELIMINARY'
-          ? product.preliminaryStock || 0
-          : product.validatedStock || 0;
+      // Use available stock from inventory instead of purchase stock
+      const availableStock = getProductStock(product.productId);
 
       setSelectedPurchaseProducts([
         ...selectedPurchaseProducts,
         {
           productId: product.productId,
-          quantity: stockQuantity,
+          quantity: availableStock,
           productStatus: productStatus,
           distributionType: DistributionType.ALL,
         },
@@ -817,10 +814,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               )}
               <Text style={styles.productDetails}>
                 {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku}{' '}
-                | Stock:{' '}
-                {product.status === 'PRELIMINARY'
-                  ? product.preliminaryStock
-                  : product.validatedStock}
+                | Stock Disponible: {getProductStock(product.productId)}
                 {product.product?.status === 'preliminary' && ' ⚠ Preliminar'}
               </Text>
             </View>
