@@ -385,7 +385,7 @@ export const productsApi = {
     q?: string;
     includePhotos?: boolean; // ✅ Nuevo: Incluir fotos en la respuesta
     sortBy?: string; // ✅ Campo por el cual ordenar
-    sortOrder?: 'asc' | 'desc'; // ✅ Dirección del ordenamiento
+    sortOrder?: 'ASC' | 'DESC' | 'asc' | 'desc'; // ✅ Dirección del ordenamiento (acepta mayúsculas y minúsculas)
   }): Promise<{
     products: Product[];
     total: number;

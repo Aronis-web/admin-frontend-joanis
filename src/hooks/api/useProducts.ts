@@ -32,7 +32,7 @@ export const useProducts = (filters?: ProductFilters) => {
         q: filters?.q,
         includePhotos: true, // ✅ Incluir fotos para miniaturas
         sortBy: filters?.sortBy, // ✅ Pasar sortBy al API
-        sortOrder: filters?.sortOrder, // ✅ Pasar sortOrder al API
+        sortOrder: filters?.sortOrder?.toUpperCase() as 'ASC' | 'DESC', // ✅ Convertir a mayúsculas para TypeORM
       });
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
