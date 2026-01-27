@@ -386,32 +386,47 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       setIsSearching(true);
       console.log('🔍 Searching products with v2 endpoint:', query);
 
-      // ✅ Usar endpoint v2 optimizado con caché y Full-Text Search
-      const response = await productsApi.searchProductsV2({
-        q: query.trim(),
-        limit: 20,
-        status: 'active,preliminary',
-        includePhotos: true, // ✅ Incluir fotos para mostrar miniaturas
-      });
+      try {
+        // ✅ Intentar usar endpoint v2 optimizado con caché y Full-Text Search
+        const response = await productsApi.searchProductsV2({
+          q: query.trim(),
+          limit: 20,
+          status: 'active,preliminary',
+          includePhotos: true, // ✅ Incluir fotos para mostrar miniaturas
+        });
 
-      console.log('🔍 Search results:', response.results.length, 'products found');
-      console.log('⚡ Search time:', response.searchTime, 'ms');
-      console.log('💾 Cached:', response.cached);
+        console.log('🔍 Search results:', response.results.length, 'products found');
+        console.log('⚡ Search time:', response.searchTime, 'ms');
+        console.log('💾 Cached:', response.cached);
 
-      // Log product statuses for debugging
-      const statusCounts = response.results.reduce((acc: any, p: any) => {
-        acc[p.status] = (acc[p.status] || 0) + 1;
-        return acc;
-      }, {});
-      console.log('📊 Products by status:', statusCounts);
-      console.log('📦 Sample products:', response.results.slice(0, 3).map((p: any) => ({
-        sku: p.sku,
-        title: p.title,
-        status: p.status,
-      })));
+        // Log product statuses for debugging
+        const statusCounts = response.results.reduce((acc: any, p: any) => {
+          acc[p.status] = (acc[p.status] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('📊 Products by status:', statusCounts);
+        console.log('📦 Sample products:', response.results.slice(0, 3).map((p: any) => ({
+          sku: p.sku,
+          title: p.title,
+          status: p.status,
+        })));
 
-      setProducts(response.results);
-      setShowProductSuggestions(response.results.length > 0);
+        setProducts(response.results);
+        setShowProductSuggestions(response.results.length > 0);
+      } catch (v2Error) {
+        console.warn('⚠️ V2 endpoint failed, falling back to v1:', v2Error);
+
+        // Fallback: usar endpoint v1 (getProducts)
+        const response = await productsApi.getProducts({
+          q: query.trim(),
+          limit: 20,
+        });
+
+        console.log('🔍 Search results (v1):', response.products.length, 'products found');
+
+        setProducts(response.products);
+        setShowProductSuggestions(response.products.length > 0);
+      }
     } catch (error) {
       console.error('Error searching products:', error);
       Alert.alert('Error', 'No se pudieron buscar los productos');
