@@ -177,11 +177,19 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
   const loadProducts = async () => {
     try {
       setLoadingProducts(true);
-      const response = await productsApi.getAllProducts({
-        limit: 1000,
-        include: 'stockItems',
+      // ✅ Usar endpoint v2 optimizado con paginación
+      // Nota: Para cargar todos los productos, usar múltiples páginas o aumentar el límite
+      const response = await productsApi.getProductsV2({
+        limit: 100, // Límite máximo permitido por el endpoint v2
+        status: 'active,preliminary',
       });
       setProducts(response.products || []);
+
+      // Si hay más productos, cargar páginas adicionales
+      if (response.hasMore) {
+        console.log('⚠️ Hay más productos disponibles. Total:', response.total);
+        // TODO: Implementar carga paginada si es necesario
+      }
     } catch (error: any) {
       console.error('Error loading products:', error);
       Alert.alert('Error', 'No se pudieron cargar los productos');

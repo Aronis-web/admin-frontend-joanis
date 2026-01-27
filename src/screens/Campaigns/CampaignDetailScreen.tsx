@@ -95,6 +95,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const { width, height } = useWindowDimensions();
   const hasLoadedRef = useRef(false);
   const [isBulkUpdateModalVisible, setIsBulkUpdateModalVisible] = useState(false);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
 
   const isTablet = width >= 768 || height >= 768;
 
@@ -166,81 +168,56 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
       // Load products for campaign products
       if (data.products && data.products.length > 0) {
-        // First, use products that come embedded in the campaign response
         const productsMap: Record<string, Product> = {};
 
         logger.info(`📦 Total campaign products: ${data.products.length}`);
 
-        // Collect products that are already embedded in the response
-        let embeddedCount = 0;
-        data.products.forEach((campaignProduct) => {
-          if (campaignProduct.product) {
-            embeddedCount++;
-            logger.info(
-              `✅ Embedded product found: ${campaignProduct.product.id} - ${campaignProduct.product.title || campaignProduct.product.sku}`
-            );
-            productsMap[campaignProduct.productId] = campaignProduct.product as any;
-          }
-        });
-
-        logger.info(`📊 Embedded products: ${embeddedCount}/${data.products.length}`);
-
-        // Find products that are NOT embedded and need to be fetched
-        const missingProductIds = data.products
-          .filter((p) => !p.product)
+        // ✅ SIEMPRE usar batch endpoint para obtener fotos y datos completos
+        // Los productos embebidos en la campaña NO tienen photoUrls ni stockItems completos
+        const allProductIds = data.products
           .map((p) => p.productId)
           .filter((id, index, self) => self.indexOf(id) === index); // unique IDs
 
-        // Fetch missing products if any
-        if (missingProductIds.length > 0) {
+        if (allProductIds.length > 0) {
           try {
             logger.info(
-              `🔍 Fetching ${missingProductIds.length} missing products using V2 optimized endpoint`
+              `🔍 Fetching ${allProductIds.length} products using V2 batch endpoint (with photos)`
             );
 
-            // ✅ OPTIMIZACIÓN V2: Usar getProductsV2 con caché Redis en lugar de llamadas individuales
-            // Esto es mucho más eficiente que hacer N llamadas a getProductById
-            const response = await productsApi.getProductsV2({
-              limit: 100, // Máximo permitido por el backend
-              includePhotos: true, // ✅ Incluir fotos para miniaturas
+            // ✅ Usar getProductsByIds para traer productos con fotos
+            const response = await (productsApi as any).getProductsByIds(
+              allProductIds,
+              true // includePhotos
+            );
+
+            // Agregar los productos obtenidos al mapa
+            response.products.forEach((product: Product) => {
+              productsMap[product.id] = product;
+              logger.info(
+                `✅ Fetched product: ${product.id} - ${product.title || product.sku}`
+              );
             });
 
-            // Crear mapa de productos por ID para búsqueda rápida
-            const fetchedProductsMap: Record<string, Product> = {};
-            response.products.forEach((product) => {
-              fetchedProductsMap[product.id] = product;
-            });
-
-            // Agregar solo los productos que faltan
-            missingProductIds.forEach((productId) => {
-              if (fetchedProductsMap[productId]) {
-                productsMap[productId] = fetchedProductsMap[productId];
-                logger.info(
-                  `✅ Fetched product: ${productId} - ${fetchedProductsMap[productId].title || fetchedProductsMap[productId].sku}`
-                );
-              } else {
-                logger.warn(`⚠️ Product ${productId} not found in V2 response`);
-              }
-            });
+            // Verificar si faltó algún producto
+            const fetchedIds = new Set(response.products.map((p: Product) => p.id));
+            const notFoundIds = allProductIds.filter(id => !fetchedIds.has(id));
+            if (notFoundIds.length > 0) {
+              logger.warn(`⚠️ ${notFoundIds.length} products not found:`, notFoundIds);
+            }
 
             logger.info(
-              `✅ Successfully fetched ${Object.keys(productsMap).length} products (cached: ${response.cached || false})`
+              `✅ Successfully fetched ${response.products.length}/${allProductIds.length} products (cached: ${response.cached || false})`
             );
           } catch (error) {
-            logger.error('Error loading missing products:', error);
+            logger.error('Error loading products with batch endpoint:', error);
 
-            // Fallback: Si falla V2, intentar con llamadas individuales V1
-            logger.warn('⚠️ Fallback to individual V1 calls');
-            await Promise.all(
-              missingProductIds.map(async (productId) => {
-                try {
-                  const product = await productsApi.getProductById(productId);
-                  productsMap[productId] = product;
-                } catch (error) {
-                  logger.error(`❌ Error fetching product ${productId}:`, error);
-                }
-              })
-            );
+            // Fallback: Si falla V2 batch, usar productos embebidos
+            logger.warn('⚠️ Fallback to embedded products');
+            data.products.forEach((campaignProduct) => {
+              if (campaignProduct.product) {
+                productsMap[campaignProduct.productId] = campaignProduct.product as any;
+              }
+            });
           }
         }
 
@@ -1152,6 +1129,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     );
   };
 
+  const handleOpenImageModal = useCallback((imageUri: string) => {
+    setSelectedImageUri(imageUri);
+    setIsImageModalVisible(true);
+  }, []);
+
+  const handleCloseImageModal = useCallback(() => {
+    setIsImageModalVisible(false);
+    setSelectedImageUri(null);
+  }, []);
+
   const handleDeleteProduct = useCallback(async (product: CampaignProduct) => {
     Alert.alert(
       'Eliminar Producto',
@@ -1604,7 +1591,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </Text>
           ) : (
             filteredProducts.map((product) => {
-              const productDetails = product.product || products[product.productId];
+              // ✅ PRIORIZAR batch endpoint sobre producto embebido (batch tiene photoUrls)
+              const productDetails = products[product.productId] || product.product;
               const costCents = productDetails?.costCents || 0;
               const isExpanded = expandedProducts.has(product.id);
               // Resaltar productos cuyo estado del producto es 'preliminary' (no validado aún)
@@ -1629,14 +1617,45 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       })
                     }
                   >
-                    {/* ✅ Product Image */}
-                    {(productDetails as any)?.imageUrl && (
-                      <Image
-                        source={{ uri: (productDetails as any).imageUrl }}
-                        style={styles.productImage}
-                        resizeMode="cover"
-                      />
-                    )}
+                    {/* ✅ Product Image - Usar photoUrls del batch endpoint */}
+                    {(() => {
+                      // Debug: Ver qué datos tenemos
+                      const batchProduct = products[product.productId];
+                      const embeddedProduct = product.product;
+
+                      logger.debug(`📸 Image data for ${product.productId}:`, {
+                        hasBatchProduct: !!batchProduct,
+                        hasEmbeddedProduct: !!embeddedProduct,
+                        batchPhotoUrls: (batchProduct as any)?.photoUrls,
+                        embeddedPhotoUrls: (embeddedProduct as any)?.photoUrls,
+                        productDetailsSource: productDetails === batchProduct ? 'batch' : 'embedded',
+                      });
+
+                      const imageUri =
+                        (productDetails as any)?.photoUrls?.[0] ||
+                        (productDetails as any)?.photos?.[0] ||
+                        (productDetails as any)?.imageUrl ||
+                        (productDetails as any)?.imageUrls?.[0];
+
+                      logger.debug(`📸 Final imageUri for ${product.productId}:`, imageUri);
+
+                      return imageUri ? (
+                        <TouchableOpacity
+                          onPress={() => handleOpenImageModal(imageUri)}
+                          activeOpacity={0.7}
+                        >
+                          <Image
+                            source={{ uri: imageUri }}
+                            style={styles.productImage}
+                            resizeMode="cover"
+                          />
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={styles.productImagePlaceholder}>
+                          <Text style={styles.productImagePlaceholderText}>📦</Text>
+                        </View>
+                      );
+                    })()}
                     <View style={styles.listItemContent}>
                       <View style={styles.productTitleRow}>
                         <Text
@@ -1653,8 +1672,41 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       <Text
                         style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}
                       >
-                        SKU: {productDetails?.sku || 'N/A'} | Cant: {product.totalQuantityBase} |
-                        Costo:{' '}
+                        SKU: {productDetails?.sku || 'N/A'} |{' '}
+                        {(() => {
+                          // Calcular cantidad repartida desde customDistributions.items.assignedQuantityBase
+                          const distributedQty = product.customDistributions?.[0]?.items?.reduce(
+                            (sum: number, item: any) => sum + parseFloat(item.assignedQuantityBase || '0'),
+                            0
+                          );
+
+                          // Debug: Log para ver qué datos tenemos
+                          if (product.distributionGenerated) {
+                            logger.debug(`🔍 Product ${product.productId}:`, {
+                              distributionGenerated: product.distributionGenerated,
+                              hasCustomDistributions: !!product.customDistributions,
+                              customDistributionsLength: product.customDistributions?.length || 0,
+                              hasItems: !!product.customDistributions?.[0]?.items,
+                              itemsLength: product.customDistributions?.[0]?.items?.length || 0,
+                              distributedQty,
+                            });
+                          }
+
+                          // Si tiene distribución generada, mostrar cantidad repartida
+                          if (product.distributionGenerated && distributedQty) {
+                            return (
+                              <>
+                                Repartido:{' '}
+                                <Text style={styles.quickPriceValue}>
+                                  {Math.floor(distributedQty)}
+                                </Text>{' '}
+                                ✓
+                              </>
+                            );
+                          }
+                          return <>Cant: {product.totalQuantityBase}</>;
+                        })()}{' '}
+                        | Costo:{' '}
                         <Text style={styles.quickPriceValue}>
                           S/ {(costCents / 100).toFixed(2)}
                         </Text>
@@ -1976,6 +2028,38 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           campaignProducts={campaign?.products}
           productsMap={products}
         />
+
+        {/* Image Preview Modal */}
+        <Modal
+          visible={isImageModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={handleCloseImageModal}
+        >
+          <View style={styles.imageModalContainer}>
+            <TouchableOpacity
+              style={styles.imageModalBackdrop}
+              activeOpacity={1}
+              onPress={handleCloseImageModal}
+            >
+              <View style={styles.imageModalContent}>
+                {selectedImageUri && (
+                  <Image
+                    source={{ uri: selectedImageUri }}
+                    style={styles.imageModalImage}
+                    resizeMode="contain"
+                  />
+                )}
+                <TouchableOpacity
+                  style={styles.imageModalCloseButton}
+                  onPress={handleCloseImageModal}
+                >
+                  <Text style={styles.imageModalCloseText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </Modal>
 
         {/* Floating Action Button for Bulk Update */}
         {activeTab === 'products' && campaign?.products && campaign.products.length > 0 && (
@@ -2570,6 +2654,18 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#F1F5F9',
   },
+  productImagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productImagePlaceholderText: {
+    fontSize: 28,
+  },
   productCardActions: {
     flexDirection: 'row',
     borderTopWidth: 1,
@@ -2961,5 +3057,44 @@ const styles = StyleSheet.create({
     bottom: 20,
     zIndex: 9998,
     pointerEvents: 'box-none',
+  },
+  imageModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalBackdrop: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalContent: {
+    width: '90%',
+    height: '80%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageModalCloseButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  imageModalCloseText: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
 });

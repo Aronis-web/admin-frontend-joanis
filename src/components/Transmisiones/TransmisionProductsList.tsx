@@ -78,18 +78,19 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
       setShowSearchResults(true);
 
       try {
-        const response = await productsApi.searchProducts(searchQuery, 1);
+        // ✅ Usar endpoint v2 optimizado
+        const response = await productsApi.searchProductsV2({
+          q: searchQuery.trim(),
+          limit: 20,
+          status: 'active,preliminary',
+          includePhotos: true, // ✅ Incluir fotos para mostrar miniaturas
+        });
 
         console.log('🔍 Search response:', response);
+        console.log('⚡ Search time:', response.searchTime, 'ms');
+        console.log('💾 Cached:', response.cached);
 
-        // Handle both array and object with data property
-        if (Array.isArray(response)) {
-          setSearchResults(response);
-        } else if (response.data) {
-          setSearchResults(response.data);
-        } else {
-          setSearchResults([]);
-        }
+        setSearchResults(response.results || []);
       } catch (error) {
         console.error('Error searching products:', error);
         setSearchResults([]);
@@ -98,7 +99,7 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
       }
     };
 
-    const timeoutId = setTimeout(searchAllProducts, 500);
+    const timeoutId = setTimeout(searchAllProducts, 800); // Aumentado a 800ms para permitir escribir
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 

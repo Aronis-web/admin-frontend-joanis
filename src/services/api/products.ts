@@ -420,6 +420,23 @@ export const productsApi = {
   },
 
   /**
+   * Obtener productos por IDs específicos (v2)
+   * POST /admin/products/v2/batch
+   */
+  getProductsByIds: async (
+    ids: string[],
+    includePhotos: boolean = true
+  ): Promise<{
+    products: Product[];
+    total: number;
+    cached?: boolean;
+  }> => {
+    return apiClient.post('/admin/products/v2/batch', { ids }, {
+      params: { includePhotos }
+    });
+  },
+
+  /**
    * Búsqueda pública optimizada (v2)
    * GET /catalog/products/v2/search
    */

@@ -98,6 +98,56 @@ export const projectKeys = {
 // Expense Categories Hooks
 // ============================================
 
+/**
+ * Hook para búsqueda optimizada de gastos (V2)
+ * ✅ Usa caché Redis y búsqueda multi-campo
+ */
+export const useSearchExpensesV2 = (
+  query: string,
+  options?: {
+    status?: string;
+    projectId?: string;
+    categoryId?: string;
+    siteId?: string;
+    limit?: number;
+    enabled?: boolean;
+  }
+) => {
+  return useQuery({
+    queryKey: ['expenses', 'v2', 'search', query, options],
+    queryFn: () =>
+      expensesService.searchExpensesV2({
+        q: query,
+        limit: options?.limit || 20,
+        status: options?.status,
+        projectId: options?.projectId,
+        categoryId: options?.categoryId,
+        siteId: options?.siteId,
+      }),
+    enabled: (options?.enabled !== false) && query.length >= 2,
+    staleTime: 5 * 60 * 1000, // 5 minutos (cacheado en Redis)
+  });
+};
+
+/**
+ * Hook para listado paginado optimizado de gastos (V2)
+ * ✅ Usa caché Redis
+ */
+export const useExpensesV2 = (params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  projectId?: string;
+  categoryId?: string;
+  q?: string;
+}) => {
+  return useQuery({
+    queryKey: ['expenses', 'v2', 'list', params],
+    queryFn: () => expensesService.getExpensesV2(params),
+    staleTime: 5 * 60 * 1000, // 5 minutos (cacheado en Redis)
+  });
+};
+
 export const useCategories = () => {
   return useQuery({
     queryKey: categoryKeys.lists(),

@@ -28,7 +28,7 @@ import { StockExportModal } from '@/components/Inventory/StockExportModal';
 import { inventoryApi, StockItem } from '@/services/api/inventory';
 import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
-import { useStock, useWarehouses, useWarehouseAreas } from '@/hooks/api/useStock';
+import { useStock, useWarehouses, useWarehouseAreas, useSearchStockV2, useStockV2 } from '@/hooks/api/useStock';
 
 interface StockScreenProps {
   navigation: any;
@@ -38,8 +38,11 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   const { user, logout, currentSite, currentCompany } = useAuthStore();
   const { selectedSite, selectedCompany } = useTenantStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [isStockModalVisible, setIsStockModalVisible] = useState(false);
   const [selectedStockItem, setSelectedStockItem] = useState<StockItem | null>(null);
+  const [page, setPage] = useState(1);
+  const limit = 50;
 
   // New modals state
   const [isStockByAreasModalVisible, setIsStockByAreasModalVisible] = useState(false);
@@ -82,22 +85,73 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     isLoading: loadingAreas,
   } = useWarehouseAreas(selectedWarehouseId, selectedWarehouseId !== 'all');
 
-  // ✅ React Query: Cargar stock
+  // ✅ Debounce search query (800ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // ✅ React Query: Búsqueda V2 optimizada (cuando hay query)
   const {
-    data: stockResponse,
-    isLoading,
+    data: searchResultsV2,
+    isLoading: isSearchingV2,
+    refetch: refetchSearchV2,
+  } = useSearchStockV2(debouncedSearchQuery, {
+    warehouseId: selectedWarehouseId !== 'all' ? selectedWarehouseId : undefined,
+    areaId: selectedAreaId !== 'all' ? selectedAreaId : undefined,
+    lowStockOnly: stockLevelFilter === 'no-stock' ? false : undefined,
+    limit: 50,
+    enabled: debouncedSearchQuery.length >= 2,
+  });
+
+  // ✅ React Query: Cargar stock paginado con V2 (cuando NO hay búsqueda)
+  const {
+    data: stockResponseV2,
+    isLoading: isLoadingStock,
     isRefetching,
     refetch: refetchStock,
-  } = useStock(
-    selectedWarehouseId !== 'all' ? selectedWarehouseId : undefined,
-    selectedAreaId !== 'all' ? selectedAreaId : undefined
-  );
+  } = useStockV2({
+    page,
+    limit,
+    warehouseId: selectedWarehouseId !== 'all' ? selectedWarehouseId : undefined,
+    areaId: selectedAreaId !== 'all' ? selectedAreaId : undefined,
+    sortBy: 'product.correlativo',
+    sortOrder: 'DESC',
+  });
+
+  // ✅ Determinar qué datos usar (búsqueda V2 o listado completo)
+  const isUsingSearch = debouncedSearchQuery.length >= 2;
+  const isLoading = isUsingSearch ? isSearchingV2 : isLoadingStock;
 
   // Transformar StockItemResponse a StockItem
   const stockItems = useMemo(() => {
-    if (!stockResponse) return [];
+    // ✅ Si hay búsqueda activa, usar resultados V2
+    if (isUsingSearch && searchResultsV2) {
+      return searchResultsV2.results.map((item) => ({
+        productId: item.productId,
+        warehouseId: item.warehouseId,
+        areaId: item.areaId || undefined,
+        quantityBase: item.quantityBase,
+        reservedQuantityBase: item.reservedQuantityBase,
+        availableQuantityBase: item.availableQuantityBase,
+        updatedAt: item.updatedAt,
+        productTitle: item.product?.title,
+        productSku: item.product?.sku,
+        warehouseName: item.warehouse?.name,
+        areaName: item.area?.name || item.area?.code,
+        minStockAlert: undefined,
+      }));
+    }
 
-    return stockResponse.map((item) => ({
+    // ✅ Si no hay búsqueda, usar listado paginado V2
+    // Backend retorna "data" en lugar de "results"
+    const stockData = stockResponseV2?.results || stockResponseV2?.data;
+    if (!stockData) return [];
+
+    return stockData.map((item) => ({
       productId: item.productId,
       warehouseId: item.warehouseId,
       areaId: item.areaId || undefined,
@@ -111,15 +165,19 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
       areaName: item.area?.name || item.area?.code,
       minStockAlert: undefined, // No viene en la respuesta
     }));
-  }, [stockResponse]);
+  }, [stockResponseV2, searchResultsV2, isUsingSearch]);
 
   // Auto-reload stock when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       console.log('📱 StockScreen focused - refetching stock and warehouses...');
       refetchWarehouses();
-      refetchStock();
-    }, [refetchWarehouses, refetchStock])
+      if (isUsingSearch) {
+        refetchSearchV2();
+      } else {
+        refetchStock();
+      }
+    }, [refetchWarehouses, refetchStock, refetchSearchV2, isUsingSearch])
   );
 
   // Reset area filter when warehouse changes
@@ -127,67 +185,79 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     setSelectedAreaId('all');
   }, [selectedWarehouseId]);
 
-  // ✅ Filtrado local con useMemo (optimizado)
+  // ✅ Ya no necesitamos filtrado local - V2 lo hace en el backend
   const filteredStockItems = useMemo(() => {
     if (!Array.isArray(stockItems)) {
       return [];
     }
+    return stockItems;
+  }, [stockItems]);
 
-    if (searchQuery.trim() === '') {
-      return stockItems;
-    }
-
-    const query = searchQuery.toLowerCase().trim();
-    return stockItems.filter(
-      (item) =>
-        (item.productTitle && item.productTitle.toLowerCase().includes(query)) ||
-        (item.productSku && item.productSku.toLowerCase().includes(query)) ||
-        (item.warehouseName && item.warehouseName.toLowerCase().includes(query))
-    );
-  }, [searchQuery, stockItems]);
-
-  // ✅ Group stock items by product (memoizado)
+  // ✅ Convertir stock items a formato de producto individual (sin agrupar)
+  // Cada ubicación se muestra como un producto separado para que coincida con la paginación
   const getGroupedProducts = useMemo(() => {
-    const grouped: { [key: string]: StockItem[] } = {};
+    const products = filteredStockItems.map((item) => {
+      const quantity =
+        typeof item.availableQuantityBase === 'number'
+          ? item.availableQuantityBase
+          : typeof item.quantityBase === 'string'
+            ? parseFloat(item.quantityBase)
+            : item.quantityBase || 0;
 
-    filteredStockItems.forEach((item) => {
-      if (!grouped[item.productId]) {
-        grouped[item.productId] = [];
-      }
-      grouped[item.productId].push(item);
+      return {
+        productId: item.productId,
+        productTitle: item.productTitle || 'Sin nombre',
+        productSku: item.productSku || 'Sin SKU',
+        totalStock: quantity,
+        locations: 1, // Cada item es una ubicación
+        warehouseName: item.warehouseName,
+        areaName: item.areaName,
+        items: [item],
+        minStockAlert: item.minStockAlert,
+      };
     });
-
-    const allProducts = Object.entries(grouped).map(([productId, items]) => ({
-      productId,
-      productTitle: items[0].productTitle || 'Sin nombre',
-      productSku: items[0].productSku || 'Sin SKU',
-      totalStock: items.reduce((sum, item) => {
-        const quantity =
-          typeof item.availableQuantityBase === 'number'
-            ? item.availableQuantityBase
-            : typeof item.quantityBase === 'string'
-              ? parseFloat(item.quantityBase)
-              : item.quantityBase || 0;
-        return sum + quantity;
-      }, 0),
-      locations: items.length,
-      items,
-      minStockAlert: items[0].minStockAlert,
-    }));
 
     // ✅ Aplicar filtro de nivel de stock
     if (stockLevelFilter === 'normal') {
-      return allProducts.filter((p) => p.totalStock > 0);
+      return products.filter((p) => p.totalStock > 0);
     } else if (stockLevelFilter === 'no-stock') {
-      return allProducts.filter((p) => p.totalStock === 0);
+      return products.filter((p) => p.totalStock === 0);
     }
-    return allProducts;
+    return products;
   }, [filteredStockItems, stockLevelFilter]);
+
+  // Calculate pagination
+  const pagination = useMemo(() => {
+    // Backend puede retornar meta o directamente en el objeto
+    const meta = stockResponseV2?.meta || stockResponseV2;
+    if (!meta || !meta.total) {
+      return { page: 1, limit: 50, total: 0, totalPages: 0 };
+    }
+    return {
+      page: meta.page || 1,
+      limit: meta.limit || 50,
+      total: meta.total || 0,
+      totalPages: meta.totalPages || 0,
+    };
+  }, [stockResponseV2]);
 
   // ✅ Handlers simplificados
   const onRefresh = useCallback(() => {
+    setPage(1);
     refetchStock();
   }, [refetchStock]);
+
+  const handlePreviousPage = useCallback(() => {
+    if (pagination.page > 1) {
+      setPage(pagination.page - 1);
+    }
+  }, [pagination.page]);
+
+  const handleNextPage = useCallback(() => {
+    if (pagination.page < pagination.totalPages) {
+      setPage(pagination.page + 1);
+    }
+  }, [pagination.page, pagination.totalPages]);
 
   const getStockLevelColor = (quantityBase: number, minStockAlert: number) => {
     if (quantityBase === 0) {
@@ -277,7 +347,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     refetchStock();
   }, [refetchStock]);
 
-  if (isLoading && !stockResponse) {
+  if (isLoading && !stockResponseV2) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
@@ -620,12 +690,27 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
             onChangeText={setSearchQuery}
             placeholderTextColor="#94A3B8"
           />
-          {searchQuery.length > 0 && (
+          {isSearchingV2 && (
+            <ActivityIndicator size="small" color="#6366F1" style={styles.searchLoader} />
+          )}
+          {searchQuery.length > 0 && !isSearchingV2 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
               <Text style={styles.clearIcon}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
+
+        {/* ✅ Indicador de búsqueda V2 optimizada */}
+        {isUsingSearch && searchResultsV2 && (
+          <View style={styles.searchInfoBanner}>
+            <Text style={styles.searchInfoText}>
+              {searchResultsV2.cached ? '⚡ Búsqueda desde caché' : '🔍 Búsqueda optimizada'}
+              {' • '}
+              {searchResultsV2.total} resultados
+              {searchResultsV2.searchTime && ` • ${searchResultsV2.searchTime}ms`}
+            </Text>
+          </View>
+        )}
 
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
@@ -715,9 +800,10 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
                       <View style={styles.productDetailRow}>
                         <View style={styles.productDetailItem}>
-                          <Text style={styles.productDetailLabel}>📍 Ubicaciones:</Text>
+                          <Text style={styles.productDetailLabel}>📍 Ubicación:</Text>
                           <Text style={styles.productDetailValue}>
-                            {product.locations} almacén(es)/área(s)
+                            {product.warehouseName || 'Sin almacén'}
+                            {product.areaName ? ` / ${product.areaName}` : ''}
                           </Text>
                         </View>
                       </View>
@@ -768,6 +854,56 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
             </View>
           )}
         </ScrollView>
+
+        {/* ✅ Paginación - Solo mostrar si NO hay búsqueda activa */}
+        {!isUsingSearch && pagination.total > 0 && (
+          <View style={styles.paginationContainer}>
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                pagination.page === 1 && styles.paginationButtonDisabled,
+              ]}
+              onPress={handlePreviousPage}
+              disabled={pagination.page === 1}
+            >
+              <Text
+                style={[
+                  styles.paginationButtonText,
+                  pagination.page === 1 && styles.paginationButtonTextDisabled,
+                ]}
+              >
+                ← Anterior
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.paginationInfo}>
+              <Text style={styles.paginationText}>
+                Pág. {pagination.page}/{pagination.totalPages}
+              </Text>
+              <Text style={styles.paginationSubtext}>
+                {getGroupedProducts.length} de {pagination.total} ubicaciones
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
+              ]}
+              onPress={handleNextPage}
+              disabled={pagination.page >= pagination.totalPages}
+            >
+              <Text
+                style={[
+                  styles.paginationButtonText,
+                  pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
+                ]}
+              >
+                Siguiente →
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Floating Action Buttons - Above drawer menu */}
@@ -994,6 +1130,25 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#667eea',
     fontWeight: '700',
+  },
+  searchLoader: {
+    marginRight: 8,
+  },
+  searchInfoBanner: {
+    backgroundColor: '#EEF2FF',
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  searchInfoText: {
+    fontSize: 12,
+    color: '#4F46E5',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   pickerLoading: {
     flexDirection: 'row',
@@ -1286,6 +1441,50 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FFFFFF',
     zIndex: 999,
+  },
+  paginationContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  paginationInfo: {
+    alignItems: 'center',
+    minWidth: 120,
+  },
+  paginationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  paginationButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#6366F1',
+    minWidth: 110,
+    alignItems: 'center',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  paginationButtonTextDisabled: {
+    color: '#94A3B8',
   },
 });
 

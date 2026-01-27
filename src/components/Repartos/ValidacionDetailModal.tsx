@@ -37,7 +37,21 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
     if (visible && repartoProductoId && !validacionProp) {
       loadValidacion();
     } else if (validacionProp) {
-      setValidacion(validacionProp);
+      // ✅ Normalizar URLs también cuando se pasa validacionProp
+      const normalizedData = {
+        ...validacionProp,
+        photoUrl: validacionProp.photoUrl?.startsWith('http')
+          ? validacionProp.photoUrl
+          : validacionProp.photoUrl
+          ? `https://api.app-joanis-backend.com/public/${validacionProp.photoUrl}`
+          : validacionProp.photoUrl,
+        signatureUrl: validacionProp.signatureUrl?.startsWith('http')
+          ? validacionProp.signatureUrl
+          : validacionProp.signatureUrl
+          ? `https://api.app-joanis-backend.com/public/${validacionProp.signatureUrl}`
+          : validacionProp.signatureUrl,
+      } as ValidacionSalida;
+      setValidacion(normalizedData);
     }
   }, [visible, repartoProductoId, validacionProp]);
 
@@ -49,8 +63,33 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
     setLoading(true);
     try {
       const data = await repartosService.getValidacion(repartoProductoId);
+      console.log('📸 Validacion data loaded:', {
+        hasData: !!data,
+        hasPhotoUrl: !!data?.photoUrl,
+        hasSignatureUrl: !!data?.signatureUrl,
+        photoUrl: data?.photoUrl,
+        signatureUrl: data?.signatureUrl,
+      });
       if (data) {
-        setValidacion(data);
+        // ✅ Normalizar URLs: Si photoUrl es relativa, construir URL completa
+        const normalizedData = {
+          ...data,
+          photoUrl: data.photoUrl?.startsWith('http')
+            ? data.photoUrl
+            : data.photoUrl
+            ? `https://api.app-joanis-backend.com/public/${data.photoUrl}`
+            : data.photoUrl,
+          signatureUrl: data.signatureUrl?.startsWith('http')
+            ? data.signatureUrl
+            : data.signatureUrl
+            ? `https://api.app-joanis-backend.com/public/${data.signatureUrl}`
+            : data.signatureUrl,
+        } as ValidacionSalida;
+        console.log('📸 Normalized URLs:', {
+          photoUrl: normalizedData.photoUrl,
+          signatureUrl: normalizedData.signatureUrl,
+        });
+        setValidacion(normalizedData);
       } else {
         Alert.alert('Error', 'No se encontró información de validación');
         onClose();
@@ -171,6 +210,9 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                         source={{ uri: validacion.photoUrl }}
                         style={styles.image}
                         resizeMode="contain"
+                        onLoadStart={() => console.log('📸 Photo loading started')}
+                        onLoad={() => console.log('📸 Photo loaded successfully')}
+                        onError={(error) => console.error('📸 Photo load error:', error.nativeEvent)}
                       />
                     </View>
                   </View>
@@ -187,6 +229,9 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                         source={{ uri: validacion.signatureUrl }}
                         style={styles.signatureImage}
                         resizeMode="contain"
+                        onLoadStart={() => console.log('✍️ Signature loading started')}
+                        onLoad={() => console.log('✍️ Signature loaded successfully')}
+                        onError={(error) => console.error('✍️ Signature load error:', error.nativeEvent)}
                       />
                     </View>
                   </View>

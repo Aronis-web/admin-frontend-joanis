@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { transmisionesApi } from '@/services/api';
 import { productsApi } from '@/services/api';
@@ -57,7 +58,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     // Set new timeout for search
     searchTimeoutRef.current = setTimeout(() => {
       handleAutoSearch();
-    }, 500); // Wait 500ms after user stops typing
+    }, 800); // Wait 800ms after user stops typing (aumentado para permitir escribir)
 
     // Cleanup
     return () => {
@@ -75,33 +76,30 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     try {
       setSearching(true);
 
-      // Search products by query - include both active and preliminary products
-      // Try without status filter first to see all products
-      const params: any = {
+      // ✅ Usar endpoint v2 optimizado con caché y Full-Text Search
+      console.log('🔍 Searching products with v2 endpoint:', searchQuery.trim());
+      const response = await productsApi.searchProductsV2({
         q: searchQuery.trim(),
-        limit: 100, // Increase limit to get more results
-      };
+        limit: 50, // Límite optimizado
+        status: 'active,preliminary', // Incluir activos y preliminares
+        includePhotos: true, // ✅ Incluir fotos para mostrar miniaturas
+      });
 
-      console.log('🔍 Searching products with params:', params);
-      const response = await productsApi.getAllProducts(params);
-      console.log('📦 Products found:', response.products?.length || 0, 'products');
+      console.log('📦 Products found:', response.results?.length || 0, 'products');
+      console.log('⚡ Search time:', response.searchTime, 'ms');
+      console.log('💾 Cached:', response.cached);
 
-      if (response.products && response.products.length > 0) {
+      if (response.results && response.results.length > 0) {
         console.log(
           '📊 Product statuses:',
-          response.products.map((p) => ({
+          response.results.map((p) => ({
             sku: p.sku,
-            name: p.name,
+            title: p.title,
             status: p.status,
           }))
         );
 
-        // Filter on frontend to include both active and preliminary
-        const filteredProducts = response.products.filter(
-          (p: any) => p.status === 'active' || p.status === 'preliminary'
-        );
-        console.log('✅ Filtered products (active + preliminary):', filteredProducts.length);
-        setSearchResults(filteredProducts);
+        setSearchResults(response.results);
       } else {
         setSearchResults([]);
       }
@@ -123,24 +121,21 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       setSearching(true);
       setSearchResults([]);
 
-      // Search products by query
-      const response = await productsApi.getAllProducts({
+      // ✅ Usar endpoint v2 optimizado
+      const response = await productsApi.searchProductsV2({
         q: searchQuery.trim(),
-        limit: 100,
+        limit: 50,
+        status: 'active,preliminary',
+        includePhotos: true, // ✅ Incluir fotos para mostrar miniaturas
       });
 
-      // Filter on frontend to include both active and preliminary
-      const filteredProducts = response.products.filter(
-        (p: any) => p.status === 'active' || p.status === 'preliminary'
-      );
-
-      if (filteredProducts.length === 0) {
+      if (response.results.length === 0) {
         Alert.alert(
           'Sin resultados',
           'No se encontraron productos activos o preliminares con ese criterio'
         );
       } else {
-        setSearchResults(filteredProducts);
+        setSearchResults(response.results);
       }
     } catch (error: any) {
       console.error('Error searching products:', error);
@@ -239,6 +234,21 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                     onPress={() => handleSelectProduct(product)}
                     disabled={adding}
                   >
+                    {/* ✅ Foto en miniatura */}
+                    {product.photos && product.photos.length > 0 && (
+                      <Image
+                        source={{ uri: product.photos[0] }}
+                        style={styles.resultImage}
+                        resizeMode="cover"
+                      />
+                    )}
+                    {!product.photos && product.imageUrl && (
+                      <Image
+                        source={{ uri: product.imageUrl }}
+                        style={styles.resultImage}
+                        resizeMode="cover"
+                      />
+                    )}
                     <View style={styles.resultInfo}>
                       <Text style={styles.resultTitle}>{product.title}</Text>
                       <Text style={styles.resultSku}>SKU: {product.sku}</Text>
@@ -403,6 +413,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  resultImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+    marginRight: 12,
+    backgroundColor: '#E5E7EB',
   },
   resultInfo: {
     flex: 1,

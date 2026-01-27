@@ -13,6 +13,7 @@ import {
   PaginatedTransmisionesResponse,
   PaginatedTransmisionProductsResponse,
 } from '@/types/transmisiones';
+import { productsApi } from './products';
 
 export const transmisionesApi = {
   // ========== TRANSMISIONES ENDPOINTS ==========
@@ -178,31 +179,44 @@ export const transmisionesApi = {
 
   /**
    * Search products to add to transmision
-   * This uses the existing products API
+   * ✅ MIGRADO A V2 - Usa Full-Text Search con caché Redis
    */
   searchProducts: async (query: string, status?: string): Promise<any> => {
-    return apiClient.get('/admin/products', {
-      params: {
-        q: query,
-        status: status || 'active,preliminary',
-        limit: 20,
-      },
+    const response = await productsApi.searchProductsV2({
+      q: query,
+      status: status || 'active,preliminary',
+      limit: 20,
+      includePhotos: true, // ✅ Incluir fotos para miniaturas
     });
+
+    // Mantener compatibilidad con formato anterior
+    return {
+      products: response.results,
+      total: response.total,
+      limit: response.limit,
+      hasMore: response.hasMore,
+      searchTime: response.searchTime,
+      cached: response.cached,
+    };
   },
 
   /**
    * Get product by SKU or barcode
+   * ✅ MIGRADO A V2 - Usa búsqueda optimizada
    */
   getProductByCode: async (code: string): Promise<any> => {
-    // Try by SKU first
-    try {
-      return await apiClient.get(`/admin/products/sku/${code}`);
-    } catch (error) {
-      // If not found by SKU, try by barcode
-      return apiClient.get('/admin/products', {
-        params: { barcode: code, limit: 1 },
-      });
+    // Buscar usando v2 optimizado (busca en SKU, barcode, título, etc.)
+    const response = await productsApi.searchProductsV2({
+      q: code,
+      limit: 1,
+      includePhotos: true,
+    });
+
+    if (response.results.length > 0) {
+      return response.results[0];
     }
+
+    throw new Error(`Producto no encontrado con código: ${code}`);
   },
 };
 

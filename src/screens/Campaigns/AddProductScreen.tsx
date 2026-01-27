@@ -387,36 +387,22 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
     try {
       setIsSearching(true);
-      console.log('🔍 Searching products with query:', query);
+      console.log('🔍 Searching products with v2 endpoint:', query);
 
-      // Get the access token from authService
-      const token = authService.getAccessToken();
-      if (!token) {
-        console.error('❌ No token available for autocomplete request');
-        Alert.alert('Error', 'No estás autenticado. Por favor inicia sesión nuevamente.');
-        return;
-      }
+      // ✅ Usar endpoint v2 optimizado con caché y Full-Text Search
+      const response = await productsApi.searchProductsV2({
+        q: query.trim(),
+        limit: 20,
+        status: 'active,preliminary',
+        includePhotos: true, // ✅ Incluir fotos para mostrar miniaturas
+      });
 
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/catalog/products/autocomplete?q=${encodeURIComponent(query)}&limit=20`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'X-App-Id': config.APP_ID,
-          },
-        }
-      );
+      console.log('🔍 Search results:', response.results.length, 'products found');
+      console.log('⚡ Search time:', response.searchTime, 'ms');
+      console.log('💾 Cached:', response.cached);
 
-      if (!response.ok) {
-        throw new Error('Error al buscar productos');
-      }
-
-      const results = await response.json();
-      console.log('🔍 Search results:', results.length, 'products found');
-
-      setProducts(results);
-      setShowProductSuggestions(results.length > 0);
+      setProducts(response.results);
+      setShowProductSuggestions(response.results.length > 0);
     } catch (error) {
       console.error('Error searching products:', error);
       Alert.alert('Error', 'No se pudieron buscar los productos');
@@ -459,7 +445,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     // Set new timeout for debounced search
     const timeout = setTimeout(() => {
       searchProducts(text);
-    }, 300); // Wait 300ms after user stops typing
+    }, 800); // Wait 800ms after user stops typing (aumentado para permitir escribir)
 
     setSearchTimeout(timeout);
   };
@@ -531,14 +517,20 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                       }}
                       activeOpacity={isAlreadyAdded ? 1 : 0.7}
                     >
-                      {/* ✅ Product Image */}
-                      {product.imageUrl && (
+                      {/* ✅ Product Image - Priorizar photos sobre imageUrl */}
+                      {product.photos && product.photos.length > 0 ? (
+                        <Image
+                          source={{ uri: product.photos[0] }}
+                          style={styles.suggestionImage}
+                          resizeMode="cover"
+                        />
+                      ) : product.imageUrl ? (
                         <Image
                           source={{ uri: product.imageUrl }}
                           style={styles.suggestionImage}
                           resizeMode="cover"
                         />
-                      )}
+                      ) : null}
                       <View style={styles.suggestionContent}>
                         <Text
                           style={[
@@ -722,7 +714,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                       <Text style={styles.purchaseHeaderIcon}>{isExpanded ? '▼' : '▶'}</Text>
                       <View style={styles.purchaseHeaderInfo}>
                         <Text style={styles.purchaseHeaderTitle}>
-                          {purchase.code} - {purchase.supplier?.commercialName}
+                          {purchase.code} - {purchase.guideNumber} - {purchase.supplier?.commercialName}
                         </Text>
                         <Text style={styles.purchaseHeaderBadge}>✓ Ya agregada</Text>
                       </View>
@@ -756,7 +748,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               {notAddedPurchases.map((purchase) => (
                 <Picker.Item
                   key={purchase.id}
-                  label={`${purchase.code} - ${purchase.supplier?.commercialName}`}
+                  label={`${purchase.code} - ${purchase.guideNumber} - ${purchase.supplier?.commercialName}`}
                   value={purchase.id}
                 />
               ))}

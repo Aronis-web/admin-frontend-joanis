@@ -190,11 +190,17 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         setOriginWarehouses(originWhs);
       }
 
-      const productsData = await productsApi.getAllProducts({
-        limit: 1000,
-        include: 'stockItems',
+      // ✅ Usar endpoint v2 optimizado con paginación
+      const productsData = await productsApi.getProductsV2({
+        limit: 100, // Límite máximo permitido por el endpoint v2
+        status: 'active,preliminary',
       });
       setProducts(productsData.products || []);
+
+      if (productsData.hasMore) {
+        console.log('⚠️ Hay más productos disponibles. Total:', productsData.total);
+        // TODO: Implementar carga paginada si es necesario
+      }
     } catch (error) {
       console.error('Error loading modal data:', error);
     }

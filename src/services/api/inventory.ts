@@ -201,6 +201,69 @@ export const inventoryApi = {
     return apiClient.get<StockItemResponse[]>(`/inventory/stock/product/${productId}`);
   },
 
+  // ========== V2 OPTIMIZED ENDPOINTS ==========
+
+  /**
+   * Búsqueda optimizada de stock (v2)
+   * Usa caché Redis y búsqueda multi-campo
+   * GET /admin/inventory/v2/search
+   */
+  searchStockV2: async (params: {
+    q: string;
+    limit?: number;
+    warehouseId?: string;
+    areaId?: string;
+    lowStockOnly?: boolean;
+  }): Promise<{
+    results: StockItemResponse[];
+    total: number;
+    limit: number;
+    hasMore: boolean;
+    searchTime: number;
+    cached: boolean;
+  }> => {
+    return apiClient.get('/admin/inventory/v2/search', { params });
+  },
+
+  /**
+   * Listado paginado optimizado de stock (v2)
+   * Usa caché Redis
+   * GET /admin/inventory/v2/list
+   */
+  getStockV2: async (params?: {
+    page?: number;
+    limit?: number;
+    warehouseId?: string;
+    areaId?: string;
+    lowStockOnly?: boolean;
+    q?: string;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+  }): Promise<{
+    data: StockItemResponse[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    searchTime?: number;
+    cached?: boolean;
+  }> => {
+    const response = await apiClient.get('/admin/inventory/v2/list', { params });
+    // Backend retorna "data" en lugar de "results", mapear a "results" para consistencia
+    return {
+      ...response,
+      results: response.data,
+    };
+  },
+
+  /**
+   * Invalidar caché de inventario (v2)
+   * DELETE /admin/inventory/v2/cache
+   */
+  invalidateStockCacheV2: async (): Promise<void> => {
+    return apiClient.delete('/admin/inventory/v2/cache');
+  },
+
   // ========== EXPORT ENDPOINTS ==========
 
   // Export stock report - POST /admin/inventory/export

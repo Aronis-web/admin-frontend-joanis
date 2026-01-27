@@ -37,6 +37,56 @@ export const useStock = (warehouseId?: string, areaId?: string) => {
 };
 
 /**
+ * Hook para búsqueda optimizada de stock (V2)
+ * ✅ Usa caché Redis y búsqueda multi-campo
+ */
+export const useSearchStockV2 = (
+  query: string,
+  options?: {
+    warehouseId?: string;
+    areaId?: string;
+    lowStockOnly?: boolean;
+    limit?: number;
+    enabled?: boolean;
+  }
+) => {
+  return useQuery({
+    queryKey: ['stock', 'v2', 'search', query, options],
+    queryFn: () =>
+      inventoryApi.searchStockV2({
+        q: query,
+        limit: options?.limit || 20,
+        warehouseId: options?.warehouseId,
+        areaId: options?.areaId,
+        lowStockOnly: options?.lowStockOnly,
+      }),
+    enabled: (options?.enabled !== false) && query.length >= 2,
+    staleTime: 5 * 60 * 1000, // 5 minutos (cacheado en Redis)
+  });
+};
+
+/**
+ * Hook para listado paginado optimizado de stock (V2)
+ * ✅ Usa caché Redis
+ */
+export const useStockV2 = (params?: {
+  page?: number;
+  limit?: number;
+  warehouseId?: string;
+  areaId?: string;
+  lowStockOnly?: boolean;
+  q?: string;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+}) => {
+  return useQuery({
+    queryKey: ['stock', 'v2', 'list', params],
+    queryFn: () => inventoryApi.getStockV2(params),
+    staleTime: 5 * 60 * 1000, // 5 minutos (cacheado en Redis)
+  });
+};
+
+/**
  * Hook para obtener stock de un producto específico
  */
 export const useStockByProduct = (productId: string, enabled = true) => {

@@ -9,10 +9,10 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { Product } from '@/services/api/products';
+import { Product, productsApi } from '@/services/api/products';
 
 interface ProductAutocompleteProps {
-  products: Product[];
+  products: Product[]; // ⚠️ DEPRECATED - Ya no se usa, búsqueda en tiempo real con V2
   selectedProductId: string;
   warehouseId?: string;
   onSelectProduct: (product: Product) => void;
@@ -21,7 +21,7 @@ interface ProductAutocompleteProps {
 }
 
 export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
-  products,
+  products, // Mantenido para compatibilidad pero no se usa
   selectedProductId,
   warehouseId,
   onSelectProduct,
@@ -31,31 +31,57 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const selectedProduct = products.find((p) => p.id === selectedProductId);
-
+  // Cargar producto seleccionado si existe
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredProducts([]);
-      return;
+    if (selectedProductId && products.length > 0) {
+      const product = products.find((p) => p.id === selectedProductId);
+      if (product) {
+        setSelectedProduct(product);
+      }
     }
+  }, [selectedProductId, products]);
 
-    const query = searchQuery.toLowerCase();
-    const filtered = products.filter(
-      (product) =>
-        product.title.toLowerCase().includes(query) ||
-        product.sku.toLowerCase().includes(query) ||
-        product.barcode?.toLowerCase().includes(query) ||
-        (product.correlativeNumber && product.correlativeNumber.toString().includes(searchQuery))
-    );
+  // ✅ MIGRADO A V2: Búsqueda en tiempo real con Full-Text Search y caché Redis
+  useEffect(() => {
+    const searchProducts = async () => {
+      if (searchQuery.trim() === '') {
+        setFilteredProducts([]);
+        setIsSearching(false);
+        return;
+      }
 
-    setFilteredProducts(filtered.slice(0, 10)); // Limit to 10 results
-  }, [searchQuery, products]);
+      setIsSearching(true);
+      try {
+        const response = await productsApi.searchProductsV2({
+          q: searchQuery,
+          limit: 10,
+          status: 'active', // Solo productos activos
+          includePhotos: true, // ✅ Incluir fotos para futuras mejoras
+        });
+
+        setFilteredProducts(response.results);
+      } catch (error) {
+        console.error('Error searching products:', error);
+        setFilteredProducts([]);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    // Debounce de 300ms para búsqueda en tiempo real
+    const timer = setTimeout(searchProducts, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleSelectProduct = (product: Product) => {
+    setSelectedProduct(product);
     onSelectProduct(product);
     setSearchQuery('');
     setShowDropdown(false);
+    setFilteredProducts([]);
   };
 
   const getProductStock = (product: Product): number => {
@@ -88,7 +114,10 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
             )}
           </View>
           <TouchableOpacity
-            onPress={() => onSelectProduct({ id: '' } as Product)}
+            onPress={() => {
+              setSelectedProduct(null);
+              onSelectProduct({ id: '' } as Product);
+            }}
             style={styles.clearButton}
             disabled={disabled}
           >
@@ -97,15 +126,24 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
         </View>
       ) : (
         <>
-          <TextInput
-            style={[styles.input, disabled && styles.inputDisabled]}
-            placeholder={placeholder}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onFocus={() => setShowDropdown(true)}
-            editable={!disabled}
-            placeholderTextColor="#94A3B8"
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, disabled && styles.inputDisabled]}
+              placeholder={placeholder}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFocus={() => setShowDropdown(true)}
+              editable={!disabled}
+              placeholderTextColor="#94A3B8"
+            />
+            {isSearching && (
+              <ActivityIndicator
+                size="small"
+                color="#6366F1"
+                style={styles.searchingIndicator}
+              />
+            )}
+          </View>
 
           {showDropdown && filteredProducts.length > 0 && (
             <View style={styles.dropdown}>
@@ -167,18 +205,27 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 1,
   },
+  inputContainer: {
+    position: 'relative',
+  },
   input: {
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
     padding: 12,
+    paddingRight: 40, // Espacio para el indicador de carga
     fontSize: 14,
     color: '#1E293B',
   },
   inputDisabled: {
     backgroundColor: '#F1F5F9',
     color: '#94A3B8',
+  },
+  searchingIndicator: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
   },
   selectedContainer: {
     backgroundColor: '#F0F9FF',

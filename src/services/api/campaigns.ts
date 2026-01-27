@@ -57,7 +57,7 @@ class CampaignsService {
     return apiClient.get<Campaign>(`${this.basePath}/${id}`, {
       params: {
         include:
-          'participants.company,participants.site,participants.priceProfile,products.product.category,products.product.presentations,products.product.salePrices,products.product.stockItems.warehouse,products.product.stockItems.area,products.customDistributions.items',
+          'participants.company,participants.site,participants.priceProfile,products.product.category,products.product.presentations,products.product.salePrices,products.customDistributions.items',
       },
     });
   }
@@ -169,7 +169,7 @@ class CampaignsService {
     return apiClient.get<CampaignProduct>(`${this.basePath}/${campaignId}/products/${productId}`, {
       params: {
         include:
-          'product.category,product.presentations,product.salePrices,product.stockItems.warehouse,product.stockItems.area,purchase',
+          'product.category,product.presentations,product.salePrices,purchase,customDistributions.items',
       },
     });
   }
