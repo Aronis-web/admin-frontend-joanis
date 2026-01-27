@@ -23,6 +23,11 @@ export const useProducts = (filters?: ProductFilters) => {
   return useQuery({
     queryKey: productKeys.list(filters),
     queryFn: () => {
+      // ✅ Convertir sortOrder a mayúsculas si existe
+      const sortOrder = filters?.sortOrder
+        ? (filters.sortOrder.toUpperCase() as 'ASC' | 'DESC')
+        : undefined;
+
       // ✅ Usar endpoint v2 optimizado con fotos
       return productsApi.getProductsV2({
         page: filters?.page,
@@ -32,7 +37,7 @@ export const useProducts = (filters?: ProductFilters) => {
         q: filters?.q,
         includePhotos: true, // ✅ Incluir fotos para miniaturas
         sortBy: filters?.sortBy, // ✅ Pasar sortBy al API
-        sortOrder: filters?.sortOrder?.toUpperCase() as 'ASC' | 'DESC', // ✅ Convertir a mayúsculas para TypeORM
+        sortOrder, // ✅ Pasar sortOrder en mayúsculas
       });
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
