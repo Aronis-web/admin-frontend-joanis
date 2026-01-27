@@ -701,7 +701,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     }
 
     return true;
-  }, [editableTotalQuantity, adjustedDistribution, localStockData]);
+  }, [editableTotalQuantity, adjustedDistribution, localStockData, getTotalDistributed]);
 
   const handleConfirmGeneration = useCallback(async () => {
     if (!product || !adjustedDistribution) {
