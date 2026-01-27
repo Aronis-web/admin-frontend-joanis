@@ -672,23 +672,36 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
   const validateDistributions = useCallback((): boolean => {
     const totalDistributed = getTotalDistributed();
-    const productTotal = editableTotalQuantity;
+
+    // Calculate available stock from stock details
+    const stockDetails = adjustedDistribution?.stockDetails || localStockData || [];
+    const totalAvailableStock = stockDetails.reduce(
+      (sum, stock) => sum + stock.available,
+      0
+    );
+
+    // Use the minimum between editableTotalQuantity and available stock
+    // This ensures we don't exceed what's actually available in inventory
+    const maxAllowed = totalAvailableStock > 0
+      ? Math.min(editableTotalQuantity, totalAvailableStock)
+      : editableTotalQuantity;
 
     if (totalDistributed === 0) {
       Alert.alert('Error', 'Debes asignar al menos una cantidad a un participante');
       return false;
     }
 
-    if (totalDistributed > productTotal) {
-      Alert.alert(
-        'Error',
-        `La suma de cantidades (${totalDistributed}) excede el total disponible (${productTotal})`
-      );
+    if (totalDistributed > maxAllowed) {
+      const errorMessage = totalAvailableStock > 0 && totalAvailableStock < editableTotalQuantity
+        ? `La suma de cantidades (${totalDistributed}) excede el stock disponible (${totalAvailableStock})`
+        : `La suma de cantidades (${totalDistributed}) excede el total disponible (${editableTotalQuantity})`;
+
+      Alert.alert('Error', errorMessage);
       return false;
     }
 
     return true;
-  }, [editableTotalQuantity]);
+  }, [editableTotalQuantity, adjustedDistribution, localStockData]);
 
   const handleConfirmGeneration = useCallback(async () => {
     if (!product || !adjustedDistribution) {
