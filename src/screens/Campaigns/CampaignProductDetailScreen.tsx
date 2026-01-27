@@ -306,15 +306,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
       setAdjustedDistribution(previewDataWithPreferences);
 
-      // Initialize editable total quantity with available stock (if available), otherwise use totalQuantity
-      const stockDetails = previewDataWithPreferences.stockDetails || localStockData || [];
-      const totalAvailableStock = stockDetails.reduce(
-        (sum, stock) => sum + stock.available,
-        0
-      );
-      const initialQuantity = totalAvailableStock > 0
-        ? totalAvailableStock
-        : previewDataWithPreferences.totalQuantity;
+      // Initialize editable total quantity with total distributed from preview
+      // This represents what was actually distributed, not the available stock
+      const initialQuantity = previewDataWithPreferences.totalDistributed || previewDataWithPreferences.totalQuantity;
 
       setEditableTotalQuantity(initialQuantity);
 

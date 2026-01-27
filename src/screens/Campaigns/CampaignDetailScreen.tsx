@@ -1752,22 +1752,130 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
               No hay productos agregados
             </Text>
-          ) : filteredProducts.length === 0 ? (
+          ) : (
             <>
-              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                No se encontraron productos en la campaña que coincidan con "{searchQuery}"
-              </Text>
+              {/* Show filtered products from campaign */}
+              {filteredProducts.length === 0 && searchQuery.trim() ? (
+                <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+                  No se encontraron productos en la campaña que coincidan con "{searchQuery}"
+                </Text>
+              ) : (
+                filteredProducts.map((product) => {
+                  // ✅ PRIORIZAR batch endpoint sobre producto embebido (batch tiene photoUrls)
+                  const productDetails = products[product.productId] || product.product;
+                  const costCents = productDetails?.costCents || 0;
+                  const isExpanded = expandedProducts.has(product.id);
+                  // Resaltar productos cuyo estado del producto es 'preliminary' (no validado aún)
+                  const isPreliminary = (productDetails?.status as any) === 'preliminary';
+
+                  return (
+                    <View
+                      key={product.id}
+                      style={[
+                        styles.productCard,
+                        isTablet && styles.productCardTablet,
+                        isPreliminary && styles.productCardPreliminary,
+                      ]}
+                    >
+                      <TouchableOpacity
+                        style={styles.productCardMain}
+                        onPress={() =>
+                          navigation.navigate('CampaignProductDetail', {
+                            campaignId,
+                            productId: product.id,
+                            fromCampaignDetail: true,
+                          })
+                        }
+                      >
+                        {/* Product content - keeping existing code */}
+                        {(() => {
+                          const batchProduct = products[product.productId];
+                          const embeddedProduct = product.product;
+
+                          logger.debug(`📸 Image data for ${product.productId}:`, {
+                            hasBatchProduct: !!batchProduct,
+                            hasEmbeddedProduct: !!embeddedProduct,
+                            batchPhotoUrls: (batchProduct as any)?.photoUrls,
+                            embeddedPhotoUrls: (embeddedProduct as any)?.photoUrls,
+                            productDetailsSource: productDetails === batchProduct ? 'batch' : 'embedded',
+                          });
+
+                          const imageUri =
+                            (productDetails as any)?.photoUrls?.[0] ||
+                            (productDetails as any)?.photos?.[0] ||
+                            (productDetails as any)?.imageUrl ||
+                            (productDetails as any)?.imageUrls?.[0];
+
+                          logger.debug(`📸 Final imageUri for ${product.productId}:`, imageUri);
+
+                          return imageUri ? (
+                            <TouchableOpacity
+                              onPress={() => handleOpenImageModal(imageUri)}
+                              activeOpacity={0.7}
+                            >
+                              <Image
+                                source={{ uri: imageUri }}
+                                style={styles.productImage}
+                                resizeMode="cover"
+                              />
+                            </TouchableOpacity>
+                          ) : (
+                            <View style={styles.productImagePlaceholder}>
+                              <Text style={styles.productImagePlaceholderText}>📦</Text>
+                            </View>
+                          );
+                        })()}
+
+                        <View style={styles.productInfo}>
+                          <Text style={[styles.productTitle, isTablet && styles.productTitleTablet]}>
+                            {productDetails?.correlativeNumber && `#${productDetails.correlativeNumber} | `}
+                            {productDetails?.sku || 'SKU no disponible'}
+                          </Text>
+                          <Text style={[styles.productSubtitle, isTablet && styles.productSubtitleTablet]}>
+                            {productDetails?.title || 'Título no disponible'}
+                          </Text>
+                          {isPreliminary && (
+                            <Text style={styles.preliminaryBadge}>⚠️ Producto Preliminar</Text>
+                          )}
+                          <View style={styles.productMeta}>
+                            <Text style={styles.productMetaText}>
+                              Cantidad: {product.totalQuantityBase}
+                            </Text>
+                            <Text style={styles.productMetaText}>
+                              Costo: {formatCurrency(costCents)}
+                            </Text>
+                          </View>
+                          {product.distributionGenerated && (
+                            <View style={styles.distributionBadge}>
+                              <Text style={styles.distributionBadgeText}>✓ Reparto Generado</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <View style={styles.productActions}>
+                          <TouchableOpacity
+                            style={styles.productActionButton}
+                            onPress={() => handleOpenBanner(product)}
+                          >
+                            <Text style={styles.productActionButtonText}>📊</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
+              )}
 
               {/* Loading indicator for global search */}
-              {isGlobalSearching && (
+              {searchQuery.trim() && isGlobalSearching && (
                 <View style={styles.globalSearchLoading}>
                   <ActivityIndicator size="small" color="#6366F1" />
                   <Text style={styles.globalSearchLoadingText}>Buscando en todos los productos...</Text>
                 </View>
               )}
 
-              {/* Global search suggestions */}
-              {!isGlobalSearching && showGlobalSearchSuggestions && globalSearchResults.length > 0 && (
+              {/* Global search suggestions - Always show when searching */}
+              {searchQuery.trim() && !isGlobalSearching && showGlobalSearchSuggestions && globalSearchResults.length > 0 && (
                 <View style={styles.globalSearchContainer}>
                   <Text style={styles.globalSearchTitle}>
                     💡 Productos disponibles para agregar ({globalSearchResults.length})
@@ -1852,324 +1960,6 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 </View>
               )}
             </>
-          ) : (
-            filteredProducts.map((product) => {
-              // ✅ PRIORIZAR batch endpoint sobre producto embebido (batch tiene photoUrls)
-              const productDetails = products[product.productId] || product.product;
-              const costCents = productDetails?.costCents || 0;
-              const isExpanded = expandedProducts.has(product.id);
-              // Resaltar productos cuyo estado del producto es 'preliminary' (no validado aún)
-              const isPreliminary = (productDetails?.status as any) === 'preliminary';
-
-              return (
-                <View
-                  key={product.id}
-                  style={[
-                    styles.productCard,
-                    isTablet && styles.productCardTablet,
-                    isPreliminary && styles.productCardPreliminary,
-                  ]}
-                >
-                  <TouchableOpacity
-                    style={styles.productCardMain}
-                    onPress={() =>
-                      navigation.navigate('CampaignProductDetail', {
-                        campaignId,
-                        productId: product.id,
-                        fromCampaignDetail: true,
-                      })
-                    }
-                  >
-                    {/* ✅ Product Image - Usar photoUrls del batch endpoint */}
-                    {(() => {
-                      // Debug: Ver qué datos tenemos
-                      const batchProduct = products[product.productId];
-                      const embeddedProduct = product.product;
-
-                      logger.debug(`📸 Image data for ${product.productId}:`, {
-                        hasBatchProduct: !!batchProduct,
-                        hasEmbeddedProduct: !!embeddedProduct,
-                        batchPhotoUrls: (batchProduct as any)?.photoUrls,
-                        embeddedPhotoUrls: (embeddedProduct as any)?.photoUrls,
-                        productDetailsSource: productDetails === batchProduct ? 'batch' : 'embedded',
-                      });
-
-                      const imageUri =
-                        (productDetails as any)?.photoUrls?.[0] ||
-                        (productDetails as any)?.photos?.[0] ||
-                        (productDetails as any)?.imageUrl ||
-                        (productDetails as any)?.imageUrls?.[0];
-
-                      logger.debug(`📸 Final imageUri for ${product.productId}:`, imageUri);
-
-                      return imageUri ? (
-                        <TouchableOpacity
-                          onPress={() => handleOpenImageModal(imageUri)}
-                          activeOpacity={0.7}
-                        >
-                          <Image
-                            source={{ uri: imageUri }}
-                            style={styles.productImage}
-                            resizeMode="cover"
-                          />
-                        </TouchableOpacity>
-                      ) : (
-                        <View style={styles.productImagePlaceholder}>
-                          <Text style={styles.productImagePlaceholderText}>📦</Text>
-                        </View>
-                      );
-                    })()}
-                    <View style={styles.listItemContent}>
-                      <View style={styles.productTitleRow}>
-                        <Text
-                          style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}
-                        >
-                          {productDetails?.title || `Producto ID: ${product.productId}`}
-                        </Text>
-                        {isPreliminary && (
-                          <View style={styles.preliminaryIndicator}>
-                            <Text style={styles.preliminaryIndicatorText}>⚠️ PRELIMINAR</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text
-                        style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}
-                      >
-                        SKU: {productDetails?.sku || 'N/A'} |{' '}
-                        {(() => {
-                          // Calcular cantidad repartida desde customDistributions.items.assignedQuantityBase
-                          const distributedQty = product.customDistributions?.[0]?.items?.reduce(
-                            (sum: number, item: any) => sum + parseFloat(item.assignedQuantityBase || '0'),
-                            0
-                          );
-
-                          // Debug: Log para ver qué datos tenemos
-                          if (product.distributionGenerated) {
-                            logger.debug(`🔍 Product ${product.productId}:`, {
-                              distributionGenerated: product.distributionGenerated,
-                              hasCustomDistributions: !!product.customDistributions,
-                              customDistributionsLength: product.customDistributions?.length || 0,
-                              hasItems: !!product.customDistributions?.[0]?.items,
-                              itemsLength: product.customDistributions?.[0]?.items?.length || 0,
-                              distributedQty,
-                            });
-                          }
-
-                          // Si tiene distribución generada, mostrar cantidad repartida
-                          if (product.distributionGenerated && distributedQty) {
-                            return (
-                              <>
-                                Repartido:{' '}
-                                <Text style={styles.quickPriceValue}>
-                                  {Math.floor(distributedQty)}
-                                </Text>{' '}
-                                ✓
-                              </>
-                            );
-                          }
-                          return <>Cant: {product.totalQuantityBase}</>;
-                        })()}{' '}
-                        | Costo:{' '}
-                        <Text style={styles.quickPriceValue}>
-                          S/ {(costCents / 100).toFixed(2)}
-                        </Text>
-                        {priceProfiles.slice(0, 2).map((profile, index) => {
-                          const priceCents = getSalePriceForProfile(product.productId, profile.id);
-                          return (
-                            <Text key={profile.id}>
-                              {' | '}
-                              {profile.name}:{' '}
-                              <Text style={styles.quickPriceValue}>
-                                S/ {(priceCents / 100).toFixed(2)}
-                              </Text>
-                            </Text>
-                          );
-                        })}
-                        {priceProfiles.length > 2 && <Text> (+{priceProfiles.length - 2})</Text>}
-                      </Text>
-
-                      <View style={styles.productBadges}>
-                        <View
-                          style={[
-                            styles.badge,
-                            product.productStatus === 'ACTIVE'
-                              ? styles.badgeActive
-                              : styles.badgePreliminary,
-                          ]}
-                        >
-                          <Text style={styles.badgeText}>
-                            {product.productStatus === 'ACTIVE' ? 'Activo' : 'Preliminar'}
-                          </Text>
-                        </View>
-                        {product.distributionGenerated && (
-                          <View style={[styles.badge, styles.badgeGenerated]}>
-                            <Text style={styles.badgeText}>Generado</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                    <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
-                  </TouchableOpacity>
-
-                  {/* Action buttons */}
-                  <View style={styles.productCardActions}>
-                    <TouchableOpacity
-                      style={[styles.productActionButton, styles.productExpandButton]}
-                      onPress={() => toggleProductExpanded(product.id)}
-                    >
-                      <Text style={styles.productActionButtonText}>
-                        {isExpanded ? '▼ Ocultar Precios' : '▶ Ver Precios'}
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.productActionButton, styles.productBannerButton]}
-                      onPress={() => handleShowBanner(product)}
-                    >
-                      <Text style={styles.productActionButtonText}>📊 Banner</Text>
-                    </TouchableOpacity>
-
-                    {(campaign.status === CampaignStatus.DRAFT ||
-                      campaign.status === CampaignStatus.ACTIVE) && (
-                      <TouchableOpacity
-                        style={[styles.productActionButton, styles.productDeleteButton]}
-                        onPress={() => handleDeleteProduct(product)}
-                      >
-                        <Text style={styles.productDeleteButtonText}>🗑️</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {/* Expanded price details */}
-                  {isExpanded && (
-                    <View style={styles.priceDetailsContainer}>
-                      {/* Cost row */}
-                      <View style={styles.priceRow}>
-                        <Text style={styles.priceLabel}>Costo:</Text>
-                        {editingCost?.productId === product.productId ? (
-                          <View style={styles.priceEditRow}>
-                            <Text style={styles.currencySymbol}>S/</Text>
-                            <TextInput
-                              style={styles.priceInput}
-                              value={editingCost.value}
-                              onChangeText={(text) =>
-                                setEditingCost({ ...editingCost, value: text })
-                              }
-                              keyboardType="decimal-pad"
-                              autoFocus
-                              onSubmitEditing={() => handleSaveCost(product.productId)}
-                            />
-                            <TouchableOpacity
-                              style={styles.saveButton}
-                              onPress={() => handleSaveCost(product.productId)}
-                              disabled={savingPrice}
-                            >
-                              {savingPrice ? (
-                                <ActivityIndicator size="small" color="#FFFFFF" />
-                              ) : (
-                                <Text style={styles.saveButtonText}>✓</Text>
-                              )}
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.cancelEditButton}
-                              onPress={() => setEditingCost(null)}
-                            >
-                              <Text style={styles.cancelEditButtonText}>✕</Text>
-                            </TouchableOpacity>
-                          </View>
-                        ) : (
-                          <View style={styles.priceDisplayRow}>
-                            <Text style={styles.priceValue}>S/ {(costCents / 100).toFixed(2)}</Text>
-                            <TouchableOpacity
-                              style={styles.editButton}
-                              onPress={() => handleStartEditCost(product.productId, costCents)}
-                            >
-                              <Text style={styles.editButtonText}>✏️</Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-
-                      {/* Price profiles rows */}
-                      {priceProfiles.map((profile) => {
-                        const priceCents = getSalePriceForProfile(product.productId, profile.id);
-                        const isEditingThis =
-                          editingPrice?.productId === product.productId &&
-                          editingPrice?.profileId === profile.id;
-                        const isFranquicia =
-                          profile.code === 'FRANQ' ||
-                          profile.name.toLowerCase().includes('franquicia');
-
-                        return (
-                          <View key={profile.id} style={styles.priceRow}>
-                            <Text style={styles.priceLabel}>{profile.name}:</Text>
-                            {isEditingThis ? (
-                              <View style={styles.priceEditRow}>
-                                <Text style={styles.currencySymbol}>S/</Text>
-                                <TextInput
-                                  style={styles.priceInput}
-                                  value={editingPrice.value}
-                                  onChangeText={(text) =>
-                                    setEditingPrice({ ...editingPrice, value: text })
-                                  }
-                                  keyboardType="decimal-pad"
-                                  autoFocus
-                                  onSubmitEditing={() =>
-                                    handleSavePrice(product.productId, profile.id)
-                                  }
-                                />
-                                <TouchableOpacity
-                                  style={styles.saveButton}
-                                  onPress={() => handleSavePrice(product.productId, profile.id)}
-                                  disabled={savingPrice}
-                                >
-                                  {savingPrice ? (
-                                    <ActivityIndicator size="small" color="#FFFFFF" />
-                                  ) : (
-                                    <Text style={styles.saveButtonText}>✓</Text>
-                                  )}
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                  style={styles.cancelEditButton}
-                                  onPress={() => setEditingPrice(null)}
-                                >
-                                  <Text style={styles.cancelEditButtonText}>✕</Text>
-                                </TouchableOpacity>
-                              </View>
-                            ) : (
-                              <View style={styles.priceDisplayRow}>
-                                <Text style={styles.priceValue}>
-                                  S/ {(priceCents / 100).toFixed(2)}
-                                </Text>
-                                <TouchableOpacity
-                                  style={styles.editButton}
-                                  onPress={() =>
-                                    handleStartEditPrice(product.productId, profile.id, priceCents)
-                                  }
-                                >
-                                  <Text style={styles.editButtonText}>✏️</Text>
-                                </TouchableOpacity>
-                                {isFranquicia && (
-                                  <TouchableOpacity
-                                    style={styles.calculateButton}
-                                    onPress={() =>
-                                      handleCalculateFranquiciaFromSocia(product.productId)
-                                    }
-                                    disabled={savingPrice}
-                                  >
-                                    <Text style={styles.calculateButtonText}>🧮 /1.15</Text>
-                                  </TouchableOpacity>
-                                )}
-                              </View>
-                            )}
-                          </View>
-                        );
-                      })}
-                    </View>
-                  )}
-                </View>
-              );
-            })
           )}
         </View>
       </View>
@@ -2280,6 +2070,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             selectedProduct ? selectedProduct.product || products[selectedProduct.productId] : null
           }
           onClose={handleCloseBanner}
+          onOpenDistribution={() => {
+            if (selectedProduct) {
+              navigation.navigate('CampaignProductDetail', {
+                campaignId,
+                productId: selectedProduct.id,
+                fromCampaignDetail: true,
+              });
+            }
+          }}
         />
 
         {/* Bulk Update Modal */}
@@ -3469,3 +3268,4 @@ const styles = StyleSheet.create({
     color: '#EF4444',
   },
 });
+

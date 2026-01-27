@@ -23,6 +23,7 @@ interface CampaignProductBannerModalProps {
   campaignProduct: CampaignProduct | null;
   productDetails?: any; // Full product details with costCents, priceCents, etc.
   onClose: () => void;
+  onOpenDistribution?: () => void; // Callback to open distribution modal
 }
 
 interface PriceFormData {
@@ -42,6 +43,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   campaignProduct,
   productDetails,
   onClose,
+  onOpenDistribution,
 }) => {
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768;
@@ -63,6 +65,8 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   const [editingQuantity, setEditingQuantity] = useState(false);
   const [quantityValue, setQuantityValue] = useState<string>('');
   const [savingQuantity, setSavingQuantity] = useState(false);
+  const [updatedPrices, setUpdatedPrices] = useState<Set<string>>(new Set());
+  const [updatedCost, setUpdatedCost] = useState(false);
 
   // Fetch stock data and price profiles when modal opens
   useEffect(() => {
@@ -380,7 +384,16 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       console.log('✅ Price saved successfully:', result);
       console.log('⚠️ Server returned presentationId:', result.presentationId, '(should be null)');
 
-      Alert.alert('Éxito', 'Precio actualizado correctamente');
+      // Show "updated" badge instead of alert
+      setUpdatedPrices((prev) => new Set(prev).add(profileId));
+      setTimeout(() => {
+        setUpdatedPrices((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(profileId);
+          return newSet;
+        });
+      }, 3000);
+
       setEditingPriceId(null);
       setEditingPriceValue('');
 
@@ -453,7 +466,12 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
       console.log('✅ Cost saved successfully:', result);
 
-      Alert.alert('Éxito', 'Costo base actualizado correctamente');
+      // Show "updated" badge instead of alert
+      setUpdatedCost(true);
+      setTimeout(() => {
+        setUpdatedCost(false);
+      }, 3000);
+
       setEditingCost(false);
 
       // Note: Price profiles will be recalculated on the backend based on the new cost
@@ -712,15 +730,22 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                 </View>
               ) : (
                 <View style={styles.costDisplayContainer}>
-                  <Text
-                    style={[
-                      styles.bannerValue,
-                      styles.costValue,
-                      isTablet && styles.bannerValueTablet,
-                    ]}
-                  >
-                    {formatCurrency(costCents)}
-                  </Text>
+                  <View style={styles.costValueContainer}>
+                    <Text
+                      style={[
+                        styles.bannerValue,
+                        styles.costValue,
+                        isTablet && styles.bannerValueTablet,
+                      ]}
+                    >
+                      {formatCurrency(costCents)}
+                    </Text>
+                    {updatedCost && (
+                      <View style={styles.updatedBadge}>
+                        <Text style={styles.updatedBadgeText}>✓ Actualizado</Text>
+                      </View>
+                    )}
+                  </View>
                   <TouchableOpacity
                     style={styles.editCostButton}
                     onPress={() => setEditingCost(true)}
@@ -828,15 +853,22 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                       </View>
                     ) : (
                       <View style={styles.priceDisplayContainer}>
-                        <Text
-                          style={[
-                            styles.bannerValue,
-                            styles.priceValue,
-                            isTablet && styles.bannerValueTablet,
-                          ]}
-                        >
-                          {formatCurrency(priceData.priceCents)}
-                        </Text>
+                        <View style={styles.priceValueContainer}>
+                          <Text
+                            style={[
+                              styles.bannerValue,
+                              styles.priceValue,
+                              isTablet && styles.bannerValueTablet,
+                            ]}
+                          >
+                            {formatCurrency(priceData.priceCents)}
+                          </Text>
+                          {updatedPrices.has(priceData.profileId) && (
+                            <View style={styles.updatedBadge}>
+                              <Text style={styles.updatedBadgeText}>✓ Actualizado</Text>
+                            </View>
+                          )}
+                        </View>
                         <TouchableOpacity
                           style={styles.editPriceButton}
                           onPress={() => handleStartEditPrice(priceData)}
@@ -872,15 +904,30 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                   <Text style={styles.loadingStockText}>Cargando stock...</Text>
                 </View>
               ) : (
-                <Text
-                  style={[
-                    styles.bannerValue,
-                    styles.stockValue,
-                    isTablet && styles.bannerValueTablet,
-                  ]}
-                >
-                  {stockValue !== undefined && stockValue !== null ? stockValue : 'N/A'}
-                </Text>
+                <>
+                  <Text
+                    style={[
+                      styles.bannerValue,
+                      styles.stockValue,
+                      isTablet && styles.bannerValueTablet,
+                    ]}
+                  >
+                    {stockValue !== undefined && stockValue !== null ? stockValue : 'N/A'}
+                  </Text>
+                  {onOpenDistribution && (
+                    <TouchableOpacity
+                      style={styles.generateDistributionButton}
+                      onPress={() => {
+                        onClose();
+                        onOpenDistribution();
+                      }}
+                    >
+                      <Text style={styles.generateDistributionButtonText}>
+                        📊 Generar Distribución
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
               {isPreliminary && <Text style={styles.preliminaryNote}>⚠️ Producto Preliminar</Text>}
             </View>
@@ -1398,5 +1445,43 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.8,
+  },
+  generateDistributionButton: {
+    marginTop: 16,
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  generateDistributionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  priceValueContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  costValueContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  updatedBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  updatedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
