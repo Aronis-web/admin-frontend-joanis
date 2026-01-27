@@ -52,6 +52,75 @@ class ExpensesService {
   // Expense Categories
   // ============================================
 
+  // ============================================
+  // V2 OPTIMIZED ENDPOINTS
+  // ============================================
+
+  /**
+   * Búsqueda optimizada de gastos (v2)
+   * Usa caché Redis y búsqueda multi-campo
+   * GET /admin/expenses/v2/search
+   */
+  async searchExpensesV2(params: {
+    q: string;
+    limit?: number;
+    status?: string;
+    projectId?: string;
+    categoryId?: string;
+    siteId?: string;
+  }): Promise<{
+    expenses?: Expense[];
+    results?: Expense[];
+    total: number;
+    limit: number;
+    hasMore: boolean;
+    searchTime: number;
+    cached: boolean;
+  }> {
+    return apiClient.get(`${this.basePath}/v2/search`, { params });
+  }
+
+  /**
+   * Listado paginado optimizado de gastos (v2)
+   * GET /admin/expenses/v2/list
+   */
+  async getExpensesV2(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    projectId?: string;
+    categoryId?: string;
+    q?: string;
+  }): Promise<{
+    expenses?: Expense[];
+    data?: Expense[];
+    results?: Expense[];
+    meta?: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+    total?: number;
+    page?: number;
+    limit?: number;
+    totalPages?: number;
+    hasMore?: boolean;
+    searchTime?: number;
+    cached?: boolean;
+  }> {
+    const response = await apiClient.get(`${this.basePath}/v2/list`, { params });
+    return response;
+  }
+
+  /**
+   * Invalidar caché de gastos (v2)
+   * DELETE /admin/expenses/v2/cache
+   */
+  async invalidateExpensesCacheV2(): Promise<void> {
+    return apiClient.delete(`${this.basePath}/v2/cache`);
+  }
+
   /**
    * Get all expense categories
    */

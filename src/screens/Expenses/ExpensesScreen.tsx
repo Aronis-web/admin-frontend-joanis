@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,14 @@ import {
   Alert,
   ActivityIndicator,
   useWindowDimensions,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { sitesService } from '@/services/api';
 import { Expense, ExpenseStatus, ExpenseStatusLabels } from '@/types/expenses';
-import { useExpenses, useDeleteExpense } from '@/hooks/api';
+import { useExpenses, useDeleteExpense, useSearchExpensesV2, useExpensesV2 } from '@/hooks/api';
 import { useAuthStore } from '@/store/auth';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { AddButton } from '@/components/Navigation/AddButton';
@@ -41,7 +42,11 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const limit = 50;
+
+  // ✅ Búsqueda V2
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
   const { currentCompany, currentSite } = useAuthStore();
   const { hasPermission } = usePermissions();
@@ -50,23 +55,45 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  // Build query params
-  const queryParams = useMemo(() => {
-    const params: any = {
-      page,
-      limit,
-      sortBy: 'expenseDate',
-      sortOrder: 'DESC',
-    };
-    if (selectedStatus !== 'ALL') {
-      params.status = selectedStatus;
-    }
-    return params;
-  }, [page, limit, selectedStatus]);
+  // ✅ Debounce search query (800ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 800);
 
-  // React Query hooks
-  const { data, isLoading, isRefetching, refetch } = useExpenses(queryParams);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // ✅ Determinar si usar búsqueda V2 o listado paginado
+  const isUsingSearch = debouncedSearchQuery.length >= 2;
+
+  // ✅ React Query: Listado paginado V2 (cuando NO hay búsqueda)
+  const {
+    data: expensesResponseV2,
+    isLoading: isLoadingList,
+    isRefetching,
+    refetch,
+  } = useExpensesV2({
+    page,
+    limit,
+    status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+  });
+
   const deleteExpenseMutation = useDeleteExpense();
+
+  // ✅ React Query: Búsqueda V2 optimizada
+  const {
+    data: searchResultsV2,
+    isLoading: isSearchingV2,
+    refetch: refetchSearchV2,
+  } = useSearchExpensesV2(debouncedSearchQuery, {
+    status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+    limit: 50,
+    enabled: isUsingSearch,
+  });
+
+  // ✅ Determinar qué datos y estado de carga usar
+  const isLoading = isUsingSearch ? isSearchingV2 : isLoadingList;
 
   // Check permissions
   const canUpdate = hasPermission('expenses.payments.update') || hasPermission('expenses.admin');
@@ -75,30 +102,44 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
     hasPermission('expenses.payments.create') || hasPermission('expenses.admin');
 
   // Enrich expenses with site data
-  const expenses = useMemo(() => {
-    if (!data?.data) return [];
+  const expenses: Expense[] = useMemo(() => {
+    // ✅ Si hay búsqueda activa, usar resultados V2
+    if (isUsingSearch && searchResultsV2) {
+      return (searchResultsV2 as any).expenses || (searchResultsV2 as any).results || [];
+    }
+
+    // ✅ Si no hay búsqueda, usar listado paginado V2
+    // Backend retorna "expenses" directamente en el objeto
+    const expensesData = (expensesResponseV2 as any)?.expenses || (expensesResponseV2 as any)?.results || (expensesResponseV2 as any)?.data;
+    if (!expensesData) return [];
     // Sites are already included in the expense data from the API
-    return data.data;
-  }, [data]);
+    return expensesData;
+  }, [expensesResponseV2, searchResultsV2, isUsingSearch]);
 
   // Calculate pagination
   const pagination = useMemo(() => {
-    if (!data?.meta) {
-      return { page: 1, limit: 20, total: 0, totalPages: 0 };
+    // Backend puede retornar meta o directamente en el objeto
+    const meta = expensesResponseV2?.meta || expensesResponseV2;
+    if (!meta || !meta.total) {
+      return { page: 1, limit: 50, total: 0, totalPages: 0 };
     }
     return {
-      page: data.meta.page,
-      limit: data.meta.limit,
-      total: data.meta.total,
-      totalPages: data.meta.totalPages,
+      page: meta.page || 1,
+      limit: meta.limit || 50,
+      total: meta.total || 0,
+      totalPages: meta.totalPages || 0,
     };
-  }, [data]);
+  }, [expensesResponseV2]);
 
   // Auto-reload expenses when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      refetch();
-    }, [refetch])
+      if (isUsingSearch) {
+        refetchSearchV2();
+      } else {
+        refetch();
+      }
+    }, [refetch, refetchSearchV2, isUsingSearch])
   );
 
   const handleRefresh = useCallback(() => {
@@ -210,14 +251,16 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
     const getStatusColor = (status: ExpenseStatus | 'ALL'): string => {
       if (status === 'ALL') return '#6366F1';
       switch (status) {
-        case ExpenseStatus.PENDING:
+        case ExpenseStatus.DRAFT:
+          return '#94A3B8';
+        case ExpenseStatus.ACTIVE:
           return '#F59E0B';
-        case ExpenseStatus.APPROVED:
-          return '#10B981';
         case ExpenseStatus.PAID:
-          return '#3B82F6';
+          return '#10B981';
         case ExpenseStatus.CANCELLED:
           return '#EF4444';
+        case ExpenseStatus.OVERDUE:
+          return '#DC2626';
         default:
           return '#6B7280';
       }
@@ -225,9 +268,10 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
 
     return [
       { value: 'ALL', label: 'Todos', color: '#6366F1' },
-      { value: ExpenseStatus.PENDING, label: ExpenseStatusLabels[ExpenseStatus.PENDING], color: getStatusColor(ExpenseStatus.PENDING) },
-      { value: ExpenseStatus.APPROVED, label: ExpenseStatusLabels[ExpenseStatus.APPROVED], color: getStatusColor(ExpenseStatus.APPROVED) },
+      { value: ExpenseStatus.DRAFT, label: ExpenseStatusLabels[ExpenseStatus.DRAFT], color: getStatusColor(ExpenseStatus.DRAFT) },
+      { value: ExpenseStatus.ACTIVE, label: ExpenseStatusLabels[ExpenseStatus.ACTIVE], color: getStatusColor(ExpenseStatus.ACTIVE) },
       { value: ExpenseStatus.PAID, label: ExpenseStatusLabels[ExpenseStatus.PAID], color: getStatusColor(ExpenseStatus.PAID) },
+      { value: ExpenseStatus.OVERDUE, label: ExpenseStatusLabels[ExpenseStatus.OVERDUE], color: getStatusColor(ExpenseStatus.OVERDUE) },
       { value: ExpenseStatus.CANCELLED, label: ExpenseStatusLabels[ExpenseStatus.CANCELLED], color: getStatusColor(ExpenseStatus.CANCELLED) },
     ];
   }, []);
@@ -258,7 +302,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
           contentContainerStyle={styles.scrollContent}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
         >
-          {expenses.map((expense) => (
+          {expenses.map((expense: Expense) => (
             <ExpenseCard
               key={expense.id}
               expense={expense}
@@ -271,7 +315,8 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
             />
           ))}
         </ScrollView>
-        {pagination.total > 0 && (
+        {/* ✅ Solo mostrar paginación si NO hay búsqueda activa */}
+        {!isUsingSearch && pagination.total > 0 && (
           <View style={styles.paginationContainer}>
             <TouchableOpacity
               style={[
@@ -341,6 +386,49 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
           onStatusChange={(status) => setSelectedStatus(status as ExpenseStatus | 'ALL')}
           style={styles.statusFilter}
         />
+
+        {/* ✅ Barra de búsqueda V2 */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar por factura, descripción, proveedor..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#94A3B8"
+          />
+          {isSearchingV2 && (
+            <ActivityIndicator size="small" color="#6366F1" style={styles.searchLoader} />
+          )}
+          {searchQuery.length > 0 && !isSearchingV2 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="#94A3B8" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ✅ Indicador de búsqueda V2 optimizada */}
+        {isUsingSearch && searchResultsV2 && (
+          <View style={styles.searchInfoBanner}>
+            <Text style={styles.searchInfoText}>
+              {searchResultsV2.cached ? '⚡ Búsqueda desde caché' : '🔍 Búsqueda optimizada'}
+              {' • '}
+              {searchResultsV2.total} resultados
+              {searchResultsV2.searchTime && ` • ${searchResultsV2.searchTime}ms`}
+            </Text>
+          </View>
+        )}
+
+        {/* ✅ Indicador de listado V2 con caché */}
+        {!isUsingSearch && expensesResponseV2 && (
+          <View style={styles.searchInfoBanner}>
+            <Text style={styles.searchInfoText}>
+              {expensesResponseV2.cached ? '⚡ Datos desde caché' : '📊 Listado optimizado'}
+              {expensesResponseV2.searchTime && ` • ${expensesResponseV2.searchTime}ms`}
+            </Text>
+          </View>
+        )}
+
         {renderContent()}
 
         {/* Download Report Button - Above Add Button */}
@@ -418,6 +506,46 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1E293B',
+    paddingVertical: 0,
+  },
+  searchLoader: {
+    marginLeft: 8,
+  },
+  searchInfoBanner: {
+    backgroundColor: '#EEF2FF',
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  searchInfoText: {
+    fontSize: 12,
+    color: '#4F46E5',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,

@@ -1,15 +1,15 @@
 // Expense Types and Interfaces
 
 /**
- * Expense Status - New Backend Structure
+ * Expense Status - Backend Structure
+ * Backend acepta: DRAFT, ACTIVE, PAID, CANCELLED, OVERDUE
  */
 export enum ExpenseStatus {
+  DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
   PAID = 'PAID',
   CANCELLED = 'CANCELLED',
   OVERDUE = 'OVERDUE',
-  PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
 }
 
 /**
@@ -801,12 +801,11 @@ export interface QueryExpenseProjectsParams {
  * Expense Status Labels for UI
  */
 export const ExpenseStatusLabels: Record<ExpenseStatus, string> = {
+  [ExpenseStatus.DRAFT]: 'Borrador',
   [ExpenseStatus.ACTIVE]: 'Activo',
   [ExpenseStatus.PAID]: 'Pagado',
   [ExpenseStatus.CANCELLED]: 'Cancelado',
   [ExpenseStatus.OVERDUE]: 'Vencido',
-  [ExpenseStatus.PENDING]: 'Pendiente',
-  [ExpenseStatus.APPROVED]: 'Aprobado',
 };
 
 /**
@@ -902,12 +901,11 @@ export const AmountReconciliationStatusLabels: Record<AmountReconciliationStatus
  * Expense Status Colors for UI
  */
 export const ExpenseStatusColors: Record<ExpenseStatus, string> = {
-  [ExpenseStatus.ACTIVE]: '#3B82F6',
+  [ExpenseStatus.DRAFT]: '#94A3B8',
+  [ExpenseStatus.ACTIVE]: '#F59E0B',
   [ExpenseStatus.PAID]: '#10B981',
   [ExpenseStatus.CANCELLED]: '#EF4444',
-  [ExpenseStatus.OVERDUE]: '#F59E0B',
-  [ExpenseStatus.PENDING]: '#F59E0B',
-  [ExpenseStatus.APPROVED]: '#3B82F6',
+  [ExpenseStatus.OVERDUE]: '#DC2626',
 };
 
 /**

@@ -195,28 +195,52 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         if (missingProductIds.length > 0) {
           try {
             logger.info(
-              `🔍 Fetching ${missingProductIds.length} missing products:`,
-              missingProductIds.slice(0, 5)
+              `🔍 Fetching ${missingProductIds.length} missing products using V2 optimized endpoint`
             );
 
-            // Try fetching products individually by ID since bulk fetch isn't working
+            // ✅ OPTIMIZACIÓN V2: Usar getProductsV2 con caché Redis en lugar de llamadas individuales
+            // Esto es mucho más eficiente que hacer N llamadas a getProductById
+            const response = await productsApi.getProductsV2({
+              limit: 100, // Máximo permitido por el backend
+              includePhotos: true, // ✅ Incluir fotos para miniaturas
+            });
+
+            // Crear mapa de productos por ID para búsqueda rápida
+            const fetchedProductsMap: Record<string, Product> = {};
+            response.products.forEach((product) => {
+              fetchedProductsMap[product.id] = product;
+            });
+
+            // Agregar solo los productos que faltan
+            missingProductIds.forEach((productId) => {
+              if (fetchedProductsMap[productId]) {
+                productsMap[productId] = fetchedProductsMap[productId];
+                logger.info(
+                  `✅ Fetched product: ${productId} - ${fetchedProductsMap[productId].title || fetchedProductsMap[productId].sku}`
+                );
+              } else {
+                logger.warn(`⚠️ Product ${productId} not found in V2 response`);
+              }
+            });
+
+            logger.info(
+              `✅ Successfully fetched ${Object.keys(productsMap).length} products (cached: ${response.cached || false})`
+            );
+          } catch (error) {
+            logger.error('Error loading missing products:', error);
+
+            // Fallback: Si falla V2, intentar con llamadas individuales V1
+            logger.warn('⚠️ Fallback to individual V1 calls');
             await Promise.all(
               missingProductIds.map(async (productId) => {
                 try {
                   const product = await productsApi.getProductById(productId);
-                  logger.info(
-                    `✅ Fetched product: ${product.id} - ${product.title || product.sku} - Costo: ${product.costCents}`
-                  );
                   productsMap[productId] = product;
                 } catch (error) {
                   logger.error(`❌ Error fetching product ${productId}:`, error);
                 }
               })
             );
-
-            logger.info(`✅ Successfully fetched ${Object.keys(productsMap).length} products`);
-          } catch (error) {
-            logger.error('Error loading missing products:', error);
           }
         }
 
@@ -1252,6 +1276,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const costCents = Math.round(parseFloat(editingCost.value) * 100);
 
       await productsApi.updateProduct(productId, { costCents });
+
+      // ✅ Invalidar caché V2 para reflejar cambios inmediatamente en búsquedas
+      try {
+        await productsApi.invalidateProductsCacheV2();
+        logger.info('✅ Caché V2 invalidado después de actualizar costo');
+      } catch (cacheError) {
+        logger.warn('⚠️ No se pudo invalidar caché V2:', cacheError);
+        // No bloqueamos la operación si falla la invalidación
+      }
 
       // Update local state instead of reloading everything
       setProducts((prevProducts) => {

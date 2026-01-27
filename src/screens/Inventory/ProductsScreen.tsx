@@ -468,32 +468,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         </View>
       </View>
 
-      {/* Action Buttons */}
-      <View style={styles.floatingButtonsContainer} pointerEvents="box-none">
-        <ProtectedElement
-          requiredPermissions={[PERMISSIONS.PRODUCTS.CREATE]}
-          requireAll={false}
-          fallback={null}
-        >
-          <View style={styles.fabWrapper}>
-            <AddButton onPress={handleCreateProduct} icon="📦" />
-          </View>
-        </ProtectedElement>
-        <ProtectedElement
-          requiredPermissions={[PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE]}
-          requireAll={false}
-          fallback={null}
-        >
-          <View style={styles.fabWrapper}>
-            <AddButton
-              onPress={() => setIsBulkUpdateModalVisible(true)}
-              icon="💵"
-              label="Precios"
-            />
-          </View>
-        </ProtectedElement>
-      </View>
-
       {/* Products List */}
       <ScrollView
         style={[styles.content, isLandscape && styles.contentLandscape]}
@@ -715,6 +689,29 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Floating Action Buttons - Similar to ExpensesScreen */}
+      <ProtectedElement
+        requiredPermissions={[PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE]}
+        requireAll={false}
+        fallback={null}
+      >
+        <TouchableOpacity
+          style={styles.pricesFloatingButton}
+          onPress={() => setIsBulkUpdateModalVisible(true)}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.floatingButtonText}>💵</Text>
+        </TouchableOpacity>
+      </ProtectedElement>
+
+      <ProtectedElement
+        requiredPermissions={[PERMISSIONS.PRODUCTS.CREATE]}
+        requireAll={false}
+        fallback={null}
+      >
+        <AddButton onPress={handleCreateProduct} />
+      </ProtectedElement>
 
       {/* Product Form Modal */}
       <ProductFormModal
@@ -1647,19 +1644,27 @@ const styles = StyleSheet.create({
   paginationButtonTextDisabled: {
     color: '#94A3B8',
   },
-  floatingButtonsContainer: {
+  pricesFloatingButton: {
     position: 'absolute',
-    right: 16,
-    bottom: 20,
-    zIndex: 9998,
-    pointerEvents: 'box-none',
-    flexDirection: 'column-reverse',
-    alignItems: 'flex-end',
-    gap: 12,
+    bottom: 160, // Above the Add button (90px) + 70px spacing
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#6366F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    zIndex: 9997,
   },
-  fabWrapper: {
-    pointerEvents: 'auto',
-    marginBottom: 8,
+  floatingButtonText: {
+    fontSize: 24,
   },
 });
 
