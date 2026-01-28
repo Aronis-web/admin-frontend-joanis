@@ -352,6 +352,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           // Continue without company/site
         }
 
+        // IMPORTANT: Sync token with AuthService so API requests use the correct token
+        authService.setAccessToken(token);
+        console.log('🔐 Token synced with AuthService after init');
+
         set({
           user,
           token,
@@ -382,7 +386,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const newToken = authService.getAccessToken();
 
       if (newToken) {
-        // Update store with new token from authService
+        // Update store with new token from authService (already synced)
+        // Note: authService already has the new token, just update the store
         set({ token: newToken });
         console.log('✅ Token refreshed and synced with store');
         return true;
