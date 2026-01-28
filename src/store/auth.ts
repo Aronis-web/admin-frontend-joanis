@@ -314,6 +314,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
 
         // Check if token is expired
+        let currentToken = token;
+        let tokenWasRefreshed = false;
         if (tokenExpiresAt && Date.now() >= tokenExpiresAt) {
           console.log('⏰ Token expired, attempting refresh...');
           // Token is expired, try to refresh
@@ -327,6 +329,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 return;
               }
               console.log('✅ Token refreshed successfully');
+              tokenWasRefreshed = true;
+              // Get the new token from authService after refresh
+              const newToken = authService.getAccessToken();
+              if (newToken) {
+                currentToken = newToken;
+              } else {
+                console.error('❌ No token available after refresh');
+                await get().clearInvalidAuth();
+                return;
+              }
             } catch (error) {
               console.error('❌ Token refresh error:', error);
               await get().clearInvalidAuth();
@@ -353,12 +365,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
 
         // IMPORTANT: Sync token with AuthService so API requests use the correct token
-        authService.setAccessToken(token);
-        console.log('🔐 Token synced with AuthService after init');
+        // Only sync if token was NOT refreshed (refresh already syncs with authService)
+        if (!tokenWasRefreshed) {
+          authService.setAccessToken(currentToken);
+          console.log('🔐 Token synced with AuthService after init');
+        } else {
+          console.log('🔐 Token already synced with AuthService after refresh');
+        }
 
         set({
           user,
-          token,
+          token: currentToken,
           refreshToken,
           tokenExpiresAt,
           isAuthenticated: true,
