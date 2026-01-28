@@ -19,7 +19,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { campaignsService } from '@/services/api';
+import { campaignsService, repartosService } from '@/services/api';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
 import { productsApi, priceProfilesApi } from '@/services/api';
@@ -47,6 +47,7 @@ import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface CampaignDetailScreenProps {
   navigation: any;
@@ -56,6 +57,8 @@ interface CampaignDetailScreenProps {
       shouldReload?: boolean;
       skipReloadOnce?: boolean;
       updatedProductId?: string;
+      forceReload?: boolean;
+      timestamp?: number;
     };
   };
 }
@@ -67,6 +70,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   route,
 }) => {
   const { campaignId } = route.params;
+  const { hasPermission, loading: permissionsLoading } = usePermissions();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,6 +93,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   } | null>(null);
   const [editingCost, setEditingCost] = useState<{ productId: string; value: string } | null>(null);
   const [savingPrice, setSavingPrice] = useState(false);
+  const [updatedPrices, setUpdatedPrices] = useState<Set<string>>(new Set());
+  const [updatedCosts, setUpdatedCosts] = useState<Set<string>>(new Set());
+  const [calculatedFranquicia, setCalculatedFranquicia] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [distributionFilter, setDistributionFilter] = useState<
     'all' | 'generated' | 'not-generated'
@@ -297,15 +304,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         shouldReload?: boolean;
         skipReloadOnce?: boolean;
         updatedProductId?: string;
+        forceReload?: boolean;
+        timestamp?: number;
       };
       const shouldReload = params?.shouldReload;
       const skipReloadOnce = params?.skipReloadOnce;
       const updatedProductId = params?.updatedProductId;
+      const forceReload = params?.forceReload;
 
       logger.debug('🔄 [CAMPAIGN] useFocusEffect triggered:', {
         shouldReload,
         skipReloadOnce,
         updatedProductId,
+        forceReload,
         hasLoaded: hasLoadedRef.current,
       });
 
@@ -332,10 +343,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           .catch((error) => {
             logger.error('❌ [CAMPAIGN] Error actualizando producto:', error);
           });
-      } else if (shouldReload) {
+      } else if (shouldReload || forceReload) {
         // Clear the param to avoid reloading again
-        logger.debug('🔄 [CAMPAIGN] Reloading due to shouldReload param');
-        navigation.setParams({ shouldReload: undefined } as any);
+        logger.debug('🔄 [CAMPAIGN] Reloading due to shouldReload/forceReload param');
+        navigation.setParams({ shouldReload: undefined, forceReload: undefined, timestamp: undefined } as any);
         hasLoadedRef.current = true;
         loadCampaign();
       } else if (skipReloadOnce) {
@@ -833,11 +844,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     try {
       setDownloadingReport(true);
 
-      logger.info('🔄 Descargando reporte general de totales...');
+      logger.info('🔄 Descargando reporte general de totales de repartos...');
       const startTime = new Date().getTime();
 
-      // Call the API to get the PDF blob
-      const pdfBlob = await campaignsService.exportParticipantTotalsPdf(campaignId);
+      // Call the new repartos API to get the consolidated totals PDF for all participants
+      const pdfBlob = await repartosService.exportAllParticipantsConsolidatedTotals(campaignId);
 
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');
@@ -849,7 +860,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         const blobUrl = URL.createObjectURL(pdfBlob);
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = `reporte-totales-${campaign?.code || campaignId}.pdf`;
+        link.download = `reporte-repartos-totales-${campaign?.code || campaignId}.pdf`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -861,7 +872,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       } else {
         // For mobile (iOS/Android), save to file system and share
         const timestamp = new Date().getTime();
-        const fileName = `reporte-totales-${timestamp}.pdf`;
+        const fileName = `reporte-repartos-totales-${timestamp}.pdf`;
         const file = new FileSystem.File(FileSystem.Paths.document, fileName);
 
         // Convert blob to array buffer using FileReader
@@ -883,7 +894,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         if (canShare) {
           await Sharing.shareAsync(file.uri, {
             mimeType: 'application/pdf',
-            dialogTitle: 'Reporte de Totales',
+            dialogTitle: 'Reporte de Totales de Repartos',
             UTI: 'com.adobe.pdf',
           });
         } else {
@@ -1113,8 +1124,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </View>
           )}
 
-          {/* Download General Report Button */}
-          {participantTotals && campaign.participants && campaign.participants.length > 0 && (
+          {/* Download General Report Button - Repartos */}
+          {campaign.participants && campaign.participants.length > 0 && !permissionsLoading && hasPermission(PERMISSIONS.REPARTOS.REPORTS) && (
             <TouchableOpacity
               style={[
                 styles.downloadGeneralReportButton,
@@ -1131,7 +1142,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   isTablet && styles.downloadGeneralReportButtonTextTablet,
                 ]}
               >
-                {downloadingReport ? '📄 Generando...' : '📄 Descargar Reporte General de Totales'}
+                {downloadingReport ? '📄 Generando...' : '📄 Descargar Reporte General de Totales (Repartos)'}
               </Text>
             </TouchableOpacity>
           )}
@@ -1141,7 +1152,31 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               No hay participantes agregados
             </Text>
           ) : (
-            campaign.participants.map((participant) => {
+            // Sort participants: INTERNAL_SITE first, then EXTERNAL_COMPANY, alphabetically within each group
+            [...campaign.participants]
+              .sort((a, b) => {
+                // First, sort by participant type (INTERNAL_SITE before EXTERNAL_COMPANY)
+                if (a.participantType !== b.participantType) {
+                  return a.participantType === 'INTERNAL_SITE' ? -1 : 1;
+                }
+
+                // Within same type, sort alphabetically
+                let nameA = '';
+                let nameB = '';
+
+                if (a.participantType === 'EXTERNAL_COMPANY') {
+                  // For external companies, use alias if available, otherwise use name
+                  nameA = a.company?.alias || a.company?.name || companies[a.companyId!]?.alias || companies[a.companyId!]?.name || '';
+                  nameB = b.company?.alias || b.company?.name || companies[b.companyId!]?.alias || companies[b.companyId!]?.name || '';
+                } else {
+                  // For internal sites, use site name
+                  nameA = a.site?.name || sites[a.siteId!]?.name || '';
+                  nameB = b.site?.name || sites[b.siteId!]?.name || '';
+                }
+
+                return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+              })
+              .map((participant) => {
               // Find totals for this participant
               const participantTotal = participantTotals?.participants.find(
                 (p) => p.participantId === participant.id
@@ -1168,7 +1203,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                             style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}
                           >
                             {participant.participantType === 'EXTERNAL_COMPANY'
-                              ? participant.company?.name ||
+                              ? participant.company?.alias ||
+                                participant.company?.name ||
+                                companies[participant.companyId!]?.alias ||
                                 companies[participant.companyId!]?.name ||
                                 `Empresa ID: ${participant.companyId}`
                               : participant.site?.name ||
@@ -1356,6 +1393,44 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     setSelectedProduct(null);
     // No need to reload campaign - the modal updates its own state locally
   }, []);
+
+  const handleRefreshProductFromBanner = useCallback(async () => {
+    if (!selectedProduct) {
+      return;
+    }
+
+    logger.debug('🔄 [BANNER] Actualizando producto específico:', selectedProduct.id);
+
+    try {
+      // Fetch only the updated product
+      const updatedProduct = await campaignsService.getCampaignProduct(campaignId, selectedProduct.id);
+
+      logger.debug('✅ [BANNER] Producto actualizado:', {
+        productId: updatedProduct.id,
+        distributionGenerated: updatedProduct.distributionGenerated,
+        productStatus: updatedProduct.productStatus,
+      });
+
+      // Update the product in the campaign state
+      setCampaign((prev) => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          products: prev.products.map((p) =>
+            p.id === updatedProduct.id ? updatedProduct : p
+          ),
+        };
+      });
+
+      // Update selected product
+      setSelectedProduct(updatedProduct);
+
+      logger.debug('✅ [BANNER] Producto actualizado en la lista sin recargar toda la campaña');
+    } catch (error: any) {
+      logger.error('❌ [BANNER] Error actualizando producto:', error);
+    }
+  }, [selectedProduct, campaignId]);
 
   const toggleProductExpanded = useCallback(async (productId: string) => {
     setExpandedProducts((prev) => {
@@ -1598,10 +1673,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         };
       });
 
-      Alert.alert(
-        'Éxito',
-        `Precio Franquicia calculado: S/ ${(franquiciaPriceCents / 100).toFixed(2)}`
-      );
+      // Show success badge for 3 seconds
+      setCalculatedFranquicia((prev) => new Set(prev).add(productId));
+      setTimeout(() => {
+        setCalculatedFranquicia((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(productId);
+          return newSet;
+        });
+      }, 3000);
     } catch (error: any) {
       logger.error('Error calculating franquicia price:', error);
       Alert.alert('Error', error.message || 'No se pudo calcular el precio franquicia');
@@ -1826,41 +1906,251 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           );
                         })()}
 
-                        <View style={styles.productInfo}>
-                          <Text style={[styles.productTitle, isTablet && styles.productTitleTablet]}>
-                            {productDetails?.correlativeNumber && `#${productDetails.correlativeNumber} | `}
-                            {productDetails?.sku || 'SKU no disponible'}
-                          </Text>
-                          <Text style={[styles.productSubtitle, isTablet && styles.productSubtitleTablet]}>
-                            {productDetails?.title || 'Título no disponible'}
-                          </Text>
-                          {isPreliminary && (
-                            <Text style={styles.preliminaryBadge}>⚠️ Producto Preliminar</Text>
-                          )}
-                          <View style={styles.productMeta}>
-                            <Text style={styles.productMetaText}>
-                              Cantidad: {product.totalQuantityBase}
+                        <View style={styles.listItemContent}>
+                          <View style={styles.productTitleRow}>
+                            <Text
+                              style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}
+                            >
+                              {productDetails?.title || `Producto ID: ${product.productId}`}
                             </Text>
-                            <Text style={styles.productMetaText}>
-                              Costo: {formatCurrency(costCents)}
-                            </Text>
+                            {isPreliminary && (
+                              <View style={styles.preliminaryIndicator}>
+                                <Text style={styles.preliminaryIndicatorText}>⚠️ PRELIMINAR</Text>
+                              </View>
+                            )}
                           </View>
-                          {product.distributionGenerated && (
-                            <View style={styles.distributionBadge}>
-                              <Text style={styles.distributionBadgeText}>✓ Reparto Generado</Text>
+                          <Text
+                            style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}
+                          >
+                            SKU: {productDetails?.sku || 'N/A'} |{' '}
+                            {(() => {
+                              // Calcular cantidad repartida desde customDistributions.items.assignedQuantityBase
+                              const distributedQty = product.customDistributions?.[0]?.items?.reduce(
+                                (sum: number, item: any) => sum + parseFloat(item.assignedQuantityBase || '0'),
+                                0
+                              );
+
+                              // Si tiene distribución generada, mostrar cantidad repartida
+                              if (product.distributionGenerated && distributedQty) {
+                                return (
+                                  <>
+                                    Repartido:{' '}
+                                    <Text style={styles.quickPriceValue}>
+                                      {Math.floor(distributedQty)}
+                                    </Text>{' '}
+                                    ✓
+                                  </>
+                                );
+                              }
+                              return <>Cant: {product.totalQuantityBase}</>;
+                            })()}{' '}
+                            | Costo:{' '}
+                            <Text style={styles.quickPriceValue}>
+                              S/ {(costCents / 100).toFixed(2)}
+                            </Text>
+                            {priceProfiles.slice(0, 2).map((profile, index) => {
+                              const priceCents = getSalePriceForProfile(product.productId, profile.id);
+                              const isPriceLowerThanCost = priceCents < costCents;
+                              return (
+                                <Text key={profile.id}>
+                                  {' | '}
+                                  {profile.name}:{' '}
+                                  <Text style={[
+                                    styles.quickPriceValue,
+                                    isPriceLowerThanCost && styles.priceLowerThanCost
+                                  ]}>
+                                    S/ {(priceCents / 100).toFixed(2)}
+                                    {isPriceLowerThanCost && ' ⚠️'}
+                                  </Text>
+                                </Text>
+                              );
+                            })}
+                            {priceProfiles.length > 2 && <Text> (+{priceProfiles.length - 2})</Text>}
+                          </Text>
+
+                          <View style={styles.productBadges}>
+                            <View
+                              style={[
+                                styles.badge,
+                                product.productStatus === 'ACTIVE'
+                                  ? styles.badgeActive
+                                  : styles.badgePreliminary,
+                              ]}
+                            >
+                              <Text style={styles.badgeText}>
+                                {product.productStatus === 'ACTIVE' ? 'Activo' : 'Preliminar'}
+                              </Text>
+                            </View>
+                            {product.distributionGenerated && (
+                              <View style={[styles.badge, styles.badgeGenerated]}>
+                                <Text style={styles.badgeText}>Generado</Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                        <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+
+                      </TouchableOpacity>
+
+                      {/* Action buttons */}
+                      <View style={styles.productCardActions}>
+                        <TouchableOpacity
+                          style={[styles.productActionButton, styles.productExpandButton]}
+                          onPress={() => toggleProductExpanded(product.id)}
+                        >
+                          <Text style={styles.productActionButtonText}>
+                            {isExpanded ? '▼ Ocultar Precios' : '▶ Ver Precios'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.productActionButton, styles.productBannerButton]}
+                          onPress={() => handleShowBanner(product)}
+                        >
+                          <Text style={styles.productActionButtonText}>📊 Banner</Text>
+                        </TouchableOpacity>
+
+                        {(campaign.status === CampaignStatus.DRAFT ||
+                          campaign.status === CampaignStatus.ACTIVE) && (
+                          <TouchableOpacity
+                            style={[styles.productActionButton, styles.productDeleteButton]}
+                            onPress={() => handleDeleteProduct(product)}
+                          >
+                            <Text style={styles.productDeleteButtonText}>🗑️</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      {/* Expanded price details */}
+                      {isExpanded && (
+                        <View style={styles.priceDetailsContainer}>
+                          {/* Cost row */}
+                          <View style={styles.priceRow}>
+                            <Text style={styles.priceLabel}>Costo:</Text>
+                            {editingCost?.productId === product.productId ? (
+                              <View style={styles.priceEditRow}>
+                                <Text style={styles.currencySymbol}>S/</Text>
+                                <TextInput
+                                  style={styles.priceInput}
+                                  value={editingCost.value}
+                                  onChangeText={(text) =>
+                                    setEditingCost({ ...editingCost, value: text })
+                                  }
+                                  keyboardType="decimal-pad"
+                                  autoFocus
+                                  onSubmitEditing={() => handleSaveCost(product.productId)}
+                                />
+                                <TouchableOpacity
+                                  style={styles.saveButton}
+                                  onPress={() => handleSaveCost(product.productId)}
+                                  disabled={savingPrice}
+                                >
+                                  {savingPrice ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                  ) : (
+                                    <Text style={styles.saveButtonText}>✓</Text>
+                                  )}
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.cancelEditButton}
+                                  onPress={() => setEditingCost(null)}
+                                >
+                                  <Text style={styles.cancelEditButtonText}>✕</Text>
+                                </TouchableOpacity>
+                              </View>
+                            ) : (
+                              <View style={styles.priceDisplayRow}>
+                                <Text style={styles.priceValue}>S/ {(costCents / 100).toFixed(2)}</Text>
+                                <TouchableOpacity
+                                  style={styles.editButton}
+                                  onPress={() => handleStartEditCost(product.productId, costCents)}
+                                >
+                                  <Text style={styles.editButtonText}>✏️</Text>
+                                </TouchableOpacity>
+                              </View>
+                            )}
+                          </View>
+
+                          {/* Sale prices for first 2 profiles */}
+                          {priceProfiles.slice(0, 2).map((profile) => {
+                            const salePriceCents = getSalePriceForProfile(product.productId, profile.id);
+                            const isEditingThisPrice =
+                              editingPrice?.productId === product.productId &&
+                              editingPrice?.profileId === profile.id;
+
+                            return (
+                              <View key={profile.id} style={styles.priceRow}>
+                                <Text style={styles.priceLabel}>{profile.name}:</Text>
+                                {isEditingThisPrice ? (
+                                  <View style={styles.priceEditRow}>
+                                    <Text style={styles.currencySymbol}>S/</Text>
+                                    <TextInput
+                                      style={styles.priceInput}
+                                      value={editingPrice.value}
+                                      onChangeText={(value) =>
+                                        setEditingPrice({ ...editingPrice, value })
+                                      }
+                                      keyboardType="decimal-pad"
+                                      autoFocus
+                                    />
+                                    <TouchableOpacity
+                                      style={styles.savePriceIconButton}
+                                      onPress={() => handleSavePrice(product.productId, profile.id)}
+                                      disabled={savingPrice}
+                                    >
+                                      <Text style={styles.savePriceIcon}>
+                                        {savingPrice ? '⏳' : '✓'}
+                                      </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                      style={styles.cancelPriceIconButton}
+                                      onPress={() => setEditingPrice(null)}
+                                    >
+                                      <Text style={styles.cancelPriceIcon}>✕</Text>
+                                    </TouchableOpacity>
+                                  </View>
+                                ) : (
+                                  <View style={styles.priceDisplayRow}>
+                                    <Text style={styles.priceValue}>
+                                      {formatCurrency(salePriceCents)}
+                                    </Text>
+                                    <TouchableOpacity
+                                      style={styles.editPriceIconButton}
+                                      onPress={() =>
+                                        handleStartEditPrice(product.productId, profile.id, salePriceCents)
+                                      }
+                                    >
+                                      <Text style={styles.editPriceIcon}>✏️</Text>
+                                    </TouchableOpacity>
+                                  </View>
+                                )}
+                              </View>
+                            );
+                          })}
+
+                          {/* Calculate Franquicia button (only for Socia profile) */}
+                          {priceProfiles.some(
+                            (p) => p.code === 'SOCIA' || p.name.toLowerCase().includes('socia')
+                          ) && (
+                            <View style={styles.calculateFranquiciaContainer}>
+                              <TouchableOpacity
+                                style={styles.calculateFranquiciaButton}
+                                onPress={() => handleCalculateFranquiciaFromSocia(product.productId)}
+                                disabled={savingPrice}
+                              >
+                                <Text style={styles.calculateFranquiciaButtonText}>
+                                  🧮 Calcular Precio Franquicia (/1.15)
+                                </Text>
+                              </TouchableOpacity>
+                              {calculatedFranquicia.has(product.productId) && (
+                                <View style={styles.calculatedBadge}>
+                                  <Text style={styles.calculatedBadgeText}>✓ Calculado</Text>
+                                </View>
+                              )}
                             </View>
                           )}
                         </View>
-
-                        <View style={styles.productActions}>
-                          <TouchableOpacity
-                            style={styles.productActionButton}
-                            onPress={() => handleOpenBanner(product)}
-                          >
-                            <Text style={styles.productActionButtonText}>📊</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </TouchableOpacity>
+                      )}
                     </View>
                   );
                 })
@@ -2070,15 +2360,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             selectedProduct ? selectedProduct.product || products[selectedProduct.productId] : null
           }
           onClose={handleCloseBanner}
-          onOpenDistribution={() => {
-            if (selectedProduct) {
-              navigation.navigate('CampaignProductDetail', {
-                campaignId,
-                productId: selectedProduct.id,
-                fromCampaignDetail: true,
-              });
-            }
-          }}
+          onRefresh={handleRefreshProductFromBanner}
+          onOpenDistribution={
+            selectedProduct
+              ? () => {
+                  // Navigate to product detail and auto-open distribution
+                  handleCloseBanner();
+                  setTimeout(() => {
+                    navigation.navigate('CampaignProductDetail', {
+                      campaignId,
+                      productId: selectedProduct.id,
+                      fromCampaignDetail: true,
+                      openDistributionModal: true,
+                    });
+                  }, 100);
+                }
+              : undefined
+          }
         />
 
         {/* Bulk Update Modal */}
@@ -2791,6 +3089,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E293B',
   },
+  priceLowerThanCost: {
+    color: '#DC2626',
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
   priceEditRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3266,6 +3571,75 @@ const styles = StyleSheet.create({
   },
   stockUnavailable: {
     color: '#EF4444',
+  },
+  priceDetailsContainer: {
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  editPriceIconButton: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  editPriceIcon: {
+    fontSize: 14,
+  },
+  savePriceIconButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  savePriceIcon: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  cancelPriceIconButton: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  cancelPriceIcon: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  calculateFranquiciaContainer: {
+    marginTop: 8,
+  },
+  calculateFranquiciaButton: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  calculateFranquiciaButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  calculatedBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  calculatedBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

@@ -133,10 +133,21 @@ class CampaignsService {
     participantId: string,
     data: UpdateParticipantRequest
   ): Promise<CampaignParticipant> {
-    return apiClient.patch<CampaignParticipant>(
+    console.log('📤 CampaignsService.updateParticipant - Request:', {
+      campaignId,
+      participantId,
+      data,
+      endpoint: `${this.basePath}/${campaignId}/participants/${participantId}`,
+    });
+
+    const result = await apiClient.patch<CampaignParticipant>(
       `${this.basePath}/${campaignId}/participants/${participantId}`,
       data
     );
+
+    console.log('📥 CampaignsService.updateParticipant - Response:', result);
+
+    return result;
   }
 
   /**

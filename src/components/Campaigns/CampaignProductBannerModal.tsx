@@ -10,20 +10,23 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
+  SafeAreaView,
 } from 'react-native';
-import { CampaignProduct, ProductStatus } from '@/types/campaigns';
+import { CampaignProduct, ProductStatus, StockDetailByWarehouse } from '@/types/campaigns';
 import { inventoryApi } from '@/services/api/inventory';
 import { purchasesService } from '@/services/api/purchases';
 import { priceProfilesApi } from '@/services/api/price-profiles';
 import { campaignsService } from '@/services/api';
 import { ProductSalePrice, PriceProfile } from '@/types/price-profiles';
+import { DistributionFormModal } from './DistributionFormModal';
+import logger from '@/utils/logger';
 
 interface CampaignProductBannerModalProps {
   visible: boolean;
   campaignProduct: CampaignProduct | null;
   productDetails?: any; // Full product details with costCents, priceCents, etc.
   onClose: () => void;
-  onOpenDistribution?: () => void; // Callback to open distribution modal
+  onRefresh?: () => void; // Callback to refresh campaign data after distribution
 }
 
 interface PriceFormData {
@@ -43,7 +46,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   campaignProduct,
   productDetails,
   onClose,
-  onOpenDistribution,
+  onRefresh,
 }) => {
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768;
@@ -67,6 +70,13 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   const [savingQuantity, setSavingQuantity] = useState(false);
   const [updatedPrices, setUpdatedPrices] = useState<Set<string>>(new Set());
   const [updatedCost, setUpdatedCost] = useState(false);
+  const [calculatedFranquicia, setCalculatedFranquicia] = useState(false);
+
+  // Distribution modal states
+  const [showDistributionModal, setShowDistributionModal] = useState(false);
+  const [localStockData, setLocalStockData] = useState<StockDetailByWarehouse[] | undefined>(
+    undefined
+  );
 
   // Fetch stock data and price profiles when modal opens
   useEffect(() => {
@@ -325,10 +335,11 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
       console.log('✅ Franquicia price saved successfully:', result);
 
-      Alert.alert(
-        'Éxito',
-        `Precio Franquicia calculado y actualizado: S/ ${franquiciaPrice.toFixed(2)}`
-      );
+      // Show success badge for 3 seconds
+      setCalculatedFranquicia(true);
+      setTimeout(() => {
+        setCalculatedFranquicia(false);
+      }, 3000);
 
       // Update the local state instead of refetching
       setPriceFormData((prevData) =>
@@ -562,6 +573,53 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     }
   };
 
+  const handleOpenDistribution = async () => {
+    if (!campaignProduct) {
+      return;
+    }
+
+    if (campaignProduct.productStatus !== 'ACTIVE') {
+      Alert.alert('Error', 'Solo se pueden generar repartos de productos en estado ACTIVO');
+      return;
+    }
+
+    // Cargar stock directamente desde el API de inventario
+    logger.debug('📦 [STOCK] Consultando stock directamente del API de inventario...');
+    try {
+      const stockData = await inventoryApi.getAllStock({ productId: campaignProduct.productId });
+      logger.debug('✅ [STOCK] Stock obtenido del API:', {
+        stockItemsCount: stockData.length,
+        stockData: stockData,
+      });
+
+      // Guardar en estado local
+      if (stockData && stockData.length > 0) {
+        const stockDetails: StockDetailByWarehouse[] = stockData.map((item) => ({
+          warehouse: item.warehouse?.name || 'Almacén desconocido',
+          total: item.quantityBase || 0,
+          reserved: item.reservedQuantityBase || 0,
+          available: item.availableQuantityBase || item.quantityBase || 0,
+        }));
+
+        setLocalStockData(stockDetails);
+        logger.debug('✅ [STOCK] Stock guardado en estado local:', stockDetails);
+      }
+    } catch (error: any) {
+      logger.error('❌ [STOCK] Error obteniendo stock del API:', error);
+      // Continuar sin stock si hay error
+    }
+
+    // Abrir el modal de distribución
+    setShowDistributionModal(true);
+  };
+
+  const handleDistributionSuccess = () => {
+    setShowDistributionModal(false);
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
   if (!campaignProduct) {
     return null;
   }
@@ -586,18 +644,20 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={[styles.container, isTablet && styles.containerTablet]}>
-          {/* Close Button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+      <SafeAreaView style={styles.container}>
+        {!showDistributionModal && (
+          <>
+            {/* Close Button */}
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
 
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
             {/* SKU Banner */}
             <View style={styles.bannerSection}>
               <Text style={styles.bannerLabel}>SKU</Text>
@@ -816,15 +876,22 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                         {/* Show calculate button only for Precio Socia */}
                         {(priceData.profileCode === 'SOCIA' ||
                           priceData.profileName.toLowerCase().includes('socia')) && (
-                          <TouchableOpacity
-                            style={styles.calculateSociaButton}
-                            onPress={handleCalculateFranquiciaFromSocia}
-                            disabled={saving || !editingPriceValue}
-                          >
-                            <Text style={styles.calculateSociaButtonText}>
-                              🧮 Calcular Precio Franquicia (/1.15)
-                            </Text>
-                          </TouchableOpacity>
+                          <View>
+                            <TouchableOpacity
+                              style={styles.calculateSociaButton}
+                              onPress={handleCalculateFranquiciaFromSocia}
+                              disabled={saving || !editingPriceValue}
+                            >
+                              <Text style={styles.calculateSociaButtonText}>
+                                🧮 Calcular Precio Franquicia (/1.15)
+                              </Text>
+                            </TouchableOpacity>
+                            {calculatedFranquicia && (
+                              <View style={styles.calculatedBadge}>
+                                <Text style={styles.calculatedBadgeText}>✓ Calculado</Text>
+                              </View>
+                            )}
+                          </View>
                         )}
 
                         <View style={styles.priceActionButtons}>
@@ -914,52 +981,54 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                   >
                     {stockValue !== undefined && stockValue !== null ? stockValue : 'N/A'}
                   </Text>
-                  {onOpenDistribution && (
+                  {!campaignProduct.distributionGenerated && campaignProduct.productStatus === 'ACTIVE' && (
                     <TouchableOpacity
-                      style={styles.generateDistributionButton}
-                      onPress={() => {
-                        onClose();
-                        onOpenDistribution();
-                      }}
+                      style={styles.distributionButton}
+                      onPress={handleOpenDistribution}
                     >
-                      <Text style={styles.generateDistributionButtonText}>
+                      <Text style={styles.distributionButtonText}>
                         📊 Generar Distribución
                       </Text>
                     </TouchableOpacity>
+                  )}
+                  {campaignProduct.distributionGenerated && (
+                    <Text style={styles.distributionGeneratedNote}>
+                      ✅ Distribución ya generada
+                    </Text>
                   )}
                 </>
               )}
               {isPreliminary && <Text style={styles.preliminaryNote}>⚠️ Producto Preliminar</Text>}
             </View>
           </ScrollView>
-        </View>
-      </View>
+          </>
+        )}
+
+        {/* Distribution Form - Rendered as content, not as nested modal */}
+        {showDistributionModal && (
+          <DistributionFormModal
+            visible={showDistributionModal}
+            campaignId={campaignProduct?.campaignId || ''}
+            product={campaignProduct}
+            localStockData={localStockData}
+            onClose={() => setShowDistributionModal(false)}
+            onSuccess={handleDistributionSuccess}
+            asContent={true}
+          />
+        )}
+      </SafeAreaView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   container: {
-    width: '100%',
-    height: '100%',
+    flex: 1,
     backgroundColor: '#F8FAFC',
-    position: 'relative',
   },
   containerTablet: {
-    width: '90%',
-    height: '90%',
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    flex: 1,
+    backgroundColor: '#F8FAFC',
   },
   closeButton: {
     position: 'absolute',
@@ -983,10 +1052,14 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '600',
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
-    paddingTop: 70,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
+    flexGrow: 1,
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
   },
   bannerSection: {
     backgroundColor: '#FFFFFF',
@@ -1483,5 +1556,43 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  calculatedBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  calculatedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  distributionButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginTop: 16,
+    alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  distributionButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  distributionGeneratedNote: {
+    fontSize: 14,
+    color: '#10B981',
+    fontWeight: '600',
+    marginTop: 12,
+    textAlign: 'center',
   },
 });

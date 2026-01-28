@@ -203,12 +203,74 @@ class RepartosService {
   }
 
   /**
-   * Export totals report PDF for a reparto
+   * Export consolidated totals report PDF for all participants in a campaign
    * Returns a blob that can be used to download/view the PDF
-   * @param repartoId - ID of the reparto
-   * @param participantId - Optional participant ID to filter by specific participant
+   * @param campaignId - ID of the campaign
    */
-  async exportRepartoTotalsReport(repartoId: string, participantId?: string): Promise<Blob> {
+  async exportAllParticipantsConsolidatedTotals(campaignId: string): Promise<Blob> {
+    // Get fresh token and context
+    const authStore = useAuthStore.getState();
+    const tenantStore = useTenantStore.getState();
+
+    const token = authStore.token;
+    const userId = authStore.user?.id;
+    const companyId = tenantStore.selectedCompany?.id || authStore.currentCompany?.id;
+    const siteId = tenantStore.selectedSite?.id || authStore.currentSite?.id;
+
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+
+    const headers: Record<string, string> = {
+      'X-App-Id': config.APP_ID,
+      Authorization: `Bearer ${token}`,
+    };
+
+    if (userId) {
+      headers['X-User-Id'] = userId;
+    }
+    if (companyId) {
+      headers['X-Company-Id'] = companyId;
+    }
+    if (siteId) {
+      headers['X-Site-Id'] = siteId;
+    }
+
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+
+    // Build URL with query parameters
+    const urlParams = new URLSearchParams();
+    urlParams.append('t', timestamp.toString());
+
+    // Endpoint: GET /admin/campaigns/repartos/campaigns/:campaignId/all-participants/consolidated-totals/export-pdf
+    const url = `${config.API_URL}${this.basePath}/campaigns/${campaignId}/all-participants/consolidated-totals/export-pdf?${urlParams.toString()}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    return await response.blob();
+  }
+
+  /**
+   * Export consolidated totals report PDF for a participant across all repartos in a campaign
+   * Returns a blob that can be used to download/view the PDF
+   * @param campaignParticipantId - ID of the campaign participant
+   * @param campaignId - ID of the campaign
+   */
+  async exportRepartoTotalsReport(campaignParticipantId: string, campaignId: string): Promise<Blob> {
     // Get fresh token and context
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
@@ -247,11 +309,8 @@ class RepartosService {
     const urlParams = new URLSearchParams();
     urlParams.append('t', timestamp.toString());
 
-    if (participantId) {
-      urlParams.append('participantId', participantId);
-    }
-
-    const url = `${config.API_URL}${this.basePath}/${repartoId}/totals-report/export-pdf?${urlParams.toString()}`;
+    // New endpoint format: /admin/campaigns/repartos/participants/:campaignParticipantId/campaigns/:campaignId/consolidated-totals/export-pdf
+    const url = `${config.API_URL}${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/consolidated-totals/export-pdf?${urlParams.toString()}`;
 
     const response = await fetch(url, {
       method: 'GET',

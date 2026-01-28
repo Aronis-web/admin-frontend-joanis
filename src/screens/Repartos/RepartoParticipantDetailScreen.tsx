@@ -394,7 +394,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       const startTime = new Date().getTime();
 
       // Call the API to get the PDF blob for this participant
-      const pdfBlob = await repartosService.exportRepartoTotalsReport(repartoId, participantId);
+      const pdfBlob = await repartosService.exportRepartoTotalsReport(participantId, campaignId);
 
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');

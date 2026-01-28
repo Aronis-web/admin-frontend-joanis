@@ -38,12 +38,13 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
       loadValidacion();
     } else if (validacionProp) {
       // ✅ Normalizar URLs también cuando se pasa validacionProp
+      // Las fotos están en /files/private/ y las firmas en /public/
       const normalizedData = {
         ...validacionProp,
         photoUrl: validacionProp.photoUrl?.startsWith('http')
           ? validacionProp.photoUrl
           : validacionProp.photoUrl
-          ? `https://api.app-joanis-backend.com/public/${validacionProp.photoUrl}`
+          ? `https://api.app-joanis-backend.com/files/private/CAMPAIGNS_REPARTOS_VALIDACIONES_FOTOS/${validacionProp.photoUrl.split('/').slice(-3).join('/')}`
           : validacionProp.photoUrl,
         signatureUrl: validacionProp.signatureUrl?.startsWith('http')
           ? validacionProp.signatureUrl
@@ -72,12 +73,13 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
       });
       if (data) {
         // ✅ Normalizar URLs: Si photoUrl es relativa, construir URL completa
+        // Las fotos están en /files/private/ y las firmas en /public/
         const normalizedData = {
           ...data,
           photoUrl: data.photoUrl?.startsWith('http')
             ? data.photoUrl
             : data.photoUrl
-            ? `https://api.app-joanis-backend.com/public/${data.photoUrl}`
+            ? `https://api.app-joanis-backend.com/files/private/CAMPAIGNS_REPARTOS_VALIDACIONES_FOTOS/${data.photoUrl.split('/').slice(-3).join('/')}`
             : data.photoUrl,
           signatureUrl: data.signatureUrl?.startsWith('http')
             ? data.signatureUrl

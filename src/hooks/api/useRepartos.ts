@@ -245,8 +245,8 @@ export const useRepartoProgress = (repartoId: string) => {
  * Note: This is not a query hook since it returns a Blob for download
  * Use this directly in your component with async/await
  */
-export const exportRepartoTotalsReport = async (repartoId: string, participantId?: string) => {
-  return repartosService.exportRepartoTotalsReport(repartoId, participantId);
+export const exportRepartoTotalsReport = async (campaignParticipantId: string, campaignId: string) => {
+  return repartosService.exportRepartoTotalsReport(campaignParticipantId, campaignId);
 };
 
 /**

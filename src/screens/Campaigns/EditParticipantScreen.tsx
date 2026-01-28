@@ -77,15 +77,33 @@ export const EditParticipantScreen: React.FC<EditParticipantScreenProps> = ({
         priceProfileId: priceProfileId || undefined,
       };
 
+      console.log('🔄 Actualizando participante:', {
+        campaignId,
+        participantId,
+        updateData,
+        priceProfileIdOriginal: participant.priceProfileId,
+        priceProfileIdNew: priceProfileId,
+      });
+
       await campaignsService.updateParticipant(campaignId, participantId, updateData);
+
+      console.log('✅ Participante actualizado correctamente');
 
       Alert.alert('Éxito', 'Participante actualizado correctamente', [
         {
           text: 'OK',
-          onPress: () => navigation.goBack(),
+          onPress: () => {
+            // Force reload of the previous screen by passing a flag
+            navigation.navigate('CampaignDetail', {
+              campaignId,
+              forceReload: true,
+              timestamp: Date.now(),
+            });
+          },
         },
       ]);
     } catch (error: any) {
+      console.error('❌ Error actualizando participante:', error);
       Alert.alert('Error', error.message || 'No se pudo actualizar el participante');
     } finally {
       setLoading(false);
