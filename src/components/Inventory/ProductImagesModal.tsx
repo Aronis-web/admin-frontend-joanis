@@ -295,10 +295,10 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
   // Generate promotional image with prices
   const handleGeneratePromoImage = async (image: ProductImage) => {
-    if (!ViewShot || !MediaLibrary) {
+    if (!ViewShot || !FileSystem) {
       Alert.alert(
         'Funcionalidad no disponible',
-        'Para usar esta función, instala las dependencias:\n\nnpx expo install expo-media-library react-native-view-shot'
+        'Para usar esta función, instala las dependencias:\n\nnpx expo install expo-file-system react-native-view-shot'
       );
       return;
     }
