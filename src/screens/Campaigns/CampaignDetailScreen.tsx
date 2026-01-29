@@ -24,6 +24,7 @@ import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
 import { productsApi, priceProfilesApi } from '@/services/api';
 import { inventoryApi, StockItem } from '@/services/api/inventory';
+import { purchasesService } from '@/services/api';
 import logger from '@/utils/logger';
 import {
   Campaign,
@@ -117,6 +118,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [addingQuickProduct, setAddingQuickProduct] = useState(false);
+  const [preliminaryStocks, setPreliminaryStocks] = useState<Record<string, number>>({});
 
   const isTablet = width >= 768 || height >= 768;
 
@@ -400,8 +402,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
   }, []);
 
-  // Get product stock from inventory
-  const getProductStock = useCallback((productId: string): number => {
+  // Get product stock from inventory or preliminary stock from purchases
+  const getProductStock = useCallback((productId: string, productStatus?: string): number => {
+    // If product is preliminary, return preliminary stock
+    if (productStatus === 'preliminary') {
+      return preliminaryStocks[productId] || 0;
+    }
+
+    // Otherwise, get stock from inventory
     const productStockItems = stockItems.filter((item) => item.productId === productId);
     if (productStockItems.length === 0) {
       return 0;
@@ -416,7 +424,66 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       return total + quantity;
     }, 0);
     return totalStock;
-  }, [stockItems]);
+  }, [stockItems, preliminaryStocks]);
+
+  // Load preliminary stocks for preliminary products
+  const loadPreliminaryStocks = useCallback(async (productIds: string[]) => {
+    if (productIds.length === 0) return;
+
+    try {
+      console.log('🔍 Loading preliminary stocks for products:', productIds);
+
+      // Get recent purchases (not closed or cancelled)
+      const purchasesResponse = await purchasesService.getPurchases({
+        page: 1,
+        limit: 50,
+      });
+
+      const stocksMap: Record<string, number> = {};
+
+      // Search through all purchases for preliminary products
+      if (purchasesResponse.data && purchasesResponse.data.length > 0) {
+        for (const purchase of purchasesResponse.data) {
+          // Skip closed and cancelled purchases
+          if (purchase.status === 'CLOSED' || purchase.status === 'CANCELLED') {
+            continue;
+          }
+
+          try {
+            const products = await purchasesService.getPurchaseProducts(purchase.id, {
+              includeProductStatus: 'preliminary',
+            });
+
+            // Find preliminary products in this purchase
+            for (const productId of productIds) {
+              if (stocksMap[productId]) continue; // Already found
+
+              const foundProduct = products.find((p) => p.productId === productId);
+              if (foundProduct && foundProduct.preliminaryStock) {
+                stocksMap[productId] = foundProduct.preliminaryStock;
+                console.log(
+                  '✅ Found preliminary stock:',
+                  foundProduct.preliminaryStock,
+                  'for product:',
+                  productId,
+                  'in purchase:',
+                  purchase.id
+                );
+              }
+            }
+          } catch (err) {
+            // Continue searching in other purchases
+            console.log('⚠️ Could not get products from purchase:', purchase.id);
+          }
+        }
+      }
+
+      setPreliminaryStocks(stocksMap);
+      console.log('📦 Loaded preliminary stocks:', stocksMap);
+    } catch (error) {
+      console.error('Error loading preliminary stocks:', error);
+    }
+  }, []);
 
   // Global search for products not in campaign
   const searchGlobalProducts = useCallback(async (query: string) => {
@@ -439,6 +506,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         });
         setGlobalSearchResults(response.results);
         setShowGlobalSearchSuggestions(response.results.length > 0);
+
+        // Load preliminary stocks for preliminary products
+        const preliminaryProductIds = response.results
+          .filter((p) => p.status === 'preliminary')
+          .map((p) => p.id);
+        if (preliminaryProductIds.length > 0) {
+          loadPreliminaryStocks(preliminaryProductIds);
+        }
       } catch (v2Error) {
         console.warn('⚠️ V2 endpoint failed, falling back to v1:', v2Error);
         const response = await productsApi.getProducts({
@@ -453,7 +528,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     } finally {
       setIsGlobalSearching(false);
     }
-  }, []);
+  }, [loadPreliminaryStocks]);
 
   // Handle search query change with debounce
   const handleSearchQueryChange = useCallback((text: string) => {
@@ -483,7 +558,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const handleQuickAddProduct = useCallback(async (product: any) => {
     if (!campaign) return;
 
-    const availableStock = getProductStock(product.id);
+    const availableStock = getProductStock(product.id, product.status);
 
     if (availableStock <= 0) {
       Alert.alert('Sin stock', 'Este producto no tiene stock disponible');
@@ -2175,9 +2250,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   </Text>
                   <ScrollView style={styles.globalSearchList} nestedScrollEnabled>
                     {globalSearchResults.slice(0, 10).map((product) => {
-                      const stock = getProductStock(product.id);
-                      const isAlreadyAdded = campaign.products?.some(p => p.productId === product.id);
                       const isPreliminary = (product.status as any) === 'preliminary';
+                      const stock = getProductStock(product.id, product.status);
+                      const isAlreadyAdded = campaign.products?.some(p => p.productId === product.id);
 
                       return (
                         <TouchableOpacity
@@ -2231,7 +2306,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                                   stock > 0 ? styles.stockAvailable : styles.stockUnavailable,
                                 ]}
                               >
-                                Stock disponible: {stock}
+                                {isPreliminary ? 'Stock preliminar: ' : 'Stock disponible: '}{stock}
                               </Text>
                               <Text style={styles.globalSearchStatus}>
                                 {product.status === 'active' ? '✓ Activo' : '⚠ Preliminar'}
