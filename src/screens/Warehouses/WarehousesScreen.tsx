@@ -320,9 +320,10 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
           Total: {filteredWarehouses.length} almacén{filteredWarehouses.length !== 1 ? 'es' : ''}
         </Text>
       </View>
+    </SafeAreaView>
 
-      {/* Create Warehouse Modal */}
-      <Modal visible={showCreateModal} animationType="slide" transparent>
+    {/* Create Warehouse Modal - Outside SafeAreaView */}
+    <Modal visible={showCreateModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Nuevo Almacén</Text>
@@ -368,8 +369,8 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
         </View>
       </Modal>
 
-      {/* Edit Warehouse Modal */}
-      <Modal visible={showEditModal} animationType="slide" transparent>
+    {/* Edit Warehouse Modal - Outside SafeAreaView */}
+    <Modal visible={showEditModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Editar Almacén</Text>
@@ -415,9 +416,8 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
 
-    {/* Floating Action Button - Outside SafeAreaView */}
+    {/* Floating Action Button - After all modals */}
     <TouchableOpacity
       style={styles.floatingButton}
       onPress={() => setShowCreateModal(true)}
@@ -722,7 +722,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
+    elevation: 999,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
-    zIndex: 1000,
+    zIndex: 9999,
   },
   floatingButtonIcon: {
     fontSize: 32,
