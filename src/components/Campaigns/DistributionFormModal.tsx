@@ -143,7 +143,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       return;
     }
 
-    logger.debug('🚀 [MODAL] Iniciando generación de reparto para producto:', {
+    logger.debug('🚀 [MODAL] Iniciando cálculo local de reparto para producto:', {
       productId: product.id,
       productName: product.product?.title,
       productStatus: product.productStatus,
@@ -171,89 +171,109 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
     try {
       setPreviewLoading(true);
 
-      logger.debug('📡 [MODAL] Llamando a preview inicial (sin preferencias)...');
-      // Primero obtener preview inicial para saber cuántos participantes hay
-      const initialPreview = await campaignsService.getDistributionPreview(
-        campaignId,
-        product.id,
-        {} // Sin preferencias
-      );
+      // Obtener stock disponible desde localStockData o product.product.stockItems
+      const stockDetails = getStockDetailsFromProduct() || [];
+      const totalAvailableStock = stockDetails.reduce((sum, stock) => sum + stock.available, 0);
 
-      logger.debug('✅ [MODAL] Preview inicial recibido:', {
-        totalParticipants: initialPreview.totalParticipants,
-        totalQuantity: initialPreview.totalQuantity,
-        totalDistributed: initialPreview.totalDistributed,
-        remainder: initialPreview.remainder,
-        participantCount: initialPreview.preview.length,
+      logger.debug('📦 [MODAL] Stock disponible calculado:', {
+        stockDetails,
+        totalAvailableStock,
       });
+
+      // Usar stock disponible como cantidad inicial
+      const initialQuantity = totalAvailableStock > 0 ? totalAvailableStock : 0;
+      setEditableTotalQuantity(initialQuantity);
 
       // Inicializar con roundingFactor = 1 (unidades) por defecto para TODOS
       const initialRoundingFactor = 1;
       setGlobalRoundingFactor(initialRoundingFactor);
 
-      logger.debug(
-        '🔄 [MODAL] Creando preferencias con roundingFactor global:',
-        initialRoundingFactor
-      );
-      // Crear preferencias para TODOS los participantes con el mismo roundingFactor
-      const participantPreferences = initialPreview.preview.map((item) => ({
-        participantId: item.participantId,
-        roundingFactor: initialRoundingFactor,
-      }));
+      // Obtener participantes de la campaña (necesitamos hacer una llamada para esto)
+      const campaignData = await campaignsService.getCampaign(campaignId);
+      const participants = campaignData.participants || [];
 
-      // Recalcular con las preferencias
-      const previewDataWithPreferences = await campaignsService.getDistributionPreview(
-        campaignId,
-        product.id,
-        { participantPreferences }
-      );
-
-      logger.debug('✅ [MODAL] Preview con preferencias recibido:', {
-        totalParticipants: previewDataWithPreferences.totalParticipants,
-        totalQuantity: previewDataWithPreferences.totalQuantity,
-        totalDistributed: previewDataWithPreferences.totalDistributed,
-        remainder: previewDataWithPreferences.remainder,
-        participantCount: previewDataWithPreferences.preview.length,
-        stockDetails: previewDataWithPreferences.stockDetails,
-        hasStockDetails: !!previewDataWithPreferences.stockDetails,
+      logger.debug('✅ [MODAL] Participantes obtenidos:', {
+        totalParticipants: participants.length,
+        participants: participants.map(p => ({ id: p.id, name: p.company?.name || p.site?.name, amount: p.assignedAmount })),
       });
 
-      logger.debug(
-        '📦 [MODAL] Stock Details completo:',
-        JSON.stringify(previewDataWithPreferences.stockDetails, null, 2)
-      );
+      // Calcular distribución localmente
+      const totalAssignedAmount = participants.reduce((sum, p) => sum + (p.assignedAmount || 0), 0);
 
-      setAdjustedDistribution(previewDataWithPreferences);
-
-      // Initialize editable total quantity with available stock
-      // Calculate total available stock from stock details
-      const stockDetails = previewDataWithPreferences.stockDetails || [];
-      const totalAvailableStock = stockDetails.reduce((sum, stock) => sum + stock.available, 0);
-
-      // Use available stock if present, otherwise fall back to totalQuantity
-      const initialQuantity = totalAvailableStock > 0
-        ? totalAvailableStock
-        : previewDataWithPreferences.totalQuantity;
-
-      setEditableTotalQuantity(initialQuantity);
-
-      // Inicializar distribuciones editables desde el preview
       const initialDistributions: typeof editableDistributions = {};
-      previewDataWithPreferences.preview.forEach((item) => {
-        initialDistributions[item.participantId] = {
-          participantId: item.participantId,
-          participantName: item.participantName,
-          quantityBase: item.calculatedQuantity,
-          roundingFactor: item.roundingFactor,
-          presentationId: item.presentationId,
-          quantityPresentation: item.quantityPresentation,
-          percentage: item.percentage,
+      let totalDistributed = 0;
+
+      participants.forEach((participant) => {
+        const percentage = totalAssignedAmount > 0
+          ? (participant.assignedAmount / totalAssignedAmount) * 100
+          : 100 / participants.length;
+
+        const exactQuantity = (percentage / 100) * initialQuantity;
+        const flooredQuantity = Math.floor(exactQuantity);
+
+        initialDistributions[participant.id] = {
+          participantId: participant.id,
+          participantName: participant.company?.name || participant.site?.name || 'Sin nombre',
+          quantityBase: flooredQuantity,
+          roundingFactor: initialRoundingFactor,
+          presentationId: undefined,
+          quantityPresentation: undefined,
+          percentage: percentage,
         };
+
+        totalDistributed += flooredQuantity;
       });
+
+      // Asignar remanente al primer participante (o sede de redondeo si existe)
+      const remainder = initialQuantity - totalDistributed;
+      if (remainder > 0 && participants.length > 0) {
+        const firstParticipantId = participants[0].id;
+        if (initialDistributions[firstParticipantId]) {
+          initialDistributions[firstParticipantId].quantityBase += remainder;
+          totalDistributed += remainder;
+        }
+      }
+
       setEditableDistributions(initialDistributions);
 
-      logger.debug('💾 [MODAL] Distribuciones editables inicializadas:', {
+      // Crear objeto adjustedDistribution para compatibilidad con el resto del código
+      const mockPreview: DistributionPreviewResponse = {
+        productId: product.id,
+        productName: product.product?.title || 'Producto',
+        totalQuantity: initialQuantity,
+        distributionType: product.distributionType,
+        isPreliminary: product.productStatus !== 'ACTIVE',
+        currency: 'PEN',
+        totalDistributed: totalDistributed,
+        remainder: initialQuantity - totalDistributed,
+        totalParticipants: participants.length,
+        stockDetails: stockDetails,
+        preview: Object.values(initialDistributions).map(dist => ({
+          participantId: dist.participantId,
+          participantName: dist.participantName,
+          participantType: participants.find(p => p.id === dist.participantId)?.company ? 'EXTERNAL_COMPANY' : 'INTERNAL_SITE',
+          assignedAmount: participants.find(p => p.id === dist.participantId)?.assignedAmount || 0,
+          percentage: dist.percentage,
+          calculatedQuantity: dist.quantityBase,
+          roundingFactor: dist.roundingFactor,
+          presentationId: dist.presentationId,
+          quantityPresentation: dist.quantityPresentation,
+        })),
+        presentationInfo: product.product?.presentations && product.product.presentations.length > 0 ? {
+          hasPresentations: true,
+          largestFactor: Math.max(...product.product.presentations.map(p => p.factorToBase)),
+          largestPresentation: product.product.presentations.reduce((max, p) =>
+            p.factorToBase > (max?.factorToBase || 0) ? p : max
+          ),
+        } : undefined,
+      };
+
+      setAdjustedDistribution(mockPreview);
+
+      logger.debug('💾 [MODAL] Distribuciones calculadas localmente:', {
         count: Object.keys(initialDistributions).length,
+        totalDistributed,
+        remainder: initialQuantity - totalDistributed,
       });
 
       // Inicializar como incluido en el PDF por defecto
@@ -261,15 +281,15 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
       logger.debug('✅ [MODAL] Modal listo para mostrarse');
     } catch (error: any) {
-      logger.error('❌ [MODAL] Error loading preview:', error);
+      logger.error('❌ [MODAL] Error calculando distribución:', error);
       Alert.alert(
         'Error',
-        error.response?.data?.message || 'No se pudo cargar la vista previa del reparto'
+        error.response?.data?.message || 'No se pudo calcular la distribución'
       );
     } finally {
       setPreviewLoading(false);
     }
-  }, [product, campaignId]);
+  }, [product, campaignId, getStockDetailsFromProduct]);
 
   const handleDistributionTypeChange = useCallback(
     async (type: DistributionType) => {
@@ -557,7 +577,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
   const handleGlobalRoundingFactorChange = useCallback(
     async (newFactor: number) => {
-      if (!product) {
+      if (!product || !adjustedDistribution) {
         return;
       }
 
@@ -596,47 +616,35 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         }
       }
 
-      // Recalcular preview con el nuevo roundingFactor GLOBAL
-      setPreviewLoading(true);
-      try {
-        setGlobalRoundingFactor(newFactor);
+      // Actualizar roundingFactor localmente sin llamar al backend
+      setGlobalRoundingFactor(newFactor);
 
-        const participantPreferences = Object.values(editableDistributions).map((dist) => ({
-          participantId: dist.participantId,
+      // Actualizar distribuciones editables con el nuevo factor
+      const updatedDistributions: typeof editableDistributions = {};
+      Object.values(editableDistributions).forEach((dist) => {
+        updatedDistributions[dist.participantId] = {
+          ...dist,
           roundingFactor: newFactor,
-        }));
+          quantityPresentation: newFactor > 1 ? Math.floor(dist.quantityBase / newFactor) : undefined,
+        };
+      });
+      setEditableDistributions(updatedDistributions);
 
-        const previewData = await campaignsService.getDistributionPreview(campaignId, product.id, {
-          participantPreferences,
-        });
+      // Actualizar adjustedDistribution
+      const updatedPreview = adjustedDistribution.preview.map((item) => ({
+        ...item,
+        roundingFactor: newFactor,
+        quantityPresentation: newFactor > 1 ? Math.floor(item.calculatedQuantity / newFactor) : undefined,
+      }));
 
-        setAdjustedDistribution(previewData);
+      setAdjustedDistribution({
+        ...adjustedDistribution,
+        preview: updatedPreview,
+      });
 
-        // Actualizar distribuciones editables
-        const updatedDistributions: typeof editableDistributions = {};
-        previewData.preview.forEach((item) => {
-          updatedDistributions[item.participantId] = {
-            participantId: item.participantId,
-            participantName: item.participantName,
-            quantityBase: item.calculatedQuantity,
-            roundingFactor: item.roundingFactor,
-            presentationId: item.presentationId,
-            quantityPresentation: item.quantityPresentation,
-            percentage: item.percentage,
-          };
-        });
-        setEditableDistributions(updatedDistributions);
-      } catch (error: any) {
-        logger.error('❌ [MODAL] Error recalculating preview:', error);
-        Alert.alert(
-          'Error',
-          error.response?.data?.message || 'No se pudo recalcular la distribución'
-        );
-      } finally {
-        setPreviewLoading(false);
-      }
+      logger.debug('✅ [MODAL] RoundingFactor actualizado localmente');
     },
-    [globalRoundingFactor, editableDistributions, campaignId, product]
+    [globalRoundingFactor, editableDistributions, adjustedDistribution, product]
   );
 
   const getSortedDistributions = useMemo(() => {
@@ -945,26 +953,14 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                         onChangeText={(text) => {
                           const newQuantity = parseInt(text) || 0;
                           setEditableTotalQuantity(newQuantity);
-                        }}
-                        onBlur={() => {
-                          if (editableTotalQuantity !== adjustedDistribution?.totalQuantity) {
-                            recalculateDistributions(editableTotalQuantity);
-                          }
+                          // Recalcular automáticamente al cambiar
+                          recalculateDistributions(newQuantity);
                         }}
                       />
                       <Text style={styles.editableTotalQuantityUnit}>unidades</Text>
                     </View>
-                    <TouchableOpacity
-                      style={styles.recalculateButton}
-                      onPress={() => recalculateDistributions(editableTotalQuantity)}
-                    >
-                      <Text style={styles.recalculateButtonText}>
-                        🔄 Actualizar Distribuciones
-                      </Text>
-                    </TouchableOpacity>
                     <Text style={styles.editableTotalQuantityHint}>
-                      💡 Modifica la cantidad y presiona "Actualizar Distribuciones" para
-                      recalcular
+                      💡 Las cantidades se actualizan automáticamente al modificar el total
                     </Text>
                   </View>
                   <View style={styles.previewSummaryRow}>
@@ -1573,18 +1569,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748B',
   },
-  recalculateButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  recalculateButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+
   editableTotalQuantityHint: {
     fontSize: 12,
     color: '#64748B',
