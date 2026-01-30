@@ -110,6 +110,7 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
   );
 
   return (
+    <>
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -289,111 +290,113 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
         </View>
       </View>
 
-      {/* Manage Admins Modal */}
-      <ManageAdminsModal
-        visible={showManageAdminsModal}
-        site={site}
-        onClose={() => setShowManageAdminsModal(false)}
-        onAdminsUpdated={() => {
-          setShowManageAdminsModal(false);
-          if (onSiteUpdated) {
-            onSiteUpdated();
-          }
-        }}
-      />
-
-      {/* Warehouses Modal */}
-      <WarehousesModal
-        visible={showWarehousesModal}
-        site={site}
-        onClose={() => setShowWarehousesModal(false)}
-        onWarehousePress={(warehouse) => {
-          setSelectedWarehouse(warehouse);
-          setShowWarehousesModal(false);
-          setShowWarehouseDetailModal(true);
-        }}
-        onCreateWarehouse={() => {
-          setSelectedWarehouse(null);
-          setShowWarehousesModal(false);
-          setShowWarehouseFormModal(true);
-        }}
-      />
-
-      {/* Warehouse Form Modal */}
-      <WarehouseFormModal
-        visible={showWarehouseFormModal}
-        site={site}
-        warehouse={selectedWarehouse}
-        onClose={() => {
-          setShowWarehouseFormModal(false);
-          setSelectedWarehouse(null);
-        }}
-        onWarehouseCreated={() => {
-          setShowWarehouseFormModal(false);
-          setShowWarehousesModal(true);
-        }}
-        onWarehouseUpdated={() => {
-          setShowWarehouseFormModal(false);
-          setShowWarehouseDetailModal(true);
-        }}
-      />
-
-      {/* Warehouse Detail Modal */}
-      <WarehouseDetailModal
-        visible={showWarehouseDetailModal}
-        warehouse={selectedWarehouse}
-        onClose={() => {
-          setShowWarehouseDetailModal(false);
-          setSelectedWarehouse(null);
-          setShowWarehousesModal(true);
-        }}
-        onEdit={(warehouse) => {
-          setSelectedWarehouse(warehouse);
-          setShowWarehouseDetailModal(false);
-          setShowWarehouseFormModal(true);
-        }}
-        onWarehouseDeleted={() => {
-          setShowWarehouseDetailModal(false);
-          setSelectedWarehouse(null);
-          setShowWarehousesModal(true);
-        }}
-        onWarehouseUpdated={() => {
-          // Reload warehouse details if needed
-        }}
-        onCreateArea={(warehouse) => {
-          setSelectedWarehouse(warehouse);
-          setSelectedArea(null);
-          setShowWarehouseDetailModal(false);
-          setShowAreaFormModal(true);
-        }}
-        onEditArea={(area) => {
-          setSelectedArea(area);
-          setShowWarehouseDetailModal(false);
-          setShowAreaFormModal(true);
-        }}
-      />
-
-      {/* Warehouse Area Form Modal */}
-      <WarehouseAreaFormModal
-        visible={showAreaFormModal}
-        warehouse={selectedWarehouse}
-        area={selectedArea}
-        onClose={() => {
-          setShowAreaFormModal(false);
-          setSelectedArea(null);
-        }}
-        onAreaCreated={() => {
-          setShowAreaFormModal(false);
-          setSelectedArea(null);
-          setShowWarehouseDetailModal(true);
-        }}
-        onAreaUpdated={() => {
-          setShowAreaFormModal(false);
-          setSelectedArea(null);
-          setShowWarehouseDetailModal(true);
-        }}
-      />
     </Modal>
+
+    {/* Manage Admins Modal - Outside main modal */}
+    <ManageAdminsModal
+      visible={showManageAdminsModal}
+      site={site}
+      onClose={() => setShowManageAdminsModal(false)}
+      onAdminsUpdated={() => {
+        setShowManageAdminsModal(false);
+        if (onSiteUpdated) {
+          onSiteUpdated();
+        }
+      }}
+    />
+
+    {/* Warehouses Modal - Outside main modal */}
+    <WarehousesModal
+      visible={showWarehousesModal}
+      site={site}
+      onClose={() => setShowWarehousesModal(false)}
+      onWarehousePress={(warehouse) => {
+        setSelectedWarehouse(warehouse);
+        setShowWarehousesModal(false);
+        setShowWarehouseDetailModal(true);
+      }}
+      onCreateWarehouse={() => {
+        setSelectedWarehouse(null);
+        setShowWarehousesModal(false);
+        setShowWarehouseFormModal(true);
+      }}
+    />
+
+    {/* Warehouse Form Modal - Outside main modal */}
+    <WarehouseFormModal
+      visible={showWarehouseFormModal}
+      site={site}
+      warehouse={selectedWarehouse}
+      onClose={() => {
+        setShowWarehouseFormModal(false);
+        setSelectedWarehouse(null);
+      }}
+      onWarehouseCreated={() => {
+        setShowWarehouseFormModal(false);
+        setShowWarehousesModal(true);
+      }}
+      onWarehouseUpdated={() => {
+        setShowWarehouseFormModal(false);
+        setShowWarehouseDetailModal(true);
+      }}
+    />
+
+    {/* Warehouse Detail Modal - Outside main modal */}
+    <WarehouseDetailModal
+      visible={showWarehouseDetailModal}
+      warehouse={selectedWarehouse}
+      onClose={() => {
+        setShowWarehouseDetailModal(false);
+        setSelectedWarehouse(null);
+        setShowWarehousesModal(true);
+      }}
+      onEdit={(warehouse) => {
+        setSelectedWarehouse(warehouse);
+        setShowWarehouseDetailModal(false);
+        setShowWarehouseFormModal(true);
+      }}
+      onWarehouseDeleted={() => {
+        setShowWarehouseDetailModal(false);
+        setSelectedWarehouse(null);
+        setShowWarehousesModal(true);
+      }}
+      onWarehouseUpdated={() => {
+        // Reload warehouse details if needed
+      }}
+      onCreateArea={(warehouse) => {
+        setSelectedWarehouse(warehouse);
+        setSelectedArea(null);
+        setShowWarehouseDetailModal(false);
+        setShowAreaFormModal(true);
+      }}
+      onEditArea={(area) => {
+        setSelectedArea(area);
+        setShowWarehouseDetailModal(false);
+        setShowAreaFormModal(true);
+      }}
+    />
+
+    {/* Warehouse Area Form Modal - Outside main modal */}
+    <WarehouseAreaFormModal
+      visible={showAreaFormModal}
+      warehouse={selectedWarehouse}
+      area={selectedArea}
+      onClose={() => {
+        setShowAreaFormModal(false);
+        setSelectedArea(null);
+      }}
+      onAreaCreated={() => {
+        setShowAreaFormModal(false);
+        setSelectedArea(null);
+        setShowWarehouseDetailModal(true);
+      }}
+      onAreaUpdated={() => {
+        setShowAreaFormModal(false);
+        setSelectedArea(null);
+        setShowWarehouseDetailModal(true);
+      }}
+    />
+  </>
   );
 };
 
