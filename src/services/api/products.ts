@@ -84,7 +84,7 @@ export interface Product {
   sku: string; // Ahora permite duplicados
   barcode: string;
   categoryId: string;
-  status: 'active' | 'inactive' | 'discontinued' | 'draft' | 'archived';
+  status: 'active' | 'inactive' | 'discontinued' | 'draft' | 'archived' | 'preliminary';
   taxType: 'GRAVADO' | 'EXONERADO' | 'INAFECTO' | 'GRATUITO';
   costCents: number; // Changed from priceCents to costCents (cost of product)
   priceCents?: number; // Deprecated - kept for backward compatibility
@@ -100,6 +100,12 @@ export interface Product {
   presentations?: ProductPresentation[];
   salePrices?: ProductSalePrice[];
   stockItems?: StockItem[];
+  preliminaryStock?: number; // Stock preliminar para productos en estado preliminary
+  stock?: {
+    available: number;
+    reserved: number;
+    total: number;
+  };
 }
 
 // Product entity for detail endpoint (simplified)

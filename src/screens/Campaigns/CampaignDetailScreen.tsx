@@ -502,6 +502,35 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
   }, []);
 
+  // Load preliminary stocks for preliminary products
+  const loadPreliminaryStocks = useCallback(async (productIds: string[]) => {
+    if (productIds.length === 0) return;
+
+    console.log('📦 Loading preliminary stocks for products:', productIds);
+
+    try {
+      // Update global search results with preliminary stock
+      setGlobalSearchResults((prevResults) => {
+        return prevResults.map((product) => {
+          if (productIds.includes(product.id) && product.preliminaryStock !== undefined) {
+            console.log(`✅ Setting preliminary stock for ${product.id}:`, product.preliminaryStock);
+            return {
+              ...product,
+              stock: {
+                available: product.preliminaryStock || 0,
+                reserved: 0,
+                total: product.preliminaryStock || 0,
+              },
+            };
+          }
+          return product;
+        });
+      });
+    } catch (error) {
+      console.error('❌ Error loading preliminary stocks:', error);
+    }
+  }, []);
+
   // Handle search query change with debounce
   const handleSearchQueryChange = useCallback((text: string) => {
     setSearchQuery(text);
