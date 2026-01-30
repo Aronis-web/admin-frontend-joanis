@@ -178,24 +178,22 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
                 </>
               )}
 
-            {/* Warehouses */}
-            <ProtectedElement requiredPermissions={['inventory.warehouses.list']} fallback={null}>
-              {renderSection(
-                'Almacenes',
-                <>
-                  <TouchableOpacity
-                    style={styles.manageButton}
-                    onPress={() => setShowWarehousesModal(true)}
-                  >
-                    <Text style={styles.manageButtonIcon}>📦</Text>
-                    <Text style={styles.manageButtonText}>Gestionar Almacenes</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.sectionHint}>
-                    Administra los almacenes y áreas de esta sede
-                  </Text>
-                </>
-              )}
-            </ProtectedElement>
+            {/* Warehouses - Always visible */}
+            {renderSection(
+              'Almacenes',
+              <>
+                <TouchableOpacity
+                  style={styles.manageButton}
+                  onPress={() => setShowWarehousesModal(true)}
+                >
+                  <Text style={styles.manageButtonIcon}>📦</Text>
+                  <Text style={styles.manageButtonText}>Gestionar Almacenes</Text>
+                </TouchableOpacity>
+                <Text style={styles.sectionHint}>
+                  Administra los almacenes y áreas de esta sede
+                </Text>
+              </>
+            )}
 
             {/* Administrators */}
             <ProtectedElement requiredPermissions={['sites.admins.list']} fallback={null}>
