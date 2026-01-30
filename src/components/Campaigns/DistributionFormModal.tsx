@@ -83,6 +83,9 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
   // Custom quantities for CUSTOM distribution type
   const [customQuantities, setCustomQuantities] = useState<{ [participantId: string]: number }>({});
 
+  // Distribution mode: 'units' or 'presentation'
+  const [distributionMode, setDistributionMode] = useState<'units' | 'presentation'>('units');
+
   // Helper function to get stock details from product
   const getStockDetailsFromProduct = useCallback((): StockDetailByWarehouse[] | undefined => {
     // First check if we have local stock data from the API call
@@ -135,6 +138,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       setIncludeInSheet(true);
       setEditableTotalQuantity(0);
       setCustomQuantities({});
+      setDistributionMode('units'); // Reset to units by default
     }
   }, [visible]);
 
@@ -254,13 +258,19 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         });
       });
 
-      // Asignar remanente al primer participante (o sede de redondeo si existe)
+      // Asignar remanente a la sede de ajuste configurada en la campaña
       const remainder = initialQuantity - totalDistributed;
       if (remainder > 0 && participants.length > 0) {
-        const firstParticipantId = participants[0].id;
-        if (initialDistributions[firstParticipantId]) {
-          initialDistributions[firstParticipantId].quantityBase += remainder;
+        const remainderSiteId = campaignData.remainderSiteId || participants[0].id;
+        if (initialDistributions[remainderSiteId]) {
+          initialDistributions[remainderSiteId].quantityBase += remainder;
           totalDistributed += remainder;
+
+          logger.debug('✅ [MODAL] Remanente asignado a sede de ajuste:', {
+            siteId: remainderSiteId,
+            siteName: initialDistributions[remainderSiteId].participantName,
+            remainder,
+          });
         }
       }
 
@@ -524,8 +534,10 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
     }
 
     logger.debug(
-      '🔄 [RECALC] Recalculando distribuciones localmente con nueva cantidad:',
-      newTotalQuantity
+      '🔄 [RECALC] Recalculando distribuciones con nueva cantidad:',
+      newTotalQuantity,
+      'Modo:',
+      distributionMode
     );
 
     try {
@@ -553,60 +565,109 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       // Recalcular cantidades basadas en porcentajes ajustados
       const newDistributions: typeof editableDistributions = {};
       let totalDistributed = 0;
-      let remainderParticipantId: string | null = null;
 
-      // Primero, calcular cantidades usando Math.floor para evitar excedentes
-      participantsWithAdjustedAmount.forEach((participant) => {
-        const percentage = totalAdjustedAmount > 0
-          ? (participant.adjustedAmount / totalAdjustedAmount) * 100
-          : 100 / participants.length;
+      if (distributionMode === 'presentation' && globalRoundingFactor > 1) {
+        // MODO PRESENTACIÓN: Redondeo hacia abajo para empresas externas
+        logger.debug('📦 [RECALC] Calculando en modo PRESENTACIÓN');
 
-        const exactQuantity = (percentage / 100) * newTotalQuantity;
-        const flooredQuantity = Math.floor(exactQuantity);
+        participantsWithAdjustedAmount.forEach((participant) => {
+          const percentage = totalAdjustedAmount > 0
+            ? (participant.adjustedAmount / totalAdjustedAmount) * 100
+            : 100 / participants.length;
 
-        // Buscar la distribución existente para mantener el roundingFactor
-        const existingDist = editableDistributions[participant.id];
+          const exactQuantityBase = (percentage / 100) * newTotalQuantity;
+          const exactQuantityPresentation = exactQuantityBase / globalRoundingFactor;
 
-        newDistributions[participant.id] = {
-          participantId: participant.id,
-          participantName: participant.company?.name || participant.site?.name || 'Sin nombre',
-          quantityBase: flooredQuantity,
-          roundingFactor: existingDist?.roundingFactor || globalRoundingFactor,
-          presentationId: existingDist?.presentationId,
-          quantityPresentation:
-            globalRoundingFactor > 1 ? Math.floor(flooredQuantity / globalRoundingFactor) : undefined,
-          percentage: percentage,
-        };
+          // Redondeo hacia ABAJO para todos (empresas y sedes)
+          const quantityPresentation = Math.floor(exactQuantityPresentation);
+          const quantityBase = quantityPresentation * globalRoundingFactor;
 
-        totalDistributed += flooredQuantity;
-      });
+          newDistributions[participant.id] = {
+            participantId: participant.id,
+            participantName: participant.company?.name || participant.site?.name || 'Sin nombre',
+            quantityBase: quantityBase,
+            roundingFactor: globalRoundingFactor,
+            presentationId: selectedPresentationId || undefined,
+            quantityPresentation: quantityPresentation,
+            percentage: percentage,
+          };
 
-      // Calcular remanente (ahora siempre será >= 0)
-      const remainder = newTotalQuantity - totalDistributed;
+          totalDistributed += quantityBase;
 
-      // Asignar remanente a la sede de ajuste (o al primer participante si no hay sede de ajuste)
-      if (remainder > 0 && participants.length > 0) {
-        // Buscar la sede de ajuste del preview original
-        remainderParticipantId =
-          adjustedDistribution.remainderAssignedTo?.participantId ||
-          participants[0]?.id;
+          logger.debug('📊 [RECALC] Participante:', {
+            name: participant.company?.name || participant.site?.name,
+            type: participant.company ? 'EMPRESA' : 'SEDE',
+            percentage: percentage.toFixed(2),
+            exactPresentation: exactQuantityPresentation.toFixed(2),
+            quantityPresentation,
+            quantityBase,
+          });
+        });
 
-        if (remainderParticipantId && newDistributions[remainderParticipantId]) {
-          newDistributions[remainderParticipantId].quantityBase += remainder;
-          if (globalRoundingFactor > 1) {
-            newDistributions[remainderParticipantId].quantityPresentation = Math.floor(
-              newDistributions[remainderParticipantId].quantityBase / globalRoundingFactor
-            );
+        // Asignar remanente a la sede de ajuste EN UNIDADES
+        const remainder = newTotalQuantity - totalDistributed;
+        if (remainder > 0) {
+          const remainderSiteId = campaignData.remainderSiteId || participants[0]?.id;
+
+          if (remainderSiteId && newDistributions[remainderSiteId]) {
+            newDistributions[remainderSiteId].quantityBase += remainder;
+            totalDistributed += remainder;
+
+            logger.debug('✅ [RECALC] Remanente asignado a sede de ajuste:', {
+              siteId: remainderSiteId,
+              siteName: newDistributions[remainderSiteId].participantName,
+              remainder,
+              totalFinal: newDistributions[remainderSiteId].quantityBase,
+            });
           }
-          totalDistributed += remainder;
+        }
+      } else {
+        // MODO UNIDADES: Cálculo normal
+        logger.debug('📦 [RECALC] Calculando en modo UNIDADES');
+
+        participantsWithAdjustedAmount.forEach((participant) => {
+          const percentage = totalAdjustedAmount > 0
+            ? (participant.adjustedAmount / totalAdjustedAmount) * 100
+            : 100 / participants.length;
+
+          const exactQuantity = (percentage / 100) * newTotalQuantity;
+          const flooredQuantity = Math.floor(exactQuantity);
+
+          newDistributions[participant.id] = {
+            participantId: participant.id,
+            participantName: participant.company?.name || participant.site?.name || 'Sin nombre',
+            quantityBase: flooredQuantity,
+            roundingFactor: 1,
+            presentationId: undefined,
+            quantityPresentation: undefined,
+            percentage: percentage,
+          };
+
+          totalDistributed += flooredQuantity;
+        });
+
+        // Asignar remanente a la sede de ajuste
+        const remainder = newTotalQuantity - totalDistributed;
+        if (remainder > 0 && participants.length > 0) {
+          const remainderSiteId = campaignData.remainderSiteId || participants[0]?.id;
+
+          if (remainderSiteId && newDistributions[remainderSiteId]) {
+            newDistributions[remainderSiteId].quantityBase += remainder;
+            totalDistributed += remainder;
+
+            logger.debug('✅ [RECALC] Remanente asignado a sede de ajuste:', {
+              siteId: remainderSiteId,
+              siteName: newDistributions[remainderSiteId].participantName,
+              remainder,
+            });
+          }
         }
       }
 
       logger.debug('✅ [RECALC] Distribuciones recalculadas:', {
         newTotalQuantity,
         totalDistributed,
-        remainder,
-        remainderAssignedTo: remainderParticipantId,
+        remainder: newTotalQuantity - totalDistributed,
       });
 
       // Actualizar el estado
@@ -626,13 +687,6 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         totalDistributed,
         remainder: newTotalQuantity - totalDistributed,
         preview: updatedPreview,
-        remainderAssignedTo: remainderParticipantId
-          ? {
-              participantId: remainderParticipantId,
-              participantName: newDistributions[remainderParticipantId]?.participantName || '',
-              remainderQuantity: remainder,
-            }
-          : undefined,
       });
 
       logger.debug('✅ [RECALC] Estado actualizado');
@@ -640,7 +694,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       logger.error('❌ [RECALC] Error recalculando distribuciones:', error);
       Alert.alert('Error', 'No se pudo recalcular las distribuciones');
     }
-  }, [adjustedDistribution, editableDistributions, globalRoundingFactor, campaignId]);
+  }, [adjustedDistribution, editableDistributions, globalRoundingFactor, campaignId, distributionMode, selectedPresentationId]);
 
   const handleGlobalRoundingFactorChange = useCallback(
     async (newFactor: number) => {
@@ -784,7 +838,10 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       return;
     }
 
-    logger.debug('🎯 [MODAL] Confirmando generación de reparto...');
+    logger.debug('🎯 [MODAL] Confirmando generación de reparto...', {
+      mode: distributionMode,
+      totalDistributions: Object.keys(editableDistributions).length,
+    });
 
     // Validar distribuciones
     if (!validateDistributions()) {
@@ -793,31 +850,64 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
     setActionLoading(true);
     try {
-      // Preparar distribuciones con cantidades exactas desde editableDistributions
-      const distributions = Object.values(editableDistributions).map((dist) => ({
-        participantId: dist.participantId,
-        quantityBase: dist.quantityBase,
-        roundingFactor: dist.roundingFactor,
-        presentationId: dist.presentationId,
-        quantityPresentation: dist.quantityPresentation,
-        notes: `${dist.participantName} - ${dist.percentage.toFixed(2)}%`,
-      }));
+      // Preparar distribuciones según el modo
+      const distributions = Object.values(editableDistributions).map((dist) => {
+        const baseData = {
+          participantId: dist.participantId,
+          quantityBase: dist.quantityBase,
+          notes: `${dist.participantName} - ${dist.percentage.toFixed(2)}%`,
+        };
+
+        // SOLO agregar datos de presentación si:
+        // 1. Modo es 'presentation' Y
+        // 2. La cantidad en presentación es > 0
+        if (distributionMode === 'presentation' && dist.quantityPresentation && dist.quantityPresentation > 0) {
+          logger.debug('📦 [GENERATE] Enviando con presentación:', {
+            participant: dist.participantName,
+            quantityBase: dist.quantityBase,
+            quantityPresentation: dist.quantityPresentation,
+            presentationId: dist.presentationId,
+            factorToBase: dist.roundingFactor,
+          });
+
+          return {
+            ...baseData,
+            presentationId: dist.presentationId,
+            quantityPresentation: dist.quantityPresentation,
+            factorToBase: dist.roundingFactor,
+          };
+        }
+
+        // Si es modo 'units' o es remanente en unidades, NO enviar datos de presentación
+        logger.debug('📦 [GENERATE] Enviando solo unidades:', {
+          participant: dist.participantName,
+          quantityBase: dist.quantityBase,
+        });
+
+        return baseData;
+      });
+
+      logger.debug('📤 [GENERATE] Distribuciones a enviar:', distributions);
 
       // Generar distribución con cantidades exactas
       const result = await campaignsService.generateDistribution(campaignId, product.id, {
         distributions,
-        notes: `Reparto generado desde preview - ${new Date().toLocaleString()}`,
+        notes: `Reparto generado - ${distributionMode === 'presentation' ? 'Por presentación' : 'Por unidades'} - ${new Date().toLocaleString()}`,
       });
 
       logger.debug('✅ [MODAL] Reparto generado exitosamente:', result.repartoCode);
 
+      const modeInfo = distributionMode === 'presentation'
+        ? '\n\n📦 Generado por presentación (empresas reciben cantidades exactas)'
+        : '\n\n📦 Generado por unidades';
+
       const pdfInfo = includeInSheet
-        ? '\n\n✅ Este producto se incluirá en las hojas de reparto (PDF)'
-        : '\n\n❌ Este producto NO se incluirá en las hojas de reparto (PDF)';
+        ? '\n✅ Este producto se incluirá en las hojas de reparto (PDF)'
+        : '\n❌ Este producto NO se incluirá en las hojas de reparto (PDF)';
 
       Alert.alert(
         'Éxito',
-        `Distribución generada exitosamente\n\nReparto: ${result.repartoCode}\nSe creó automáticamente el reparto con reserva de stock${pdfInfo}`,
+        `Distribución generada exitosamente\n\nReparto: ${result.repartoCode}\nSe creó automáticamente el reparto con reserva de stock${modeInfo}${pdfInfo}`,
         [
           {
             text: 'OK',
@@ -834,7 +924,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
     } finally {
       setActionLoading(false);
     }
-  }, [product, adjustedDistribution, validateDistributions, editableDistributions, campaignId, includeInSheet, onSuccess, onClose]);
+  }, [product, adjustedDistribution, validateDistributions, editableDistributions, campaignId, includeInSheet, distributionMode, onSuccess, onClose]);
 
   if (!product) {
     return null;
@@ -1126,61 +1216,75 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                   )}
                 </View>
 
-                {/* Selector GLOBAL de tipo de distribución */}
+                {/* Selector de Modo de Distribución */}
                 {adjustedDistribution.presentationInfo &&
                   adjustedDistribution.presentationInfo.hasPresentations && (
                     <View style={styles.previewSection}>
-                      <Text style={styles.previewSectionTitle}>📦 Unidad de Distribución</Text>
+                      <Text style={styles.previewSectionTitle}>📦 Modo de Distribución</Text>
                       <Text style={styles.adjustHint}>
-                        Selecciona cómo distribuir a TODOS los participantes:
+                        Selecciona cómo deseas generar el reparto:
                       </Text>
                       <View style={styles.roundingFactorButtons}>
                         <TouchableOpacity
                           style={[
                             styles.roundingFactorButton,
-                            globalRoundingFactor === 1 && styles.roundingFactorButtonSelected,
+                            distributionMode === 'units' && styles.roundingFactorButtonSelected,
                           ]}
-                          onPress={() => handleGlobalRoundingFactorChange(1)}
+                          onPress={() => {
+                            setDistributionMode('units');
+                            setGlobalRoundingFactor(1);
+                            recalculateDistributions(editableTotalQuantity);
+                          }}
                           disabled={previewLoading}
                         >
                           <Text
                             style={[
                               styles.roundingFactorButtonText,
-                              globalRoundingFactor === 1 &&
+                              distributionMode === 'units' &&
                                 styles.roundingFactorButtonTextSelected,
                             ]}
                           >
-                            Unidades
+                            Por Unidades
                           </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[
                             styles.roundingFactorButton,
-                            globalRoundingFactor ===
-                              adjustedDistribution.presentationInfo.largestFactor &&
+                            distributionMode === 'presentation' &&
                               styles.roundingFactorButtonSelected,
                           ]}
-                          onPress={() =>
-                            handleGlobalRoundingFactorChange(
+                          onPress={() => {
+                            setDistributionMode('presentation');
+                            setGlobalRoundingFactor(
                               adjustedDistribution.presentationInfo!.largestFactor
-                            )
-                          }
+                            );
+                            recalculateDistributions(editableTotalQuantity);
+                          }}
                           disabled={previewLoading}
                         >
                           <Text
                             style={[
                               styles.roundingFactorButtonText,
-                              globalRoundingFactor ===
-                                adjustedDistribution.presentationInfo.largestFactor &&
+                              distributionMode === 'presentation' &&
                                 styles.roundingFactorButtonTextSelected,
                             ]}
                           >
-                            {adjustedDistribution.presentationInfo.largestPresentation?.name ||
-                              'Presentación'}{' '}
-                            ({adjustedDistribution.presentationInfo.largestFactor} unidades)
+                            Por {adjustedDistribution.presentationInfo.largestPresentation?.name ||
+                              'Presentación'}
                           </Text>
                         </TouchableOpacity>
                       </View>
+
+                      {distributionMode === 'presentation' && (
+                        <View style={styles.presentationInfoBox}>
+                          <Text style={styles.presentationInfoText}>
+                            ℹ️ Las empresas externas recibirán cantidades exactas en{' '}
+                            {adjustedDistribution.presentationInfo.largestPresentation?.name?.toLowerCase() || 'presentación'}.
+                            {'\n'}El remanente se asignará a la sede de ajuste en unidades.
+                          </Text>
+                        </View>
+                      )}
+
                       {previewLoading && (
                         <View style={styles.previewLoadingContainer}>
                           <ActivityIndicator color="#6366F1" />
@@ -1885,5 +1989,18 @@ const styles = StyleSheet.create({
   remainderParticipantName: {
     fontWeight: '700',
     color: '#1D4ED8',
+  },
+  presentationInfoBox: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
+  },
+  presentationInfoText: {
+    fontSize: 13,
+    color: '#1E40AF',
+    lineHeight: 18,
   },
 });
