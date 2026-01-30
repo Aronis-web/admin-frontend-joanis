@@ -260,6 +260,7 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
   }
 
   return (
+    <>
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
@@ -414,18 +415,17 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
           </View>
         </View>
       </Modal>
-
-      {/* Floating Action Button */}
-      <ProtectedElement requiredPermissions={[PERMISSIONS.WAREHOUSES.CREATE]} fallback={null}>
-        <TouchableOpacity
-          style={styles.floatingButton}
-          onPress={() => setShowCreateModal(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.floatingButtonIcon}>+</Text>
-        </TouchableOpacity>
-      </ProtectedElement>
     </SafeAreaView>
+
+    {/* Floating Action Button - Outside SafeAreaView */}
+    <TouchableOpacity
+      style={styles.floatingButton}
+      onPress={() => setShowCreateModal(true)}
+      activeOpacity={0.8}
+    >
+      <Text style={styles.floatingButtonIcon}>+</Text>
+    </TouchableOpacity>
+    </>
   );
 };
 
