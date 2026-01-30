@@ -348,37 +348,6 @@ class PurchasesService {
    * @param purchaseId - ID of the purchase
    */
   async downloadPurchaseReportPdf(purchaseId: string): Promise<Blob> {
-    // Get fresh token and context
-    const authStore = useAuthStore.getState();
-    const tenantStore = useTenantStore.getState();
-
-    // REMOVED: Proactive token refresh to prevent race conditions
-    // Token refresh will happen automatically on 401 errors via apiClient interceptor
-
-    const token = authStore.token;
-    const userId = authStore.user?.id;
-    const companyId = tenantStore.selectedCompany?.id || authStore.currentCompany?.id;
-    const siteId = tenantStore.selectedSite?.id || authStore.currentSite?.id;
-
-    if (!token) {
-      throw new Error('No authentication token available');
-    }
-
-    const headers: Record<string, string> = {
-      'X-App-Id': config.APP_ID,
-      Authorization: `Bearer ${token}`,
-    };
-
-    if (userId) {
-      headers['X-User-Id'] = userId;
-    }
-    if (companyId) {
-      headers['X-Company-Id'] = companyId;
-    }
-    if (siteId) {
-      headers['X-Site-Id'] = siteId;
-    }
-
     // Add timestamp to prevent caching
     const timestamp = new Date().getTime();
 
@@ -388,22 +357,9 @@ class PurchasesService {
 
     const url = `${config.API_URL}${this.basePath}/${purchaseId}/report/pdf?${urlParams.toString()}`;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        ...headers,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-        Expires: '0',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-    }
-
-    return await response.blob();
+    // Use downloadWithAuth helper that handles token refresh automatically
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+    return downloadWithAuth(url, { method: 'GET' });
   }
 }
 
