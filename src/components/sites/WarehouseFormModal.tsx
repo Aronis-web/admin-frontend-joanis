@@ -84,14 +84,18 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
         }
       } else {
         // Create warehouse
-        if (!effectiveCompany?.id || !effectiveSite?.id) {
+        // Use site prop data if available, otherwise fall back to effective site/company
+        const companyId = site?.companyId || effectiveCompany?.id;
+        const siteId = site?.id || effectiveSite?.id;
+
+        if (!companyId || !siteId) {
           Alert.alert('Error', 'No se pudo determinar la compañía o sede actual');
           return;
         }
 
         const newWarehouse = await warehousesApi.createWarehouse({
-          companyId: effectiveCompany.id,
-          siteId: effectiveSite.id,
+          companyId: companyId,
+          siteId: siteId,
           code: siteCode.trim().toUpperCase(),
           siteCode: siteCode.trim().toUpperCase(),
           name: name.trim(),
