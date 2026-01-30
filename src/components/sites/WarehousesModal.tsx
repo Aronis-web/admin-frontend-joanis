@@ -159,16 +159,21 @@ export const WarehousesModal: React.FC<WarehousesModalProps> = ({
             <TouchableOpacity style={[styles.button, styles.closeActionButton]} onPress={onClose}>
               <Text style={styles.closeActionButtonText}>Cerrar</Text>
             </TouchableOpacity>
-
-            <ProtectedElement requiredPermissions={['inventory.warehouses.create']} fallback={null}>
-              <TouchableOpacity
-                style={[styles.button, styles.createButton]}
-                onPress={onCreateWarehouse}
-              >
-                <Text style={styles.createButtonText}>+ Crear Almacén</Text>
-              </TouchableOpacity>
-            </ProtectedElement>
           </View>
+
+          {/* Floating Action Button */}
+          <ProtectedElement requiredPermissions={['inventory.warehouses.create']} fallback={null}>
+            <TouchableOpacity
+              style={styles.floatingButton}
+              onPress={() => {
+                console.log('🔵 Floating button pressed - Creating warehouse');
+                onCreateWarehouse();
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.floatingButtonIcon}>+</Text>
+            </TouchableOpacity>
+          </ProtectedElement>
         </View>
       </View>
     </Modal>
@@ -353,6 +358,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 90,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  floatingButtonIcon: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    lineHeight: 32,
   },
 });
 
