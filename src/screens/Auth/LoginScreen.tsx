@@ -12,6 +12,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { AUTH_ROUTES } from '@/constants/routes';
@@ -23,6 +24,8 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const { width, height } = useWindowDimensions();
 
   const { loginWithCredentials, isLoading, error, isAuthenticated } = useAuthStore();
@@ -40,7 +43,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
     try {
       console.log('🔑 Iniciando proceso de login...');
-      const success = await loginWithCredentials(email, password);
+      const success = await loginWithCredentials(email, password, rememberMe);
 
       if (!success) {
         console.log('❌ Login falló');
@@ -169,6 +172,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 <TextInput
                   style={[
                     styles.input,
+                    styles.inputWithIcon,
                     isTablet && styles.inputTablet,
                     isTablet && isLandscape && styles.inputLandscape,
                   ]}
@@ -176,10 +180,44 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   placeholderTextColor="#94A3B8"
                   value={password}
                   onChangeText={setPassword}
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   autoCorrect={false}
                 />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={22}
+                    color="#64748B"
+                  />
+                </TouchableOpacity>
               </View>
+            </View>
+
+            <View style={styles.rememberMeContainer}>
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setRememberMe(!rememberMe)}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    rememberMe && styles.checkboxChecked,
+                    isTablet && styles.checkboxTablet,
+                  ]}
+                >
+                  {rememberMe && (
+                    <Ionicons name="checkmark" size={isTablet ? 18 : 16} color="#FFFFFF" />
+                  )}
+                </View>
+                <Text style={[styles.rememberMeText, isTablet && styles.rememberMeTextTablet]}>
+                  Mantener sesión iniciada
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity
@@ -456,6 +494,56 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 12,
     marginTop: 16,
+  },
+  inputWithIcon: {
+    paddingRight: 48,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 40,
+    height: '100%',
+  },
+  rememberMeContainer: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkboxChecked: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  checkboxTablet: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    marginRight: 12,
+  },
+  rememberMeText: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  rememberMeTextTablet: {
+    fontSize: 16,
   },
 });
 

@@ -17,6 +17,7 @@ import { Loader } from '@/components/common/Loader';
 import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { initSentry } from '@/config/sentry';
+import { useSessionWarning } from '@/hooks/useSessionWarning';
 
 export const App = () => {
   const [fontsLoaded] = useFonts({
@@ -28,6 +29,9 @@ export const App = () => {
   const { initAuth, isLoading: authLoading } = useAuthStore();
   const { initTenantContext } = useTenantStore();
   const appState = useRef(AppState.currentState);
+
+  // Enable session expiration warnings
+  useSessionWarning();
 
   useEffect(() => {
     const initialize = async () => {

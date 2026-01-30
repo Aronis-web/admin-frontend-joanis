@@ -16,6 +16,7 @@ export const config = {
     AUTH_TOKEN: 'auth_token',
     REFRESH_TOKEN: 'refresh_token',
     TOKEN_EXPIRES_AT: 'token_expires_at',
+    REMEMBER_ME: 'remember_me',
 
     // AsyncStorage keys - for non-sensitive data
     USER: '@joanis:user',

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 import { config } from '@/utils/config';
 import secureStorage from '@/utils/secureStorage';
 import { authService } from '@/services/AuthService';
@@ -42,14 +43,14 @@ interface AuthState extends PermissionCheck {
   setCurrentCompany: (company: CurrentCompany | null) => void;
   setCurrentSite: (site: CurrentSite | null) => void;
   login: (user: User, accessToken: string) => Promise<void>;
-  loginWithCredentials: (email: string, password: string) => Promise<boolean>;
+  loginWithCredentials: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   setLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
   initAuth: () => Promise<void>;
   refreshAccessToken: () => Promise<boolean>;
-  clearInvalidAuth: () => Promise<void>;
+  clearInvalidAuth: (showSessionExpiredMessage?: boolean) => Promise<void>;
   isTokenExpired: () => boolean;
   shouldRefreshToken: () => boolean;
 
@@ -169,7 +170,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  loginWithCredentials: async (email, password) => {
+  loginWithCredentials: async (email, password, rememberMe = false) => {
     try {
       set({ isLoading: true, error: null });
 
@@ -192,6 +193,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       console.log('Login successful - User permissions:', response.user.permissions);
       console.log('Login successful - User roles:', response.user.roles);
+      console.log('🔐 Remember Me:', rememberMe);
 
       // Clear any previous company/site selection
       await AsyncStorage.removeItem(config.STORAGE_KEYS.CURRENT_COMPANY);
@@ -200,10 +202,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Store sensitive data in secure storage (encrypted)
       await secureStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, response.accessToken);
       await secureStorage.setItem(config.STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
+      await secureStorage.setItem(config.STORAGE_KEYS.REMEMBER_ME, rememberMe ? 'true' : 'false');
 
-      const expiresAt = response.accessTokenExpiresIn
-        ? Date.now() + response.accessTokenExpiresIn * 1000
-        : null;
+      // Calculate token expiration
+      // If rememberMe is true, extend the session to 30 days
+      // Otherwise, use the server-provided expiration
+      let expiresAt: number | null = null;
+      if (rememberMe) {
+        // 30 days in milliseconds
+        expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
+        console.log('🔐 Extended session enabled: 30 days');
+      } else if (response.accessTokenExpiresIn) {
+        expiresAt = Date.now() + response.accessTokenExpiresIn * 1000;
+      }
 
       if (expiresAt) {
         await secureStorage.setItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT, expiresAt.toString());
@@ -323,9 +334,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             try {
               const refreshed = await get().refreshAccessToken();
               if (!refreshed) {
-                // Refresh failed, clear auth
+                // Refresh failed, clear auth and show message
                 console.warn('⚠️ Token refresh failed, clearing auth');
-                await get().clearInvalidAuth();
+                await get().clearInvalidAuth(true);
                 return;
               }
               console.log('✅ Token refreshed successfully');
@@ -336,12 +347,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 currentToken = newToken;
               } else {
                 console.error('❌ No token available after refresh');
-                await get().clearInvalidAuth();
+                await get().clearInvalidAuth(true);
                 return;
               }
             } catch (error) {
               console.error('❌ Token refresh error:', error);
-              await get().clearInvalidAuth();
+              await get().clearInvalidAuth(true);
               return;
             }
           } else {
@@ -418,12 +429,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // Function to clear invalid auth data
-  clearInvalidAuth: async () => {
+  clearInvalidAuth: async (showSessionExpiredMessage = false) => {
     try {
+      // Show friendly message if session expired
+      if (showSessionExpiredMessage) {
+        // Use setTimeout to ensure Alert is shown after navigation completes
+        setTimeout(() => {
+          Alert.alert(
+            'Sesión Expirada',
+            'Tu sesión ha expirado por seguridad. Por favor, inicia sesión nuevamente.',
+            [{ text: 'Entendido', style: 'default' }]
+          );
+        }, 500);
+      }
+
       // Clear sensitive data from secure storage
       await secureStorage.deleteItem(config.STORAGE_KEYS.AUTH_TOKEN);
       await secureStorage.deleteItem(config.STORAGE_KEYS.REFRESH_TOKEN);
       await secureStorage.deleteItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT);
+      await secureStorage.deleteItem(config.STORAGE_KEYS.REMEMBER_ME);
 
       // Clear non-sensitive data from AsyncStorage
       await AsyncStorage.removeItem(config.STORAGE_KEYS.USER);
