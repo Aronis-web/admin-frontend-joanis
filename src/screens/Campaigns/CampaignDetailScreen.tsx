@@ -476,15 +476,6 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         setGlobalSearchResults(response.results);
         setShowGlobalSearchSuggestions(response.results.length > 0);
-
-        // Load preliminary stocks for preliminary products
-        const preliminaryProductIds = response.results
-          .filter((p) => p.status === 'preliminary')
-          .map((p) => p.id);
-        console.log('🔍 Preliminary products found:', preliminaryProductIds.length);
-        if (preliminaryProductIds.length > 0) {
-          loadPreliminaryStocks(preliminaryProductIds);
-        }
       } catch (v2Error) {
         console.warn('⚠️ V2 endpoint failed, falling back to v1:', v2Error);
         const response = await productsApi.getProducts({
@@ -500,7 +491,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     } finally {
       setIsGlobalSearching(false);
     }
-  }, [loadPreliminaryStocks]);
+  }, []);
 
   // Handle search query change with debounce
   const handleSearchQueryChange = useCallback((text: string) => {
