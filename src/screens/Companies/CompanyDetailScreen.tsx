@@ -23,6 +23,7 @@ import {
   CreateBankAccountRequest,
 } from '@/types/companies';
 import { Site, CreateSiteRequest } from '@/types/sites';
+import { SiteDetailModal } from '@/components/sites/SiteDetailModal';
 
 interface CompanyDetailScreenProps {
   navigation: any;
@@ -49,6 +50,8 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
   const [showCreatePaymentModal, setShowCreatePaymentModal] = useState(false);
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [showSiteDetailModal, setShowSiteDetailModal] = useState(false);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
 
   // Form states
   const [companyForm, setCompanyForm] = useState({
@@ -125,6 +128,28 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
       console.error('Error loading sites:', error);
       Alert.alert('Error', 'No se pudieron cargar las sedes');
     }
+  };
+
+  const handleSitePress = async (site: Site) => {
+    try {
+      // Load full site details with admins
+      const siteDetails = await companiesApi.getSiteById(site.id);
+      setSelectedSite(siteDetails);
+      setShowSiteDetailModal(true);
+    } catch (error: any) {
+      console.error('Error loading site details:', error);
+      Alert.alert('Error', 'No se pudo cargar la sede');
+    }
+  };
+
+  const handleSiteUpdated = () => {
+    loadSites();
+  };
+
+  const handleSiteDeleted = () => {
+    setShowSiteDetailModal(false);
+    setSelectedSite(null);
+    loadSites();
   };
 
   const loadPaymentMethods = async () => {
@@ -411,18 +436,10 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
             </View>
             <View style={styles.itemActions}>
               <TouchableOpacity
-                style={styles.warehousesButton}
-                onPress={() =>
-                  navigation.navigate('Warehouses', {
-                    companyId: companyId,
-                    companyName: company?.alias || company?.name || '',
-                    siteId: item.id,
-                    siteName: item.name,
-                    siteCode: item.code,
-                  })
-                }
+                style={styles.viewDetailsButton}
+                onPress={() => handleSitePress(item)}
               >
-                <Text style={styles.warehousesButtonText}>📦 Almacenes</Text>
+                <Text style={styles.viewDetailsButtonText}>👁️ Ver Detalles</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteSite(item)}>
                 <Text style={styles.deleteButtonText}>🗑️ Eliminar</Text>
@@ -975,6 +992,22 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
           </View>
         </View>
       </Modal>
+
+      {/* Site Detail Modal */}
+      <SiteDetailModal
+        visible={showSiteDetailModal}
+        site={selectedSite}
+        onClose={() => {
+          setShowSiteDetailModal(false);
+          setSelectedSite(null);
+        }}
+        onEdit={(site) => {
+          // TODO: Implement edit site functionality
+          Alert.alert('Info', 'Editar sede desde aquí próximamente');
+        }}
+        onSiteDeleted={handleSiteDeleted}
+        onSiteUpdated={handleSiteUpdated}
+      />
     </View>
   );
 };
@@ -1154,18 +1187,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#DC2626',
   },
-  warehousesButton: {
+  viewDetailsButton: {
     flex: 1,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#E3F2FD',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
-  warehousesButtonText: {
+  viewDetailsButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#3B82F6',
+    color: '#007AFF',
   },
   accountsContainer: {
     marginTop: 8,
