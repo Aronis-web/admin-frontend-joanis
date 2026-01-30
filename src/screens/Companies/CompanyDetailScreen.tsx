@@ -441,6 +441,20 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
               >
                 <Text style={styles.viewDetailsButtonText}>👁️ Ver Detalles</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.warehousesButton}
+                onPress={() =>
+                  navigation.navigate('Warehouses', {
+                    companyId: companyId,
+                    companyName: company?.alias || company?.name || '',
+                    siteId: item.id,
+                    siteName: item.name,
+                    siteCode: item.code,
+                  })
+                }
+              >
+                <Text style={styles.warehousesButtonText}>📦 Almacenes</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteSite(item)}>
                 <Text style={styles.deleteButtonText}>🗑️ Eliminar</Text>
               </TouchableOpacity>
@@ -1199,6 +1213,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#007AFF',
+  },
+  warehousesButton: {
+    flex: 1,
+    backgroundColor: '#DBEAFE',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  warehousesButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
   },
   accountsContainer: {
     marginTop: 8,
