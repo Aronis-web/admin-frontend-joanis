@@ -26,6 +26,7 @@ export enum ParticipantType {
 export enum DistributionType {
   ALL = 'ALL',
   INTERNAL_ONLY = 'INTERNAL_ONLY',
+  INTERNAL_EQUAL = 'INTERNAL_EQUAL',
   EXTERNAL_ONLY = 'EXTERNAL_ONLY',
   CUSTOM = 'CUSTOM',
 }
@@ -516,7 +517,8 @@ export const ParticipantTypeLabels: Record<ParticipantType, string> = {
  */
 export const DistributionTypeLabels: Record<DistributionType, string> = {
   [DistributionType.ALL]: 'Todos los Participantes',
-  [DistributionType.INTERNAL_ONLY]: 'Solo Sedes Internas',
+  [DistributionType.INTERNAL_ONLY]: 'Solo Sedes Internas (Porcentual)',
+  [DistributionType.INTERNAL_EQUAL]: 'Solo Sedes Internas (Iguales)',
   [DistributionType.EXTERNAL_ONLY]: 'Solo Empresas Externas',
   [DistributionType.CUSTOM]: 'Distribución Personalizada',
 };
@@ -564,7 +566,9 @@ export const DistributionTypeDescriptions: Record<DistributionType, string> = {
   [DistributionType.ALL]:
     'El producto se distribuirá proporcionalmente entre todos los participantes (empresas y sedes) según sus montos asignados.',
   [DistributionType.INTERNAL_ONLY]:
-    'El producto se distribuirá solo entre sedes internas, ignorando empresas externas.',
+    'El producto se distribuirá solo entre sedes internas de forma porcentual según sus montos asignados.',
+  [DistributionType.INTERNAL_EQUAL]:
+    'El producto se distribuirá solo entre sedes internas con la misma cantidad para todas.',
   [DistributionType.EXTERNAL_ONLY]:
     'El producto se distribuirá solo entre empresas externas, ignorando sedes internas.',
   [DistributionType.CUSTOM]:

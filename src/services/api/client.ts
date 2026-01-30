@@ -100,7 +100,21 @@ class ApiClient {
           requestConfig.headers.Authorization = `Bearer ${currentToken}`;
           console.log('✅ Authorization header set with token length:', currentToken.length);
         } else {
-          console.warn('⚠️ No token available - user may not be authenticated');
+          // Si no hay token pero el usuario está autenticado, hay un problema de sincronización
+          if (authStore.isAuthenticated) {
+            console.error(
+              '❌ CRITICAL: User is authenticated but no token available - possible sync issue'
+            );
+            console.error('Auth state:', {
+              isAuthenticated: authStore.isAuthenticated,
+              hasUser: !!authStore.user,
+              userId: authStore.user?.id,
+              hasStoreToken: !!token,
+              hasServiceToken: !!authService.getAccessToken(),
+            });
+          } else {
+            console.warn('⚠️ No token available - user may not be authenticated');
+          }
         }
 
         // Special logging for /transfers endpoint to debug auth issues
@@ -237,7 +251,7 @@ class ApiClient {
           // Prevent infinite refresh loops
           if (this.refreshAttempts >= this.maxRefreshAttempts) {
             console.error(
-              `Max refresh attempts (${this.maxRefreshAttempts}) reached, logging out...`
+              `❌ Max refresh attempts (${this.maxRefreshAttempts}) reached, logging out...`
             );
             this.refreshAttempts = 0;
             await useAuthStore.getState().logout();
@@ -248,25 +262,26 @@ class ApiClient {
 
           try {
             console.log(
-              `Attempting token refresh (${this.refreshAttempts}/${this.maxRefreshAttempts}) for 401 error...`
+              `🔄 Attempting token refresh (${this.refreshAttempts}/${this.maxRefreshAttempts}) for 401 error...`
             );
 
             // Use the new authService for token refresh
+            // AuthService has built-in deduplication to prevent race conditions
             await authService.refreshToken();
             const newToken = authService.getAccessToken();
 
             if (newToken) {
               originalRequest.headers.Authorization = `Bearer ${newToken}`;
-              console.log('Token refreshed, retrying request...');
+              console.log('✅ Token refreshed successfully, retrying request...');
               this.refreshAttempts = 0; // Reset counter on successful refresh
               return this.client(originalRequest);
             } else {
-              console.log('No new token after refresh, logging out...');
+              console.error('❌ No new token after refresh, logging out...');
               this.refreshAttempts = 0;
               await useAuthStore.getState().logout();
             }
           } catch (refreshError) {
-            console.error('Token refresh failed:', refreshError);
+            console.error('❌ Token refresh failed:', refreshError);
             this.refreshAttempts = 0;
             await useAuthStore.getState().logout();
           }

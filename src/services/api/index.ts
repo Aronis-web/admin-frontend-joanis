@@ -392,6 +392,16 @@ export type {
 
 // Transmisiones exports
 export { transmisionesApi } from './transmisiones';
+
+// Google Lens API
+export { googleLensApi } from './google-lens';
+export type {
+  GoogleLensPrice,
+  GoogleLensResult,
+  GoogleLensKnowledgeGraph,
+  ImageQualityAnalysis,
+  GoogleLensSearchResponse,
+} from './google-lens';
 export type {
   Transmision,
   TransmisionProduct,

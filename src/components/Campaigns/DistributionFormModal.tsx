@@ -284,8 +284,8 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
       setSelectedDistributionType(type);
 
-      // Si es INTERNAL_ONLY, filtrar localmente y recalcular
-      if (type === DistributionType.INTERNAL_ONLY) {
+      // Si es INTERNAL_ONLY o INTERNAL_EQUAL, filtrar localmente y recalcular
+      if (type === DistributionType.INTERNAL_ONLY || type === DistributionType.INTERNAL_EQUAL) {
         logger.debug('🏢 [INTERNAL SITES] Filtrando solo sedes internas...');
 
         // Filtrar solo participantes que son sedes internas
@@ -305,49 +305,114 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
         // Recalcular distribución solo entre sedes internas
         const totalQuantity = editableTotalQuantity || adjustedDistribution.totalQuantity;
-        const percentagePerSite = 100 / internalSitesOnly.length;
 
         const newDistributions: typeof editableDistributions = {};
         let totalDistributed = 0;
+        let remainderParticipantId: string | null = null;
 
-        // Calcular cantidades usando Math.floor para evitar excedentes
-        internalSitesOnly.forEach((site) => {
-          const exactQuantity = (percentagePerSite / 100) * totalQuantity;
-          const flooredQuantity = Math.floor(exactQuantity);
+        if (type === DistributionType.INTERNAL_EQUAL) {
+          // INTERNAL_EQUAL: Distribuir cantidad igual entre todas las sedes
+          logger.debug('⚖️ [INTERNAL EQUAL] Distribuyendo cantidades iguales...');
 
-          newDistributions[site.participantId] = {
-            participantId: site.participantId,
-            participantName: site.participantName,
-            quantityBase: flooredQuantity,
-            roundingFactor: globalRoundingFactor,
-            presentationId: site.presentationId,
-            quantityPresentation:
-              globalRoundingFactor > 1 ? Math.floor(flooredQuantity / globalRoundingFactor) : undefined,
-            percentage: percentagePerSite,
-          };
+          const quantityPerSite = Math.floor(totalQuantity / internalSitesOnly.length);
+          const percentagePerSite = 100 / internalSitesOnly.length;
 
-          totalDistributed += flooredQuantity;
-        });
+          internalSitesOnly.forEach((site) => {
+            newDistributions[site.participantId] = {
+              participantId: site.participantId,
+              participantName: site.participantName,
+              quantityBase: quantityPerSite,
+              roundingFactor: globalRoundingFactor,
+              presentationId: site.presentationId,
+              quantityPresentation:
+                globalRoundingFactor > 1 ? Math.floor(quantityPerSite / globalRoundingFactor) : undefined,
+              percentage: percentagePerSite,
+            };
 
-        // Asignar remanente a la primera sede
-        const remainder = totalQuantity - totalDistributed;
-        if (remainder > 0 && internalSitesOnly.length > 0) {
-          const firstSiteId = internalSitesOnly[0].participantId;
-          newDistributions[firstSiteId].quantityBase += remainder;
-          if (globalRoundingFactor > 1) {
-            newDistributions[firstSiteId].quantityPresentation = Math.floor(
-              newDistributions[firstSiteId].quantityBase / globalRoundingFactor
-            );
+            totalDistributed += quantityPerSite;
+          });
+
+          // Asignar remanente a la sede de redondeo (o primera sede)
+          const remainder = totalQuantity - totalDistributed;
+          if (remainder > 0 && internalSitesOnly.length > 0) {
+            // Buscar la sede de redondeo del preview original
+            remainderParticipantId =
+              adjustedDistribution.remainderAssignedTo?.participantId ||
+              adjustedDistribution.preview.find((p) => p.participantType === 'INTERNAL_SITE')?.participantId ||
+              internalSitesOnly[0].participantId;
+
+            if (remainderParticipantId && newDistributions[remainderParticipantId]) {
+              newDistributions[remainderParticipantId].quantityBase += remainder;
+              if (globalRoundingFactor > 1) {
+                newDistributions[remainderParticipantId].quantityPresentation = Math.floor(
+                  newDistributions[remainderParticipantId].quantityBase / globalRoundingFactor
+                );
+              }
+              totalDistributed += remainder;
+            }
           }
-          totalDistributed += remainder;
-        }
 
-        logger.debug('✅ [INTERNAL SITES] Distribución recalculada:', {
-          totalQuantity,
-          totalDistributed,
-          remainder,
-          sitesCount: Object.keys(newDistributions).length,
-        });
+          logger.debug('✅ [INTERNAL EQUAL] Distribución igual calculada:', {
+            totalQuantity,
+            quantityPerSite,
+            totalDistributed,
+            remainder,
+            remainderAssignedTo: remainderParticipantId,
+            sitesCount: Object.keys(newDistributions).length,
+          });
+        } else {
+          // INTERNAL_ONLY: Distribuir porcentualmente entre sedes internas
+          logger.debug('📊 [INTERNAL ONLY] Distribuyendo porcentualmente...');
+
+          const percentagePerSite = 100 / internalSitesOnly.length;
+
+          // Calcular cantidades usando Math.floor para evitar excedentes
+          internalSitesOnly.forEach((site) => {
+            const exactQuantity = (percentagePerSite / 100) * totalQuantity;
+            const flooredQuantity = Math.floor(exactQuantity);
+
+            newDistributions[site.participantId] = {
+              participantId: site.participantId,
+              participantName: site.participantName,
+              quantityBase: flooredQuantity,
+              roundingFactor: globalRoundingFactor,
+              presentationId: site.presentationId,
+              quantityPresentation:
+                globalRoundingFactor > 1 ? Math.floor(flooredQuantity / globalRoundingFactor) : undefined,
+              percentage: percentagePerSite,
+            };
+
+            totalDistributed += flooredQuantity;
+          });
+
+          // Asignar remanente a la sede de redondeo (o primera sede)
+          const remainder = totalQuantity - totalDistributed;
+          if (remainder > 0 && internalSitesOnly.length > 0) {
+            // Buscar la sede de redondeo del preview original
+            remainderParticipantId =
+              adjustedDistribution.remainderAssignedTo?.participantId ||
+              adjustedDistribution.preview.find((p) => p.participantType === 'INTERNAL_SITE')?.participantId ||
+              internalSitesOnly[0].participantId;
+
+            if (remainderParticipantId && newDistributions[remainderParticipantId]) {
+              newDistributions[remainderParticipantId].quantityBase += remainder;
+              if (globalRoundingFactor > 1) {
+                newDistributions[remainderParticipantId].quantityPresentation = Math.floor(
+                  newDistributions[remainderParticipantId].quantityBase / globalRoundingFactor
+                );
+              }
+              totalDistributed += remainder;
+            }
+          }
+
+          logger.debug('✅ [INTERNAL ONLY] Distribución porcentual calculada:', {
+            totalQuantity,
+            totalDistributed,
+            remainder,
+            remainderAssignedTo: remainderParticipantId,
+            sitesCount: Object.keys(newDistributions).length,
+          });
+        }
 
         setEditableDistributions(newDistributions);
       } else {

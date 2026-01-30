@@ -17,6 +17,7 @@ import { Loader } from '@/components/common/Loader';
 import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { initSentry } from '@/config/sentry';
+import { useTokenRefresh } from '@/hooks/useTokenRefresh';
 
 export const App = () => {
   const [fontsLoaded] = useFonts({
@@ -28,6 +29,9 @@ export const App = () => {
   const { initAuth, isLoading: authLoading } = useAuthStore();
   const { initTenantContext } = useTenantStore();
   const appState = useRef(AppState.currentState);
+
+  // Activar el sistema de refresh automático de tokens
+  useTokenRefresh();
 
   useEffect(() => {
     const initialize = async () => {
@@ -58,13 +62,11 @@ export const App = () => {
   }, []);
 
   // Handle app state changes (background/foreground)
+  // NOTA: El refresh automático de tokens ahora se maneja en useTokenRefresh hook
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
         console.log('📱 App has come to the foreground!');
-        // REMOVED: Proactive token refresh on foreground to prevent race conditions
-        // Token refresh will happen automatically on 401 errors when making API calls
-        // This prevents unnecessary refresh calls when the app comes to foreground
       } else if (nextAppState.match(/inactive|background/)) {
         console.log('📱 App has gone to the background');
         // App is going to background - state is already persisted by navigation

@@ -348,12 +348,13 @@ class PurchasesService {
    * @param purchaseId - ID of the purchase
    */
   async downloadPurchaseReportPdf(purchaseId: string): Promise<Blob> {
+    // Ensure token is fresh before downloading PDF
+    const { ensureFreshTokenForFileOperation } = await import('@/utils/tokenHelpers');
+    await ensureFreshTokenForFileOperation('Purchase Report PDF Download');
+
     // Get fresh token and context
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
-
-    // REMOVED: Proactive token refresh to prevent race conditions
-    // Token refresh will happen automatically on 401 errors via apiClient interceptor
 
     const token = authStore.token;
     const userId = authStore.user?.id;

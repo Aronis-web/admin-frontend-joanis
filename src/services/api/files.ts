@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 import { config } from '@/utils/config';
 import * as FileSystem from 'expo-file-system/legacy';
+import { ensureFreshTokenForFileOperation } from '@/utils/tokenHelpers';
 
 export interface UploadResponse {
   url: string;
@@ -266,6 +267,9 @@ export const filesApi = {
    * Returns a complete signed URL with JWT token
    */
   getPrivateFileUrl: async (fileId: string): Promise<string> => {
+    // Ensure token is fresh before requesting signed URL
+    await ensureFreshTokenForFileOperation('Get Private File URL');
+
     // Normalize path separators
     const normalizedPath = fileId.replace(/\\/g, '/');
 

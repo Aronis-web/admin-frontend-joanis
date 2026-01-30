@@ -508,6 +508,10 @@ export const productsApi = {
 
   // Download bulk upload template - GET /admin/products/bulk/template
   downloadBulkTemplate: async (): Promise<Blob> => {
+    // Ensure token is fresh before downloading template
+    const { ensureFreshTokenForFileOperation } = await import('@/utils/tokenHelpers');
+    await ensureFreshTokenForFileOperation('Bulk Template Download');
+
     return apiClient.get('/admin/products/bulk/template', {
       responseType: 'blob',
     });
@@ -607,6 +611,10 @@ export const productsApi = {
     fromDate?: string;
     toDate?: string;
   }): Promise<Blob> => {
+    // Ensure token is fresh before downloading update format
+    const { ensureFreshTokenForFileOperation } = await import('@/utils/tokenHelpers');
+    await ensureFreshTokenForFileOperation('Bulk Update Format Download');
+
     return apiClient.post('/admin/products/bulk/download-update-format', filters, {
       responseType: 'blob',
     });
