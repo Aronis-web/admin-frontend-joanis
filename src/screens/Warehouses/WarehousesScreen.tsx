@@ -414,6 +414,17 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
           </View>
         </View>
       </Modal>
+
+      {/* Floating Action Button */}
+      <ProtectedElement requiredPermissions={[PERMISSIONS.WAREHOUSES.CREATE]} fallback={null}>
+        <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={() => setShowCreateModal(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.floatingButtonIcon}>+</Text>
+        </TouchableOpacity>
+      </ProtectedElement>
     </SafeAreaView>
   );
 };
@@ -700,6 +711,32 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    zIndex: 1000,
+  },
+  floatingButtonIcon: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    lineHeight: 32,
   },
 });
 
