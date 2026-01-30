@@ -12,17 +12,20 @@ import {
   Dimensions,
   Share,
   Platform,
+  TextInput,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Product } from '@/services/api/products';
 import { filesApi } from '@/services/api/files';
 import { productsApi } from '@/services/api/products';
 import { priceProfilesApi } from '@/services/api/price-profiles';
+import { googleLensApi, GoogleLensResult, GoogleLensPrice, ImageQualityAnalysis } from '@/services/api/google-lens';
 import { validateImageFile } from '@/utils/fileHelpers';
 
 // Conditional imports for optional features
 let ViewShot: any = null;
 let FileSystem: any = null;
+let Sharing: any = null;
 
 try {
   ViewShot = require('react-native-view-shot').default;
@@ -31,9 +34,15 @@ try {
 }
 
 try {
-  FileSystem = require('expo-file-system');
+  FileSystem = require('expo-file-system/legacy');
 } catch (e) {
   console.log('expo-file-system not installed');
+}
+
+try {
+  Sharing = require('expo-sharing');
+} catch (e) {
+  console.log('expo-sharing not installed');
 }
 
 interface ProductImagesModalProps {
@@ -55,6 +64,10 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
   onSuccess,
   product,
 }) => {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'gallery' | 'lens' | 'promo'>('gallery');
+
+  // Gallery tab states
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -62,6 +75,16 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
   const [newImages, setNewImages] = useState<
     Array<{ uri: string; filename: string; mimeType?: string }>
   >([]);
+
+  // Google Lens tab states
+  const [lensSearching, setLensSearching] = useState(false);
+  const [lensResults, setLensResults] = useState<GoogleLensResult[]>([]);
+  const [lensImageUrl, setLensImageUrl] = useState('');
+  const [selectedLensImage, setSelectedLensImage] = useState<GoogleLensResult | null>(null);
+  const [imageQuality, setImageQuality] = useState<ImageQualityAnalysis | null>(null);
+  const [showQualityModal, setShowQualityModal] = useState(false);
+
+  // Promo editor states
   const [generatingPromo, setGeneratingPromo] = useState(false);
   const [showPromoPreview, setShowPromoPreview] = useState(false);
   const [selectedImageForPromo, setSelectedImageForPromo] = useState<ProductImage | null>(null);
@@ -152,7 +175,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
-        quality: 0.8,
+        quality: 1,
       });
 
       if (!result.canceled && result.assets) {
@@ -188,7 +211,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
     try {
       const result = await ImagePicker.launchCameraAsync({
-        quality: 0.8,
+        quality: 1,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
@@ -281,6 +304,13 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
       // Clear new images and reload product images
       setNewImages([]);
+
+      // Force reload with a small delay to ensure backend has processed the files
+      setTimeout(async () => {
+        await loadProductImages();
+      }, 500);
+
+      // Also reload immediately
       await loadProductImages();
 
       Alert.alert('Éxito', `${newImages.length} imagen(es) subida(s) correctamente`);
@@ -295,10 +325,10 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
   // Generate promotional image with prices
   const handleGeneratePromoImage = async (image: ProductImage) => {
-    if (!ViewShot || !MediaLibrary) {
+    if (!ViewShot || !FileSystem || !Sharing) {
       Alert.alert(
         'Funcionalidad no disponible',
-        'Para usar esta función, instala las dependencias:\n\nnpx expo install expo-media-library react-native-view-shot'
+        'Para usar esta función, instala las dependencias:\n\nnpx expo install expo-file-system react-native-view-shot expo-sharing'
       );
       return;
     }
@@ -333,10 +363,10 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
   // Capture and save promotional image
   const handleSavePromoImage = async () => {
-    if (!ViewShot || !FileSystem) {
+    if (!ViewShot || !FileSystem || !Sharing) {
       Alert.alert(
         'Error',
-        'Dependencias no instaladas. Instala: expo-file-system y react-native-view-shot'
+        'Dependencias no instaladas. Instala: expo-file-system, react-native-view-shot y expo-sharing'
       );
       return;
     }
@@ -358,16 +388,23 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
           to: fileUri,
         });
 
-        // Share the image (user can save to gallery from share menu)
-        const shareResult = await Share.share({
-          url: fileUri,
-          message: `Imagen promocional de ${product.title}`,
-        });
+        console.log('📸 Promo image saved to:', fileUri);
 
-        if (shareResult.action === Share.sharedAction) {
-          Alert.alert('Éxito', 'Imagen compartida. Puedes guardarla desde el menú de compartir.');
+        // Check if sharing is available
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (!isAvailable) {
+          Alert.alert('Error', 'La función de compartir no está disponible en este dispositivo');
+          return;
         }
 
+        // Share the image file
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'image/jpeg',
+          dialogTitle: `Imagen promocional de ${product.title}`,
+          UTI: 'public.jpeg',
+        });
+
+        Alert.alert('Éxito', 'Imagen compartida. Puedes guardarla desde el menú de compartir.');
         setShowPromoPreview(false);
         setSelectedImageForPromo(null);
       }
@@ -385,8 +422,147 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
     return `${symbol} ${amount.toFixed(2)}`;
   };
 
+  const formatLensPrice = (price: string | GoogleLensPrice | undefined): string | null => {
+    if (!price) return null;
+
+    // If it's already a string, return it
+    if (typeof price === 'string') {
+      return price;
+    }
+
+    // If it's an object with value property
+    if (typeof price === 'object' && 'value' in price) {
+      return price.value;
+    }
+
+    return null;
+  };
+
+  // Google Lens functions
+  const handleLensSearchByUpload = async () => {
+    try {
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) return;
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        setLensSearching(true);
+
+        try {
+          const response = await googleLensApi.searchByUpload(
+            asset.uri,
+            asset.fileName || 'search-image.jpg'
+          );
+
+          setLensResults([...response.results, ...response.visualMatches]);
+          Alert.alert('Éxito', `Se encontraron ${response.results.length + response.visualMatches.length} resultados`);
+        } catch (error: any) {
+          console.error('Error searching with Google Lens:', error);
+          Alert.alert('Error', error.message || 'No se pudo realizar la búsqueda');
+        } finally {
+          setLensSearching(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image for Lens:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+    }
+  };
+
+  const handleLensSearchByUrl = async () => {
+    if (!lensImageUrl.trim()) {
+      Alert.alert('Error', 'Por favor ingresa una URL de imagen');
+      return;
+    }
+
+    setLensSearching(true);
+    try {
+      const response = await googleLensApi.searchByUrl(lensImageUrl);
+      setLensResults([...response.results, ...response.visualMatches]);
+      Alert.alert('Éxito', `Se encontraron ${response.results.length + response.visualMatches.length} resultados`);
+    } catch (error: any) {
+      console.error('Error searching with Google Lens:', error);
+      Alert.alert('Error', error.message || 'No se pudo realizar la búsqueda');
+    } finally {
+      setLensSearching(false);
+    }
+  };
+
+  const handleLensSearchFromProductImage = async (image: ProductImage) => {
+    setLensSearching(true);
+    setActiveTab('lens');
+
+    try {
+      const response = await googleLensApi.searchByUrl(image.url);
+      setLensResults([...response.results, ...response.visualMatches]);
+      Alert.alert('Éxito', `Se encontraron ${response.results.length + response.visualMatches.length} resultados similares`);
+    } catch (error: any) {
+      console.error('Error searching with Google Lens:', error);
+      Alert.alert('Error', error.message || 'No se pudo realizar la búsqueda');
+    } finally {
+      setLensSearching(false);
+    }
+  };
+
+  const handleSelectLensImage = async (lensImage: GoogleLensResult) => {
+    try {
+      // Use the highest quality image available
+      // Priority: originalImage > image > thumbnail
+      const imageUri = lensImage.originalImage || lensImage.image || lensImage.thumbnail;
+
+      console.log('📥 Selecting Lens image:', {
+        thumbnail: lensImage.thumbnail,
+        image: lensImage.image,
+        originalImage: lensImage.originalImage,
+        selected: imageUri,
+      });
+
+      // Add to new images
+      const filename = `lens_${Date.now()}.jpg`;
+      setNewImages([
+        ...newImages,
+        {
+          uri: imageUri,
+          filename,
+          mimeType: 'image/jpeg',
+        },
+      ]);
+
+      // Switch to gallery tab to show the new image
+      setActiveTab('gallery');
+      Alert.alert('Éxito', 'Imagen de alta calidad agregada. Puedes subirla desde la pestaña Galería');
+    } catch (error: any) {
+      console.error('Error adding Lens image:', error);
+      Alert.alert('Error', error.message || 'No se pudo agregar la imagen');
+    }
+  };
+
+  const handleAnalyzeImageQuality = async (imageUrl: string) => {
+    try {
+      setLensSearching(true);
+      console.log('🔍 Analyzing image quality:', imageUrl);
+
+      const quality = await googleLensApi.analyzeImageQuality(imageUrl);
+
+      setImageQuality(quality);
+      setShowQualityModal(true);
+    } catch (error: any) {
+      console.error('Error analyzing image quality:', error);
+      Alert.alert('Error', error.message || 'No se pudo analizar la calidad de la imagen');
+    } finally {
+      setLensSearching(false);
+    }
+  };
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={false}>
+    <>
+      <Modal visible={visible} animationType="slide" transparent={false}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -397,6 +573,34 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
           <View style={styles.closeButton} />
         </View>
 
+        {/* Tabs */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'gallery' && styles.tabActive]}
+            onPress={() => setActiveTab('gallery')}
+          >
+            <Text style={[styles.tabText, activeTab === 'gallery' && styles.tabTextActive]}>
+              📸 Galería
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'lens' && styles.tabActive]}
+            onPress={() => setActiveTab('lens')}
+          >
+            <Text style={[styles.tabText, activeTab === 'lens' && styles.tabTextActive]}>
+              🔍 Google Lens
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'promo' && styles.tabActive]}
+            onPress={() => setActiveTab('promo')}
+          >
+            <Text style={[styles.tabText, activeTab === 'promo' && styles.tabTextActive]}>
+              🎨 Editor Promo
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <ScrollView style={styles.content}>
           {/* Product Info */}
           <View style={styles.productInfo}>
@@ -404,8 +608,11 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
             <Text style={styles.productSku}>SKU: {product.sku}</Text>
           </View>
 
-          {/* Existing Images Section */}
-          <View style={styles.section}>
+          {/* Gallery Tab */}
+          {activeTab === 'gallery' && (
+            <>
+              {/* Existing Images Section */}
+              <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               📸 Imágenes del Producto ({productImages.length})
             </Text>
@@ -433,6 +640,12 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                       </View>
                     )}
                     <View style={styles.imageActions}>
+                      <TouchableOpacity
+                        style={styles.lensButton}
+                        onPress={() => handleLensSearchFromProductImage(image)}
+                      >
+                        <Text style={styles.lensButtonText}>🔍</Text>
+                      </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.promoButton}
                         onPress={() => handleGeneratePromoImage(image)}
@@ -496,25 +709,168 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
             </View>
           )}
 
-          {/* Add Images Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>➕ Agregar Imágenes</Text>
+              {/* Add Images Section */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>➕ Agregar Imágenes</Text>
 
-            <View style={styles.imageButtonsContainer}>
-              <TouchableOpacity onPress={handlePickImages} style={styles.imageButton}>
-                <Text style={styles.imageButtonText}>📁 Galería</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleTakePhoto} style={styles.imageButton}>
-                <Text style={styles.imageButtonText}>📷 Cámara</Text>
-              </TouchableOpacity>
+                <View style={styles.imageButtonsContainer}>
+                  <TouchableOpacity onPress={handlePickImages} style={styles.imageButton}>
+                    <Text style={styles.imageButtonText}>📁 Galería</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleTakePhoto} style={styles.imageButton}>
+                    <Text style={styles.imageButtonText}>📷 Cámara</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.infoText}>
+                  💡 Selecciona imágenes de la galería o toma fotos con la cámara. Las imágenes
+                  seleccionadas aparecerán en la sección "Nuevas Imágenes" y deberás subirlas
+                  manualmente.
+                </Text>
+              </View>
+            </>
+          )}
+
+          {/* Google Lens Tab */}
+          {activeTab === 'lens' && (
+            <>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>🔍 Buscar con Google Lens</Text>
+
+                <View style={styles.lensSearchContainer}>
+                  <TextInput
+                    style={styles.lensUrlInput}
+                    placeholder="URL de imagen (opcional)"
+                    value={lensImageUrl}
+                    onChangeText={setLensImageUrl}
+                    placeholderTextColor="#94A3B8"
+                  />
+                  <TouchableOpacity
+                    onPress={handleLensSearchByUrl}
+                    style={[styles.lensSearchButton, lensSearching && styles.buttonDisabled]}
+                    disabled={lensSearching}
+                  >
+                    <Text style={styles.lensSearchButtonText}>Buscar por URL</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.imageButtonsContainer}>
+                  <TouchableOpacity
+                    onPress={handleLensSearchByUpload}
+                    style={[styles.imageButton, lensSearching && styles.buttonDisabled]}
+                    disabled={lensSearching}
+                  >
+                    <Text style={styles.imageButtonText}>📁 Buscar desde Galería</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.infoText}>
+                  💡 Busca productos similares usando Google Lens. Puedes subir una imagen o
+                  proporcionar una URL.
+                </Text>
+              </View>
+
+              {lensSearching && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#3B82F6" />
+                  <Text style={styles.loadingText}>Buscando con Google Lens...</Text>
+                </View>
+              )}
+
+              {lensResults.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>
+                    🎯 Resultados ({lensResults.length})
+                  </Text>
+
+                  <View style={styles.imagesGrid}>
+                    {lensResults.map((result, index) => {
+                      const formattedPrice = formatLensPrice(result.price);
+                      const imageUri = result.originalImage || result.image || result.thumbnail;
+                      return (
+                        <View key={index} style={styles.lensResultCard}>
+                          <Image
+                            source={{ uri: result.thumbnail }}
+                            style={styles.image}
+                            resizeMode="cover"
+                          />
+                          <View style={styles.lensResultInfo}>
+                            <Text style={styles.lensResultTitle} numberOfLines={2}>
+                              {result.title}
+                            </Text>
+                            {formattedPrice && (
+                              <Text style={styles.lensResultPrice}>{formattedPrice}</Text>
+                            )}
+                            <Text style={styles.lensResultSource} numberOfLines={1}>
+                              {result.source}
+                            </Text>
+                          </View>
+                          <View style={styles.lensResultActions}>
+                            <TouchableOpacity
+                              style={styles.lensAnalyzeButton}
+                              onPress={() => handleAnalyzeImageQuality(imageUri)}
+                            >
+                              <Text style={styles.lensAnalyzeButtonText}>📊</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.lensSelectButton}
+                              onPress={() => handleSelectLensImage(result)}
+                            >
+                              <Text style={styles.lensSelectButtonText}>✓ Usar</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            </>
+          )}
+
+          {/* Promo Editor Tab */}
+          {activeTab === 'promo' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🎨 Editor de Imágenes Promocionales</Text>
+
+              {productImages.length === 0 ? (
+                <View style={styles.noImagesContainer}>
+                  <Text style={styles.noImagesText}>📦 No hay imágenes</Text>
+                  <Text style={styles.noImagesSubtext}>
+                    Primero agrega imágenes en la pestaña Galería
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.infoText}>
+                    💡 Selecciona una imagen para crear una versión promocional con precios
+                  </Text>
+
+                  <View style={styles.imagesGrid}>
+                    {productImages.map((image, index) => (
+                      <View key={image.filename} style={styles.imageCard}>
+                        <Image source={{ uri: image.url }} style={styles.image} resizeMode="cover" />
+                        {index === 0 && (
+                          <View style={styles.mainImageBadge}>
+                            <Text style={styles.mainImageBadgeText}>Principal</Text>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          style={styles.promoEditButton}
+                          onPress={() => handleGeneratePromoImage(image)}
+                        >
+                          <Text style={styles.promoEditButtonText}>🎨 Editar</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.imageFilename} numberOfLines={1}>
+                          {image.filename}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
             </View>
-
-            <Text style={styles.infoText}>
-              💡 Selecciona imágenes de la galería o toma fotos con la cámara. Las imágenes
-              seleccionadas aparecerán en la sección "Nuevas Imágenes" y deberás subirlas
-              manualmente.
-            </Text>
-          </View>
+          )}
         </ScrollView>
 
         {/* Footer */}
@@ -808,7 +1164,113 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
           </View>
         </View>
       </Modal>
+
+    {/* Image Quality Analysis Modal */}
+    <Modal visible={showQualityModal} animationType="fade" transparent={true}>
+        <View style={styles.qualityModalOverlay}>
+          <View style={styles.qualityModalContainer}>
+            <View style={styles.qualityModalHeader}>
+              <Text style={styles.qualityModalTitle}>📊 Análisis de Calidad de Imagen</Text>
+              <TouchableOpacity
+                onPress={() => setShowQualityModal(false)}
+                style={styles.qualityModalCloseButton}
+              >
+                <Text style={styles.qualityModalCloseButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.qualityModalContent}
+              showsVerticalScrollIndicator={true}
+            >
+              {imageQuality && (
+                <>
+                  {/* Quality Badge */}
+                  <View style={[
+                    styles.qualityBadgeLarge,
+                    imageQuality.quality === 'excellent' && styles.qualityExcellent,
+                    imageQuality.quality === 'high' && styles.qualityHigh,
+                    imageQuality.quality === 'medium' && styles.qualityMedium,
+                    imageQuality.quality === 'low' && styles.qualityLow,
+                  ]}>
+                    <Text style={styles.qualityBadgeLargeText}>
+                      {imageQuality.quality === 'excellent' && '⭐ Calidad Excelente'}
+                      {imageQuality.quality === 'high' && '✅ Calidad Alta'}
+                      {imageQuality.quality === 'medium' && '⚠️ Calidad Media'}
+                      {imageQuality.quality === 'low' && '❌ Calidad Baja'}
+                    </Text>
+                  </View>
+
+                  {/* Specifications */}
+                  <View style={styles.qualitySection}>
+                    <Text style={styles.qualitySectionTitle}>📐 Especificaciones</Text>
+                    <View style={styles.qualityRow}>
+                      <Text style={styles.qualityLabel}>Resolución:</Text>
+                      <Text style={styles.qualityValue}>{imageQuality.width} x {imageQuality.height} px</Text>
+                    </View>
+                    <View style={styles.qualityRow}>
+                      <Text style={styles.qualityLabel}>Megapíxeles:</Text>
+                      <Text style={styles.qualityValue}>{imageQuality.megapixels.toFixed(2)} MP</Text>
+                    </View>
+                    <View style={styles.qualityRow}>
+                      <Text style={styles.qualityLabel}>Formato:</Text>
+                      <Text style={styles.qualityValue}>{imageQuality.format.toUpperCase()}</Text>
+                    </View>
+                    <View style={styles.qualityRow}>
+                      <Text style={styles.qualityLabel}>Tamaño:</Text>
+                      <Text style={styles.qualityValue}>{imageQuality.sizeMB.toFixed(2)} MB ({imageQuality.sizeBytes.toLocaleString()} bytes)</Text>
+                    </View>
+                    <View style={styles.qualityRow}>
+                      <Text style={styles.qualityLabel}>Aspecto:</Text>
+                      <Text style={styles.qualityValue}>{imageQuality.aspectRatio}</Text>
+                    </View>
+                  </View>
+
+                  {/* Suitability */}
+                  <View style={styles.qualitySection}>
+                    <Text style={styles.qualitySectionTitle}>✓ Idoneidad</Text>
+                    <View style={styles.qualityRow}>
+                      <Text style={styles.qualityLabel}>Para búsqueda:</Text>
+                      <Text style={[styles.qualityValue, imageQuality.isGoodForSearch ? styles.qualityGood : styles.qualityBad]}>
+                        {imageQuality.isGoodForSearch ? '✅ Sí' : '❌ No'}
+                      </Text>
+                    </View>
+                    <View style={styles.qualityRow}>
+                      <Text style={styles.qualityLabel}>Para e-commerce:</Text>
+                      <Text style={[styles.qualityValue, imageQuality.isGoodForEcommerce ? styles.qualityGood : styles.qualityBad]}>
+                        {imageQuality.isGoodForEcommerce ? '✅ Sí' : '❌ No'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Recommendations */}
+                  {imageQuality.recommendations.length > 0 && (
+                    <View style={styles.qualitySection}>
+                      <Text style={styles.qualitySectionTitle}>💡 Recomendaciones</Text>
+                      {imageQuality.recommendations.map((rec, index) => (
+                        <Text key={index} style={styles.qualityRecommendation}>
+                          {rec}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </>
+              )}
+            </ScrollView>
+
+            <View style={styles.qualityModalFooter}>
+              <TouchableOpacity
+                onPress={() => setShowQualityModal(false)}
+                style={styles.qualityModalCloseButtonBottom}
+              >
+                <Text style={styles.qualityModalCloseButtonBottomText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Modal>
+    </>
   );
 };
 
@@ -1338,6 +1800,306 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeButtonBottomText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Tabs styles
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: '#3B82F6',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  tabTextActive: {
+    color: '#3B82F6',
+  },
+  // Google Lens styles
+  lensSearchContainer: {
+    marginBottom: 12,
+  },
+  lensUrlInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  lensSearchButton: {
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  lensSearchButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  lensResultCard: {
+    width: '48%',
+    marginHorizontal: '1%',
+    marginBottom: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  lensResultInfo: {
+    padding: 8,
+  },
+  lensResultTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  lensResultPrice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#10B981',
+    marginBottom: 4,
+  },
+  lensResultSource: {
+    fontSize: 10,
+    color: '#64748B',
+  },
+  lensResultActions: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  lensAnalyzeButton: {
+    flex: 1,
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  lensAnalyzeButtonText: {
+    fontSize: 16,
+  },
+  lensSelectButton: {
+    flex: 2,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  lensSelectButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  lensButton: {
+    backgroundColor: '#8B5CF6',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lensButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  promoEditButton: {
+    position: 'absolute',
+    bottom: 30,
+    left: 8,
+    right: 8,
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  promoEditButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  // Image Quality Analysis styles
+  qualityBadgeContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  qualityBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  qualityExcellent: {
+    backgroundColor: '#10B981',
+  },
+  qualityHigh: {
+    backgroundColor: '#3B82F6',
+  },
+  qualityMedium: {
+    backgroundColor: '#F59E0B',
+  },
+  qualityLow: {
+    backgroundColor: '#EF4444',
+  },
+  qualityBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  qualitySummary: {
+    marginTop: 4,
+  },
+  qualitySummaryText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  qualityTapText: {
+    fontSize: 12,
+    color: '#8B5CF6',
+    fontWeight: '600',
+  },
+  // Quality Modal styles
+  qualityModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  qualityModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: Dimensions.get('window').width * 0.95,
+    height: Dimensions.get('window').height * 0.85,
+    maxWidth: 600,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  qualityModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  qualityModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    flex: 1,
+  },
+  qualityModalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qualityModalCloseButtonText: {
+    fontSize: 20,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  qualityModalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  qualityBadgeLarge: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  qualityBadgeLargeText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  qualitySection: {
+    marginBottom: 20,
+  },
+  qualitySectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  qualityRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  qualityLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    flex: 1,
+  },
+  qualityValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    flex: 1,
+    textAlign: 'right',
+  },
+  qualityGood: {
+    color: '#10B981',
+  },
+  qualityBad: {
+    color: '#EF4444',
+  },
+  qualityRecommendation: {
+    fontSize: 14,
+    color: '#64748B',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  qualityModalFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  qualityModalCloseButtonBottom: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  qualityModalCloseButtonBottomText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
