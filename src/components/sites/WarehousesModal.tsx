@@ -160,21 +160,21 @@ export const WarehousesModal: React.FC<WarehousesModalProps> = ({
               <Text style={styles.closeActionButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Floating Action Button */}
-          <ProtectedElement requiredPermissions={['inventory.warehouses.create']} fallback={null}>
-            <TouchableOpacity
-              style={styles.floatingButton}
-              onPress={() => {
-                console.log('🔵 Floating button pressed - Creating warehouse');
-                onCreateWarehouse();
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.floatingButtonIcon}>+</Text>
-            </TouchableOpacity>
-          </ProtectedElement>
         </View>
+
+        {/* Floating Action Button - Outside modalContent */}
+        <ProtectedElement requiredPermissions={['inventory.warehouses.create']} fallback={null}>
+          <TouchableOpacity
+            style={styles.floatingButton}
+            onPress={() => {
+              console.log('🔵 Floating button pressed - Creating warehouse');
+              onCreateWarehouse();
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.floatingButtonIcon}>+</Text>
+          </TouchableOpacity>
+        </ProtectedElement>
       </View>
     </Modal>
   );
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   },
   floatingButton: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 100,
     right: 24,
     width: 60,
     height: 60,
@@ -377,6 +377,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
+    zIndex: 1000,
   },
   floatingButtonIcon: {
     fontSize: 32,

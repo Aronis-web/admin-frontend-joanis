@@ -179,14 +179,6 @@ export const WarehouseDetailModal: React.FC<WarehouseDetailModalProps> = ({
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Áreas del Almacén</Text>
-                <ProtectedElement requiredPermissions={['inventory.areas.create']} fallback={null}>
-                  <TouchableOpacity
-                    style={styles.addAreaButton}
-                    onPress={() => onCreateArea(warehouse)}
-                  >
-                    <Text style={styles.addAreaButtonText}>+ Agregar</Text>
-                  </TouchableOpacity>
-                </ProtectedElement>
               </View>
 
               {loading ? (
@@ -258,6 +250,20 @@ export const WarehouseDetailModal: React.FC<WarehouseDetailModalProps> = ({
             </ProtectedElement>
           </View>
         </View>
+
+        {/* Floating Action Button - Outside modalContent */}
+        <ProtectedElement requiredPermissions={['inventory.areas.create']} fallback={null}>
+          <TouchableOpacity
+            style={styles.floatingButton}
+            onPress={() => {
+              console.log('🔵 Floating button pressed - Creating area');
+              onCreateArea(warehouse);
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.floatingButtonIcon}>+</Text>
+          </TouchableOpacity>
+        </ProtectedElement>
       </View>
     </Modal>
   );
@@ -345,17 +351,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1E293B',
-  },
-  addAreaButton: {
-    backgroundColor: '#3B82F6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  addAreaButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   sectionContent: {
     backgroundColor: '#F8FAFC',
@@ -494,6 +489,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 100,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    zIndex: 1000,
+  },
+  floatingButtonIcon: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    lineHeight: 32,
   },
 });
 
