@@ -13,10 +13,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
+import { filesApi } from '@/services/api/files';
 
 interface ImageViewerModalProps {
   visible: boolean;
-  imageUrl: string | null;
+  imageUrl?: string | null; // Deprecated: use fileId instead
+  fileId?: string | null; // Preferred: generates fresh signed URL
   fileName?: string;
   onClose: () => void;
 }
@@ -26,6 +28,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
   visible,
   imageUrl,
+  fileId,
   fileName,
   onClose,
 }) => {
@@ -34,14 +37,39 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
   const [imageData, setImageData] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (visible && imageUrl) {
+    if (visible && (imageUrl || fileId)) {
       setLoading(true);
       setError(false);
-      loadImageWithHeaders(imageUrl);
+      loadImage();
     } else {
       setImageData(null);
     }
-  }, [visible, imageUrl]);
+  }, [visible, imageUrl, fileId]);
+
+  const loadImage = async () => {
+    try {
+      let url: string;
+
+      // If fileId is provided, generate a fresh signed URL
+      if (fileId) {
+        console.log('🔄 Generating fresh signed URL for fileId:', fileId);
+        url = await filesApi.getPrivateFileUrl(fileId);
+        console.log('✅ Fresh signed URL generated');
+      } else if (imageUrl) {
+        // Fallback to imageUrl if provided (legacy support)
+        console.log('⚠️ Using pre-generated imageUrl (may expire)');
+        url = imageUrl;
+      } else {
+        throw new Error('No fileId or imageUrl provided');
+      }
+
+      await loadImageWithHeaders(url);
+    } catch (err) {
+      console.error('❌ Error loading image:', err);
+      setError(true);
+      setLoading(false);
+    }
+  };
 
   const loadImageWithHeaders = async (url: string) => {
     try {
@@ -143,10 +171,10 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={() => {
-                  if (imageUrl) {
+                  if (imageUrl || fileId) {
                     setError(false);
                     setLoading(true);
-                    loadImageWithHeaders(imageUrl);
+                    loadImage();
                   }
                 }}
               >
@@ -157,7 +185,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
           {!loading && !error && imageData && (
             <Image source={{ uri: imageData }} style={styles.image} resizeMode="contain" />
           )}
-          {!loading && !error && !imageData && !imageUrl && (
+          {!loading && !error && !imageData && !imageUrl && !fileId && (
             <View style={styles.errorContainer}>
               <Ionicons name="image-outline" size={64} color="#94A3B8" />
               <Text style={styles.errorText}>No hay imagen disponible</Text>

@@ -20,7 +20,7 @@ interface PaymentCardProps {
 
 export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onViewAttachment }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{ url: string; fileName: string } | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ fileId: string; fileName: string } | null>(null);
   console.log('💳 PaymentCard rendering with payment:', {
     id: payment.id,
     paymentNumber: (payment as any).paymentNumber,
@@ -114,8 +114,9 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
 
       if (isImage) {
         // Abrir imagen en modal dentro de la app
-        console.log('✅ PaymentCard - Opening image in modal');
-        setSelectedImage({ url, fileName });
+        // Pasar fileId en lugar de URL para que el modal genere una URL firmada fresca
+        console.log('✅ PaymentCard - Opening image in modal with fileId:', attachment.fileId);
+        setSelectedImage({ fileId: attachment.fileId, fileName });
         setImageViewerVisible(true);
       } else {
         // Para PDFs y otros archivos, mostrar alerta con opción de abrir externamente
@@ -324,7 +325,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
         {/* Image Viewer Modal */}
         <ImageViewerModal
           visible={imageViewerVisible}
-          imageUrl={selectedImage?.url || null}
+          fileId={selectedImage?.fileId || null}
           fileName={selectedImage?.fileName}
           onClose={() => {
             setImageViewerVisible(false);
