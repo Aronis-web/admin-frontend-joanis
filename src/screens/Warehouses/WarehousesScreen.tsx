@@ -260,7 +260,6 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
   }
 
   return (
-    <>
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
@@ -320,10 +319,18 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
           Total: {filteredWarehouses.length} almacén{filteredWarehouses.length !== 1 ? 'es' : ''}
         </Text>
       </View>
-    </SafeAreaView>
 
-    {/* Create Warehouse Modal - Outside SafeAreaView */}
-    <Modal visible={showCreateModal} animationType="slide" transparent>
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => setShowCreateModal(true)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.floatingButtonIcon}>+</Text>
+      </TouchableOpacity>
+
+      {/* Create Warehouse Modal */}
+      <Modal visible={showCreateModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Nuevo Almacén</Text>
@@ -369,8 +376,8 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
         </View>
       </Modal>
 
-    {/* Edit Warehouse Modal - Outside SafeAreaView */}
-    <Modal visible={showEditModal} animationType="slide" transparent>
+      {/* Edit Warehouse Modal */}
+      <Modal visible={showEditModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Editar Almacén</Text>
@@ -416,16 +423,7 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
           </View>
         </View>
       </Modal>
-
-    {/* Floating Action Button - After all modals */}
-    <TouchableOpacity
-      style={styles.floatingButton}
-      onPress={() => setShowCreateModal(true)}
-      activeOpacity={0.8}
-    >
-      <Text style={styles.floatingButtonIcon}>+</Text>
-    </TouchableOpacity>
-    </>
+    </SafeAreaView>
   );
 };
 
@@ -714,23 +712,19 @@ const styles = StyleSheet.create({
   },
   floatingButton: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    right: 20,
+    bottom: 90,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 999,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    zIndex: 9999,
+    shadowRadius: 8,
+    elevation: 6,
   },
   floatingButtonIcon: {
     fontSize: 32,
