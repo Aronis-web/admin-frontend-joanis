@@ -779,7 +779,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalBody}>
+          <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
             {adjustedDistribution && (
               <>
                 {/* Información del Producto */}
@@ -1292,6 +1292,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    overflow: 'hidden',
   },
   modalContentTablet: {
     width: '70%',
@@ -1320,7 +1321,10 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     flex: 1,
+  },
+  modalBodyContent: {
     padding: 20,
+    flexGrow: 1,
   },
   modalFooter: {
     flexDirection: 'row',
