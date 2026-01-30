@@ -162,19 +162,17 @@ export const WarehousesModal: React.FC<WarehousesModalProps> = ({
           </View>
         </View>
 
-        {/* Floating Action Button - Outside modalContent */}
-        <ProtectedElement requiredPermissions={['inventory.warehouses.create']} fallback={null}>
-          <TouchableOpacity
-            style={styles.floatingButton}
-            onPress={() => {
-              console.log('🔵 Floating button pressed - Creating warehouse');
-              onCreateWarehouse();
-            }}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.floatingButtonIcon}>+</Text>
-          </TouchableOpacity>
-        </ProtectedElement>
+        {/* Floating Action Button - Outside modalContent, always visible */}
+        <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={() => {
+            console.log('🔵 Floating button pressed - Creating warehouse');
+            onCreateWarehouse();
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.floatingButtonIcon}>+</Text>
+        </TouchableOpacity>
       </View>
     </Modal>
   );
