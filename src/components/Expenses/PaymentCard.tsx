@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -9,6 +9,7 @@ import {
   PaymentMethodLabels,
 } from '@/types/expenses';
 import { PaymentStatusBadge } from './PaymentStatusBadge';
+import { ImageViewerModal } from './ImageViewerModal';
 import { filesApi } from '@/services/api';
 
 interface PaymentCardProps {
@@ -18,6 +19,8 @@ interface PaymentCardProps {
 }
 
 export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onViewAttachment }) => {
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; fileName: string } | null>(null);
   console.log('💳 PaymentCard rendering with payment:', {
     id: payment.id,
     paymentNumber: (payment as any).paymentNumber,
@@ -72,7 +75,9 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
         hasOnViewAttachment: !!onViewAttachment,
       });
 
-      // Agregar la URL al attachment antes de pasarlo
+      const fileName = attachment.fileName || 'Archivo';
+
+      // Generar URL firmada
       let url: string;
       try {
         url = await getAttachmentUrl(attachment);
@@ -88,35 +93,46 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
         url,
       };
 
-      console.log('🔗 PaymentCard - Generated attachment with URL:', {
-        fileId: attachment.fileId,
-        url: attachmentWithUrl.url,
-        fileName: attachment.fileName,
-      });
-
+      // Si hay callback, usarlo
       if (onViewAttachment) {
         console.log('✅ PaymentCard - Calling onViewAttachment callback');
         onViewAttachment(attachmentWithUrl);
         return;
       }
 
-      // Fallback: open URL directly
-      if (!url) {
-        console.error('❌ PaymentCard - No URL found');
-        Alert.alert('Error', 'No se encontró la URL del archivo');
-        return;
-      }
+      // Determinar si es imagen
+      const isImage =
+        attachment.mimeType?.startsWith('image/') ||
+        attachment.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
 
-      console.log('📂 PaymentCard - Opening attachment directly:', {
-        fileName: attachment.fileName,
+      console.log('🖼️ PaymentCard - Opening attachment:', {
+        fileName,
         url,
+        isImage,
+        mimeType: attachment.mimeType,
       });
 
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
+      if (isImage) {
+        // Abrir imagen en modal dentro de la app
+        console.log('✅ PaymentCard - Opening image in modal');
+        setSelectedImage({ url, fileName });
+        setImageViewerVisible(true);
       } else {
-        Alert.alert('Error', 'No se pudo abrir el archivo');
+        // Para PDFs y otros archivos, mostrar alerta con opción de abrir externamente
+        Alert.alert('Abrir Archivo', `¿Deseas abrir ${fileName}?`, [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Abrir',
+            onPress: async () => {
+              const canOpen = await Linking.canOpenURL(url);
+              if (canOpen) {
+                await Linking.openURL(url);
+              } else {
+                Alert.alert('Error', 'No se pudo abrir el archivo');
+              }
+            },
+          },
+        ]);
       }
     } catch (error) {
       console.error('❌ PaymentCard - Error in handleViewAttachment:', error);
@@ -304,6 +320,17 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
             </View>
           )}
         </View>
+
+        {/* Image Viewer Modal */}
+        <ImageViewerModal
+          visible={imageViewerVisible}
+          imageUrl={selectedImage?.url || null}
+          fileName={selectedImage?.fileName}
+          onClose={() => {
+            setImageViewerVisible(false);
+            setSelectedImage(null);
+          }}
+        />
       </CardWrapper>
     );
   } catch (error) {
