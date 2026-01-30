@@ -78,15 +78,24 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   // ✅ React Query: Reemplaza loadProducts() con caché automático
   // Ahora incluye búsqueda del lado del servidor y carga de imágenes
   const filters = useMemo(
-    () => ({
-      page,
-      limit,
-      ...(statusFilter !== 'all' && { status: statusFilter }),
-      ...(debouncedSearchQuery.trim() && { q: debouncedSearchQuery.trim() }),
-      include: 'images', // ✅ Incluir imágenes en la respuesta
-      sortBy: 'correlativeNumber', // ✅ Ordenar por número correlativo
-      sortOrder: 'desc', // ✅ De mayor a menor (descendente)
-    }),
+    () => {
+      const baseFilters: ProductFilters = {
+        page,
+        limit,
+        include: 'images',
+        sortBy: 'correlativeNumber',
+      };
+
+      if (statusFilter !== 'all') {
+        baseFilters.status = statusFilter;
+      }
+
+      if (debouncedSearchQuery.trim()) {
+        baseFilters.q = debouncedSearchQuery.trim();
+      }
+
+      return baseFilters;
+    },
     [page, statusFilter, debouncedSearchQuery]
   );
 
@@ -162,6 +171,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     switch (status) {
       case 'active':
         return '#10B981';
+      case 'preliminary':
+        return '#F59E0B';
       case 'draft':
         return '#F59E0B';
       case 'archived':
@@ -175,6 +186,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     switch (status) {
       case 'active':
         return 'Activo';
+      case 'preliminary':
+        return '⚠️ Preliminar';
       case 'draft':
         return 'Borrador';
       case 'archived':
@@ -578,9 +591,21 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                           💰 {product.salePrices.length} precios
                         </Text>
                       )}
-                      {product.stockItems && product.stockItems.length > 0 && (
+                      {/* Mostrar stock para productos activos */}
+                      {product.status !== 'preliminary' && product.stockItems && product.stockItems.length > 0 && (
                         <Text style={styles.productFooterText}>
                           📊 Stock en {product.stockItems.length} almacén(es)
+                        </Text>
+                      )}
+                      {/* Mostrar stock preliminar para productos preliminares */}
+                      {product.status === 'preliminary' && product.stock && (
+                        <Text style={styles.productFooterText}>
+                          📦 Stock preliminar: {product.stock.available || 0} unidades
+                        </Text>
+                      )}
+                      {product.status === 'preliminary' && product.preliminaryStock !== undefined && !product.stock && (
+                        <Text style={styles.productFooterText}>
+                          📦 Stock preliminar: {product.preliminaryStock} unidades
                         </Text>
                       )}
                     </View>
@@ -954,8 +979,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 </View>
               )}
 
-              {/* Stock */}
-              {viewProduct.stockItems && viewProduct.stockItems.length > 0 && (
+              {/* Stock para productos activos */}
+              {viewProduct.status !== 'preliminary' && viewProduct.stockItems && viewProduct.stockItems.length > 0 && (
                 <View style={styles.viewSection}>
                   <Text style={styles.viewSectionTitle}>
                     📊 Stock ({viewProduct.stockItems.length} ubicaciones)
@@ -980,6 +1005,53 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                       </View>
                     </View>
                   ))}
+                </View>
+              )}
+
+              {/* Stock preliminar para productos preliminares */}
+              {viewProduct.status === 'preliminary' && (viewProduct.stock || viewProduct.preliminaryStock !== undefined) && (
+                <View style={styles.viewSection}>
+                  <Text style={styles.viewSectionTitle}>
+                    📦 Stock Preliminar
+                  </Text>
+                  <View style={styles.stockViewCard}>
+                    <View style={styles.viewRow}>
+                      <Text style={styles.viewLabel}>Estado:</Text>
+                      <Text style={[styles.viewValue, { color: '#F59E0B' }]}>⚠️ Producto Preliminar (Por validar)</Text>
+                    </View>
+                    {viewProduct.stock && (
+                      <>
+                        <View style={styles.viewRow}>
+                          <Text style={styles.viewLabel}>Disponible:</Text>
+                          <Text style={[styles.viewValue, styles.stockQuantityHighlight]}>
+                            {viewProduct.stock.available} unidades
+                          </Text>
+                        </View>
+                        <View style={styles.viewRow}>
+                          <Text style={styles.viewLabel}>Total:</Text>
+                          <Text style={styles.viewValue}>
+                            {viewProduct.stock.total} unidades
+                          </Text>
+                        </View>
+                        {viewProduct.stock.reserved > 0 && (
+                          <View style={styles.viewRow}>
+                            <Text style={styles.viewLabel}>Reservado:</Text>
+                            <Text style={styles.viewValue}>
+                              {viewProduct.stock.reserved} unidades
+                            </Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+                    {!viewProduct.stock && viewProduct.preliminaryStock !== undefined && (
+                      <View style={styles.viewRow}>
+                        <Text style={styles.viewLabel}>Cantidad:</Text>
+                        <Text style={[styles.viewValue, styles.stockQuantityHighlight]}>
+                          {viewProduct.preliminaryStock} unidades
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               )}
 
