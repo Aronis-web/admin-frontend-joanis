@@ -3,11 +3,12 @@ import { useAuthStore } from '@/store/auth';
 
 /**
  * Hook to automatically refresh the session token before it expires
- * Refreshes the token automatically when 5 minutes or less remain
+ * Refreshes the token automatically when 10 minutes or less remain
+ * Checks every 30 seconds for better responsiveness
  */
 export const useSessionWarning = () => {
   const { tokenExpiresAt, isAuthenticated, refreshAccessToken } = useAuthStore();
-  const refreshedRef = useRef(false);
+  const lastRefreshAttemptRef = useRef<number>(0);
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -17,19 +18,27 @@ export const useSessionWarning = () => {
         clearInterval(checkIntervalRef.current);
         checkIntervalRef.current = null;
       }
-      refreshedRef.current = false;
+      lastRefreshAttemptRef.current = 0;
       return;
     }
 
-    // Check every minute if we should refresh the token
+    // Check every 30 seconds if we should refresh the token (more responsive than 1 minute)
     checkIntervalRef.current = setInterval(async () => {
       const now = Date.now();
       const timeUntilExpiry = tokenExpiresAt - now;
-      const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
+      const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+      const timeSinceLastRefresh = now - lastRefreshAttemptRef.current;
+      const minTimeBetweenRefreshes = 2 * 60 * 1000; // Don't refresh more than once every 2 minutes
 
-      // Auto-refresh token if less than 5 minutes remaining and hasn't been refreshed yet
-      if (timeUntilExpiry > 0 && timeUntilExpiry <= fiveMinutes && !refreshedRef.current) {
-        refreshedRef.current = true;
+      // Auto-refresh token if:
+      // 1. Less than 10 minutes remaining (increased from 5 for safety)
+      // 2. At least 2 minutes have passed since last refresh attempt
+      if (
+        timeUntilExpiry > 0 &&
+        timeUntilExpiry <= tenMinutes &&
+        timeSinceLastRefresh >= minTimeBetweenRefreshes
+      ) {
+        lastRefreshAttemptRef.current = now;
 
         const minutesRemaining = Math.ceil(timeUntilExpiry / 60000);
         console.log(
@@ -40,23 +49,19 @@ export const useSessionWarning = () => {
           const success = await refreshAccessToken();
           if (success) {
             console.log('✅ Token auto-refreshed successfully');
-            // Reset flag so it can refresh again later
-            refreshedRef.current = false;
           } else {
             console.error('❌ Token auto-refresh failed');
-            // Keep flag set to avoid repeated failed attempts
           }
         } catch (error) {
           console.error('❌ Error auto-refreshing token:', error);
-          // Keep flag set to avoid repeated failed attempts
         }
       }
 
-      // Reset refresh flag if token was refreshed externally (expiry time changed significantly)
-      if (timeUntilExpiry > fiveMinutes && refreshedRef.current) {
-        refreshedRef.current = false;
+      // Reset last refresh time if token was refreshed externally (expiry time changed significantly)
+      if (timeUntilExpiry > tenMinutes) {
+        lastRefreshAttemptRef.current = 0;
       }
-    }, 60000); // Check every minute
+    }, 30000); // Check every 30 seconds (more responsive than 60 seconds)
 
     // Cleanup interval on unmount
     return () => {

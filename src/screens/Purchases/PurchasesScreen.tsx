@@ -20,6 +20,7 @@ import {
   PurchaseStatusLabels,
   PurchaseStatusColors,
   QueryPurchasesParams,
+  DateFieldType,
 } from '@/types/purchases';
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -35,6 +36,8 @@ import { logger } from '@/utils/logger';
 import { CircularProgress } from '@/components/Repartos';
 import type { PurchaseValidationProgressResponse } from '@/types/purchases';
 import { usePermissions } from '@/hooks/usePermissions';
+import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import { Ionicons } from '@expo/vector-icons';
 
 interface PurchasesScreenProps {
   navigation: any;
@@ -49,6 +52,15 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   const [page, setPage] = useState(1);
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
   const [purchaseProgress, setPurchaseProgress] = useState<Map<string, PurchaseValidationProgressResponse>>(new Map());
+
+  // Date filter states
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [dateField, setDateField] = useState<DateFieldType>('guideDate');
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showDateFilters, setShowDateFilters] = useState(false);
+
   const limit = 20;
 
   const { currentCompany, currentSite } = useAuthStore();
@@ -76,8 +88,20 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
       params.search = debouncedSearchTerm;
     }
 
+    if (startDate) {
+      params.startDate = startDate;
+    }
+
+    if (endDate) {
+      params.endDate = endDate;
+    }
+
+    if (startDate || endDate) {
+      params.dateField = dateField;
+    }
+
     return params;
-  }, [page, limit, selectedStatus, debouncedSearchTerm]);
+  }, [page, limit, selectedStatus, debouncedSearchTerm, startDate, endDate, dateField]);
 
   // Fetch purchases with React Query
   const { data, isLoading, isRefetching, refetch } = usePurchases(queryParams);
@@ -152,6 +176,26 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
     setPage(1);
     refetch();
   }, [refetch]);
+
+  const handleClearDateFilters = useCallback(() => {
+    setStartDate('');
+    setEndDate('');
+    setPage(1);
+  }, []);
+
+  const handleStartDateConfirm = useCallback((date: Date) => {
+    const formattedDate = date.toISOString().split('T')[0];
+    setStartDate(formattedDate);
+    setShowStartDatePicker(false);
+    setPage(1);
+  }, []);
+
+  const handleEndDateConfirm = useCallback((date: Date) => {
+    const formattedDate = date.toISOString().split('T')[0];
+    setEndDate(formattedDate);
+    setShowEndDatePicker(false);
+    setPage(1);
+  }, []);
 
   const handlePreviousPage = useCallback(() => {
     if (page > 1) {
@@ -477,6 +521,146 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           style={styles.statusFilter}
         />
 
+        {/* Date Filters Toggle */}
+        <View style={styles.dateFilterToggleContainer}>
+          <TouchableOpacity
+            style={styles.dateFilterToggle}
+            onPress={() => setShowDateFilters(!showDateFilters)}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={showDateFilters ? 'calendar' : 'calendar-outline'}
+              size={20}
+              color="#6366F1"
+            />
+            <Text style={styles.dateFilterToggleText}>
+              {showDateFilters ? 'Ocultar Filtros de Fecha' : 'Filtrar por Fecha'}
+            </Text>
+            <Ionicons
+              name={showDateFilters ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color="#6366F1"
+            />
+          </TouchableOpacity>
+          {(startDate || endDate) && (
+            <TouchableOpacity
+              style={styles.clearDateButton}
+              onPress={handleClearDateFilters}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-circle" size={20} color="#EF4444" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Date Filters Panel */}
+        {showDateFilters && (
+          <View style={styles.dateFiltersPanel}>
+            {/* Date Field Selector */}
+            <View style={styles.dateFieldSelector}>
+              <Text style={styles.dateFieldLabel}>Filtrar por:</Text>
+              <View style={styles.dateFieldButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.dateFieldButton,
+                    dateField === 'guideDate' && styles.dateFieldButtonActive,
+                  ]}
+                  onPress={() => {
+                    setDateField('guideDate');
+                    setPage(1);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.dateFieldButtonText,
+                      dateField === 'guideDate' && styles.dateFieldButtonTextActive,
+                    ]}
+                  >
+                    Fecha de Guía
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.dateFieldButton,
+                    dateField === 'createdAt' && styles.dateFieldButtonActive,
+                  ]}
+                  onPress={() => {
+                    setDateField('createdAt');
+                    setPage(1);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.dateFieldButtonText,
+                      dateField === 'createdAt' && styles.dateFieldButtonTextActive,
+                    ]}
+                  >
+                    Fecha de Creación
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.dateFieldButton,
+                    dateField === 'closedAt' && styles.dateFieldButtonActive,
+                  ]}
+                  onPress={() => {
+                    setDateField('closedAt');
+                    setPage(1);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.dateFieldButtonText,
+                      dateField === 'closedAt' && styles.dateFieldButtonTextActive,
+                    ]}
+                  >
+                    Fecha de Cierre
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Date Range Pickers */}
+            <View style={styles.dateRangePickers}>
+              <View style={styles.datePickerWrapper}>
+                <DatePickerButton
+                  label="Fecha Inicial"
+                  value={startDate}
+                  onPress={() => setShowStartDatePicker(true)}
+                  placeholder="Seleccionar fecha inicial"
+                  icon="calendar-outline"
+                />
+              </View>
+              <View style={styles.datePickerWrapper}>
+                <DatePickerButton
+                  label="Fecha Final"
+                  value={endDate}
+                  onPress={() => setShowEndDatePicker(true)}
+                  placeholder="Seleccionar fecha final"
+                  icon="calendar-outline"
+                />
+              </View>
+            </View>
+
+            {/* Active Filters Info */}
+            {(startDate || endDate) && (
+              <View style={styles.activeFiltersInfo}>
+                <Ionicons name="information-circle" size={16} color="#6366F1" />
+                <Text style={styles.activeFiltersText}>
+                  {startDate && endDate
+                    ? `Mostrando compras desde ${startDate} hasta ${endDate}`
+                    : startDate
+                    ? `Mostrando compras desde ${startDate}`
+                    : `Mostrando compras hasta ${endDate}`}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Purchases List */}
         <ScrollView
           style={styles.content}
@@ -555,6 +739,23 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
         {/* Add Button */}
         <AddButton onPress={handleCreatePurchase} icon="+" />
+
+        {/* Date Pickers */}
+        <DatePicker
+          visible={showStartDatePicker}
+          date={startDate ? new Date(startDate) : new Date()}
+          onConfirm={handleStartDateConfirm}
+          onCancel={() => setShowStartDatePicker(false)}
+          title="Seleccionar Fecha Inicial"
+        />
+
+        <DatePicker
+          visible={showEndDatePicker}
+          date={endDate ? new Date(endDate) : new Date()}
+          onConfirm={handleEndDateConfirm}
+          onCancel={() => setShowEndDatePicker(false)}
+          title="Seleccionar Fecha Final"
+        />
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -860,6 +1061,96 @@ const styles = StyleSheet.create({
   },
   paginationButtonTextDisabled: {
     color: '#94A3B8',
+  },
+  dateFilterToggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  dateFilterToggle: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dateFilterToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+    flex: 1,
+  },
+  clearDateButton: {
+    padding: 4,
+  },
+  dateFiltersPanel: {
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  dateFieldSelector: {
+    marginBottom: 16,
+  },
+  dateFieldLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 8,
+  },
+  dateFieldButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dateFieldButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  dateFieldButtonActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  dateFieldButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  dateFieldButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  dateRangePickers: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  datePickerWrapper: {
+    flex: 1,
+  },
+  activeFiltersInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  activeFiltersText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#4338CA',
+    fontWeight: '500',
   },
 });
 

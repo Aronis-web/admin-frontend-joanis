@@ -377,6 +377,11 @@ export interface AssignDebtRequest {
 }
 
 /**
+ * Date Field Type for filtering
+ */
+export type DateFieldType = 'guideDate' | 'createdAt' | 'closedAt';
+
+/**
  * Query Purchases Parameters
  */
 export interface QueryPurchasesParams {
@@ -384,6 +389,7 @@ export interface QueryPurchasesParams {
   status?: PurchaseStatus;
   startDate?: string;
   endDate?: string;
+  dateField?: DateFieldType;
   search?: string;
   page?: number;
   limit?: number;
