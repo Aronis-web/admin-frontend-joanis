@@ -361,14 +361,23 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
             sitesCount: Object.keys(newDistributions).length,
           });
         } else {
-          // INTERNAL_ONLY: Distribuir porcentualmente entre sedes internas
-          logger.debug('📊 [INTERNAL ONLY] Distribuyendo porcentualmente...');
+          // INTERNAL_ONLY: Distribuir porcentualmente entre sedes internas según sus porcentajes originales
+          logger.debug('📊 [INTERNAL ONLY] Distribuyendo porcentualmente según montos esperados...');
 
-          const percentagePerSite = 100 / internalSitesOnly.length;
+          // Calcular el total de porcentajes de las sedes internas
+          const totalInternalPercentage = internalSitesOnly.reduce((sum, site) => sum + site.percentage, 0);
+
+          logger.debug('📊 [INTERNAL ONLY] Porcentajes originales:', {
+            sites: internalSitesOnly.map((s) => ({ name: s.participantName, percentage: s.percentage })),
+            totalInternalPercentage,
+          });
 
           // Calcular cantidades usando Math.floor para evitar excedentes
           internalSitesOnly.forEach((site) => {
-            const exactQuantity = (percentagePerSite / 100) * totalQuantity;
+            // Usar el porcentaje original del participante (basado en su monto esperado)
+            // y recalcular proporcionalmente solo entre las sedes internas
+            const adjustedPercentage = (site.percentage / totalInternalPercentage) * 100;
+            const exactQuantity = (adjustedPercentage / 100) * totalQuantity;
             const flooredQuantity = Math.floor(exactQuantity);
 
             newDistributions[site.participantId] = {
@@ -379,7 +388,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
               presentationId: site.presentationId,
               quantityPresentation:
                 globalRoundingFactor > 1 ? Math.floor(flooredQuantity / globalRoundingFactor) : undefined,
-              percentage: percentagePerSite,
+              percentage: adjustedPercentage,
             };
 
             totalDistributed += flooredQuantity;
