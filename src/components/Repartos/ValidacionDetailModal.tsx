@@ -153,20 +153,85 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                     Información de Validación
                   </Text>
 
-                  <View style={styles.infoRow}>
-                    <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                      Cantidad Validada:
-                    </Text>
-                    <Text
-                      style={[
-                        styles.infoValue,
-                        styles.highlightValue,
-                        isTablet && styles.infoValueTablet,
-                      ]}
-                    >
-                      {validacion.validatedQuantity || validacion.validatedQuantityBase} unidades
-                    </Text>
-                  </View>
+                  {/* Si fue validado por presentación, mostrar presentaciones primero */}
+                  {validacion.validatedPresentationQuantity !== undefined &&
+                   validacion.validatedPresentationQuantity > 0 && (
+                    <>
+                      <View style={styles.infoRow}>
+                        <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                          Cantidad en Presentación:
+                        </Text>
+                        <Text
+                          style={[
+                            styles.infoValue,
+                            styles.highlightValue,
+                            isTablet && styles.infoValueTablet,
+                          ]}
+                        >
+                          {validacion.validatedPresentationQuantity}{' '}
+                          {validacion.presentationInfo?.largestPresentation?.name || 'presentaciones'}
+                        </Text>
+                      </View>
+
+                      {validacion.validatedLooseUnits !== undefined &&
+                       validacion.validatedLooseUnits > 0 && (
+                        <View style={styles.infoRow}>
+                          <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                            Unidades Sueltas:
+                          </Text>
+                          <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                            {validacion.validatedLooseUnits} unidades
+                          </Text>
+                        </View>
+                      )}
+
+                      <View style={styles.infoRow}>
+                        <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                          Total en Unidades:
+                        </Text>
+                        <Text
+                          style={[
+                            styles.infoValue,
+                            styles.secondaryValue,
+                            isTablet && styles.infoValueTablet,
+                          ]}
+                        >
+                          {validacion.validatedQuantity || validacion.validatedQuantityBase} unidades
+                        </Text>
+                      </View>
+
+                      {validacion.presentationInfo?.largestPresentation && (
+                        <View style={styles.infoRow}>
+                          <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                            Factor de Conversión:
+                          </Text>
+                          <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                            1 {validacion.presentationInfo.largestPresentation.name} ={' '}
+                            {validacion.presentationInfo.largestPresentation.factorToBase} unidades
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  )}
+
+                  {/* Si fue validado solo por unidades */}
+                  {(!validacion.validatedPresentationQuantity ||
+                    validacion.validatedPresentationQuantity === 0) && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                        Cantidad Validada:
+                      </Text>
+                      <Text
+                        style={[
+                          styles.infoValue,
+                          styles.highlightValue,
+                          isTablet && styles.infoValueTablet,
+                        ]}
+                      >
+                        {validacion.validatedQuantity || validacion.validatedQuantityBase} unidades
+                      </Text>
+                    </View>
+                  )}
 
                   <View style={styles.infoRow}>
                     <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
@@ -368,6 +433,10 @@ const styles = StyleSheet.create({
   highlightValue: {
     color: '#10B981',
     fontWeight: '600',
+  },
+  secondaryValue: {
+    color: '#64748B',
+    fontWeight: '500',
   },
   imageContainer: {
     backgroundColor: '#F8FAFC',

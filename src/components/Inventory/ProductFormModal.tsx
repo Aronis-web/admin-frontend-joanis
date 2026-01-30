@@ -80,15 +80,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   // Presentaciones del producto
   // IMPORTANTE: Las presentaciones son GLOBALES (catálogo compartido: UN, PK, CJ, BX)
   // pero se CONFIGURAN POR PRODUCTO (cada producto elige cuáles usar y define sus factores)
-  const [presentations, setPresentations] = useState<PresentationForm[]>([
-    {
-      presentationIdOrCode: 'UN', // Unidad por defecto
-      isBase: true, // Exactamente UNA debe ser base
-      factorToBase: 1, // La base siempre tiene factor 1
-      minOrderQty: 1,
-      orderStep: 1,
-    },
-  ]);
+  const [presentations, setPresentations] = useState<PresentationForm[]>([]);
 
   // Cargar presentaciones, perfiles de precio y almacenes disponibles
   useEffect(() => {
@@ -256,6 +248,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   useEffect(() => {
     if (product && mode === 'edit') {
+      console.log('📦 Loading product for edit:', {
+        id: product.id,
+        title: product.title,
+        presentations: product.presentations
+      });
+
       const productStatus: 'draft' | 'active' | 'archived' =
         product.status === 'inactive' || product.status === 'discontinued'
           ? 'archived'
@@ -281,15 +279,26 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       });
 
       if (product.presentations && product.presentations.length > 0) {
-        setPresentations(
-          product.presentations.map((p) => ({
-            presentationIdOrCode: p.presentation?.code || p.presentationId,
+        console.log('📦 Loading presentations from product:', product.presentations);
+        const loadedPresentations = product.presentations.map((p) => {
+          // Usar presentationId (ID de BD) en lugar de code para edición
+          const presentationIdOrCode = p.presentationId || p.presentation?.id || p.presentation?.code || '';
+          console.log('📦 Presentation mapping:', {
+            presentationId: p.presentationId,
+            presentationCode: p.presentation?.code,
+            presentationObjectId: p.presentation?.id,
+            finalValue: presentationIdOrCode
+          });
+          return {
+            presentationIdOrCode,
             isBase: p.isBase,
             factorToBase: p.factorToBase,
             minOrderQty: p.minOrderQty,
             orderStep: p.orderStep,
-          }))
-        );
+          };
+        });
+        console.log('📦 Final loaded presentations:', loadedPresentations);
+        setPresentations(loadedPresentations);
       }
     } else {
       resetForm();
@@ -312,15 +321,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       areaId: '',
       initialStock: '',
     });
-    setPresentations([
-      {
-        presentationIdOrCode: 'UN',
-        isBase: true,
-        factorToBase: 1,
-        minOrderQty: 1,
-        orderStep: 1,
-      },
-    ]);
+    setPresentations([]);
   };
 
   const validateForm = (): boolean => {
@@ -339,21 +340,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       return false;
     }
 
-    // Validaciones de presentaciones y stock inicial SOLO en modo creación
-    if (mode === 'create') {
-      // Validación: Exactamente UNA presentación debe ser base
-      const basePresentation = presentations.filter((p) => p.isBase);
-      if (basePresentation.length !== 1) {
-        Alert.alert('Error', 'Debe haber exactamente una presentación base');
-        return false;
-      }
-
-      // Validación: La presentación base SIEMPRE debe tener factor 1
-      if (basePresentation[0].factorToBase !== 1) {
-        Alert.alert('Error', 'La presentación base debe tener factor 1');
-        return false;
-      }
-
+    // Validaciones de presentaciones (aplican tanto en creación como en edición)
+    if (presentations.length > 0) {
       // Validación: Todas las presentaciones deben tener código y factor válido
       for (const p of presentations) {
         if (!p.presentationIdOrCode.trim()) {
@@ -367,11 +355,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           Alert.alert('Error', 'El factor de conversión debe ser mayor a 0');
           return false;
         }
-        // Validación: Factores no base deben ser > 1
-        if (!p.isBase && p.factorToBase <= 1) {
-          Alert.alert('Error', 'Las presentaciones no base deben tener un factor mayor a 1');
-          return false;
-        }
       }
 
       // Validación: No puede haber presentaciones duplicadas
@@ -381,7 +364,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         Alert.alert('Error', 'No puede haber presentaciones duplicadas');
         return false;
       }
+    }
 
+    // Validaciones de stock inicial SOLO en modo creación
+    if (mode === 'create') {
       // Validación: Almacén es obligatorio
       if (!formData.warehouseId) {
         Alert.alert('Error', 'Debe seleccionar un almacén');
@@ -481,6 +467,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         onSuccess();
         onClose();
       } else {
+        console.log('📦 Presentations before sending to backend:', presentations);
+
         const updateData: UpdateProductDto = {
           title: formData.title,
           description: formData.description || undefined,
@@ -492,13 +480,15 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           costCents: parseFloat(formData.costCents),
           currency: formData.currency,
           minStockAlert: formData.minStockAlert ? parseFloat(formData.minStockAlert) : undefined,
+          presentations: presentations, // Incluir presentaciones actualizadas
         };
 
+        console.log('📦 Update data being sent:', JSON.stringify(updateData, null, 2));
         await productsApi.updateProduct(product!.id, updateData);
 
         Alert.alert(
           'Éxito',
-          'Producto actualizado correctamente. Los precios de venta se recalcularon automáticamente.'
+          'Producto actualizado correctamente. Las presentaciones y precios de venta se recalcularon automáticamente.'
         );
         onSuccess();
         onClose();
@@ -608,7 +598,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }
   };
 
-  const promptForInitialQuantity = (createdProduct: Product, warehouse: Warehouse) => {
+  const promptForInitialQuantity = (createdProduct: Product, warehouse: any) => {
     Alert.prompt(
       'Cantidad Inicial',
       `¿Cuántas unidades de "${createdProduct.title}" deseas agregar al almacén "${warehouse.name}"?`,
@@ -673,7 +663,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       {
         presentationIdOrCode: '',
         isBase: false,
-        factorToBase: 2, // Valor inicial sugerido para presentaciones no base
+        factorToBase: 1,
         minOrderQty: 1,
         orderStep: 1,
       },
@@ -681,10 +671,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   };
 
   const removePresentation = (index: number) => {
-    if (presentations[index].isBase) {
-      Alert.alert('Error', 'No se puede eliminar la presentación base');
-      return;
-    }
     setPresentations(presentations.filter((_, i) => i !== index));
   };
 
@@ -1053,37 +1039,43 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           )}
 
           {/* Presentations */}
-          {mode === 'create' && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Presentaciones</Text>
-                <TouchableOpacity onPress={addPresentation} style={styles.addButton}>
-                  <Text style={styles.addButtonText}>+ Agregar</Text>
-                </TouchableOpacity>
-              </View>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Presentaciones</Text>
+              <TouchableOpacity onPress={addPresentation} style={styles.addButton}>
+                <Text style={styles.addButtonText}>+ Agregar</Text>
+              </TouchableOpacity>
+            </View>
 
-              <Text style={styles.infoText}>
-                📦 Las presentaciones son del catálogo global, pero cada producto define sus propios
-                factores de conversión.
-                {'\n'}
-                {'\n'}💡 Ejemplo: Leche Gloria 1L
-                {'\n'}• 1 Unidad (UN) = 1 unidad base (factor: 1) ✓ BASE
-                {'\n'}• 1 Paquete (PK) = 6 unidades (factor: 6)
-                {'\n'}• 1 Caja (CJ) = 24 unidades (factor: 24)
-                {'\n'}
-                {'\n'}⚠️ El costo se define por unidad base. Los precios de venta se calculan
-                automáticamente según los perfiles de precio configurados.
-              </Text>
+            <Text style={styles.infoText}>
+              📦 Las presentaciones son del catálogo global, pero cada producto define sus propios
+              factores de conversión.
+              {'\n'}
+              {'\n'}💡 Ejemplo: Leche Gloria 1L
+              {'\n'}• 1 Unidad (UN) = 1 unidad (factor: 1)
+              {'\n'}• 1 Paquete (PK) = 6 unidades (factor: 6)
+              {'\n'}• 1 Caja (CJ) = 24 unidades (factor: 24)
+              {'\n'}
+              {'\n'}⚠️ El stock base es independiente de las presentaciones. Los precios de venta se calculan
+              automáticamente según los perfiles de precio configurados.
+            </Text>
+
+            {mode === 'edit' && (
+              <View style={styles.warningBox}>
+                <Text style={styles.warningIcon}>⚠️</Text>
+                <Text style={styles.warningText}>
+                  Puedes agregar, editar o eliminar presentaciones. Los cambios afectarán los precios de venta asociados.
+                </Text>
+              </View>
+            )}
 
               {presentations.map((presentation, index) => (
                 <View key={index} style={styles.presentationCard}>
                   <View style={styles.presentationHeader}>
                     <Text style={styles.presentationTitle}>Presentación {index + 1}</Text>
-                    {!presentation.isBase && (
-                      <TouchableOpacity onPress={() => removePresentation(index)}>
-                        <Text style={styles.removeButton}>✕</Text>
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity onPress={() => removePresentation(index)}>
+                      <Text style={styles.removeButton}>✕</Text>
+                    </TouchableOpacity>
                   </View>
 
                   <View style={styles.formGroup}>
@@ -1110,7 +1102,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                               const options = availablePresentations.map((p) => ({
                                 text: `${p.code} - ${p.name}`,
                                 onPress: () =>
-                                  updatePresentation(index, 'presentationIdOrCode', p.code),
+                                  updatePresentation(index, 'presentationIdOrCode', p.id),
                               }));
 
                               Alert.alert('Seleccionar Presentación', '', [
@@ -1122,8 +1114,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                             <Text style={styles.pickerText}>
                               {presentation.presentationIdOrCode
                                 ? (() => {
+                                    // Buscar por ID o por código
                                     const selected = availablePresentations.find(
-                                      (p) => p.code === presentation.presentationIdOrCode
+                                      (p) => p.id === presentation.presentationIdOrCode || p.code === presentation.presentationIdOrCode
                                     );
                                     return selected
                                       ? `${selected.code} - ${selected.name}`
@@ -1142,128 +1135,45 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     )}
                   </View>
 
-                  <View style={styles.formRow}>
-                    <View style={[styles.formGroup, styles.formGroupHalf]}>
-                      <View style={styles.switchContainer}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.label}>Es Presentación Base</Text>
-                          <Text style={styles.helpText}>
-                            {presentation.isBase
-                              ? '✓ Esta es la unidad base del producto'
-                              : 'Solo una presentación puede ser base'}
-                          </Text>
-                        </View>
-                        <Switch
-                          value={presentation.isBase}
-                          onValueChange={(value) => {
-                            if (value) {
-                              // Desmarcar todas las demás y establecer factor 1
-                              const updated = presentations.map((p, i) => ({
-                                ...p,
-                                isBase: i === index,
-                                factorToBase: i === index ? 1 : p.factorToBase,
-                              }));
-                              setPresentations(updated);
-                            }
-                          }}
-                        />
-                      </View>
-                    </View>
-
-                    <View style={[styles.formGroup, styles.formGroupHalf]}>
-                      <Text style={styles.label}>
-                        Factor a Base{' '}
-                        {!presentation.isBase && <Text style={styles.required}>*</Text>}
-                      </Text>
-                      <TextInput
-                        style={[styles.input, presentation.isBase && styles.inputDisabled]}
-                        value={presentation.factorToBase.toString()}
-                        onChangeText={(text) => {
-                          if (presentation.isBase) {
-                            console.log('⚠️ Intento de editar factor base - bloqueado');
-                            return;
-                          }
-                          console.log('✏️ Editando factor:', text);
-                          const value = text.trim() === '' ? '' : parseFloat(text);
-                          if (
-                            text.trim() === '' ||
-                            (!isNaN(value as number) && (value as number) > 0)
-                          ) {
-                            updatePresentation(
-                              index,
-                              'factorToBase',
-                              value === '' ? 1 : (value as number)
-                            );
-                          }
-                        }}
-                        placeholder={presentation.isBase ? '1' : 'Ej: 6, 12, 24'}
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="numeric"
-                        editable={!presentation.isBase}
-                        onFocus={() =>
-                          console.log('🎯 Factor field focused - isBase:', presentation.isBase)
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>
+                      Factor de Conversión <Text style={styles.required}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={presentation.factorToBase.toString()}
+                      onChangeText={(text) => {
+                        const value = text.trim() === '' ? '' : parseFloat(text);
+                        if (
+                          text.trim() === '' ||
+                          (!isNaN(value as number) && (value as number) > 0)
+                        ) {
+                          updatePresentation(
+                            index,
+                            'factorToBase',
+                            value === '' ? 1 : (value as number)
+                          );
                         }
-                      />
-                      <Text style={styles.helpText}>
-                        {presentation.isBase
-                          ? '✓ La presentación base siempre tiene factor 1'
-                          : presentation.presentationIdOrCode
-                            ? `Cuántas unidades base contiene 1 ${presentation.presentationIdOrCode}`
-                            : 'Cuántas unidades base contiene esta presentación'}
+                      }}
+                      placeholder="Ej: 1, 6, 12, 24"
+                      placeholderTextColor="#94A3B8"
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.helpText}>
+                      {presentation.presentationIdOrCode
+                        ? `Cuántas unidades base contiene 1 ${presentation.presentationIdOrCode}`
+                        : 'Cuántas unidades base contiene esta presentación'}
+                    </Text>
+                    {presentation.factorToBase > 0 && formData.costCents && (
+                      <Text style={styles.calculationText}>
+                        💰 Costo por {presentation.presentationIdOrCode || 'presentación'}: S/{' '}
+                        {((parseFloat(formData.costCents) * presentation.factorToBase) / 100).toFixed(2)}
                       </Text>
-                      {!presentation.isBase &&
-                        presentation.factorToBase > 1 &&
-                        formData.costCents && (
-                          <Text style={styles.calculationText}>
-                            💰 Costo por {presentation.presentationIdOrCode}: S/{' '}
-                            {(
-                              (parseFloat(formData.costCents) * presentation.factorToBase) /
-                              100
-                            ).toFixed(2)}
-                          </Text>
-                        )}
-                    </View>
-                  </View>
-
-                  <View style={styles.formRow}>
-                    <View style={[styles.formGroup, styles.formGroupHalf]}>
-                      <Text style={styles.label}>Cantidad Mínima de Pedido</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={presentation.minOrderQty.toString()}
-                        onChangeText={(text) =>
-                          updatePresentation(index, 'minOrderQty', parseInt(text) || 1)
-                        }
-                        placeholder="1"
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="numeric"
-                      />
-                      <Text style={styles.helpText}>
-                        Cantidad mínima que se puede pedir de esta presentación
-                      </Text>
-                    </View>
-
-                    <View style={[styles.formGroup, styles.formGroupHalf]}>
-                      <Text style={styles.label}>Incremento de Pedido</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={presentation.orderStep.toString()}
-                        onChangeText={(text) =>
-                          updatePresentation(index, 'orderStep', parseInt(text) || 1)
-                        }
-                        placeholder="1"
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="numeric"
-                      />
-                      <Text style={styles.helpText}>
-                        Los pedidos deben ser múltiplos de este valor
-                      </Text>
-                    </View>
+                    )}
                   </View>
                 </View>
               ))}
-            </View>
-          )}
+          </View>
 
           {/* Preview de Precios de Venta (solo en modo crear) */}
           {mode === 'create' &&
@@ -1626,6 +1536,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#10B981',
+  },
+  warningBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    alignItems: 'center',
+  },
+  warningIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#78350F',
+    lineHeight: 18,
   },
 });
 

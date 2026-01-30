@@ -294,6 +294,67 @@ export const inventoryApi = {
 
     return response.blob();
   },
+
+  // ========== BULK STOCK UPDATE ENDPOINTS ==========
+
+  /**
+   * Download stock format for bulk update
+   * POST /admin/inventory/stock/download-format
+   * Returns an Excel file with current stock data ready for editing
+   */
+  downloadStockFormat: async (params: {
+    siteId: string;
+    warehouseId?: string;
+  }): Promise<Blob> => {
+    const { config } = await import('@/utils/config');
+    const { authService } = await import('@/services/AuthService');
+
+    const token = authService.getAccessToken();
+    const baseURL = config.API_URL;
+
+    const response = await fetch(`${baseURL}/admin/inventory/stock/download-format`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: token ? `Bearer ${token}` : '',
+        'X-App-Id': config.APP_ID,
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: 'Error al descargar el formato' }));
+      throw new Error(errorData.message || 'Error al descargar el formato');
+    }
+
+    return response.blob();
+  },
+
+  /**
+   * Upload bulk stock update
+   * POST /admin/inventory/stock/upload-update
+   * Processes Excel file and updates stock with automatic movement history
+   */
+  uploadStockUpdate: async (
+    file: File | Blob | any,
+    userId: string
+  ): Promise<{
+    success: boolean;
+    totalRows: number;
+    updatedRows: number;
+    errors: Array<{
+      row: number;
+      sku: string;
+      error: string;
+    }>;
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+    return apiClient.post('/admin/inventory/stock/upload-update', formData);
+  },
 };
 
 export default inventoryApi;

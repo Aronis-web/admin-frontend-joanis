@@ -524,6 +524,34 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
     });
   }, []);
 
+  const handlePresentationQuantityChange = useCallback((participantId: string, newQuantityPresentation: number) => {
+    setEditableDistributions((prev) => {
+      const dist = prev[participantId];
+      if (!dist) {
+        return prev;
+      }
+
+      const updated = { ...prev };
+      const newQuantityBase = newQuantityPresentation * dist.roundingFactor;
+
+      updated[participantId] = {
+        ...dist,
+        quantityPresentation: newQuantityPresentation,
+        quantityBase: newQuantityBase,
+      };
+
+      logger.debug('📝 [EDIT] Cantidad en presentación editada:', {
+        participantId,
+        participantName: dist.participantName,
+        newQuantityPresentation,
+        newQuantityBase,
+        roundingFactor: dist.roundingFactor,
+      });
+
+      return updated;
+    });
+  }, []);
+
   const getTotalDistributed = useCallback(() => {
     return Object.values(editableDistributions).reduce((sum, dist) => sum + dist.quantityBase, 0);
   }, [editableDistributions]);
@@ -568,7 +596,11 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
       if (distributionMode === 'presentation' && globalRoundingFactor > 1) {
         // MODO PRESENTACIÓN: Redondeo hacia abajo para empresas externas
-        logger.debug('📦 [RECALC] Calculando en modo PRESENTACIÓN');
+        logger.debug('📦 [RECALC] Calculando en modo PRESENTACIÓN', {
+          globalRoundingFactor,
+          selectedPresentationId,
+          newTotalQuantity,
+        });
 
         participantsWithAdjustedAmount.forEach((participant) => {
           const percentage = totalAdjustedAmount > 0
@@ -598,9 +630,11 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
             name: participant.company?.name || participant.site?.name,
             type: participant.company ? 'EMPRESA' : 'SEDE',
             percentage: percentage.toFixed(2),
+            exactQuantityBase: exactQuantityBase.toFixed(2),
             exactPresentation: exactQuantityPresentation.toFixed(2),
             quantityPresentation,
             quantityBase,
+            roundingFactor: globalRoundingFactor,
           });
         });
 
@@ -1217,8 +1251,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                 </View>
 
                 {/* Selector de Modo de Distribución */}
-                {adjustedDistribution.presentationInfo &&
-                  adjustedDistribution.presentationInfo.hasPresentations && (
+                {product?.product?.presentations && product.product.presentations.length > 0 && (
                     <View style={styles.previewSection}>
                       <Text style={styles.previewSectionTitle}>📦 Modo de Distribución</Text>
                       <Text style={styles.adjustHint}>
@@ -1233,6 +1266,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                           onPress={() => {
                             setDistributionMode('units');
                             setGlobalRoundingFactor(1);
+                            setSelectedPresentationId(null);
                             recalculateDistributions(editableTotalQuantity);
                           }}
                           disabled={previewLoading}
@@ -1255,9 +1289,14 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                           ]}
                           onPress={() => {
                             setDistributionMode('presentation');
-                            setGlobalRoundingFactor(
-                              adjustedDistribution.presentationInfo!.largestFactor
-                            );
+                            // Si no hay presentación seleccionada, seleccionar la primera no-base o la base
+                            if (!selectedPresentationId && product.product?.presentations) {
+                              const firstNonBase = product.product.presentations.find(p => !p.isBase);
+                              const presentationToUse = firstNonBase || product.product.presentations[0];
+                              setSelectedPresentationId(presentationToUse.presentationId);
+                              setSelectedPresentation(presentationToUse);
+                              setGlobalRoundingFactor(presentationToUse.factorToBase);
+                            }
                             recalculateDistributions(editableTotalQuantity);
                           }}
                           disabled={previewLoading}
@@ -1269,20 +1308,76 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                                 styles.roundingFactorButtonTextSelected,
                             ]}
                           >
-                            Por {adjustedDistribution.presentationInfo.largestPresentation?.name ||
-                              'Presentación'}
+                            Por Presentación
                           </Text>
                         </TouchableOpacity>
                       </View>
 
+                      {/* Selector de Presentación */}
                       {distributionMode === 'presentation' && (
-                        <View style={styles.presentationInfoBox}>
-                          <Text style={styles.presentationInfoText}>
-                            ℹ️ Las empresas externas recibirán cantidades exactas en{' '}
-                            {adjustedDistribution.presentationInfo.largestPresentation?.name?.toLowerCase() || 'presentación'}.
-                            {'\n'}El remanente se asignará a la sede de ajuste en unidades.
-                          </Text>
-                        </View>
+                        <>
+                          <View style={styles.presentationSelectorContainer}>
+                            <Text style={styles.presentationSelectorLabel}>
+                              Selecciona la presentación:
+                            </Text>
+                            <View style={styles.presentationOptions}>
+                              {product.product.presentations
+                                .filter(p => !p.isBase) // Filtrar solo presentaciones no-base
+                                .map((presentation) => (
+                                  <TouchableOpacity
+                                    key={presentation.presentationId}
+                                    style={[
+                                      styles.presentationOption,
+                                      selectedPresentationId === presentation.presentationId &&
+                                        styles.presentationOptionSelected,
+                                    ]}
+                                    onPress={() => {
+                                      setSelectedPresentationId(presentation.presentationId);
+                                      setSelectedPresentation(presentation);
+                                      setGlobalRoundingFactor(presentation.factorToBase);
+                                      recalculateDistributions(editableTotalQuantity);
+                                    }}
+                                    disabled={previewLoading}
+                                  >
+                                    <View style={styles.presentationOptionHeader}>
+                                      <View
+                                        style={[
+                                          styles.presentationRadio,
+                                          selectedPresentationId === presentation.presentationId &&
+                                            styles.presentationRadioSelected,
+                                        ]}
+                                      >
+                                        {selectedPresentationId === presentation.presentationId && (
+                                          <View style={styles.presentationRadioInner} />
+                                        )}
+                                      </View>
+                                      <Text
+                                        style={[
+                                          styles.presentationOptionName,
+                                          selectedPresentationId === presentation.presentationId &&
+                                            styles.presentationOptionNameSelected,
+                                        ]}
+                                      >
+                                        {presentation.presentation?.name || 'Presentación'}
+                                      </Text>
+                                    </View>
+                                    <Text style={styles.presentationOptionFactor}>
+                                      Factor: {presentation.factorToBase} unidades
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))}
+                            </View>
+                          </View>
+
+                          <View style={styles.presentationInfoBox}>
+                            <Text style={styles.presentationInfoText}>
+                              ℹ️ Todos los participantes recibirán cantidades en{' '}
+                              {selectedPresentation?.presentation?.name?.toLowerCase() || 'presentación'}.
+                              {'\n'}El remanente se asignará a la sede de ajuste en unidades.
+                              {'\n'}Factor de conversión: 1 {selectedPresentation?.presentation?.name || 'presentación'} = {globalRoundingFactor} unidades
+                            </Text>
+                          </View>
+                        </>
                       )}
 
                       {previewLoading && (
@@ -1326,30 +1421,59 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                           </Text>
                         </View>
 
-                        {/* Input de cantidad editable */}
-                        <View style={styles.editableQuantityContainer}>
-                          <Text style={styles.editableQuantityLabel}>Cantidad:</Text>
-                          <TextInput
-                            style={styles.editableQuantityInput}
-                            keyboardType="numeric"
-                            placeholder="0"
-                            value={dist.quantityBase.toString()}
-                            onChangeText={(text) =>
-                              handleQuantityChange(dist.participantId, parseInt(text) || 0)
-                            }
-                          />
-                          <Text style={styles.editableQuantityUnit}>unidades</Text>
-                        </View>
+                        {/* Mostrar según el modo de distribución */}
+                        {distributionMode === 'presentation' && dist.roundingFactor > 1 ? (
+                          <>
+                            {/* MODO PRESENTACIÓN: Mostrar presentaciones primero (EDITABLE) */}
+                            <View style={styles.editableQuantityContainer}>
+                              <Text style={styles.editableQuantityLabel}>Cantidad:</Text>
+                              <TextInput
+                                style={styles.editablePresentationInput}
+                                keyboardType="numeric"
+                                placeholder="0"
+                                value={(dist.quantityPresentation || 0).toString()}
+                                onChangeText={(text) =>
+                                  handlePresentationQuantityChange(dist.participantId, parseInt(text) || 0)
+                                }
+                              />
+                              <Text style={styles.editablePresentationUnit}>
+                                {selectedPresentation?.presentation?.name || 'presentaciones'}
+                              </Text>
+                            </View>
+                            {/* Equivalencia en unidades (secundario) */}
+                            <View style={styles.unitsEquivalence}>
+                              <Text style={styles.unitsEquivalenceText}>
+                                = {dist.quantityBase} unidades
+                              </Text>
+                            </View>
+                          </>
+                        ) : (
+                          <>
+                            {/* MODO UNIDADES: Mostrar unidades (comportamiento original) */}
+                            <View style={styles.editableQuantityContainer}>
+                              <Text style={styles.editableQuantityLabel}>Cantidad:</Text>
+                              <TextInput
+                                style={styles.editableQuantityInput}
+                                keyboardType="numeric"
+                                placeholder="0"
+                                value={dist.quantityBase.toString()}
+                                onChangeText={(text) =>
+                                  handleQuantityChange(dist.participantId, parseInt(text) || 0)
+                                }
+                              />
+                              <Text style={styles.editableQuantityUnit}>unidades</Text>
+                            </View>
 
-                        {/* Mostrar equivalencia en presentación si aplica */}
-                        {dist.roundingFactor > 1 && dist.quantityPresentation !== undefined && (
-                          <View style={styles.presentationEquivalence}>
-                            <Text style={styles.presentationEquivalenceText}>
-                              = {dist.quantityPresentation}{' '}
-                              {adjustedDistribution.presentationInfo?.largestPresentation
-                                ?.name || 'presentaciones'}
-                            </Text>
-                          </View>
+                            {/* Mostrar equivalencia en presentación si aplica */}
+                            {dist.roundingFactor > 1 && dist.quantityPresentation !== undefined && (
+                              <View style={styles.presentationEquivalence}>
+                                <Text style={styles.presentationEquivalenceText}>
+                                  = {dist.quantityPresentation}{' '}
+                                  {selectedPresentation?.presentation?.name || 'presentaciones'}
+                                </Text>
+                              </View>
+                            )}
+                          </>
                         )}
                       </View>
                     </View>
@@ -2002,5 +2126,123 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#1E40AF',
     lineHeight: 18,
+  },
+  // Presentation quantity display (when in presentation mode)
+  presentationQuantityDisplay: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  presentationQuantityValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  presentationQuantityUnit: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  // Editable presentation input
+  editablePresentationInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6366F1',
+    textAlign: 'center',
+  },
+  editablePresentationUnit: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+    marginLeft: 8,
+  },
+  // Units equivalence (when in presentation mode, shows units as secondary info)
+  unitsEquivalence: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+  },
+  unitsEquivalenceText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  // Presentation selector styles
+  presentationSelectorContainer: {
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  presentationSelectorLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  presentationOptions: {
+    gap: 8,
+  },
+  presentationOption: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 12,
+  },
+  presentationOptionSelected: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+  },
+  presentationOptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 4,
+  },
+  presentationRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  presentationRadioSelected: {
+    borderColor: '#6366F1',
+  },
+  presentationRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#6366F1',
+  },
+  presentationOptionName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  presentationOptionNameSelected: {
+    color: '#6366F1',
+  },
+  presentationOptionFactor: {
+    fontSize: 13,
+    color: '#64748B',
+    marginLeft: 32,
   },
 });

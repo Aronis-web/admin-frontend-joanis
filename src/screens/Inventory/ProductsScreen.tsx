@@ -234,10 +234,23 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     setIsViewModalVisible(true);
   };
 
-  const handleEditProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setModalMode('edit');
-    setIsProductModalVisible(true);
+  const handleEditProduct = async (product: Product) => {
+    try {
+      // Fetch full product details including presentations
+      console.log('📦 Fetching full product details for edit:', product.id);
+      const fullProduct = await productsApi.getProductById(product.id);
+      console.log('📦 Full product loaded:', {
+        id: fullProduct.id,
+        title: fullProduct.title,
+        presentations: fullProduct.presentations
+      });
+      setSelectedProduct(fullProduct);
+      setModalMode('edit');
+      setIsProductModalVisible(true);
+    } catch (error: any) {
+      console.error('❌ Error loading product details:', error);
+      Alert.alert('Error', 'No se pudo cargar los detalles del producto');
+    }
   };
 
   const handleManageImages = (product: Product) => {

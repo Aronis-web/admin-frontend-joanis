@@ -13,7 +13,9 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { productsApi } from '@/services/api/products';
+import { inventoryApi } from '@/services/api/inventory';
+import { useAuthStore } from '@/store/auth';
+import { useTenantStore } from '@/store/tenant';
 
 interface BulkUploadModalProps {
   visible: boolean;
@@ -26,32 +28,43 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { user, currentSite } = useAuthStore();
+  const { selectedSite } = useTenantStore();
   const [loading, setLoading] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [uploadResult, setUploadResult] = useState<{
-    successCount: number;
-    errorCount: number;
+    success: boolean;
     totalRows: number;
+    updatedRows: number;
     errors: Array<{
       row: number;
+      sku: string;
       error: string;
-      sku?: string;
     }>;
   } | null>(null);
+
+  // Get effective site (prefer tenant store, fallback to auth store)
+  const effectiveSite = selectedSite || currentSite;
 
   const handleDownloadTemplate = async () => {
     try {
       setDownloadingTemplate(true);
-      console.log('📥 Downloading bulk upload template...');
+      console.log('📥 Downloading stock bulk update format...');
 
-      // Download the template from the API
-      const blob = await productsApi.downloadBulkTemplate();
-      console.log('✅ Template downloaded successfully');
+      if (!effectiveSite) {
+        throw new Error('No se ha seleccionado una sede');
+      }
+
+      // Download the format from the API
+      const blob = await inventoryApi.downloadStockFormat({
+        siteId: effectiveSite.id,
+      });
+      console.log('✅ Format downloaded successfully');
       console.log('📦 Tamaño del archivo:', blob.size, 'bytes');
 
       // Handle download based on platform
-      const timestamp = new Date().getTime();
-      const fileName = `plantilla_productos_${timestamp}.xlsx`;
+      const timestamp = new Date().toISOString().split('T')[0];
+      const fileName = `formato_stock_${timestamp}.xlsx`;
 
       // Check if we're on web by checking for document object
       const isWeb = typeof document !== 'undefined';
@@ -75,7 +88,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         // Clean up the blob URL after a short delay
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
 
-        Alert.alert('Éxito', 'La plantilla se está descargando');
+        Alert.alert('Éxito', 'El formato de stock se está descargando');
       } else {
         // For mobile (iOS/Android), use legacy expo-file-system API
         console.log('📱 Using mobile download method (legacy API)');
@@ -109,19 +122,18 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           console.log('📤 Sharing file...');
           await Sharing.shareAsync(fileUri, {
             mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            dialogTitle: 'Plantilla de Productos',
+            dialogTitle: 'Formato de Stock',
             UTI: 'org.openxmlformats.spreadsheetml.sheet',
           });
         } else {
-          Alert.alert('Éxito', `Plantilla guardada en: ${fileUri}`);
+          Alert.alert('Éxito', `Formato guardado en: ${fileUri}`);
         }
       }
     } catch (error: any) {
-      console.error('❌ Error downloading template:', error);
+      console.error('❌ Error downloading format:', error);
       Alert.alert(
         'Error',
-        error.response?.data?.message ||
-          'No se pudo descargar la plantilla. Por favor, intenta nuevamente.'
+        error.message || 'No se pudo descargar el formato. Por favor, intenta nuevamente.'
       );
     } finally {
       setDownloadingTemplate(false);
@@ -165,7 +177,11 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         throw new Error('No se pudo obtener el archivo');
       }
 
-      console.log('📤 Uploading file:', file.name);
+      if (!user?.id) {
+        throw new Error('No se pudo identificar el usuario');
+      }
+
+      console.log('📤 Uploading stock update file:', file.name);
 
       // In React Native, we need to pass the file metadata directly to FormData
       // Don't convert to blob - use the file object with uri, type, and name
@@ -178,13 +194,13 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       console.log('📦 File to upload:', fileToUpload);
 
       // Upload to API
-      const result = await productsApi.uploadBulkProducts(fileToUpload as any);
+      const result = await inventoryApi.uploadStockUpdate(fileToUpload as any, user.id);
       console.log('✅ Upload result:', result);
 
       setUploadResult(result);
 
-      if (result.errorCount === 0) {
-        Alert.alert('Éxito', `Se crearon ${result.successCount} productos correctamente.`, [
+      if (result.errors.length === 0) {
+        Alert.alert('Éxito', `Se actualizaron ${result.updatedRows} registros de stock correctamente.`, [
           {
             text: 'OK',
             onPress: () => {
@@ -193,23 +209,23 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             },
           },
         ]);
-      } else if (result.successCount > 0) {
+      } else if (result.updatedRows > 0) {
         Alert.alert(
-          'Carga Parcial',
-          `Se crearon ${result.successCount} productos correctamente.\n\n` +
-            `${result.errorCount} productos tuvieron errores. Revisa los detalles a continuación.`
+          'Actualización Parcial',
+          `Se actualizaron ${result.updatedRows} registros correctamente.\n\n` +
+            `${result.errors.length} registros tuvieron errores. Revisa los detalles a continuación.`
         );
       } else {
         Alert.alert(
           'Error',
-          `No se pudo crear ningún producto. Revisa los errores a continuación.`
+          `No se pudo actualizar ningún registro. Revisa los errores a continuación.`
         );
       }
     } catch (error: any) {
       console.error('❌ Error uploading file:', error);
       Alert.alert(
         'Error',
-        error.response?.data?.message ||
+        error.response?.data?.message || error.message ||
           'No se pudo cargar el archivo. Por favor, intenta nuevamente.'
       );
     } finally {
@@ -228,7 +244,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Carga Masiva de Productos</Text>
+            <Text style={styles.headerTitle}>Actualización Masiva de Stock</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
@@ -240,13 +256,13 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>📋 Instrucciones</Text>
               <Text style={styles.instructionText}>
-                1. Descarga la plantilla Excel con el formato correcto
+                1. Descarga el formato Excel con el stock actual
               </Text>
               <Text style={styles.instructionText}>
-                2. Completa la información de los productos
+                2. Edita la columna "NUEVO STOCK BASE" (amarilla) con los nuevos valores
               </Text>
               <Text style={styles.instructionText}>
-                3. Sube el archivo completado para crear los productos
+                3. Sube el archivo para actualizar el stock automáticamente
               </Text>
             </View>
 
@@ -261,7 +277,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               ) : (
                 <>
                   <Text style={styles.primaryButtonIcon}>📥</Text>
-                  <Text style={styles.primaryButtonText}>Descargar Plantilla Excel</Text>
+                  <Text style={styles.primaryButtonText}>Descargar Formato de Stock</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -277,7 +293,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               ) : (
                 <>
                   <Text style={styles.secondaryButtonIcon}>📤</Text>
-                  <Text style={styles.secondaryButtonText}>Subir Archivo Excel</Text>
+                  <Text style={styles.secondaryButtonText}>Subir Actualización de Stock</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -285,7 +301,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             {/* Upload Result */}
             {uploadResult && (
               <View style={styles.resultSection}>
-                <Text style={styles.resultTitle}>Resultado de la Carga</Text>
+                <Text style={styles.resultTitle}>Resultado de la Actualización</Text>
 
                 <View style={styles.resultStats}>
                   <View style={styles.resultStatItem}>
@@ -294,13 +310,13 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   </View>
                   <View style={[styles.resultStatItem, styles.successStat]}>
                     <Text style={[styles.resultStatValue, styles.successText]}>
-                      {uploadResult.successCount}
+                      {uploadResult.updatedRows}
                     </Text>
-                    <Text style={styles.resultStatLabel}>Exitosos</Text>
+                    <Text style={styles.resultStatLabel}>Actualizados</Text>
                   </View>
                   <View style={[styles.resultStatItem, styles.errorStat]}>
                     <Text style={[styles.resultStatValue, styles.errorText]}>
-                      {uploadResult.errorCount}
+                      {uploadResult.errors.length}
                     </Text>
                     <Text style={styles.resultStatLabel}>Errores</Text>
                   </View>
@@ -316,7 +332,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                       {uploadResult.errors.map((error, index) => (
                         <View key={index} style={styles.errorItem}>
                           <Text style={styles.errorRow}>Fila {error.row}</Text>
-                          {error.sku && <Text style={styles.errorSku}>SKU: {error.sku}</Text>}
+                          <Text style={styles.errorSku}>SKU: {error.sku}</Text>
                           <Text style={styles.errorMessage}>{error.error}</Text>
                         </View>
                       ))}
@@ -330,15 +346,19 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             <View style={styles.notesSection}>
               <Text style={styles.notesTitle}>💡 Notas Importantes</Text>
               <Text style={styles.noteText}>
-                • La plantilla incluye listas desplegables con categorías y presentaciones
+                • El formato incluye el stock actual de todos los productos
               </Text>
-              <Text style={styles.noteText}>• Los campos marcados con * son obligatorios</Text>
               <Text style={styles.noteText}>
-                • Los costos deben ingresarse en céntimos (ej: 10000 = S/ 100.00)
+                • Solo edita la columna "NUEVO STOCK BASE" (resaltada en amarillo)
               </Text>
-              <Text style={styles.noteText}>• Los códigos de barras deben ser únicos</Text>
               <Text style={styles.noteText}>
-                • El estado siempre será "active" y el tipo de impuesto "GRAVADO"
+                • No modifiques las columnas de IDs (están ocultas en gris)
+              </Text>
+              <Text style={styles.noteText}>
+                • Cada actualización se registra automáticamente en el historial de movimientos
+              </Text>
+              <Text style={styles.noteText}>
+                • El stock disponible se calcula automáticamente (Stock Base - Stock Reservado)
               </Text>
             </View>
           </ScrollView>
