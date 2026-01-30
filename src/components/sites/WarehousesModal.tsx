@@ -80,6 +80,7 @@ export const WarehousesModal: React.FC<WarehousesModalProps> = ({
   }
 
   return (
+    <>
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -161,20 +162,23 @@ export const WarehousesModal: React.FC<WarehousesModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Floating Action Button - Outside modalContent, always visible */}
-        <TouchableOpacity
-          style={styles.floatingButton}
-          onPress={() => {
-            console.log('🔵 Floating button pressed - Creating warehouse');
-            onCreateWarehouse();
-          }}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.floatingButtonIcon}>+</Text>
-        </TouchableOpacity>
       </View>
     </Modal>
+
+    {/* Floating Action Button - Completely outside Modal */}
+    {visible && (
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => {
+          console.log('🔵 Floating button pressed - Creating warehouse');
+          onCreateWarehouse();
+        }}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.floatingButtonIcon}>+</Text>
+      </TouchableOpacity>
+    )}
+    </>
   );
 };
 
