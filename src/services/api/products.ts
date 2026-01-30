@@ -84,7 +84,7 @@ export interface Product {
   sku: string; // Ahora permite duplicados
   barcode: string;
   categoryId: string;
-  status: 'active' | 'inactive' | 'discontinued' | 'draft' | 'archived' | 'preliminary';
+  status: 'active' | 'inactive' | 'discontinued' | 'draft' | 'archived';
   taxType: 'GRAVADO' | 'EXONERADO' | 'INAFECTO' | 'GRATUITO';
   costCents: number; // Changed from priceCents to costCents (cost of product)
   priceCents?: number; // Deprecated - kept for backward compatibility
@@ -100,12 +100,6 @@ export interface Product {
   presentations?: ProductPresentation[];
   salePrices?: ProductSalePrice[];
   stockItems?: StockItem[];
-  preliminaryStock?: number; // Stock preliminar para productos en estado preliminary
-  stock?: {
-    available: number;
-    reserved: number;
-    total: number;
-  };
 }
 
 // Product entity for detail endpoint (simplified)
@@ -514,10 +508,6 @@ export const productsApi = {
 
   // Download bulk upload template - GET /admin/products/bulk/template
   downloadBulkTemplate: async (): Promise<Blob> => {
-    // Ensure token is fresh before downloading template
-    const { ensureFreshTokenForFileOperation } = await import('@/utils/tokenHelpers');
-    await ensureFreshTokenForFileOperation('Bulk Template Download');
-
     return apiClient.get('/admin/products/bulk/template', {
       responseType: 'blob',
     });
@@ -617,10 +607,6 @@ export const productsApi = {
     fromDate?: string;
     toDate?: string;
   }): Promise<Blob> => {
-    // Ensure token is fresh before downloading update format
-    const { ensureFreshTokenForFileOperation } = await import('@/utils/tokenHelpers');
-    await ensureFreshTokenForFileOperation('Bulk Update Format Download');
-
     return apiClient.post('/admin/products/bulk/download-update-format', filters, {
       responseType: 'blob',
     });

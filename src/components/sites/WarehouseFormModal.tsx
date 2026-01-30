@@ -12,6 +12,8 @@ import {
 import { Site } from '@/types/sites';
 import { Warehouse } from '@/types/warehouses';
 import { warehousesApi } from '@/services/api';
+import { useAuthStore } from '@/store/auth';
+import { useTenantStore } from '@/store/tenant';
 
 interface WarehouseFormModalProps {
   visible: boolean;
@@ -30,11 +32,17 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
   onWarehouseCreated,
   onWarehouseUpdated,
 }) => {
+  const { currentSite, currentCompany } = useAuthStore();
+  const { selectedSite, selectedCompany } = useTenantStore();
+
   const [name, setName] = useState('');
   const [siteCode, setSiteCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   const isEditMode = !!warehouse;
+
+  const effectiveSite = selectedSite || currentSite;
+  const effectiveCompany = selectedCompany || currentCompany;
 
   useEffect(() => {
     if (visible) {
@@ -76,17 +84,30 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
         }
       } else {
         // Create warehouse
-        await warehousesApi.createWarehouse({
-          name: name.trim(),
+        if (!effectiveCompany?.id || !effectiveSite?.id) {
+          Alert.alert('Error', 'No se pudo determinar la compañía o sede actual');
+          return;
+        }
+
+        const newWarehouse = await warehousesApi.createWarehouse({
+          companyId: effectiveCompany.id,
+          siteId: effectiveSite.id,
+          code: siteCode.trim().toUpperCase(),
           siteCode: siteCode.trim().toUpperCase(),
+          name: name.trim(),
         });
         Alert.alert('Éxito', 'Almacén creado correctamente');
+
+        // Reset form
+        setName('');
+        setSiteCode('');
+
         if (onWarehouseCreated) {
           onWarehouseCreated();
         }
       }
 
-      onClose();
+      // Don't call onClose() here, let the callback handle it
     } catch (error: any) {
       console.error('Error saving warehouse:', error);
       const errorMessage =
@@ -99,9 +120,11 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
   };
 
   const handleClose = () => {
-    setName('');
-    setSiteCode('');
-    onClose();
+    if (!loading) {
+      setName('');
+      setSiteCode('');
+      onClose();
+    }
   };
 
   return (

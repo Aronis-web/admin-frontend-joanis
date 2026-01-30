@@ -33,7 +33,7 @@ export const useProducts = (filters?: ProductFilters) => {
         page: filters?.page,
         limit: filters?.limit,
         categoryId: filters?.categoryId,
-        status: filters?.status || 'active,preliminary', // ✅ Incluir productos activos y preliminares por defecto
+        status: filters?.status,
         q: filters?.q,
         includePhotos: true, // ✅ Incluir fotos para miniaturas
         sortBy: filters?.sortBy, // ✅ Pasar sortBy al API

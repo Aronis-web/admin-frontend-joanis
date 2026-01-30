@@ -203,13 +203,10 @@ export interface ValidacionSalida {
   notes?: string;
   createdAt: string;
   repartoProducto?: RepartoProducto;
-  validatedByUser?: {
+  validator?: {
     id: string;
-    username: string;
+    name?: string;
     email: string;
-    firstName?: string;
-    lastName?: string;
-    fullName?: string;
   };
   // ✅ NUEVO: Información de presentaciones en la validación
   presentationId?: string; // Presentación base usada en la validación

@@ -212,11 +212,8 @@ export interface PurchaseProduct {
   };
   validatedByUser?: {
     id: string;
-    username: string;
+    name?: string;
     email: string;
-    firstName?: string;
-    lastName?: string;
-    fullName?: string;
   };
   presentationHistory?: PurchaseProductPresentationHistory[];
   validations?: PurchaseProductValidation[]; // Historial de validaciones con fotos y firmas
@@ -261,11 +258,8 @@ export interface PurchaseProductValidation {
   notes?: string;
   validatedByUser?: {
     id: string;
-    username: string;
+    name?: string;
     email: string;
-    firstName?: string;
-    lastName?: string;
-    fullName?: string;
   };
 }
 

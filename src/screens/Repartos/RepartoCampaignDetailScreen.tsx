@@ -23,7 +23,6 @@ import { RepartoProducto } from '@/types/repartos';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProductSelectionModal, CircularProgress } from '@/components/Repartos';
 import { usePermissions } from '@/hooks/usePermissions';
-import { PERMISSIONS } from '@/constants/permissions';
 
 interface RepartoCampaignDetailScreenProps {
   navigation: any;
@@ -228,6 +227,12 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
   };
 
   const handleDownloadGeneralReport = async () => {
+    // TODO: El endpoint anterior ya no existe. Necesita un nuevo endpoint para reportes generales
+    // El nuevo endpoint es específico para participantes: /admin/campaigns/repartos/participants/:campaignParticipantId/campaigns/:campaignId/consolidated-totals/export-pdf
+    Alert.alert('No disponible', 'La funcionalidad de reporte general está temporalmente deshabilitada. Por favor, descarga reportes individuales por participante.');
+    return;
+
+    /* CÓDIGO COMENTADO - Requiere nuevo endpoint para reportes generales
     if (repartos.length === 0) {
       Alert.alert('Error', 'No hay repartos para generar el reporte');
       return;
@@ -239,9 +244,11 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       logger.info('🔄 Descargando reporte general de totales de la campaña');
       const startTime = new Date().getTime();
 
-      // Call the API to get the PDF blob for all participants
-      // Endpoint: GET /admin/campaigns/repartos/campaigns/:campaignId/all-participants/consolidated-totals/export-pdf
-      const pdfBlob = await repartosService.exportAllParticipantsConsolidatedTotals(campaignId);
+      // Get the first reparto ID to use for the general report
+      const firstRepartoId = repartos[0].id;
+
+      // Call the API to get the PDF blob for all participants (no participantId filter)
+      const pdfBlob = await repartosService.exportRepartoTotalsReport(firstRepartoId);
 
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');
@@ -300,6 +307,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     } finally {
       setDownloadingGeneralReport(false);
     }
+    */
   };
 
   const handleDownloadParticipantReport = async (participant: CampaignParticipant, event: any) => {
@@ -480,7 +488,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           </View>
 
           {/* Download Report Button */}
-          {totalProductos > 0 && hasPermission(PERMISSIONS.REPARTOS.REPORTS) && (
+          {totalProductos > 0 && (
             <TouchableOpacity
               style={[
                 styles.downloadParticipantButton,
@@ -512,7 +520,6 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       handleParticipantPress,
       downloadingParticipantId,
       handleDownloadParticipantReport,
-      hasPermission,
     ]
   );
 

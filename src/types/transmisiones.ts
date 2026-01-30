@@ -72,9 +72,6 @@ export interface TransmisionProduct {
       id: string;
       name: string;
     };
-    preliminaryStock?: number;
-    stock?: number;
-    name?: string; // Alias for title
   };
 }
 

@@ -13,7 +13,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
-import { ensureFreshTokenForFileOperation } from '@/utils/tokenHelpers';
 
 interface ImageViewerModalProps {
   visible: boolean;
@@ -48,17 +47,20 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
     try {
       console.log('🖼️ Loading image from signed URL:', url);
 
-      // Ensure token is fresh before loading image (refresh if needed)
-      const token = await ensureFreshTokenForFileOperation('Image Viewer');
+      // Get the JWT token from auth store
+      const token = useAuthStore.getState().token;
 
       // El backend requiere el header X-App-Id y Authorization para archivos privados
       const headers: Record<string, string> = {
         'X-App-Id': config.APP_ID,
         Accept: 'image/*',
-        Authorization: `Bearer ${token}`,
       };
 
-      console.log('🔑 Using fresh JWT token for image request');
+      // Add Authorization header if token is available
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('🔑 Adding Authorization header with JWT token');
+      }
 
       const response = await fetch(url, {
         method: 'GET',

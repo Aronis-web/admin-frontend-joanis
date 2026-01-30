@@ -150,14 +150,10 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
 
       console.log('📥 Downloading expense report:', url);
 
-      // Ensure token is fresh before downloading (refresh if needed)
-      const { ensureFreshTokenForFileOperation } = await import('@/utils/tokenHelpers');
-      const freshToken = await ensureFreshTokenForFileOperation('Expense Report Download');
-
       // Prepare headers
       const headers: Record<string, string> = {
         'X-App-Id': config.APP_ID,
-        Authorization: `Bearer ${freshToken}`,
+        Authorization: `Bearer ${token}`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         Pragma: 'no-cache',
         Expires: '0',

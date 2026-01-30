@@ -399,36 +399,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   refreshAccessToken: async () => {
     try {
-      const refreshResponse = await authService.refreshToken();
+      await authService.refreshToken();
       const newToken = authService.getAccessToken();
 
       if (newToken) {
-        // Update store with new token and expiration time from authService
-        const newTokenExpiresAt = refreshResponse.accessTokenExpiresIn
-          ? Date.now() + refreshResponse.accessTokenExpiresIn * 1000
-          : null;
-
-        set({
-          token: newToken,
-          refreshToken: refreshResponse.refreshToken,
-          tokenExpiresAt: newTokenExpiresAt,
-        });
-        console.log('✅ Token refreshed and synced with store', {
-          expiresIn: refreshResponse.accessTokenExpiresIn,
-          expiresAt: newTokenExpiresAt ? new Date(newTokenExpiresAt).toISOString() : 'unknown',
-        });
+        // Update store with new token from authService (already synced)
+        // Note: authService already has the new token, just update the store
+        set({ token: newToken });
+        console.log('✅ Token refreshed and synced with store');
         return true;
       }
 
-      console.error('❌ No token received after refresh');
       return false;
     } catch (error) {
-      console.error('❌ Token refresh error:', error);
-      // Si el refresh falla, limpiar auth para forzar re-login
-      if (error instanceof Error && error.message.includes('401')) {
-        console.error('❌ Refresh token invalid or expired - clearing auth');
-        await get().clearInvalidAuth();
-      }
+      console.error('Token refresh error:', error);
       return false;
     }
   },
@@ -466,48 +450,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isTokenExpired: () => {
     const { tokenExpiresAt } = get();
     if (!tokenExpiresAt) {
-      // Si no tenemos tokenExpiresAt pero tenemos token, asumir que no está expirado
-      // Esto puede pasar en migraciones o datos legacy
       return false;
     }
-    const isExpired = Date.now() >= tokenExpiresAt;
-    if (isExpired) {
-      console.warn('⚠️ Token is expired', {
-        expiresAt: new Date(tokenExpiresAt).toISOString(),
-        now: new Date().toISOString(),
-      });
-    }
-    return isExpired;
+    return Date.now() >= tokenExpiresAt;
   },
 
   // Check if token should be refreshed (within 5 minutes of expiration)
   shouldRefreshToken: () => {
-    const { tokenExpiresAt, token } = get();
-
-    // Si no hay token, no hay nada que refrescar
-    if (!token) {
+    const { tokenExpiresAt } = get();
+    if (!tokenExpiresAt) {
       return false;
     }
-
-    if (!tokenExpiresAt) {
-      // Si no tenemos tokenExpiresAt pero tenemos token, intentar refrescar por seguridad
-      console.warn('⚠️ Token exists but no expiration time - will attempt refresh');
-      return true;
-    }
-
     const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
-    const shouldRefresh = Date.now() >= tokenExpiresAt - fiveMinutes;
-
-    if (shouldRefresh) {
-      const timeUntilExpiry = tokenExpiresAt - Date.now();
-      const minutesUntilExpiry = Math.floor(timeUntilExpiry / 60000);
-      console.log('🔄 Token should be refreshed', {
-        minutesUntilExpiry,
-        expiresAt: new Date(tokenExpiresAt).toISOString(),
-      });
-    }
-
-    return shouldRefresh;
+    return Date.now() >= tokenExpiresAt - fiveMinutes;
   },
 
   // Permission checking methods

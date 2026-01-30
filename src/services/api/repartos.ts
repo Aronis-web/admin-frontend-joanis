@@ -208,10 +208,6 @@ class RepartosService {
    * @param campaignId - ID of the campaign
    */
   async exportAllParticipantsConsolidatedTotals(campaignId: string): Promise<Blob> {
-    // Ensure token is fresh before downloading PDF
-    const { ensureFreshTokenForFileOperation } = await import('@/utils/tokenHelpers');
-    await ensureFreshTokenForFileOperation('All Participants Consolidated Totals PDF');
-
     // Get fresh token and context
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
@@ -275,13 +271,12 @@ class RepartosService {
    * @param campaignId - ID of the campaign
    */
   async exportRepartoTotalsReport(campaignParticipantId: string, campaignId: string): Promise<Blob> {
-    // Ensure token is fresh before downloading PDF
-    const { ensureFreshTokenForFileOperation } = await import('@/utils/tokenHelpers');
-    await ensureFreshTokenForFileOperation('Reparto Totals Report PDF');
-
     // Get fresh token and context
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
+
+    // REMOVED: Proactive token refresh to prevent race conditions
+    // Token refresh will happen automatically on 401 errors via apiClient interceptor
 
     const token = authStore.token;
     const userId = authStore.user?.id;
@@ -344,13 +339,12 @@ class RepartosService {
    * Returns a blob that can be used to download/view the PDF
    */
   async exportRepartoPdf(repartoId: string): Promise<Blob> {
-    // Ensure token is fresh before downloading PDF
-    const { ensureFreshTokenForFileOperation } = await import('@/utils/tokenHelpers');
-    await ensureFreshTokenForFileOperation('Reparto PDF Export');
-
     // Get fresh token and context
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
+
+    // REMOVED: Proactive token refresh to prevent race conditions
+    // Token refresh will happen automatically on 401 errors via apiClient interceptor
 
     const token = authStore.token;
     const userId = authStore.user?.id;
@@ -407,13 +401,12 @@ class RepartosService {
     campaignId: string,
     selectedProductIds?: string[]
   ): Promise<Blob> {
-    // Ensure token is fresh before downloading PDF
-    const { ensureFreshTokenForFileOperation } = await import('@/utils/tokenHelpers');
-    await ensureFreshTokenForFileOperation('Campaign Distribution Sheets PDF');
-
     // Get fresh token and context
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
+
+    // REMOVED: Proactive token refresh to prevent race conditions
+    // Token refresh will happen automatically on 401 errors via apiClient interceptor
 
     const token = authStore.token;
     const userId = authStore.user?.id;

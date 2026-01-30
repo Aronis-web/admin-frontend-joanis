@@ -124,73 +124,39 @@ class AuthService {
     try {
       console.log('🔄 Starting token refresh...');
 
-      // Validar que tenemos un refresh token
-      if (!this.refreshTokenValue) {
-        console.error('❌ No refresh token available');
-        throw this.createAuthError(401, 'No refresh token available');
-      }
-
       const headers: Record<string, string> = {
         'X-App-Id': this.appId,
-        'Content-Type': 'application/json',
       };
 
-      const body = JSON.stringify({ refreshToken: this.refreshTokenValue });
-
-      // Agregar timeout para evitar que el refresh se quede colgado
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos timeout
-
-      try {
-        const response = await fetch(`${this.baseUrl}/auth/refresh`, {
-          method: 'POST',
-          headers,
-          body,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('❌ Token refresh failed:', response.status, errorData.message);
-
-          // Si el refresh token es inválido o expiró, limpiar todo
-          if (response.status === 401 || response.status === 403) {
-            console.error('❌ Refresh token invalid or expired - clearing auth data');
-            await this.clearAuthData();
-          }
-
-          throw this.createAuthError(response.status, errorData.message || 'Token refresh failed');
-        }
-
-        const data: RefreshTokenResponse = await response.json();
-
-        // Validar que recibimos los datos necesarios
-        if (!data.accessToken || !data.refreshToken) {
-          console.error('❌ Invalid refresh response - missing tokens');
-          throw this.createAuthError(500, 'Invalid refresh response');
-        }
-
-        // Update stored tokens
-        await this.updateTokens(data);
-
-        console.log('✅ Token refresh successful', {
-          expiresIn: data.accessTokenExpiresIn,
-          hasNewRefreshToken: !!data.refreshToken,
-        });
-        return data;
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-
-        // Manejar timeout específicamente
-        if (fetchError.name === 'AbortError') {
-          console.error('❌ Token refresh timeout after 30 seconds');
-          throw this.createAuthError(0, 'Token refresh timeout');
-        }
-
-        throw fetchError;
+      // For mobile, send refresh token in body
+      // For web, it would be sent automatically in cookie
+      if (this.refreshTokenValue) {
+        headers['Content-Type'] = 'application/json';
       }
+
+      const body = this.refreshTokenValue
+        ? JSON.stringify({ refreshToken: this.refreshTokenValue })
+        : undefined;
+
+      const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+        method: 'POST',
+        headers,
+        body,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Token refresh failed:', response.status, errorData.message);
+        throw this.createAuthError(response.status, errorData.message || 'Token refresh failed');
+      }
+
+      const data: RefreshTokenResponse = await response.json();
+
+      // Update stored tokens
+      await this.updateTokens(data);
+
+      console.log('✅ Token refresh successful');
+      return data;
     } catch (error) {
       console.error('❌ Token refresh error:', error);
       if (error instanceof AuthError) {

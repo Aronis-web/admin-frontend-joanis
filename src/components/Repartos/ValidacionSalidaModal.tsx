@@ -252,11 +252,10 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
       return;
     }
 
-    // ✅ PERMITIR que la cantidad validada sea mayor al reparto
-    // if (quantityInBase > assignedQuantity) {
-    //   Alert.alert('Error', 'La cantidad validada no puede ser mayor a la asignada');
-    //   return;
-    // }
+    if (quantityInBase > assignedQuantity) {
+      Alert.alert('Error', 'La cantidad validada no puede ser mayor a la asignada');
+      return;
+    }
 
     if (usePresentation && !selectedPresentationId) {
       Alert.alert('Error', 'Por favor selecciona una presentación');
@@ -480,7 +479,16 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                 </Text>
               )}
               <Text style={styles.inputHint}>
-                Ingresa la cantidad real entregada
+                Ingresa la cantidad real entregada (máximo:{' '}
+                {usePresentation && selectedPresentation
+                  ? calculateQuantityInPresentation(
+                      producto.quantityAssigned || parseFloat(producto.quantityBase) || 0
+                    ).toFixed(2)
+                  : producto.quantityAssigned || producto.quantityBase}
+                {usePresentation && selectedPresentation
+                  ? ` ${selectedPresentation.presentation.name}`
+                  : ' unidades'}
+                )
               </Text>
             </View>
 
