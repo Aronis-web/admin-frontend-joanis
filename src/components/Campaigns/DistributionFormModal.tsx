@@ -197,15 +197,39 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         participants: participants.map(p => ({ id: p.id, name: p.company?.name || p.site?.name, amount: p.assignedAmount })),
       });
 
-      // Calcular distribución localmente
-      const totalAssignedAmount = participants.reduce((sum, p) => sum + (p.assignedAmount || 0), 0);
+      // Calcular distribución localmente usando (montoEsperado / factorPerfilPrecio)
+      // Primero calcular el monto ajustado para cada participante
+      const participantsWithAdjustedAmount = participants.map((participant) => {
+        const assignedAmount = participant.assignedAmount || 0;
+        const priceProfileFactor = participant.priceProfile?.factor || 1;
+        const adjustedAmount = assignedAmount / priceProfileFactor;
+
+        logger.debug('💰 [CALC] Monto ajustado para participante:', {
+          name: participant.company?.name || participant.site?.name,
+          assignedAmount,
+          priceProfileFactor,
+          adjustedAmount,
+        });
+
+        return {
+          ...participant,
+          adjustedAmount,
+        };
+      });
+
+      const totalAdjustedAmount = participantsWithAdjustedAmount.reduce(
+        (sum, p) => sum + p.adjustedAmount,
+        0
+      );
+
+      logger.debug('💰 [CALC] Total monto ajustado:', totalAdjustedAmount);
 
       const initialDistributions: typeof editableDistributions = {};
       let totalDistributed = 0;
 
-      participants.forEach((participant) => {
-        const percentage = totalAssignedAmount > 0
-          ? (participant.assignedAmount / totalAssignedAmount) * 100
+      participantsWithAdjustedAmount.forEach((participant) => {
+        const percentage = totalAdjustedAmount > 0
+          ? (participant.adjustedAmount / totalAdjustedAmount) * 100
           : 100 / participants.length;
 
         const exactQuantity = (percentage / 100) * initialQuantity;
@@ -222,6 +246,12 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         };
 
         totalDistributed += flooredQuantity;
+
+        logger.debug('📊 [CALC] Distribución calculada:', {
+          name: participant.company?.name || participant.site?.name,
+          percentage: percentage.toFixed(2),
+          quantity: flooredQuantity,
+        });
       });
 
       // Asignar remanente al primer participante (o sede de redondeo si existe)
@@ -488,7 +518,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
     return Object.values(editableDistributions).reduce((sum, dist) => sum + dist.quantityBase, 0);
   }, [editableDistributions]);
 
-  const recalculateDistributions = useCallback((newTotalQuantity: number) => {
+  const recalculateDistributions = useCallback(async (newTotalQuantity: number) => {
     if (!adjustedDistribution) {
       return;
     }
@@ -498,82 +528,119 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       newTotalQuantity
     );
 
-    // Recalcular cantidades basadas en porcentajes
-    const newDistributions: typeof editableDistributions = {};
-    let totalDistributed = 0;
-    let remainderParticipantId: string | null = null;
+    try {
+      // Obtener participantes frescos de la campaña para tener los factores actualizados
+      const campaignData = await campaignsService.getCampaign(campaignId);
+      const participants = campaignData.participants || [];
 
-    // Primero, calcular cantidades usando Math.floor para evitar excedentes
-    Object.values(editableDistributions).forEach((dist) => {
-      const exactQuantity = (dist.percentage / 100) * newTotalQuantity;
-      // Usar Math.floor para asegurar que nunca excedemos el total
-      const flooredQuantity = Math.floor(exactQuantity);
+      // Calcular monto ajustado para cada participante usando (montoEsperado / factorPerfilPrecio)
+      const participantsWithAdjustedAmount = participants.map((participant) => {
+        const assignedAmount = participant.assignedAmount || 0;
+        const priceProfileFactor = participant.priceProfile?.factor || 1;
+        const adjustedAmount = assignedAmount / priceProfileFactor;
 
-      newDistributions[dist.participantId] = {
-        ...dist,
-        quantityBase: flooredQuantity,
-        quantityPresentation:
-          globalRoundingFactor > 1 ? Math.floor(flooredQuantity / globalRoundingFactor) : undefined,
-      };
+        return {
+          ...participant,
+          adjustedAmount,
+        };
+      });
 
-      totalDistributed += flooredQuantity;
-    });
+      const totalAdjustedAmount = participantsWithAdjustedAmount.reduce(
+        (sum, p) => sum + p.adjustedAmount,
+        0
+      );
 
-    // Calcular remanente (ahora siempre será >= 0)
-    const remainder = newTotalQuantity - totalDistributed;
+      // Recalcular cantidades basadas en porcentajes ajustados
+      const newDistributions: typeof editableDistributions = {};
+      let totalDistributed = 0;
+      let remainderParticipantId: string | null = null;
 
-    // Asignar remanente a la sede de ajuste (o al primer participante si no hay sede de ajuste)
-    if (remainder > 0) {
-      // Buscar la sede de ajuste del preview original
-      remainderParticipantId =
-        adjustedDistribution.remainderAssignedTo?.participantId ||
-        adjustedDistribution.preview[0]?.participantId;
+      // Primero, calcular cantidades usando Math.floor para evitar excedentes
+      participantsWithAdjustedAmount.forEach((participant) => {
+        const percentage = totalAdjustedAmount > 0
+          ? (participant.adjustedAmount / totalAdjustedAmount) * 100
+          : 100 / participants.length;
 
-      if (remainderParticipantId && newDistributions[remainderParticipantId]) {
-        newDistributions[remainderParticipantId].quantityBase += remainder;
-        if (globalRoundingFactor > 1) {
-          newDistributions[remainderParticipantId].quantityPresentation = Math.floor(
-            newDistributions[remainderParticipantId].quantityBase / globalRoundingFactor
-          );
-        }
-        totalDistributed += remainder;
-      }
-    }
+        const exactQuantity = (percentage / 100) * newTotalQuantity;
+        const flooredQuantity = Math.floor(exactQuantity);
 
-    logger.debug('✅ [RECALC] Distribuciones recalculadas:', {
-      newTotalQuantity,
-      totalDistributed,
-      remainder,
-      remainderAssignedTo: remainderParticipantId,
-    });
+        // Buscar la distribución existente para mantener el roundingFactor
+        const existingDist = editableDistributions[participant.id];
 
-    // Actualizar el estado
-    setEditableDistributions(newDistributions);
+        newDistributions[participant.id] = {
+          participantId: participant.id,
+          participantName: participant.company?.name || participant.site?.name || 'Sin nombre',
+          quantityBase: flooredQuantity,
+          roundingFactor: existingDist?.roundingFactor || globalRoundingFactor,
+          presentationId: existingDist?.presentationId,
+          quantityPresentation:
+            globalRoundingFactor > 1 ? Math.floor(flooredQuantity / globalRoundingFactor) : undefined,
+          percentage: percentage,
+        };
 
-    // Actualizar adjustedDistribution con los nuevos valores
-    const updatedPreview = adjustedDistribution.preview.map((item) => ({
-      ...item,
-      calculatedQuantity: newDistributions[item.participantId]?.quantityBase || 0,
-      quantityPresentation: newDistributions[item.participantId]?.quantityPresentation,
-    }));
+        totalDistributed += flooredQuantity;
+      });
 
-    setAdjustedDistribution({
-      ...adjustedDistribution,
-      totalQuantity: newTotalQuantity,
-      totalDistributed,
-      remainder: newTotalQuantity - totalDistributed,
-      preview: updatedPreview,
-      remainderAssignedTo: remainderParticipantId
-        ? {
-            participantId: remainderParticipantId,
-            participantName: newDistributions[remainderParticipantId]?.participantName || '',
-            remainderQuantity: remainder,
+      // Calcular remanente (ahora siempre será >= 0)
+      const remainder = newTotalQuantity - totalDistributed;
+
+      // Asignar remanente a la sede de ajuste (o al primer participante si no hay sede de ajuste)
+      if (remainder > 0 && participants.length > 0) {
+        // Buscar la sede de ajuste del preview original
+        remainderParticipantId =
+          adjustedDistribution.remainderAssignedTo?.participantId ||
+          participants[0]?.id;
+
+        if (remainderParticipantId && newDistributions[remainderParticipantId]) {
+          newDistributions[remainderParticipantId].quantityBase += remainder;
+          if (globalRoundingFactor > 1) {
+            newDistributions[remainderParticipantId].quantityPresentation = Math.floor(
+              newDistributions[remainderParticipantId].quantityBase / globalRoundingFactor
+            );
           }
-        : undefined,
-    });
+          totalDistributed += remainder;
+        }
+      }
 
-    logger.debug('✅ [RECALC] Estado actualizado');
-  }, [adjustedDistribution, editableDistributions, globalRoundingFactor]);
+      logger.debug('✅ [RECALC] Distribuciones recalculadas:', {
+        newTotalQuantity,
+        totalDistributed,
+        remainder,
+        remainderAssignedTo: remainderParticipantId,
+      });
+
+      // Actualizar el estado
+      setEditableDistributions(newDistributions);
+
+      // Actualizar adjustedDistribution con los nuevos valores
+      const updatedPreview = adjustedDistribution.preview.map((item) => ({
+        ...item,
+        calculatedQuantity: newDistributions[item.participantId]?.quantityBase || 0,
+        quantityPresentation: newDistributions[item.participantId]?.quantityPresentation,
+        percentage: newDistributions[item.participantId]?.percentage || item.percentage,
+      }));
+
+      setAdjustedDistribution({
+        ...adjustedDistribution,
+        totalQuantity: newTotalQuantity,
+        totalDistributed,
+        remainder: newTotalQuantity - totalDistributed,
+        preview: updatedPreview,
+        remainderAssignedTo: remainderParticipantId
+          ? {
+              participantId: remainderParticipantId,
+              participantName: newDistributions[remainderParticipantId]?.participantName || '',
+              remainderQuantity: remainder,
+            }
+          : undefined,
+      });
+
+      logger.debug('✅ [RECALC] Estado actualizado');
+    } catch (error: any) {
+      logger.error('❌ [RECALC] Error recalculando distribuciones:', error);
+      Alert.alert('Error', 'No se pudo recalcular las distribuciones');
+    }
+  }, [adjustedDistribution, editableDistributions, globalRoundingFactor, campaignId]);
 
   const handleGlobalRoundingFactorChange = useCallback(
     async (newFactor: number) => {
@@ -953,14 +1020,26 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                         onChangeText={(text) => {
                           const newQuantity = parseInt(text) || 0;
                           setEditableTotalQuantity(newQuantity);
-                          // Recalcular automáticamente al cambiar
-                          recalculateDistributions(newQuantity);
+                        }}
+                        onBlur={() => {
+                          if (editableTotalQuantity !== adjustedDistribution?.totalQuantity) {
+                            recalculateDistributions(editableTotalQuantity);
+                          }
                         }}
                       />
                       <Text style={styles.editableTotalQuantityUnit}>unidades</Text>
                     </View>
+                    <TouchableOpacity
+                      style={styles.recalculateButton}
+                      onPress={() => recalculateDistributions(editableTotalQuantity)}
+                    >
+                      <Text style={styles.recalculateButtonText}>
+                        🔄 Actualizar Distribuciones
+                      </Text>
+                    </TouchableOpacity>
                     <Text style={styles.editableTotalQuantityHint}>
-                      💡 Las cantidades se actualizan automáticamente al modificar el total
+                      💡 Modifica la cantidad y presiona "Actualizar Distribuciones" para
+                      recalcular
                     </Text>
                   </View>
                   <View style={styles.previewSummaryRow}>
@@ -1569,7 +1648,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748B',
   },
-
+  recalculateButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  recalculateButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   editableTotalQuantityHint: {
     fontSize: 12,
     color: '#64748B',
