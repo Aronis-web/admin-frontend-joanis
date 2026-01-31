@@ -271,12 +271,22 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         const remainderSiteId = campaignData.remainderSiteId || participants[0].id;
         if (initialDistributions[remainderSiteId]) {
           initialDistributions[remainderSiteId].quantityBase += remainder;
+
+          // Recalcular quantityPresentation si hay factor de redondeo
+          if (initialDistributions[remainderSiteId].roundingFactor > 1) {
+            initialDistributions[remainderSiteId].quantityPresentation = Math.floor(
+              initialDistributions[remainderSiteId].quantityBase / initialDistributions[remainderSiteId].roundingFactor
+            );
+          }
+
           totalDistributed += remainder;
 
           logger.debug('✅ [MODAL] Remanente asignado a sede de ajuste:', {
             siteId: remainderSiteId,
             siteName: initialDistributions[remainderSiteId].participantName,
             remainder,
+            newQuantityBase: initialDistributions[remainderSiteId].quantityBase,
+            newQuantityPresentation: initialDistributions[remainderSiteId].quantityPresentation,
           });
         }
       }
@@ -663,6 +673,14 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
           if (remainderSiteId && newDistributions[remainderSiteId]) {
             newDistributions[remainderSiteId].quantityBase += remainder;
+
+            // Recalcular quantityPresentation si hay factor de redondeo
+            if (newDistributions[remainderSiteId].roundingFactor > 1) {
+              newDistributions[remainderSiteId].quantityPresentation = Math.floor(
+                newDistributions[remainderSiteId].quantityBase / newDistributions[remainderSiteId].roundingFactor
+              );
+            }
+
             totalDistributed += remainder;
 
             logger.debug('✅ [RECALC] Remanente asignado a sede de ajuste:', {
@@ -670,6 +688,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
               siteName: newDistributions[remainderSiteId].participantName,
               remainder,
               totalFinal: newDistributions[remainderSiteId].quantityBase,
+              quantityPresentation: newDistributions[remainderSiteId].quantityPresentation,
             });
           }
         }
@@ -705,12 +724,22 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
           if (remainderSiteId && newDistributions[remainderSiteId]) {
             newDistributions[remainderSiteId].quantityBase += remainder;
+
+            // Recalcular quantityPresentation si hay factor de redondeo
+            if (newDistributions[remainderSiteId].roundingFactor > 1) {
+              newDistributions[remainderSiteId].quantityPresentation = Math.floor(
+                newDistributions[remainderSiteId].quantityBase / newDistributions[remainderSiteId].roundingFactor
+              );
+            }
+
             totalDistributed += remainder;
 
             logger.debug('✅ [RECALC] Remanente asignado a sede de ajuste:', {
               siteId: remainderSiteId,
               siteName: newDistributions[remainderSiteId].participantName,
               remainder,
+              newQuantityBase: newDistributions[remainderSiteId].quantityBase,
+              newQuantityPresentation: newDistributions[remainderSiteId].quantityPresentation,
             });
           }
         }
