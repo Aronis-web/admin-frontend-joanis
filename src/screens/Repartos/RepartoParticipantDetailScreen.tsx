@@ -130,6 +130,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const [selectedProducto, setSelectedProducto] = useState<ProductoReparto | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [validationFilter, setValidationFilter] = useState<'all' | 'validated' | 'pending'>('all');
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [repartoId, setRepartoId] = useState<string | null>(null);
   const [generatingConsolidated, setGeneratingConsolidated] = useState(false);
@@ -308,27 +309,37 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     loadData();
   };
 
-  // Filtrar productos basado en la búsqueda
+  // Filtrar productos basado en la búsqueda y estado de validación
   const filteredProductos = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return productos;
+    let filtered = productos;
+
+    // Filtrar por estado de validación
+    if (validationFilter === 'validated') {
+      filtered = filtered.filter((p) => p.validationStatus === 'VALIDATED');
+    } else if (validationFilter === 'pending') {
+      filtered = filtered.filter((p) => p.validationStatus === 'PENDING');
     }
 
-    const query = searchQuery.toLowerCase().trim();
-    return productos.filter((producto) => {
-      const productName = (producto.product?.title || producto.product?.name || '').toLowerCase();
-      const productSku = (producto.product?.sku || '').toLowerCase();
-      const repartoCode = (producto.repartoCode || '').toLowerCase();
-      const repartoName = (producto.repartoName || '').toLowerCase();
+    // Filtrar por búsqueda
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((producto) => {
+        const productName = (producto.product?.title || producto.product?.name || '').toLowerCase();
+        const productSku = (producto.product?.sku || '').toLowerCase();
+        const repartoCode = (producto.repartoCode || '').toLowerCase();
+        const repartoName = (producto.repartoName || '').toLowerCase();
 
-      return (
-        productName.includes(query) ||
-        productSku.includes(query) ||
-        repartoCode.includes(query) ||
-        repartoName.includes(query)
-      );
-    });
-  }, [productos, searchQuery]);
+        return (
+          productName.includes(query) ||
+          productSku.includes(query) ||
+          repartoCode.includes(query) ||
+          repartoName.includes(query)
+        );
+      });
+    }
+
+    return filtered;
+  }, [productos, searchQuery, validationFilter]);
 
   const handleValidateProduct = (producto: ProductoReparto) => {
     setSelectedProducto(producto);
@@ -930,6 +941,66 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               Productos de Reparto
             </Text>
 
+            {/* Filtro de validación */}
+            {productos.length > 0 && (
+              <View style={[(styles as any).filterContainer, isTablet && (styles as any).filterContainerTablet]}>
+                <TouchableOpacity
+                  style={[
+                    (styles as any).filterButton,
+                    isTablet && (styles as any).filterButtonTablet,
+                    validationFilter === 'all' && (styles as any).filterButtonActive,
+                  ]}
+                  onPress={() => setValidationFilter('all')}
+                >
+                  <Text
+                    style={[
+                      (styles as any).filterButtonText,
+                      isTablet && (styles as any).filterButtonTextTablet,
+                      validationFilter === 'all' && (styles as any).filterButtonTextActive,
+                    ]}
+                  >
+                    Todos ({productos.length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    (styles as any).filterButton,
+                    isTablet && (styles as any).filterButtonTablet,
+                    validationFilter === 'validated' && (styles as any).filterButtonActive,
+                  ]}
+                  onPress={() => setValidationFilter('validated')}
+                >
+                  <Text
+                    style={[
+                      (styles as any).filterButtonText,
+                      isTablet && (styles as any).filterButtonTextTablet,
+                      validationFilter === 'validated' && (styles as any).filterButtonTextActive,
+                    ]}
+                  >
+                    ✅ Validados ({productos.filter((p) => p.validationStatus === 'VALIDATED').length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    (styles as any).filterButton,
+                    isTablet && (styles as any).filterButtonTablet,
+                    validationFilter === 'pending' && (styles as any).filterButtonActive,
+                  ]}
+                  onPress={() => setValidationFilter('pending')}
+                >
+                  <Text
+                    style={[
+                      (styles as any).filterButtonText,
+                      isTablet && (styles as any).filterButtonTextTablet,
+                      validationFilter === 'pending' && (styles as any).filterButtonTextActive,
+                    ]}
+                  >
+                    ⏳ Pendientes ({productos.filter((p) => p.validationStatus === 'PENDING').length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Buscador de productos */}
             {productos.length > 0 && (
               <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
@@ -999,23 +1070,27 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             return (
               <ValidacionSalidaModal
                 visible={validationModalVisible}
-                producto={{
-                  id: selectedProducto.id,
-                  product: {
-                    title:
-                      selectedProducto.product?.title ||
-                      selectedProducto.product?.name ||
-                      'Producto',
-                    sku: `${selectedProducto.product?.correlativeNumber ? `#${selectedProducto.product.correlativeNumber} | ` : ''}${selectedProducto.product?.sku || 'N/A'}`,
-                    presentations: selectedProducto.product?.presentations, // ✅ Dentro de product
-                  },
-                  quantityBase:
-                    selectedProducto.quantityBase || String(selectedProducto.quantityAssigned || 0),
-                  // ✅ Pasar información de presentación
-                  presentationInfo: selectedProducto.presentationInfo,
-                  presentationId: selectedProducto.presentationId,
-                  factorToBase: selectedProducto.factorToBase,
-                }}
+                producto={
+                  {
+                    id: selectedProducto.id,
+                    repartoId: selectedProducto.repartoId,
+                    product: {
+                      id: selectedProducto.product?.id || selectedProducto.productId || '',
+                      title:
+                        selectedProducto.product?.title ||
+                        selectedProducto.product?.name ||
+                        'Producto',
+                      sku: `${selectedProducto.product?.correlativeNumber ? `#${selectedProducto.product.correlativeNumber} | ` : ''}${selectedProducto.product?.sku || 'N/A'}`,
+                      presentations: selectedProducto.product?.presentations,
+                    },
+                    quantityBase:
+                      selectedProducto.quantityBase || String(selectedProducto.quantityAssigned || 0),
+                    quantityAssigned: selectedProducto.quantityAssigned,
+                    presentationInfo: selectedProducto.presentationInfo,
+                    presentationId: selectedProducto.presentationId,
+                    factorToBase: selectedProducto.factorToBase,
+                  } as any
+                }
                 onClose={() => {
                   setValidationModalVisible(false);
                   setSelectedProducto(null);
@@ -1462,5 +1537,43 @@ const styles = StyleSheet.create({
   searchResultsTablet: {
     fontSize: 15,
     marginTop: 12,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  filterContainerTablet: {
+    gap: 12,
+    marginTop: 16,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  filterButtonTablet: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  filterButtonActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  filterButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  filterButtonTextTablet: {
+    fontSize: 15,
+  },
+  filterButtonTextActive: {
+    color: '#FFFFFF',
   },
 });

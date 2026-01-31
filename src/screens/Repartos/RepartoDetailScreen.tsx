@@ -55,6 +55,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   const [validationModalVisible, setValidationModalVisible] = useState(false);
   const [validationDetailModalVisible, setValidationDetailModalVisible] = useState(false);
   const [selectedProducto, setSelectedProducto] = useState<any>(null);
+  const [validationFilter, setValidationFilter] = useState<'all' | 'validated' | 'pending'>('all');
   const { width, height } = useWindowDimensions();
   const { user } = useAuthStore();
 
@@ -176,6 +177,46 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
       logger.error('Error validando salida:', error);
       Alert.alert('Error', error.response?.data?.message || 'No se pudo validar la salida');
       throw error;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDownloadValidationReport = async (
+    participantId: string,
+    participantName: string
+  ) => {
+    if (!reparto?.campaign?.id) {
+      Alert.alert('Error', 'No se encontró la campaña asociada');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      logger.info('📥 Descargando reporte de validación...');
+      const pdfBlob = await repartosService.exportValidationReport(
+        participantId,
+        reparto.campaign.id,
+        'pdf'
+      );
+
+      // Create download link
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Totales_Venta_${participantName.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      Alert.alert('Éxito', 'Reporte descargado exitosamente');
+    } catch (error: any) {
+      logger.error('Error descargando reporte:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'No se pudo descargar el reporte de validación'
+      );
     } finally {
       setActionLoading(false);
     }
@@ -549,6 +590,28 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                       )}
                     </View>
 
+                    {/* Download Validation Report Button - Only show when 100% validated */}
+                    {progressPercentageParticipante === 100 &&
+                      participante.campaignParticipant?.id && (
+                        <TouchableOpacity
+                          style={[
+                            styles.downloadReportButton,
+                            actionLoading && styles.buttonDisabled,
+                          ]}
+                          onPress={() =>
+                            handleDownloadValidationReport(
+                              participante.campaignParticipant!.id,
+                              participantName
+                            )
+                          }
+                          disabled={actionLoading}
+                        >
+                          <Text style={styles.downloadReportButtonText}>
+                            {actionLoading ? 'Descargando...' : '📊 Totales venta'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+
                     {participante.productos && participante.productos.length > 0 && (
                       <View style={styles.productsList}>
                         <Text
@@ -556,8 +619,76 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                         >
                           Productos ({participante.productos.length})
                         </Text>
+
+                        {/* Filtro de validación */}
+                        <View style={[styles.filterContainer, isTablet && styles.filterContainerTablet]}>
+                          <TouchableOpacity
+                            style={[
+                              styles.filterButton,
+                              isTablet && styles.filterButtonTablet,
+                              validationFilter === 'all' && styles.filterButtonActive,
+                            ]}
+                            onPress={() => setValidationFilter('all')}
+                          >
+                            <Text
+                              style={[
+                                styles.filterButtonText,
+                                isTablet && styles.filterButtonTextTablet,
+                                validationFilter === 'all' && styles.filterButtonTextActive,
+                              ]}
+                            >
+                              Todos ({participante.productos.length})
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              styles.filterButton,
+                              isTablet && styles.filterButtonTablet,
+                              validationFilter === 'validated' && styles.filterButtonActive,
+                            ]}
+                            onPress={() => setValidationFilter('validated')}
+                          >
+                            <Text
+                              style={[
+                                styles.filterButtonText,
+                                isTablet && styles.filterButtonTextTablet,
+                                validationFilter === 'validated' && styles.filterButtonTextActive,
+                              ]}
+                            >
+                              ✅ Validados ({participante.productos.filter((p) => p.validationStatus === RepartoProductoValidationStatus.VALIDATED).length})
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              styles.filterButton,
+                              isTablet && styles.filterButtonTablet,
+                              validationFilter === 'pending' && styles.filterButtonActive,
+                            ]}
+                            onPress={() => setValidationFilter('pending')}
+                          >
+                            <Text
+                              style={[
+                                styles.filterButtonText,
+                                isTablet && styles.filterButtonTextTablet,
+                                validationFilter === 'pending' && styles.filterButtonTextActive,
+                              ]}
+                            >
+                              ⏳ Pendientes ({participante.productos.filter((p) => p.validationStatus === RepartoProductoValidationStatus.PENDING).length})
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+
                         {participante.productos
                           .slice()
+                          .filter((producto) => {
+                            // Filtrar por estado de validación
+                            if (validationFilter === 'validated') {
+                              return producto.validationStatus === RepartoProductoValidationStatus.VALIDATED;
+                            } else if (validationFilter === 'pending') {
+                              return producto.validationStatus === RepartoProductoValidationStatus.PENDING;
+                            }
+                            return true; // 'all'
+                          })
                           .sort((a, b) => {
                             // Ordenar por correlativo
                             const correlativeA = (a.product as any)?.correlativeNumber || 0;
@@ -977,6 +1108,21 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.5,
   },
+  downloadReportButton: {
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    marginTop: 12,
+  },
+  downloadReportButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
   participantCard: {
     backgroundColor: '#F8FAFC',
     borderRadius: 8,
@@ -1125,5 +1271,45 @@ const styles = StyleSheet.create({
   },
   emptyTextTablet: {
     fontSize: 16,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  filterContainerTablet: {
+    gap: 12,
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  filterButtonTablet: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  filterButtonActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  filterButtonText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  filterButtonTextTablet: {
+    fontSize: 13,
+  },
+  filterButtonTextActive: {
+    color: '#FFFFFF',
   },
 });

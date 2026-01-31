@@ -33,8 +33,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     try {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false, // ✅ Desactivar recorte
         quality: 0.8,
       });
 
@@ -57,8 +56,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false, // ✅ Desactivar recorte
         quality: 0.8,
       });
 

@@ -58,47 +58,34 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     try {
       setLoading(true);
 
-      // Cargar campaña
-      const campaignData = await campaignsService.getCampaign(campaignId);
-      setCampaign(campaignData);
+      // Cargar campaña, participantes y progreso en paralelo
+      const [campaignData, participantsData, campaignProgressData] = await Promise.all([
+        campaignsService.getCampaign(campaignId),
+        campaignsService.getParticipants(campaignId),
+        repartosService.getCampaignProgress(campaignId),
+      ]);
 
-      // Cargar participantes
-      const participantsData = await campaignsService.getParticipants(campaignId);
+      setCampaign(campaignData);
       setParticipants(participantsData);
 
-      // Cargar repartos de la campaña
-      const repartosData = await repartosService.getRepartosByCampaign(campaignId);
-      setRepartos(repartosData);
-
-      // Cargar progreso de cada participante
+      // Mapear el progreso de cada participante
       const progressMap = new Map<string, { validated: number; total: number; percentage: number }>();
 
-      await Promise.all(
-        participantsData.map(async (participant) => {
-          try {
-            const progressData = await repartosService.getParticipantCampaignProgress(
-              participant.id,
-              campaignId
-            );
-
-            progressMap.set(participant.id, {
-              validated: progressData.overallProgress.productsValidated,
-              total: progressData.overallProgress.productsAssigned,
-              percentage: progressData.overallProgress.productsPercentage,
-            });
-          } catch (error) {
-            logger.error(`Error loading progress for participant ${participant.id}:`, error);
-            // Si falla, usar valores por defecto
-            progressMap.set(participant.id, {
-              validated: 0,
-              total: 0,
-              percentage: 0,
-            });
-          }
-        })
-      );
+      campaignProgressData.participants.forEach((participantProgress) => {
+        progressMap.set(participantProgress.participantId, {
+          validated: participantProgress.progress.productsValidated,
+          total: participantProgress.progress.productsAssigned,
+          percentage: participantProgress.progress.productsPercentage,
+        });
+      });
 
       setParticipantProgress(progressMap);
+
+      // Usar el conteo de repartos del progreso en lugar de cargar todos los repartos
+      // Esto evita cargar 37 repartos completos con todos sus detalles
+      setRepartos(
+        Array(campaignProgressData.overallProgress.totalRepartos).fill({ id: 'placeholder' })
+      );
     } catch (error: any) {
       logger.error('Error loading campaign data:', error);
       Alert.alert('Error', 'No se pudo cargar la información de la campaña');
@@ -127,34 +114,42 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     });
   };
 
-  const handleOpenProductSelection = () => {
-    // Collect all products from all repartos and group by product ID
-    const productMap = new Map<string, RepartoProducto>();
+  const handleOpenProductSelection = async () => {
+    try {
+      // Cargar repartos solo cuando se necesiten para el modal de productos
+      const repartosData = await repartosService.getRepartosByCampaign(campaignId);
 
-    repartos.forEach((reparto) => {
-      reparto.participantes?.forEach((participante: any) => {
-        participante.productos?.forEach((producto: RepartoProducto) => {
-          // Use product ID as key to avoid duplicates
-          const productKey = producto.productId;
-          if (productKey && !productMap.has(productKey)) {
-            productMap.set(productKey, producto);
-          }
+      // Collect all products from all repartos and group by product ID
+      const productMap = new Map<string, RepartoProducto>();
+
+      repartosData.forEach((reparto) => {
+        reparto.participantes?.forEach((participante: any) => {
+          participante.productos?.forEach((producto: RepartoProducto) => {
+            // Use product ID as key to avoid duplicates
+            const productKey = producto.productId;
+            if (productKey && !productMap.has(productKey)) {
+              productMap.set(productKey, producto);
+            }
+          });
         });
       });
-    });
 
-    // Convert map to array
-    const uniqueProducts = Array.from(productMap.values());
+      // Convert map to array
+      const uniqueProducts = Array.from(productMap.values());
 
-    // Sort products by area name (ascending)
-    const sortedProducts = uniqueProducts.sort((a, b) => {
-      const areaA = a.area?.name || a.areaId || '';
-      const areaB = b.area?.name || b.areaId || '';
-      return areaA.localeCompare(areaB, 'es', { sensitivity: 'base' });
-    });
+      // Sort products by area name (ascending)
+      const sortedProducts = uniqueProducts.sort((a, b) => {
+        const areaA = a.area?.name || a.areaId || '';
+        const areaB = b.area?.name || b.areaId || '';
+        return areaA.localeCompare(areaB, 'es', { sensitivity: 'base' });
+      });
 
-    setAllProducts(sortedProducts);
-    setShowProductSelectionModal(true);
+      setAllProducts(sortedProducts);
+      setShowProductSelectionModal(true);
+    } catch (error: any) {
+      logger.error('Error loading repartos for product selection:', error);
+      Alert.alert('Error', 'No se pudieron cargar los productos');
+    }
   };
 
   const handleExportAllDistributionSheets = async (selectedProductIds: string[]) => {

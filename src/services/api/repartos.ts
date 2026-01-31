@@ -330,6 +330,75 @@ class RepartosService {
     return await response.blob();
   }
 
+  /**
+   * Export validation report for a participant in a campaign
+   * Returns a blob that can be used to download/view the PDF or Excel
+   * @param campaignParticipantId - ID of the campaign participant
+   * @param campaignId - ID of the campaign
+   * @param format - Format of the report (pdf or excel)
+   */
+  async exportValidationReport(
+    campaignParticipantId: string,
+    campaignId: string,
+    format: 'pdf' | 'excel' = 'pdf'
+  ): Promise<Blob> {
+    // Get fresh token and context
+    const authStore = useAuthStore.getState();
+    const tenantStore = useTenantStore.getState();
+
+    const token = authStore.token;
+    const userId = authStore.user?.id;
+    const companyId = tenantStore.selectedCompany?.id || authStore.currentCompany?.id;
+    const siteId = tenantStore.selectedSite?.id || authStore.currentSite?.id;
+
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+
+    const headers: Record<string, string> = {
+      'X-App-Id': config.APP_ID,
+      Authorization: `Bearer ${token}`,
+    };
+
+    if (userId) {
+      headers['X-User-Id'] = userId;
+    }
+    if (companyId) {
+      headers['X-Company-Id'] = companyId;
+    }
+    if (siteId) {
+      headers['X-Site-Id'] = siteId;
+    }
+
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+
+    // Build URL with query parameters
+    const urlParams = new URLSearchParams();
+    urlParams.append('t', timestamp.toString());
+    urlParams.append('format', format);
+
+    // Endpoint: GET /admin/campaigns/repartos/participants/:campaignParticipantId/campaigns/:campaignId/validation-report
+    const url = `${config.API_URL}${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/validation-report?${urlParams.toString()}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    return await response.blob();
+  }
+
   // ============================================
   // PDF Export
   // ============================================
