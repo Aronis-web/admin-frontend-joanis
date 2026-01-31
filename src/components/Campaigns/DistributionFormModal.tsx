@@ -371,25 +371,37 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         let remainderParticipantId: string | null = null;
 
         if (type === DistributionType.INTERNAL_EQUAL) {
-          // INTERNAL_EQUAL: Distribuir cantidad igual entre todas las sedes
-          logger.debug('⚖️ [INTERNAL EQUAL] Distribuyendo cantidades iguales...');
+          // INTERNAL_EQUAL: Distribuir proporcionalmente según monto esperado entre sedes internas
+          logger.debug('⚖️ [INTERNAL EQUAL] Distribuyendo proporcionalmente según montos esperados...');
 
-          const quantityPerSite = Math.floor(totalQuantity / internalSitesOnly.length);
-          const percentagePerSite = 100 / internalSitesOnly.length;
+          // Calcular el total de porcentajes de las sedes internas
+          const totalInternalPercentage = internalSitesOnly.reduce((sum, site) => sum + site.percentage, 0);
 
+          logger.debug('📊 [INTERNAL EQUAL] Porcentajes originales:', {
+            sites: internalSitesOnly.map((s) => ({ name: s.participantName, percentage: s.percentage })),
+            totalInternalPercentage,
+          });
+
+          // Calcular cantidades usando Math.floor para evitar excedentes
           internalSitesOnly.forEach((site) => {
+            // Usar el porcentaje original del participante (basado en su monto esperado)
+            // y recalcular proporcionalmente solo entre las sedes internas
+            const adjustedPercentage = (site.percentage / totalInternalPercentage) * 100;
+            const exactQuantity = (adjustedPercentage / 100) * totalQuantity;
+            const flooredQuantity = Math.floor(exactQuantity);
+
             newDistributions[site.participantId] = {
               participantId: site.participantId,
               participantName: site.participantName,
-              quantityBase: quantityPerSite,
+              quantityBase: flooredQuantity,
               roundingFactor: globalRoundingFactor,
               presentationId: site.presentationId,
               quantityPresentation:
-                globalRoundingFactor > 1 ? Math.floor(quantityPerSite / globalRoundingFactor) : undefined,
-              percentage: percentagePerSite,
+                globalRoundingFactor > 1 ? Math.floor(flooredQuantity / globalRoundingFactor) : undefined,
+              percentage: adjustedPercentage,
             };
 
-            totalDistributed += quantityPerSite;
+            totalDistributed += flooredQuantity;
           });
 
           // Asignar remanente a la sede de redondeo (o primera sede)
