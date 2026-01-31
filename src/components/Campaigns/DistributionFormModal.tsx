@@ -210,7 +210,8 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
       // Calcular distribución localmente usando solo el monto esperado
       const participantsWithAdjustedAmount = participants.map((participant) => {
-        const assignedAmountCents = participant.assignedAmountCents || 0;
+        // Convertir a número porque puede venir como string del backend
+        const assignedAmountCents = Number(participant.assignedAmountCents) || 0;
 
         logger.debug('💰 [CALC] Monto esperado para participante:', {
           name: participant.company?.name || participant.site?.name,
@@ -593,7 +594,8 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
       // Calcular distribución usando solo el monto esperado
       const participantsWithAdjustedAmount = participants.map((participant) => {
-        const assignedAmountCents = participant.assignedAmountCents || 0;
+        // Convertir a número porque puede venir como string del backend
+        const assignedAmountCents = Number(participant.assignedAmountCents) || 0;
 
         return {
           ...participant,
