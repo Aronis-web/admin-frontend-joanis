@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -56,6 +57,11 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   const [validationDetailModalVisible, setValidationDetailModalVisible] = useState(false);
   const [selectedProducto, setSelectedProducto] = useState<any>(null);
   const [validationFilter, setValidationFilter] = useState<'all' | 'validated' | 'pending'>('all');
+  const [formatModalVisible, setFormatModalVisible] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const { width, height } = useWindowDimensions();
   const { user } = useAuthStore();
 
@@ -182,35 +188,40 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
     }
   };
 
-  const handleDownloadValidationReport = async (
-    participantId: string,
-    participantName: string
-  ) => {
-    if (!reparto?.campaign?.id) {
-      Alert.alert('Error', 'No se encontró la campaña asociada');
+  const handleOpenFormatModal = (participantId: string, participantName: string) => {
+    setSelectedParticipant({ id: participantId, name: participantName });
+    setFormatModalVisible(true);
+  };
+
+  const handleDownloadValidationReport = async (format: 'pdf' | 'excel') => {
+    if (!selectedParticipant || !reparto?.campaign?.id) {
+      Alert.alert('Error', 'No se encontró la información necesaria');
       return;
     }
 
     setActionLoading(true);
+    setFormatModalVisible(false);
+
     try {
-      logger.info('📥 Descargando reporte de validación...');
-      const pdfBlob = await repartosService.exportValidationReport(
-        participantId,
+      logger.info(`📥 Descargando reporte de validación en formato ${format.toUpperCase()}...`);
+      const blob = await repartosService.exportValidationReport(
+        selectedParticipant.id,
         reparto.campaign.id,
-        'pdf'
+        format
       );
 
       // Create download link
-      const url = URL.createObjectURL(pdfBlob);
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Totales_Venta_${participantName.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
+      const extension = format === 'pdf' ? 'pdf' : 'xlsx';
+      link.download = `Totales_Venta_${selectedParticipant.name.replace(/\s+/g, '_')}_${new Date().getTime()}.${extension}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      Alert.alert('Éxito', 'Reporte descargado exitosamente');
+      Alert.alert('Éxito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
     } catch (error: any) {
       logger.error('Error descargando reporte:', error);
       Alert.alert(
@@ -219,6 +230,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
       );
     } finally {
       setActionLoading(false);
+      setSelectedParticipant(null);
     }
   };
 
@@ -548,6 +560,12 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                       )
                     : 0;
 
+                // Debug: Log para verificar condiciones del botón
+                console.log('🔍 Participante:', participantName);
+                console.log('📊 Progreso:', progressPercentageParticipante);
+                console.log('🆔 Campaign Participant ID:', participante.campaignParticipant?.id);
+                console.log('✅ Mostrar botón:', progressPercentageParticipante === 100 && !!participante.campaignParticipant?.id);
+
                 return (
                   <View
                     key={participante.id}
@@ -599,7 +617,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                             actionLoading && styles.buttonDisabled,
                           ]}
                           onPress={() =>
-                            handleDownloadValidationReport(
+                            handleOpenFormatModal(
                               participante.campaignParticipant!.id,
                               participantName
                             )
@@ -607,7 +625,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                           disabled={actionLoading}
                         >
                           <Text style={styles.downloadReportButtonText}>
-                            {actionLoading ? 'Descargando...' : '📊 Totales venta'}
+                            📊 Totales venta
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -883,6 +901,65 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
             setSelectedProducto(null);
           }}
         />
+
+        {/* Format Selection Modal */}
+        <Modal
+          visible={formatModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => {
+            setFormatModalVisible(false);
+            setSelectedParticipant(null);
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}>
+              <Text style={[styles.formatModalTitle, isTablet && styles.formatModalTitleTablet]}>
+                Seleccionar formato de descarga
+              </Text>
+              <Text style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}>
+                {selectedParticipant?.name}
+              </Text>
+
+              <View style={styles.formatButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.formatButton, styles.pdfButton]}
+                  onPress={() => handleDownloadValidationReport('pdf')}
+                  disabled={actionLoading}
+                >
+                  <Text style={styles.formatButtonIcon}>📄</Text>
+                  <Text style={styles.formatButtonTitle}>PDF</Text>
+                  <Text style={styles.formatButtonDescription}>
+                    Incluye fotos y firmas
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.formatButton, styles.excelButton]}
+                  onPress={() => handleDownloadValidationReport('excel')}
+                  disabled={actionLoading}
+                >
+                  <Text style={styles.formatButtonIcon}>📊</Text>
+                  <Text style={styles.formatButtonTitle}>Excel</Text>
+                  <Text style={styles.formatButtonDescription}>
+                    Datos tabulados
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.formatCancelButton}
+                onPress={() => {
+                  setFormatModalVisible(false);
+                  setSelectedParticipant(null);
+                }}
+                disabled={actionLoading}
+              >
+                <Text style={styles.formatCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -1311,5 +1388,91 @@ const styles = StyleSheet.create({
   },
   filterButtonTextActive: {
     color: '#FFFFFF',
+  },
+  // Format Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  formatModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  formatModalContainerTablet: {
+    padding: 32,
+    maxWidth: 500,
+  },
+  formatModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  formatModalTitleTablet: {
+    fontSize: 24,
+  },
+  formatModalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  formatModalSubtitleTablet: {
+    fontSize: 16,
+  },
+  formatButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  formatButton: {
+    flex: 1,
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  pdfButton: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+  },
+  excelButton: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  formatButtonIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  formatButtonTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  formatButtonDescription: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  formatCancelButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  formatCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748B',
   },
 });
