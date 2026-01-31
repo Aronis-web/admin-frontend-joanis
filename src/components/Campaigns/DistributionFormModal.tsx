@@ -201,23 +201,18 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         participants: participants.map(p => ({ id: p.id, name: p.company?.name || p.site?.name, amount: p.assignedAmount })),
       });
 
-      // Calcular distribución localmente usando (montoEsperado / factorPerfilPrecio)
-      // Primero calcular el monto ajustado para cada participante
+      // Calcular distribución localmente usando solo el monto esperado
       const participantsWithAdjustedAmount = participants.map((participant) => {
         const assignedAmount = participant.assignedAmount || 0;
-        const priceProfileFactor = participant.priceProfile?.factor || 1;
-        const adjustedAmount = assignedAmount / priceProfileFactor;
 
-        logger.debug('💰 [CALC] Monto ajustado para participante:', {
+        logger.debug('💰 [CALC] Monto esperado para participante:', {
           name: participant.company?.name || participant.site?.name,
           assignedAmount,
-          priceProfileFactor,
-          adjustedAmount,
         });
 
         return {
           ...participant,
-          adjustedAmount,
+          adjustedAmount: assignedAmount,
         };
       });
 
@@ -226,7 +221,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         0
       );
 
-      logger.debug('💰 [CALC] Total monto ajustado:', totalAdjustedAmount);
+      logger.debug('💰 [CALC] Total monto esperado:', totalAdjustedAmount);
 
       const initialDistributions: typeof editableDistributions = {};
       let totalDistributed = 0;
@@ -581,19 +576,17 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
     );
 
     try {
-      // Obtener participantes frescos de la campaña para tener los factores actualizados
+      // Obtener participantes frescos de la campaña
       const campaignData = await campaignsService.getCampaign(campaignId);
       const participants = campaignData.participants || [];
 
-      // Calcular monto ajustado para cada participante usando (montoEsperado / factorPerfilPrecio)
+      // Calcular distribución usando solo el monto esperado
       const participantsWithAdjustedAmount = participants.map((participant) => {
         const assignedAmount = participant.assignedAmount || 0;
-        const priceProfileFactor = participant.priceProfile?.factor || 1;
-        const adjustedAmount = assignedAmount / priceProfileFactor;
 
         return {
           ...participant,
-          adjustedAmount,
+          adjustedAmount: assignedAmount,
         };
       });
 
