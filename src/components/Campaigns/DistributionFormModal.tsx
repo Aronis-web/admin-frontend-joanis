@@ -198,21 +198,21 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
       logger.debug('✅ [MODAL] Participantes obtenidos:', {
         totalParticipants: participants.length,
-        participants: participants.map(p => ({ id: p.id, name: p.company?.name || p.site?.name, amount: p.assignedAmount })),
+        participants: participants.map(p => ({ id: p.id, name: p.company?.name || p.site?.name, amountCents: p.assignedAmountCents })),
       });
 
       // Calcular distribución localmente usando solo el monto esperado
       const participantsWithAdjustedAmount = participants.map((participant) => {
-        const assignedAmount = participant.assignedAmount || 0;
+        const assignedAmountCents = participant.assignedAmountCents || 0;
 
         logger.debug('💰 [CALC] Monto esperado para participante:', {
           name: participant.company?.name || participant.site?.name,
-          assignedAmount,
+          assignedAmountCents,
         });
 
         return {
           ...participant,
-          adjustedAmount: assignedAmount,
+          adjustedAmount: assignedAmountCents,
         };
       });
 
@@ -582,11 +582,11 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
       // Calcular distribución usando solo el monto esperado
       const participantsWithAdjustedAmount = participants.map((participant) => {
-        const assignedAmount = participant.assignedAmount || 0;
+        const assignedAmountCents = participant.assignedAmountCents || 0;
 
         return {
           ...participant,
-          adjustedAmount: assignedAmount,
+          adjustedAmount: assignedAmountCents,
         };
       });
 
