@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   Linking,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -49,6 +50,11 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
   const [downloadingParticipantId, setDownloadingParticipantId] = useState<string | null>(null);
   const [downloadingGeneralReport, setDownloadingGeneralReport] = useState(false);
   const [participantProgress, setParticipantProgress] = useState<Map<string, { validated: number; total: number; percentage: number }>>(new Map());
+  const [formatModalVisible, setFormatModalVisible] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -218,6 +224,88 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       Alert.alert('Error', error.message || 'No se pudieron exportar las hojas de reparto');
     } finally {
       setExportingPdf(false);
+    }
+  };
+
+  const handleOpenValidationReportModal = (participantId: string, participantName: string) => {
+    setSelectedParticipant({ id: participantId, name: participantName });
+    setFormatModalVisible(true);
+  };
+
+  const handleDownloadValidationReport = async (format: 'pdf' | 'excel') => {
+    if (!selectedParticipant) {
+      Alert.alert('Error', 'No se encontró la información del participante');
+      return;
+    }
+
+    setFormatModalVisible(false);
+    setDownloadingParticipantId(selectedParticipant.id);
+
+    try {
+      logger.info(`📥 Descargando reporte de validación en formato ${format.toUpperCase()}...`);
+      const blob = await repartosService.exportValidationReport(
+        selectedParticipant.id,
+        campaignId,
+        format
+      );
+
+      if (Platform.OS === 'web') {
+        // For web, create a download link using blob URL
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        const extension = format === 'pdf' ? 'pdf' : 'xlsx';
+        link.download = `Totales_Venta_${selectedParticipant.name.replace(/\s+/g, '_')}_${new Date().getTime()}.${extension}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up the blob URL after a short delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+
+        Alert.alert('Éxito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
+      } else {
+        // For mobile (iOS/Android), save to file system and share
+        const timestamp = new Date().getTime();
+        const extension = format === 'pdf' ? 'pdf' : 'xlsx';
+        const fileName = `Totales_Venta_${selectedParticipant.name.replace(/\s+/g, '_')}_${timestamp}.${extension}`;
+        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
+
+        // Convert blob to array buffer using FileReader
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(blob);
+        });
+
+        // Write to file
+        await file.create();
+        const writer = file.writableStream().getWriter();
+        await writer.write(new Uint8Array(arrayBuffer));
+        await writer.close();
+
+        // Share the file
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            dialogTitle: 'Totales Venta',
+            UTI: format === 'pdf' ? 'com.adobe.pdf' : 'org.openxmlformats.spreadsheetml.sheet',
+          });
+        } else {
+          Alert.alert('Éxito', `Archivo guardado en: ${file.uri}`);
+        }
+      }
+    } catch (error: any) {
+      logger.error('Error descargando reporte de validación:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'No se pudo descargar el reporte de validación'
+      );
+    } finally {
+      setDownloadingParticipantId(null);
+      setSelectedParticipant(null);
     }
   };
 
@@ -497,6 +585,32 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
               </Text>
             </TouchableOpacity>
           )}
+
+          {/* Validation Report Button - Only show when 100% validated */}
+          {progressPercentage === 100 && (
+            <TouchableOpacity
+              style={[
+                styles.validationReportButton,
+                isTablet && styles.validationReportButtonTablet,
+                downloadingParticipantId === participant.id && styles.downloadButtonDisabled,
+              ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleOpenValidationReportModal(participant.id, participantName);
+              }}
+              disabled={downloadingParticipantId === participant.id}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.validationReportButtonText,
+                  isTablet && styles.validationReportButtonTextTablet,
+                ]}
+              >
+                📊 Totales venta
+              </Text>
+            </TouchableOpacity>
+          )}
         </TouchableOpacity>
       );
     },
@@ -506,6 +620,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       handleParticipantPress,
       downloadingParticipantId,
       handleDownloadParticipantReport,
+      handleOpenValidationReportModal,
     ]
   );
 
@@ -660,6 +775,65 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           products={allProducts}
           loading={exportingPdf}
         />
+
+        {/* Format Selection Modal */}
+        <Modal
+          visible={formatModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => {
+            setFormatModalVisible(false);
+            setSelectedParticipant(null);
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}>
+              <Text style={[styles.formatModalTitle, isTablet && styles.formatModalTitleTablet]}>
+                Seleccionar formato de descarga
+              </Text>
+              <Text style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}>
+                {selectedParticipant?.name}
+              </Text>
+
+              <View style={styles.formatButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.formatButton, styles.pdfButton]}
+                  onPress={() => handleDownloadValidationReport('pdf')}
+                  disabled={downloadingParticipantId !== null}
+                >
+                  <Text style={styles.formatButtonIcon}>📄</Text>
+                  <Text style={styles.formatButtonTitle}>PDF</Text>
+                  <Text style={styles.formatButtonDescription}>
+                    Incluye fotos y firmas
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.formatButton, styles.excelButton]}
+                  onPress={() => handleDownloadValidationReport('excel')}
+                  disabled={downloadingParticipantId !== null}
+                >
+                  <Text style={styles.formatButtonIcon}>📊</Text>
+                  <Text style={styles.formatButtonTitle}>Excel</Text>
+                  <Text style={styles.formatButtonDescription}>
+                    Datos tabulados
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.formatCancelButton}
+                onPress={() => {
+                  setFormatModalVisible(false);
+                  setSelectedParticipant(null);
+                }}
+                disabled={downloadingParticipantId !== null}
+              >
+                <Text style={styles.formatCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -1007,5 +1181,114 @@ const styles = StyleSheet.create({
   },
   generalReportButtonTextTablet: {
     fontSize: 16,
+  },
+  validationReportButton: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  validationReportButtonTablet: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  validationReportButtonText: {
+    color: '#6366F1',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  validationReportButtonTextTablet: {
+    fontSize: 15,
+  },
+  // Format Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  formatModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  formatModalContainerTablet: {
+    padding: 32,
+    maxWidth: 500,
+  },
+  formatModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  formatModalTitleTablet: {
+    fontSize: 24,
+  },
+  formatModalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  formatModalSubtitleTablet: {
+    fontSize: 16,
+  },
+  formatButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  formatButton: {
+    flex: 1,
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  pdfButton: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+  },
+  excelButton: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  formatButtonIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  formatButtonTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  formatButtonDescription: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  formatCancelButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  formatCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748B',
   },
 });
