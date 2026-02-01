@@ -394,6 +394,22 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       return;
     }
 
+    // Validar que todas las fotos sean obligatorias
+    if (!photoUri) {
+      Alert.alert('Error', 'La foto de validación es obligatoria');
+      return;
+    }
+
+    if (!productPhotoUri) {
+      Alert.alert('Error', 'La foto del producto es obligatoria');
+      return;
+    }
+
+    if (!signatureUri) {
+      Alert.alert('Error', 'La firma de validación es obligatoria');
+      return;
+    }
+
     // Presentaciones ahora son opcionales
     // if (validatedPresentations.length === 0) {
     //   Alert.alert('Error', 'Debe tener al menos una presentación validada');
@@ -494,6 +510,22 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
     if (!selectedWarehouse) {
       Alert.alert('Error', 'Debe seleccionar un almacén');
+      return;
+    }
+
+    // Validar que todas las fotos sean obligatorias
+    if (!photoUri) {
+      Alert.alert('Error', 'La foto de validación es obligatoria');
+      return;
+    }
+
+    if (!productPhotoUri) {
+      Alert.alert('Error', 'La foto del producto es obligatoria');
+      return;
+    }
+
+    if (!signatureUri) {
+      Alert.alert('Error', 'La firma de validación es obligatoria');
       return;
     }
 
@@ -1220,7 +1252,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 </TouchableOpacity>
               )}
               <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Foto del producto durante la validación (opcional)
+                Foto del producto durante la validación *
               </Text>
             </View>
 
@@ -1249,7 +1281,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 </TouchableOpacity>
               )}
               <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Foto del producto para el catálogo (opcional)
+                Foto del producto para el catálogo *
               </Text>
             </View>
 
@@ -1280,7 +1312,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 </TouchableOpacity>
               )}
               <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Firma del responsable de la validación (opcional)
+                Firma del responsable de la validación *
               </Text>
             </View>
 
