@@ -882,11 +882,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     try {
       setDownloadingReport(true);
 
-      logger.info('🔄 Descargando reporte general de totales de repartos...');
+      logger.info('🔄 Descargando reporte general de totales de participantes...');
       const startTime = new Date().getTime();
 
-      // Call the new repartos API to get the consolidated totals PDF for all participants
-      const pdfBlob = await repartosService.exportAllParticipantsConsolidatedTotals(campaignId);
+      // Call the campaigns API to get the participant totals PDF (uses VALIDATED quantities)
+      const pdfBlob = await campaignsService.exportParticipantTotalsPdf(campaignId);
 
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');
@@ -898,7 +898,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         const blobUrl = URL.createObjectURL(pdfBlob);
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = `reporte-repartos-totales-${campaign?.code || campaignId}.pdf`;
+        link.download = `reporte-totales-participantes-${campaign?.code || campaignId}.pdf`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -910,7 +910,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       } else {
         // For mobile (iOS/Android), save to file system and share
         const timestamp = new Date().getTime();
-        const fileName = `reporte-repartos-totales-${timestamp}.pdf`;
+        const fileName = `reporte-totales-participantes-${timestamp}.pdf`;
         const file = new FileSystem.File(FileSystem.Paths.document, fileName);
 
         // Convert blob to array buffer using FileReader
@@ -932,7 +932,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         if (canShare) {
           await Sharing.shareAsync(file.uri, {
             mimeType: 'application/pdf',
-            dialogTitle: 'Reporte de Totales de Repartos',
+            dialogTitle: 'Reporte de Totales de Participantes',
             UTI: 'com.adobe.pdf',
           });
         } else {
@@ -1162,7 +1162,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </View>
           )}
 
-          {/* Download General Report Button - Repartos */}
+          {/* Download General Report Button - Participant Totals */}
           {campaign.participants && campaign.participants.length > 0 && !permissionsLoading && hasPermission(PERMISSIONS.REPARTOS.REPORTS) && (
             <TouchableOpacity
               style={[
@@ -1180,7 +1180,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   isTablet && styles.downloadGeneralReportButtonTextTablet,
                 ]}
               >
-                {downloadingReport ? '📄 Generando...' : '📄 Descargar Reporte General de Totales (Repartos)'}
+                {downloadingReport ? '📄 Generando...' : '📄 Descargar Reporte General de Totales de Participantes'}
               </Text>
             </TouchableOpacity>
           )}
