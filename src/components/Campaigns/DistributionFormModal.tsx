@@ -826,6 +826,15 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
         // Asignar remanente a la sede de ajuste
         const remainder = newTotalQuantity - totalDistributed;
+
+        logger.debug('🔍 [RECALC UNITS] Verificando condiciones para asignar remanente:', {
+          remainder,
+          remainderGreaterThanZero: remainder > 0,
+          participantsLength: participants.length,
+          participantsLengthGreaterThanZero: participants.length > 0,
+          willEnterCondition: remainder > 0 && participants.length > 0,
+        });
+
         if (remainder > 0 && participants.length > 0) {
           // Buscar el participante que corresponde a la sede de ajuste
           // remainderSiteId es el ID de la SEDE, no del participante
@@ -871,6 +880,8 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
               availableIds: Object.keys(newDistributions),
             });
           }
+        } else {
+          logger.warn('⚠️ [RECALC UNITS] No se cumplieron las condiciones para asignar remanente');
         }
       }
 
