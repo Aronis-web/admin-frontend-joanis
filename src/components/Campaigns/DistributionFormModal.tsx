@@ -365,6 +365,9 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       if (type === DistributionType.INTERNAL_ONLY || type === DistributionType.INTERNAL_EQUAL) {
         logger.debug('🏢 [INTERNAL SITES] Filtrando solo sedes internas...');
 
+        // Obtener campaignData para acceder a remainderSiteId
+        const campaignData = await campaignsService.getCampaign(campaignId);
+
         // Filtrar solo participantes que son sedes internas
         const internalSitesOnly = adjustedDistribution.preview.filter(
           (item) => item.participantType === 'INTERNAL_SITE'
@@ -421,14 +424,11 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
             totalDistributed += flooredQuantity;
           });
 
-          // Asignar remanente a la sede de redondeo (o primera sede)
+          // Asignar remanente a la sede de ajuste configurada en la campaña
           const remainder = totalQuantity - totalDistributed;
           if (remainder > 0 && internalSitesOnly.length > 0) {
-            // Buscar la sede de redondeo del preview original
-            remainderParticipantId =
-              adjustedDistribution.remainderAssignedTo?.participantId ||
-              adjustedDistribution.preview.find((p) => p.participantType === 'INTERNAL_SITE')?.participantId ||
-              internalSitesOnly[0].participantId;
+            // Usar remainderSiteId de la campaña, o la primera sede interna como fallback
+            remainderParticipantId = campaignData.remainderSiteId || internalSitesOnly[0].participantId;
 
             if (remainderParticipantId && newDistributions[remainderParticipantId]) {
               newDistributions[remainderParticipantId].quantityBase += remainder;
@@ -438,12 +438,18 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                 );
               }
               totalDistributed += remainder;
+
+              logger.debug('✅ [INTERNAL EQUAL] Remanente asignado a sede de ajuste:', {
+                siteId: remainderParticipantId,
+                siteName: newDistributions[remainderParticipantId].participantName,
+                remainder,
+                newQuantityBase: newDistributions[remainderParticipantId].quantityBase,
+              });
             }
           }
 
           logger.debug('✅ [INTERNAL EQUAL] Distribución igual calculada:', {
             totalQuantity,
-            quantityPerSite,
             totalDistributed,
             remainder,
             remainderAssignedTo: remainderParticipantId,
@@ -483,14 +489,11 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
             totalDistributed += flooredQuantity;
           });
 
-          // Asignar remanente a la sede de redondeo (o primera sede)
+          // Asignar remanente a la sede de ajuste configurada en la campaña
           const remainder = totalQuantity - totalDistributed;
           if (remainder > 0 && internalSitesOnly.length > 0) {
-            // Buscar la sede de redondeo del preview original
-            remainderParticipantId =
-              adjustedDistribution.remainderAssignedTo?.participantId ||
-              adjustedDistribution.preview.find((p) => p.participantType === 'INTERNAL_SITE')?.participantId ||
-              internalSitesOnly[0].participantId;
+            // Usar remainderSiteId de la campaña, o la primera sede interna como fallback
+            remainderParticipantId = campaignData.remainderSiteId || internalSitesOnly[0].participantId;
 
             if (remainderParticipantId && newDistributions[remainderParticipantId]) {
               newDistributions[remainderParticipantId].quantityBase += remainder;
@@ -500,6 +503,13 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                 );
               }
               totalDistributed += remainder;
+
+              logger.debug('✅ [INTERNAL ONLY] Remanente asignado a sede de ajuste:', {
+                siteId: remainderParticipantId,
+                siteName: newDistributions[remainderParticipantId].participantName,
+                remainder,
+                newQuantityBase: newDistributions[remainderParticipantId].quantityBase,
+              });
             }
           }
 
