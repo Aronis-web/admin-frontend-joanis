@@ -172,16 +172,29 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       setLoading(true);
       setUploadResult(null);
 
+      console.log('🔍 [UPLOAD] Starting upload process...');
+      console.log('🔍 [UPLOAD] File result received:', JSON.stringify(fileResult, null, 2));
+
       const file = fileResult.assets?.[0];
       if (!file) {
+        console.error('❌ [UPLOAD] No file found in result.assets');
         throw new Error('No se pudo obtener el archivo');
       }
 
+      console.log('✅ [UPLOAD] File extracted from assets:', {
+        name: file.name,
+        uri: file.uri,
+        size: file.size,
+        mimeType: file.mimeType,
+      });
+
       if (!user?.id) {
+        console.error('❌ [UPLOAD] User ID not found');
         throw new Error('No se pudo identificar el usuario');
       }
 
-      console.log('📤 Uploading stock update file:', file.name);
+      console.log('✅ [UPLOAD] User ID:', user.id);
+      console.log('📤 [UPLOAD] Uploading stock update file:', file.name);
 
       // In React Native, we need to pass the file metadata directly to FormData
       // Don't convert to blob - use the file object with uri, type, and name
@@ -191,11 +204,12 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         name: file.name,
       };
 
-      console.log('📦 File to upload:', fileToUpload);
+      console.log('📦 [UPLOAD] File object prepared for upload:', JSON.stringify(fileToUpload, null, 2));
 
       // Upload to API
+      console.log('🚀 [UPLOAD] Calling inventoryApi.uploadStockUpdate...');
       const result = await inventoryApi.uploadStockUpdate(fileToUpload as any, user.id);
-      console.log('✅ Upload result:', result);
+      console.log('✅ [UPLOAD] Upload result received:', JSON.stringify(result, null, 2));
 
       setUploadResult(result);
 
@@ -222,7 +236,16 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         );
       }
     } catch (error: any) {
-      console.error('❌ Error uploading file:', error);
+      console.error('❌ [UPLOAD] Error uploading file:', error);
+      console.error('❌ [UPLOAD] Error details:', {
+        message: error.message,
+        response: error.response,
+        responseData: error.response?.data,
+        responseStatus: error.response?.status,
+        responseHeaders: error.response?.headers,
+        stack: error.stack,
+      });
+
       Alert.alert(
         'Error',
         error.response?.data?.message || error.message ||

@@ -350,10 +350,42 @@ export const inventoryApi = {
       error: string;
     }>;
   }> => {
+    console.log('🔍 [API] uploadStockUpdate called');
+    console.log('🔍 [API] File received:', {
+      type: typeof file,
+      isBlob: file instanceof Blob,
+      isFile: file instanceof File,
+      hasUri: 'uri' in file,
+      uri: file.uri,
+      name: file.name,
+      mimeType: file.type,
+    });
+    console.log('🔍 [API] User ID:', userId);
+
     const formData = new FormData();
+
+    console.log('📦 [API] Creating FormData...');
     formData.append('file', file);
     formData.append('userId', userId);
-    return apiClient.post('/admin/inventory/stock/upload-update', formData);
+
+    console.log('✅ [API] FormData created, appending file and userId');
+    console.log('🚀 [API] Calling apiClient.post to /admin/inventory/stock/upload-update');
+
+    try {
+      const result = await apiClient.post('/admin/inventory/stock/upload-update', formData);
+      console.log('✅ [API] Upload successful, result:', JSON.stringify(result, null, 2));
+      return result;
+    } catch (error: any) {
+      console.error('❌ [API] Upload failed:', error);
+      console.error('❌ [API] Error details:', {
+        message: error.message,
+        response: error.response,
+        responseData: error.response?.data,
+        responseStatus: error.response?.status,
+        stack: error.stack,
+      });
+      throw error;
+    }
   },
 };
 

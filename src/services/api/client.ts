@@ -358,13 +358,38 @@ class ApiClient {
     requestConfig?: AxiosRequestConfig,
     isOcrRequest: boolean = false
   ): Promise<T> {
+    console.log('🔍 [FETCH] postFormDataWithFetch called');
+    console.log('🔍 [FETCH] URL:', url);
+    console.log('🔍 [FETCH] FormData received:', formData);
+    console.log('🔍 [FETCH] isOcrRequest:', isOcrRequest);
+
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
     const { user, currentCompany, currentSite } = authStore;
     const { selectedCompany, selectedSite, selectedWarehouse } = tenantStore;
 
+    console.log('🔍 [FETCH] Auth context:', {
+      hasUser: !!user,
+      userId: user?.id,
+      hasCurrentCompany: !!currentCompany,
+      currentCompanyId: currentCompany?.id,
+      hasCurrentSite: !!currentSite,
+      currentSiteId: currentSite?.id,
+    });
+
+    console.log('🔍 [FETCH] Tenant context:', {
+      hasSelectedCompany: !!selectedCompany,
+      selectedCompanyId: selectedCompany?.id,
+      hasSelectedSite: !!selectedSite,
+      selectedSiteId: selectedSite?.id,
+      hasSelectedWarehouse: !!selectedWarehouse,
+      selectedWarehouseId: selectedWarehouse?.id,
+    });
+
     // Get the current token
     const currentToken = authService.getAccessToken() || authStore.token;
+    console.log('🔍 [FETCH] Token available:', !!currentToken);
+    console.log('🔍 [FETCH] Token length:', currentToken?.length || 0);
 
     // Build headers
     const headers: Record<string, string> = {
@@ -413,13 +438,15 @@ class ApiClient {
     }
 
     // DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
-    console.log('🌐 Fetch request headers:', Object.keys(headers));
+    console.log('🌐 [FETCH] Request headers prepared:', Object.keys(headers));
+    console.log('🌐 [FETCH] Full headers:', headers);
 
     const fullUrl = `${this.client.defaults.baseURL}${url}`;
-    console.log('🌐 Fetch URL:', fullUrl);
+    console.log('🌐 [FETCH] Full URL:', fullUrl);
+    console.log('🌐 [FETCH] Base URL:', this.client.defaults.baseURL);
 
     if (isOcrRequest) {
-      console.log('⏱️ OCR Request detected - Using unlimited timeout for document scanning');
+      console.log('⏱️ [FETCH] OCR Request detected - Using unlimited timeout for document scanning');
     }
 
     try {
@@ -431,16 +458,36 @@ class ApiClient {
         body: formData,
       };
 
+      console.log('🚀 [FETCH] Sending fetch request...');
+      console.log('🚀 [FETCH] Fetch options:', {
+        method: fetchOptions.method,
+        headersKeys: Object.keys(headers),
+        hasBody: !!fetchOptions.body,
+      });
+
       // Note: fetch in React Native doesn't have a built-in timeout option
       // The timeout is controlled by the underlying network stack
       // Setting signal to undefined ensures no AbortController timeout is applied
       const response = await fetch(fullUrl, fetchOptions);
 
-      console.log('🌐 Fetch response status:', response.status);
+      console.log('✅ [FETCH] Response received');
+      console.log('🌐 [FETCH] Response status:', response.status);
+      console.log('🌐 [FETCH] Response statusText:', response.statusText);
+      console.log('🌐 [FETCH] Response ok:', response.ok);
+      console.log('🌐 [FETCH] Response headers:', response.headers);
 
       if (!response.ok) {
+        console.error('❌ [FETCH] Response not OK, reading error text...');
         const errorText = await response.text();
-        console.error('🌐 Fetch error response:', errorText);
+        console.error('❌ [FETCH] Error response text:', errorText);
+
+        // Try to parse as JSON for better error details
+        try {
+          const errorJson = JSON.parse(errorText);
+          console.error('❌ [FETCH] Error response JSON:', errorJson);
+        } catch (e) {
+          console.error('❌ [FETCH] Error response is not JSON');
+        }
 
         // Enhanced error for 524 timeout
         if (response.status === 524) {
@@ -455,11 +502,25 @@ class ApiClient {
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
+      console.log('✅ [FETCH] Response OK, parsing JSON...');
       const result = await response.json();
-      console.log('🌐 Fetch success:', result);
+      console.log('✅ [FETCH] JSON parsed successfully');
+      console.log('🌐 [FETCH] Success result:', JSON.stringify(result, null, 2));
       return result;
     } catch (error: any) {
-      console.error('🌐 Fetch error:', error);
+      console.error('❌ [FETCH] Fetch error caught:', error);
+      console.error('❌ [FETCH] Error type:', error.constructor.name);
+      console.error('❌ [FETCH] Error message:', error.message);
+      console.error('❌ [FETCH] Error stack:', error.stack);
+
+      // Log network-specific errors
+      if (error.name === 'TypeError' && error.message.includes('Network request failed')) {
+        console.error('❌ [FETCH] Network request failed - possible causes:');
+        console.error('  - Backend server is not running');
+        console.error('  - Network connectivity issues');
+        console.error('  - CORS issues (web only)');
+        console.error('  - Invalid URL:', fullUrl);
+      }
 
       throw error;
     }
