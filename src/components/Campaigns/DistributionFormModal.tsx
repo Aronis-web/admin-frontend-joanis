@@ -268,25 +268,48 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       // Asignar remanente a la sede de ajuste configurada en la campaña
       const remainder = initialQuantity - totalDistributed;
       if (remainder > 0 && participants.length > 0) {
-        const remainderSiteId = campaignData.remainderSiteId || participants[0].id;
-        if (initialDistributions[remainderSiteId]) {
-          initialDistributions[remainderSiteId].quantityBase += remainder;
+        // Buscar el participante que corresponde a la sede de ajuste
+        // remainderSiteId es el ID de la SEDE, no del participante
+        const remainderParticipant = campaignData.remainderSiteId
+          ? participants.find(p => p.siteId === campaignData.remainderSiteId)
+          : participants[0];
+
+        const remainderParticipantId = remainderParticipant?.id || participants[0].id;
+
+        logger.debug('🎯 [MODAL] Asignando remanente:', {
+          campaignRemainderSiteId: campaignData.remainderSiteId,
+          foundParticipant: remainderParticipant ? {
+            id: remainderParticipant.id,
+            siteId: remainderParticipant.siteId,
+            name: remainderParticipant.company?.name || remainderParticipant.site?.name
+          } : null,
+          remainderParticipantId,
+          remainder,
+        });
+
+        if (initialDistributions[remainderParticipantId]) {
+          initialDistributions[remainderParticipantId].quantityBase += remainder;
 
           // Recalcular quantityPresentation si hay factor de redondeo
-          if (initialDistributions[remainderSiteId].roundingFactor > 1) {
-            initialDistributions[remainderSiteId].quantityPresentation = Math.floor(
-              initialDistributions[remainderSiteId].quantityBase / initialDistributions[remainderSiteId].roundingFactor
+          if (initialDistributions[remainderParticipantId].roundingFactor > 1) {
+            initialDistributions[remainderParticipantId].quantityPresentation = Math.floor(
+              initialDistributions[remainderParticipantId].quantityBase / initialDistributions[remainderParticipantId].roundingFactor
             );
           }
 
           totalDistributed += remainder;
 
           logger.debug('✅ [MODAL] Remanente asignado a sede de ajuste:', {
-            siteId: remainderSiteId,
-            siteName: initialDistributions[remainderSiteId].participantName,
+            participantId: remainderParticipantId,
+            siteName: initialDistributions[remainderParticipantId].participantName,
             remainder,
-            newQuantityBase: initialDistributions[remainderSiteId].quantityBase,
-            newQuantityPresentation: initialDistributions[remainderSiteId].quantityPresentation,
+            newQuantityBase: initialDistributions[remainderParticipantId].quantityBase,
+            newQuantityPresentation: initialDistributions[remainderParticipantId].quantityPresentation,
+          });
+        } else {
+          logger.error('❌ [MODAL] No se encontró el participante para asignar remanente:', {
+            remainderParticipantId,
+            availableIds: Object.keys(initialDistributions),
           });
         }
       }
@@ -427,8 +450,33 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
           // Asignar remanente a la sede de ajuste configurada en la campaña
           const remainder = totalQuantity - totalDistributed;
           if (remainder > 0 && internalSitesOnly.length > 0) {
-            // Usar remainderSiteId de la campaña, o la primera sede interna como fallback
-            remainderParticipantId = campaignData.remainderSiteId || internalSitesOnly[0].participantId;
+            // Buscar el participante que corresponde a la sede de ajuste
+            // remainderSiteId es el ID de la SEDE, no del participante
+            const remainderParticipant = campaignData.remainderSiteId
+              ? internalSitesOnly.find(s => {
+                  const participant = adjustedDistribution.preview.find(p => p.participantId === s.participantId);
+                  return participant && participant.participantType === 'INTERNAL_SITE';
+                })
+              : null;
+
+            // Buscar por siteId en los participantes originales
+            const allParticipants = await campaignsService.getCampaign(campaignId).then(c => c.participants || []);
+            const siteParticipant = campaignData.remainderSiteId
+              ? allParticipants.find(p => p.siteId === campaignData.remainderSiteId)
+              : null;
+
+            remainderParticipantId = siteParticipant?.id || internalSitesOnly[0].participantId;
+
+            logger.debug('🎯 [INTERNAL EQUAL] Asignando remanente:', {
+              campaignRemainderSiteId: campaignData.remainderSiteId,
+              foundParticipant: siteParticipant ? {
+                id: siteParticipant.id,
+                siteId: siteParticipant.siteId,
+                name: siteParticipant.site?.name
+              } : null,
+              remainderParticipantId,
+              remainder,
+            });
 
             if (remainderParticipantId && newDistributions[remainderParticipantId]) {
               newDistributions[remainderParticipantId].quantityBase += remainder;
@@ -440,10 +488,15 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
               totalDistributed += remainder;
 
               logger.debug('✅ [INTERNAL EQUAL] Remanente asignado a sede de ajuste:', {
-                siteId: remainderParticipantId,
+                participantId: remainderParticipantId,
                 siteName: newDistributions[remainderParticipantId].participantName,
                 remainder,
                 newQuantityBase: newDistributions[remainderParticipantId].quantityBase,
+              });
+            } else {
+              logger.error('❌ [INTERNAL EQUAL] No se encontró el participante para asignar remanente:', {
+                remainderParticipantId,
+                availableIds: Object.keys(newDistributions),
               });
             }
           }
@@ -492,8 +545,25 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
           // Asignar remanente a la sede de ajuste configurada en la campaña
           const remainder = totalQuantity - totalDistributed;
           if (remainder > 0 && internalSitesOnly.length > 0) {
-            // Usar remainderSiteId de la campaña, o la primera sede interna como fallback
-            remainderParticipantId = campaignData.remainderSiteId || internalSitesOnly[0].participantId;
+            // Buscar el participante que corresponde a la sede de ajuste
+            // remainderSiteId es el ID de la SEDE, no del participante
+            const allParticipants = await campaignsService.getCampaign(campaignId).then(c => c.participants || []);
+            const siteParticipant = campaignData.remainderSiteId
+              ? allParticipants.find(p => p.siteId === campaignData.remainderSiteId)
+              : null;
+
+            remainderParticipantId = siteParticipant?.id || internalSitesOnly[0].participantId;
+
+            logger.debug('🎯 [INTERNAL ONLY] Asignando remanente:', {
+              campaignRemainderSiteId: campaignData.remainderSiteId,
+              foundParticipant: siteParticipant ? {
+                id: siteParticipant.id,
+                siteId: siteParticipant.siteId,
+                name: siteParticipant.site?.name
+              } : null,
+              remainderParticipantId,
+              remainder,
+            });
 
             if (remainderParticipantId && newDistributions[remainderParticipantId]) {
               newDistributions[remainderParticipantId].quantityBase += remainder;
@@ -505,10 +575,15 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
               totalDistributed += remainder;
 
               logger.debug('✅ [INTERNAL ONLY] Remanente asignado a sede de ajuste:', {
-                siteId: remainderParticipantId,
+                participantId: remainderParticipantId,
                 siteName: newDistributions[remainderParticipantId].participantName,
                 remainder,
                 newQuantityBase: newDistributions[remainderParticipantId].quantityBase,
+              });
+            } else {
+              logger.error('❌ [INTERNAL ONLY] No se encontró el participante para asignar remanente:', {
+                remainderParticipantId,
+                availableIds: Object.keys(newDistributions),
               });
             }
           }
@@ -679,26 +754,48 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         // Asignar remanente a la sede de ajuste EN UNIDADES
         const remainder = newTotalQuantity - totalDistributed;
         if (remainder > 0) {
-          const remainderSiteId = campaignData.remainderSiteId || participants[0]?.id;
+          // Buscar el participante que corresponde a la sede de ajuste
+          // remainderSiteId es el ID de la SEDE, no del participante
+          const remainderParticipant = campaignData.remainderSiteId
+            ? participants.find(p => p.siteId === campaignData.remainderSiteId)
+            : participants[0];
 
-          if (remainderSiteId && newDistributions[remainderSiteId]) {
-            newDistributions[remainderSiteId].quantityBase += remainder;
+          const remainderParticipantId = remainderParticipant?.id || participants[0]?.id;
+
+          logger.debug('🎯 [RECALC PRESENTATION] Asignando remanente:', {
+            campaignRemainderSiteId: campaignData.remainderSiteId,
+            foundParticipant: remainderParticipant ? {
+              id: remainderParticipant.id,
+              siteId: remainderParticipant.siteId,
+              name: remainderParticipant.company?.name || remainderParticipant.site?.name
+            } : null,
+            remainderParticipantId,
+            remainder,
+          });
+
+          if (remainderParticipantId && newDistributions[remainderParticipantId]) {
+            newDistributions[remainderParticipantId].quantityBase += remainder;
 
             // Recalcular quantityPresentation si hay factor de redondeo
-            if (newDistributions[remainderSiteId].roundingFactor > 1) {
-              newDistributions[remainderSiteId].quantityPresentation = Math.floor(
-                newDistributions[remainderSiteId].quantityBase / newDistributions[remainderSiteId].roundingFactor
+            if (newDistributions[remainderParticipantId].roundingFactor > 1) {
+              newDistributions[remainderParticipantId].quantityPresentation = Math.floor(
+                newDistributions[remainderParticipantId].quantityBase / newDistributions[remainderParticipantId].roundingFactor
               );
             }
 
             totalDistributed += remainder;
 
             logger.debug('✅ [RECALC] Remanente asignado a sede de ajuste:', {
-              siteId: remainderSiteId,
-              siteName: newDistributions[remainderSiteId].participantName,
+              participantId: remainderParticipantId,
+              siteName: newDistributions[remainderParticipantId].participantName,
               remainder,
-              totalFinal: newDistributions[remainderSiteId].quantityBase,
-              quantityPresentation: newDistributions[remainderSiteId].quantityPresentation,
+              totalFinal: newDistributions[remainderParticipantId].quantityBase,
+              quantityPresentation: newDistributions[remainderParticipantId].quantityPresentation,
+            });
+          } else {
+            logger.error('❌ [RECALC PRESENTATION] No se encontró el participante para asignar remanente:', {
+              remainderParticipantId,
+              availableIds: Object.keys(newDistributions),
             });
           }
         }
@@ -730,26 +827,48 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         // Asignar remanente a la sede de ajuste
         const remainder = newTotalQuantity - totalDistributed;
         if (remainder > 0 && participants.length > 0) {
-          const remainderSiteId = campaignData.remainderSiteId || participants[0]?.id;
+          // Buscar el participante que corresponde a la sede de ajuste
+          // remainderSiteId es el ID de la SEDE, no del participante
+          const remainderParticipant = campaignData.remainderSiteId
+            ? participants.find(p => p.siteId === campaignData.remainderSiteId)
+            : participants[0];
 
-          if (remainderSiteId && newDistributions[remainderSiteId]) {
-            newDistributions[remainderSiteId].quantityBase += remainder;
+          const remainderParticipantId = remainderParticipant?.id || participants[0]?.id;
+
+          logger.debug('🎯 [RECALC UNITS] Asignando remanente:', {
+            campaignRemainderSiteId: campaignData.remainderSiteId,
+            foundParticipant: remainderParticipant ? {
+              id: remainderParticipant.id,
+              siteId: remainderParticipant.siteId,
+              name: remainderParticipant.company?.name || remainderParticipant.site?.name
+            } : null,
+            remainderParticipantId,
+            remainder,
+          });
+
+          if (remainderParticipantId && newDistributions[remainderParticipantId]) {
+            newDistributions[remainderParticipantId].quantityBase += remainder;
 
             // Recalcular quantityPresentation si hay factor de redondeo
-            if (newDistributions[remainderSiteId].roundingFactor > 1) {
-              newDistributions[remainderSiteId].quantityPresentation = Math.floor(
-                newDistributions[remainderSiteId].quantityBase / newDistributions[remainderSiteId].roundingFactor
+            if (newDistributions[remainderParticipantId].roundingFactor > 1) {
+              newDistributions[remainderParticipantId].quantityPresentation = Math.floor(
+                newDistributions[remainderParticipantId].quantityBase / newDistributions[remainderParticipantId].roundingFactor
               );
             }
 
             totalDistributed += remainder;
 
             logger.debug('✅ [RECALC] Remanente asignado a sede de ajuste:', {
-              siteId: remainderSiteId,
-              siteName: newDistributions[remainderSiteId].participantName,
+              participantId: remainderParticipantId,
+              siteName: newDistributions[remainderParticipantId].participantName,
               remainder,
-              newQuantityBase: newDistributions[remainderSiteId].quantityBase,
-              newQuantityPresentation: newDistributions[remainderSiteId].quantityPresentation,
+              newQuantityBase: newDistributions[remainderParticipantId].quantityBase,
+              newQuantityPresentation: newDistributions[remainderParticipantId].quantityPresentation,
+            });
+          } else {
+            logger.error('❌ [RECALC UNITS] No se encontró el participante para asignar remanente:', {
+              remainderParticipantId,
+              availableIds: Object.keys(newDistributions),
             });
           }
         }
