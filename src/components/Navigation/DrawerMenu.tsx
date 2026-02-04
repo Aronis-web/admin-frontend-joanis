@@ -123,7 +123,7 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
-  // Traslados
+  // Traslados - Módulo Unificado (SALIDAS y ENTRADAS)
   {
     id: 'transfers',
     title: 'Traslados',
@@ -132,16 +132,16 @@ const menuCategories: MenuCategory[] = [
     items: [
       {
         id: 'internal-transfers',
-        icon: '🔄',
-        label: 'Traslado Interno',
+        icon: '📤',
+        label: '📤 Traslado Interno',
         route: MAIN_ROUTES.INTERNAL_TRANSFERS,
         color: '#EC4899',
         requiredPermissions: ['transfers.read', 'transfers.create'],
       },
       {
         id: 'external-transfers',
-        icon: '🚚',
-        label: 'Traslado Externo',
+        icon: '📤',
+        label: '📤 Traslado Externo',
         route: MAIN_ROUTES.EXTERNAL_TRANSFERS,
         color: '#14B8A6',
         requiredPermissions: ['transfers.read', 'transfers.create'],
@@ -149,7 +149,7 @@ const menuCategories: MenuCategory[] = [
       {
         id: 'receptions',
         icon: '📥',
-        label: 'Recepciones',
+        label: '📥 Recepciones',
         route: MAIN_ROUTES.RECEPTIONS,
         color: '#06B6D4',
         requiredPermissions: ['transfers.receive', 'transfers.validate', 'transfers.complete'],
