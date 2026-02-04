@@ -734,12 +734,20 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                     {campaignProduct.totalQuantityBase}
                   </Text>
                   {!campaignProduct.distributionGenerated && (
-                    <TouchableOpacity
-                      style={styles.editQuantityButton}
-                      onPress={() => setEditingQuantity(true)}
-                    >
-                      <Text style={styles.editQuantityButtonText}>✏️ Editar</Text>
-                    </TouchableOpacity>
+                    <View style={styles.quantityActionsContainer}>
+                      <TouchableOpacity
+                        style={styles.editQuantityButton}
+                        onPress={() => setEditingQuantity(true)}
+                      >
+                        <Text style={styles.editQuantityButtonText}>✏️ Editar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.quickDistributionButton}
+                        onPress={handleOpenDistribution}
+                      >
+                        <Text style={styles.quickDistributionButtonText}>⚡ Generar Reparto</Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
                   {campaignProduct.distributionGenerated && (
                     <Text style={styles.distributionGeneratedNote}>
@@ -1476,19 +1484,48 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  editQuantityButton: {
+  quantityActionsContainer: {
+    flexDirection: 'row',
+    gap: 8,
     marginTop: 12,
+    flexWrap: 'wrap',
+  },
+  editQuantityButton: {
+    flex: 1,
+    minWidth: 100,
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     backgroundColor: '#F1F5F9',
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#CBD5E1',
+    alignItems: 'center',
   },
   editQuantityButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#475569',
+  },
+  quickDistributionButton: {
+    flex: 1,
+    minWidth: 140,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#6366F1',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#6366F1',
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  quickDistributionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   distributionGeneratedNote: {
     fontSize: 12,
@@ -1587,12 +1624,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
-  },
-  distributionGeneratedNote: {
-    fontSize: 14,
-    color: '#10B981',
-    fontWeight: '600',
-    marginTop: 12,
-    textAlign: 'center',
   },
 });
