@@ -24,8 +24,33 @@ import {
   DiscrepanciesReport,
 } from '@/types/transfers';
 
+/**
+ * ============================================
+ * TRANSFERS API - MÓDULO UNIFICADO
+ * ============================================
+ *
+ * Este módulo maneja tanto SALIDAS como ENTRADAS de mercancía:
+ *
+ * 📤 SALIDAS (Outbound):
+ *    - Traslados Internos (entre almacenes de la misma empresa)
+ *    - Traslados Externos (hacia otras empresas/sedes)
+ *
+ * 📥 ENTRADAS (Inbound):
+ *    - Recepciones de Traslados Externos
+ *    - Validación de mercancía recibida
+ *
+ * ✅ Todos los endpoints usan apiClient y envían automáticamente:
+ *    - X-Company-Id (ID de empresa)
+ *    - X-Site-Id (ID de sede)
+ *    - X-Warehouse-Id (ID de almacén)
+ *    - X-User-Id (ID de usuario)
+ *    - X-App-Id (ID de aplicación)
+ */
+
 export const transfersApi = {
-  // ========== TRANSFERS - GENERAL ==========
+  // ============================================
+  // GENERAL - Consultas y Operaciones Comunes
+  // ============================================
 
   /**
    * Get all transfers with filters
@@ -59,19 +84,25 @@ export const transfersApi = {
     return apiClient.get<TransferStatusHistory[]>(`/transfers/${id}/history`);
   },
 
-  // ========== INTERNAL TRANSFERS ==========
+  // ============================================
+  // 📤 SALIDAS - Traslados Internos (Outbound)
+  // ============================================
+  // Traslados entre almacenes de la misma empresa/sede
+  // Flujo: DRAFT → EXECUTED (inmediato)
 
   /**
-   * Create internal transfer
+   * 📤 Create internal transfer (SALIDA)
    * POST /api/transfers/internal
+   * Crea un traslado interno entre almacenes de la misma empresa
    */
   createInternalTransfer: async (data: CreateInternalTransferDto): Promise<Transfer> => {
     return apiClient.post<Transfer>('/transfers/internal', data);
   },
 
   /**
-   * Execute internal transfer (immediate)
+   * 📤 Execute internal transfer (SALIDA - immediate)
    * POST /api/transfers/:id/execute
+   * Ejecuta el traslado interno inmediatamente (mueve el stock)
    */
   executeInternalTransfer: async (id: string, performedBy?: string): Promise<Transfer> => {
     // Try multiple field names in case backend expects different naming
@@ -88,19 +119,25 @@ export const transfersApi = {
     return apiClient.post<Transfer>(`/transfers/${id}/execute`, payload);
   },
 
-  // ========== EXTERNAL TRANSFERS ==========
+  // ============================================
+  // 📤 SALIDAS - Traslados Externos (Outbound)
+  // ============================================
+  // Traslados hacia otras empresas/sedes
+  // Flujo: DRAFT → APPROVED → SHIPPED → IN_TRANSIT
 
   /**
-   * Create external transfer
+   * 📤 Create external transfer (SALIDA)
    * POST /api/transfers/external
+   * Crea un traslado externo hacia otra empresa/sede
    */
   createExternalTransfer: async (data: CreateExternalTransferDto): Promise<Transfer> => {
     return apiClient.post<Transfer>('/transfers/external', data);
   },
 
   /**
-   * Approve transfer
+   * 📤 Approve transfer (SALIDA)
    * POST /api/transfers/:id/approve
+   * Aprueba el traslado externo para que pueda ser enviado
    */
   approveTransfer: async (id: string, approvedBy?: string): Promise<Transfer> => {
     const payload = approvedBy
@@ -119,17 +156,25 @@ export const transfersApi = {
   },
 
   /**
-   * Ship transfer
+   * 📤 Ship transfer (SALIDA)
    * POST /api/transfers/:id/ship
+   * Marca el traslado como enviado (en tránsito)
    */
   shipTransfer: async (id: string, data: ShipTransferDto): Promise<Transfer> => {
     console.log('🔧 Ship transfer payload:', JSON.stringify(data, null, 2));
     return apiClient.post<Transfer>(`/transfers/${id}/ship`, data);
   },
 
+  // ============================================
+  // 📥 ENTRADAS - Recepciones (Inbound)
+  // ============================================
+  // Recepción de traslados externos
+  // Flujo: IN_TRANSIT → RECEIVING → RECEIVED → COMPLETED
+
   /**
-   * Receive transfer (initiate reception)
+   * 📥 Receive transfer (ENTRADA - initiate reception)
    * POST /api/transfers/:id/receive
+   * Inicia la recepción de un traslado externo
    */
   receiveTransfer: async (id: string, receivedBy?: string, notes?: string): Promise<Transfer> => {
     const payload = receivedBy
@@ -149,52 +194,63 @@ export const transfersApi = {
   },
 
   /**
-   * Validate items received
+   * 📥 Validate items received (ENTRADA)
    * POST /api/transfers/:id/validate-items
+   * Valida los items recibidos (cantidades, condición, etc.)
    */
   validateItems: async (id: string, data: ValidateItemsDto): Promise<Transfer> => {
     return apiClient.post<Transfer>(`/transfers/${id}/validate-items`, data);
   },
 
   /**
-   * Complete reception
+   * 📥 Complete reception (ENTRADA)
    * POST /api/transfers/:id/complete-reception
+   * Completa la recepción del traslado (actualiza stock)
    */
   completeReception: async (id: string, data: CompleteReceptionDto): Promise<Transfer> => {
     return apiClient.post<Transfer>(`/transfers/${id}/complete-reception`, data);
   },
 
-  // ========== RECEPTIONS ==========
+  // ============================================
+  // 📥 ENTRADAS - Consulta de Recepciones
+  // ============================================
 
   /**
-   * Get pending receptions
+   * 📥 Get pending receptions (ENTRADAS pendientes)
    * GET /api/receptions/pending
+   * Obtiene todas las recepciones pendientes de validar
    */
   getPendingReceptions: async (filters?: ReceptionFilters): Promise<ReceptionListResponse> => {
     return apiClient.get<ReceptionListResponse>('/receptions/pending', { params: filters });
   },
 
   /**
-   * Get reception by ID
+   * 📥 Get reception by ID (ENTRADA)
    * GET /api/receptions/:id
+   * Obtiene los detalles de una recepción específica
    */
   getReceptionById: async (id: string): Promise<TransferReception> => {
     return apiClient.get<TransferReception>(`/receptions/${id}`);
   },
 
-  // ========== DISCREPANCIES ==========
+  // ============================================
+  // ⚠️ DISCREPANCIAS - Gestión de Diferencias
+  // ============================================
+  // Manejo de diferencias entre lo enviado y lo recibido
 
   /**
-   * Get discrepancies
+   * ⚠️ Get discrepancies
    * GET /api/discrepancies
+   * Obtiene todas las discrepancias registradas
    */
   getDiscrepancies: async (filters?: DiscrepancyFilters): Promise<DiscrepancyListResponse> => {
     return apiClient.get<DiscrepancyListResponse>('/discrepancies', { params: filters });
   },
 
   /**
-   * Resolve discrepancy
+   * ⚠️ Resolve discrepancy
    * POST /api/discrepancies/:id/resolve
+   * Resuelve una discrepancia (ajuste de stock, devolución, etc.)
    */
   resolveDiscrepancy: async (
     id: string,
@@ -203,35 +259,46 @@ export const transfersApi = {
     return apiClient.post<TransferDiscrepancy>(`/discrepancies/${id}/resolve`, data);
   },
 
-  // ========== REPORTS & DASHBOARD ==========
+  // ============================================
+  // 📊 REPORTES Y DASHBOARD
+  // ============================================
 
   /**
-   * Get transfers dashboard
+   * 📊 Get transfers dashboard
    * GET /api/transfers/dashboard
+   * Obtiene estadísticas generales de traslados (salidas y entradas)
    */
   getDashboard: async (): Promise<TransferDashboard> => {
     return apiClient.get<TransferDashboard>('/transfers/dashboard');
   },
 
   /**
-   * Get discrepancies report
+   * 📊 Get discrepancies report
    * GET /api/reports/discrepancies
+   * Obtiene reporte de discrepancias
    */
   getDiscrepanciesReport: async (): Promise<DiscrepanciesReport> => {
     return apiClient.get<DiscrepanciesReport>('/reports/discrepancies');
   },
 
+  // ============================================
+  // 📦 MOVIMIENTOS DE STOCK
+  // ============================================
+  // Historial de movimientos generados por traslados
+
   /**
-   * Get stock movements
+   * 📦 Get stock movements
    * GET /api/stock-movements
+   * Obtiene todos los movimientos de stock
    */
   getStockMovements: async (filters?: StockMovementFilters): Promise<StockMovementListResponse> => {
     return apiClient.get<StockMovementListResponse>('/stock-movements', { params: filters });
   },
 
   /**
-   * Get stock movements for a specific product
+   * 📦 Get stock movements for a specific product
    * GET /api/stock-movements/product/:productId
+   * Obtiene movimientos de stock de un producto específico
    */
   getProductStockMovements: async (
     productId: string,
@@ -243,8 +310,9 @@ export const transfersApi = {
   },
 
   /**
-   * Get stock movements for a specific product (new endpoint)
+   * 📦 Get stock movements history for a product
    * GET /api/transfers/stock-movements/product/:productId
+   * Obtiene historial de movimientos de stock de un producto
    */
   getProductStockMovementsHistory: async (
     productId: string,
@@ -255,9 +323,14 @@ export const transfersApi = {
     });
   },
 
+  // ============================================
+  // 🔍 AUDITORÍA
+  // ============================================
+
   /**
-   * Get user audit for transfers
+   * 🔍 Get user audit for transfers
    * GET /api/audit/user/:userId/transfers
+   * Obtiene auditoría de traslados por usuario
    */
   getUserAudit: async (
     userId: string,
