@@ -614,12 +614,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       return;
     }
 
-    if (campaignProduct.productStatus !== 'ACTIVE') {
-      Alert.alert('Error', 'Solo se pueden generar repartos de productos en estado ACTIVO en la campaña');
-      return;
-    }
-
-    // Check if the product itself is preliminary (not validated yet)
+    // Check if the PRODUCT itself is preliminary (not the campaign product status)
     const product = campaignProduct.product || productDetails;
     const isProductPreliminary = (product?.status as any) === 'preliminary';
 
@@ -628,6 +623,12 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
         'Producto Preliminar',
         'No se puede generar reparto para productos preliminares. El producto debe estar validado primero.'
       );
+      return;
+    }
+
+    // Also check campaign product status (should be ACTIVE)
+    if (campaignProduct.productStatus !== 'ACTIVE') {
+      Alert.alert('Error', 'Solo se pueden generar repartos de productos en estado ACTIVO en la campaña');
       return;
     }
 
@@ -678,14 +679,19 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   if (!product) {
     return null;
   }
-  const isPreliminary = campaignProduct.productStatus === ProductStatus.PRELIMINARY;
+
+  // Check if the PRODUCT itself is preliminary (not the campaign product status)
+  const isPreliminary = (product?.status as any) === 'preliminary';
+
+  // For backward compatibility, also check campaign product status for stock display
+  const isCampaignProductPreliminary = campaignProduct.productStatus === ProductStatus.PRELIMINARY;
 
   // Use productDetails if available (has costCents), otherwise fallback to 0
   const costCents = productDetails?.costCents || 0;
 
-  // Determine which stock to show
-  const stockValue = isPreliminary ? stockData.preliminaryStock : stockData.stock;
-  const stockLabel = isPreliminary ? 'Stock Preliminar' : 'Stock';
+  // Determine which stock to show (based on campaign product status)
+  const stockValue = isCampaignProductPreliminary ? stockData.preliminaryStock : stockData.stock;
+  const stockLabel = isCampaignProductPreliminary ? 'Stock Preliminar' : 'Stock';
 
   const formatCurrency = (cents: number) => {
     return `S/ ${(cents / 100).toFixed(2)}`;

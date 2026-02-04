@@ -98,17 +98,6 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     }, [loadProduct])
   );
 
-  // Auto-open distribution modal if flag is set
-  React.useEffect(() => {
-    if (openDistributionModal && product && !loading && !showAdjustModal) {
-      // Small delay to ensure UI is ready
-      const timer = setTimeout(() => {
-        handleGenerateDistribution();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [openDistributionModal, product, loading, showAdjustModal, handleGenerateDistribution]);
-
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     loadProduct();
@@ -137,8 +126,20 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       return;
     }
 
+    // Check if the PRODUCT itself is preliminary (not the campaign product status)
+    const isProductPreliminary = (product.product?.status as any) === 'preliminary';
+
+    if (isProductPreliminary) {
+      Alert.alert(
+        'Producto Preliminar',
+        'No se puede generar reparto para productos preliminares. El producto debe estar validado primero.'
+      );
+      return;
+    }
+
+    // Also check campaign product status (should be ACTIVE)
     if (product.productStatus !== 'ACTIVE') {
-      Alert.alert('Error', 'Solo se pueden generar repartos de productos en estado ACTIVO');
+      Alert.alert('Error', 'Solo se pueden generar repartos de productos en estado ACTIVO en la campaña');
       return;
     }
 
@@ -171,6 +172,17 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     // Abrir el modal de distribución
     setShowAdjustModal(true);
   }, [product]);
+
+  // Auto-open distribution modal if flag is set
+  React.useEffect(() => {
+    if (openDistributionModal && product && !loading && !showAdjustModal) {
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        handleGenerateDistribution();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [openDistributionModal, product, loading, showAdjustModal, handleGenerateDistribution]);
 
   // Handler for successful distribution generation
   const handleDistributionSuccess = useCallback(() => {
@@ -456,16 +468,23 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
             style={[
               styles.generateButton,
               isTablet && styles.generateButtonTablet,
-              (product.distributionGenerated || product.productStatus !== 'ACTIVE') &&
+              (product.distributionGenerated ||
+               product.productStatus !== 'ACTIVE' ||
+               (product.product?.status as any) === 'preliminary') &&
                 styles.generateButtonDisabled,
             ]}
             onPress={handleGenerateDistribution}
             disabled={
-              actionLoading || product.distributionGenerated || product.productStatus !== 'ACTIVE'
+              actionLoading ||
+              product.distributionGenerated ||
+              product.productStatus !== 'ACTIVE' ||
+              (product.product?.status as any) === 'preliminary'
             }
           >
             <Text style={[styles.generateButtonText, isTablet && styles.generateButtonTextTablet]}>
-              {product.distributionGenerated ? 'Ya Generado' : 'Generar Reparto'}
+              {product.distributionGenerated ? 'Ya Generado' :
+               (product.product?.status as any) === 'preliminary' ? 'Producto Preliminar' :
+               'Generar Reparto'}
             </Text>
           </TouchableOpacity>
         </View>
