@@ -108,12 +108,6 @@ const menuCategories: MenuCategory[] = [
         label: 'Campañas',
         route: MAIN_ROUTES.CAMPAIGNS,
         color: '#10B981',
-        requiredPermissions: [
-          'campaigns.read',
-          'campaigns.create',
-          'campaigns.update',
-          'campaigns.edit',
-        ],
       },
       {
         id: 'repartos',
