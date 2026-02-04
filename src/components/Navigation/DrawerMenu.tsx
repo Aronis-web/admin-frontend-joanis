@@ -100,7 +100,6 @@ const menuCategories: MenuCategory[] = [
     title: 'Campaña',
     icon: '🎯',
     color: '#10B981',
-    requiredPermissions: ['menu.campain'],
     items: [
       {
         id: 'campaigns',
@@ -108,6 +107,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Campañas',
         route: MAIN_ROUTES.CAMPAIGNS,
         color: '#10B981',
+        requiredPermissions: ['menu.campain'],
       },
       {
         id: 'repartos',
