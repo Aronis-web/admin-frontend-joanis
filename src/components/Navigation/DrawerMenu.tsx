@@ -32,6 +32,7 @@ interface MenuCategory {
   icon: string;
   color: string;
   items: MenuItem[];
+  requiredPermissions?: string[];
 }
 
 const menuCategories: MenuCategory[] = [
@@ -99,6 +100,7 @@ const menuCategories: MenuCategory[] = [
     title: 'Campaña',
     icon: '🎯',
     color: '#10B981',
+    requiredPermissions: ['menu.campain'],
     items: [
       {
         id: 'campaigns',
@@ -254,6 +256,7 @@ const menuCategories: MenuCategory[] = [
     title: 'Configuración',
     icon: '⚙️',
     color: '#6366F1',
+    requiredPermissions: ['menu.config'],
     items: [
       // General
       {
@@ -404,6 +407,13 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
 
   // Filter categories and items based on permissions
   const visibleCategories = menuCategories
+    .filter((category) => {
+      // Check category-level permissions first
+      if (category.requiredPermissions && category.requiredPermissions.length > 0) {
+        return category.requiredPermissions.some((permission) => hasPermission(permission));
+      }
+      return true;
+    })
     .map((category) => ({
       ...category,
       items: category.items.filter((item) => {
