@@ -973,6 +973,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
                   numberOfLines={3}
                   value={formData.description}
                   onChangeText={(text) => setFormData({ ...formData, description: text })}
+                  maxLength={100}
                 />
               </View>
 
@@ -984,6 +985,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
                   placeholder="Ej: FAC-2026-001"
                   value={formData.reference}
                   onChangeText={(text) => setFormData({ ...formData, reference: text })}
+                  maxLength={100}
                 />
               </View>
 
@@ -997,6 +999,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
                   numberOfLines={3}
                   value={formData.notes}
                   onChangeText={(text) => setFormData({ ...formData, notes: text })}
+                  maxLength={100}
                 />
               </View>
 

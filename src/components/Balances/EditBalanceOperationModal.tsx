@@ -214,6 +214,7 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
                 placeholder="Descripción de la operación"
                 multiline
                 numberOfLines={3}
+                maxLength={100}
               />
             </View>
 
@@ -225,6 +226,7 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
                 value={reference}
                 onChangeText={setReference}
                 placeholder="Número de referencia o documento"
+                maxLength={100}
               />
             </View>
 
@@ -238,6 +240,7 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
                 placeholder="Notas adicionales"
                 multiline
                 numberOfLines={3}
+                maxLength={100}
               />
             </View>
           </ScrollView>

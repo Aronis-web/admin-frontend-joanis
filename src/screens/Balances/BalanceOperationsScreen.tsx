@@ -562,6 +562,7 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
               onChangeText={(text) => setFormData({ ...formData, description: text })}
               multiline
               numberOfLines={3}
+              maxLength={100}
             />
 
             <Text style={styles.label}>Referencia (opcional)</Text>
@@ -570,6 +571,7 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
               placeholder="Número de factura, guía, etc."
               value={formData.reference}
               onChangeText={(text) => setFormData({ ...formData, reference: text })}
+              maxLength={100}
             />
 
             <Text style={styles.label}>Notas (opcional)</Text>
@@ -580,6 +582,7 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
               onChangeText={(text) => setFormData({ ...formData, notes: text })}
               multiline
               numberOfLines={2}
+              maxLength={100}
             />
 
             {/* Files - Only show if allowed */}
