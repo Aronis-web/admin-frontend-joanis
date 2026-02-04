@@ -118,6 +118,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [addingQuickProduct, setAddingQuickProduct] = useState(false);
 
+  // Custom add product modal states
+  const [showCustomAddModal, setShowCustomAddModal] = useState(false);
+  const [selectedProductForCustomAdd, setSelectedProductForCustomAdd] = useState<any | null>(null);
+  const [customQuantity, setCustomQuantity] = useState<string>('');
+
   const isTablet = width >= 768 || height >= 768;
 
   const loadCampaign = useCallback(async () => {
@@ -557,6 +562,66 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       setAddingQuickProduct(false);
     }
   }, [campaign, campaignId, getProductStock, loadCampaign]);
+
+  // Open custom add modal
+  const handleOpenCustomAddModal = useCallback((product: any) => {
+    const stockInfo = getProductStock(product);
+    setSelectedProductForCustomAdd(product);
+    setCustomQuantity(stockInfo.available.toString());
+    setShowCustomAddModal(true);
+  }, [getProductStock]);
+
+  // Handle custom add product with specific quantity
+  const handleCustomAddProduct = useCallback(async () => {
+    if (!campaign || !selectedProductForCustomAdd) return;
+
+    const quantity = parseFloat(customQuantity);
+    const stockInfo = getProductStock(selectedProductForCustomAdd);
+
+    if (isNaN(quantity) || quantity <= 0) {
+      Alert.alert('Error', 'Por favor ingresa una cantidad válida');
+      return;
+    }
+
+    if (quantity > stockInfo.available) {
+      Alert.alert('Error', `La cantidad no puede ser mayor al stock disponible (${stockInfo.available})`);
+      return;
+    }
+
+    setAddingQuickProduct(true);
+    try {
+      const actualProductStatus =
+        selectedProductForCustomAdd.status === 'preliminary'
+          ? ProductStatus.PRELIMINARY
+          : ProductStatus.ACTIVE;
+
+      const data: AddProductRequest = {
+        productId: selectedProductForCustomAdd.id,
+        sourceType: ProductSourceType.INVENTORY,
+        totalQuantity: quantity,
+        productStatus: actualProductStatus,
+        distributionType: DistributionType.ALL,
+      };
+
+      await campaignsService.addProduct(campaignId, data);
+
+      Alert.alert('Éxito', `Producto agregado con ${quantity} unidades`);
+
+      // Close modal and reset
+      setShowCustomAddModal(false);
+      setSelectedProductForCustomAdd(null);
+      setCustomQuantity('');
+
+      // Don't clear search - keep it to allow adding multiple products
+      // Just reload campaign to update the list
+      loadCampaign();
+    } catch (error: any) {
+      console.error('Error adding product:', error);
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo agregar el producto');
+    } finally {
+      setAddingQuickProduct(false);
+    }
+  }, [campaign, campaignId, selectedProductForCustomAdd, customQuantity, getProductStock, loadCampaign]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -2207,7 +2272,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     💡 Productos disponibles para agregar ({globalSearchResults.length})
                   </Text>
                   <Text style={styles.globalSearchHint}>
-                    Toca un producto para agregarlo rápidamente con todo su stock disponible
+                    Usa "Agregar Todo" para agregar con todo el stock o "Personalizado" para elegir la cantidad
                   </Text>
                   <ScrollView style={styles.globalSearchList} nestedScrollEnabled>
                     {globalSearchResults.slice(0, 10).map((product) => {
@@ -2216,20 +2281,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       const isAlreadyAdded = campaign.products?.some(p => p.productId === product.id);
 
                       return (
-                        <TouchableOpacity
+                        <View
                           key={product.id}
                           style={[
                             styles.globalSearchItem,
                             isPreliminary && styles.globalSearchItemPreliminary,
                             isAlreadyAdded && styles.globalSearchItemDisabled,
                           ]}
-                          onPress={() => {
-                            if (!isAlreadyAdded && !addingQuickProduct) {
-                              handleQuickAddProduct(product);
-                            }
-                          }}
-                          disabled={isAlreadyAdded || addingQuickProduct}
-                          activeOpacity={isAlreadyAdded ? 1 : 0.7}
                         >
                           {product.photos && product.photos.length > 0 ? (
                             <Image
@@ -2287,11 +2345,24 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                             </View>
                           </View>
                           {!isAlreadyAdded && stockInfo.available > 0 && (
-                            <View style={styles.globalSearchAction}>
-                              <Text style={styles.globalSearchActionText}>+ Agregar</Text>
+                            <View style={styles.globalSearchActions}>
+                              <TouchableOpacity
+                                style={styles.globalSearchActionButton}
+                                onPress={() => handleQuickAddProduct(product)}
+                                disabled={addingQuickProduct}
+                              >
+                                <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.globalSearchActionButtonSecondary}
+                                onPress={() => handleOpenCustomAddModal(product)}
+                                disabled={addingQuickProduct}
+                              >
+                                <Text style={styles.globalSearchActionButtonSecondaryText}>⚙️ Personalizado</Text>
+                              </TouchableOpacity>
                             </View>
                           )}
-                        </TouchableOpacity>
+                        </View>
                       );
                     })}
                   </ScrollView>
@@ -2466,6 +2537,127 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
+          </View>
+        </Modal>
+
+        {/* Custom Add Product Modal */}
+        <Modal
+          visible={showCustomAddModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => {
+            setShowCustomAddModal(false);
+            setSelectedProductForCustomAdd(null);
+            setCustomQuantity('');
+          }}
+        >
+          <View style={styles.customAddModalContainer}>
+            <TouchableOpacity
+              style={styles.customAddModalBackdrop}
+              activeOpacity={1}
+              onPress={() => {
+                setShowCustomAddModal(false);
+                setSelectedProductForCustomAdd(null);
+                setCustomQuantity('');
+              }}
+            />
+            <View style={styles.customAddModalContent}>
+              <View style={styles.customAddModalHeader}>
+                <Text style={styles.customAddModalTitle}>Agregar Producto Personalizado</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowCustomAddModal(false);
+                    setSelectedProductForCustomAdd(null);
+                    setCustomQuantity('');
+                  }}
+                >
+                  <Text style={styles.customAddModalCloseButton}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {selectedProductForCustomAdd && (
+                <>
+                  <View style={styles.customAddModalProductInfo}>
+                    <Text style={styles.customAddModalProductTitle}>
+                      {selectedProductForCustomAdd.correlativeNumber && `#${selectedProductForCustomAdd.correlativeNumber} | `}
+                      {selectedProductForCustomAdd.sku} - {selectedProductForCustomAdd.title}
+                    </Text>
+                    {selectedProductForCustomAdd.status === 'preliminary' && (
+                      <Text style={styles.customAddModalWarning}>
+                        ⚠️ Producto por validar Ingreso
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={styles.customAddModalStockInfo}>
+                    <Text style={styles.customAddModalStockTitle}>Información de Stock:</Text>
+                    {(() => {
+                      const stockInfo = getProductStock(selectedProductForCustomAdd);
+                      const isPreliminary = selectedProductForCustomAdd.status === 'preliminary';
+                      return (
+                        <>
+                          <View style={styles.customAddModalStockRow}>
+                            <Text style={styles.customAddModalStockLabel}>
+                              {isPreliminary ? '📦 Stock preliminar:' : '✅ Disponible:'}
+                            </Text>
+                            <Text style={styles.customAddModalStockValue}>{stockInfo.available}</Text>
+                          </View>
+                          {!isPreliminary && stockInfo.reserved > 0 && (
+                            <View style={styles.customAddModalStockRow}>
+                              <Text style={styles.customAddModalStockLabel}>🔒 Reservado:</Text>
+                              <Text style={styles.customAddModalStockValue}>{stockInfo.reserved}</Text>
+                            </View>
+                          )}
+                          {!isPreliminary && (
+                            <View style={styles.customAddModalStockRow}>
+                              <Text style={styles.customAddModalStockLabel}>📊 Total:</Text>
+                              <Text style={styles.customAddModalStockValue}>{stockInfo.total}</Text>
+                            </View>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </View>
+
+                  <View style={styles.customAddModalQuantitySection}>
+                    <Text style={styles.customAddModalQuantityLabel}>Cantidad a agregar:</Text>
+                    <TextInput
+                      style={styles.customAddModalQuantityInput}
+                      value={customQuantity}
+                      onChangeText={setCustomQuantity}
+                      keyboardType="decimal-pad"
+                      placeholder="Ingresa la cantidad"
+                      autoFocus
+                    />
+                  </View>
+
+                  <View style={styles.customAddModalActions}>
+                    <TouchableOpacity
+                      style={styles.customAddModalCancelButton}
+                      onPress={() => {
+                        setShowCustomAddModal(false);
+                        setSelectedProductForCustomAdd(null);
+                        setCustomQuantity('');
+                      }}
+                      disabled={addingQuickProduct}
+                    >
+                      <Text style={styles.customAddModalCancelButtonText}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.customAddModalConfirmButton}
+                      onPress={handleCustomAddProduct}
+                      disabled={addingQuickProduct}
+                    >
+                      {addingQuickProduct ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.customAddModalConfirmButtonText}>Agregar</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
           </View>
         </Modal>
 
@@ -3617,16 +3809,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
   },
-  globalSearchAction: {
+  globalSearchActions: {
+    flexDirection: 'column',
+    gap: 6,
+    minWidth: 100,
+  },
+  globalSearchActionButton: {
     backgroundColor: '#6366F1',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 6,
+    alignItems: 'center',
   },
-  globalSearchActionText: {
+  globalSearchActionButtonText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  globalSearchActionButtonSecondary: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#6366F1',
+    alignItems: 'center',
+  },
+  globalSearchActionButtonSecondaryText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6366F1',
   },
   stockAvailable: {
     color: '#10B981',
@@ -3700,6 +3912,140 @@ const styles = StyleSheet.create({
   },
   calculatedBadgeText: {
     fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Custom Add Modal Styles
+  customAddModalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  customAddModalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  customAddModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    maxHeight: '80%',
+  },
+  customAddModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  customAddModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    flex: 1,
+  },
+  customAddModalCloseButton: {
+    fontSize: 28,
+    color: '#64748B',
+    fontWeight: '300',
+    paddingHorizontal: 8,
+  },
+  customAddModalProductInfo: {
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  customAddModalProductTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  customAddModalWarning: {
+    fontSize: 13,
+    color: '#F59E0B',
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  customAddModalStockInfo: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  customAddModalStockTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  customAddModalStockRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  customAddModalStockLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  customAddModalStockValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  customAddModalQuantitySection: {
+    marginBottom: 24,
+  },
+  customAddModalQuantityLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  customAddModalQuantityInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 14,
+    fontSize: 16,
+    color: '#1E293B',
+  },
+  customAddModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  customAddModalCancelButton: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  customAddModalCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  customAddModalConfirmButton: {
+    flex: 1,
+    backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  customAddModalConfirmButtonText: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
   },
