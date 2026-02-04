@@ -216,6 +216,7 @@ class RepartosService {
     const userId = authStore.user?.id;
     const companyId = tenantStore.selectedCompany?.id || authStore.currentCompany?.id;
     const siteId = tenantStore.selectedSite?.id || authStore.currentSite?.id;
+    const warehouseId = tenantStore.selectedWarehouse?.id;
 
     if (!token) {
       throw new Error('No authentication token available');
@@ -234,6 +235,9 @@ class RepartosService {
     }
     if (siteId) {
       headers['X-Site-Id'] = siteId;
+    }
+    if (warehouseId) {
+      headers['X-Warehouse-Id'] = warehouseId;
     }
 
     // Add timestamp to prevent caching
@@ -282,6 +286,7 @@ class RepartosService {
     const userId = authStore.user?.id;
     const companyId = tenantStore.selectedCompany?.id || authStore.currentCompany?.id;
     const siteId = tenantStore.selectedSite?.id || authStore.currentSite?.id;
+    const warehouseId = tenantStore.selectedWarehouse?.id;
 
     if (!token) {
       throw new Error('No authentication token available');
@@ -300,6 +305,9 @@ class RepartosService {
     }
     if (siteId) {
       headers['X-Site-Id'] = siteId;
+    }
+    if (warehouseId) {
+      headers['X-Warehouse-Id'] = warehouseId;
     }
 
     // Add timestamp to prevent caching
@@ -350,6 +358,7 @@ class RepartosService {
     const userId = authStore.user?.id;
     const companyId = tenantStore.selectedCompany?.id || authStore.currentCompany?.id;
     const siteId = tenantStore.selectedSite?.id || authStore.currentSite?.id;
+    const warehouseId = tenantStore.selectedWarehouse?.id;
 
     if (!token) {
       throw new Error('No authentication token available');
@@ -368,6 +377,9 @@ class RepartosService {
     }
     if (siteId) {
       headers['X-Site-Id'] = siteId;
+    }
+    if (warehouseId) {
+      headers['X-Warehouse-Id'] = warehouseId;
     }
 
     // Add timestamp to prevent caching
