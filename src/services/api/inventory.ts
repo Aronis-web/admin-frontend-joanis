@@ -271,17 +271,50 @@ export const inventoryApi = {
   exportStock: async (exportData: ExportStockDto): Promise<Blob> => {
     const { config } = await import('@/utils/config');
     const { authService } = await import('@/services/AuthService');
+    const { useAuthStore } = await import('@/store/auth');
+    const { useTenantStore } = await import('@/store/tenant');
 
     const token = authService.getAccessToken();
     const baseURL = config.API_URL;
 
+    // Get tenant context from stores
+    const authStore = useAuthStore.getState();
+    const tenantStore = useTenantStore.getState();
+    const { user, currentCompany, currentSite } = authStore;
+    const { selectedCompany, selectedSite, selectedWarehouse } = tenantStore;
+
+    // Build headers with tenant context
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-App-Id': config.APP_ID,
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Add tenant context headers (prefer tenant store, fallback to auth store)
+    const effectiveCompanyId = selectedCompany?.id || currentCompany?.id;
+    const effectiveSiteId = selectedSite?.id || currentSite?.id;
+    const effectiveWarehouseId = selectedWarehouse?.id;
+    const effectiveUserId = user?.id;
+
+    if (effectiveUserId) {
+      headers['X-User-Id'] = effectiveUserId;
+    }
+    if (effectiveCompanyId) {
+      headers['X-Company-Id'] = effectiveCompanyId;
+    }
+    if (effectiveSiteId) {
+      headers['X-Site-Id'] = effectiveSiteId;
+    }
+    if (effectiveWarehouseId) {
+      headers['X-Warehouse-Id'] = effectiveWarehouseId;
+    }
+
     const response = await fetch(`${baseURL}/admin/inventory/export`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-        'X-App-Id': config.APP_ID,
-      },
+      headers,
       body: JSON.stringify(exportData),
     });
 
@@ -308,17 +341,50 @@ export const inventoryApi = {
   }): Promise<Blob> => {
     const { config } = await import('@/utils/config');
     const { authService } = await import('@/services/AuthService');
+    const { useAuthStore } = await import('@/store/auth');
+    const { useTenantStore } = await import('@/store/tenant');
 
     const token = authService.getAccessToken();
     const baseURL = config.API_URL;
 
+    // Get tenant context from stores
+    const authStore = useAuthStore.getState();
+    const tenantStore = useTenantStore.getState();
+    const { user, currentCompany, currentSite } = authStore;
+    const { selectedCompany, selectedSite, selectedWarehouse } = tenantStore;
+
+    // Build headers with tenant context
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-App-Id': config.APP_ID,
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Add tenant context headers (prefer tenant store, fallback to auth store)
+    const effectiveCompanyId = selectedCompany?.id || currentCompany?.id;
+    const effectiveSiteId = selectedSite?.id || currentSite?.id;
+    const effectiveWarehouseId = selectedWarehouse?.id;
+    const effectiveUserId = user?.id;
+
+    if (effectiveUserId) {
+      headers['X-User-Id'] = effectiveUserId;
+    }
+    if (effectiveCompanyId) {
+      headers['X-Company-Id'] = effectiveCompanyId;
+    }
+    if (effectiveSiteId) {
+      headers['X-Site-Id'] = effectiveSiteId;
+    }
+    if (effectiveWarehouseId) {
+      headers['X-Warehouse-Id'] = effectiveWarehouseId;
+    }
+
     const response = await fetch(`${baseURL}/admin/inventory/stock/download-format`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-        'X-App-Id': config.APP_ID,
-      },
+      headers,
       body: JSON.stringify(params),
     });
 
