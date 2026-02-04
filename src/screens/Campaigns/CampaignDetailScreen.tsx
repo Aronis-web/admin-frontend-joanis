@@ -1495,7 +1495,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     // No need to reload campaign - the modal updates its own state locally
   }, []);
 
-  const handleRefreshProductFromBanner = useCallback(async () => {
+  const handleRefreshProductFromBanner = useCallback(async (updatedProductParam?: CampaignProduct) => {
     if (!selectedProduct) {
       return;
     }
@@ -1503,8 +1503,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     logger.debug('🔄 [BANNER] Actualizando producto específico:', selectedProduct.id);
 
     try {
-      // Fetch only the updated product
-      const updatedProduct = await campaignsService.getCampaignProduct(campaignId, selectedProduct.id);
+      // Use provided updated product or fetch it
+      let updatedProduct: CampaignProduct;
+
+      if (updatedProductParam) {
+        logger.debug('✅ [BANNER] Usando producto actualizado proporcionado');
+        updatedProduct = updatedProductParam;
+      } else {
+        logger.debug('🔄 [BANNER] Obteniendo producto actualizado del servidor');
+        // Fetch only the updated product
+        updatedProduct = await campaignsService.getProduct(campaignId, selectedProduct.productId);
+      }
 
       logger.debug('✅ [BANNER] Producto actualizado:', {
         productId: updatedProduct.id,
@@ -1514,7 +1523,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
       // Update the product in the campaign state
       setCampaign((prev) => {
-        if (!prev) return prev;
+        if (!prev || !prev.products) return prev;
 
         return {
           ...prev,
@@ -1530,8 +1539,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       logger.debug('✅ [BANNER] Producto actualizado en la lista sin recargar toda la campaña');
     } catch (error: any) {
       logger.error('❌ [BANNER] Error actualizando producto:', error);
+      // Fallback: reload entire campaign
+      logger.debug('⚠️ [BANNER] Fallback: recargando toda la campaña');
+      loadCampaign();
     }
-  }, [selectedProduct, campaignId]);
+  }, [selectedProduct, campaignId, loadCampaign]);
 
   const toggleProductExpanded = useCallback(async (productId: string) => {
     setExpandedProducts((prev) => {
@@ -1845,9 +1857,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       <View style={styles.tabContent}>
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-              Productos ({campaign.products?.length || 0})
-            </Text>
+            <View style={styles.sectionHeaderLeft}>
+              <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                Productos ({campaign.products?.length || 0})
+              </Text>
+              {/* Estimated Total Purchase in Header */}
+              {campaign.products && campaign.products.length > 0 && (
+                <View style={styles.estimatedTotalHeaderCard}>
+                  <Text style={styles.estimatedTotalHeaderLabel}>💰 Compra Total:</Text>
+                  <Text style={styles.estimatedTotalHeaderValue}>
+                    {formatCurrency(estimatedTotalPurchase)}
+                  </Text>
+                </View>
+              )}
+            </View>
             {(campaign.status === CampaignStatus.DRAFT ||
               campaign.status === CampaignStatus.ACTIVE) && (
               <TouchableOpacity
@@ -1939,19 +1962,6 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       {campaign.products.filter((p) => !p.distributionGenerated).length})
                     </Text>
                   </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Estimated Total Purchase */}
-              <View style={styles.estimatedTotalContainer}>
-                <View style={styles.estimatedTotalCard}>
-                  <Text style={styles.estimatedTotalLabel}>💰 Compra Total Estimada</Text>
-                  <Text style={styles.estimatedTotalValue}>
-                    {formatCurrency(estimatedTotalPurchase)}
-                  </Text>
-                  <Text style={styles.estimatedTotalSubtext}>
-                    Basado en {filteredProducts.length} producto{filteredProducts.length !== 1 ? 's' : ''} filtrado{filteredProducts.length !== 1 ? 's' : ''}
-                  </Text>
                 </View>
               </View>
             </>
@@ -2819,6 +2829,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  sectionHeaderLeft: {
+    flex: 1,
+    gap: 8,
   },
   sectionTitle: {
     fontSize: 18,
@@ -3504,38 +3520,26 @@ const styles = StyleSheet.create({
   filterButtonTextActive: {
     color: '#FFFFFF',
   },
-  estimatedTotalContainer: {
-    marginBottom: 16,
-  },
-  estimatedTotalCard: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: '#3B82F6',
+  estimatedTotalHeaderCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    gap: 8,
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
   },
-  estimatedTotalLabel: {
-    fontSize: 14,
+  estimatedTotalHeaderLabel: {
+    fontSize: 13,
     fontWeight: '600',
     color: '#1E40AF',
-    marginBottom: 8,
   },
-  estimatedTotalValue: {
-    fontSize: 28,
+  estimatedTotalHeaderValue: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1E40AF',
-    marginBottom: 4,
-  },
-  estimatedTotalSubtext: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
   },
   footer: {
     flexDirection: 'row',

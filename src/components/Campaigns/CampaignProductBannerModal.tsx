@@ -26,7 +26,7 @@ interface CampaignProductBannerModalProps {
   campaignProduct: CampaignProduct | null;
   productDetails?: any; // Full product details with costCents, priceCents, etc.
   onClose: () => void;
-  onRefresh?: () => void; // Callback to refresh campaign data after distribution
+  onRefresh?: (updatedProduct?: CampaignProduct) => void; // Callback to refresh campaign data after distribution or update specific product
 }
 
 interface PriceFormData {
@@ -416,6 +416,20 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
             : p
         )
       );
+
+      // Get updated product and pass it to parent
+      if (onRefresh && campaignProduct?.campaignId) {
+        try {
+          const updatedProduct = await campaignsService.getProduct(
+            campaignProduct.campaignId,
+            campaignProduct.productId
+          );
+          onRefresh(updatedProduct);
+        } catch (error) {
+          console.error('Error fetching updated product:', error);
+          onRefresh(); // Fallback to full refresh
+        }
+      }
     } catch (error: any) {
       console.error('❌ Error saving price:', error);
       console.error('Error details:', error.response?.data || error.message);
@@ -485,8 +499,19 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
       setEditingCost(false);
 
-      // Note: Price profiles will be recalculated on the backend based on the new cost
-      // The parent component should refresh the data when the modal closes
+      // Get updated product and pass it to parent
+      if (onRefresh && campaignProduct?.campaignId) {
+        try {
+          const updatedProduct = await campaignsService.getProduct(
+            campaignProduct.campaignId,
+            campaignProduct.productId
+          );
+          onRefresh(updatedProduct);
+        } catch (error) {
+          console.error('Error fetching updated product:', error);
+          onRefresh(); // Fallback to full refresh
+        }
+      }
     } catch (error: any) {
       console.error('❌ Error saving cost:', error);
       console.error('Error details:', error.response?.data || error.message);
@@ -556,8 +581,19 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       Alert.alert('Éxito', 'Cantidad de campaña actualizada correctamente');
       setEditingQuantity(false);
 
-      // Reload modal data if there's a callback
-      // The parent component should refresh the campaign products list
+      // Get updated product and pass it to parent
+      if (onRefresh) {
+        try {
+          const updatedProduct = await campaignsService.getProduct(
+            campaignProduct.campaignId,
+            campaignProduct.productId
+          );
+          onRefresh(updatedProduct);
+        } catch (error) {
+          console.error('Error fetching updated product:', error);
+          onRefresh(); // Fallback to full refresh
+        }
+      }
     } catch (error: any) {
       console.error('Error saving quantity:', error);
       Alert.alert('Error', error.message || 'No se pudo actualizar la cantidad');
@@ -579,7 +615,19 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     }
 
     if (campaignProduct.productStatus !== 'ACTIVE') {
-      Alert.alert('Error', 'Solo se pueden generar repartos de productos en estado ACTIVO');
+      Alert.alert('Error', 'Solo se pueden generar repartos de productos en estado ACTIVO en la campaña');
+      return;
+    }
+
+    // Check if the product itself is preliminary (not validated yet)
+    const product = campaignProduct.product || productDetails;
+    const isProductPreliminary = (product?.status as any) === 'preliminary';
+
+    if (isProductPreliminary) {
+      Alert.alert(
+        'Producto Preliminar',
+        'No se puede generar reparto para productos preliminares. El producto debe estar validado primero.'
+      );
       return;
     }
 
@@ -742,12 +790,28 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                         <Text style={styles.editQuantityButtonText}>✏️ Editar</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={styles.quickDistributionButton}
+                        style={[
+                          styles.quickDistributionButton,
+                          isPreliminary && styles.quickDistributionButtonDisabled,
+                        ]}
                         onPress={handleOpenDistribution}
+                        disabled={isPreliminary}
                       >
-                        <Text style={styles.quickDistributionButtonText}>⚡ Generar Reparto</Text>
+                        <Text
+                          style={[
+                            styles.quickDistributionButtonText,
+                            isPreliminary && styles.quickDistributionButtonTextDisabled,
+                          ]}
+                        >
+                          ⚡ Generar Reparto
+                        </Text>
                       </TouchableOpacity>
                     </View>
+                  )}
+                  {isPreliminary && !campaignProduct.distributionGenerated && (
+                    <Text style={styles.preliminaryWarningNote}>
+                      ⚠️ Producto preliminar - Debe validarse antes de generar reparto
+                    </Text>
                   )}
                   {campaignProduct.distributionGenerated && (
                     <Text style={styles.distributionGeneratedNote}>
@@ -1526,6 +1590,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  quickDistributionButtonDisabled: {
+    backgroundColor: '#94A3B8',
+    borderColor: '#94A3B8',
+    opacity: 0.6,
+  },
+  quickDistributionButtonTextDisabled: {
+    color: '#E2E8F0',
+  },
+  preliminaryWarningNote: {
+    fontSize: 12,
+    color: '#F59E0B',
+    marginTop: 8,
+    fontWeight: '600',
+    textAlign: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   distributionGeneratedNote: {
     fontSize: 12,
