@@ -547,10 +547,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
       Alert.alert('Éxito', `Producto agregado con ${stockInfo.available} unidades disponibles`);
 
-      // Clear search and reload campaign
-      setSearchQuery('');
-      setGlobalSearchResults([]);
-      setShowGlobalSearchSuggestions(false);
+      // Don't clear search - keep it to allow adding multiple products
+      // Just reload campaign to update the list
       loadCampaign();
     } catch (error: any) {
       console.error('Error adding product:', error);
