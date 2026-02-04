@@ -1821,6 +1821,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return filtered;
   }, [campaign?.products, products, searchQuery, distributionFilter]);
 
+  // Calculate total estimated purchase based on filtered products
+  const estimatedTotalPurchase = useMemo(() => {
+    if (!filteredProducts || filteredProducts.length === 0) {
+      return 0;
+    }
+
+    return filteredProducts.reduce((total, product) => {
+      const productDetails = products[product.productId] || product.product;
+      const costCents = productDetails?.costCents || 0;
+      const quantity = product.totalQuantityBase || 0;
+
+      return total + (costCents * quantity);
+    }, 0);
+  }, [filteredProducts, products]);
+
   const renderProducts = () => {
     if (!campaign) {
       return null;
@@ -1924,6 +1939,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       {campaign.products.filter((p) => !p.distributionGenerated).length})
                     </Text>
                   </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Estimated Total Purchase */}
+              <View style={styles.estimatedTotalContainer}>
+                <View style={styles.estimatedTotalCard}>
+                  <Text style={styles.estimatedTotalLabel}>💰 Compra Total Estimada</Text>
+                  <Text style={styles.estimatedTotalValue}>
+                    {formatCurrency(estimatedTotalPurchase)}
+                  </Text>
+                  <Text style={styles.estimatedTotalSubtext}>
+                    Basado en {filteredProducts.length} producto{filteredProducts.length !== 1 ? 's' : ''} filtrado{filteredProducts.length !== 1 ? 's' : ''}
+                  </Text>
                 </View>
               </View>
             </>
@@ -3475,6 +3503,39 @@ const styles = StyleSheet.create({
   },
   filterButtonTextActive: {
     color: '#FFFFFF',
+  },
+  estimatedTotalContainer: {
+    marginBottom: 16,
+  },
+  estimatedTotalCard: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    alignItems: 'center',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  estimatedTotalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E40AF',
+    marginBottom: 8,
+  },
+  estimatedTotalValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1E40AF',
+    marginBottom: 4,
+  },
+  estimatedTotalSubtext: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
   },
   footer: {
     flexDirection: 'row',
