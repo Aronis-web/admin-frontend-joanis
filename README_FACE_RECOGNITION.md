@@ -197,6 +197,7 @@ import { FaceCaptureCamera } from '@/components/FaceRecognition/FaceCaptureCamer
 - ✅ **Captura 100% silenciosa**: Control de audio del sistema para eliminar completamente el sonido del obturador
 - ✅ **Cambio de cámara**: Botón para alternar entre frontal y trasera
 - ✅ **Contador de frames**: Muestra cuántos frames se han capturado
+- ✅ **Galería de miniaturas**: Vista previa de todas las fotos capturadas con opción de eliminar individualmente
 - ✅ **Guía visual animada**: Marco facial con animación de pulso y rotación
 - ✅ **Instrucciones dinámicas**: Cambian según el ángulo requerido para cada frame
 - ✅ **6 ángulos diferentes**:
@@ -209,6 +210,9 @@ import { FaceCaptureCamera } from '@/components/FaceRecognition/FaceCaptureCamer
 - ✅ **Indicadores de color**: Cada ángulo tiene un color distintivo
 - ✅ **Barra de progreso**: Visualización del avance de captura
 - ✅ **Animación de captura**: Efecto visual al tomar cada foto
+- ✅ **Vista previa en tiempo real**: Galería horizontal con miniaturas de 80x80px
+- ✅ **Eliminación individual**: Botón X en cada miniatura para eliminar fotos específicas
+- ✅ **Numeración de fotos**: Cada miniatura muestra su número de orden
 - ✅ **Confirmaciones inteligentes**: Previene pérdida de datos accidental
 - ✅ **Validación**: Asegura que se capturen suficientes frames
 

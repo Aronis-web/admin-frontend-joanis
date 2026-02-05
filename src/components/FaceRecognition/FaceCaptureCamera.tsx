@@ -8,6 +8,8 @@ import {
   Alert,
   Dimensions,
   Animated,
+  Image,
+  ScrollView,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -245,6 +247,24 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     ]);
   }, []);
 
+  // Eliminar un frame específico
+  const handleDeleteFrame = useCallback((index: number) => {
+    Alert.alert('Eliminar foto', '¿Deseas eliminar esta foto?', [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: () => {
+          const newFrames = capturedFrames.filter((_, i) => i !== index);
+          setCapturedFrames(newFrames);
+        },
+      },
+    ]);
+  }, [capturedFrames]);
+
   // Cancelar y volver
   const handleCancel = useCallback(() => {
     if (capturedFrames.length > 0) {
@@ -384,6 +404,33 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
           />
         </View>
       </View>
+
+      {/* Galería de miniaturas */}
+      {capturedFrames.length > 0 && (
+        <View style={styles.thumbnailsContainer}>
+          <Text style={styles.thumbnailsTitle}>Fotos capturadas ({capturedFrames.length})</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.thumbnailsScroll}
+          >
+            {capturedFrames.map((frame, index) => (
+              <View key={index} style={styles.thumbnailWrapper}>
+                <Image source={{ uri: frame }} style={styles.thumbnail} />
+                <View style={styles.thumbnailBadge}>
+                  <Text style={styles.thumbnailBadgeText}>{index + 1}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.thumbnailDelete}
+                  onPress={() => handleDeleteFrame(index)}
+                >
+                  <MaterialIcons name="close" size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Botones de acción */}
       <View style={styles.actionsContainer}>
@@ -580,6 +627,62 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 3,
+  },
+  thumbnailsContainer: {
+    marginTop: 15,
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  thumbnailsTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  thumbnailsScroll: {
+    gap: 10,
+    paddingVertical: 5,
+  },
+  thumbnailWrapper: {
+    position: 'relative',
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#007AFF',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  thumbnailBadge: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    backgroundColor: 'rgba(0, 122, 255, 0.9)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbnailBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  thumbnailDelete: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionsContainer: {
     marginTop: 20,
