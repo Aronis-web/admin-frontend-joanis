@@ -65,8 +65,7 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
-      "@sentry/react-native",
-      "expo-audio"
+      "@sentry/react-native"
     ]
   }
 }
