@@ -8,7 +8,7 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
-import { Camera, CameraType } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImageManipulator from 'expo-image-manipulator';
 
@@ -28,20 +28,19 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
   targetFrames = 6,
   captureInterval = 500,
 }) => {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [isCapturing, setIsCapturing] = useState(false);
   const [capturedFrames, setCapturedFrames] = useState<string[]>([]);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const cameraRef = useRef<Camera>(null);
+  const cameraRef = useRef<CameraView>(null);
   const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Solicitar permisos de cámara
+  // Solicitar permisos de cámara al montar
   React.useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, []);
+    if (!permission) {
+      requestPermission();
+    }
+  }, [permission, requestPermission]);
 
   // Iniciar captura con countdown
   const startCapture = useCallback(() => {
@@ -84,21 +83,22 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
           const photo = await cameraRef.current.takePictureAsync({
             quality: 0.8,
             base64: false,
-            skipProcessing: true,
           });
 
-          // Redimensionar imagen para reducir tamaño
-          const manipulatedImage = await ImageManipulator.manipulateAsync(
-            photo.uri,
-            [{ resize: { width: 640 } }],
-            { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-          );
+          if (photo && photo.uri) {
+            // Redimensionar imagen para reducir tamaño
+            const manipulatedImage = await ImageManipulator.manipulateAsync(
+              photo.uri,
+              [{ resize: { width: 640 } }],
+              { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+            );
 
-          if (manipulatedImage.base64) {
-            const base64Image = `data:image/jpeg;base64,${manipulatedImage.base64}`;
-            frames.push(base64Image);
-            setCapturedFrames([...frames]);
-            frameCount++;
+            if (manipulatedImage.base64) {
+              const base64Image = `data:image/jpeg;base64,${manipulatedImage.base64}`;
+              frames.push(base64Image);
+              setCapturedFrames([...frames]);
+              frameCount++;
+            }
           }
         }
       } catch (error) {
@@ -118,7 +118,7 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     onCancel();
   }, [onCancel]);
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -127,12 +127,15 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     );
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
       <View style={styles.container}>
         <MaterialIcons name="camera-alt" size={64} color="#999" />
         <Text style={styles.errorText}>No se otorgaron permisos de cámara</Text>
-        <TouchableOpacity style={styles.button} onPress={onCancel}>
+        <TouchableOpacity style={styles.button} onPress={requestPermission}>
+          <Text style={styles.buttonText}>Solicitar Permisos</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onCancel}>
           <Text style={styles.buttonText}>Volver</Text>
         </TouchableOpacity>
       </View>
@@ -142,17 +145,15 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.cameraContainer}>
-        <Camera
+        <CameraView
           ref={cameraRef}
           style={styles.camera}
-          type={CameraType.front}
-          ratio="1:1"
-        />
-
-        {/* Overlay con guía facial */}
-        <View style={styles.overlay}>
-          <View style={styles.faceGuide} />
-        </View>
+          facing="front"
+        >
+          {/* Overlay con guía facial */}
+          <View style={styles.overlay}>
+            <View style={styles.faceGuide} />
+          </View>
 
         {/* Countdown */}
         {countdown !== null && (
@@ -170,6 +171,7 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
             </Text>
           </View>
         )}
+        </CameraView>
       </View>
 
       {/* Instrucciones */}
