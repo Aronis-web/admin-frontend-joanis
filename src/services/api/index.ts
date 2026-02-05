@@ -422,3 +422,16 @@ export type {
   ProductStatusLabels,
   ProductStatusColors,
 } from '@/types/transmisiones';
+
+// Biometric Verification exports
+export { biometricApi } from './biometric';
+export type {
+  BiometricProfile,
+  RegisterBiometricRequest,
+  RegisterBiometricResponse,
+  VerifyBiometricRequest,
+  VerifyBiometricResponse,
+  IdentifyBiometricRequest,
+  IdentifyBiometricResponse,
+  BiometricLog,
+} from './biometric';
