@@ -95,9 +95,13 @@ export const biometricApi = {
     formData.append('entityType', request.entityType);
     formData.append('entityId', request.entityId);
 
-    // Metadata como JSON string (según documentación del backend)
+    // Metadata como campos individuales (el backend espera un objeto, no JSON string)
     if (request.metadata) {
-      formData.append('metadata', JSON.stringify(request.metadata));
+      Object.entries(request.metadata).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(`metadata[${key}]`, String(value));
+        }
+      });
     }
 
     return apiClient.post<RegisterBiometricResponse>(
@@ -130,9 +134,13 @@ export const biometricApi = {
     formData.append('entityType', request.entityType);
     formData.append('entityId', request.entityId);
 
-    // Metadata como JSON string
+    // Metadata como campos individuales
     if (request.metadata) {
-      formData.append('metadata', JSON.stringify(request.metadata));
+      Object.entries(request.metadata).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(`metadata[${key}]`, String(value));
+        }
+      });
     }
 
     return apiClient.post<VerifyBiometricResponse>('/biometric-verification/verify', formData);
@@ -161,9 +169,13 @@ export const biometricApi = {
     // Agregar datos del request
     formData.append('entityType', request.entityType);
 
-    // Metadata como JSON string
+    // Metadata como campos individuales
     if (request.metadata) {
-      formData.append('metadata', JSON.stringify(request.metadata));
+      Object.entries(request.metadata).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(`metadata[${key}]`, String(value));
+        }
+      });
     }
 
     return apiClient.post<IdentifyBiometricResponse>('/biometric-verification/identify', formData);
