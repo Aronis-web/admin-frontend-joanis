@@ -31,9 +31,8 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
   const [permission, requestPermission] = useCameraPermissions();
   const [isCapturing, setIsCapturing] = useState(false);
   const [capturedFrames, setCapturedFrames] = useState<string[]>([]);
-  const [countdown, setCountdown] = useState<number | null>(null);
+  const [facing, setFacing] = useState<'front' | 'back'>('front');
   const cameraRef = useRef<CameraView>(null);
-  const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Solicitar permisos de cámara al montar
   React.useEffect(() => {
@@ -42,81 +41,127 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     }
   }, [permission, requestPermission]);
 
-  // Iniciar captura con countdown
-  const startCapture = useCallback(() => {
-    setCountdown(3);
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(countdownInterval);
-          // Iniciar captura de frames
-          setTimeout(() => {
-            setCountdown(null);
-            beginFrameCapture();
-          }, 1000);
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  // Cambiar entre cámara frontal y trasera
+  const toggleCameraFacing = useCallback(() => {
+    setFacing((current) => (current === 'front' ? 'back' : 'front'));
   }, []);
 
-  // Capturar frames automáticamente
-  const beginFrameCapture = useCallback(() => {
+  // Capturar un frame manualmente
+  const captureFrame = useCallback(async () => {
+    if (capturedFrames.length >= targetFrames) {
+      Alert.alert('Límite alcanzado', `Ya has capturado ${targetFrames} frames`);
+      return;
+    }
+
     setIsCapturing(true);
-    const frames: string[] = [];
-    let frameCount = 0;
+    try {
+      if (cameraRef.current) {
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.8,
+          base64: false,
+        });
 
-    captureIntervalRef.current = setInterval(async () => {
-      if (frameCount >= targetFrames) {
-        // Captura completa
-        if (captureIntervalRef.current) {
-          clearInterval(captureIntervalRef.current);
-        }
-        setIsCapturing(false);
-        onCaptureComplete(frames);
-        return;
-      }
+        if (photo && photo.uri) {
+          // Redimensionar imagen para reducir tamaño
+          const manipulatedImage = await ImageManipulator.manipulateAsync(
+            photo.uri,
+            [{ resize: { width: 640 } }],
+            { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+          );
 
-      try {
-        if (cameraRef.current) {
-          const photo = await cameraRef.current.takePictureAsync({
-            quality: 0.8,
-            base64: false,
-          });
+          if (manipulatedImage.base64) {
+            const base64Image = `data:image/jpeg;base64,${manipulatedImage.base64}`;
+            const newFrames = [...capturedFrames, base64Image];
+            setCapturedFrames(newFrames);
 
-          if (photo && photo.uri) {
-            // Redimensionar imagen para reducir tamaño
-            const manipulatedImage = await ImageManipulator.manipulateAsync(
-              photo.uri,
-              [{ resize: { width: 640 } }],
-              { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-            );
-
-            if (manipulatedImage.base64) {
-              const base64Image = `data:image/jpeg;base64,${manipulatedImage.base64}`;
-              frames.push(base64Image);
-              setCapturedFrames([...frames]);
-              frameCount++;
+            // Si alcanzamos el objetivo, mostrar opción de finalizar
+            if (newFrames.length >= targetFrames) {
+              Alert.alert(
+                'Captura completa',
+                `Has capturado ${newFrames.length} frames. ¿Deseas finalizar?`,
+                [
+                  {
+                    text: 'Capturar más',
+                    style: 'cancel',
+                  },
+                  {
+                    text: 'Finalizar',
+                    onPress: () => onCaptureComplete(newFrames),
+                  },
+                ]
+              );
             }
           }
         }
-      } catch (error) {
-        console.error('Error capturando frame:', error);
       }
-    }, captureInterval);
-  }, [targetFrames, captureInterval, onCaptureComplete]);
-
-  // Cancelar captura
-  const handleCancel = useCallback(() => {
-    if (captureIntervalRef.current) {
-      clearInterval(captureIntervalRef.current);
+    } catch (error) {
+      console.error('Error capturando frame:', error);
+      Alert.alert('Error', 'No se pudo capturar la imagen');
+    } finally {
+      setIsCapturing(false);
     }
-    setIsCapturing(false);
-    setCapturedFrames([]);
-    setCountdown(null);
-    onCancel();
-  }, [onCancel]);
+  }, [capturedFrames, targetFrames, onCaptureComplete]);
+
+  // Finalizar captura manualmente
+  const handleFinish = useCallback(() => {
+    if (capturedFrames.length === 0) {
+      Alert.alert('Error', 'Debes capturar al menos 1 frame');
+      return;
+    }
+
+    if (capturedFrames.length < targetFrames) {
+      Alert.alert(
+        'Advertencia',
+        `Solo has capturado ${capturedFrames.length} de ${targetFrames} frames recomendados. ¿Deseas continuar?`,
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+          {
+            text: 'Continuar',
+            onPress: () => onCaptureComplete(capturedFrames),
+          },
+        ]
+      );
+    } else {
+      onCaptureComplete(capturedFrames);
+    }
+  }, [capturedFrames, targetFrames, onCaptureComplete]);
+
+  // Limpiar frames capturados
+  const handleClear = useCallback(() => {
+    Alert.alert('Limpiar frames', '¿Deseas eliminar todos los frames capturados?', [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+      {
+        text: 'Limpiar',
+        style: 'destructive',
+        onPress: () => setCapturedFrames([]),
+      },
+    ]);
+  }, []);
+
+  // Cancelar y volver
+  const handleCancel = useCallback(() => {
+    if (capturedFrames.length > 0) {
+      Alert.alert('Cancelar', '¿Deseas cancelar? Se perderán los frames capturados.', [
+        {
+          text: 'No',
+          style: 'cancel',
+        },
+        {
+          text: 'Sí, cancelar',
+          style: 'destructive',
+          onPress: onCancel,
+        },
+      ]);
+    } else {
+      onCancel();
+    }
+  }, [capturedFrames, onCancel]);
 
   if (!permission) {
     return (
@@ -148,76 +193,86 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
         <CameraView
           ref={cameraRef}
           style={styles.camera}
-          facing="front"
+          facing={facing}
         >
-          {/* Overlay con guía facial */}
-          <View style={styles.overlay}>
-            <View style={styles.faceGuide} />
-          </View>
+          {/* Botón para cambiar cámara */}
+          <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
+            <MaterialIcons name="flip-camera-ios" size={32} color="#fff" />
+          </TouchableOpacity>
 
-        {/* Countdown */}
-        {countdown !== null && (
-          <View style={styles.countdownContainer}>
-            <Text style={styles.countdownText}>{countdown}</Text>
-          </View>
-        )}
-
-        {/* Indicador de captura */}
-        {isCapturing && (
-          <View style={styles.capturingIndicator}>
-            <ActivityIndicator size="large" color="#fff" />
-            <Text style={styles.capturingText}>
-              Capturando {capturedFrames.length}/{targetFrames}
+          {/* Contador de frames */}
+          <View style={styles.frameCounter}>
+            <Text style={styles.frameCounterText}>
+              {capturedFrames.length}/{targetFrames}
             </Text>
           </View>
-        )}
+
+          {/* Indicador de captura */}
+          {isCapturing && (
+            <View style={styles.capturingOverlay}>
+              <ActivityIndicator size="large" color="#fff" />
+            </View>
+          )}
         </CameraView>
       </View>
 
       {/* Instrucciones */}
       <View style={styles.instructionsContainer}>
-        <Text style={styles.instructionsTitle}>Instrucciones:</Text>
-        <Text style={styles.instructionsText}>
-          • Coloca tu rostro dentro del marco
+        <Text style={styles.instructionsTitle}>
+          Captura manual - {capturedFrames.length} de {targetFrames} frames
         </Text>
         <Text style={styles.instructionsText}>
-          • Mantén buena iluminación
+          • Presiona el botón de captura para tomar cada foto
         </Text>
         <Text style={styles.instructionsText}>
-          • Mira directamente a la cámara
+          • Captura desde diferentes ángulos
         </Text>
         <Text style={styles.instructionsText}>
-          • No te muevas durante la captura
+          • Usa el botón de cambio de cámara si es necesario
         </Text>
       </View>
 
-      {/* Botones */}
-      <View style={styles.buttonsContainer}>
-        {!isCapturing && countdown === null && (
-          <>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={handleCancel}
-            >
-              <Text style={styles.buttonText}>Cancelar</Text>
+      {/* Botones de acción */}
+      <View style={styles.actionsContainer}>
+        <View style={styles.topActions}>
+          {capturedFrames.length > 0 && (
+            <TouchableOpacity style={styles.actionButton} onPress={handleClear}>
+              <MaterialIcons name="delete" size={24} color="#EF4444" />
+              <Text style={styles.actionButtonText}>Limpiar</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, styles.captureButton]}
-              onPress={startCapture}
-            >
-              <MaterialIcons name="camera" size={24} color="#fff" />
-              <Text style={styles.buttonText}>Capturar</Text>
-            </TouchableOpacity>
-          </>
-        )}
-        {isCapturing && (
+          )}
+        </View>
+
+        <View style={styles.mainActions}>
           <TouchableOpacity
             style={[styles.button, styles.cancelButton]}
             onPress={handleCancel}
           >
+            <MaterialIcons name="close" size={24} color="#fff" />
             <Text style={styles.buttonText}>Cancelar</Text>
           </TouchableOpacity>
-        )}
+
+          <TouchableOpacity
+            style={[styles.button, styles.captureButton, isCapturing && styles.buttonDisabled]}
+            onPress={captureFrame}
+            disabled={isCapturing}
+          >
+            <MaterialIcons name="camera" size={32} color="#fff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              styles.finishButton,
+              capturedFrames.length === 0 && styles.buttonDisabled,
+            ]}
+            onPress={handleFinish}
+            disabled={capturedFrames.length === 0}
+          >
+            <MaterialIcons name="check" size={24} color="#fff" />
+            <Text style={styles.buttonText}>Finalizar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -240,82 +295,115 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  faceGuide: {
-    width: CAMERA_SIZE * 0.7,
-    height: CAMERA_SIZE * 0.85,
-    borderWidth: 3,
-    borderColor: '#fff',
-    borderRadius: CAMERA_SIZE * 0.35,
-    opacity: 0.5,
-  },
-  countdownContainer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  countdownText: {
-    fontSize: 120,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  capturingIndicator: {
+  flipButton: {
     position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
+    top: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 30,
+    padding: 10,
+    zIndex: 10,
   },
-  capturingText: {
+  frameCounter: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    zIndex: 10,
+  },
+  frameCounterText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 10,
+  },
+  capturingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   instructionsContainer: {
-    marginTop: 30,
+    marginTop: 20,
     paddingHorizontal: 20,
     width: '100%',
   },
   instructionsTitle: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
+    textAlign: 'center',
   },
   instructionsText: {
     color: '#ccc',
-    fontSize: 14,
-    marginBottom: 5,
+    fontSize: 13,
+    marginBottom: 4,
   },
-  buttonsContainer: {
+  actionsContainer: {
+    marginTop: 20,
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  topActions: {
     flexDirection: 'row',
-    marginTop: 30,
-    gap: 15,
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  actionButtonText: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  mainActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 10,
     gap: 8,
+    flex: 1,
   },
   cancelButton: {
     backgroundColor: '#666',
+    flex: 0.8,
   },
   captureButton: {
     backgroundColor: '#007AFF',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    flex: 0,
+  },
+  finishButton: {
+    backgroundColor: '#34C759',
+    flex: 0.8,
+  },
+  buttonDisabled: {
+    backgroundColor: '#444',
+    opacity: 0.5,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   loadingText: {
