@@ -108,6 +108,7 @@ const TransmisionDetailScreen = lazyLoad(() => import('@/screens/Transmisiones')
 
 // Face Recognition Screens - Lazy Loaded
 const FaceRecognitionMenuScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.FaceRecognitionMenuScreen })), 'Cargando reconocimiento facial...');
+const BiometricProfilesScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.BiometricProfilesScreen })), 'Cargando perfiles...');
 const RegisterFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.RegisterFaceScreen })));
 const VerifyFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.VerifyFaceScreen })));
 
@@ -778,6 +779,18 @@ const MainStack = React.memo(() => {
             requireAll={false}
           >
             <FaceRecognitionMenuScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BIOMETRIC_PROFILES}
+        options={{
+          title: 'Perfiles Biométricos',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['biometric.read']}>
+            <BiometricProfilesScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

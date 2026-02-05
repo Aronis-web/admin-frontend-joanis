@@ -108,6 +108,7 @@ export const MAIN_ROUTES = {
 
   // Face Recognition
   FACE_RECOGNITION_MENU: 'FaceRecognitionMenu',
+  BIOMETRIC_PROFILES: 'BiometricProfiles',
   REGISTER_FACE: 'RegisterFace',
   VERIFY_FACE: 'VerifyFace',
 } as const;
@@ -233,6 +234,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Face Recognition
   FACE_RECOGNITION_MENU: 'biometric.read',
+  BIOMETRIC_PROFILES: 'biometric.read',
   REGISTER_FACE: 'biometric.register',
   VERIFY_FACE: 'biometric.verify',
 };

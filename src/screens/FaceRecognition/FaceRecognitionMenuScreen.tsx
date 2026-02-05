@@ -9,6 +9,14 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
 
   const menuOptions = [
     {
+      id: 'profiles',
+      title: 'Ver Perfiles',
+      description: 'Lista de perfiles biométricos registrados',
+      icon: 'people' as const,
+      color: '#5856D6',
+      screen: 'BiometricProfiles',
+    },
+    {
       id: 'register',
       title: 'Registrar Rostro',
       description: 'Captura y registra un nuevo rostro en el sistema',

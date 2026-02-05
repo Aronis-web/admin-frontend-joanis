@@ -6,6 +6,9 @@ export interface BiometricProfile {
   entityId: string;
   isActive: boolean;
   registrationQuality: number;
+  registrationFramesCount: number;
+  livenessScoreAtRegistration: number;
+  registeredAt: string;
   createdAt: string;
   updatedAt: string;
 }

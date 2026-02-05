@@ -19,10 +19,19 @@ import { biometricApi } from '@/services/api/biometric';
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export const VerifyFaceScreen: React.FC = () => {
+interface VerifyFaceScreenProps {
+  route?: {
+    params?: {
+      prefilledEntityType?: string;
+      prefilledEntityId?: string;
+    };
+  };
+}
+
+export const VerifyFaceScreen: React.FC<VerifyFaceScreenProps> = ({ route }) => {
   const [step, setStep] = useState<'form' | 'camera' | 'processing'>('form');
-  const [entityType, setEntityType] = useState('employee');
-  const [entityId, setEntityId] = useState('');
+  const [entityType, setEntityType] = useState(route?.params?.prefilledEntityType || 'employee');
+  const [entityId, setEntityId] = useState(route?.params?.prefilledEntityId || '');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStartVerification = () => {
