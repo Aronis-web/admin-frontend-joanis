@@ -79,23 +79,11 @@ export const biometricApi = {
   ): Promise<RegisterBiometricResponse> {
     const formData = new FormData();
 
-    // Convertir base64 a blobs y agregar como archivos
+    // Agregar frames como archivos en formato React Native
     frames.forEach((frameBase64, index) => {
-      // Remover el prefijo data:image/jpeg;base64, si existe
-      const base64Data = frameBase64.replace(/^data:image\/\w+;base64,/, '');
-
-      // Convertir base64 a blob
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'image/jpeg' });
-
-      // Crear File object para React Native
+      // React Native FormData espera objetos con uri, type, y name
       const file = {
-        uri: frameBase64,
+        uri: frameBase64, // URI base64 completa con prefijo data:image/jpeg;base64,
         type: 'image/jpeg',
         name: `frame-${index}.jpg`,
       } as any;
