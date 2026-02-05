@@ -215,6 +215,23 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // Organización
+  {
+    id: 'organization',
+    title: 'Organización',
+    icon: '🏗️',
+    color: '#F59E0B',
+    items: [
+      {
+        id: 'organization-chart',
+        icon: '📊',
+        label: 'Organigrama',
+        route: MAIN_ROUTES.ORGANIZATION_CHART,
+        color: '#F59E0B',
+        requiredPermissions: ['organization.positions.company.read', 'organization.positions.site.read'],
+      },
+    ],
+  },
   // Gastos
   {
     id: 'expenses',

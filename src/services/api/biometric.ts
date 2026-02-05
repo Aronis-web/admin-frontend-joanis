@@ -2,15 +2,27 @@ import { apiClient } from './client';
 
 export interface BiometricProfile {
   id: string;
-  entityType: string;
-  entityId: string;
-  isActive: boolean;
-  registrationQuality: number;
-  registrationFramesCount: number;
-  livenessScoreAtRegistration: number;
-  registeredAt: string;
-  createdAt: string;
-  updatedAt: string;
+  entity_type: string;
+  entity_id: string;
+  is_active: boolean;
+  registration_quality: string | number;
+  registration_frames_count: number;
+  liveness_score_at_registration: string | number;
+  registered_at: string;
+  created_at: string;
+  updated_at: string | null;
+  hasEmbeddings?: boolean;
+  embeddingsCount?: number;
+  embedding_version?: string;
+  version?: number;
+}
+
+export interface ListProfilesResponse {
+  success: boolean;
+  profiles: BiometricProfile[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface RegisterBiometricRequest {
@@ -234,6 +246,28 @@ export const biometricApi = {
    */
   async deleteBiometricProfile(profileId: string): Promise<{ success: boolean }> {
     return apiClient.post<{ success: boolean }>(`/biometric-verification/delete/${profileId}`);
+  },
+
+  /**
+   * Listar perfiles biométricos
+   * GET /api/biometric-verification/profiles
+   */
+  async listProfiles(params?: {
+    entityType?: string;
+    isActive?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<ListProfilesResponse> {
+    const queryParams = new URLSearchParams();
+    if (params?.entityType) queryParams.append('entityType', params.entityType);
+    if (params?.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+
+    const queryString = queryParams.toString();
+    const url = `/biometric-verification/profiles${queryString ? `?${queryString}` : ''}`;
+
+    return apiClient.get<ListProfilesResponse>(url);
   },
 
   /**

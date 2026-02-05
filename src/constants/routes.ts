@@ -111,6 +111,9 @@ export const MAIN_ROUTES = {
   BIOMETRIC_PROFILES: 'BiometricProfiles',
   REGISTER_FACE: 'RegisterFace',
   VERIFY_FACE: 'VerifyFace',
+
+  // Organization
+  ORGANIZATION_CHART: 'OrganizationChart',
 } as const;
 
 /**
@@ -237,6 +240,9 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   BIOMETRIC_PROFILES: 'biometric.read',
   REGISTER_FACE: 'biometric.register',
   VERIFY_FACE: 'biometric.verify',
+
+  // Organization
+  ORGANIZATION_CHART: 'organization.positions.company.read',
 };
 
 /**

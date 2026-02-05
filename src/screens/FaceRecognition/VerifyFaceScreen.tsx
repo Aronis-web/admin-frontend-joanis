@@ -29,9 +29,15 @@ interface VerifyFaceScreenProps {
 }
 
 export const VerifyFaceScreen: React.FC<VerifyFaceScreenProps> = ({ route }) => {
-  const [step, setStep] = useState<'form' | 'camera' | 'processing'>('form');
-  const [entityType, setEntityType] = useState(route?.params?.prefilledEntityType || 'employee');
-  const [entityId, setEntityId] = useState(route?.params?.prefilledEntityId || '');
+  const prefilledEntityType = route?.params?.prefilledEntityType;
+  const prefilledEntityId = route?.params?.prefilledEntityId;
+
+  // Si viene con datos pre-llenados, ir directo a la cámara
+  const initialStep = (prefilledEntityType && prefilledEntityId) ? 'camera' : 'form';
+
+  const [step, setStep] = useState<'form' | 'camera' | 'processing'>(initialStep);
+  const [entityType, setEntityType] = useState(prefilledEntityType || 'employee');
+  const [entityId, setEntityId] = useState(prefilledEntityId || '');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStartVerification = () => {
@@ -111,7 +117,11 @@ export const VerifyFaceScreen: React.FC<VerifyFaceScreenProps> = ({ route }) => 
   if (step === 'camera') {
     return (
       <SafeAreaView style={styles.cameraContainer} edges={['top']}>
-        <FaceCaptureCamera onCaptureComplete={handleCaptureComplete} onCancel={handleCancel} />
+        <FaceCaptureCamera
+          onCaptureComplete={handleCaptureComplete}
+          onCancel={handleCancel}
+          targetFrames={15}
+        />
       </SafeAreaView>
     );
   }

@@ -36,12 +36,25 @@ export const BiometricProfilesScreen: React.FC = () => {
   const loadProfiles = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implementar endpoint para listar perfiles
-      // Por ahora mostramos un mensaje
-      setProfiles([]);
-    } catch (error) {
+      const response = await biometricApi.listProfiles({
+        entityType: selectedEntityType,
+        // No filtrar por isActive para mostrar todos los perfiles
+        limit: 100,
+        offset: 0,
+      });
+
+      console.log('📋 Profiles loaded:', {
+        total: response.total,
+        count: response.profiles.length,
+        entityType: selectedEntityType,
+        firstProfile: response.profiles[0],
+      });
+
+      setProfiles(response.profiles);
+    } catch (error: any) {
       console.error('Error cargando perfiles:', error);
-      Alert.alert('Error', 'No se pudieron cargar los perfiles biométricos');
+      Alert.alert('Error', error.message || 'No se pudieron cargar los perfiles biométricos');
+      setProfiles([]);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -55,8 +68,8 @@ export const BiometricProfilesScreen: React.FC = () => {
 
   const handleVerifyProfile = (profile: BiometricProfile) => {
     (navigation as any).navigate('VerifyFace', {
-      prefilledEntityType: profile.entityType,
-      prefilledEntityId: profile.entityId,
+      prefilledEntityType: profile.entity_type,
+      prefilledEntityId: profile.entity_id,
     });
   };
 
@@ -83,52 +96,69 @@ export const BiometricProfilesScreen: React.FC = () => {
     );
   };
 
-  const renderProfile = ({ item }: { item: BiometricProfile }) => (
-    <View style={styles.profileCard}>
-      <View style={styles.profileHeader}>
-        <View style={styles.profileInfo}>
-          <Text style={styles.profileId}>{item.entityId}</Text>
-          <Text style={styles.profileType}>{item.entityType}</Text>
-          <View style={styles.profileStats}>
-            <View style={styles.statBadge}>
-              <MaterialIcons name="photo-camera" size={14} color="#666" />
-              <Text style={styles.statText}>{item.registrationFramesCount} frames</Text>
-            </View>
-            <View style={styles.statBadge}>
-              <MaterialIcons name="verified" size={14} color="#34C759" />
-              <Text style={styles.statText}>{item.registrationQuality.toFixed(0)}%</Text>
+  const renderProfile = ({ item }: { item: BiometricProfile }) => {
+    console.log('🎨 Rendering profile:', item);
+
+    // Convertir valores string a number si es necesario
+    const registrationQuality = typeof item.registration_quality === 'string'
+      ? parseFloat(item.registration_quality)
+      : item.registration_quality;
+
+    const livenessScore = typeof item.liveness_score_at_registration === 'string'
+      ? parseFloat(item.liveness_score_at_registration)
+      : item.liveness_score_at_registration;
+
+    return (
+      <View style={styles.profileCard}>
+        <View style={styles.profileHeader}>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileId}>{item.entity_id || 'Sin ID'}</Text>
+            <Text style={styles.profileType}>{item.entity_type || 'Sin tipo'}</Text>
+            <View style={styles.profileStats}>
+              <View style={styles.statBadge}>
+                <MaterialIcons name="photo-camera" size={14} color="#666" />
+                <Text style={styles.statText}>
+                  {item.registration_frames_count || 0} frames
+                </Text>
+              </View>
+              <View style={styles.statBadge}>
+                <MaterialIcons name="verified" size={14} color="#34C759" />
+                <Text style={styles.statText}>
+                  {registrationQuality ? (registrationQuality * 100).toFixed(0) : '0'}%
+                </Text>
+              </View>
             </View>
           </View>
+          <View style={styles.profileActions}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.verifyButton]}
+              onPress={() => handleVerifyProfile(item)}
+            >
+              <MaterialIcons name="face" size={24} color="#fff" />
+              <Text style={styles.actionButtonText}>Verificar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.deleteButton]}
+              onPress={() => handleDeleteProfile(item)}
+            >
+              <MaterialIcons name="delete" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={styles.profileActions}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.verifyButton]}
-            onPress={() => handleVerifyProfile(item)}
-          >
-            <MaterialIcons name="face" size={24} color="#fff" />
-            <Text style={styles.actionButtonText}>Verificar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={() => handleDeleteProfile(item)}
-          >
-            <MaterialIcons name="delete" size={24} color="#fff" />
-          </TouchableOpacity>
+        <View style={styles.profileDetails}>
+          <Text style={styles.detailText}>
+            Registrado: {item.registered_at ? new Date(item.registered_at).toLocaleDateString() : 'N/A'}
+          </Text>
+          <Text style={styles.detailText}>
+            Liveness: {livenessScore ? livenessScore.toFixed(0) : '0'}%
+          </Text>
+          <Text style={styles.detailText}>
+            Estado: {item.is_active ? '✅ Activo' : '❌ Inactivo'}
+          </Text>
         </View>
       </View>
-      <View style={styles.profileDetails}>
-        <Text style={styles.detailText}>
-          Registrado: {new Date(item.registeredAt).toLocaleDateString()}
-        </Text>
-        <Text style={styles.detailText}>
-          Liveness: {item.livenessScoreAtRegistration.toFixed(0)}%
-        </Text>
-        <Text style={styles.detailText}>
-          Estado: {item.isActive ? '✅ Activo' : '❌ Inactivo'}
-        </Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>

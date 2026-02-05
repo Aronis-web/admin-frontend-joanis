@@ -182,6 +182,36 @@ export type MainStackParamList = {
   Apps: undefined;
   PriceProfiles: undefined;
   Presentations: undefined;
+
+  // Balances
+  Balances: undefined;
+  BalanceDetail: {
+    balanceId: string;
+  };
+  BalanceOperations: {
+    balanceId: string;
+  };
+  AllBalanceOperations: undefined;
+  CreateBalance: undefined;
+  CreateBalanceOperation: {
+    balanceId: string;
+  };
+
+  // Transmisiones
+  Transmisiones: undefined;
+  CreateTransmision: undefined;
+  TransmisionDetail: {
+    transmisionId: string;
+  };
+
+  // Face Recognition
+  FaceRecognitionMenu: undefined;
+  BiometricProfiles: undefined;
+  RegisterFace: undefined;
+  VerifyFace: undefined;
+
+  // Organization
+  OrganizationChart: undefined;
 };
 
 /**

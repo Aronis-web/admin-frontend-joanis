@@ -112,6 +112,9 @@ const BiometricProfilesScreen = lazyLoad(() => import('@/screens/FaceRecognition
 const RegisterFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.RegisterFaceScreen })));
 const VerifyFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.VerifyFaceScreen })));
 
+// Organization Screens - Lazy Loaded
+const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').then(m => ({ default: m.OrganizationChartScreen })), 'Cargando organigrama...');
+
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -815,6 +818,24 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['biometric.verify']}>
             <VerifyFaceScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ORGANIZATION_CHART}
+        options={{
+          title: 'Organigrama',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'organization.positions.company.read',
+              'organization.positions.site.read',
+            ]}
+            requireAll={false}
+          >
+            <OrganizationChartScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

@@ -116,7 +116,11 @@ export const RegisterFaceScreen: React.FC = () => {
   if (step === 'camera') {
     return (
       <SafeAreaView style={styles.cameraContainer} edges={['top']}>
-        <FaceCaptureCamera onCaptureComplete={handleCaptureComplete} onCancel={handleCancel} />
+        <FaceCaptureCamera
+          onCaptureComplete={handleCaptureComplete}
+          onCancel={handleCancel}
+          targetFrames={100}
+        />
       </SafeAreaView>
     );
   }

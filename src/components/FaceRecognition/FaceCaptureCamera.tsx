@@ -8,8 +8,6 @@ import {
   Alert,
   Dimensions,
   Animated,
-  Image,
-  ScrollView,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -18,46 +16,56 @@ import * as ImageManipulator from 'expo-image-manipulator';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAMERA_SIZE = SCREEN_WIDTH * 0.9;
 
-// Instrucciones para cada frame con ángulos diferentes
-const FRAME_INSTRUCTIONS = [
+// Instrucciones para las posiciones de la cara (se ciclan durante la captura)
+const FACE_POSITIONS = [
   { angle: 'Frente', icon: '😊', description: 'Mira directamente a la cámara', color: '#007AFF' },
   { angle: 'Izquierda', icon: '👈', description: 'Gira tu cara ligeramente a la izquierda', color: '#34C759' },
   { angle: 'Derecha', icon: '👉', description: 'Gira tu cara ligeramente a la derecha', color: '#FF9500' },
   { angle: 'Arriba', icon: '👆', description: 'Inclina tu cara ligeramente hacia arriba', color: '#5856D6' },
   { angle: 'Abajo', icon: '👇', description: 'Inclina tu cara ligeramente hacia abajo', color: '#FF2D55' },
-  { angle: 'Frente', icon: '😊', description: 'Mira directamente a la cámara nuevamente', color: '#007AFF' },
+  { angle: 'Frente Final', icon: '😊', description: 'Mira directamente a la cámara', color: '#007AFF' },
 ];
 
 interface FaceCaptureCameraProps {
   onCaptureComplete: (frames: string[]) => void;
   onCancel: () => void;
-  targetFrames?: number;
-  captureInterval?: number;
+  targetFrames?: number; // 100 para registro, 15 para verificación
 }
 
 export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
   onCaptureComplete,
   onCancel,
-  targetFrames = 6,
-  captureInterval = 500,
+  targetFrames = 100,
 }) => {
   const [permission, requestPermission] = useCameraPermissions();
   const [isCapturing, setIsCapturing] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
   const [capturedFrames, setCapturedFrames] = useState<string[]>([]);
   const [facing, setFacing] = useState<'front' | 'back'>('front');
   const cameraRef = useRef<CameraView>(null);
+  const positionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isCapturingRef = useRef(false);
 
   // Animaciones para la guía visual
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // Solicitar permisos de cámara al montar
-  React.useEffect(() => {
+  useEffect(() => {
     if (!permission) {
       requestPermission();
     }
   }, [permission, requestPermission]);
+
+  // Limpiar intervalos al desmontar
+  useEffect(() => {
+    return () => {
+      if (positionIntervalRef.current) clearInterval(positionIntervalRef.current);
+      if (captureIntervalRef.current) clearInterval(captureIntervalRef.current);
+    };
+  }, []);
 
   // Animación de pulso para la guía visual
   useEffect(() => {
@@ -85,17 +93,17 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
 
   // Animación de rotación para indicadores de dirección
   useEffect(() => {
-    const currentInstruction = FRAME_INSTRUCTIONS[capturedFrames.length % FRAME_INSTRUCTIONS.length];
+    const currentPosition = FACE_POSITIONS[currentPositionIndex];
     let targetRotation = 0;
 
     // Determinar rotación según el ángulo
-    if (currentInstruction.angle === 'Izquierda') {
+    if (currentPosition.angle === 'Izquierda') {
       targetRotation = -0.2;
-    } else if (currentInstruction.angle === 'Derecha') {
+    } else if (currentPosition.angle === 'Derecha') {
       targetRotation = 0.2;
-    } else if (currentInstruction.angle === 'Arriba') {
+    } else if (currentPosition.angle === 'Arriba') {
       targetRotation = -0.15;
-    } else if (currentInstruction.angle === 'Abajo') {
+    } else if (currentPosition.angle === 'Abajo') {
       targetRotation = 0.15;
     }
 
@@ -104,152 +112,102 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
       useNativeDriver: true,
       friction: 5,
     }).start();
-  }, [capturedFrames.length, rotateAnim]);
+  }, [currentPositionIndex, rotateAnim]);
 
-  // Animación de fade cuando se captura un frame
-  const triggerCaptureAnimation = useCallback(() => {
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 0.3,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim]);
+
 
   // Cambiar entre cámara frontal y trasera
   const toggleCameraFacing = useCallback(() => {
     setFacing((current) => (current === 'front' ? 'back' : 'front'));
   }, []);
 
-  // Capturar un frame manualmente
-  const captureFrame = useCallback(async () => {
-    if (capturedFrames.length >= targetFrames) {
-      Alert.alert('Límite alcanzado', `Ya has capturado ${targetFrames} frames`);
-      return;
-    }
-
-    setIsCapturing(true);
-    triggerCaptureAnimation(); // Activar animación de captura
+  // Capturar una foto
+  const capturePhoto = useCallback(async () => {
+    if (!cameraRef.current || !isCapturingRef.current) return;
 
     try {
-      if (cameraRef.current) {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.8,
-          base64: false,
-          skipProcessing: true,
-        });
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.7,
+        base64: false,
+        skipProcessing: true,
+      });
 
-        if (photo && photo.uri) {
-          // Redimensionar imagen para reducir tamaño
-          const manipulatedImage = await ImageManipulator.manipulateAsync(
-            photo.uri,
-            [{ resize: { width: 640 } }],
-            { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-          );
+      // Redimensionar y convertir a base64
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: 640 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
 
-          if (manipulatedImage.base64) {
-            const base64Image = `data:image/jpeg;base64,${manipulatedImage.base64}`;
-            const newFrames = [...capturedFrames, base64Image];
-            setCapturedFrames(newFrames);
+      if (manipulatedImage.base64) {
+        const base64Image = `data:image/jpeg;base64,${manipulatedImage.base64}`;
+        setCapturedFrames((prev) => {
+          const newFrames = [...prev, base64Image];
+          console.log(`📸 Foto ${newFrames.length}/${targetFrames} capturada`);
 
-            // Si alcanzamos el objetivo, mostrar opción de finalizar
-            if (newFrames.length >= targetFrames) {
-              Alert.alert(
-                'Captura completa',
-                `Has capturado ${newFrames.length} frames. ¿Deseas finalizar?`,
-                [
-                  {
-                    text: 'Capturar más',
-                    style: 'cancel',
-                  },
-                  {
-                    text: 'Finalizar',
-                    onPress: () => onCaptureComplete(newFrames),
-                  },
-                ]
-              );
-            }
+          // Si alcanzamos el objetivo, detener captura
+          if (newFrames.length >= targetFrames) {
+            stopCapture();
+            onCaptureComplete(newFrames);
           }
-        }
+
+          return newFrames;
+        });
       }
     } catch (error) {
-      console.error('Error capturando frame:', error);
-      Alert.alert('Error', 'No se pudo capturar la imagen');
-    } finally {
-      setIsCapturing(false);
+      console.error('Error capturando foto:', error);
     }
-  }, [capturedFrames, targetFrames, onCaptureComplete, triggerCaptureAnimation]);
+  }, [targetFrames, onCaptureComplete, stopCapture]);
 
-  // Finalizar captura manualmente
-  const handleFinish = useCallback(() => {
-    if (capturedFrames.length === 0) {
-      Alert.alert('Error', 'Debes capturar al menos 1 frame');
-      return;
+  // Iniciar captura automática
+  const startCapture = useCallback(async () => {
+    if (!cameraRef.current) return;
+
+    try {
+      setHasStarted(true);
+      setIsCapturing(true);
+      isCapturingRef.current = true;
+      setCapturedFrames([]);
+
+      // Cambiar posiciones cada 3 segundos
+      positionIntervalRef.current = setInterval(() => {
+        setCurrentPositionIndex((prev) => (prev + 1) % FACE_POSITIONS.length);
+      }, 3000);
+
+      // Capturar fotos automáticamente cada 50ms
+      captureIntervalRef.current = setInterval(() => {
+        capturePhoto();
+      }, 50);
+
+      console.log('📸 Iniciando captura automática de fotos...');
+    } catch (error) {
+      console.error('Error iniciando captura:', error);
+      Alert.alert('Error', 'No se pudo iniciar la captura');
+      stopCapture();
+    }
+  }, [capturePhoto]);
+
+  // Detener captura
+  const stopCapture = useCallback(() => {
+    isCapturingRef.current = false;
+
+    if (positionIntervalRef.current) {
+      clearInterval(positionIntervalRef.current);
+      positionIntervalRef.current = null;
+    }
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+      captureIntervalRef.current = null;
     }
 
-    if (capturedFrames.length < targetFrames) {
-      Alert.alert(
-        'Advertencia',
-        `Solo has capturado ${capturedFrames.length} de ${targetFrames} frames recomendados. ¿Deseas continuar?`,
-        [
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-          },
-          {
-            text: 'Continuar',
-            onPress: () => onCaptureComplete(capturedFrames),
-          },
-        ]
-      );
-    } else {
-      onCaptureComplete(capturedFrames);
-    }
-  }, [capturedFrames, targetFrames, onCaptureComplete]);
-
-  // Limpiar frames capturados
-  const handleClear = useCallback(() => {
-    Alert.alert('Limpiar frames', '¿Deseas eliminar todos los frames capturados?', [
-      {
-        text: 'Cancelar',
-        style: 'cancel',
-      },
-      {
-        text: 'Limpiar',
-        style: 'destructive',
-        onPress: () => setCapturedFrames([]),
-      },
-    ]);
+    setIsCapturing(false);
   }, []);
-
-  // Eliminar un frame específico
-  const handleDeleteFrame = useCallback((index: number) => {
-    Alert.alert('Eliminar foto', '¿Deseas eliminar esta foto?', [
-      {
-        text: 'Cancelar',
-        style: 'cancel',
-      },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () => {
-          const newFrames = capturedFrames.filter((_, i) => i !== index);
-          setCapturedFrames(newFrames);
-        },
-      },
-    ]);
-  }, [capturedFrames]);
 
   // Cancelar y volver
   const handleCancel = useCallback(() => {
-    if (capturedFrames.length > 0) {
-      Alert.alert('Cancelar', '¿Deseas cancelar? Se perderán los frames capturados.', [
+    stopCapture();
+    if (hasStarted) {
+      Alert.alert('Cancelar', '¿Deseas cancelar? Se perderá el progreso.', [
         {
           text: 'No',
           style: 'cancel',
@@ -263,7 +221,7 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     } else {
       onCancel();
     }
-  }, [capturedFrames, onCancel]);
+  }, [hasStarted, onCancel, stopCapture]);
 
   if (!permission) {
     return (
@@ -289,8 +247,8 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     );
   }
 
-  // Obtener la instrucción actual
-  const currentInstruction = FRAME_INSTRUCTIONS[capturedFrames.length % FRAME_INSTRUCTIONS.length];
+  // Obtener la posición actual
+  const currentPosition = FACE_POSITIONS[currentPositionIndex];
 
   return (
     <View style={styles.container}>
@@ -300,20 +258,27 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
           style={styles.camera}
           facing={facing}
         >
-          {/* Botón para cambiar cámara */}
-          <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
-            <MaterialIcons name="flip-camera-ios" size={32} color="#fff" />
-          </TouchableOpacity>
+          {/* Botón para cambiar cámara (solo si no ha iniciado) */}
+          {!hasStarted && (
+            <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
+              <MaterialIcons name="flip-camera-ios" size={32} color="#fff" />
+            </TouchableOpacity>
+          )}
 
-          {/* Contador de frames */}
-          <View style={styles.frameCounter}>
-            <Text style={styles.frameCounterText}>
-              {capturedFrames.length}/{targetFrames}
-            </Text>
+          {/* Contador de progreso */}
+          <View style={styles.topBar}>
+            {isCapturing && (
+              <View style={styles.captureIndicator}>
+                <View style={styles.captureDot} />
+                <Text style={styles.captureText}>
+                  {capturedFrames.length}/{targetFrames}
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* Guía visual animada con overlay de fade */}
-          <Animated.View style={[styles.guideOverlay, { opacity: fadeAnim }]}>
+          {/* Guía visual animada (sin flash) */}
+          <View style={styles.guideOverlay}>
             {/* Marco de guía facial con animación de pulso */}
             <Animated.View
               style={[
@@ -326,15 +291,15 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
                       outputRange: ['-30deg', '30deg'],
                     })},
                   ],
-                  borderColor: currentInstruction.color,
+                  borderColor: currentPosition.color,
                 },
               ]}
             >
               {/* Esquinas del marco */}
-              <View style={[styles.corner, styles.cornerTopLeft, { borderColor: currentInstruction.color }]} />
-              <View style={[styles.corner, styles.cornerTopRight, { borderColor: currentInstruction.color }]} />
-              <View style={[styles.corner, styles.cornerBottomLeft, { borderColor: currentInstruction.color }]} />
-              <View style={[styles.corner, styles.cornerBottomRight, { borderColor: currentInstruction.color }]} />
+              <View style={[styles.corner, styles.cornerTopLeft, { borderColor: currentPosition.color }]} />
+              <View style={[styles.corner, styles.cornerTopRight, { borderColor: currentPosition.color }]} />
+              <View style={[styles.corner, styles.cornerBottomLeft, { borderColor: currentPosition.color }]} />
+              <View style={[styles.corner, styles.cornerBottomRight, { borderColor: currentPosition.color }]} />
             </Animated.View>
 
             {/* Indicador de dirección animado */}
@@ -342,118 +307,99 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
               style={[
                 styles.directionIndicator,
                 {
-                  backgroundColor: currentInstruction.color,
+                  backgroundColor: currentPosition.color,
                   transform: [{ scale: pulseAnim }],
                 },
               ]}
             >
-              <Text style={styles.directionIcon}>{currentInstruction.icon}</Text>
+              <Text style={styles.directionIcon}>{currentPosition.icon}</Text>
             </Animated.View>
-          </Animated.View>
+          </View>
 
-          {/* Indicador de captura */}
+          {/* Overlay de captura */}
           {isCapturing && (
             <View style={styles.capturingOverlay}>
-              <ActivityIndicator size="large" color="#fff" />
+              <View style={styles.capturingIndicator}>
+                <ActivityIndicator size="large" color="#fff" />
+                <Text style={styles.capturingText}>Capturando fotos...</Text>
+                <Text style={styles.capturingSubtext}>{capturedFrames.length}/{targetFrames}</Text>
+              </View>
             </View>
           )}
         </CameraView>
       </View>
 
       {/* Instrucciones dinámicas */}
-      <View style={[styles.instructionsContainer, { backgroundColor: currentInstruction.color + '20' }]}>
+      <View style={[styles.instructionsContainer, { backgroundColor: currentPosition.color + '20' }]}>
         <View style={styles.instructionHeader}>
-          <Text style={styles.instructionIcon}>{currentInstruction.icon}</Text>
+          <Text style={styles.instructionIcon}>{currentPosition.icon}</Text>
           <View style={styles.instructionTextContainer}>
-            <Text style={[styles.instructionsTitle, { color: currentInstruction.color }]}>
-              {currentInstruction.angle}
+            <Text style={[styles.instructionsTitle, { color: currentPosition.color }]}>
+              {currentPosition.angle}
             </Text>
             <Text style={styles.instructionsDescription}>
-              {currentInstruction.description}
+              {isCapturing ? currentPosition.description : 'Presiona Iniciar para comenzar'}
             </Text>
           </View>
         </View>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${(capturedFrames.length / targetFrames) * 100}%`,
-                backgroundColor: currentInstruction.color,
-              },
-            ]}
-          />
-        </View>
+        {isCapturing && (
+          <View style={styles.progressBar}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${(capturedFrames.length / targetFrames) * 100}%`,
+                  backgroundColor: currentPosition.color,
+                },
+              ]}
+            />
+          </View>
+        )}
       </View>
-
-      {/* Galería de miniaturas */}
-      {capturedFrames.length > 0 && (
-        <View style={styles.thumbnailsContainer}>
-          <Text style={styles.thumbnailsTitle}>Fotos capturadas ({capturedFrames.length})</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.thumbnailsScroll}
-          >
-            {capturedFrames.map((frame, index) => (
-              <View key={index} style={styles.thumbnailWrapper}>
-                <Image source={{ uri: frame }} style={styles.thumbnail} />
-                <View style={styles.thumbnailBadge}>
-                  <Text style={styles.thumbnailBadgeText}>{index + 1}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.thumbnailDelete}
-                  onPress={() => handleDeleteFrame(index)}
-                >
-                  <MaterialIcons name="close" size={16} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      )}
 
       {/* Botones de acción */}
       <View style={styles.actionsContainer}>
-        <View style={styles.topActions}>
-          {capturedFrames.length > 0 && (
-            <TouchableOpacity style={styles.actionButton} onPress={handleClear}>
-              <MaterialIcons name="delete" size={24} color="#EF4444" />
-              <Text style={styles.actionButtonText}>Limpiar</Text>
+        {!hasStarted ? (
+          <View style={styles.mainActions}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={handleCancel}
+            >
+              <MaterialIcons name="close" size={24} color="#fff" />
+              <Text style={styles.buttonText}>Cancelar</Text>
             </TouchableOpacity>
-          )}
-        </View>
 
-        <View style={styles.mainActions}>
-          <TouchableOpacity
-            style={[styles.button, styles.cancelButton]}
-            onPress={handleCancel}
-          >
-            <MaterialIcons name="close" size={24} color="#fff" />
-            <Text style={styles.buttonText}>Cancelar</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.startButton]}
+              onPress={startCapture}
+            >
+              <MaterialIcons name="camera-alt" size={32} color="#fff" />
+              <Text style={styles.buttonText}>Iniciar Captura</Text>
+            </TouchableOpacity>
+          </View>
+        ) : isCapturing ? (
+          <View style={styles.mainActions}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={handleCancel}
+            >
+              <MaterialIcons name="close" size={24} color="#fff" />
+              <Text style={styles.buttonText}>Cancelar</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.captureButton, isCapturing && styles.buttonDisabled]}
-            onPress={captureFrame}
-            disabled={isCapturing}
-          >
-            <MaterialIcons name="camera" size={32} color="#fff" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.button,
-              styles.finishButton,
-              capturedFrames.length === 0 && styles.buttonDisabled,
-            ]}
-            onPress={handleFinish}
-            disabled={capturedFrames.length === 0}
-          >
-            <MaterialIcons name="check" size={24} color="#fff" />
-            <Text style={styles.buttonText}>Finalizar</Text>
-          </TouchableOpacity>
-        </View>
+            <View style={styles.statusContainer}>
+              <View style={styles.captureDot} />
+              <Text style={styles.statusText}>Capturando {capturedFrames.length}/{targetFrames}...</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.mainActions}>
+            <View style={styles.statusContainer}>
+              <ActivityIndicator size="small" color="#007AFF" />
+              <Text style={styles.statusText}>Finalizando...</Text>
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -485,17 +431,32 @@ const styles = StyleSheet.create({
     padding: 10,
     zIndex: 10,
   },
-  frameCounter: {
+  topBar: {
     position: 'absolute',
     top: 20,
     left: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  captureIndicator: {
+    backgroundColor: 'rgba(52, 199, 89, 0.9)',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  frameCounterText: {
+  captureDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+  },
+  captureText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
@@ -504,7 +465,21 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  capturingIndicator: {
+    alignItems: 'center',
+    gap: 10,
+  },
+  capturingText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  capturingSubtext: {
+    color: '#fff',
+    fontSize: 14,
+    opacity: 0.8,
   },
   guideOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -609,116 +584,34 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
   },
-  thumbnailsContainer: {
-    marginTop: 15,
-    width: '100%',
-    paddingHorizontal: 20,
-  },
-  thumbnailsTitle: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 10,
-  },
-  thumbnailsScroll: {
-    gap: 10,
-    paddingVertical: 5,
-  },
-  thumbnailWrapper: {
-    position: 'relative',
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#007AFF',
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  thumbnailBadge: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    backgroundColor: 'rgba(0, 122, 255, 0.9)',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  thumbnailBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  thumbnailDelete: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(239, 68, 68, 0.9)',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   actionsContainer: {
     marginTop: 20,
     width: '100%',
     paddingHorizontal: 20,
   },
-  topActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 15,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-  },
-  actionButtonText: {
-    color: '#EF4444',
-    fontSize: 14,
-    fontWeight: '600',
-  },
   mainActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 10,
+    gap: 15,
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
     gap: 8,
     flex: 1,
   },
   cancelButton: {
     backgroundColor: '#666',
-    flex: 0.8,
+    flex: 0.4,
   },
-  captureButton: {
-    backgroundColor: '#007AFF',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    flex: 0,
-  },
-  finishButton: {
+  startButton: {
     backgroundColor: '#34C759',
-    flex: 0.8,
+    flex: 1,
   },
   buttonDisabled: {
     backgroundColor: '#444',
@@ -726,8 +619,24 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
+  },
+  statusContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(52, 199, 89, 0.2)',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: '#34C759',
+    fontSize: 14,
+    fontWeight: '600',
   },
   loadingText: {
     color: '#fff',
