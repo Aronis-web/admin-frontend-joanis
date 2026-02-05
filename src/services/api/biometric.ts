@@ -18,8 +18,9 @@ export interface RegisterBiometricRequest {
 
 export interface RegisterBiometricResponse {
   success: boolean;
-  profileId: string;
-  quality: number;
+  biometricProfileId: string;
+  qualityScore: number;
+  livenessScore: number;
   message: string;
 }
 
@@ -32,10 +33,11 @@ export interface VerifyBiometricRequest {
 export interface VerifyBiometricResponse {
   success: boolean;
   verified: boolean;
-  confidence: number;
   livenessScore: number;
   similarityScore: number;
+  confidence: number;
   message: string;
+  failureReason?: string;
 }
 
 export interface IdentifyBiometricRequest {
@@ -47,10 +49,11 @@ export interface IdentifyBiometricResponse {
   success: boolean;
   identified: boolean;
   entityId?: string;
-  confidence: number;
   livenessScore: number;
-  similarityScore: number;
+  similarityScore?: number;
+  confidence: number;
   message: string;
+  failureReason?: string;
 }
 
 export interface BiometricLog {
@@ -76,28 +79,37 @@ export const biometricApi = {
   ): Promise<RegisterBiometricResponse> {
     const formData = new FormData();
 
-    // Agregar frames como archivos
+    // Convertir base64 a blobs y agregar como archivos
     frames.forEach((frameBase64, index) => {
+      // Remover el prefijo data:image/jpeg;base64, si existe
+      const base64Data = frameBase64.replace(/^data:image\/\w+;base64,/, '');
+
       // Convertir base64 a blob
-      const blob = {
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+      // Crear File object para React Native
+      const file = {
         uri: frameBase64,
         type: 'image/jpeg',
-        name: `frame_${index}.jpg`,
+        name: `frame-${index}.jpg`,
       } as any;
-      formData.append('frames', blob);
+
+      formData.append('frames', file);
     });
 
     // Agregar datos del request
     formData.append('entityType', request.entityType);
     formData.append('entityId', request.entityId);
 
-    // Send metadata fields individually instead of as JSON string
+    // Metadata como JSON string (según documentación del backend)
     if (request.metadata) {
-      Object.entries(request.metadata).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(`metadata[${key}]`, String(value));
-        }
-      });
+      formData.append('metadata', JSON.stringify(request.metadata));
     }
 
     return apiClient.post<RegisterBiometricResponse>(
@@ -116,27 +128,23 @@ export const biometricApi = {
   ): Promise<VerifyBiometricResponse> {
     const formData = new FormData();
 
-    // Agregar frames como archivos
+    // Convertir base64 a blobs y agregar como archivos
     frames.forEach((frameBase64, index) => {
-      const blob = {
+      const file = {
         uri: frameBase64,
         type: 'image/jpeg',
-        name: `frame_${index}.jpg`,
+        name: `frame-${index}.jpg`,
       } as any;
-      formData.append('frames', blob);
+      formData.append('frames', file);
     });
 
     // Agregar datos del request
     formData.append('entityType', request.entityType);
     formData.append('entityId', request.entityId);
 
-    // Send metadata fields individually instead of as JSON string
+    // Metadata como JSON string
     if (request.metadata) {
-      Object.entries(request.metadata).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(`metadata[${key}]`, String(value));
-        }
-      });
+      formData.append('metadata', JSON.stringify(request.metadata));
     }
 
     return apiClient.post<VerifyBiometricResponse>('/biometric-verification/verify', formData);
@@ -152,26 +160,22 @@ export const biometricApi = {
   ): Promise<IdentifyBiometricResponse> {
     const formData = new FormData();
 
-    // Agregar frames como archivos
+    // Convertir base64 a blobs y agregar como archivos
     frames.forEach((frameBase64, index) => {
-      const blob = {
+      const file = {
         uri: frameBase64,
         type: 'image/jpeg',
-        name: `frame_${index}.jpg`,
+        name: `frame-${index}.jpg`,
       } as any;
-      formData.append('frames', blob);
+      formData.append('frames', file);
     });
 
     // Agregar datos del request
     formData.append('entityType', request.entityType);
 
-    // Send metadata fields individually instead of as JSON string
+    // Metadata como JSON string
     if (request.metadata) {
-      Object.entries(request.metadata).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(`metadata[${key}]`, String(value));
-        }
-      });
+      formData.append('metadata', JSON.stringify(request.metadata));
     }
 
     return apiClient.post<IdentifyBiometricResponse>('/biometric-verification/identify', formData);

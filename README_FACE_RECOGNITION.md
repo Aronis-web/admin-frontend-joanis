@@ -311,7 +311,11 @@ El módulo se comunica con estos endpoints del backend:
 - `POST /biometric-verification/delete/:id` - Eliminar perfil
 - `GET /biometric-verification/health` - Health check
 
-**Nota sobre FormData**: Los metadatos se envían como campos individuales (`metadata[key]`) en lugar de JSON stringificado para compatibilidad con el backend.
+**Nota sobre FormData**:
+- Los `frames` se envían como archivos de imagen (File objects con uri, type, name)
+- Los `metadata` se envían como JSON string según la especificación del backend
+- El backend utiliza InsightFace + ArcFace para reconocimiento facial con 99.8%+ de precisión
+- Incluye detección de vida (liveness) con 6 técnicas anti-spoofing combinadas
 
 ## 🎯 Casos de Uso
 
@@ -393,11 +397,16 @@ if (result.verified && result.confidence > 95) {
 - O ingresa un UUID válido manualmente
 - Ejemplo válido: `550e8400-e29b-41d4-a716-446655440000`
 
-### Error: "metadata must be an object"
+### Error: "No face detected" o "No se detectó rostro"
 
-**Causa**: Error en el formato de envío de metadatos.
+**Causa**: El backend no pudo detectar un rostro en las imágenes enviadas.
 
-**Solución**: Este error ya está resuelto en la versión actual. Los metadatos se envían correctamente como campos individuales en FormData.
+**Solución**:
+- Asegúrate de que el rostro esté centrado y bien iluminado
+- Verifica que las imágenes se estén capturando correctamente
+- Mejora las condiciones de iluminación
+- Mantén el rostro a una distancia apropiada (30-60cm)
+- Captura múltiples frames (3-6) para mejor precisión
 
 ### Error: "No se pudo registrar el rostro"
 

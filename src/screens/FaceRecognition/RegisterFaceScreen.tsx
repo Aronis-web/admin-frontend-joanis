@@ -69,6 +69,7 @@ export const RegisterFaceScreen: React.FC = () => {
         metadata: {
           name: name.trim() || undefined,
           registeredAt: new Date().toISOString(),
+          useCase: 'face_registration',
         },
       });
 
@@ -77,7 +78,10 @@ export const RegisterFaceScreen: React.FC = () => {
       if (response.success) {
         Alert.alert(
           'Éxito',
-          `Rostro registrado correctamente\n\nCalidad: ${(response.quality * 100).toFixed(1)}%`,
+          `Rostro registrado correctamente\n\n` +
+          `ID Perfil: ${response.biometricProfileId}\n` +
+          `Calidad: ${response.qualityScore.toFixed(1)}%\n` +
+          `Liveness: ${response.livenessScore.toFixed(1)}%`,
           [
             {
               text: 'OK',

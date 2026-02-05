@@ -53,6 +53,7 @@ export const VerifyFaceScreen: React.FC = () => {
         entityId: entityId.trim(),
         metadata: {
           verifiedAt: new Date().toISOString(),
+          useCase: 'face_verification',
         },
       });
 
@@ -61,10 +62,14 @@ export const VerifyFaceScreen: React.FC = () => {
       if (response.success) {
         const icon = response.verified ? '✅' : '❌';
         const title = response.verified ? 'Verificación Exitosa' : 'Verificación Fallida';
-        const message = `${icon} ${response.message}\n\n` +
-          `Confianza: ${(response.confidence * 100).toFixed(1)}%\n` +
-          `Liveness: ${(response.livenessScore * 100).toFixed(1)}%\n` +
-          `Similitud: ${(response.similarityScore * 100).toFixed(1)}%`;
+        let message = `${icon} ${response.message}\n\n` +
+          `Confianza: ${response.confidence.toFixed(1)}%\n` +
+          `Liveness: ${response.livenessScore.toFixed(1)}%\n` +
+          `Similitud: ${response.similarityScore.toFixed(1)}%`;
+
+        if (!response.verified && response.failureReason) {
+          message += `\n\nRazón: ${response.failureReason}`;
+        }
 
         Alert.alert(title, message, [
           {
