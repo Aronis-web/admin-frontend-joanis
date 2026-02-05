@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -14,6 +15,16 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAMERA_SIZE = SCREEN_WIDTH * 0.9;
+
+// Instrucciones para cada frame con ángulos diferentes
+const FRAME_INSTRUCTIONS = [
+  { angle: 'Frente', icon: '😊', description: 'Mira directamente a la cámara', color: '#007AFF' },
+  { angle: 'Izquierda', icon: '👈', description: 'Gira tu cara ligeramente a la izquierda', color: '#34C759' },
+  { angle: 'Derecha', icon: '👉', description: 'Gira tu cara ligeramente a la derecha', color: '#FF9500' },
+  { angle: 'Arriba', icon: '👆', description: 'Inclina tu cara ligeramente hacia arriba', color: '#5856D6' },
+  { angle: 'Abajo', icon: '👇', description: 'Inclina tu cara ligeramente hacia abajo', color: '#FF2D55' },
+  { angle: 'Frente', icon: '😊', description: 'Mira directamente a la cámara nuevamente', color: '#007AFF' },
+];
 
 interface FaceCaptureCameraProps {
   onCaptureComplete: (frames: string[]) => void;
@@ -34,12 +45,80 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
   const [facing, setFacing] = useState<'front' | 'back'>('front');
   const cameraRef = useRef<CameraView>(null);
 
+  // Animaciones para la guía visual
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
   // Solicitar permisos de cámara al montar
   React.useEffect(() => {
     if (!permission) {
       requestPermission();
     }
   }, [permission, requestPermission]);
+
+  // Animación de pulso para la guía visual
+  useEffect(() => {
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    pulseAnimation.start();
+
+    return () => {
+      pulseAnimation.stop();
+    };
+  }, [pulseAnim]);
+
+  // Animación de rotación para indicadores de dirección
+  useEffect(() => {
+    const currentInstruction = FRAME_INSTRUCTIONS[capturedFrames.length % FRAME_INSTRUCTIONS.length];
+    let targetRotation = 0;
+
+    // Determinar rotación según el ángulo
+    if (currentInstruction.angle === 'Izquierda') {
+      targetRotation = -0.2;
+    } else if (currentInstruction.angle === 'Derecha') {
+      targetRotation = 0.2;
+    } else if (currentInstruction.angle === 'Arriba') {
+      targetRotation = -0.15;
+    } else if (currentInstruction.angle === 'Abajo') {
+      targetRotation = 0.15;
+    }
+
+    Animated.spring(rotateAnim, {
+      toValue: targetRotation,
+      useNativeDriver: true,
+      friction: 5,
+    }).start();
+  }, [capturedFrames.length, rotateAnim]);
+
+  // Animación de fade cuando se captura un frame
+  const triggerCaptureAnimation = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0.3,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim]);
 
   // Cambiar entre cámara frontal y trasera
   const toggleCameraFacing = useCallback(() => {
@@ -54,6 +133,8 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     }
 
     setIsCapturing(true);
+    triggerCaptureAnimation(); // Activar animación de captura
+
     try {
       if (cameraRef.current) {
         const photo = await cameraRef.current.takePictureAsync({
@@ -100,7 +181,7 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     } finally {
       setIsCapturing(false);
     }
-  }, [capturedFrames, targetFrames, onCaptureComplete]);
+  }, [capturedFrames, targetFrames, onCaptureComplete, triggerCaptureAnimation]);
 
   // Finalizar captura manualmente
   const handleFinish = useCallback(() => {
@@ -187,6 +268,9 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     );
   }
 
+  // Obtener la instrucción actual
+  const currentInstruction = FRAME_INSTRUCTIONS[capturedFrames.length % FRAME_INSTRUCTIONS.length];
+
   return (
     <View style={styles.container}>
       <View style={styles.cameraContainer}>
@@ -207,6 +291,45 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
             </Text>
           </View>
 
+          {/* Guía visual animada con overlay de fade */}
+          <Animated.View style={[styles.guideOverlay, { opacity: fadeAnim }]}>
+            {/* Marco de guía facial con animación de pulso */}
+            <Animated.View
+              style={[
+                styles.faceGuide,
+                {
+                  transform: [
+                    { scale: pulseAnim },
+                    { rotate: rotateAnim.interpolate({
+                      inputRange: [-1, 1],
+                      outputRange: ['-30deg', '30deg'],
+                    })},
+                  ],
+                  borderColor: currentInstruction.color,
+                },
+              ]}
+            >
+              {/* Esquinas del marco */}
+              <View style={[styles.corner, styles.cornerTopLeft, { borderColor: currentInstruction.color }]} />
+              <View style={[styles.corner, styles.cornerTopRight, { borderColor: currentInstruction.color }]} />
+              <View style={[styles.corner, styles.cornerBottomLeft, { borderColor: currentInstruction.color }]} />
+              <View style={[styles.corner, styles.cornerBottomRight, { borderColor: currentInstruction.color }]} />
+            </Animated.View>
+
+            {/* Indicador de dirección animado */}
+            <Animated.View
+              style={[
+                styles.directionIndicator,
+                {
+                  backgroundColor: currentInstruction.color,
+                  transform: [{ scale: pulseAnim }],
+                },
+              ]}
+            >
+              <Text style={styles.directionIcon}>{currentInstruction.icon}</Text>
+            </Animated.View>
+          </Animated.View>
+
           {/* Indicador de captura */}
           {isCapturing && (
             <View style={styles.capturingOverlay}>
@@ -216,20 +339,30 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
         </CameraView>
       </View>
 
-      {/* Instrucciones */}
-      <View style={styles.instructionsContainer}>
-        <Text style={styles.instructionsTitle}>
-          Captura manual - {capturedFrames.length} de {targetFrames} frames
-        </Text>
-        <Text style={styles.instructionsText}>
-          • Presiona el botón de captura para tomar cada foto
-        </Text>
-        <Text style={styles.instructionsText}>
-          • Captura desde diferentes ángulos
-        </Text>
-        <Text style={styles.instructionsText}>
-          • Usa el botón de cambio de cámara si es necesario
-        </Text>
+      {/* Instrucciones dinámicas */}
+      <View style={[styles.instructionsContainer, { backgroundColor: currentInstruction.color + '20' }]}>
+        <View style={styles.instructionHeader}>
+          <Text style={styles.instructionIcon}>{currentInstruction.icon}</Text>
+          <View style={styles.instructionTextContainer}>
+            <Text style={[styles.instructionsTitle, { color: currentInstruction.color }]}>
+              {currentInstruction.angle}
+            </Text>
+            <Text style={styles.instructionsDescription}>
+              {currentInstruction.description}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.progressBar}>
+          <View
+            style={[
+              styles.progressFill,
+              {
+                width: `${(capturedFrames.length / targetFrames) * 100}%`,
+                backgroundColor: currentInstruction.color,
+              },
+            ]}
+          />
+        </View>
       </View>
 
       {/* Botones de acción */}
@@ -325,22 +458,108 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
+  guideOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+  },
+  faceGuide: {
+    width: CAMERA_SIZE * 0.6,
+    height: CAMERA_SIZE * 0.75,
+    borderWidth: 3,
+    borderRadius: 120,
+    borderStyle: 'dashed',
+    position: 'relative',
+  },
+  corner: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderWidth: 4,
+  },
+  cornerTopLeft: {
+    top: -2,
+    left: -2,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
+    borderTopLeftRadius: 20,
+  },
+  cornerTopRight: {
+    top: -2,
+    right: -2,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
+    borderTopRightRadius: 20,
+  },
+  cornerBottomLeft: {
+    bottom: -2,
+    left: -2,
+    borderTopWidth: 0,
+    borderRightWidth: 0,
+    borderBottomLeftRadius: 20,
+  },
+  cornerBottomRight: {
+    bottom: -2,
+    right: -2,
+    borderTopWidth: 0,
+    borderLeftWidth: 0,
+    borderBottomRightRadius: 20,
+  },
+  directionIndicator: {
+    position: 'absolute',
+    top: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  directionIcon: {
+    fontSize: 32,
+  },
   instructionsContainer: {
     marginTop: 20,
     paddingHorizontal: 20,
+    paddingVertical: 15,
     width: '100%',
+    borderRadius: 12,
+    marginHorizontal: 20,
+  },
+  instructionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+    marginBottom: 10,
+  },
+  instructionIcon: {
+    fontSize: 40,
+  },
+  instructionTextContainer: {
+    flex: 1,
   },
   instructionsTitle: {
-    color: '#fff',
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  instructionsText: {
-    color: '#ccc',
-    fontSize: 13,
     marginBottom: 4,
+  },
+  instructionsDescription: {
+    color: '#fff',
+    fontSize: 14,
+    opacity: 0.9,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   actionsContainer: {
     marginTop: 20,

@@ -8,10 +8,13 @@ Sistema simple de reconocimiento facial para React Native que permite agregar ro
 - ✅ **Verificar Rostros**: Verifica la identidad comparando con perfiles registrados
 - ✅ **Captura Manual**: Control total sobre cuándo capturar cada frame
 - ✅ **Cambio de Cámara**: Alterna entre cámara frontal y trasera
-- ✅ **Interfaz Intuitiva**: UI simple y fácil de usar
+- ✅ **Guía Visual Animada**: Instrucciones visuales en tiempo real con animaciones
+- ✅ **Múltiples Ángulos**: Guía al usuario para capturar desde diferentes posiciones
+- ✅ **Interfaz Intuitiva**: UI simple y fácil de usar con feedback visual
 - ✅ **Detección de Vivacidad**: Integración con backend para anti-spoofing
 - ✅ **Alta Precisión**: Reconocimiento facial con embeddings de 512 dimensiones
 - ✅ **Validación UUID**: Asegura que los IDs sean UUIDs válidos
+- ✅ **Barra de Progreso**: Visualización clara del progreso de captura
 
 ## 📁 Estructura del Módulo
 
@@ -190,11 +193,23 @@ import { FaceCaptureCamera } from '@/components/FaceRecognition/FaceCaptureCamer
 ```
 
 **Características del componente:**
-- ✅ Captura manual: El usuario presiona un botón para cada frame
-- ✅ Cambio de cámara: Botón para alternar entre frontal y trasera
-- ✅ Contador de frames: Muestra cuántos frames se han capturado
-- ✅ Confirmaciones inteligentes: Previene pérdida de datos accidental
-- ✅ Validación: Asegura que se capturen suficientes frames
+- ✅ **Captura manual**: El usuario presiona un botón para cada frame
+- ✅ **Cambio de cámara**: Botón para alternar entre frontal y trasera
+- ✅ **Contador de frames**: Muestra cuántos frames se han capturado
+- ✅ **Guía visual animada**: Marco facial con animación de pulso y rotación
+- ✅ **Instrucciones dinámicas**: Cambian según el ángulo requerido para cada frame
+- ✅ **6 ángulos diferentes**:
+  1. 😊 **Frente**: Mira directamente a la cámara
+  2. 👈 **Izquierda**: Gira tu cara ligeramente a la izquierda
+  3. 👉 **Derecha**: Gira tu cara ligeramente a la derecha
+  4. 👆 **Arriba**: Inclina tu cara ligeramente hacia arriba
+  5. 👇 **Abajo**: Inclina tu cara ligeramente hacia abajo
+  6. 😊 **Frente**: Mira directamente a la cámara nuevamente
+- ✅ **Indicadores de color**: Cada ángulo tiene un color distintivo
+- ✅ **Barra de progreso**: Visualización del avance de captura
+- ✅ **Animación de captura**: Efecto visual al tomar cada foto
+- ✅ **Confirmaciones inteligentes**: Previene pérdida de datos accidental
+- ✅ **Validación**: Asegura que se capturen suficientes frames
 
 ## 🔧 Configuración
 
@@ -240,6 +255,40 @@ const generateUUID = (): string => {
   });
 };
 ```
+
+### Guía Visual y Animaciones
+
+El componente de cámara incluye múltiples animaciones para mejorar la experiencia del usuario:
+
+**1. Marco Facial Animado**
+- Pulso continuo que indica el área de captura
+- Rotación dinámica según el ángulo requerido
+- Cambio de color para cada posición diferente
+- Esquinas destacadas para mejor visibilidad
+
+**2. Indicador de Dirección**
+- Emoji animado que muestra la dirección requerida
+- Posicionado en la parte superior de la cámara
+- Pulso sincronizado con el marco facial
+- Fondo de color distintivo para cada ángulo
+
+**3. Instrucciones Dinámicas**
+- Texto que cambia según el frame actual
+- Descripción clara de cómo posicionar la cara
+- Fondo con color temático del ángulo actual
+- Barra de progreso visual
+
+**4. Animación de Captura**
+- Efecto de flash al tomar cada foto
+- Feedback visual inmediato
+- Transición suave entre frames
+
+**Colores por Ángulo:**
+- 🔵 Azul (`#007AFF`): Frente
+- 🟢 Verde (`#34C759`): Izquierda
+- 🟠 Naranja (`#FF9500`): Derecha
+- 🟣 Púrpura (`#5856D6`): Arriba
+- 🔴 Rosa (`#FF2D55`): Abajo
 
 ## 📊 API Endpoints
 
@@ -316,10 +365,13 @@ if (result.verified && result.confidence > 95) {
 ## 📝 Consejos para Buena Captura
 
 1. **Iluminación**: Asegúrate de tener buena iluminación frontal
-2. **Posición**: Mantén el rostro centrado en el marco
-3. **Estabilidad**: No te muevas durante la captura
-4. **Sin Obstáculos**: No uses lentes oscuros, gorras o mascarillas
-5. **Distancia**: Mantén una distancia apropiada de la cámara
+2. **Posición**: Mantén el rostro centrado dentro del marco guía animado
+3. **Sigue las instrucciones**: Observa el emoji y la descripción para cada ángulo
+4. **Movimientos suaves**: Gira e inclina tu cara suavemente según las indicaciones
+5. **Estabilidad**: Mantente quieto al momento de presionar el botón de captura
+6. **Sin Obstáculos**: No uses lentes oscuros, gorras o mascarillas
+7. **Distancia**: Mantén una distancia apropiada para que tu rostro llene el marco guía
+8. **Colores**: Observa el cambio de color del marco para cada ángulo diferente
 
 ## 🐛 Troubleshooting
 
