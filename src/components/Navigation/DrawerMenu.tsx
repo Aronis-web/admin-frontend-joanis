@@ -198,6 +198,23 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // Reconocimiento Facial
+  {
+    id: 'face-recognition',
+    title: 'Reconocimiento Facial',
+    icon: '👤',
+    color: '#EC4899',
+    items: [
+      {
+        id: 'face-recognition-menu',
+        icon: '📸',
+        label: 'Reconocimiento Facial',
+        route: MAIN_ROUTES.FACE_RECOGNITION_MENU,
+        color: '#EC4899',
+        requiredPermissions: ['biometric.read', 'biometric.register', 'biometric.verify'],
+      },
+    ],
+  },
   // Gastos
   {
     id: 'expenses',

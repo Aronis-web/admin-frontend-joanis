@@ -105,6 +105,11 @@ export const MAIN_ROUTES = {
   TRANSMISIONES: 'Transmisiones',
   CREATE_TRANSMISION: 'CreateTransmision',
   TRANSMISION_DETAIL: 'TransmisionDetail',
+
+  // Face Recognition
+  FACE_RECOGNITION_MENU: 'FaceRecognitionMenu',
+  REGISTER_FACE: 'RegisterFace',
+  VERIFY_FACE: 'VerifyFace',
 } as const;
 
 /**
@@ -225,6 +230,11 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   TRANSMISIONES: 'transmisiones.read',
   CREATE_TRANSMISION: 'transmisiones.create',
   TRANSMISION_DETAIL: 'transmisiones.read',
+
+  // Face Recognition
+  FACE_RECOGNITION_MENU: 'biometric.read',
+  REGISTER_FACE: 'biometric.register',
+  VERIFY_FACE: 'biometric.verify',
 };
 
 /**

@@ -106,6 +106,11 @@ const TransmisionesScreen = lazyLoad(() => import('@/screens/Transmisiones').the
 const CreateTransmisionScreen = lazyLoad(() => import('@/screens/Transmisiones').then(m => ({ default: m.CreateTransmisionScreen })));
 const TransmisionDetailScreen = lazyLoad(() => import('@/screens/Transmisiones').then(m => ({ default: m.TransmisionDetailScreen })));
 
+// Face Recognition Screens - Lazy Loaded
+const FaceRecognitionMenuScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.FaceRecognitionMenuScreen })), 'Cargando reconocimiento facial...');
+const RegisterFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.RegisterFaceScreen })));
+const VerifyFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.VerifyFaceScreen })));
+
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -761,6 +766,45 @@ const MainStack = React.memo(() => {
           title: 'Detalle de Transmisión',
         }}
       />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.FACE_RECOGNITION_MENU}
+        options={{
+          title: 'Reconocimiento Facial',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['biometric.read', 'biometric.register', 'biometric.verify']}
+            requireAll={false}
+          >
+            <FaceRecognitionMenuScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.REGISTER_FACE}
+        options={{
+          title: 'Registrar Rostro',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['biometric.register']}>
+            <RegisterFaceScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.VERIFY_FACE}
+        options={{
+          title: 'Verificar Rostro',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['biometric.verify']}>
+            <VerifyFaceScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={AUTH_ROUTES.SITE_SELECTION}
         component={SiteSelectionScreen}
