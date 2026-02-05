@@ -16,6 +16,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { FaceCaptureCamera } from '@/components/FaceRecognition/FaceCaptureCamera';
 import { biometricApi } from '@/services/api/biometric';
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const VerifyFaceScreen: React.FC = () => {
   const [step, setStep] = useState<'form' | 'camera' | 'processing'>('form');
   const [entityType, setEntityType] = useState('employee');
@@ -27,6 +30,16 @@ export const VerifyFaceScreen: React.FC = () => {
       Alert.alert('Error', 'Por favor ingresa un ID');
       return;
     }
+
+    // Validate UUID format
+    if (!UUID_REGEX.test(entityId.trim())) {
+      Alert.alert(
+        'Error',
+        'El ID debe ser un UUID válido (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)'
+      );
+      return;
+    }
+
     setStep('camera');
   };
 
@@ -173,15 +186,17 @@ export const VerifyFaceScreen: React.FC = () => {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                ID a Verificar <Text style={styles.required}>*</Text>
+                ID a Verificar (UUID) <Text style={styles.required}>*</Text>
               </Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ej: EMP001, USR123"
+                placeholder="Ej: 550e8400-e29b-41d4-a716-446655440000"
                 value={entityId}
                 onChangeText={setEntityId}
-                autoCapitalize="characters"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
+              <Text style={styles.helperText}>Ingresa el UUID del perfil registrado</Text>
             </View>
 
             <TouchableOpacity
@@ -287,8 +302,13 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
+    fontSize: 14,
     backgroundColor: '#fff',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
   pickerContainer: {
     flexDirection: 'row',

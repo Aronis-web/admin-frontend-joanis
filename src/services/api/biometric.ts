@@ -90,8 +90,14 @@ export const biometricApi = {
     // Agregar datos del request
     formData.append('entityType', request.entityType);
     formData.append('entityId', request.entityId);
+
+    // Send metadata fields individually instead of as JSON string
     if (request.metadata) {
-      formData.append('metadata', JSON.stringify(request.metadata));
+      Object.entries(request.metadata).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(`metadata[${key}]`, String(value));
+        }
+      });
     }
 
     return apiClient.post<RegisterBiometricResponse>(
@@ -123,8 +129,14 @@ export const biometricApi = {
     // Agregar datos del request
     formData.append('entityType', request.entityType);
     formData.append('entityId', request.entityId);
+
+    // Send metadata fields individually instead of as JSON string
     if (request.metadata) {
-      formData.append('metadata', JSON.stringify(request.metadata));
+      Object.entries(request.metadata).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(`metadata[${key}]`, String(value));
+        }
+      });
     }
 
     return apiClient.post<VerifyBiometricResponse>('/biometric-verification/verify', formData);
@@ -152,8 +164,14 @@ export const biometricApi = {
 
     // Agregar datos del request
     formData.append('entityType', request.entityType);
+
+    // Send metadata fields individually instead of as JSON string
     if (request.metadata) {
-      formData.append('metadata', JSON.stringify(request.metadata));
+      Object.entries(request.metadata).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(`metadata[${key}]`, String(value));
+        }
+      });
     }
 
     return apiClient.post<IdentifyBiometricResponse>('/biometric-verification/identify', formData);

@@ -16,6 +16,18 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { FaceCaptureCamera } from '@/components/FaceRecognition/FaceCaptureCamera';
 import { biometricApi } from '@/services/api/biometric';
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Simple UUID v4 generator
+const generateUUID = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 export const RegisterFaceScreen: React.FC = () => {
   const [step, setStep] = useState<'form' | 'camera' | 'processing'>('form');
   const [entityType, setEntityType] = useState('employee');
@@ -28,7 +40,22 @@ export const RegisterFaceScreen: React.FC = () => {
       Alert.alert('Error', 'Por favor ingresa un ID');
       return;
     }
+
+    // Validate UUID format
+    if (!UUID_REGEX.test(entityId.trim())) {
+      Alert.alert(
+        'Error',
+        'El ID debe ser un UUID válido. Usa el botón "Generar UUID" para crear uno automáticamente.'
+      );
+      return;
+    }
+
     setStep('camera');
+  };
+
+  const handleGenerateUUID = () => {
+    const newUUID = generateUUID();
+    setEntityId(newUUID);
   };
 
   const handleCaptureComplete = async (frames: string[]) => {
@@ -174,15 +201,23 @@ export const RegisterFaceScreen: React.FC = () => {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                ID <Text style={styles.required}>*</Text>
+                ID (UUID) <Text style={styles.required}>*</Text>
               </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej: EMP001, USR123"
-                value={entityId}
-                onChangeText={setEntityId}
-                autoCapitalize="characters"
-              />
+              <View style={styles.inputWithButton}>
+                <TextInput
+                  style={styles.inputFlex}
+                  placeholder="Ej: 550e8400-e29b-41d4-a716-446655440000"
+                  value={entityId}
+                  onChangeText={setEntityId}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity style={styles.generateButton} onPress={handleGenerateUUID}>
+                  <MaterialIcons name="refresh" size={20} color="#007AFF" />
+                  <Text style={styles.generateButtonText}>Generar</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.helperText}>El ID debe ser un UUID válido</Text>
             </View>
 
             <View style={styles.inputGroup}>
@@ -283,6 +318,41 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: '#fff',
+  },
+  inputWithButton: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  inputFlex: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    backgroundColor: '#fff',
+  },
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    backgroundColor: '#fff',
+  },
+  generateButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
   pickerContainer: {
     flexDirection: 'row',
