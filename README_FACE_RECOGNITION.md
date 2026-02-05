@@ -194,6 +194,7 @@ import { FaceCaptureCamera } from '@/components/FaceRecognition/FaceCaptureCamer
 
 **Características del componente:**
 - ✅ **Captura manual**: El usuario presiona un botón para cada frame
+- ✅ **Captura silenciosa**: Sin sonido de obturador para mejor experiencia
 - ✅ **Cambio de cámara**: Botón para alternar entre frontal y trasera
 - ✅ **Contador de frames**: Muestra cuántos frames se han capturado
 - ✅ **Guía visual animada**: Marco facial con animación de pulso y rotación

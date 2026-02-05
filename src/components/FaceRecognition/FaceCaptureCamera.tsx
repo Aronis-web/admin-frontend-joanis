@@ -140,6 +140,8 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
         const photo = await cameraRef.current.takePictureAsync({
           quality: 0.8,
           base64: false,
+          skipProcessing: true,
+          mute: true, // Desactivar sonido del obturador
         });
 
         if (photo && photo.uri) {
