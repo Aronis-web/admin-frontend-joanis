@@ -14,7 +14,6 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { setAudioModeAsync } from 'expo-audio';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAMERA_SIZE = SCREEN_WIDTH * 0.9;
@@ -139,12 +138,6 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     triggerCaptureAnimation(); // Activar animación de captura
 
     try {
-      // Silenciar el audio del sistema antes de capturar
-      await setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        allowsRecordingIOS: false,
-      });
-
       if (cameraRef.current) {
         const photo = await cameraRef.current.takePictureAsync({
           quality: 0.8,
@@ -190,16 +183,6 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
       Alert.alert('Error', 'No se pudo capturar la imagen');
     } finally {
       setIsCapturing(false);
-
-      // Restaurar configuración de audio
-      try {
-        await setAudioModeAsync({
-          playsInSilentModeIOS: false,
-          allowsRecordingIOS: true,
-        });
-      } catch (audioError) {
-        console.error('Error restaurando audio:', audioError);
-      }
     }
   }, [capturedFrames, targetFrames, onCaptureComplete, triggerCaptureAnimation]);
 
