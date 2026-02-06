@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { customersService } from '@/services/api/customers';
 import { Customer, CustomerType } from '@/types/customers';
 import { AddButton } from '@/components/Navigation/AddButton';
@@ -24,6 +25,7 @@ interface CustomersScreenProps {
 
 export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) => {
   const { user } = useAuthStore();
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -38,6 +40,11 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
+  const isLandscape = width > height;
+
+  const handleMenuToggle = () => {
+    setIsMenuVisible(!isMenuVisible);
+  };
 
   useEffect(() => {
     loadCustomers();
@@ -259,23 +266,37 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Atrás</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Clientes</Text>
-        <View style={styles.headerRight} />
+      <View style={[styles.header, isTablet && styles.headerTablet]}>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={handleMenuToggle} style={styles.menuButton}>
+            <Text style={[styles.menuIcon, isTablet && styles.menuIconTablet]}>☰</Text>
+          </TouchableOpacity>
+          <View>
+            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
+              Clientes
+            </Text>
+            <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
+              Gestión de Clientes
+            </Text>
+          </View>
+        </View>
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
+        <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, isTablet && styles.searchInputTablet]}
           placeholder="Buscar por nombre, documento, email..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#999"
+          placeholderTextColor="#94A3B8"
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+            <Text style={styles.clearButtonText}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Stats */}
@@ -314,8 +335,8 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
       )}
 
       {/* Add Button */}
-      <ProtectedElement requiredPermissions={['customers.create']}>
-        <AddButton onPress={handleAddCustomer} />
+      <ProtectedElement requiredPermissions={['customers.create']} fallback={null}>
+        <AddButton onPress={handleAddCustomer} icon="👥" />
       </ProtectedElement>
     </SafeAreaView>
   );
@@ -324,45 +345,96 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  backButton: {
+  headerTablet: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuButton: {
     padding: 8,
   },
-  backButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
+  menuIcon: {
+    fontSize: 24,
+    color: '#475569',
   },
-  title: {
+  menuIconTablet: {
+    fontSize: 28,
+  },
+  headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 2,
   },
-  headerRight: {
-    width: 60,
+  headerTitleTablet: {
+    fontSize: 24,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  headerSubtitleTablet: {
+    fontSize: 14,
   },
   searchContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#E2E8F0',
+    gap: 12,
+  },
+  searchContainerTablet: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  searchIcon: {
+    fontSize: 20,
+    color: '#94A3B8',
   },
   searchInput: {
-    backgroundColor: '#f5f5f5',
+    flex: 1,
+    backgroundColor: '#F1F5F9',
     borderRadius: 8,
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  searchInputTablet: {
+    paddingVertical: 12,
     fontSize: 16,
-    color: '#333',
+  },
+  clearButton: {
+    padding: 8,
+  },
+  clearButtonText: {
+    fontSize: 18,
+    color: '#94A3B8',
+    fontWeight: '600',
   },
   statsContainer: {
     padding: 12,

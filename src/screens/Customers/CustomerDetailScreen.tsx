@@ -9,6 +9,8 @@ import {
   TextInput,
   ActivityIndicator,
   Switch,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { customersService } from '@/services/api/customers';
@@ -20,29 +22,28 @@ import {
   DocumentType,
   CustomerStatus,
 } from '@/types/customers';
+import { getDepartamentos, getProvincias, getDistritos } from '@/constants/ubigeo';
 
 export const CustomerDetailScreen = ({ navigation, route }: any) => {
   const customerId = route?.params?.customerId;
-  const isEditMode = !!customerId;
+  const isCreateMode = !customerId;
 
-  const [loading, setLoading] = useState(isEditMode);
+  const [loading, setLoading] = useState(!isCreateMode);
   const [saving, setSaving] = useState(false);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [consultingApi, setConsultingApi] = useState(false);
+  const [isEditing, setIsEditing] = useState(isCreateMode);
 
   // Form state
   const [formData, setFormData] = useState({
     customerType: CustomerType.PERSONA,
     documentType: DocumentType.DNI,
     documentNumber: '',
-    // Persona Natural
     nombres: '',
     apellidoPaterno: '',
     apellidoMaterno: '',
-    // Empresa
     razonSocial: '',
     nombreComercial: '',
-    // Comunes
     email: '',
     phone: '',
     mobile: '',
@@ -56,11 +57,47 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
     notes: '',
   });
 
+  // Ubigeo selects
+  const [showDepartamentoModal, setShowDepartamentoModal] = useState(false);
+  const [showProvinciaModal, setShowProvinciaModal] = useState(false);
+  const [showDistritoModal, setShowDistritoModal] = useState(false);
+  const [departamentos] = useState(getDepartamentos());
+  const [provincias, setProvincias] = useState<{ value: string; label: string }[]>([]);
+  const [distritos, setDistritos] = useState<{ value: string; label: string }[]>([]);
+
   useEffect(() => {
-    if (isEditMode) {
+    if (!isCreateMode) {
       loadCustomer();
     }
   }, [customerId]);
+
+  // Update provincias when departamento changes
+  useEffect(() => {
+    if (formData.departamento) {
+      const newProvincias = getProvincias(formData.departamento);
+      setProvincias(newProvincias);
+      if (!newProvincias.find((p) => p.value === formData.provincia)) {
+        setFormData((prev) => ({ ...prev, provincia: '', distrito: '' }));
+        setDistritos([]);
+      }
+    } else {
+      setProvincias([]);
+      setDistritos([]);
+    }
+  }, [formData.departamento]);
+
+  // Update distritos when provincia changes
+  useEffect(() => {
+    if (formData.departamento && formData.provincia) {
+      const newDistritos = getDistritos(formData.departamento, formData.provincia);
+      setDistritos(newDistritos);
+      if (!newDistritos.find((d) => d.value === formData.distrito)) {
+        setFormData((prev) => ({ ...prev, distrito: '' }));
+      }
+    } else {
+      setDistritos([]);
+    }
+  }, [formData.provincia]);
 
   const loadCustomer = async () => {
     if (!customerId) return;
@@ -197,7 +234,7 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
     try {
       setSaving(true);
 
-      if (isEditMode) {
+      if (!isCreateMode) {
         const updateData: UpdateCustomerRequest = {
           customerType: formData.customerType,
           documentType: formData.documentType,
@@ -221,6 +258,8 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
         };
         await customersService.updateCustomer(customerId, updateData);
         Alert.alert('Éxito', 'Cliente actualizado correctamente');
+        setIsEditing(false);
+        loadCustomer();
       } else {
         const createData: CreateCustomerRequest = {
           customerType: formData.customerType,
@@ -244,9 +283,8 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
         };
         await customersService.createCustomer(createData);
         Alert.alert('Éxito', 'Cliente creado correctamente');
+        navigation.goBack();
       }
-
-      navigation.goBack();
     } catch (error: any) {
       console.error('Error saving customer:', error);
       Alert.alert('Error', error.response?.data?.message || 'No se pudo guardar el cliente');
@@ -255,7 +293,22 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
     }
   };
 
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    if (isCreateMode) {
+      navigation.goBack();
+    } else {
+      setIsEditing(false);
+      loadCustomer();
+    }
+  };
+
   const renderConsultButton = () => {
+    if (!isEditing) return null;
+
     const isPersona = formData.customerType === CustomerType.PERSONA;
     const isDni = formData.documentType === DocumentType.DNI;
     const isRuc = formData.documentType === DocumentType.RUC;
@@ -295,6 +348,55 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
     return null;
   };
 
+  const renderSelectModal = (
+    visible: boolean,
+    onClose: () => void,
+    title: string,
+    options: { value: string; label: string }[],
+    onSelect: (value: string) => void,
+    currentValue: string
+  ) => {
+    return (
+      <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+        <Pressable style={styles.modalOverlay} onPress={onClose}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{title}</Text>
+              <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList}>
+              {options.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.modalOption,
+                    currentValue === option.value && styles.modalOptionSelected,
+                  ]}
+                  onPress={() => {
+                    onSelect(option.value);
+                    onClose();
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      currentValue === option.value && styles.modalOptionTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  {currentValue === option.value && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -313,129 +415,155 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>← Atrás</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{isEditMode ? 'Editar Cliente' : 'Nuevo Cliente'}</Text>
-        <View style={styles.headerRight} />
+        <Text style={styles.title}>
+          {isCreateMode ? 'Nuevo Cliente' : isEditing ? 'Editar Cliente' : 'Detalle de Cliente'}
+        </Text>
+        <View style={styles.headerRight}>
+          {!isCreateMode && !isEditing && (
+            <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
+              <Text style={styles.editButtonText}>✏️ Editar</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView}>
         {/* Tipo de Cliente */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Tipo de Cliente</Text>
-          <View style={styles.typeSelector}>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                formData.customerType === CustomerType.PERSONA && styles.typeButtonActive,
-              ]}
-              onPress={() =>
-                setFormData({
-                  ...formData,
-                  customerType: CustomerType.PERSONA,
-                  documentType: DocumentType.DNI,
-                })
-              }
-              disabled={isEditMode}
-            >
-              <Text
+          {isEditing ? (
+            <View style={styles.typeSelector}>
+              <TouchableOpacity
                 style={[
-                  styles.typeButtonText,
-                  formData.customerType === CustomerType.PERSONA && styles.typeButtonTextActive,
+                  styles.typeButton,
+                  formData.customerType === CustomerType.PERSONA && styles.typeButtonActive,
                 ]}
+                onPress={() =>
+                  setFormData({
+                    ...formData,
+                    customerType: CustomerType.PERSONA,
+                    documentType: DocumentType.DNI,
+                  })
+                }
+                disabled={!isCreateMode}
               >
-                👤 Persona Natural
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                formData.customerType === CustomerType.EMPRESA && styles.typeButtonActive,
-              ]}
-              onPress={() =>
-                setFormData({
-                  ...formData,
-                  customerType: CustomerType.EMPRESA,
-                  documentType: DocumentType.RUC,
-                })
-              }
-              disabled={isEditMode}
-            >
-              <Text
+                <Text
+                  style={[
+                    styles.typeButtonText,
+                    formData.customerType === CustomerType.PERSONA && styles.typeButtonTextActive,
+                  ]}
+                >
+                  👤 Persona Natural
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[
-                  styles.typeButtonText,
-                  formData.customerType === CustomerType.EMPRESA && styles.typeButtonTextActive,
+                  styles.typeButton,
+                  formData.customerType === CustomerType.EMPRESA && styles.typeButtonActive,
                 ]}
+                onPress={() =>
+                  setFormData({
+                    ...formData,
+                    customerType: CustomerType.EMPRESA,
+                    documentType: DocumentType.RUC,
+                  })
+                }
+                disabled={!isCreateMode}
               >
-                🏢 Empresa
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <Text
+                  style={[
+                    styles.typeButtonText,
+                    formData.customerType === CustomerType.EMPRESA && styles.typeButtonTextActive,
+                  ]}
+                >
+                  🏢 Empresa
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <Text style={styles.valueText}>
+              {formData.customerType === CustomerType.PERSONA
+                ? '👤 Persona Natural'
+                : '🏢 Empresa'}
+            </Text>
+          )}
         </View>
 
         {/* Tipo de Documento */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Tipo de Documento</Text>
-          <View style={styles.documentTypeSelector}>
-            {formData.customerType === CustomerType.PERSONA ? (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.docTypeButton,
-                    formData.documentType === DocumentType.DNI && styles.docTypeButtonActive,
-                  ]}
-                  onPress={() => setFormData({ ...formData, documentType: DocumentType.DNI })}
-                  disabled={isEditMode}
-                >
-                  <Text
+          {isEditing ? (
+            <View style={styles.documentTypeSelector}>
+              {formData.customerType === CustomerType.PERSONA ? (
+                <>
+                  <TouchableOpacity
                     style={[
-                      styles.docTypeButtonText,
-                      formData.documentType === DocumentType.DNI && styles.docTypeButtonTextActive,
+                      styles.docTypeButton,
+                      formData.documentType === DocumentType.DNI && styles.docTypeButtonActive,
                     ]}
+                    onPress={() => setFormData({ ...formData, documentType: DocumentType.DNI })}
+                    disabled={!isCreateMode}
                   >
-                    DNI
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.docTypeButton,
-                    formData.documentType === DocumentType.CE && styles.docTypeButtonActive,
-                  ]}
-                  onPress={() => setFormData({ ...formData, documentType: DocumentType.CE })}
-                  disabled={isEditMode}
-                >
-                  <Text
+                    <Text
+                      style={[
+                        styles.docTypeButtonText,
+                        formData.documentType === DocumentType.DNI &&
+                          styles.docTypeButtonTextActive,
+                      ]}
+                    >
+                      DNI
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={[
-                      styles.docTypeButtonText,
-                      formData.documentType === DocumentType.CE && styles.docTypeButtonTextActive,
+                      styles.docTypeButton,
+                      formData.documentType === DocumentType.CE && styles.docTypeButtonActive,
                     ]}
+                    onPress={() => setFormData({ ...formData, documentType: DocumentType.CE })}
+                    disabled={!isCreateMode}
                   >
-                    CE
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.docTypeButton,
-                    formData.documentType === DocumentType.PASSPORT && styles.docTypeButtonActive,
-                  ]}
-                  onPress={() => setFormData({ ...formData, documentType: DocumentType.PASSPORT })}
-                  disabled={isEditMode}
-                >
-                  <Text
+                    <Text
+                      style={[
+                        styles.docTypeButtonText,
+                        formData.documentType === DocumentType.CE && styles.docTypeButtonTextActive,
+                      ]}
+                    >
+                      CE
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={[
-                      styles.docTypeButtonText,
+                      styles.docTypeButton,
                       formData.documentType === DocumentType.PASSPORT &&
-                        styles.docTypeButtonTextActive,
+                        styles.docTypeButtonActive,
                     ]}
+                    onPress={() =>
+                      setFormData({ ...formData, documentType: DocumentType.PASSPORT })
+                    }
+                    disabled={!isCreateMode}
                   >
-                    Pasaporte
+                    <Text
+                      style={[
+                        styles.docTypeButtonText,
+                        formData.documentType === DocumentType.PASSPORT &&
+                          styles.docTypeButtonTextActive,
+                      ]}
+                    >
+                      Pasaporte
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={[styles.docTypeButton, styles.docTypeButtonActive]}>
+                  <Text style={[styles.docTypeButtonText, styles.docTypeButtonTextActive]}>
+                    RUC
                   </Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={[styles.docTypeButton, styles.docTypeButtonActive]}>
-                <Text style={[styles.docTypeButtonText, styles.docTypeButtonTextActive]}>RUC</Text>
-              </View>
-            )}
-          </View>
+                </View>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.valueText}>{formData.documentType}</Text>
+          )}
         </View>
 
         {/* Número de Documento */}
@@ -443,23 +571,27 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
           <Text style={styles.label}>
             Número de Documento <Text style={styles.required}>*</Text>
           </Text>
-          <View style={styles.documentInputContainer}>
-            <TextInput
-              style={[styles.input, styles.documentInput]}
-              value={formData.documentNumber}
-              onChangeText={(text) => setFormData({ ...formData, documentNumber: text })}
-              placeholder={
-                formData.documentType === DocumentType.DNI
-                  ? '12345678'
-                  : formData.documentType === DocumentType.RUC
-                  ? '20100443688'
-                  : 'Número de documento'
-              }
-              keyboardType="numeric"
-              editable={!isEditMode}
-            />
-            {renderConsultButton()}
-          </View>
+          {isEditing ? (
+            <View style={styles.documentInputContainer}>
+              <TextInput
+                style={[styles.input, styles.documentInput]}
+                value={formData.documentNumber}
+                onChangeText={(text) => setFormData({ ...formData, documentNumber: text })}
+                placeholder={
+                  formData.documentType === DocumentType.DNI
+                    ? '12345678'
+                    : formData.documentType === DocumentType.RUC
+                    ? '20100443688'
+                    : 'Número de documento'
+                }
+                keyboardType="numeric"
+                editable={isCreateMode}
+              />
+              {renderConsultButton()}
+            </View>
+          ) : (
+            <Text style={styles.valueText}>{formData.documentNumber}</Text>
+          )}
         </View>
 
         {/* Campos para Persona Natural */}
@@ -469,36 +601,48 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
               <Text style={styles.label}>
                 Nombres <Text style={styles.required}>*</Text>
               </Text>
-              <TextInput
-                style={styles.input}
-                value={formData.nombres}
-                onChangeText={(text) => setFormData({ ...formData, nombres: text })}
-                placeholder="Juan Carlos"
-              />
+              {isEditing ? (
+                <TextInput
+                  style={styles.input}
+                  value={formData.nombres}
+                  onChangeText={(text) => setFormData({ ...formData, nombres: text })}
+                  placeholder="Juan Carlos"
+                />
+              ) : (
+                <Text style={styles.valueText}>{formData.nombres || '-'}</Text>
+              )}
             </View>
 
             <View style={styles.section}>
               <Text style={styles.label}>
                 Apellido Paterno <Text style={styles.required}>*</Text>
               </Text>
-              <TextInput
-                style={styles.input}
-                value={formData.apellidoPaterno}
-                onChangeText={(text) => setFormData({ ...formData, apellidoPaterno: text })}
-                placeholder="Pérez"
-              />
+              {isEditing ? (
+                <TextInput
+                  style={styles.input}
+                  value={formData.apellidoPaterno}
+                  onChangeText={(text) => setFormData({ ...formData, apellidoPaterno: text })}
+                  placeholder="Pérez"
+                />
+              ) : (
+                <Text style={styles.valueText}>{formData.apellidoPaterno || '-'}</Text>
+              )}
             </View>
 
             <View style={styles.section}>
               <Text style={styles.label}>
                 Apellido Materno <Text style={styles.required}>*</Text>
               </Text>
-              <TextInput
-                style={styles.input}
-                value={formData.apellidoMaterno}
-                onChangeText={(text) => setFormData({ ...formData, apellidoMaterno: text })}
-                placeholder="García"
-              />
+              {isEditing ? (
+                <TextInput
+                  style={styles.input}
+                  value={formData.apellidoMaterno}
+                  onChangeText={(text) => setFormData({ ...formData, apellidoMaterno: text })}
+                  placeholder="García"
+                />
+              ) : (
+                <Text style={styles.valueText}>{formData.apellidoMaterno || '-'}</Text>
+              )}
             </View>
           </>
         )}
@@ -510,22 +654,30 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
               <Text style={styles.label}>
                 Razón Social <Text style={styles.required}>*</Text>
               </Text>
-              <TextInput
-                style={styles.input}
-                value={formData.razonSocial}
-                onChangeText={(text) => setFormData({ ...formData, razonSocial: text })}
-                placeholder="EMPRESA DEMO SAC"
-              />
+              {isEditing ? (
+                <TextInput
+                  style={styles.input}
+                  value={formData.razonSocial}
+                  onChangeText={(text) => setFormData({ ...formData, razonSocial: text })}
+                  placeholder="EMPRESA DEMO SAC"
+                />
+              ) : (
+                <Text style={styles.valueText}>{formData.razonSocial || '-'}</Text>
+              )}
             </View>
 
             <View style={styles.section}>
               <Text style={styles.label}>Nombre Comercial</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.nombreComercial}
-                onChangeText={(text) => setFormData({ ...formData, nombreComercial: text })}
-                placeholder="Demo Store"
-              />
+              {isEditing ? (
+                <TextInput
+                  style={styles.input}
+                  value={formData.nombreComercial}
+                  onChangeText={(text) => setFormData({ ...formData, nombreComercial: text })}
+                  placeholder="Demo Store"
+                />
+              ) : (
+                <Text style={styles.valueText}>{formData.nombreComercial || '-'}</Text>
+              )}
             </View>
           </>
         )}
@@ -533,177 +685,286 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
         {/* Campos Comunes */}
         <View style={styles.section}>
           <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.email}
-            onChangeText={(text) => setFormData({ ...formData, email: text })}
-            placeholder="cliente@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          {isEditing ? (
+            <TextInput
+              style={styles.input}
+              value={formData.email}
+              onChangeText={(text) => setFormData({ ...formData, email: text })}
+              placeholder="cliente@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          ) : (
+            <Text style={styles.valueText}>{formData.email || '-'}</Text>
+          )}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Teléfono</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.phone}
-            onChangeText={(text) => setFormData({ ...formData, phone: text })}
-            placeholder="01-1234567"
-            keyboardType="phone-pad"
-          />
+          {isEditing ? (
+            <TextInput
+              style={styles.input}
+              value={formData.phone}
+              onChangeText={(text) => setFormData({ ...formData, phone: text })}
+              placeholder="01-1234567"
+              keyboardType="phone-pad"
+            />
+          ) : (
+            <Text style={styles.valueText}>{formData.phone || '-'}</Text>
+          )}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Móvil</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.mobile}
-            onChangeText={(text) => setFormData({ ...formData, mobile: text })}
-            placeholder="987654321"
-            keyboardType="phone-pad"
-          />
+          {isEditing ? (
+            <TextInput
+              style={styles.input}
+              value={formData.mobile}
+              onChangeText={(text) => setFormData({ ...formData, mobile: text })}
+              placeholder="987654321"
+              keyboardType="phone-pad"
+            />
+          ) : (
+            <Text style={styles.valueText}>{formData.mobile || '-'}</Text>
+          )}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Dirección</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.direccion}
-            onChangeText={(text) => setFormData({ ...formData, direccion: text })}
-            placeholder="Av. Principal 123"
-          />
+          {isEditing ? (
+            <TextInput
+              style={styles.input}
+              value={formData.direccion}
+              onChangeText={(text) => setFormData({ ...formData, direccion: text })}
+              placeholder="Av. Principal 123"
+            />
+          ) : (
+            <Text style={styles.valueText}>{formData.direccion || '-'}</Text>
+          )}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>Distrito</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.distrito}
-            onChangeText={(text) => setFormData({ ...formData, distrito: text })}
-            placeholder="Miraflores"
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Provincia</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.provincia}
-            onChangeText={(text) => setFormData({ ...formData, provincia: text })}
-            placeholder="Lima"
-          />
-        </View>
-
+        {/* Departamento */}
         <View style={styles.section}>
           <Text style={styles.label}>Departamento</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.departamento}
-            onChangeText={(text) => setFormData({ ...formData, departamento: text })}
-            placeholder="Lima"
-          />
+          {isEditing ? (
+            <TouchableOpacity
+              style={styles.selectButton}
+              onPress={() => setShowDepartamentoModal(true)}
+            >
+              <Text style={styles.selectButtonText}>
+                {formData.departamento || 'Seleccionar departamento'}
+              </Text>
+              <Text style={styles.selectArrow}>›</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.valueText}>{formData.departamento || '-'}</Text>
+          )}
+        </View>
+
+        {/* Provincia */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Provincia</Text>
+          {isEditing ? (
+            <TouchableOpacity
+              style={[styles.selectButton, !formData.departamento && styles.selectButtonDisabled]}
+              onPress={() => setShowProvinciaModal(true)}
+              disabled={!formData.departamento}
+            >
+              <Text
+                style={[
+                  styles.selectButtonText,
+                  !formData.departamento && styles.selectButtonTextDisabled,
+                ]}
+              >
+                {formData.provincia || 'Seleccionar provincia'}
+              </Text>
+              <Text style={styles.selectArrow}>›</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.valueText}>{formData.provincia || '-'}</Text>
+          )}
+        </View>
+
+        {/* Distrito */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Distrito</Text>
+          {isEditing ? (
+            <TouchableOpacity
+              style={[styles.selectButton, !formData.provincia && styles.selectButtonDisabled]}
+              onPress={() => setShowDistritoModal(true)}
+              disabled={!formData.provincia}
+            >
+              <Text
+                style={[
+                  styles.selectButtonText,
+                  !formData.provincia && styles.selectButtonTextDisabled,
+                ]}
+              >
+                {formData.distrito || 'Seleccionar distrito'}
+              </Text>
+              <Text style={styles.selectArrow}>›</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.valueText}>{formData.distrito || '-'}</Text>
+          )}
         </View>
 
         {/* Acepta Publicidad */}
         <View style={styles.section}>
           <View style={styles.switchContainer}>
             <Text style={styles.label}>Acepta Publicidad</Text>
-            <Switch
-              value={formData.aceptaPublicidad}
-              onValueChange={(value) => setFormData({ ...formData, aceptaPublicidad: value })}
-            />
+            {isEditing ? (
+              <Switch
+                value={formData.aceptaPublicidad}
+                onValueChange={(value) => setFormData({ ...formData, aceptaPublicidad: value })}
+              />
+            ) : (
+              <Text style={styles.valueText}>{formData.aceptaPublicidad ? 'Sí' : 'No'}</Text>
+            )}
           </View>
         </View>
 
-        {/* Estado (solo en edición) */}
-        {isEditMode && (
+        {/* Estado (solo en edición de cliente existente) */}
+        {!isCreateMode && (
           <View style={styles.section}>
             <Text style={styles.label}>Estado</Text>
-            <View style={styles.statusSelector}>
-              <TouchableOpacity
-                style={[
-                  styles.statusButton,
-                  formData.status === CustomerStatus.ACTIVE && styles.statusButtonActive,
-                ]}
-                onPress={() => setFormData({ ...formData, status: CustomerStatus.ACTIVE })}
-              >
-                <Text
+            {isEditing ? (
+              <View style={styles.statusSelector}>
+                <TouchableOpacity
                   style={[
-                    styles.statusButtonText,
-                    formData.status === CustomerStatus.ACTIVE && styles.statusButtonTextActive,
+                    styles.statusButton,
+                    formData.status === CustomerStatus.ACTIVE && styles.statusButtonActive,
                   ]}
+                  onPress={() => setFormData({ ...formData, status: CustomerStatus.ACTIVE })}
                 >
-                  Activo
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.statusButton,
-                  formData.status === CustomerStatus.INACTIVE && styles.statusButtonActive,
-                ]}
-                onPress={() => setFormData({ ...formData, status: CustomerStatus.INACTIVE })}
-              >
-                <Text
+                  <Text
+                    style={[
+                      styles.statusButtonText,
+                      formData.status === CustomerStatus.ACTIVE && styles.statusButtonTextActive,
+                    ]}
+                  >
+                    Activo
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   style={[
-                    styles.statusButtonText,
-                    formData.status === CustomerStatus.INACTIVE && styles.statusButtonTextActive,
+                    styles.statusButton,
+                    formData.status === CustomerStatus.INACTIVE && styles.statusButtonActive,
                   ]}
+                  onPress={() => setFormData({ ...formData, status: CustomerStatus.INACTIVE })}
                 >
-                  Inactivo
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.statusButton,
-                  formData.status === CustomerStatus.BLOCKED && styles.statusButtonActive,
-                ]}
-                onPress={() => setFormData({ ...formData, status: CustomerStatus.BLOCKED })}
-              >
-                <Text
+                  <Text
+                    style={[
+                      styles.statusButtonText,
+                      formData.status === CustomerStatus.INACTIVE && styles.statusButtonTextActive,
+                    ]}
+                  >
+                    Inactivo
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   style={[
-                    styles.statusButtonText,
-                    formData.status === CustomerStatus.BLOCKED && styles.statusButtonTextActive,
+                    styles.statusButton,
+                    formData.status === CustomerStatus.BLOCKED && styles.statusButtonActive,
                   ]}
+                  onPress={() => setFormData({ ...formData, status: CustomerStatus.BLOCKED })}
                 >
-                  Bloqueado
-                </Text>
-              </TouchableOpacity>
-            </View>
+                  <Text
+                    style={[
+                      styles.statusButtonText,
+                      formData.status === CustomerStatus.BLOCKED && styles.statusButtonTextActive,
+                    ]}
+                  >
+                    Bloqueado
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={styles.valueText}>
+                {formData.status === CustomerStatus.ACTIVE
+                  ? 'Activo'
+                  : formData.status === CustomerStatus.INACTIVE
+                  ? 'Inactivo'
+                  : 'Bloqueado'}
+              </Text>
+            )}
           </View>
         )}
 
         {/* Notas */}
         <View style={styles.section}>
           <Text style={styles.label}>Notas</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={formData.notes}
-            onChangeText={(text) => setFormData({ ...formData, notes: text })}
-            placeholder="Notas adicionales..."
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
+          {isEditing ? (
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={formData.notes}
+              onChangeText={(text) => setFormData({ ...formData, notes: text })}
+              placeholder="Notas adicionales..."
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          ) : (
+            <Text style={styles.valueText}>{formData.notes || '-'}</Text>
+          )}
         </View>
 
-        {/* Save Button */}
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.saveButtonText}>
-              {isEditMode ? '💾 Guardar Cambios' : '➕ Crear Cliente'}
-            </Text>
-          )}
-        </TouchableOpacity>
+        {/* Action Buttons */}
+        {isEditing && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancelEdit}
+              disabled={saving}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>
+                  {isCreateMode ? '➕ Crear Cliente' : '💾 Guardar Cambios'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {/* Modals */}
+      {renderSelectModal(
+        showDepartamentoModal,
+        () => setShowDepartamentoModal(false),
+        'Seleccionar Departamento',
+        departamentos,
+        (value) => setFormData({ ...formData, departamento: value, provincia: '', distrito: '' }),
+        formData.departamento
+      )}
+
+      {renderSelectModal(
+        showProvinciaModal,
+        () => setShowProvinciaModal(false),
+        'Seleccionar Provincia',
+        provincias,
+        (value) => setFormData({ ...formData, provincia: value, distrito: '' }),
+        formData.provincia
+      )}
+
+      {renderSelectModal(
+        showDistritoModal,
+        () => setShowDistritoModal(false),
+        'Seleccionar Distrito',
+        distritos,
+        (value) => setFormData({ ...formData, distrito: value }),
+        formData.distrito
+      )}
     </SafeAreaView>
   );
 };
@@ -731,12 +992,24 @@ const styles = StyleSheet.create({
     color: '#007AFF',
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
   },
   headerRight: {
-    width: 60,
+    minWidth: 80,
+    alignItems: 'flex-end',
+  },
+  editButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  editButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -764,6 +1037,10 @@ const styles = StyleSheet.create({
   },
   required: {
     color: '#D32F2F',
+  },
+  valueText: {
+    fontSize: 15,
+    color: '#666',
   },
   input: {
     backgroundColor: '#f5f5f5',
@@ -853,6 +1130,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  selectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  selectButtonDisabled: {
+    backgroundColor: '#f9f9f9',
+    opacity: 0.6,
+  },
+  selectButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  selectButtonTextDisabled: {
+    color: '#999',
+  },
+  selectArrow: {
+    fontSize: 24,
+    color: '#666',
+    fontWeight: '600',
+  },
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -884,10 +1187,29 @@ const styles = StyleSheet.create({
   statusButtonTextActive: {
     color: '#4CAF50',
   },
-  saveButton: {
-    backgroundColor: '#007AFF',
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
     marginHorizontal: 16,
     marginTop: 24,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -912,5 +1234,64 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalCloseText: {
+    fontSize: 24,
+    color: '#666',
+  },
+  modalList: {
+    maxHeight: 400,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalOptionSelected: {
+    backgroundColor: '#E3F2FD',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  modalOptionTextSelected: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  checkmark: {
+    fontSize: 20,
+    color: '#007AFF',
+    fontWeight: '600',
   },
 });
