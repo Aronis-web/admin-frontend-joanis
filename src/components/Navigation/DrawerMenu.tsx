@@ -307,6 +307,18 @@ const menuCategories: MenuCategory[] = [
           'providers.read',
         ],
       },
+      {
+        id: 'customers',
+        icon: '👥',
+        label: 'Clientes',
+        route: MAIN_ROUTES.CUSTOMERS,
+        color: '#10B981',
+        requiredPermissions: [
+          'customers.read',
+          'customers.create',
+          'customers.update',
+        ],
+      },
       // Usuarios
       {
         id: 'users',
