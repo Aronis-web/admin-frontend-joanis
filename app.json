@@ -64,8 +64,7 @@
           "savePhotosPermission": "Permitir que $(PRODUCT_NAME) guarde fotos y archivos.",
           "isAccessMediaLocationEnabled": true
         }
-      ],
-      "@sentry/react-native"
+      ]
     ]
   }
 }
