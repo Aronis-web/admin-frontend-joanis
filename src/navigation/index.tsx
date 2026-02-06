@@ -54,6 +54,10 @@ const TransferDetailScreen = lazyLoad(() => import('@/screens/Transfers/Transfer
 const SuppliersScreen = lazyLoad(() => import('@/screens/Suppliers/SuppliersScreen').then(m => ({ default: m.SuppliersScreen })));
 const SupplierDetailScreen = lazyLoad(() => import('@/screens/Suppliers/SupplierDetailScreen').then(m => ({ default: m.SupplierDetailScreen })));
 
+// Customers Screens - Lazy Loaded
+const CustomersScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomersScreen })));
+const CustomerDetailScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomerDetailScreen })));
+
 // Purchases Screens - Lazy Loaded
 const PurchasesScreen = lazyLoad(() => import('@/screens/Purchases/PurchasesScreen').then(m => ({ default: m.PurchasesScreen })), 'Cargando compras...');
 const CreatePurchaseScreen = lazyLoad(() => import('@/screens/Purchases/CreatePurchaseScreen').then(m => ({ default: m.CreatePurchaseScreen })));
@@ -375,6 +379,31 @@ const MainStack = React.memo(() => {
         component={SupplierDetailScreen}
         options={{
           title: 'Detalle de Proveedor',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.CUSTOMERS}
+        options={{
+          title: 'Clientes',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'customers.read',
+              'customers.create',
+              'customers.update',
+            ]}
+          >
+            <CustomersScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.CUSTOMER_DETAIL}
+        component={CustomerDetailScreen}
+        options={{
+          title: 'Detalle de Cliente',
         }}
       />
       <MainStackNavigator.Screen

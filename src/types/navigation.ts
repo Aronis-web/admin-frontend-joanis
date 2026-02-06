@@ -103,6 +103,12 @@ export type MainStackParamList = {
     supplierId: string;
   };
 
+  // Customers
+  Customers: undefined;
+  CustomerDetail: {
+    customerId?: string;
+  };
+
   // Campaigns
   Campaigns: undefined;
   CreateCampaign: undefined;

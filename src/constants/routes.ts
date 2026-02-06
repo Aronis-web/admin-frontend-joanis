@@ -64,6 +64,10 @@ export const MAIN_ROUTES = {
   SUPPLIERS: 'Suppliers',
   SUPPLIER_DETAIL: 'SupplierDetail',
 
+  // Customers
+  CUSTOMERS: 'Customers',
+  CUSTOMER_DETAIL: 'CustomerDetail',
+
   // Campaigns
   CAMPAIGNS: 'Campaigns',
   CREATE_CAMPAIGN: 'CreateCampaign',
@@ -143,6 +147,7 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
   'traslados-externos': 'EXTERNAL_TRANSFERS',
   recepciones: 'RECEPTIONS',
   proveedores: 'SUPPLIERS',
+  clientes: 'CUSTOMERS',
   campanas: 'CAMPAIGNS',
   usuarios: 'USERS',
   'roles-permisos': 'ROLES_PERMISSIONS',
@@ -195,6 +200,10 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Suppliers
   SUPPLIERS: 'suppliers.read',
   SUPPLIER_DETAIL: 'suppliers.read',
+
+  // Customers
+  CUSTOMERS: 'customers.read',
+  CUSTOMER_DETAIL: 'customers.read',
 
   // Campaigns
   CAMPAIGNS: 'campaigns.read',

@@ -16,6 +16,7 @@ import { useTenantStore } from '@/store/tenant';
 import { organizationApi } from '@/services/api/organization';
 import { PositionTreeNode, ScopeLevel } from '@/types/organization';
 import { OrganizationTreeView } from '@/components/Organization';
+import { OrganizationInteractiveTree } from '@/components/Organization';
 import { CreatePositionModal } from '@/components/Organization';
 import { EditPositionModal } from '@/components/Organization';
 import { PositionDetailModal } from '@/components/Organization';
@@ -32,6 +33,7 @@ export const OrganizationChartScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [treeData, setTreeData] = useState<PositionTreeNode[]>([]);
   const [viewMode, setViewMode] = useState<'company' | 'site'>('company');
+  const [displayMode, setDisplayMode] = useState<'cards' | 'tree'>('cards');
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -206,6 +208,37 @@ export const OrganizationChartScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
+      {/* Display Mode Selector */}
+      <View style={styles.displayModeContainer}>
+        <Text style={styles.displayModeLabel}>Vista:</Text>
+        <TouchableOpacity
+          style={[styles.displayModeButton, displayMode === 'cards' && styles.displayModeButtonActive]}
+          onPress={() => setDisplayMode('cards')}
+        >
+          <Text
+            style={[
+              styles.displayModeButtonText,
+              displayMode === 'cards' && styles.displayModeButtonTextActive,
+            ]}
+          >
+            📋 Tarjetas
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.displayModeButton, displayMode === 'tree' && styles.displayModeButtonActive]}
+          onPress={() => setDisplayMode('tree')}
+        >
+          <Text
+            style={[
+              styles.displayModeButtonText,
+              displayMode === 'tree' && styles.displayModeButtonTextActive,
+            ]}
+          >
+            🌳 Árbol
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Organization Tree */}
       <ScrollView
         style={styles.scrollView}
@@ -220,8 +253,16 @@ export const OrganizationChartScreen: React.FC = () => {
             <Text style={styles.emptyText}>No hay puestos en el organigrama</Text>
             <Text style={styles.emptySubtext}>Crea el primer puesto para comenzar</Text>
           </View>
-        ) : (
+        ) : displayMode === 'cards' ? (
           <OrganizationTreeView
+            data={treeData}
+            onPositionPress={handlePositionPress}
+            onEditPress={handleEditPosition}
+            onDeletePress={handleDeletePosition}
+            onCreateChild={handleCreateChild}
+          />
+        ) : (
+          <OrganizationInteractiveTree
             data={treeData}
             onPositionPress={handlePositionPress}
             onEditPress={handleEditPosition}
@@ -351,6 +392,42 @@ const styles = StyleSheet.create({
   viewModeButtonTextDisabled: {
     color: '#D1D5DB',
   },
+  displayModeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  displayModeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginRight: 4,
+  },
+  displayModeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  displayModeButtonActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+  },
+  displayModeButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  displayModeButtonTextActive: {
+    color: '#6366F1',
+  },
   scrollView: {
     flex: 1,
   },
@@ -378,7 +455,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 100,
     right: 24,
     width: 56,
     height: 56,
