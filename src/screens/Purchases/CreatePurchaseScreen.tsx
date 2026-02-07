@@ -28,8 +28,9 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingSuppliers, setLoadingSuppliers] = useState(true);
-  const [showSupplierPicker, setShowSupplierPicker] = useState(false);
   const [showGuideTypePicker, setShowGuideTypePicker] = useState(false);
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
+  const [showSupplierSuggestions, setShowSupplierSuggestions] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -87,55 +88,26 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
     }
   };
 
-  const renderSupplierPicker = () => {
-    if (!showSupplierPicker) {
-      return null;
-    }
-
+  const filteredSuppliers = suppliers.filter((supplier) => {
+    const query = supplierSearchQuery.toLowerCase();
     return (
-      <View style={styles.pickerOverlay}>
-        <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
-          <View style={styles.pickerHeader}>
-            <Text style={[styles.pickerTitle, isTablet && styles.pickerTitleTablet]}>
-              Seleccionar Proveedor
-            </Text>
-            <TouchableOpacity onPress={() => setShowSupplierPicker(false)}>
-              <Text style={styles.pickerClose}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={styles.pickerList}>
-            {suppliers.map((supplier) => (
-              <TouchableOpacity
-                key={supplier.id}
-                style={[
-                  styles.pickerItem,
-                  selectedSupplier?.id === supplier.id && styles.pickerItemSelected,
-                ]}
-                onPress={() => {
-                  setSelectedSupplier(supplier);
-                  setShowSupplierPicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.pickerItemText,
-                    isTablet && styles.pickerItemTextTablet,
-                    selectedSupplier?.id === supplier.id && styles.pickerItemTextSelected,
-                  ]}
-                >
-                  {supplier.commercialName}
-                </Text>
-                <Text
-                  style={[styles.pickerItemSubtext, isTablet && styles.pickerItemSubtextTablet]}
-                >
-                  {supplier.code}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </View>
+      supplier.commercialName.toLowerCase().includes(query) ||
+      supplier.code.toLowerCase().includes(query)
     );
+  });
+
+  const handleSupplierSelect = (supplier: Supplier) => {
+    setSelectedSupplier(supplier);
+    setSupplierSearchQuery(supplier.commercialName);
+    setShowSupplierSuggestions(false);
+  };
+
+  const handleSupplierSearchChange = (text: string) => {
+    setSupplierSearchQuery(text);
+    setShowSupplierSuggestions(true);
+    if (!text.trim()) {
+      setSelectedSupplier(null);
+    }
   };
 
   const renderGuideTypePicker = () => {
@@ -213,26 +185,64 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
         style={styles.content}
         contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
       >
-        {/* Supplier Selection */}
+        {/* Supplier Search */}
         <View style={styles.section}>
           <Text style={[styles.label, isTablet && styles.labelTablet]}>
             Proveedor <Text style={styles.required}>*</Text>
           </Text>
-          <TouchableOpacity
-            style={[styles.input, styles.selectInput, isTablet && styles.inputTablet]}
-            onPress={() => setShowSupplierPicker(true)}
-          >
-            <Text
-              style={[
-                styles.selectText,
-                isTablet && styles.selectTextTablet,
-                !selectedSupplier && styles.selectPlaceholder,
-              ]}
-            >
-              {selectedSupplier?.commercialName || 'Seleccionar proveedor'}
-            </Text>
-            <Text style={styles.selectArrow}>▼</Text>
-          </TouchableOpacity>
+          <View style={styles.autocompleteContainer}>
+            <TextInput
+              style={[styles.input, isTablet && styles.inputTablet]}
+              value={supplierSearchQuery}
+              onChangeText={handleSupplierSearchChange}
+              onFocus={() => setShowSupplierSuggestions(true)}
+              placeholder="Buscar proveedor por nombre o código"
+              placeholderTextColor="#94A3B8"
+            />
+            {showSupplierSuggestions && supplierSearchQuery.trim() !== '' && (
+              <View style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}>
+                <ScrollView
+                  style={styles.suggestionsList}
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                >
+                  {filteredSuppliers.length > 0 ? (
+                    filteredSuppliers.map((supplier) => (
+                      <TouchableOpacity
+                        key={supplier.id}
+                        style={[
+                          styles.suggestionItem,
+                          selectedSupplier?.id === supplier.id && styles.suggestionItemSelected,
+                        ]}
+                        onPress={() => handleSupplierSelect(supplier)}
+                      >
+                        <Text
+                          style={[
+                            styles.suggestionItemText,
+                            isTablet && styles.suggestionItemTextTablet,
+                            selectedSupplier?.id === supplier.id && styles.suggestionItemTextSelected,
+                          ]}
+                        >
+                          {supplier.commercialName}
+                        </Text>
+                        <Text
+                          style={[styles.suggestionItemSubtext, isTablet && styles.suggestionItemSubtextTablet]}
+                        >
+                          {supplier.code}
+                        </Text>
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <View style={styles.noResultsContainer}>
+                      <Text style={[styles.noResultsText, isTablet && styles.noResultsTextTablet]}>
+                        No se encontraron proveedores
+                      </Text>
+                    </View>
+                  )}
+                </ScrollView>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Guide Number */}
@@ -327,7 +337,6 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
         </TouchableOpacity>
       </View>
 
-      {renderSupplierPicker()}
       {renderGuideTypePicker()}
     </SafeAreaView>
   );
@@ -592,6 +601,74 @@ const styles = StyleSheet.create({
   },
   pickerItemSubtextTablet: {
     fontSize: 15,
+  },
+  autocompleteContainer: {
+    position: 'relative',
+    zIndex: 1000,
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    marginTop: 4,
+    maxHeight: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 1001,
+  },
+  suggestionsContainerTablet: {
+    borderRadius: 14,
+    maxHeight: 300,
+  },
+  suggestionsList: {
+    maxHeight: 250,
+  },
+  suggestionItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  suggestionItemSelected: {
+    backgroundColor: '#EEF2FF',
+  },
+  suggestionItemText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  suggestionItemTextTablet: {
+    fontSize: 17,
+  },
+  suggestionItemTextSelected: {
+    color: '#6366F1',
+  },
+  suggestionItemSubtext: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  suggestionItemSubtextTablet: {
+    fontSize: 15,
+  },
+  noResultsContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
+  noResultsTextTablet: {
+    fontSize: 16,
   },
 });
 
