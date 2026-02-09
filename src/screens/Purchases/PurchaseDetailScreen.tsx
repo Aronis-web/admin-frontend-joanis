@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { purchasesService } from '@/services/api';
+import { purchasesService, suppliersService } from '@/services/api';
 import {
   Purchase,
   PurchaseProduct,
@@ -28,6 +28,7 @@ import {
   GuideTypeLabels,
   PurchaseTotalSumResponse,
 } from '@/types/purchases';
+import { Supplier } from '@/types/suppliers';
 import { OcrScannerModal } from '@/components/Purchases/OcrScannerModal';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ScreenProps } from '@/types/navigation';
@@ -61,6 +62,12 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     null
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+  const [updatingSupplier, setUpdatingSupplier] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -125,6 +132,69 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const handleCloseInfoModal = () => {
     setShowInfoModal(false);
     setSelectedProductForInfo(null);
+  };
+
+  const handleOpenEditSupplierModal = async () => {
+    setShowEditSupplierModal(true);
+    setLoadingSuppliers(true);
+    try {
+      const response = await suppliersService.getSuppliers({ isActive: true });
+      setSuppliers(response.data);
+      if (purchase?.supplier) {
+        setSelectedSupplier(purchase.supplier);
+        setSupplierSearchQuery(purchase.supplier.commercialName);
+      }
+    } catch (error) {
+      console.error('Error loading suppliers:', error);
+      Alert.alert('Error', 'No se pudieron cargar los proveedores');
+    } finally {
+      setLoadingSuppliers(false);
+    }
+  };
+
+  const handleCloseEditSupplierModal = () => {
+    setShowEditSupplierModal(false);
+    setSupplierSearchQuery('');
+    setSelectedSupplier(null);
+  };
+
+  const handleSupplierSelect = (supplier: Supplier) => {
+    setSelectedSupplier(supplier);
+    setSupplierSearchQuery(supplier.commercialName);
+  };
+
+  const handleSupplierSearchChange = (text: string) => {
+    setSupplierSearchQuery(text);
+    if (!text.trim()) {
+      setSelectedSupplier(null);
+    }
+  };
+
+  const handleUpdateSupplier = async () => {
+    if (!selectedSupplier) {
+      Alert.alert('Error', 'Debe seleccionar un proveedor');
+      return;
+    }
+
+    if (selectedSupplier.id === purchase?.supplier?.id) {
+      Alert.alert('Información', 'El proveedor seleccionado es el mismo que el actual');
+      return;
+    }
+
+    setUpdatingSupplier(true);
+    try {
+      await purchasesService.updatePurchase(purchaseId, {
+        supplierId: selectedSupplier.id,
+      });
+      Alert.alert('Éxito', 'Proveedor actualizado correctamente');
+      handleCloseEditSupplierModal();
+      loadPurchase();
+    } catch (error: any) {
+      console.error('Error updating supplier:', error);
+      Alert.alert('Error', error.message || 'No se pudo actualizar el proveedor');
+    } finally {
+      setUpdatingSupplier(false);
+    }
   };
 
   const handleOcrProductsConfirmed = async (ocrProducts: any[]) => {
@@ -728,9 +798,22 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Proveedor:</Text>
-            <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {purchase.supplier?.commercialName || 'N/A'}
-            </Text>
+            <View style={styles.infoValueWithButton}>
+              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                {purchase.supplier?.commercialName || 'N/A'}
+              </Text>
+              {canAddProducts() && (
+                <TouchableOpacity
+                  style={[styles.editSupplierButton, isTablet && styles.editSupplierButtonTablet]}
+                  onPress={handleOpenEditSupplierModal}
+                  disabled={actionLoading}
+                >
+                  <Text style={[styles.editSupplierButtonText, isTablet && styles.editSupplierButtonTextTablet]}>
+                    ✏️ Editar
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           <View style={styles.infoRow}>
@@ -1080,6 +1163,21 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           isTablet={isTablet}
         />
       )}
+
+      {/* Edit Supplier Modal */}
+      <EditSupplierModal
+        visible={showEditSupplierModal}
+        onClose={handleCloseEditSupplierModal}
+        suppliers={suppliers}
+        supplierSearchQuery={supplierSearchQuery}
+        onSupplierSearchChange={handleSupplierSearchChange}
+        onSupplierSelect={handleSupplierSelect}
+        selectedSupplier={selectedSupplier}
+        onUpdate={handleUpdateSupplier}
+        loading={loadingSuppliers}
+        updating={updatingSupplier}
+        isTablet={isTablet}
+      />
     </SafeAreaView>
   );
 };
@@ -1565,6 +1663,168 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value, isTablet, highlight }) 
   </View>
 );
 
+// Edit Supplier Modal Component
+interface EditSupplierModalProps {
+  visible: boolean;
+  onClose: () => void;
+  suppliers: Supplier[];
+  supplierSearchQuery: string;
+  onSupplierSearchChange: (text: string) => void;
+  onSupplierSelect: (supplier: Supplier) => void;
+  selectedSupplier: Supplier | null;
+  onUpdate: () => void;
+  loading: boolean;
+  updating: boolean;
+  isTablet: boolean;
+}
+
+const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
+  visible,
+  onClose,
+  suppliers,
+  supplierSearchQuery,
+  onSupplierSearchChange,
+  onSupplierSelect,
+  selectedSupplier,
+  onUpdate,
+  loading,
+  updating,
+  isTablet,
+}) => {
+  const filteredSuppliers = suppliers.filter((supplier) => {
+    const query = supplierSearchQuery.toLowerCase();
+    return (
+      supplier.commercialName.toLowerCase().includes(query) ||
+      supplier.code.toLowerCase().includes(query)
+    );
+  });
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+      <View style={editSupplierModalStyles.overlay}>
+        <View style={[editSupplierModalStyles.container, isTablet && editSupplierModalStyles.containerTablet]}>
+          {/* Header */}
+          <View style={editSupplierModalStyles.header}>
+            <View style={editSupplierModalStyles.headerContent}>
+              <Text style={[editSupplierModalStyles.title, isTablet && editSupplierModalStyles.titleTablet]}>
+                ✏️ Editar Proveedor
+              </Text>
+              <Text style={[editSupplierModalStyles.subtitle, isTablet && editSupplierModalStyles.subtitleTablet]}>
+                Seleccione un nuevo proveedor
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={editSupplierModalStyles.closeButton}>
+              <Text style={editSupplierModalStyles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Content */}
+          <View style={editSupplierModalStyles.content}>
+            {loading ? (
+              <View style={editSupplierModalStyles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6366F1" />
+                <Text style={editSupplierModalStyles.loadingText}>Cargando proveedores...</Text>
+              </View>
+            ) : (
+              <>
+                {/* Search Input */}
+                <View style={editSupplierModalStyles.searchSection}>
+                  <Text style={[editSupplierModalStyles.label, isTablet && editSupplierModalStyles.labelTablet]}>
+                    Buscar Proveedor
+                  </Text>
+                  <TextInput
+                    style={[editSupplierModalStyles.searchInput, isTablet && editSupplierModalStyles.searchInputTablet]}
+                    value={supplierSearchQuery}
+                    onChangeText={onSupplierSearchChange}
+                    placeholder="Buscar por nombre o código"
+                    placeholderTextColor="#94A3B8"
+                    autoFocus
+                  />
+                </View>
+
+                {/* Suppliers List */}
+                <ScrollView style={editSupplierModalStyles.suppliersList}>
+                  {filteredSuppliers.length > 0 ? (
+                    filteredSuppliers.map((supplier) => (
+                      <TouchableOpacity
+                        key={supplier.id}
+                        style={[
+                          editSupplierModalStyles.supplierItem,
+                          selectedSupplier?.id === supplier.id && editSupplierModalStyles.supplierItemSelected,
+                        ]}
+                        onPress={() => onSupplierSelect(supplier)}
+                      >
+                        <View style={editSupplierModalStyles.supplierItemContent}>
+                          <Text
+                            style={[
+                              editSupplierModalStyles.supplierName,
+                              isTablet && editSupplierModalStyles.supplierNameTablet,
+                              selectedSupplier?.id === supplier.id && editSupplierModalStyles.supplierNameSelected,
+                            ]}
+                          >
+                            {supplier.commercialName}
+                          </Text>
+                          <Text
+                            style={[
+                              editSupplierModalStyles.supplierCode,
+                              isTablet && editSupplierModalStyles.supplierCodeTablet,
+                            ]}
+                          >
+                            {supplier.code}
+                          </Text>
+                        </View>
+                        {selectedSupplier?.id === supplier.id && (
+                          <Text style={editSupplierModalStyles.checkmark}>✓</Text>
+                        )}
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <View style={editSupplierModalStyles.noResults}>
+                      <Text style={[editSupplierModalStyles.noResultsText, isTablet && editSupplierModalStyles.noResultsTextTablet]}>
+                        No se encontraron proveedores
+                      </Text>
+                    </View>
+                  )}
+                </ScrollView>
+              </>
+            )}
+          </View>
+
+          {/* Footer */}
+          <View style={editSupplierModalStyles.footer}>
+            <TouchableOpacity
+              style={[editSupplierModalStyles.cancelButton, isTablet && editSupplierModalStyles.cancelButtonTablet]}
+              onPress={onClose}
+              disabled={updating}
+            >
+              <Text style={[editSupplierModalStyles.cancelButtonText, isTablet && editSupplierModalStyles.cancelButtonTextTablet]}>
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                editSupplierModalStyles.updateButton,
+                isTablet && editSupplierModalStyles.updateButtonTablet,
+                (updating || !selectedSupplier) && editSupplierModalStyles.updateButtonDisabled,
+              ]}
+              onPress={onUpdate}
+              disabled={updating || !selectedSupplier}
+            >
+              {updating ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={[editSupplierModalStyles.updateButtonText, isTablet && editSupplierModalStyles.updateButtonTextTablet]}>
+                  Actualizar
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1693,6 +1953,33 @@ const styles = StyleSheet.create({
   },
   infoValueTablet: {
     fontSize: 16,
+  },
+  infoValueWithButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editSupplierButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#6366F1',
+  },
+  editSupplierButtonTablet: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  editSupplierButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  editSupplierButtonTextTablet: {
+    fontSize: 14,
   },
   notesContainer: {
     marginTop: 8,
@@ -2292,6 +2579,214 @@ const styles = StyleSheet.create({
 });
 
 // Modal Styles
+const editSupplierModalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  container: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    width: '90%',
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  containerTablet: {
+    width: '70%',
+    maxWidth: 600,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  headerContent: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  titleTablet: {
+    fontSize: 24,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  subtitleTablet: {
+    fontSize: 15,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#64748B',
+    fontWeight: '300',
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748B',
+  },
+  searchSection: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  labelTablet: {
+    fontSize: 16,
+  },
+  searchInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#1E293B',
+  },
+  searchInputTablet: {
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    fontSize: 17,
+    borderRadius: 14,
+  },
+  suppliersList: {
+    flex: 1,
+    maxHeight: 400,
+  },
+  supplierItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+  },
+  supplierItemSelected: {
+    backgroundColor: '#EEF2FF',
+  },
+  supplierItemContent: {
+    flex: 1,
+  },
+  supplierName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  supplierNameTablet: {
+    fontSize: 17,
+  },
+  supplierNameSelected: {
+    color: '#6366F1',
+  },
+  supplierCode: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  supplierCodeTablet: {
+    fontSize: 15,
+  },
+  checkmark: {
+    fontSize: 20,
+    color: '#6366F1',
+    fontWeight: '700',
+    marginLeft: 12,
+  },
+  noResults: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
+  noResultsTextTablet: {
+    fontSize: 16,
+  },
+  footer: {
+    flexDirection: 'row',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+  },
+  cancelButtonTablet: {
+    paddingVertical: 16,
+    borderRadius: 14,
+  },
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  cancelButtonTextTablet: {
+    fontSize: 17,
+  },
+  updateButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+  },
+  updateButtonTablet: {
+    paddingVertical: 16,
+    borderRadius: 14,
+  },
+  updateButtonDisabled: {
+    opacity: 0.5,
+  },
+  updateButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  updateButtonTextTablet: {
+    fontSize: 17,
+  },
+});
+
 const modalStyles = StyleSheet.create({
   overlay: {
     flex: 1,

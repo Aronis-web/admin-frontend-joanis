@@ -283,6 +283,7 @@ export interface CreatePurchaseRequest {
  * Update Purchase Request
  */
 export interface UpdatePurchaseRequest {
+  supplierId?: string;
   guideNumber?: string;
   guideType?: GuideType;
   guideDate?: string;
