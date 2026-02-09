@@ -2,10 +2,19 @@
   "name": "PanelAdminGrit",
   "private": true,
   "version": "0.0.1",
+  "main": "electron/main.js",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "web": "expo start --web",
+    "electron": "concurrently \"npm run web\" \"wait-on http://localhost:8081 && electron .\"",
+    "electron:dev": "concurrently \"npm run web\" \"wait-on http://localhost:8081 && electron . --dev\"",
+    "build:web": "expo export:web",
+    "build:electron": "npm run build:web && electron-builder",
+    "build:electron:win": "npm run build:web && electron-builder --win",
+    "build:electron:mac": "npm run build:web && electron-builder --mac",
+    "build:electron:linux": "npm run build:web && electron-builder --linux",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json}\"",
@@ -69,6 +78,10 @@
     "@types/react": "~19.1.0",
     "@typescript-eslint/eslint-plugin": "^8.46.0",
     "@typescript-eslint/parser": "^8.46.0",
+    "concurrently": "^8.2.2",
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
+    "electron-is-dev": "^3.0.1",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -76,6 +89,51 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "prettier": "^3.8.1",
     "react-native-dotenv": "^3.4.11",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.paneladmin.grit",
+    "productName": "Panel Admin Grit",
+    "directories": {
+      "buildResources": "electron/build",
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "web-build/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "electron/build/icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "electron/build/icon.icns",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "electron/build/icon.png",
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "your-github-username",
+      "repo": "admin-frontend-joanis"
+    }
   }
 }

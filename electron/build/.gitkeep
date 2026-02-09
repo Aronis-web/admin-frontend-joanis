@@ -1,0 +1,5 @@
+l# This directory will contain app icons for electron-builder
+# Add your icons here:
+# - icon.ico (Windows)
+# - icon.icns (macOS)
+# - icon.png (Linux)

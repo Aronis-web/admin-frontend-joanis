@@ -18,6 +18,27 @@
 
 ### Build
 
+#### Generar Versión de Escritorio (Electron)
+
+**Desarrollo:**
+```bash
+cd C:/Users/aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis
+npm run electron
+```
+
+**Generar .exe para Windows:**
+```bash
+cd C:/Users/aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis
+npm run build:electron:win
+```
+
+**Notas:**
+- El .exe se genera en la carpeta `dist/`
+- Incluye instalador NSIS con opciones de instalación
+- Tamaño aproximado: 120-150 MB
+- Soporta actualizaciones automáticas vía GitHub Releases
+- Ver `README_ELECTRON.md` para más detalles
+
 #### Generar APK de Producción
 Para generar el APK del proyecto usando EAS Build:
 
