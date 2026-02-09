@@ -2585,16 +2585,16 @@ const editSupplierModalStyles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   container: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    width: '90%',
-    maxHeight: '80%',
-    overflow: 'hidden',
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '85%',
   },
   containerTablet: {
-    width: '70%',
     maxWidth: 600,
   },
   header: {
@@ -2639,14 +2639,13 @@ const editSupplierModalStyles = StyleSheet.create({
     fontWeight: '300',
   },
   content: {
-    flex: 1,
     padding: 20,
+    maxHeight: 450,
   },
   loadingContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
   },
   loadingText: {
     marginTop: 12,
@@ -2682,8 +2681,7 @@ const editSupplierModalStyles = StyleSheet.create({
     borderRadius: 14,
   },
   suppliersList: {
-    flex: 1,
-    maxHeight: 400,
+    maxHeight: 350,
   },
   supplierItem: {
     flexDirection: 'row',
