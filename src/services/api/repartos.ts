@@ -451,6 +451,40 @@ class RepartosService {
     return downloadWithAuth(url, { method: 'GET' });
   }
 
+  /**
+   * Export distribution summary for a campaign as Excel
+   * Returns a blob that can be used to download the Excel file
+   */
+  async exportDistributionSummaryExcel(
+    campaignId: string,
+    selectedProductIds?: string[]
+  ): Promise<Blob> {
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+
+    // Build URL with query parameters
+    const urlParams = new URLSearchParams();
+    urlParams.append('t', timestamp.toString());
+
+    // Add selected product IDs as query parameters if provided
+    if (selectedProductIds && selectedProductIds.length > 0) {
+      console.log('🔍 Productos seleccionados para exportar en Excel:', selectedProductIds.length);
+      console.log('📋 IDs de productos:', selectedProductIds);
+      selectedProductIds.forEach((productId) => {
+        urlParams.append('productIds[]', productId);
+      });
+    } else {
+      console.log('⚠️ No se proporcionaron productIds - se exportarán TODOS los productos');
+    }
+
+    const url = `${config.API_URL}/admin/campaigns/${campaignId}/export-distribution-summary-excel?${urlParams.toString()}`;
+    console.log('🌐 URL de exportación Excel:', url);
+
+    // Use downloadWithAuth helper that handles token refresh automatically
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+    return downloadWithAuth(url, { method: 'GET' });
+  }
+
   // ============================================
   // Consolidated Transfer Reports
   // ============================================

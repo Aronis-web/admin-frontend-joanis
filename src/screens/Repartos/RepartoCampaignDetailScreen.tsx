@@ -55,6 +55,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     id: string;
     name: string;
   } | null>(null);
+  const [distributionFormatModalVisible, setDistributionFormatModalVisible] = useState(false);
+  const [selectedProductsForExport, setSelectedProductsForExport] = useState<string[]>([]);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -159,22 +161,48 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
   };
 
   const handleExportAllDistributionSheets = async (selectedProductIds: string[]) => {
+    // Store selected products and show format selection modal
+    setSelectedProductsForExport(selectedProductIds);
+    setShowProductSelectionModal(false);
+    setDistributionFormatModalVisible(true);
+  };
+
+  const handleDownloadDistributionSheets = async (format: 'pdf' | 'excel') => {
     try {
       setExportingPdf(true);
-      setShowProductSelectionModal(false);
+      setDistributionFormatModalVisible(false);
 
-      // Call the API to get the PDF blob with selected products
-      const pdfBlob = await repartosService.exportCampaignDistributionSheets(
-        campaignId,
-        selectedProductIds
-      );
+      let blob: Blob;
+      let extension: string;
+      let mimeType: string;
+      let uti: string;
+
+      if (format === 'pdf') {
+        // Call the API to get the PDF blob with selected products
+        blob = await repartosService.exportCampaignDistributionSheets(
+          campaignId,
+          selectedProductsForExport
+        );
+        extension = 'pdf';
+        mimeType = 'application/pdf';
+        uti = 'com.adobe.pdf';
+      } else {
+        // Call the API to get the Excel blob with selected products
+        blob = await repartosService.exportDistributionSummaryExcel(
+          campaignId,
+          selectedProductsForExport
+        );
+        extension = 'xlsx';
+        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        uti = 'org.openxmlformats.spreadsheetml.sheet';
+      }
 
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
-        const blobUrl = URL.createObjectURL(pdfBlob);
+        const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = `hojas-reparto-${campaign?.code || campaignId}.pdf`;
+        link.download = `hojas-reparto-${campaign?.code || campaignId}.${extension}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -182,10 +210,10 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         // Clean up the blob URL after a short delay
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
 
-        Alert.alert('Éxito', 'Las hojas de reparto se están descargando');
+        Alert.alert('Éxito', `Las hojas de reparto en ${format.toUpperCase()} se están descargando`);
       } else {
         // For mobile (iOS/Android), save to file system and share
-        const fileName = `hojas-reparto-${campaign?.code || campaignId}.pdf`;
+        const fileName = `hojas-reparto-${campaign?.code || campaignId}.${extension}`;
         const file = new FileSystem.File(FileSystem.Paths.cache, fileName);
 
         // Delete file if it exists
@@ -198,7 +226,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as ArrayBuffer);
           reader.onerror = reject;
-          reader.readAsArrayBuffer(pdfBlob);
+          reader.readAsArrayBuffer(blob);
         });
 
         // Write to file
@@ -211,12 +239,12 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
           await Sharing.shareAsync(file.uri, {
-            mimeType: 'application/pdf',
+            mimeType,
             dialogTitle: 'Hojas de Reparto',
-            UTI: 'com.adobe.pdf',
+            UTI: uti,
           });
         } else {
-          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
+          Alert.alert('Éxito', `Archivo guardado en: ${file.uri}`);
         }
       }
     } catch (error: any) {
@@ -224,6 +252,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       Alert.alert('Error', error.message || 'No se pudieron exportar las hojas de reparto');
     } finally {
       setExportingPdf(false);
+      setSelectedProductsForExport([]);
     }
   };
 
@@ -776,7 +805,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           loading={exportingPdf}
         />
 
-        {/* Format Selection Modal */}
+        {/* Format Selection Modal - Validation Reports */}
         <Modal
           visible={formatModalVisible}
           transparent={true}
@@ -828,6 +857,65 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   setSelectedParticipant(null);
                 }}
                 disabled={downloadingParticipantId !== null}
+              >
+                <Text style={styles.formatCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Format Selection Modal - Distribution Sheets */}
+        <Modal
+          visible={distributionFormatModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => {
+            setDistributionFormatModalVisible(false);
+            setSelectedProductsForExport([]);
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}>
+              <Text style={[styles.formatModalTitle, isTablet && styles.formatModalTitleTablet]}>
+                Seleccionar formato de descarga
+              </Text>
+              <Text style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}>
+                Hojas de Reparto
+              </Text>
+
+              <View style={styles.formatButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.formatButton, styles.pdfButton]}
+                  onPress={() => handleDownloadDistributionSheets('pdf')}
+                  disabled={exportingPdf}
+                >
+                  <Text style={styles.formatButtonIcon}>📄</Text>
+                  <Text style={styles.formatButtonTitle}>PDF</Text>
+                  <Text style={styles.formatButtonDescription}>
+                    Hojas de reparto detalladas
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.formatButton, styles.excelButton]}
+                  onPress={() => handleDownloadDistributionSheets('excel')}
+                  disabled={exportingPdf}
+                >
+                  <Text style={styles.formatButtonIcon}>📊</Text>
+                  <Text style={styles.formatButtonTitle}>Excel</Text>
+                  <Text style={styles.formatButtonDescription}>
+                    Resumen en tabla
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.formatCancelButton}
+                onPress={() => {
+                  setDistributionFormatModalVisible(false);
+                  setSelectedProductsForExport([]);
+                }}
+                disabled={exportingPdf}
               >
                 <Text style={styles.formatCancelButtonText}>Cancelar</Text>
               </TouchableOpacity>

@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   Linking,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -44,6 +45,8 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   } | null>(null);
   const [allProducts, setAllProducts] = useState<RepartoProducto[]>([]);
   const [campaignProgress, setCampaignProgress] = useState<Map<string, { validated: number; total: number; percentage: number }>>(new Map());
+  const [distributionFormatModalVisible, setDistributionFormatModalVisible] = useState(false);
+  const [selectedProductsForExport, setSelectedProductsForExport] = useState<string[]>([]);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -198,31 +201,61 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       return;
     }
 
+    // Store selected products and show format selection modal
+    setSelectedProductsForExport(selectedProductIds);
+    setShowProductSelectionModal(false);
+    setDistributionFormatModalVisible(true);
+  }, [selectedCampaign]);
+
+  const handleDownloadDistributionSheets = useCallback(async (format: 'pdf' | 'excel') => {
+    if (!selectedCampaign) {
+      return;
+    }
+
     try {
       setExportingCampaignId(selectedCampaign.id);
-      setShowProductSelectionModal(false);
+      setDistributionFormatModalVisible(false);
 
-      console.log('🔄 Iniciando descarga de PDF para campaña:', selectedCampaign.id);
+      console.log(`🔄 Iniciando descarga de ${format.toUpperCase()} para campaña:`, selectedCampaign.id);
       const startTime = new Date().getTime();
 
-      // Call the API to get the PDF blob with selected products
-      const pdfBlob = await repartosService.exportCampaignDistributionSheets(
-        selectedCampaign.id,
-        selectedProductIds
-      );
+      let blob: Blob;
+      let extension: string;
+      let mimeType: string;
+      let uti: string;
+
+      if (format === 'pdf') {
+        // Call the API to get the PDF blob with selected products
+        blob = await repartosService.exportCampaignDistributionSheets(
+          selectedCampaign.id,
+          selectedProductsForExport
+        );
+        extension = 'pdf';
+        mimeType = 'application/pdf';
+        uti = 'com.adobe.pdf';
+      } else {
+        // Call the API to get the Excel blob with selected products
+        blob = await repartosService.exportDistributionSummaryExcel(
+          selectedCampaign.id,
+          selectedProductsForExport
+        );
+        extension = 'xlsx';
+        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        uti = 'org.openxmlformats.spreadsheetml.sheet';
+      }
 
       const endTime = new Date().getTime();
-      console.log('✅ PDF descargado del servidor');
-      console.log('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+      console.log(`✅ ${format.toUpperCase()} descargado del servidor`);
+      console.log(`📦 Tamaño del archivo:`, blob.size, 'bytes');
       console.log('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
       console.log('🕐 Timestamp actual:', new Date().toISOString());
 
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
-        const blobUrl = URL.createObjectURL(pdfBlob);
+        const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = `hojas-reparto-${selectedCampaign.code}.pdf`;
+        link.download = `hojas-reparto-${selectedCampaign.code}.${extension}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -232,13 +265,13 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
 
         Alert.alert(
           'Éxito',
-          `Las hojas de reparto de "${selectedCampaign.name}" se están descargando`
+          `Las hojas de reparto de "${selectedCampaign.name}" en ${format.toUpperCase()} se están descargando`
         );
       } else {
         // For mobile (iOS/Android), save to file system and share
         // Use timestamp in filename to avoid caching issues
         const timestamp = new Date().getTime();
-        const fileName = `hojas-reparto-${selectedCampaign.code}-${timestamp}.pdf`;
+        const fileName = `hojas-reparto-${selectedCampaign.code}-${timestamp}.${extension}`;
         const file = new FileSystem.File(FileSystem.Paths.document, fileName);
 
         // Convert blob to array buffer using FileReader
@@ -246,7 +279,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as ArrayBuffer);
           reader.onerror = reject;
-          reader.readAsArrayBuffer(pdfBlob);
+          reader.readAsArrayBuffer(blob);
         });
 
         // Write to file
@@ -259,12 +292,12 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
           await Sharing.shareAsync(file.uri, {
-            mimeType: 'application/pdf',
+            mimeType,
             dialogTitle: `Hojas de Reparto - ${selectedCampaign.name}`,
-            UTI: 'com.adobe.pdf',
+            UTI: uti,
           });
         } else {
-          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
+          Alert.alert('Éxito', `Archivo guardado en: ${file.uri}`);
         }
       }
     } catch (error: any) {
@@ -272,8 +305,9 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       Alert.alert('Error', error.message || 'No se pudieron exportar las hojas de reparto');
     } finally {
       setExportingCampaignId(null);
+      setSelectedProductsForExport([]);
     }
-  }, [selectedCampaign]);
+  }, [selectedCampaign, selectedProductsForExport]);
 
   const formatDate = useCallback((dateString?: string) => {
     if (!dateString) {
@@ -552,6 +586,65 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
           products={allProducts}
           loading={exportingCampaignId !== null}
         />
+
+        {/* Format Selection Modal - Distribution Sheets */}
+        <Modal
+          visible={distributionFormatModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => {
+            setDistributionFormatModalVisible(false);
+            setSelectedProductsForExport([]);
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}>
+              <Text style={[styles.formatModalTitle, isTablet && styles.formatModalTitleTablet]}>
+                Seleccionar formato de descarga
+              </Text>
+              <Text style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}>
+                Hojas de Reparto - {selectedCampaign?.name}
+              </Text>
+
+              <View style={styles.formatButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.formatButton, styles.pdfButton]}
+                  onPress={() => handleDownloadDistributionSheets('pdf')}
+                  disabled={exportingCampaignId !== null}
+                >
+                  <Text style={styles.formatButtonIcon}>📄</Text>
+                  <Text style={styles.formatButtonTitle}>PDF</Text>
+                  <Text style={styles.formatButtonDescription}>
+                    Hojas de reparto detalladas
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.formatButton, styles.excelButton]}
+                  onPress={() => handleDownloadDistributionSheets('excel')}
+                  disabled={exportingCampaignId !== null}
+                >
+                  <Text style={styles.formatButtonIcon}>📊</Text>
+                  <Text style={styles.formatButtonTitle}>Excel</Text>
+                  <Text style={styles.formatButtonDescription}>
+                    Resumen en tabla
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.formatCancelButton}
+                onPress={() => {
+                  setDistributionFormatModalVisible(false);
+                  setSelectedProductsForExport([]);
+                }}
+                disabled={exportingCampaignId !== null}
+              >
+                <Text style={styles.formatCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -836,5 +929,93 @@ const styles = StyleSheet.create({
   },
   exportButtonTextTablet: {
     fontSize: 15,
+  },
+  // Format Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  formatModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  formatModalContainerTablet: {
+    padding: 32,
+    maxWidth: 500,
+  },
+  formatModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  formatModalTitleTablet: {
+    fontSize: 24,
+  },
+  formatModalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  formatModalSubtitleTablet: {
+    fontSize: 16,
+  },
+  formatButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  formatButton: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+  },
+  pdfButton: {
+    borderColor: '#EF4444',
+  },
+  excelButton: {
+    borderColor: '#10B981',
+  },
+  formatButtonIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  formatButtonTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  formatButtonDescription: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  formatCancelButton: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  formatCancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
   },
 });
