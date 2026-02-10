@@ -63,6 +63,7 @@ export const MAIN_ROUTES = {
   // Suppliers
   SUPPLIERS: 'Suppliers',
   SUPPLIER_DETAIL: 'SupplierDetail',
+  SUPPLIER_DEBTS: 'SupplierDebts',
 
   // Customers
   CUSTOMERS: 'Customers',
@@ -200,6 +201,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Suppliers
   SUPPLIERS: 'suppliers.read',
   SUPPLIER_DETAIL: 'suppliers.read',
+  SUPPLIER_DEBTS: 'suppliers.debts.read',
 
   // Customers
   CUSTOMERS: 'customers.read',

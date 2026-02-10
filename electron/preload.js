@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge } = require('electron');
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld('electron', {
   platform: process.platform,
 
   // App version
-  appVersion: require('../package.json').version,
+  appVersion: '0.0.1',
 
   // Future: Add IPC communication methods here
   // send: (channel, data) => {

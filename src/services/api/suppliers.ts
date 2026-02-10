@@ -16,6 +16,7 @@ import {
   UpdateBankAccountRequest,
   SupplierDebtTransaction,
   CreateDebtTransactionRequest,
+  UpdateDebtTransactionRequest,
   AssignCompanyRequest,
   TransactionsResponse,
   QueryTransactionsParams,
@@ -262,6 +263,15 @@ class SuppliersService {
   }
 
   /**
+   * Get a single transaction
+   */
+  async getTransaction(supplierId: string, transactionId: string): Promise<SupplierDebtTransaction> {
+    return apiClient.get<SupplierDebtTransaction>(
+      `${this.basePath}/${supplierId}/debts/transactions/${transactionId}`
+    );
+  }
+
+  /**
    * Create a debt transaction
    */
   async createTransaction(
@@ -271,6 +281,29 @@ class SuppliersService {
     return apiClient.post<SupplierDebtTransaction>(
       `${this.basePath}/${supplierId}/debts/transactions`,
       data
+    );
+  }
+
+  /**
+   * Update a debt transaction
+   */
+  async updateTransaction(
+    supplierId: string,
+    transactionId: string,
+    data: UpdateDebtTransactionRequest
+  ): Promise<SupplierDebtTransaction> {
+    return apiClient.patch<SupplierDebtTransaction>(
+      `${this.basePath}/${supplierId}/debts/transactions/${transactionId}`,
+      data
+    );
+  }
+
+  /**
+   * Delete a debt transaction
+   */
+  async deleteTransaction(supplierId: string, transactionId: string): Promise<void> {
+    return apiClient.delete<void>(
+      `${this.basePath}/${supplierId}/debts/transactions/${transactionId}`
     );
   }
 

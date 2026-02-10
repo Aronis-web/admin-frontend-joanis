@@ -706,12 +706,27 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
       <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
         Deudas y Transacciones
       </Text>
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyIcon}>💰</Text>
-        <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-          Las deudas se gestionan después de crear el proveedor
-        </Text>
-      </View>
+      {isEditMode ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>💰</Text>
+          <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+            Gestione las deudas y transacciones del proveedor
+          </Text>
+          <TouchableOpacity
+            style={[styles.primaryButton, { marginTop: 16 }]}
+            onPress={() => navigation?.navigate('SupplierDebts' as any, { supplierId })}
+          >
+            <Text style={styles.primaryButtonText}>Ir a Gestión de Deudas</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>💰</Text>
+          <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+            Las deudas se gestionan después de crear el proveedor
+          </Text>
+        </View>
+      )}
     </View>
   );
 

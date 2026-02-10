@@ -53,6 +53,7 @@ const TransferDetailScreen = lazyLoad(() => import('@/screens/Transfers/Transfer
 // Suppliers Screens - Lazy Loaded
 const SuppliersScreen = lazyLoad(() => import('@/screens/Suppliers/SuppliersScreen').then(m => ({ default: m.SuppliersScreen })));
 const SupplierDetailScreen = lazyLoad(() => import('@/screens/Suppliers/SupplierDetailScreen').then(m => ({ default: m.SupplierDetailScreen })));
+const SupplierDebtsScreen = lazyLoad(() => import('@/screens/Suppliers/SupplierDebtsScreen').then(m => ({ default: m.SupplierDebtsScreen })));
 
 // Customers Screens - Lazy Loaded
 const CustomersScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomersScreen })));
@@ -379,6 +380,13 @@ const MainStack = React.memo(() => {
         component={SupplierDetailScreen}
         options={{
           title: 'Detalle de Proveedor',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.SUPPLIER_DEBTS}
+        component={SupplierDebtsScreen}
+        options={{
+          title: 'Deudas de Proveedor',
         }}
       />
       <MainStackNavigator.Screen

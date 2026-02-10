@@ -34,6 +34,7 @@ export enum BankAccountType {
  */
 export enum TransactionType {
   PURCHASE = 'PURCHASE',
+  PAYMENT = 'PAYMENT',
   ADJUSTMENT = 'ADJUSTMENT',
   CREDIT_NOTE = 'CREDIT_NOTE',
   DEBIT_NOTE = 'DEBIT_NOTE',
@@ -147,15 +148,22 @@ export interface SupplierUnassignedBalance {
  */
 export interface SupplierDebtTransaction {
   id: string;
+  transactionNumber: string;
   supplierId: string;
   companyId?: string;
-  supplierLegalEntityId: string;
+  supplierLegalEntityId?: string;
   transactionType: TransactionType;
   amountCents: number;
+  balanceAfterCents?: number;
+  referenceType?: string;
+  referenceId?: string;
   referenceNumber?: string;
   transactionDate: string;
   dueDate?: string;
   notes?: string;
+  attachmentFileId?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
   createdById: string;
   assignedById?: string;
   assignedAt?: string;
@@ -400,13 +408,37 @@ export interface UpdateContactRequest {
  */
 export interface CreateDebtTransactionRequest {
   companyId?: string;
-  supplierLegalEntityId: string;
+  supplierLegalEntityId?: string;
   transactionType: TransactionType;
   amountCents: number;
+  referenceType?: string;
+  referenceId?: string;
   referenceNumber?: string;
-  transactionDate: string;
+  transactionDate?: string;
   dueDate?: string;
   notes?: string;
+  attachmentFileId?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+}
+
+/**
+ * Update Debt Transaction Request
+ */
+export interface UpdateDebtTransactionRequest {
+  companyId?: string;
+  supplierLegalEntityId?: string;
+  transactionType?: TransactionType;
+  amountCents?: number;
+  referenceType?: string;
+  referenceId?: string;
+  referenceNumber?: string;
+  transactionDate?: string;
+  dueDate?: string;
+  notes?: string;
+  attachmentFileId?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
 }
 
 /**

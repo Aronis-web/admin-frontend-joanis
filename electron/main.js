@@ -1,8 +1,57 @@
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
-const isDev = require('electron-is-dev');
+const express = require('express');
+
+// Check if we're in development mode
+const isDev = !app.isPackaged;
 
 let mainWindow;
+let server;
+
+// Create embedded HTTP server
+function startServer() {
+  return new Promise((resolve, reject) => {
+    const expressApp = express();
+    // Use process.resourcesPath to get the correct path when packaged
+    const webBuildPath = isDev
+      ? path.join(__dirname, '../web-build')
+      : path.join(process.resourcesPath, 'web-build');
+
+    // Serve static files with proper MIME types and CORS
+    expressApp.use(express.static(webBuildPath, {
+      setHeaders: (res, filePath) => {
+        // Set CORS headers for all files
+        res.setHeader('Access-Control-Allow-Origin', '*');
+
+        // Set proper MIME types
+        if (filePath.endsWith('.js')) {
+          res.setHeader('Content-Type', 'application/javascript');
+        } else if (filePath.endsWith('.ttf')) {
+          res.setHeader('Content-Type', 'font/ttf');
+        } else if (filePath.endsWith('.woff')) {
+          res.setHeader('Content-Type', 'font/woff');
+        } else if (filePath.endsWith('.woff2')) {
+          res.setHeader('Content-Type', 'font/woff2');
+        }
+      }
+    }));
+
+    server = expressApp.listen(8081, 'localhost', () => {
+      console.log('Server running on http://localhost:8081');
+      console.log('Serving from:', webBuildPath);
+      resolve();
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log('Port 8081 already in use, using existing server');
+        resolve();
+      } else {
+        reject(err);
+      }
+    });
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -14,7 +63,10 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      preload: path.join(__dirname, 'preload.js')
+      webSecurity: false, // Disable to allow loading local resources
+      allowRunningInsecureContent: true,
+      // Temporarily disable preload to test
+      // preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, 'build/icon.png'),
     title: 'Panel Admin Grit',
@@ -28,16 +80,22 @@ function createWindow() {
   });
 
   // Load the app
-  const startUrl = isDev
-    ? 'http://localhost:8081' // Expo web dev server
-    : `file://${path.join(__dirname, '../web-build/index.html')}`; // Production build
+  // Always use HTTP server because Expo bundles use absolute paths
+  const startUrl = 'http://localhost:8081';
 
   mainWindow.loadURL(startUrl);
 
-  // Open DevTools in development
-  if (isDev) {
-    mainWindow.webContents.openDevTools();
-  }
+  // Open DevTools in development (always open to debug)
+  mainWindow.webContents.openDevTools();
+
+  // Log any errors
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Failed to load:', errorCode, errorDescription);
+  });
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log('Console:', message);
+  });
 
   // Create application menu
   createMenu();
@@ -117,7 +175,10 @@ function createMenu() {
 }
 
 // App lifecycle
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  await startServer();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   // On macOS, keep app running until user quits explicitly
@@ -130,6 +191,12 @@ app.on('activate', () => {
   // On macOS, re-create window when dock icon is clicked
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  }
+});
+
+app.on('before-quit', () => {
+  if (server) {
+    server.close();
   }
 });
 
