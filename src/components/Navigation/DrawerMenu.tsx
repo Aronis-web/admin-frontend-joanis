@@ -375,7 +375,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Configuración Tributaria',
         route: MAIN_ROUTES.BILLING_CONFIG,
         color: '#8B5CF6',
-        requiredPermissions: ['billing.read', 'billing.document_types.read', 'billing.series.read', 'billing.correlatives.read'],
+        requiredPermissions: ['billing.read', 'billing.document-types.read', 'billing.series.read', 'billing.correlatives.read'],
       },
       // Apps
       {

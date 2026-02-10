@@ -893,7 +893,7 @@ const MainStack = React.memo(() => {
           <ProtectedRoute
             requiredPermissions={[
               'billing.read',
-              'billing.document_types.read',
+              'billing.document-types.read',
               'billing.series.read',
               'billing.correlatives.read',
             ]}
@@ -912,9 +912,8 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute
             requiredPermissions={[
-              'billing.document_types.read',
-              'billing.document_types.create',
-              'billing.document_types.update',
+              'billing.document-types.read',
+              'billing.document-types.manage',
             ]}
             requireAll={false}
           >

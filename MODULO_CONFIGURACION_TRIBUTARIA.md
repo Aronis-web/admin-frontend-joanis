@@ -169,21 +169,65 @@ Agregado en la categoría **Configuración**:
 
 ### Permisos Implementados
 
+Los permisos están definidos en `src/constants/permissions.ts` bajo `PERMISSIONS.BILLING`:
+
 #### **Tipos de Documentos**
-- `billing.document_types.read` - Ver tipos
-- `billing.document_types.create` - Crear tipos
-- `billing.document_types.update` - Editar tipos
-- `billing.document_types.delete` - Eliminar tipos
+- `billing.document-types.read` - Ver tipos de documentos
+- `billing.document-types.manage` - Gestionar tipos (crear, editar, eliminar)
 
 #### **Series**
 - `billing.series.read` - Ver series
 - `billing.series.create` - Crear series
 - `billing.series.update` - Editar series
 - `billing.series.delete` - Eliminar series
+- `billing.series.stats` - Ver estadísticas de series
 
 #### **Correlativos**
 - `billing.correlatives.read` - Ver correlativos
+- `billing.correlatives.generate` - Generar números correlativos
 - `billing.correlatives.void` - Anular correlativos
+
+#### **Administrativo**
+- `billing.admin` - Administración completa del módulo de facturación
+
+### SQL para Crear Permisos en Backend
+
+```sql
+-- Permisos para Tipos de Documentos
+INSERT INTO app.permissions (key, description, module) VALUES
+    ('billing.document-types.read', 'Ver tipos de documentos tributarios', 'billing'),
+    ('billing.document-types.manage', 'Gestionar tipos de documentos tributarios', 'billing')
+ON CONFLICT (key) DO UPDATE SET
+    description = EXCLUDED.description,
+    module = EXCLUDED.module;
+
+-- Permisos para Series
+INSERT INTO app.permissions (key, description, module) VALUES
+    ('billing.series.read', 'Ver series de documentos', 'billing'),
+    ('billing.series.create', 'Crear series de documentos', 'billing'),
+    ('billing.series.update', 'Actualizar series de documentos', 'billing'),
+    ('billing.series.delete', 'Eliminar series de documentos', 'billing'),
+    ('billing.series.stats', 'Ver estadísticas de series', 'billing')
+ON CONFLICT (key) DO UPDATE SET
+    description = EXCLUDED.description,
+    module = EXCLUDED.module;
+
+-- Permisos para Correlativos
+INSERT INTO app.permissions (key, description, module) VALUES
+    ('billing.correlatives.read', 'Ver correlativos generados', 'billing'),
+    ('billing.correlatives.generate', 'Generar números correlativos', 'billing'),
+    ('billing.correlatives.void', 'Anular correlativos', 'billing')
+ON CONFLICT (key) DO UPDATE SET
+    description = EXCLUDED.description,
+    module = EXCLUDED.module;
+
+-- Permisos Administrativos
+INSERT INTO app.permissions (key, description, module) VALUES
+    ('billing.admin', 'Administración completa del módulo de facturación', 'billing')
+ON CONFLICT (key) DO UPDATE SET
+    description = EXCLUDED.description,
+    module = EXCLUDED.module;
+```
 
 ### Validaciones
 

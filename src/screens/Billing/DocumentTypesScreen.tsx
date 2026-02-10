@@ -265,7 +265,7 @@ export const DocumentTypesScreen: React.FC<DocumentTypesScreenProps> = ({ naviga
 
       <View style={styles.cardActions}>
         <ProtectedTouchableOpacity
-          requiredPermissions={['billing.document_types.update']}
+          requiredPermissions={[PERMISSIONS.BILLING.DOCUMENT_TYPES.MANAGE]}
           style={styles.editButton}
           onPress={() => openEditModal(documentType)}
         >
@@ -273,7 +273,7 @@ export const DocumentTypesScreen: React.FC<DocumentTypesScreenProps> = ({ naviga
         </ProtectedTouchableOpacity>
 
         <ProtectedTouchableOpacity
-          requiredPermissions={['billing.document_types.delete']}
+          requiredPermissions={[PERMISSIONS.BILLING.DOCUMENT_TYPES.MANAGE]}
           style={styles.deleteButton}
           onPress={() => handleDelete(documentType)}
         >
@@ -334,7 +334,7 @@ export const DocumentTypesScreen: React.FC<DocumentTypesScreenProps> = ({ naviga
       </ScrollView>
 
       {/* Add Button */}
-      <ProtectedElement requiredPermissions={['billing.document_types.create']}>
+      <ProtectedElement requiredPermissions={[PERMISSIONS.BILLING.DOCUMENT_TYPES.MANAGE]}>
         <AddButton onPress={openCreateModal} />
       </ProtectedElement>
 

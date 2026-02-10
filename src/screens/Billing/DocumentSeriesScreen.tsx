@@ -319,7 +319,7 @@ export const DocumentSeriesScreen: React.FC<DocumentSeriesScreenProps> = ({ navi
 
       <View style={styles.cardActions}>
         <ProtectedTouchableOpacity
-          requiredPermissions={['billing.series.update']}
+          requiredPermissions={[PERMISSIONS.BILLING.SERIES.UPDATE]}
           style={styles.editButton}
           onPress={() => openEditModal(seriesItem)}
         >
@@ -327,7 +327,7 @@ export const DocumentSeriesScreen: React.FC<DocumentSeriesScreenProps> = ({ navi
         </ProtectedTouchableOpacity>
 
         <ProtectedTouchableOpacity
-          requiredPermissions={['billing.series.delete']}
+          requiredPermissions={[PERMISSIONS.BILLING.SERIES.DELETE]}
           style={styles.deleteButton}
           onPress={() => handleDelete(seriesItem)}
         >
@@ -399,7 +399,7 @@ export const DocumentSeriesScreen: React.FC<DocumentSeriesScreenProps> = ({ navi
       </ScrollView>
 
       {/* Add Button */}
-      <ProtectedElement requiredPermissions={['billing.series.create']}>
+      <ProtectedElement requiredPermissions={[PERMISSIONS.BILLING.SERIES.CREATE]}>
         <AddButton onPress={openCreateModal} />
       </ProtectedElement>
 

@@ -241,7 +241,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Billing / Tax Configuration
   BILLING_CONFIG: 'billing.read',
-  DOCUMENT_TYPES: 'billing.document_types.read',
+  DOCUMENT_TYPES: 'billing.document-types.read',
   DOCUMENT_SERIES: 'billing.series.read',
   DOCUMENT_CORRELATIVES: 'billing.correlatives.read',
 

@@ -344,6 +344,31 @@ export const PERMISSIONS = {
     TEST: 'admin.test',
     SEED: 'admin.seed',
   },
+
+  // ========== FACTURACIÓN / BILLING ==========
+  BILLING: {
+    READ: 'billing.read',
+    ADMIN: 'billing.admin',
+
+    DOCUMENT_TYPES: {
+      READ: 'billing.document-types.read',
+      MANAGE: 'billing.document-types.manage',
+    },
+
+    SERIES: {
+      READ: 'billing.series.read',
+      CREATE: 'billing.series.create',
+      UPDATE: 'billing.series.update',
+      DELETE: 'billing.series.delete',
+      STATS: 'billing.series.stats',
+    },
+
+    CORRELATIVES: {
+      READ: 'billing.correlatives.read',
+      GENERATE: 'billing.correlatives.generate',
+      VOID: 'billing.correlatives.void',
+    },
+  },
 } as const;
 
 /**
