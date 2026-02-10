@@ -121,6 +121,7 @@ const VerifyFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then
 const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').then(m => ({ default: m.OrganizationChartScreen })), 'Cargando organigrama...');
 
 // Billing Screens - Lazy Loaded
+const BillingConfigMenuScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.BillingConfigMenuScreen })), 'Cargando configuración tributaria...');
 const DocumentTypesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentTypesScreen })), 'Cargando tipos de documento...');
 const DocumentSeriesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentSeriesScreen })), 'Cargando series...');
 const DocumentCorrelativesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentCorrelativesScreen })), 'Cargando correlativos...');
@@ -882,6 +883,26 @@ const MainStack = React.memo(() => {
         )}
       </MainStackNavigator.Screen>
       {/* Billing / Tax Configuration Screens */}
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BILLING_CONFIG}
+        options={{
+          title: 'Configuración Tributaria',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'billing.read',
+              'billing.document_types.read',
+              'billing.series.read',
+              'billing.correlatives.read',
+            ]}
+            requireAll={false}
+          >
+            <BillingConfigMenuScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.DOCUMENT_TYPES}
         options={{

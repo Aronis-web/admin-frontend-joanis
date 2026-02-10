@@ -190,6 +190,7 @@ export type MainStackParamList = {
   Presentations: undefined;
 
   // Billing / Tax Configuration
+  BillingConfig: undefined;
   DocumentTypes: undefined;
   DocumentSeries: undefined;
   DocumentCorrelatives: undefined;

@@ -36,6 +36,22 @@ Servicio completo para interactuar con el backend de facturación electrónica:
 
 ### 2. Pantallas
 
+#### **BillingConfigMenuScreen** (`src/screens/Billing/BillingConfigMenuScreen.tsx`)
+
+Pantalla principal del módulo de configuración tributaria:
+
+**Características:**
+- ✅ Menú centralizado con 3 opciones principales
+- ✅ Navegación a subpantallas de configuración
+- ✅ Diseño moderno con tarjetas informativas
+- ✅ Información contextual sobre cada opción
+- ✅ Protección por permisos
+
+**Opciones del menú:**
+1. **Tipos de Documentos** - Gestionar tipos SUNAT
+2. **Series de Documentos** - Configurar series por sede
+3. **Correlativos** - Ver y gestionar correlativos
+
 #### **DocumentTypesScreen** (`src/screens/Billing/DocumentTypesScreen.tsx`)
 
 Gestión de tipos de documentos SUNAT:
@@ -112,13 +128,15 @@ Visualización y gestión de correlativos generados:
 
 #### **Rutas agregadas** (`src/constants/routes.ts`)
 ```typescript
-DOCUMENT_TYPES: 'DocumentTypes'
-DOCUMENT_SERIES: 'DocumentSeries'
-DOCUMENT_CORRELATIVES: 'DocumentCorrelatives'
+BILLING_CONFIG: 'BillingConfig'           // Menú principal
+DOCUMENT_TYPES: 'DocumentTypes'           // Subpantalla
+DOCUMENT_SERIES: 'DocumentSeries'         // Subpantalla
+DOCUMENT_CORRELATIVES: 'DocumentCorrelatives' // Subpantalla
 ```
 
 #### **Permisos requeridos**
 ```typescript
+BILLING_CONFIG: 'billing.read'           // Menú principal
 DOCUMENT_TYPES: 'billing.document_types.read'
 DOCUMENT_SERIES: 'billing.series.read'
 DOCUMENT_CORRELATIVES: 'billing.correlatives.read'
@@ -136,16 +154,16 @@ DOCUMENT_CORRELATIVES: 'billing.correlatives.read'
 Agregado en la categoría **Configuración**:
 
 ```
-⚙️ Configuración
-  └─ 📄 Tipos de Documentos
-  └─ 📋 Series de Documentos
-  └─ 🔢 Correlativos
+☰ Menú Principal
+  └─ ⚙️ Configuración
+       └─ 📄 Configuración Tributaria ⭐ NUEVO
+            ├─ 📄 Tipos de Documentos
+            ├─ 📋 Series de Documentos
+            └─ 🔢 Correlativos
 ```
 
-**Permisos por opción:**
-- Tipos de Documentos: `billing.document_types.read`
-- Series de Documentos: `billing.series.read`
-- Correlativos: `billing.correlatives.read`
+**Permisos:**
+- Configuración Tributaria: `billing.read` (o cualquiera de los sub-permisos)
 
 ## 🔐 Seguridad y Permisos
 
@@ -239,18 +257,21 @@ Agregado en la categoría **Configuración**:
 ### 1. Configuración Inicial
 
 ```
-1. Crear Tipos de Documentos
-   └─ Ir a: Configuración → Tipos de Documentos
+1. Acceder al módulo
+   └─ Ir a: Menú → Configuración → Configuración Tributaria
+
+2. Crear Tipos de Documentos
+   └─ Seleccionar: Tipos de Documentos
    └─ Crear: 01-Factura, 03-Boleta, 07-NC, 08-ND, etc.
 
-2. Crear Series por Sede
-   └─ Ir a: Configuración → Series de Documentos
+3. Crear Series por Sede
+   └─ Seleccionar: Series de Documentos
    └─ Seleccionar sede
    └─ Crear series: F001, B001, NC01, etc.
    └─ Marcar serie por defecto
 
-3. Verificar Correlativos
-   └─ Ir a: Configuración → Correlativos
+4. Verificar Correlativos
+   └─ Seleccionar: Correlativos
    └─ Ver correlativos generados automáticamente
 ```
 
@@ -290,9 +311,10 @@ Agregado en la categoría **Configuración**:
        ├─ 📋 Presentaciones
        ├─ 💰 Perfiles de Precio
        ├─ 🏷️ Categorías de Gastos
-       ├─ 📄 Tipos de Documentos ⭐ NUEVO
-       ├─ 📋 Series de Documentos ⭐ NUEVO
-       ├─ 🔢 Correlativos ⭐ NUEVO
+       ├─ 📄 Configuración Tributaria ⭐ NUEVO
+       │    ├─ 📄 Tipos de Documentos
+       │    ├─ 📋 Series de Documentos
+       │    └─ 🔢 Correlativos
        └─ 📱 Apps
 ```
 
@@ -301,6 +323,7 @@ Agregado en la categoría **Configuración**:
 ### Archivos Nuevos
 ```
 src/services/api/billing.ts
+src/screens/Billing/BillingConfigMenuScreen.tsx    ⭐ Menú principal
 src/screens/Billing/DocumentTypesScreen.tsx
 src/screens/Billing/DocumentSeriesScreen.tsx
 src/screens/Billing/DocumentCorrelativesScreen.tsx
@@ -319,12 +342,13 @@ src/types/navigation.ts
 ## ✅ Checklist de Implementación
 
 - [x] Servicio API completo con todos los endpoints
+- [x] Pantalla de menú principal (BillingConfigMenuScreen)
 - [x] Pantalla de Tipos de Documentos
 - [x] Pantalla de Series de Documentos
 - [x] Pantalla de Correlativos
 - [x] Rutas agregadas al navigation
 - [x] Tipos de navegación actualizados
-- [x] Opciones agregadas al menú
+- [x] Opción única en el menú (Configuración Tributaria)
 - [x] Permisos implementados
 - [x] Validaciones de formato
 - [x] Búsqueda y filtros
@@ -334,6 +358,7 @@ src/types/navigation.ts
 - [x] Protección por permisos
 - [x] Auditoría completa
 - [x] Sin errores de TypeScript
+- [x] Corrección de llamadas API (sin page/limit)
 
 ## 🚀 Próximos Pasos Sugeridos
 

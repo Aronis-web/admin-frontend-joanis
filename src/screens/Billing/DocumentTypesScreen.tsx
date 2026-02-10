@@ -79,7 +79,7 @@ export const DocumentTypesScreen: React.FC<DocumentTypesScreenProps> = ({ naviga
   const loadDocumentTypes = async () => {
     try {
       setLoading(true);
-      const types = await billingApi.getDocumentTypes({ page: 1, limit: 100 });
+      const types = await billingApi.getDocumentTypes();
       console.log('📄 Document types loaded:', types.length);
       setDocumentTypes(types);
       setFilteredDocumentTypes(types);

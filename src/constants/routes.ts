@@ -99,6 +99,7 @@ export const MAIN_ROUTES = {
   PRESENTATIONS: 'Presentations',
 
   // Billing / Tax Configuration
+  BILLING_CONFIG: 'BillingConfig',
   DOCUMENT_TYPES: 'DocumentTypes',
   DOCUMENT_SERIES: 'DocumentSeries',
   DOCUMENT_CORRELATIVES: 'DocumentCorrelatives',
@@ -239,6 +240,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   PRESENTATIONS: 'presentations.read',
 
   // Billing / Tax Configuration
+  BILLING_CONFIG: 'billing.read',
   DOCUMENT_TYPES: 'billing.document_types.read',
   DOCUMENT_SERIES: 'billing.series.read',
   DOCUMENT_CORRELATIVES: 'billing.correlatives.read',

@@ -76,10 +76,7 @@ export const DocumentCorrelativesScreen: React.FC<DocumentCorrelativesScreenProp
         setSeries(seriesData);
 
         // Load correlatives
-        const params: any = {
-          page: 1,
-          limit: 100,
-        };
+        const params: any = {};
 
         if (selectedSeriesFilter !== 'all') {
           params.seriesId = selectedSeriesFilter;

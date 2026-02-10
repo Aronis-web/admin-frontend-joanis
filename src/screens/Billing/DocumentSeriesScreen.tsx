@@ -93,9 +93,7 @@ export const DocumentSeriesScreen: React.FC<DocumentSeriesScreenProps> = ({ navi
       // Load series for current site
       if (selectedSite?.id) {
         const seriesData = await billingApi.getDocumentSeries({
-          siteId: selectedSite.id,
-          page: 1,
-          limit: 100
+          siteId: selectedSite.id
         });
         console.log('📋 Series loaded:', seriesData.length);
         setSeries(seriesData);

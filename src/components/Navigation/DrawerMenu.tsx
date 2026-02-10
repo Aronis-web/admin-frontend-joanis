@@ -370,28 +370,12 @@ const menuCategories: MenuCategory[] = [
       },
       // Configuración Tributaria
       {
-        id: 'document-types',
+        id: 'billing-config',
         icon: '📄',
-        label: 'Tipos de Documentos',
-        route: MAIN_ROUTES.DOCUMENT_TYPES,
+        label: 'Configuración Tributaria',
+        route: MAIN_ROUTES.BILLING_CONFIG,
         color: '#8B5CF6',
-        requiredPermissions: ['billing.document_types.read'],
-      },
-      {
-        id: 'document-series',
-        icon: '📋',
-        label: 'Series de Documentos',
-        route: MAIN_ROUTES.DOCUMENT_SERIES,
-        color: '#EC4899',
-        requiredPermissions: ['billing.series.read'],
-      },
-      {
-        id: 'document-correlatives',
-        icon: '🔢',
-        label: 'Correlativos',
-        route: MAIN_ROUTES.DOCUMENT_CORRELATIVES,
-        color: '#F59E0B',
-        requiredPermissions: ['billing.correlatives.read'],
+        requiredPermissions: ['billing.read', 'billing.document_types.read', 'billing.series.read', 'billing.correlatives.read'],
       },
       // Apps
       {
