@@ -12,11 +12,14 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { suppliersService } from '@/services/api/suppliers';
 import { companiesApi } from '@/services/api/companies';
 import filesApi from '@/services/api/files';
+import { useAuthStore } from '@/store/auth';
 import {
   SupplierDebtTransaction,
   TransactionType,
@@ -41,27 +44,31 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
   onSuccess,
 }) => {
   const isEditMode = !!transaction;
+  const { currentCompany } = useAuthStore();
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [companies, setCompanies] = useState<any[]>([]);
   const [legalEntities, setLegalEntities] = useState<SupplierLegalEntity[]>([]);
+
+  // Date picker states
+  const [showTransactionDatePicker, setShowTransactionDatePicker] = useState(false);
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
 
   // Form state
   const [transactionType, setTransactionType] = useState<TransactionType>(TransactionType.PURCHASE);
-  const [companyId, setCompanyId] = useState<string>('');
   const [supplierLegalEntityId, setSupplierLegalEntityId] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [referenceNumber, setReferenceNumber] = useState<string>('');
-  const [transactionDate, setTransactionDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
-  const [dueDate, setDueDate] = useState<string>('');
+  const [transactionDate, setTransactionDate] = useState<Date>(new Date());
+  const [dueDate, setDueDate] = useState<Date | null>(null);
   const [notes, setNotes] = useState<string>('');
   const [bankName, setBankName] = useState<string>('');
   const [bankAccountNumber, setBankAccountNumber] = useState<string>('');
   const [attachmentFileId, setAttachmentFileId] = useState<string>('');
   const [attachmentFileName, setAttachmentFileName] = useState<string>('');
+
+  // Lista de bancos
+  const banks = ['BBVA', 'BCP', 'INTERBANK', 'EFECTIVO'];
 
   useEffect(() => {
     if (visible) {
@@ -76,12 +83,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
 
   const loadData = async () => {
     try {
-      const [companiesData, supplier] = await Promise.all([
-        companiesApi.getCompanies(),
-        suppliersService.getSupplier(supplierId),
-      ]);
-
-      setCompanies(companiesData.data || []);
+      const supplier = await suppliersService.getSupplier(supplierId);
       setLegalEntities(supplier.legalEntities || []);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -90,12 +92,11 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
 
   const populateForm = (txn: SupplierDebtTransaction) => {
     setTransactionType(txn.transactionType);
-    setCompanyId(txn.companyId || '');
     setSupplierLegalEntityId(txn.supplierLegalEntityId || '');
     setAmount(Math.abs(txn.amountCents / 100).toString());
     setReferenceNumber(txn.referenceNumber || '');
-    setTransactionDate(txn.transactionDate.split('T')[0]);
-    setDueDate(txn.dueDate ? txn.dueDate.split('T')[0] : '');
+    setTransactionDate(new Date(txn.transactionDate));
+    setDueDate(txn.dueDate ? new Date(txn.dueDate) : null);
     setNotes(txn.notes || '');
     setBankName(txn.bankName || '');
     setBankAccountNumber(txn.bankAccountNumber || '');
@@ -105,12 +106,11 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
 
   const resetForm = () => {
     setTransactionType(TransactionType.PURCHASE);
-    setCompanyId('');
     setSupplierLegalEntityId('');
     setAmount('');
     setReferenceNumber('');
-    setTransactionDate(new Date().toISOString().split('T')[0]);
-    setDueDate('');
+    setTransactionDate(new Date());
+    setDueDate(null);
     setNotes('');
     setBankName('');
     setBankAccountNumber('');
@@ -185,15 +185,18 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
   const uploadFile = async (uri: string, filename: string, mimeType: string) => {
     try {
       setUploading(true);
-      const response = await filesApi.uploadByCategory(
+
+      const response = await filesApi.uploadSupplierDebtFile(
         uri,
         filename,
-        'supplier-debts',
         supplierId,
         mimeType
       );
 
-      setAttachmentFileId(response.path);
+      // El backend retorna { success, url, path, category }
+      // Convertir barras invertidas a barras normales para compatibilidad
+      const normalizedPath = response.path.replace(/\\/g, '/');
+      setAttachmentFileId(normalizedPath);
       setAttachmentFileName(filename);
       Alert.alert('Éxito', 'Archivo subido correctamente');
     } catch (error: any) {
@@ -229,6 +232,10 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
       errors.push('Debe seleccionar una fecha');
     }
 
+    if (!supplierLegalEntityId) {
+      errors.push('La razón social del proveedor es requerida');
+    }
+
     if (['CREDIT_NOTE', 'DEBIT_NOTE'].includes(transactionType) && !referenceNumber) {
       errors.push('Las notas de crédito/débito requieren número de referencia');
     }
@@ -254,26 +261,43 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
       const amountCents = Math.round(parseFloat(amount) * 100);
 
       // Determine sign based on transaction type
-      let finalAmount = amountCents;
+      let finalAmount: number;
       if (['PAYMENT', 'CREDIT_NOTE'].includes(transactionType)) {
         finalAmount = -Math.abs(amountCents);
       } else {
         finalAmount = Math.abs(amountCents);
       }
 
-      const data: CreateDebtTransactionRequest | UpdateDebtTransactionRequest = {
+      console.log('💰 Amount calculation:', {
+        amount,
+        amountCents,
+        finalAmount,
+        type: typeof finalAmount,
+        transactionType,
+      });
+
+      // Build data object, only including defined fields
+      const data: any = {
         transactionType,
         amountCents: finalAmount,
-        companyId: companyId || undefined,
-        supplierLegalEntityId: supplierLegalEntityId || undefined,
-        referenceNumber: referenceNumber || undefined,
-        transactionDate,
-        dueDate: dueDate || undefined,
-        notes: notes || undefined,
-        bankName: bankName || undefined,
-        bankAccountNumber: bankAccountNumber || undefined,
-        attachmentFileId: attachmentFileId || undefined,
+        transactionDate: transactionDate.toISOString().split('T')[0],
       };
+
+      // Add companyId from current context
+      if (currentCompany?.id) {
+        data.companyId = currentCompany.id;
+      }
+
+      // Only add optional fields if they have values
+      if (supplierLegalEntityId) data.supplierLegalEntityId = supplierLegalEntityId;
+      if (referenceNumber) data.referenceNumber = referenceNumber;
+      if (dueDate) data.dueDate = dueDate.toISOString().split('T')[0];
+      if (notes) data.notes = notes;
+      if (bankName) data.bankName = bankName;
+      if (bankAccountNumber) data.bankAccountNumber = bankAccountNumber;
+      if (attachmentFileId) data.attachmentFilePath = attachmentFileId;
+
+      console.log('📤 Sending transaction data:', data);
 
       if (isEditMode) {
         await suppliersService.updateTransaction(supplierId, transaction!.id, data as UpdateDebtTransactionRequest);
@@ -358,41 +382,24 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
             />
           </View>
 
-          {/* Company */}
-          <View style={styles.section}>
-            <Text style={styles.label}>Empresa (Opcional)</Text>
-            <View style={styles.pickerContainer}>
-              <select
-                value={companyId}
-                onChange={(e) => setCompanyId(e.target.value)}
-                style={styles.picker as any}
-              >
-                <option value="">Sin asignar</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
-            </View>
-          </View>
-
           {/* Legal Entity */}
           <View style={styles.section}>
-            <Text style={styles.label}>Razón Social del Proveedor (Opcional)</Text>
+            <Text style={styles.label}>Razón Social del Proveedor*</Text>
             <View style={styles.pickerContainer}>
-              <select
-                value={supplierLegalEntityId}
-                onChange={(e) => setSupplierLegalEntityId(e.target.value)}
-                style={styles.picker as any}
+              <Picker
+                selectedValue={supplierLegalEntityId}
+                onValueChange={(value) => setSupplierLegalEntityId(value)}
+                style={styles.picker}
               >
-                <option value="">Seleccionar...</option>
+                <Picker.Item label="Seleccionar..." value="" />
                 {legalEntities.map((entity) => (
-                  <option key={entity.id} value={entity.id}>
-                    {entity.legalName} - {entity.ruc}
-                  </option>
+                  <Picker.Item
+                    key={entity.id}
+                    label={`${entity.legalName} - ${entity.ruc}`}
+                    value={entity.id}
+                  />
                 ))}
-              </select>
+              </Picker>
             </View>
           </View>
 
@@ -413,23 +420,73 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
           {/* Transaction Date */}
           <View style={styles.section}>
             <Text style={styles.label}>Fecha de Transacción*</Text>
-            <TextInput
-              style={styles.input}
-              value={transactionDate}
-              onChangeText={setTransactionDate}
-              placeholder="YYYY-MM-DD"
-            />
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowTransactionDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color="#3498db" />
+              <Text style={styles.dateButtonText}>
+                {transactionDate.toLocaleDateString('es-PE', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </Text>
+            </TouchableOpacity>
+            {showTransactionDatePicker && (
+              <DateTimePicker
+                value={transactionDate}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowTransactionDatePicker(false);
+                  if (selectedDate) {
+                    setTransactionDate(selectedDate);
+                  }
+                }}
+              />
+            )}
           </View>
 
           {/* Due Date */}
           <View style={styles.section}>
             <Text style={styles.label}>Fecha de Vencimiento (Opcional)</Text>
-            <TextInput
-              style={styles.input}
-              value={dueDate}
-              onChangeText={setDueDate}
-              placeholder="YYYY-MM-DD"
-            />
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowDueDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color="#3498db" />
+              <Text style={styles.dateButtonText}>
+                {dueDate
+                  ? dueDate.toLocaleDateString('es-PE', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  : 'Seleccionar fecha'}
+              </Text>
+            </TouchableOpacity>
+            {dueDate && (
+              <TouchableOpacity
+                style={styles.clearDateButton}
+                onPress={() => setDueDate(null)}
+              >
+                <Text style={styles.clearDateButtonText}>Limpiar fecha</Text>
+              </TouchableOpacity>
+            )}
+            {showDueDatePicker && (
+              <DateTimePicker
+                value={dueDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDueDatePicker(false);
+                  if (selectedDate) {
+                    setDueDate(selectedDate);
+                  }
+                }}
+              />
+            )}
           </View>
 
           {/* Bank Info (for payments) */}
@@ -437,12 +494,18 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
             <>
               <View style={styles.section}>
                 <Text style={styles.label}>Banco*</Text>
-                <TextInput
-                  style={styles.input}
-                  value={bankName}
-                  onChangeText={setBankName}
-                  placeholder="BCP, Interbank, BBVA, etc."
-                />
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={bankName}
+                    onValueChange={(value) => setBankName(value)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Seleccionar banco..." value="" />
+                    {banks.map((bank) => (
+                      <Picker.Item key={bank} label={bank} value={bank} />
+                    ))}
+                  </Picker>
+                </View>
               </View>
 
               <View style={styles.section}>
@@ -452,6 +515,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
                   value={bankAccountNumber}
                   onChangeText={setBankAccountNumber}
                   placeholder="19312345678"
+                  keyboardType="number-pad"
                 />
               </View>
             </>
@@ -582,10 +646,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   picker: {
-    padding: 12,
-    fontSize: 14,
     width: '100%',
-  } as any,
+    height: 50,
+  },
   typeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -677,6 +740,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#dfe6e9',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  dateButtonText: {
+    fontSize: 14,
+    color: '#2c3e50',
+    flex: 1,
+  },
+  clearDateButton: {
+    marginTop: 8,
+    padding: 8,
+    alignItems: 'center',
+  },
+  clearDateButtonText: {
+    fontSize: 14,
+    color: '#e74c3c',
+    fontWeight: '500',
   },
 });
 

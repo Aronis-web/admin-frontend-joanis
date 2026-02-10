@@ -276,6 +276,14 @@ const menuCategories: MenuCategory[] = [
         color: '#F87171',
         requiredPermissions: ['expenses.projects.read'],
       },
+      {
+        id: 'supplier-debts',
+        icon: '💳',
+        label: 'Deudas de Proveedores',
+        route: MAIN_ROUTES.SUPPLIER_DEBTS,
+        color: '#EF4444',
+        requiredPermissions: ['suppliers.debts.read'],
+      },
     ],
   },
   // Configuración

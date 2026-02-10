@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
+  TextInput,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,12 +29,15 @@ import { AssignCompanyModal } from '@/components/Suppliers';
 type TabType = 'all' | 'unassigned' | 'summary';
 
 export const SupplierDebtsScreen = ({ navigation, route }: any) => {
-  const supplierId = route?.params?.supplierId;
+  const initialSupplierId = route?.params?.supplierId;
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(initialSupplierId || null);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [transactions, setTransactions] = useState<SupplierDebtTransaction[]>([]);
   const [unassignedTransactions, setUnassignedTransactions] = useState<SupplierDebtTransaction[]>([]);
@@ -46,11 +51,28 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
   const [assigningTransaction, setAssigningTransaction] = useState<SupplierDebtTransaction | null>(null);
 
   useEffect(() => {
-    loadData();
-  }, [supplierId]);
+    if (selectedSupplierId) {
+      loadData();
+    } else {
+      loadSuppliers();
+    }
+  }, [selectedSupplierId]);
+
+  const loadSuppliers = async () => {
+    try {
+      setLoading(true);
+      const response = await suppliersService.getSuppliers({ limit: 1000 });
+      setSuppliers(response.data || []);
+    } catch (error: any) {
+      console.error('Error loading suppliers:', error);
+      Alert.alert('Error', 'No se pudo cargar la lista de proveedores');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadData = async () => {
-    if (!supplierId) return;
+    if (!selectedSupplierId) return;
 
     try {
       setLoading(true);
@@ -69,8 +91,9 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
   };
 
   const loadSupplier = async () => {
+    if (!selectedSupplierId) return;
     try {
-      const data = await suppliersService.getSupplier(supplierId);
+      const data = await suppliersService.getSupplier(selectedSupplierId);
       setSupplier(data);
     } catch (error) {
       console.error('Error loading supplier:', error);
@@ -78,8 +101,9 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
   };
 
   const loadTransactions = async () => {
+    if (!selectedSupplierId) return;
     try {
-      const response = await suppliersService.getTransactions(supplierId);
+      const response = await suppliersService.getTransactions(selectedSupplierId);
       setTransactions(response.data || []);
     } catch (error) {
       console.error('Error loading transactions:', error);
@@ -87,17 +111,19 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
   };
 
   const loadUnassignedTransactions = async () => {
+    if (!selectedSupplierId) return;
     try {
-      const data = await suppliersService.getUnassignedTransactions(supplierId);
-      setUnassignedTransactions(data || []);
+      const data = await suppliersService.getUnassignedTransactions(selectedSupplierId);
+      setUnassignedTransactions(data.transactions || []);
     } catch (error) {
       console.error('Error loading unassigned transactions:', error);
     }
   };
 
   const loadSummary = async () => {
+    if (!selectedSupplierId) return;
     try {
-      const data = await suppliersService.getDebtSummary(supplierId);
+      const data = await suppliersService.getDebtSummary(selectedSupplierId);
       setSummary(data);
     } catch (error) {
       console.error('Error loading summary:', error);
@@ -106,9 +132,13 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadData();
+    if (selectedSupplierId) {
+      await loadData();
+    } else {
+      await loadSuppliers();
+    }
     setRefreshing(false);
-  }, [supplierId]);
+  }, [selectedSupplierId]);
 
   const handleCreateTransaction = () => {
     setEditingTransaction(null);
@@ -121,6 +151,7 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
   };
 
   const handleDeleteTransaction = (transaction: SupplierDebtTransaction) => {
+    if (!selectedSupplierId) return;
     Alert.alert(
       'Confirmar eliminación',
       `¿Está seguro de eliminar la transacción ${transaction.transactionNumber}?`,
@@ -131,7 +162,7 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await suppliersService.deleteTransaction(supplierId, transaction.id);
+              await suppliersService.deleteTransaction(selectedSupplierId, transaction.id);
               Alert.alert('Éxito', 'Transacción eliminada correctamente');
               await loadData();
             } catch (error: any) {
@@ -215,13 +246,87 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
     ));
   };
 
+  const filteredSuppliers = suppliers.filter(
+    (s) =>
+      s.commercialName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.legalName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.ruc?.includes(searchQuery)
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3498db" />
-          <Text style={styles.loadingText}>Cargando deudas...</Text>
+          <Text style={styles.loadingText}>
+            {selectedSupplierId ? 'Cargando deudas...' : 'Cargando proveedores...'}
+          </Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Si no hay proveedor seleccionado, mostrar lista de proveedores
+  if (!selectedSupplierId) {
+    return (
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#2c3e50" />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Deudas de Proveedores</Text>
+            <Text style={styles.headerSubtitle}>Seleccione un proveedor</Text>
+          </View>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#7f8c8d" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar por nombre o RUC..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#95a5a6"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={20} color="#95a5a6" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Suppliers List */}
+        <FlatList
+          data={filteredSuppliers}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.supplierCard}
+              onPress={() => setSelectedSupplierId(item.id)}
+            >
+              <View style={styles.supplierIconContainer}>
+                <Ionicons name="business" size={24} color="#3498db" />
+              </View>
+              <View style={styles.supplierInfo}>
+                <Text style={styles.supplierName}>{item.commercialName}</Text>
+                {item.ruc && <Text style={styles.supplierRuc}>RUC: {item.ruc}</Text>}
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="#bdc3c7" />
+            </TouchableOpacity>
+          )}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="business-outline" size={64} color="#bdc3c7" />
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'No se encontraron proveedores' : 'No hay proveedores registrados'}
+              </Text>
+            </View>
+          }
+        />
       </SafeAreaView>
     );
   }
@@ -230,7 +335,10 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => setSelectedSupplierId(null)}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
@@ -283,28 +391,32 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
       </ScrollView>
 
       {/* Modals */}
-      <DebtTransactionFormModal
-        visible={showFormModal}
-        supplierId={supplierId}
-        transaction={editingTransaction}
-        onClose={() => {
-          setShowFormModal(false);
-          setEditingTransaction(null);
-        }}
-        onSuccess={handleFormSuccess}
-      />
+      {selectedSupplierId && (
+        <>
+          <DebtTransactionFormModal
+            visible={showFormModal}
+            supplierId={selectedSupplierId}
+            transaction={editingTransaction}
+            onClose={() => {
+              setShowFormModal(false);
+              setEditingTransaction(null);
+            }}
+            onSuccess={handleFormSuccess}
+          />
 
-      {assigningTransaction && (
-        <AssignCompanyModal
-          visible={showAssignModal}
-          supplierId={supplierId}
-          transaction={assigningTransaction}
-          onClose={() => {
-            setShowAssignModal(false);
-            setAssigningTransaction(null);
-          }}
-          onSuccess={handleAssignSuccess}
-        />
+          {assigningTransaction && (
+            <AssignCompanyModal
+              visible={showAssignModal}
+              supplierId={selectedSupplierId}
+              transaction={assigningTransaction}
+              onClose={() => {
+                setShowAssignModal(false);
+                setAssigningTransaction(null);
+              }}
+              onSuccess={handleAssignSuccess}
+            />
+          )}
+        </>
       )}
     </SafeAreaView>
   );
@@ -391,6 +503,67 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#95a5a6',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ecf0f1',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#2c3e50',
+  },
+  clearButton: {
+    padding: 4,
+  },
+  supplierCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ecf0f1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  supplierIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#ebf5fb',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  supplierInfo: {
+    flex: 1,
+  },
+  supplierName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 4,
+  },
+  supplierRuc: {
+    fontSize: 14,
+    color: '#7f8c8d',
   },
 });
 

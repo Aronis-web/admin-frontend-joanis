@@ -427,6 +427,49 @@ export const filesApi = {
       throw error;
     }
   },
+
+  /**
+   * Upload supplier debt transaction file
+   * Uses the generic category upload endpoint which returns path (not UUID)
+   * The backend accepts path as attachmentFileId for supplier debts
+   */
+  uploadSupplierDebtFile: async (
+    fileUri: string,
+    filename: string,
+    supplierId: string,
+    mimeType: string = 'image/jpeg'
+  ): Promise<{ success: boolean; url: string; path: string; category: string }> => {
+    console.log('📎 Uploading supplier debt file...');
+    console.log('📎 Supplier ID:', supplierId);
+    console.log('📎 Filename:', filename);
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri: fileUri,
+      type: mimeType,
+      name: filename,
+    } as any);
+    formData.append('filename', filename);
+    formData.append('category', 'supplier-debts');
+    formData.append('subfolder', supplierId);
+
+    try {
+      const response = await apiClient.post<{ success: boolean; url: string; path: string; category: string }>(
+        '/files/upload/category/multipart',
+        formData
+      );
+
+      console.log('✅ File uploaded successfully:', response);
+      return response;
+    } catch (error: any) {
+      console.error('❌ Upload failed:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  },
 };
 
 export default filesApi;

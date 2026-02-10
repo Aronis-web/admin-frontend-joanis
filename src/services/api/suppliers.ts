@@ -256,8 +256,8 @@ class SuppliersService {
   /**
    * Get unassigned transactions for a supplier
    */
-  async getUnassignedTransactions(supplierId: string): Promise<SupplierDebtTransaction[]> {
-    return apiClient.get<SupplierDebtTransaction[]>(
+  async getUnassignedTransactions(supplierId: string): Promise<{ transactions: SupplierDebtTransaction[]; unassignedBalanceCents: string }> {
+    return apiClient.get<{ transactions: SupplierDebtTransaction[]; unassignedBalanceCents: string }>(
       `${this.basePath}/${supplierId}/debts/unassigned`
     );
   }

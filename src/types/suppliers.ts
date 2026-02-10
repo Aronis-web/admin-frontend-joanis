@@ -417,7 +417,7 @@ export interface CreateDebtTransactionRequest {
   transactionDate?: string;
   dueDate?: string;
   notes?: string;
-  attachmentFileId?: string;
+  attachmentFilePath?: string;
   bankName?: string;
   bankAccountNumber?: string;
 }
@@ -436,7 +436,7 @@ export interface UpdateDebtTransactionRequest {
   transactionDate?: string;
   dueDate?: string;
   notes?: string;
-  attachmentFileId?: string;
+  attachmentFilePath?: string;
   bankName?: string;
   bankAccountNumber?: string;
 }
