@@ -15,9 +15,10 @@ export { organizationApi } from './organization';
 export { sitesApi, sitesService } from './sites';
 export { authApi } from './auth';
 
-// Re-export commonly used services
-export * from './auth';
-export * from './sites';
+// Re-export commonly used types and services
+// Note: Using selective exports to avoid conflicts
+export type { LoginRequest, RegisterRequest, AuthResponse, RefreshTokenResponse } from './auth';
+export type { Site, SitesResponse, CreateSiteRequest, UpdateSiteRequest, GetSitesParams, AddAdminRequest } from './sites';
 export * from './products';
 export * from './purchases';
 export * from './suppliers';
@@ -26,7 +27,9 @@ export * from './campaigns';
 export * from './repartos';
 export * from './users';
 export * from './roles';
-export * from './apps';
+// Selective exports to avoid conflicts with scopes
+export type { App, CreateAppRequest, UpdateAppRequest, GetAppsParams } from './apps';
 export * from './scopes';
 export * from './price-profiles';
-export * from './presentations';
+// Selective export to avoid Presentation conflict
+export type { PresentationFormData, CreatePresentationRequest, UpdatePresentationRequest } from './presentations';
