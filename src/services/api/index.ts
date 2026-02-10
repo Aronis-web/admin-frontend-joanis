@@ -28,3 +28,4 @@ export * from './price-profiles';
 export * from './presentations';
 
 export * from './billing';
+export * from './bizlinks';

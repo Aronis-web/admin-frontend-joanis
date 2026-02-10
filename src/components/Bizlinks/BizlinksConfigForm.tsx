@@ -1,0 +1,424 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import { useBizlinksConfig } from '../../hooks/useBizlinks';
+import {
+  BizlinksConfig,
+  CreateBizlinksConfigDto,
+  UpdateBizlinksConfigDto,
+} from '../../types/bizlinks';
+
+interface BizlinksConfigFormProps {
+  config?: BizlinksConfig;
+  companyId: string;
+  siteId?: string;
+  onSuccess?: (config: BizlinksConfig) => void;
+  onCancel?: () => void;
+}
+
+export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
+  config,
+  companyId,
+  siteId,
+  onSuccess,
+  onCancel,
+}) => {
+  const { createConfig, updateConfig, testConnection, loading } = useBizlinksConfig();
+
+  const [formData, setFormData] = useState({
+    baseUrl: config?.baseUrl || 'http://localhost:8080',
+    contextPath: config?.contextPath || '/einvoice/rest',
+    ruc: config?.ruc || '',
+    razonSocial: config?.razonSocial || '',
+    nombreComercial: config?.nombreComercial || '',
+    domicilioFiscal: config?.domicilioFiscal || '',
+    ubigeo: config?.ubigeo || '',
+    departamento: config?.departamento || '',
+    provincia: config?.provincia || '',
+    distrito: config?.distrito || '',
+    urbanizacion: config?.urbanizacion || '',
+    codigoPais: config?.codigoPais || 'PE',
+    email: config?.email || '',
+    telefono: config?.telefono || '',
+    autoSend: config?.autoSend ?? true,
+    autoDownloadPdf: config?.autoDownloadPdf ?? true,
+    autoDownloadXml: config?.autoDownloadXml ?? true,
+    timeoutSeconds: config?.timeoutSeconds || 30,
+    isActive: config?.isActive ?? true,
+    isProduction: config?.isProduction ?? false,
+  });
+
+  const [testing, setTesting] = useState(false);
+
+  const handleSubmit = async () => {
+    try {
+      // Validaciones
+      if (!formData.ruc || formData.ruc.length !== 11) {
+        Alert.alert('Error', 'El RUC debe tener 11 dígitos');
+        return;
+      }
+
+      if (!formData.razonSocial) {
+        Alert.alert('Error', 'La razón social es requerida');
+        return;
+      }
+
+      if (!formData.email) {
+        Alert.alert('Error', 'El email es requerido');
+        return;
+      }
+
+      let result: BizlinksConfig;
+
+      if (config) {
+        // Update
+        const updateData: UpdateBizlinksConfigDto = { ...formData };
+        result = await updateConfig(config.id, updateData);
+        Alert.alert('Éxito', 'Configuración actualizada correctamente');
+      } else {
+        // Create
+        const createData: CreateBizlinksConfigDto = {
+          ...formData,
+          companyId,
+          siteId,
+        };
+        result = await createConfig(createData);
+        Alert.alert('Éxito', 'Configuración creada correctamente');
+      }
+
+      onSuccess?.(result);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Error al guardar la configuración');
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!config?.id) {
+      Alert.alert('Error', 'Debe guardar la configuración antes de probar la conexión');
+      return;
+    }
+
+    setTesting(true);
+    try {
+      const result = await testConnection(config.id);
+      if (result.success) {
+        Alert.alert(
+          'Conexión exitosa',
+          `${result.message}\nTiempo de respuesta: ${result.responseTime}ms`
+        );
+      } else {
+        Alert.alert('Error de conexión', result.message);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Error al probar la conexión');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Conexión</Text>
+
+        <Text style={styles.label}>URL Base *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.baseUrl}
+          onChangeText={(text) => setFormData({ ...formData, baseUrl: text })}
+          placeholder="http://localhost:8080"
+          autoCapitalize="none"
+        />
+
+        <Text style={styles.label}>Context Path *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.contextPath}
+          onChangeText={(text) => setFormData({ ...formData, contextPath: text })}
+          placeholder="/einvoice/rest"
+          autoCapitalize="none"
+        />
+
+        <Text style={styles.label}>Timeout (segundos)</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.timeoutSeconds.toString()}
+          onChangeText={(text) =>
+            setFormData({ ...formData, timeoutSeconds: parseInt(text) || 30 })
+          }
+          keyboardType="numeric"
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Datos del Emisor</Text>
+
+        <Text style={styles.label}>RUC *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.ruc}
+          onChangeText={(text) => setFormData({ ...formData, ruc: text })}
+          placeholder="20123456789"
+          keyboardType="numeric"
+          maxLength={11}
+        />
+
+        <Text style={styles.label}>Razón Social *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.razonSocial}
+          onChangeText={(text) => setFormData({ ...formData, razonSocial: text })}
+          placeholder="MI EMPRESA SAC"
+        />
+
+        <Text style={styles.label}>Nombre Comercial</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.nombreComercial}
+          onChangeText={(text) => setFormData({ ...formData, nombreComercial: text })}
+          placeholder="Mi Empresa"
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Domicilio Fiscal</Text>
+
+        <Text style={styles.label}>Dirección *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.domicilioFiscal}
+          onChangeText={(text) => setFormData({ ...formData, domicilioFiscal: text })}
+          placeholder="Av. Principal 123"
+        />
+
+        <Text style={styles.label}>Ubigeo *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.ubigeo}
+          onChangeText={(text) => setFormData({ ...formData, ubigeo: text })}
+          placeholder="150101"
+          keyboardType="numeric"
+          maxLength={6}
+        />
+
+        <Text style={styles.label}>Departamento *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.departamento}
+          onChangeText={(text) => setFormData({ ...formData, departamento: text })}
+          placeholder="LIMA"
+        />
+
+        <Text style={styles.label}>Provincia *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.provincia}
+          onChangeText={(text) => setFormData({ ...formData, provincia: text })}
+          placeholder="LIMA"
+        />
+
+        <Text style={styles.label}>Distrito *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.distrito}
+          onChangeText={(text) => setFormData({ ...formData, distrito: text })}
+          placeholder="LIMA"
+        />
+
+        <Text style={styles.label}>Urbanización</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.urbanizacion}
+          onChangeText={(text) => setFormData({ ...formData, urbanizacion: text })}
+          placeholder="Opcional"
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Contacto</Text>
+
+        <Text style={styles.label}>Email *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.email}
+          onChangeText={(text) => setFormData({ ...formData, email: text })}
+          placeholder="facturacion@miempresa.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        <Text style={styles.label}>Teléfono</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.telefono}
+          onChangeText={(text) => setFormData({ ...formData, telefono: text })}
+          placeholder="01-1234567"
+          keyboardType="phone-pad"
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Opciones</Text>
+
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Envío automático a SUNAT</Text>
+          <Switch
+            value={formData.autoSend}
+            onValueChange={(value) => setFormData({ ...formData, autoSend: value })}
+          />
+        </View>
+
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Descarga automática de PDF</Text>
+          <Switch
+            value={formData.autoDownloadPdf}
+            onValueChange={(value) => setFormData({ ...formData, autoDownloadPdf: value })}
+          />
+        </View>
+
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Descarga automática de XML</Text>
+          <Switch
+            value={formData.autoDownloadXml}
+            onValueChange={(value) => setFormData({ ...formData, autoDownloadXml: value })}
+          />
+        </View>
+
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Configuración activa</Text>
+          <Switch
+            value={formData.isActive}
+            onValueChange={(value) => setFormData({ ...formData, isActive: value })}
+          />
+        </View>
+
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Modo producción</Text>
+          <Switch
+            value={formData.isProduction}
+            onValueChange={(value) => setFormData({ ...formData, isProduction: value })}
+          />
+        </View>
+      </View>
+
+      <View style={styles.buttonContainer}>
+        {config && (
+          <TouchableOpacity
+            style={[styles.button, styles.testButton]}
+            onPress={handleTestConnection}
+            disabled={testing || loading}
+          >
+            {testing ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Probar Conexión</Text>
+            )}
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={[styles.button, styles.saveButton]}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>
+              {config ? 'Actualizar' : 'Crear'} Configuración
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        {onCancel && (
+          <TouchableOpacity
+            style={[styles.button, styles.cancelButton]}
+            onPress={onCancel}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>Cancelar</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  section: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#333',
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#555',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    fontSize: 14,
+    backgroundColor: '#fff',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  switchLabel: {
+    fontSize: 14,
+    color: '#555',
+    flex: 1,
+  },
+  buttonContainer: {
+    padding: 16,
+    gap: 12,
+  },
+  button: {
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButton: {
+    backgroundColor: '#28a745',
+  },
+  testButton: {
+    backgroundColor: '#17a2b8',
+  },
+  cancelButton: {
+    backgroundColor: '#6c757d',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});

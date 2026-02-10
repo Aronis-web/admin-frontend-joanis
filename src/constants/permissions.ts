@@ -369,6 +369,33 @@ export const PERMISSIONS = {
       VOID: 'billing.correlatives.void',
     },
   },
+
+  // ========== BIZLINKS - FACTURACIÓN ELECTRÓNICA ==========
+  BIZLINKS: {
+    READ: 'bizlinks.read',
+    ADMIN: 'bizlinks.admin',
+
+    CONFIG: {
+      READ: 'bizlinks.config.read',
+      CREATE: 'bizlinks.config.create',
+      UPDATE: 'bizlinks.config.update',
+      DELETE: 'bizlinks.config.delete',
+      TEST: 'bizlinks.config.test',
+    },
+
+    DOCUMENTS: {
+      READ: 'bizlinks.documents.read',
+      EMIT: 'bizlinks.documents.emit',
+      REFRESH: 'bizlinks.documents.refresh',
+      DOWNLOAD: 'bizlinks.documents.download',
+      SEND: 'bizlinks.documents.send',
+      VOID: 'bizlinks.documents.void',
+    },
+
+    LOGS: {
+      READ: 'bizlinks.logs.read',
+    },
+  },
 } as const;
 
 /**

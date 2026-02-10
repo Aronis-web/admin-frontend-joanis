@@ -104,6 +104,15 @@ export const MAIN_ROUTES = {
   DOCUMENT_SERIES: 'DocumentSeries',
   DOCUMENT_CORRELATIVES: 'DocumentCorrelatives',
 
+  // Bizlinks - Electronic Invoicing
+  BIZLINKS_MENU: 'BizlinksMenu',
+  BIZLINKS_CONFIG: 'BizlinksConfig',
+  BIZLINKS_CONFIG_CREATE: 'BizlinksConfigCreate',
+  BIZLINKS_CONFIG_EDIT: 'BizlinksConfigEdit',
+  BIZLINKS_DOCUMENTS: 'BizlinksDocuments',
+  BIZLINKS_DOCUMENT_DETAIL: 'BizlinksDocumentDetail',
+  BIZLINKS_EMITIR_FACTURA: 'BizlinksEmitirFactura',
+
   // Balances
   BALANCES: 'Balances',
   BALANCE_DETAIL: 'BalanceDetail',
@@ -244,6 +253,15 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   DOCUMENT_TYPES: 'billing.document-types.read',
   DOCUMENT_SERIES: 'billing.series.read',
   DOCUMENT_CORRELATIVES: 'billing.correlatives.read',
+
+  // Bizlinks - Electronic Invoicing
+  BIZLINKS_MENU: 'bizlinks.read',
+  BIZLINKS_CONFIG: 'bizlinks.config.read',
+  BIZLINKS_CONFIG_CREATE: 'bizlinks.config.create',
+  BIZLINKS_CONFIG_EDIT: 'bizlinks.config.update',
+  BIZLINKS_DOCUMENTS: 'bizlinks.documents.read',
+  BIZLINKS_DOCUMENT_DETAIL: 'bizlinks.documents.read',
+  BIZLINKS_EMITIR_FACTURA: 'bizlinks.documents.emit',
 
   // Balances
   BALANCES: 'balances.read',
