@@ -26,7 +26,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "typecheck": "tsc --noEmit",
     "check-logs": "node scripts/remove-console-logs.js",
-    "validate": "npm run typecheck && npm run lint && npm run format:check"
+    "validate": "npm run typecheck && npm run lint && npm run format:check",
+    "postinstall": "node scripts/fix-memoize-one.js"
   },
   "dependencies": {
     "@expo-google-fonts/baloo-2": "^0.4.2",
@@ -56,6 +57,7 @@
     "expo-sharing": "~14.0.8",
     "expo-status-bar": "~3.0.9",
     "express": "^5.2.1",
+    "memoize-one": "6.0.0",
     "moti": "^0.30.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
