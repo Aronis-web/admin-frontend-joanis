@@ -189,6 +189,11 @@ export type MainStackParamList = {
   PriceProfiles: undefined;
   Presentations: undefined;
 
+  // Billing / Tax Configuration
+  DocumentTypes: undefined;
+  DocumentSeries: undefined;
+  DocumentCorrelatives: undefined;
+
   // Balances
   Balances: undefined;
   BalanceDetail: {

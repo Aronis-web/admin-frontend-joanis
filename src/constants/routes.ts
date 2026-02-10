@@ -98,6 +98,11 @@ export const MAIN_ROUTES = {
   PRICE_PROFILES: 'PriceProfiles',
   PRESENTATIONS: 'Presentations',
 
+  // Billing / Tax Configuration
+  DOCUMENT_TYPES: 'DocumentTypes',
+  DOCUMENT_SERIES: 'DocumentSeries',
+  DOCUMENT_CORRELATIVES: 'DocumentCorrelatives',
+
   // Balances
   BALANCES: 'Balances',
   BALANCE_DETAIL: 'BalanceDetail',
@@ -232,6 +237,11 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   APPS: 'apps.manage',
   PRICE_PROFILES: 'price_profiles.read',
   PRESENTATIONS: 'presentations.read',
+
+  // Billing / Tax Configuration
+  DOCUMENT_TYPES: 'billing.document_types.read',
+  DOCUMENT_SERIES: 'billing.series.read',
+  DOCUMENT_CORRELATIVES: 'billing.correlatives.read',
 
   // Balances
   BALANCES: 'balances.read',

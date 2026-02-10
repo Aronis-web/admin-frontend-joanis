@@ -120,6 +120,11 @@ const VerifyFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then
 // Organization Screens - Lazy Loaded
 const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').then(m => ({ default: m.OrganizationChartScreen })), 'Cargando organigrama...');
 
+// Billing Screens - Lazy Loaded
+const DocumentTypesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentTypesScreen })), 'Cargando tipos de documento...');
+const DocumentSeriesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentSeriesScreen })), 'Cargando series...');
+const DocumentCorrelativesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentCorrelativesScreen })), 'Cargando correlativos...');
+
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -873,6 +878,59 @@ const MainStack = React.memo(() => {
             requireAll={false}
           >
             <OrganizationChartScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      {/* Billing / Tax Configuration Screens */}
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.DOCUMENT_TYPES}
+        options={{
+          title: 'Tipos de Documentos',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'billing.document_types.read',
+              'billing.document_types.create',
+              'billing.document_types.update',
+            ]}
+            requireAll={false}
+          >
+            <DocumentTypesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.DOCUMENT_SERIES}
+        options={{
+          title: 'Series de Documentos',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'billing.series.read',
+              'billing.series.create',
+              'billing.series.update',
+            ]}
+            requireAll={false}
+          >
+            <DocumentSeriesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.DOCUMENT_CORRELATIVES}
+        options={{
+          title: 'Correlativos',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['billing.correlatives.read']}
+          >
+            <DocumentCorrelativesScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

@@ -779,5 +779,4 @@ class ExpensesService {
 }
 
 export const expensesService = new ExpensesService();
-export const expensesApi = expensesService; // Alias for consistency
 export default expensesService;
