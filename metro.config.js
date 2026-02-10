@@ -24,17 +24,4 @@ config.resolver.watchFolders = [path.resolve(__dirname)];
 config.resolver.sourceExts = ['js', 'jsx', 'json', 'ts', 'tsx', 'cjs', 'mjs'];
 config.resolver.assetExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ttf', 'otf', 'woff', 'woff2'];
 
-// Fix for memoize-one module resolution
-config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName === 'memoize-one') {
-    return {
-      filePath: path.resolve(__dirname, 'node_modules/memoize-one/dist/memoize-one.cjs.js'),
-      type: 'sourceFile',
-    };
-  }
-
-  // Default resolver
-  return context.resolveRequest(context, moduleName, platform);
-};
-
 module.exports = config;
