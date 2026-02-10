@@ -7,9 +7,18 @@ set -e
 
 echo "🔧 Running post-install hook..."
 
-# Fix memoize-one package
+# Fix memoize-one package by changing main field
 echo "🔧 Fixing memoize-one package..."
-node scripts/fix-memoize-one.js || echo "⚠️ Fix script failed, continuing..."
+MEMOIZE_PKG="node_modules/memoize-one/package.json"
+if [ -f "$MEMOIZE_PKG" ]; then
+  echo "📦 Found memoize-one package.json"
+  # Use sed to replace the main field
+  sed -i 's/"main": "dist\/memoize-one\.cjs\.js"/"main": "dist\/memoize-one.js"/g' "$MEMOIZE_PKG"
+  echo "✅ Updated memoize-one main field"
+  cat "$MEMOIZE_PKG" | grep "main"
+else
+  echo "⚠️ memoize-one package.json not found"
+fi
 
 # Verify TypeScript configuration
 echo "📝 TypeScript configuration:"
