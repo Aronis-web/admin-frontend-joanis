@@ -34,7 +34,9 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_ENV": "production"
+        "EXPO_PUBLIC_ENV": "production",
+        "EXPO_NO_TYPESCRIPT_SETUP": "1",
+        "SKIP_BUNDLER_CACHE": "1"
       }
     }
   },
