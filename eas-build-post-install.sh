@@ -7,6 +7,10 @@ set -e
 
 echo "🔧 Running post-install hook..."
 
+# Fix memoize-one package
+echo "🔧 Fixing memoize-one package..."
+node scripts/fix-memoize-one.js || echo "⚠️ Fix script failed, continuing..."
+
 # Verify TypeScript configuration
 echo "📝 TypeScript configuration:"
 cat tsconfig.json

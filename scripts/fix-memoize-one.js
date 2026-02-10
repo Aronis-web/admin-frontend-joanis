@@ -33,12 +33,26 @@ if (fs.existsSync(packageJsonPath)) {
       // Look for .esm.js or .js files
       const esmFile = files.find(f => f.endsWith('.esm.js'));
       const jsFile = files.find(f => f.endsWith('.js') && !f.endsWith('.esm.js'));
+      const mjsFile = files.find(f => f.endsWith('.mjs'));
 
-      if (esmFile || jsFile) {
-        const correctFile = esmFile || jsFile;
+      if (esmFile || jsFile || mjsFile) {
+        const correctFile = esmFile || jsFile || mjsFile;
         packageJson.main = `dist/${correctFile}`;
         fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
         console.log(`✅ Updated main to: dist/${correctFile}`);
+      } else {
+        console.log('❌ No suitable file found in dist directory');
+      }
+    } else {
+      // If dist doesn't exist, check root directory
+      const rootFiles = fs.readdirSync(memoizeOnePath);
+      console.log(`📁 Files in root: ${rootFiles.join(', ')}`);
+
+      const jsFile = rootFiles.find(f => f.endsWith('.js') && f !== 'package.json');
+      if (jsFile) {
+        packageJson.main = jsFile;
+        fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+        console.log(`✅ Updated main to: ${jsFile}`);
       }
     }
   } else {
