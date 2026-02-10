@@ -24,4 +24,9 @@ config.resolver.watchFolders = [path.resolve(__dirname)];
 config.resolver.sourceExts = ['js', 'jsx', 'json', 'ts', 'tsx', 'cjs', 'mjs'];
 config.resolver.assetExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ttf', 'otf', 'woff', 'woff2'];
 
+// Alias memoize-one to vendored version
+config.resolver.extraNodeModules = {
+  'memoize-one': path.resolve(__dirname, 'vendor/memoize-one'),
+};
+
 module.exports = config;
