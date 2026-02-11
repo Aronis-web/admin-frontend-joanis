@@ -7,17 +7,21 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useBizlinksDocuments } from '../../hooks/useBizlinks';
 import { BizlinksDocument, BizlinksDocumentType } from '../../types/bizlinks';
 import { BizlinksDocumentCard } from '../../components/Bizlinks';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuthStore } from '../../store/auth';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 type Props = NativeStackScreenProps<any, 'BizlinksDocuments'>;
 
 export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
-  const { user } = useAuth();
+  const { currentCompany } = useAuthStore();
   const {
     getDocuments,
     refreshDocumentStatus,
@@ -32,7 +36,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
   const loadDocuments = async () => {
     try {
       const data = await getDocuments({
-        companyId: user?.companyId,
+        companyId: currentCompany?.id,
       });
       setDocuments(data);
     } catch (error) {
@@ -68,15 +72,83 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleDownloadArtifacts = async (document: BizlinksDocument) => {
     try {
+      // Primero, solicitar al servidor que descargue los archivos desde Bizlinks
       await downloadArtifacts(document.id, {
         downloadPdf: true,
         downloadXml: true,
         downloadCdr: true,
       });
-      Alert.alert('Éxito', 'Archivos descargados correctamente');
-      loadDocuments();
+
+      // Recargar el documento para obtener las URLs actualizadas
+      await loadDocuments();
+
+      // Buscar el documento actualizado
+      const updatedDoc = documents.find(d => d.id === document.id);
+      if (!updatedDoc) {
+        Alert.alert('Error', 'No se pudo encontrar el documento actualizado');
+        return;
+      }
+
+      // Descargar los archivos disponibles
+      const downloadedFiles: string[] = [];
+
+      if (updatedDoc.pdfUrl) {
+        try {
+          const pdfFileName = `${updatedDoc.serieNumero}.pdf`;
+
+          const pdfFile = await File.downloadFileAsync(updatedDoc.pdfUrl, Paths.cache);
+
+          downloadedFiles.push('PDF');
+
+          // Compartir el archivo PDF
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(pdfFile.uri, {
+              mimeType: 'application/pdf',
+              dialogTitle: `Factura ${updatedDoc.serieNumero}`,
+            });
+          }
+        } catch (error) {
+          console.error('Error descargando PDF:', error);
+        }
+      }
+
+      if (updatedDoc.xmlSignUrl) {
+        try {
+          const xmlFileName = `${updatedDoc.serieNumero}.xml`;
+
+          await File.downloadFileAsync(updatedDoc.xmlSignUrl, Paths.cache);
+
+          downloadedFiles.push('XML');
+        } catch (error) {
+          console.error('Error descargando XML:', error);
+        }
+      }
+
+      if (updatedDoc.xmlSunatUrl) {
+        try {
+          const cdrFileName = `R-${updatedDoc.serieNumero}.xml`;
+
+          await File.downloadFileAsync(updatedDoc.xmlSunatUrl, Paths.cache);
+
+          downloadedFiles.push('CDR');
+        } catch (error) {
+          console.error('Error descargando CDR:', error);
+        }
+      }
+
+      if (downloadedFiles.length > 0) {
+        Alert.alert(
+          'Descarga exitosa',
+          `Archivos descargados: ${downloadedFiles.join(', ')}`
+        );
+      } else {
+        Alert.alert(
+          'Información',
+          'No hay archivos disponibles para descargar. Intenta actualizar el estado del documento primero.'
+        );
+      }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error.message || 'Error al descargar archivos');
     }
   };
 
