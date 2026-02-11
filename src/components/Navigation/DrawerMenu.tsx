@@ -297,7 +297,7 @@ const menuCategories: MenuCategory[] = [
         id: 'bizlinks-generate',
         icon: '📝',
         label: 'Generar Documentos',
-        route: MAIN_ROUTES.BIZLINKS_GENERATE_DOCUMENTS,
+        route: MAIN_ROUTES.BIZLINKS_DOCUMENTS,
         color: '#10B981',
         requiredPermissions: ['bizlinks.documents.send'],
       },
