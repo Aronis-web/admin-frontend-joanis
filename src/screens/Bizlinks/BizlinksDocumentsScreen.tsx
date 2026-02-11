@@ -233,65 +233,36 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
     setDownloadingDocId(document.id);
 
     try {
-      // Primero descargar los archivos desde Bizlinks
-      console.log('📥 Solicitando descarga de PDF para:', document.serieNumero);
-      await downloadArtifacts(document.id, {
-        downloadPdf: true,
-        downloadXml: false,
-        downloadCdr: false,
-      });
+      console.log('📥 Descargando PDF para:', document.serieNumero);
 
-      // Esperar un momento para que el backend procese
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (Platform.OS === 'web') {
+        // En web, usar el endpoint directo que devuelve el blob
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+        const pdfUrl = `${apiUrl}/bizlinks/documents/${document.id}/pdf`;
 
-      // Recargar documentos para obtener URLs actualizadas
-      await loadDocuments();
-
-      // Buscar el documento actualizado
-      let updatedDoc = documents.find(d => d.id === document.id);
-
-      // Si no tiene pdfUrl, reintentar hasta 3 veces
-      let retries = 0;
-      while (!updatedDoc?.pdfUrl && retries < 3) {
-        console.log(`🔄 Reintento ${retries + 1}/3 para obtener PDF URL...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        await loadDocuments();
-        updatedDoc = documents.find(d => d.id === document.id);
-        retries++;
-      }
-
-      if (updatedDoc?.pdfUrl) {
-        console.log('✅ PDF URL obtenida:', updatedDoc.pdfUrl);
-
-        if (Platform.OS === 'web') {
-          // En web, abrir en nueva pestaña
-          window.open(updatedDoc.pdfUrl, '_blank');
-        } else {
-          // En móvil, descargar y compartir
-          const fileName = `${updatedDoc.serieNumero}.pdf`;
-          const fileUri = FileSystem.documentDirectory + fileName;
-
-          const downloadResult = await FileSystem.downloadAsync(
-            updatedDoc.pdfUrl,
-            fileUri
-          );
-
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(downloadResult.uri, {
-              mimeType: 'application/pdf',
-              dialogTitle: `Comprobante ${updatedDoc.serieNumero}`,
-            });
-          } else {
-            Alert.alert('Éxito', `PDF guardado en: ${downloadResult.uri}`);
-          }
-        }
+        // Abrir en nueva pestaña
+        window.open(pdfUrl, '_blank');
       } else {
-        console.log('❌ PDF no disponible después de reintentos');
-        Alert.alert(
-          'PDF no disponible',
-          'El PDF aún se está generando. Por favor, intenta nuevamente en unos momentos.'
-        );
+        // En móvil, descargar usando el endpoint directo
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+        const pdfUrl = `${apiUrl}/bizlinks/documents/${document.id}/pdf`;
+
+        const fileName = `${document.serieNumero}.pdf`;
+        const fileUri = FileSystem.documentDirectory + fileName;
+
+        const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri);
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Comprobante ${document.serieNumero}`,
+          });
+        } else {
+          Alert.alert('Éxito', `PDF guardado en: ${downloadResult.uri}`);
+        }
       }
+
+      console.log('✅ PDF descargado exitosamente');
     } catch (error: any) {
       console.error('❌ Error al descargar PDF:', error);
       Alert.alert('Error', error.message || 'Error al descargar PDF');
@@ -305,39 +276,32 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
     setDownloadingDocId(document.id);
 
     try {
-      console.log('📥 Solicitando descarga de XML para:', document.serieNumero);
-      await downloadArtifacts(document.id, {
-        downloadPdf: false,
-        downloadXml: true,
-        downloadCdr: false,
-      });
+      console.log('📥 Descargando XML para:', document.serieNumero);
 
-      // Esperar un momento para que el backend procese
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+      const xmlUrl = `${apiUrl}/bizlinks/documents/${document.id}/xml`;
 
-      await loadDocuments();
-      let updatedDoc = documents.find(d => d.id === document.id);
-
-      // Si no tiene xmlSignUrl, reintentar hasta 3 veces
-      let retries = 0;
-      while (!updatedDoc?.xmlSignUrl && retries < 3) {
-        console.log(`🔄 Reintento ${retries + 1}/3 para obtener XML URL...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        await loadDocuments();
-        updatedDoc = documents.find(d => d.id === document.id);
-        retries++;
-      }
-
-      if (updatedDoc?.xmlSignUrl) {
-        console.log('✅ XML URL obtenida:', updatedDoc.xmlSignUrl);
-        Linking.openURL(updatedDoc.xmlSignUrl);
+      if (Platform.OS === 'web') {
+        // En web, abrir en nueva pestaña
+        window.open(xmlUrl, '_blank');
       } else {
-        console.log('❌ XML no disponible después de reintentos');
-        Alert.alert(
-          'XML no disponible',
-          'El XML aún se está generando. Por favor, intenta nuevamente en unos momentos.'
-        );
+        // En móvil, descargar y compartir
+        const fileName = `${document.serieNumero}.xml`;
+        const fileUri = FileSystem.documentDirectory + fileName;
+
+        const downloadResult = await FileSystem.downloadAsync(xmlUrl, fileUri);
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: 'application/xml',
+            dialogTitle: `XML ${document.serieNumero}`,
+          });
+        } else {
+          Alert.alert('Éxito', `XML guardado en: ${downloadResult.uri}`);
+        }
       }
+
+      console.log('✅ XML descargado exitosamente');
     } catch (error: any) {
       console.error('❌ Error al descargar XML:', error);
       Alert.alert('Error', error.message || 'Error al descargar XML');

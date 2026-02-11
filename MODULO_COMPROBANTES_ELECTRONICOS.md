@@ -323,6 +323,18 @@ El sistema ahora usa el endpoint correcto según el tipo de documento selecciona
 
 El tipo de documento se pasa desde `BizlinksSelectSeriesScreen` → `BizlinksEmitirFacturaScreen` → `EmitirFacturaForm`, y el hook `useBizlinksDocuments` usa el método `emitirComprobante` que selecciona el endpoint correcto automáticamente.
 
+### Endpoints de Descarga Directa
+El sistema usa endpoints directos para descargar archivos sin necesidad de esperas o reintentos:
+- **Descargar PDF:** `GET /bizlinks/documents/:id/pdf`
+- **Descargar XML:** `GET /bizlinks/documents/:id/xml`
+- **Descargar CDR:** `GET /bizlinks/documents/:id/cdr`
+
+Estos endpoints devuelven el archivo directamente como blob, lo que permite:
+- En web: Abrir en nueva pestaña inmediatamente
+- En móvil: Descargar y compartir sin demoras
+- No requiere polling ni reintentos
+- Descarga instantánea si el archivo está disponible
+
 ### Compatibilidad
 - ✅ iOS
 - ✅ Android

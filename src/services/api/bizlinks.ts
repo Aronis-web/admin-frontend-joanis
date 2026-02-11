@@ -115,6 +115,27 @@ export const bizlinksApi = {
     return apiClient.post<BizlinksDocument>(`/bizlinks/documents/${id}/download-artifacts`, data);
   },
 
+  // Download PDF directly - GET /bizlinks/documents/:id/pdf
+  downloadPDF: async (id: string): Promise<Blob> => {
+    return apiClient.get<Blob>(`/bizlinks/documents/${id}/pdf`, {
+      responseType: 'blob',
+    });
+  },
+
+  // Download XML directly - GET /bizlinks/documents/:id/xml
+  downloadXML: async (id: string): Promise<Blob> => {
+    return apiClient.get<Blob>(`/bizlinks/documents/${id}/xml`, {
+      responseType: 'blob',
+    });
+  },
+
+  // Download CDR directly - GET /bizlinks/documents/:id/cdr
+  downloadCDR: async (id: string): Promise<Blob> => {
+    return apiClient.get<Blob>(`/bizlinks/documents/${id}/cdr`, {
+      responseType: 'blob',
+    });
+  },
+
   // Send to SUNAT - POST /bizlinks/documents/:id/send
   sendToSunat: async (id: string): Promise<BizlinksDocument> => {
     return apiClient.post<BizlinksDocument>(`/bizlinks/documents/${id}/send`);
