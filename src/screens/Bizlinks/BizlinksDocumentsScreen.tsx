@@ -30,7 +30,7 @@ import { SearchBar } from '@/components/common/SearchBar';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 type Props = NativeStackScreenProps<any, 'BizlinksDocuments'>;
 
