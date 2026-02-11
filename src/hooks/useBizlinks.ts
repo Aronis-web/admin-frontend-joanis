@@ -8,6 +8,7 @@ import {
   EmitirFacturaDto,
   GetBizlinksConfigsParams,
   GetBizlinksDocumentsParams,
+  BizlinksDocumentType,
 } from '../types/bizlinks';
 
 // ============================================
@@ -217,6 +218,43 @@ export const useBizlinksDocuments = () => {
     }
   }, []);
 
+  // Método genérico para emitir cualquier tipo de comprobante
+  const emitirComprobante = useCallback(async (data: EmitirFacturaDto, documentType: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      let document: BizlinksDocument;
+
+      switch (documentType) {
+        case BizlinksDocumentType.FACTURA:
+          document = await bizlinksApi.emitirFactura(data);
+          break;
+        case BizlinksDocumentType.BOLETA:
+          document = await bizlinksApi.emitirBoleta(data);
+          break;
+        case BizlinksDocumentType.NOTA_CREDITO:
+          document = await bizlinksApi.emitirNotaCredito(data);
+          break;
+        case BizlinksDocumentType.NOTA_DEBITO:
+          document = await bizlinksApi.emitirNotaDebito(data);
+          break;
+        case BizlinksDocumentType.GUIA_REMISION_REMITENTE:
+          document = await bizlinksApi.emitirGuiaRemision(data);
+          break;
+        default:
+          throw new Error(`Tipo de documento no soportado: ${documentType}`);
+      }
+
+      return document;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Error al emitir comprobante';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const refreshDocumentStatus = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
@@ -299,6 +337,7 @@ export const useBizlinksDocuments = () => {
     getDocumentById,
     getDocumentBySerieNumero,
     emitirFactura,
+    emitirComprobante,
     refreshDocumentStatus,
     downloadArtifacts,
     sendToSunat,

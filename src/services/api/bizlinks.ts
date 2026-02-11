@@ -85,6 +85,26 @@ export const bizlinksApi = {
     return apiClient.post<BizlinksDocument>('/bizlinks/documents/factura', data);
   },
 
+  // Emit boleta - POST /bizlinks/documents/boleta
+  emitirBoleta: async (data: EmitirFacturaDto): Promise<BizlinksDocument> => {
+    return apiClient.post<BizlinksDocument>('/bizlinks/documents/boleta', data);
+  },
+
+  // Emit nota de crédito - POST /bizlinks/documents/nota-credito
+  emitirNotaCredito: async (data: EmitirFacturaDto): Promise<BizlinksDocument> => {
+    return apiClient.post<BizlinksDocument>('/bizlinks/documents/nota-credito', data);
+  },
+
+  // Emit nota de débito - POST /bizlinks/documents/nota-debito
+  emitirNotaDebito: async (data: EmitirFacturaDto): Promise<BizlinksDocument> => {
+    return apiClient.post<BizlinksDocument>('/bizlinks/documents/nota-debito', data);
+  },
+
+  // Emit guía de remisión - POST /bizlinks/documents/guia-remision
+  emitirGuiaRemision: async (data: EmitirFacturaDto): Promise<BizlinksDocument> => {
+    return apiClient.post<BizlinksDocument>('/bizlinks/documents/guia-remision', data);
+  },
+
   // Refresh document status - POST /bizlinks/documents/:id/refresh
   refreshDocumentStatus: async (id: string): Promise<BizlinksDocument> => {
     return apiClient.post<BizlinksDocument>(`/bizlinks/documents/${id}/refresh`);

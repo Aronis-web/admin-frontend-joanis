@@ -31,6 +31,7 @@ interface EmitirFacturaFormProps {
   serieNumero?: string;
   seriesId?: string;
   series?: string;
+  documentType?: string;
   onSuccess?: (documentId: string) => void;
   onCancel?: () => void;
 }
@@ -42,10 +43,11 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
   serieNumero,
   seriesId,
   series,
+  documentType,
   onSuccess,
   onCancel,
 }) => {
-  const { emitirFactura, loading } = useBizlinksDocuments();
+  const { emitirFactura, emitirComprobante, loading } = useBizlinksDocuments();
   const { getActiveConfig, loading: loadingConfig } = useBizlinksConfig();
   const [configLoaded, setConfigLoaded] = useState(false);
 
@@ -336,12 +338,21 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
       };
 
       console.log('📝 DTO a enviar:', JSON.stringify(dto, null, 2));
+      console.log('📋 Tipo de documento:', documentType);
 
-      const result = await emitirFactura(dto);
-      Alert.alert('Éxito', 'Factura emitida correctamente');
+      // Usar el método correcto según el tipo de documento
+      let result;
+      if (documentType && emitirComprobante) {
+        result = await emitirComprobante(dto, documentType);
+      } else {
+        // Fallback al método original si no se especifica tipo
+        result = await emitirFactura(dto);
+      }
+
+      Alert.alert('Éxito', 'Comprobante emitido correctamente');
       onSuccess?.(result.id);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Error al emitir la factura');
+      Alert.alert('Error', error.message || 'Error al emitir el comprobante');
     }
   };
 

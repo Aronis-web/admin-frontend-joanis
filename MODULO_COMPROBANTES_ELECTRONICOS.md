@@ -205,11 +205,13 @@ src/screens/Bizlinks/BizlinksDocumentsScreen.tsx
 3. **Formulario de Emisión**
    - Sistema navega al formulario correspondiente
    - **Serie pre-asignada:** Se muestra en un badge destacado (no editable)
+   - **Tipo de documento:** Se pasa automáticamente desde la selección
    - Usuario completa datos del cliente e items
    - Sistema calcula totales automáticamente
 
 4. **Emisión y Confirmación**
    - Usuario envía el formulario
+   - **Sistema usa el endpoint correcto** según el tipo de documento
    - Sistema emite el comprobante a SUNAT
    - Navega al detalle del documento creado
 
@@ -310,6 +312,16 @@ interface GetBizlinksDocumentsParams {
   - Cálculo: `nextNumber = currentNumber + 1`
   - Formato: `${series}-${nextNumber.toString().padStart(8, '0')}`
 - **Correlativo Automático:** El `seriesId` se usa como `correlativeId` en el DTO de emisión
+
+### Endpoints por Tipo de Documento
+El sistema ahora usa el endpoint correcto según el tipo de documento seleccionado:
+- **Factura (01):** `POST /bizlinks/documents/factura`
+- **Boleta (03):** `POST /bizlinks/documents/boleta`
+- **Nota de Crédito (07):** `POST /bizlinks/documents/nota-credito`
+- **Nota de Débito (08):** `POST /bizlinks/documents/nota-debito`
+- **Guía de Remisión (09):** `POST /bizlinks/documents/guia-remision`
+
+El tipo de documento se pasa desde `BizlinksSelectSeriesScreen` → `BizlinksEmitirFacturaScreen` → `EmitirFacturaForm`, y el hook `useBizlinksDocuments` usa el método `emitirComprobante` que selecciona el endpoint correcto automáticamente.
 
 ### Compatibilidad
 - ✅ iOS

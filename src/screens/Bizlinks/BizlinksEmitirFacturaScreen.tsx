@@ -26,6 +26,7 @@ export const BizlinksEmitirFacturaScreen: React.FC<Props> = ({ navigation, route
         siteId={currentSite?.id}
         seriesId={seriesId}
         series={series}
+        documentType={documentType}
         onSuccess={handleSuccess}
         onCancel={handleCancel}
       />
