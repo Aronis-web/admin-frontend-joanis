@@ -89,64 +89,66 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         return;
       }
 
-      // Descargar los archivos disponibles
-      const downloadedFiles: string[] = [];
+      // Verificar qué archivos están disponibles
+      const availableFiles: string[] = [];
+      const urls: string[] = [];
 
       if (updatedDoc.pdfUrl) {
-        try {
-          const pdfFileName = `${updatedDoc.serieNumero}.pdf`;
-
-          const pdfFile = await File.downloadFileAsync(updatedDoc.pdfUrl, Paths.cache);
-
-          downloadedFiles.push('PDF');
-
-          // Compartir el archivo PDF
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(pdfFile.uri, {
-              mimeType: 'application/pdf',
-              dialogTitle: `Factura ${updatedDoc.serieNumero}`,
-            });
-          }
-        } catch (error) {
-          console.error('Error descargando PDF:', error);
-        }
+        availableFiles.push('PDF');
+        urls.push(updatedDoc.pdfUrl);
       }
 
       if (updatedDoc.xmlSignUrl) {
-        try {
-          const xmlFileName = `${updatedDoc.serieNumero}.xml`;
-
-          await File.downloadFileAsync(updatedDoc.xmlSignUrl, Paths.cache);
-
-          downloadedFiles.push('XML');
-        } catch (error) {
-          console.error('Error descargando XML:', error);
-        }
+        availableFiles.push('XML');
+        urls.push(updatedDoc.xmlSignUrl);
       }
 
       if (updatedDoc.xmlSunatUrl) {
-        try {
-          const cdrFileName = `R-${updatedDoc.serieNumero}.xml`;
-
-          await File.downloadFileAsync(updatedDoc.xmlSunatUrl, Paths.cache);
-
-          downloadedFiles.push('CDR');
-        } catch (error) {
-          console.error('Error descargando CDR:', error);
-        }
+        availableFiles.push('CDR');
+        urls.push(updatedDoc.xmlSunatUrl);
       }
 
-      if (downloadedFiles.length > 0) {
-        Alert.alert(
-          'Descarga exitosa',
-          `Archivos descargados: ${downloadedFiles.join(', ')}`
-        );
-      } else {
+      if (availableFiles.length === 0) {
         Alert.alert(
           'Información',
           'No hay archivos disponibles para descargar. Intenta actualizar el estado del documento primero.'
         );
+        return;
       }
+
+      // Mostrar opciones al usuario
+      Alert.alert(
+        'Descargar Archivos',
+        `Archivos disponibles: ${availableFiles.join(', ')}\n\n¿Qué deseas hacer?`,
+        [
+          {
+            text: 'Abrir PDF',
+            onPress: () => {
+              if (updatedDoc.pdfUrl) {
+                Linking.openURL(updatedDoc.pdfUrl).catch(err =>
+                  Alert.alert('Error', 'No se pudo abrir el PDF')
+                );
+              }
+            },
+            style: updatedDoc.pdfUrl ? 'default' : 'cancel',
+          },
+          {
+            text: 'Abrir XML',
+            onPress: () => {
+              if (updatedDoc.xmlSignUrl) {
+                Linking.openURL(updatedDoc.xmlSignUrl).catch(err =>
+                  Alert.alert('Error', 'No se pudo abrir el XML')
+                );
+              }
+            },
+            style: updatedDoc.xmlSignUrl ? 'default' : 'cancel',
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+        ]
+      );
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Error al descargar archivos');
     }
