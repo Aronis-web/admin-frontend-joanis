@@ -31,6 +31,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { config } from '@/utils/config';
 
 type Props = NativeStackScreenProps<any, 'BizlinksDocuments'>;
 
@@ -254,7 +255,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         const fileUri = FileSystem.documentDirectory + fileName;
 
         // Incluir headers de autenticación
-        const headers: Record<string, string> = {};
+        const headers: Record<string, string> = {
+          'X-App-Id': config.APP_ID,
+        };
+
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
@@ -328,7 +332,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         const fileUri = FileSystem.documentDirectory + fileName;
 
         // Incluir headers de autenticación
-        const headers: Record<string, string> = {};
+        const headers: Record<string, string> = {
+          'X-App-Id': config.APP_ID,
+        };
+
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
