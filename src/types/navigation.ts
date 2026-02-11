@@ -208,7 +208,36 @@ export type MainStackParamList = {
   BizlinksDocumentDetail: {
     documentId: string;
   };
-  BizlinksEmitirFactura: undefined;
+  BizlinksSelectSeries: {
+    documentType: string;
+    companyId?: string;
+    siteId?: string;
+  };
+  BizlinksEmitirFactura: {
+    seriesId?: string;
+    series?: string;
+    documentType?: string;
+  };
+  BizlinksEmitirBoleta: {
+    seriesId?: string;
+    series?: string;
+    documentType?: string;
+  };
+  BizlinksEmitirNotaCredito: {
+    seriesId?: string;
+    series?: string;
+    documentType?: string;
+  };
+  BizlinksEmitirNotaDebito: {
+    seriesId?: string;
+    series?: string;
+    documentType?: string;
+  };
+  BizlinksEmitirGuiaRemision: {
+    seriesId?: string;
+    series?: string;
+    documentType?: string;
+  };
 
   // Balances
   Balances: undefined;

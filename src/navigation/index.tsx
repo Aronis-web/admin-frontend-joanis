@@ -135,6 +135,7 @@ const BizlinksConfigCreateScreen = lazyLoad(() => import('@/screens/Bizlinks').t
 const BizlinksConfigEditScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigEditScreen })), 'Cargando formulario...');
 const BizlinksDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksDocumentsScreen })), 'Cargando documentos...');
 const BizlinksDocumentDetailScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksDocumentDetailScreen })), 'Cargando detalle...');
+const BizlinksSelectSeriesScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksSelectSeriesScreen })), 'Cargando series...');
 const BizlinksEmitirFacturaScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksEmitirFacturaScreen })), 'Cargando formulario...');
 
 // RBAC Components
@@ -1080,9 +1081,79 @@ const MainStack = React.memo(() => {
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
+        name="BizlinksSelectSeries"
+        options={{
+          title: 'Seleccionar Serie',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.documents.send']}
+          >
+            <BizlinksSelectSeriesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
         name={MAIN_ROUTES.BIZLINKS_EMITIR_FACTURA}
         options={{
           title: 'Emitir Factura',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.documents.send']}
+          >
+            <BizlinksEmitirFacturaScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="BizlinksEmitirBoleta"
+        options={{
+          title: 'Emitir Boleta',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.documents.send']}
+          >
+            <BizlinksEmitirFacturaScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="BizlinksEmitirNotaCredito"
+        options={{
+          title: 'Emitir Nota de Crédito',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.documents.send']}
+          >
+            <BizlinksEmitirFacturaScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="BizlinksEmitirNotaDebito"
+        options={{
+          title: 'Emitir Nota de Débito',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.documents.send']}
+          >
+            <BizlinksEmitirFacturaScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="BizlinksEmitirGuiaRemision"
+        options={{
+          title: 'Emitir Guía de Remisión',
         }}
       >
         {(props) => (

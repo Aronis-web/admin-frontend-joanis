@@ -21,25 +21,18 @@ interface MenuOption {
 export const BizlinksMenuScreen: React.FC<Props> = ({ navigation }) => {
   const menuOptions: MenuOption[] = [
     {
+      title: 'Comprobantes Electrónicos',
+      description: 'Gestionar y emitir comprobantes electrónicos',
+      icon: '📄',
+      route: 'BizlinksDocuments',
+      color: '#6366F1',
+    },
+    {
       title: 'Configuración',
       description: 'Gestionar configuraciones de Bizlinks',
       icon: '⚙️',
       route: 'BizlinksConfig',
       color: '#007bff',
-    },
-    {
-      title: 'Documentos',
-      description: 'Ver documentos electrónicos emitidos',
-      icon: '📄',
-      route: 'BizlinksDocuments',
-      color: '#28a745',
-    },
-    {
-      title: 'Emitir Factura',
-      description: 'Emitir nueva factura electrónica',
-      icon: '📝',
-      route: 'BizlinksEmitirFactura',
-      color: '#17a2b8',
     },
   ];
 

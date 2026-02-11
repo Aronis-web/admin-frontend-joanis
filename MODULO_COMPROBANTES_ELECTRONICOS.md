@@ -4,6 +4,13 @@
 
 Se ha rediseñado completamente el módulo de comprobantes electrónicos siguiendo el patrón de diseño de los demás módulos del sistema (Gastos, Proveedores, Compras).
 
+### 🆕 Actualización: Menú Flotante Animado y Selección de Series
+
+**Fecha:** 2024
+**Versión:** 2.1
+
+Se ha implementado un sistema completo de selección de tipo de comprobante y serie antes de emitir, integrándose con el módulo de configuración de series y correlativos.
+
 ---
 
 ## 🎨 Características Implementadas
@@ -84,11 +91,30 @@ Estados con colores semánticos:
 - ✅ Botones deshabilitados en límites
 - ✅ Diseño consistente con otros módulos
 
-### 8. **Botón Flotante de Crear**
-- ✅ Botón "+" flotante en la esquina inferior derecha
-- ✅ Navega a la pantalla de emitir factura
-- ✅ Componente AddButton reutilizable
-- ✅ Animación y sombra
+### 8. **Menú Flotante Animado (FAB)**
+- ✅ Botón principal "+" con rotación 45° al abrir
+- ✅ 5 opciones de comprobantes con animación stagger:
+  - 📄 **Factura Electrónica** (Azul #3B82F6)
+  - 🧾 **Boleta de Venta** (Verde #10B981)
+  - 📝 **Nota de Crédito** (Amarillo #F59E0B)
+  - 📋 **Nota de Débito** (Rojo #EF4444)
+  - 🚚 **Guía de Remisión** (Púrpura #8B5CF6)
+- ✅ Overlay semi-transparente al abrir
+- ✅ Animaciones suaves con spring physics
+- ✅ Labels descriptivos para cada opción
+- ✅ Componente BizlinksDocumentsFAB reutilizable
+
+### 9. **Selección de Serie Inteligente**
+- ✅ Pantalla intermedia antes de emitir comprobante
+- ✅ Lista de series disponibles filtradas por tipo
+- ✅ Validación de números disponibles
+- ✅ Información detallada de cada serie:
+  - Número actual
+  - Números disponibles
+  - Número máximo
+- ✅ Badge de advertencia cuando quedan < 100 números
+- ✅ Navegación a configuración si no hay series
+- ✅ Integración con sistema de correlativos
 
 ### 9. **Estados de Carga**
 - ✅ Loading inicial con spinner y mensaje
@@ -243,6 +269,14 @@ interface GetBizlinksDocumentsParams {
 - useFocusEffect para recargar solo cuando es necesario
 - useCallback para evitar re-renders innecesarios
 - useMemo para cálculos de opciones de filtros
+- Animaciones con useNativeDriver para mejor performance
+
+### Integración con Sistema de Correlativos
+- **Validación de Series:** Solo muestra series activas con números disponibles
+- **Cálculo Automático:** `disponibles = maxNumber - currentNumber`
+- **Filtrado por Tipo:** Usa `documentType.code` para filtrar series
+- **Advertencias:** Alerta cuando quedan menos de 100 números
+- **Navegación Inteligente:** Redirige a configuración si no hay series
 
 ### Compatibilidad
 - ✅ iOS
@@ -256,6 +290,7 @@ interface GetBizlinksDocumentsParams {
 - `expo-sharing` - Compartir archivos en móvil
 - `@expo/vector-icons` - Iconos
 - `react-native-safe-area-context` - SafeAreaView
+- `react-native` Animated API - Animaciones del FAB
 
 ---
 

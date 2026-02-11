@@ -24,7 +24,7 @@ import {
   GetBizlinksDocumentsParams,
 } from '../../types/bizlinks';
 import { useAuthStore } from '../../store/auth';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { BizlinksDocumentsFAB } from '@/components/Bizlinks';
 import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
 import { SearchBar } from '@/components/common/SearchBar';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -309,8 +309,15 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('BizlinksDocumentDetail', { documentId: document.id });
   };
 
-  const handleCreateDocument = () => {
-    navigation.navigate('BizlinksEmitirFactura');
+  const handleDocumentTypeSelect = (documentType: BizlinksDocumentType) => {
+    console.log('📄 Tipo de documento seleccionado:', documentType);
+
+    // Navegar a la pantalla de selección de serie
+    navigation.navigate('BizlinksSelectSeries', {
+      documentType,
+      companyId: currentCompany?.id,
+      siteId: currentSite?.id,
+    });
   };
 
   // Opciones de filtro por tipo de documento
@@ -658,8 +665,8 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       )}
 
-      {/* Add Button */}
-      <AddButton onPress={handleCreateDocument} icon="+" />
+      {/* Floating Action Button with Document Type Selection */}
+      <BizlinksDocumentsFAB onDocumentTypeSelect={handleDocumentTypeSelect} />
 
       {/* Date Pickers */}
       <DatePicker
