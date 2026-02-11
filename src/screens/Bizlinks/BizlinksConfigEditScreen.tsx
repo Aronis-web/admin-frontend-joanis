@@ -1,30 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator, Text } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, ScrollView, View, Text, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BizlinksConfigForm } from '../../components/Bizlinks';
-import { useBizlinksConfig } from '../../hooks/useBizlinks';
 import { BizlinksConfig } from '../../types/bizlinks';
+import { useBizlinksConfig } from '../../hooks/useBizlinks';
 
 type Props = NativeStackScreenProps<any, 'BizlinksConfigEdit'>;
 
 export const BizlinksConfigEditScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { configId } = route.params as { configId: string };
-  const { getConfigById, loading } = useBizlinksConfig();
-  const [config, setConfig] = useState<BizlinksConfig | null>(null);
+  const params = route.params as { config?: BizlinksConfig; configId?: string };
+  const { getConfigById } = useBizlinksConfig();
+  const [config, setConfig] = useState<BizlinksConfig | null>(params.config || null);
+  const [loading, setLoading] = useState(!params.config && !!params.configId);
 
   useEffect(() => {
-    loadConfig();
-  }, [configId]);
+    const loadConfig = async () => {
+      if (!params.config && params.configId) {
+        try {
+          setLoading(true);
+          const loadedConfig = await getConfigById(params.configId);
+          setConfig(loadedConfig);
+        } catch (error) {
+          console.error('Error loading config:', error);
+          navigation.goBack();
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
 
-  const loadConfig = async () => {
-    try {
-      const data = await getConfigById(configId);
-      setConfig(data);
-    } catch (error) {
-      console.error('Error loading config:', error);
-    }
-  };
+    loadConfig();
+  }, [params.config, params.configId]);
 
   const handleSuccess = () => {
     navigation.goBack();
@@ -34,12 +41,22 @@ export const BizlinksConfigEditScreen: React.FC<Props> = ({ navigation, route })
     navigation.goBack();
   };
 
-  if (loading || !config) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
           <Text style={styles.loadingText}>Cargando configuración...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!config) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>No se encontró la configuración</Text>
         </View>
       </SafeAreaView>
     );
