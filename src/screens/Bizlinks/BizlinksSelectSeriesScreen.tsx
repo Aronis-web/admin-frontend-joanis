@@ -94,12 +94,19 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
   const handleSeriesSelect = (selectedSeries: DocumentSeries) => {
     console.log('📋 Serie seleccionada:', selectedSeries);
 
+    // Construir el formato completo: SERIE-NUMERO (ej: BP01-00000124)
+    const nextNumber = selectedSeries.currentNumber + 1;
+    const formattedNumber = nextNumber.toString().padStart(8, '0');
+    const fullSerieNumero = `${selectedSeries.series}-${formattedNumber}`;
+
+    console.log('📋 Serie completa:', fullSerieNumero);
+
     // Navegar a la pantalla de emisión correspondiente según el tipo de documento
     switch (documentType) {
       case BizlinksDocumentType.FACTURA:
         navigation.navigate('BizlinksEmitirFactura', {
           seriesId: selectedSeries.id,
-          series: selectedSeries.series,
+          series: fullSerieNumero,
           documentType,
         });
         break;
@@ -107,7 +114,7 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
       case BizlinksDocumentType.BOLETA:
         navigation.navigate('BizlinksEmitirBoleta', {
           seriesId: selectedSeries.id,
-          series: selectedSeries.series,
+          series: fullSerieNumero,
           documentType,
         });
         break;
@@ -115,7 +122,7 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
       case BizlinksDocumentType.NOTA_CREDITO:
         navigation.navigate('BizlinksEmitirNotaCredito', {
           seriesId: selectedSeries.id,
-          series: selectedSeries.series,
+          series: fullSerieNumero,
           documentType,
         });
         break;
@@ -123,7 +130,7 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
       case BizlinksDocumentType.NOTA_DEBITO:
         navigation.navigate('BizlinksEmitirNotaDebito', {
           seriesId: selectedSeries.id,
-          series: selectedSeries.series,
+          series: fullSerieNumero,
           documentType,
         });
         break;
@@ -131,7 +138,7 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
       case BizlinksDocumentType.GUIA_REMISION_REMITENTE:
         navigation.navigate('BizlinksEmitirGuiaRemision', {
           seriesId: selectedSeries.id,
-          series: selectedSeries.series,
+          series: fullSerieNumero,
           documentType,
         });
         break;

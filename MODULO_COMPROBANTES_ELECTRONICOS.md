@@ -200,6 +200,7 @@ src/screens/Bizlinks/BizlinksDocumentsScreen.tsx
    - Filtra automáticamente por tipo de documento
    - Muestra solo series activas con números disponibles
    - Usuario selecciona la serie deseada
+   - Sistema calcula automáticamente el siguiente número correlativo
 
 3. **Formulario de Emisión**
    - Sistema navega al formulario correspondiente
@@ -304,7 +305,10 @@ interface GetBizlinksDocumentsParams {
 - **Filtrado por Tipo:** Usa `documentType.code` para filtrar series
 - **Advertencias:** Alerta cuando quedan menos de 100 números
 - **Navegación Inteligente:** Redirige a configuración si no hay series
-- **Serie Pre-asignada:** Una vez seleccionada, se pasa como parámetro y se muestra en badge (no editable)
+- **Serie Pre-asignada:** Una vez seleccionada, se construye el formato completo `SERIE-NUMERO`
+  - Ejemplo: `BP01-00000124` (serie + número siguiente formateado a 8 dígitos)
+  - Cálculo: `nextNumber = currentNumber + 1`
+  - Formato: `${series}-${nextNumber.toString().padStart(8, '0')}`
 - **Correlativo Automático:** El `seriesId` se usa como `correlativeId` en el DTO de emisión
 
 ### Compatibilidad
@@ -396,7 +400,7 @@ El módulo ahora tiene:
 │                                     │
 │ Serie Seleccionada                  │
 │ ┌─────────────────────────────────┐ │
-│ │       F001-00000124             │ │
+│ │       BP01-00000124             │ │
 │ └─────────────────────────────────┘ │
 │ ✓ Serie asignada automáticamente    │
 │                                     │
@@ -404,6 +408,10 @@ El módulo ahora tiene:
 │ [2024-02-11]                        │
 └─────────────────────────────────────┘
 ```
+
+**Nota:** El formato `BP01-00000124` se construye automáticamente:
+- `BP01` = Serie seleccionada
+- `00000124` = Siguiente número correlativo (currentNumber + 1, formateado a 8 dígitos)
 
 ---
 
