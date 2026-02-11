@@ -234,6 +234,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       console.log('📥 Descargando PDF para:', document.serieNumero);
+      console.log('📋 Document ID:', document.id);
 
       if (Platform.OS === 'web') {
         // En web, usar el endpoint directo que devuelve el blob
@@ -246,6 +247,8 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         // En móvil, descargar usando el endpoint directo con autenticación
         const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
         const pdfUrl = `${apiUrl}/bizlinks/documents/${document.id}/pdf`;
+
+        console.log('🌐 URL de descarga:', pdfUrl);
 
         const fileName = `${document.serieNumero}.pdf`;
         const fileUri = FileSystem.documentDirectory + fileName;
@@ -262,9 +265,30 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
           headers['X-Site-Id'] = currentSite.id;
         }
 
+        console.log('📤 Headers:', Object.keys(headers));
+
         const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri, {
           headers,
         });
+
+        console.log('📦 Download result:', {
+          uri: downloadResult.uri,
+          status: downloadResult.status,
+          headers: downloadResult.headers,
+        });
+
+        // Verificar que el archivo se descargó correctamente
+        if (downloadResult.status !== 200) {
+          throw new Error(`Error del servidor: ${downloadResult.status}`);
+        }
+
+        // Verificar el tamaño del archivo
+        const fileInfo = await FileSystem.getInfoAsync(downloadResult.uri);
+        console.log('📄 File info:', fileInfo);
+
+        if (fileInfo.exists && fileInfo.size === 0) {
+          throw new Error('El archivo descargado está vacío');
+        }
 
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(downloadResult.uri, {
