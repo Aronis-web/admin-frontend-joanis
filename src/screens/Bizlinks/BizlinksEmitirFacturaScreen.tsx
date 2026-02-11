@@ -7,8 +7,9 @@ import { useAuthStore } from '../../store/auth';
 
 type Props = NativeStackScreenProps<any, 'BizlinksEmitirFactura'>;
 
-export const BizlinksEmitirFacturaScreen: React.FC<Props> = ({ navigation }) => {
+export const BizlinksEmitirFacturaScreen: React.FC<Props> = ({ navigation, route }) => {
   const { currentCompany, currentSite } = useAuthStore();
+  const { seriesId, series, documentType } = route.params || {};
 
   const handleSuccess = (documentId: string) => {
     navigation.navigate('BizlinksDocumentDetail', { documentId });
@@ -23,6 +24,8 @@ export const BizlinksEmitirFacturaScreen: React.FC<Props> = ({ navigation }) => 
       <EmitirFacturaForm
         companyId={currentCompany?.id || ''}
         siteId={currentSite?.id}
+        seriesId={seriesId}
+        series={series}
         onSuccess={handleSuccess}
         onCancel={handleCancel}
       />

@@ -115,6 +115,7 @@ Estados con colores semánticos:
 - ✅ Badge de advertencia cuando quedan < 100 números
 - ✅ Navegación a configuración si no hay series
 - ✅ Integración con sistema de correlativos
+- ✅ **Serie pre-asignada en formulario:** Una vez seleccionada, la serie se muestra como badge y NO se puede cambiar en el formulario
 
 ### 9. **Estados de Carga**
 - ✅ Loading inicial con spinner y mensaje
@@ -160,6 +161,8 @@ src/screens/Bizlinks/BizlinksDocumentsScreen.tsx
 
 ## 🎯 Flujo de Usuario
 
+### Flujo de Visualización
+
 1. **Entrada a la Pantalla**
    - Se cargan automáticamente los documentos
    - Se muestran todos los tipos y estados por defecto
@@ -184,6 +187,30 @@ src/screens/Bizlinks/BizlinksDocumentsScreen.tsx
    - Click en tarjeta → Ver detalle completo
    - Botón flotante → Crear nuevo comprobante
    - Paginación → Navegar entre páginas
+
+### Flujo de Emisión de Comprobantes
+
+1. **Selección de Tipo de Comprobante**
+   - Usuario hace clic en el botón flotante (+)
+   - Se despliega menú animado con 5 opciones
+   - Usuario selecciona el tipo de comprobante a emitir
+
+2. **Selección de Serie**
+   - Sistema muestra pantalla de selección de series
+   - Filtra automáticamente por tipo de documento
+   - Muestra solo series activas con números disponibles
+   - Usuario selecciona la serie deseada
+
+3. **Formulario de Emisión**
+   - Sistema navega al formulario correspondiente
+   - **Serie pre-asignada:** Se muestra en un badge destacado (no editable)
+   - Usuario completa datos del cliente e items
+   - Sistema calcula totales automáticamente
+
+4. **Emisión y Confirmación**
+   - Usuario envía el formulario
+   - Sistema emite el comprobante a SUNAT
+   - Navega al detalle del documento creado
 
 ---
 
@@ -277,6 +304,8 @@ interface GetBizlinksDocumentsParams {
 - **Filtrado por Tipo:** Usa `documentType.code` para filtrar series
 - **Advertencias:** Alerta cuando quedan menos de 100 números
 - **Navegación Inteligente:** Redirige a configuración si no hay series
+- **Serie Pre-asignada:** Una vez seleccionada, se pasa como parámetro y se muestra en badge (no editable)
+- **Correlativo Automático:** El `seriesId` se usa como `correlativeId` en el DTO de emisión
 
 ### Compatibilidad
 - ✅ iOS
@@ -357,6 +386,22 @@ El módulo ahora tiene:
 │ Fecha: 11/02/2024                  │
 │                                     │
 │ [🔄] [📄 PDF] [📝 XML]        ›    │
+└─────────────────────────────────────┘
+```
+
+### Formulario de Emisión (Serie Pre-asignada)
+```
+┌─────────────────────────────────────┐
+│ Datos Generales                     │
+│                                     │
+│ Serie Seleccionada                  │
+│ ┌─────────────────────────────────┐ │
+│ │       F001-00000124             │ │
+│ └─────────────────────────────────┘ │
+│ ✓ Serie asignada automáticamente    │
+│                                     │
+│ Fecha de Emisión *                  │
+│ [2024-02-11]                        │
 └─────────────────────────────────────┘
 ```
 

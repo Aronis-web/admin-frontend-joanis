@@ -29,6 +29,8 @@ interface EmitirFacturaFormProps {
   siteId?: string;
   correlativeId?: string;
   serieNumero?: string;
+  seriesId?: string;
+  series?: string;
   onSuccess?: (documentId: string) => void;
   onCancel?: () => void;
 }
@@ -38,6 +40,8 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
   siteId,
   correlativeId,
   serieNumero,
+  seriesId,
+  series,
   onSuccess,
   onCancel,
 }) => {
@@ -46,9 +50,13 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
   const [configLoaded, setConfigLoaded] = useState(false);
 
   const now = new Date();
+  // Si se proporcionó una serie desde la selección, usarla
+  const initialSerieNumero = series || serieNumero || '';
+  const isSeriesPreSelected = Boolean(seriesId && series);
+
   const [formData, setFormData] = useState({
     // Datos generales
-    serieNumero: serieNumero || '',
+    serieNumero: initialSerieNumero,
     fechaEmision: formatDateForBizlinks(now),
     horaEmision: formatTimeForBizlinks(now),
     fechaVencimiento: '',
@@ -290,7 +298,7 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
       const cleanedItems = items.map(({ codigoProducto, descuentoItem, ...item }) => item);
 
       const dto: EmitirFacturaDto = {
-        correlativeId,
+        correlativeId: seriesId || correlativeId,
         serieNumero: formData.serieNumero,
         fechaEmision: formData.fechaEmision,
         horaEmision: formData.horaEmision,
@@ -354,14 +362,30 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Datos Generales</Text>
 
-        <Text style={styles.label}>Serie y Número *</Text>
-        <TextInput
-          style={styles.input}
-          value={formData.serieNumero}
-          onChangeText={(text) => setFormData({ ...formData, serieNumero: text })}
-          placeholder="F001-00000001"
-          editable={!serieNumero}
-        />
+        {isSeriesPreSelected ? (
+          <>
+            <Text style={styles.label}>Serie Seleccionada</Text>
+            <View style={styles.seriesSelectedContainer}>
+              <View style={styles.seriesSelectedBadge}>
+                <Text style={styles.seriesSelectedText}>{formData.serieNumero}</Text>
+              </View>
+              <Text style={styles.seriesSelectedNote}>
+                ✓ Serie asignada automáticamente
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.label}>Serie y Número *</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.serieNumero}
+              onChangeText={(text) => setFormData({ ...formData, serieNumero: text })}
+              placeholder="F001-00000001"
+              editable={!serieNumero}
+            />
+          </>
+        )}
 
         <Text style={styles.label}>Fecha de Emisión *</Text>
         <TextInput
@@ -748,5 +772,30 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  seriesSelectedContainer: {
+    marginBottom: 16,
+  },
+  seriesSelectedBadge: {
+    backgroundColor: '#E0F2FE',
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  seriesSelectedText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1E40AF',
+    letterSpacing: 1,
+  },
+  seriesSelectedNote: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
