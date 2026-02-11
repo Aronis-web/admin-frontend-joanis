@@ -197,6 +197,8 @@ export type MainStackParamList = {
 
   // Bizlinks - Electronic Invoicing
   BizlinksMenu: undefined;
+  BizlinksGenerateDocuments: undefined;
+  BizlinksConfigureDocuments: undefined;
   BizlinksConfig: undefined;
   BizlinksConfigCreate: undefined;
   BizlinksConfigEdit: {

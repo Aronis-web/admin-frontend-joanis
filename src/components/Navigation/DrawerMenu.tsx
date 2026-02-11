@@ -286,6 +286,23 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // Generar Documentos (Bizlinks)
+  {
+    id: 'generate-documents',
+    title: 'Generar Documentos',
+    icon: '📝',
+    color: '#10B981',
+    items: [
+      {
+        id: 'bizlinks-generate',
+        icon: '📝',
+        label: 'Generar Documentos',
+        route: MAIN_ROUTES.BIZLINKS_GENERATE_DOCUMENTS,
+        color: '#10B981',
+        requiredPermissions: ['bizlinks.documents.emit'],
+      },
+    ],
+  },
   // Configuración
   {
     id: 'config',
@@ -376,6 +393,15 @@ const menuCategories: MenuCategory[] = [
         route: MAIN_ROUTES.BILLING_CONFIG,
         color: '#8B5CF6',
         requiredPermissions: ['billing.read', 'billing.document-types.read', 'billing.series.read', 'billing.correlatives.read'],
+      },
+      // Configurar Documentos (Bizlinks)
+      {
+        id: 'bizlinks-configure',
+        icon: '🔧',
+        label: 'Configurar Documentos',
+        route: MAIN_ROUTES.BIZLINKS_CONFIGURE_DOCUMENTS,
+        color: '#6366F1',
+        requiredPermissions: ['bizlinks.config.read'],
       },
       // Apps
       {

@@ -106,6 +106,8 @@ export const MAIN_ROUTES = {
 
   // Bizlinks - Electronic Invoicing
   BIZLINKS_MENU: 'BizlinksMenu',
+  BIZLINKS_GENERATE_DOCUMENTS: 'BizlinksGenerateDocuments',
+  BIZLINKS_CONFIGURE_DOCUMENTS: 'BizlinksConfigureDocuments',
   BIZLINKS_CONFIG: 'BizlinksConfig',
   BIZLINKS_CONFIG_CREATE: 'BizlinksConfigCreate',
   BIZLINKS_CONFIG_EDIT: 'BizlinksConfigEdit',
@@ -256,6 +258,8 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Bizlinks - Electronic Invoicing
   BIZLINKS_MENU: 'bizlinks.read',
+  BIZLINKS_GENERATE_DOCUMENTS: 'bizlinks.documents.emit',
+  BIZLINKS_CONFIGURE_DOCUMENTS: 'bizlinks.config.read',
   BIZLINKS_CONFIG: 'bizlinks.config.read',
   BIZLINKS_CONFIG_CREATE: 'bizlinks.config.create',
   BIZLINKS_CONFIG_EDIT: 'bizlinks.config.update',
