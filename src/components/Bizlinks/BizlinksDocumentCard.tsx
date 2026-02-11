@@ -53,31 +53,39 @@ export const BizlinksDocumentCard: React.FC<BizlinksDocumentCardProps> = ({
       <View style={styles.divider} />
 
       <View style={styles.body}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Cliente:</Text>
-          <Text style={styles.value} numberOfLines={1}>
-            {document.razonSocialAdquiriente}
-          </Text>
-        </View>
+        {document.razonSocialAdquiriente && (
+          <View style={styles.row}>
+            <Text style={styles.label}>Cliente:</Text>
+            <Text style={styles.value} numberOfLines={1}>
+              {document.razonSocialAdquiriente}
+            </Text>
+          </View>
+        )}
 
-        <View style={styles.row}>
-          <Text style={styles.label}>RUC/DNI:</Text>
-          <Text style={styles.value}>{document.numeroDocumentoAdquiriente}</Text>
-        </View>
+        {document.numeroDocumentoAdquiriente && (
+          <View style={styles.row}>
+            <Text style={styles.label}>RUC/DNI:</Text>
+            <Text style={styles.value}>{document.numeroDocumentoAdquiriente}</Text>
+          </View>
+        )}
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Fecha:</Text>
-          <Text style={styles.value}>
-            {new Date(document.fechaEmision).toLocaleDateString('es-PE')}
-          </Text>
-        </View>
+        {document.fechaEmision && (
+          <View style={styles.row}>
+            <Text style={styles.label}>Fecha:</Text>
+            <Text style={styles.value}>
+              {new Date(document.fechaEmision).toLocaleDateString('es-PE')}
+            </Text>
+          </View>
+        )}
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Total:</Text>
-          <Text style={styles.valueAmount}>
-            {formatCurrency(document.totalVenta, document.tipoMoneda)}
-          </Text>
-        </View>
+        {document.totalVenta !== undefined && (
+          <View style={styles.row}>
+            <Text style={styles.label}>Total:</Text>
+            <Text style={styles.valueAmount}>
+              {formatCurrency(document.totalVenta, document.tipoMoneda)}
+            </Text>
+          </View>
+        )}
 
         {document.messageSunat && (
           <View style={styles.messageContainer}>
