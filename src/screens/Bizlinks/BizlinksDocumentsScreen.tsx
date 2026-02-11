@@ -66,7 +66,7 @@ const STATUS_SUNAT_COLORS: Record<string, string> = {
 };
 
 export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
-  const { currentCompany, currentSite } = useAuthStore();
+  const { currentCompany, currentSite, token } = useAuthStore();
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
 
@@ -243,14 +243,28 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         // Abrir en nueva pestaña
         window.open(pdfUrl, '_blank');
       } else {
-        // En móvil, descargar usando el endpoint directo
+        // En móvil, descargar usando el endpoint directo con autenticación
         const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
         const pdfUrl = `${apiUrl}/bizlinks/documents/${document.id}/pdf`;
 
         const fileName = `${document.serieNumero}.pdf`;
         const fileUri = FileSystem.documentDirectory + fileName;
 
-        const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri);
+        // Incluir headers de autenticación
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        if (currentCompany?.id) {
+          headers['X-Company-Id'] = currentCompany.id;
+        }
+        if (currentSite?.id) {
+          headers['X-Site-Id'] = currentSite.id;
+        }
+
+        const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri, {
+          headers,
+        });
 
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(downloadResult.uri, {
@@ -285,11 +299,25 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         // En web, abrir en nueva pestaña
         window.open(xmlUrl, '_blank');
       } else {
-        // En móvil, descargar y compartir
+        // En móvil, descargar y compartir con autenticación
         const fileName = `${document.serieNumero}.xml`;
         const fileUri = FileSystem.documentDirectory + fileName;
 
-        const downloadResult = await FileSystem.downloadAsync(xmlUrl, fileUri);
+        // Incluir headers de autenticación
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        if (currentCompany?.id) {
+          headers['X-Company-Id'] = currentCompany.id;
+        }
+        if (currentSite?.id) {
+          headers['X-Site-Id'] = currentSite.id;
+        }
+
+        const downloadResult = await FileSystem.downloadAsync(xmlUrl, fileUri, {
+          headers,
+        });
 
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(downloadResult.uri, {
