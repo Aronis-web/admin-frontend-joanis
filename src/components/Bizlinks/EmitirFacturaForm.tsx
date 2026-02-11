@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { useBizlinksDocuments } from '../../hooks/useBizlinks';
+import { useBizlinksDocuments, useBizlinksConfig } from '../../hooks/useBizlinks';
 import {
   EmitirFacturaDto,
   BizlinksItemDto,
@@ -42,6 +42,8 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
   onCancel,
 }) => {
   const { emitirFactura, loading } = useBizlinksDocuments();
+  const { getActiveConfig, loading: loadingConfig } = useBizlinksConfig();
+  const [configLoaded, setConfigLoaded] = useState(false);
 
   const now = new Date();
   const [formData, setFormData] = useState({
@@ -97,6 +99,60 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
       descuentoItem: 0,
     },
   ]);
+
+  // Cargar configuración activa al montar el componente
+  useEffect(() => {
+    const loadActiveConfig = async () => {
+      if (!companyId) {
+        Alert.alert('Error', 'No se ha seleccionado una empresa');
+        return;
+      }
+
+      try {
+        console.log('🔍 Cargando configuración activa para companyId:', companyId, 'siteId:', siteId);
+        const config = await getActiveConfig(companyId, siteId);
+        console.log('✅ Configuración activa cargada:', config);
+
+        // Llenar los datos del emisor desde la configuración
+        // Asegurar que ubigeo tenga 6 dígitos (agregar 0 al inicio si tiene 5)
+        const ubigeo = config.ubigeo.length === 5 ? `0${config.ubigeo}` : config.ubigeo;
+
+        setFormData((prev) => ({
+          ...prev,
+          rucEmisor: config.ruc,
+          razonSocialEmisor: config.razonSocial,
+          nombreComercialEmisor: config.nombreComercial || '',
+          ubigeoEmisor: ubigeo,
+          direccionEmisor: config.domicilioFiscal,
+          urbanizacionEmisor: config.urbanizacion || '',
+          provinciaEmisor: config.provincia,
+          departamentoEmisor: config.departamento,
+          distritoEmisor: config.distrito,
+          codigoPaisEmisor: 'PE',
+          correoEmisor: config.email,
+          telefonoEmisor: config.telefono || '',
+        }));
+
+        setConfigLoaded(true);
+      } catch (error: any) {
+        console.error('❌ Error al cargar configuración activa:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'No se encontró una configuración activa';
+        Alert.alert(
+          'Configuración no encontrada',
+          `${errorMessage}\n\nPor favor, configure Bizlinks antes de emitir documentos.`,
+          [
+            {
+              text: 'Cancelar',
+              onPress: () => onCancel?.(),
+              style: 'cancel',
+            },
+          ]
+        );
+      }
+    };
+
+    loadActiveConfig();
+  }, [companyId, siteId]);
 
   // Calcular totales
   const calcularTotales = () => {
@@ -230,6 +286,9 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
 
       const totales = calcularTotales();
 
+      // Limpiar items: eliminar campos que el backend no espera
+      const cleanedItems = items.map(({ codigoProducto, descuentoItem, ...item }) => item);
+
       const dto: EmitirFacturaDto = {
         correlativeId,
         serieNumero: formData.serieNumero,
@@ -258,7 +317,7 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
           correoAdquiriente: formData.correoAdquiriente || undefined,
           telefonoAdquiriente: formData.telefonoAdquiriente || undefined,
         },
-        items,
+        items: cleanedItems,
         totales: {
           ...totales,
           tipoMoneda: formData.tipoMoneda,
@@ -267,6 +326,8 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
         ordenCompra: formData.ordenCompra || undefined,
         guiaRemision: formData.guiaRemision || undefined,
       };
+
+      console.log('📝 DTO a enviar:', JSON.stringify(dto, null, 2));
 
       const result = await emitirFactura(dto);
       Alert.alert('Éxito', 'Factura emitida correctamente');
@@ -277,6 +338,16 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
   };
 
   const totales = calcularTotales();
+
+  // Mostrar indicador de carga mientras se carga la configuración
+  if (loadingConfig || !configLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Cargando configuración de Bizlinks...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -517,6 +588,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
   section: {
     backgroundColor: '#fff',

@@ -11,28 +11,50 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useBizlinksConfig } from '../../hooks/useBizlinks';
 import { BizlinksConfig } from '../../types/bizlinks';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuthStore } from '../../store/auth';
 
 type Props = NativeStackScreenProps<any, 'BizlinksConfig'>;
 
 export const BizlinksConfigScreen: React.FC<Props> = ({ navigation }) => {
-  const { user } = useAuth();
+  const { currentCompany } = useAuthStore();
   const { getConfigs, deleteConfig, loading } = useBizlinksConfig();
   const [configs, setConfigs] = useState<BizlinksConfig[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadConfigs = async () => {
     try {
+      console.log('🔍 Cargando configuraciones para companyId:', currentCompany?.id);
+
+      if (!currentCompany?.id) {
+        console.error('❌ No hay companyId disponible');
+        setConfigs([]);
+        return;
+      }
+
       const data = await getConfigs({
-        companyId: user?.companyId,
+        companyId: currentCompany?.id,
       });
-      setConfigs(data);
-    } catch (error) {
-      console.error('Error loading configs:', error);
+      console.log('📦 Datos recibidos del API:', data);
+      console.log('📦 Tipo de datos:', typeof data);
+      console.log('📦 Es array?:', Array.isArray(data));
+      console.log('📦 Cantidad de items:', Array.isArray(data) ? data.length : 'No es array');
+
+      // Si la respuesta es un objeto único en lugar de un array, convertirlo a array
+      const configsArray = Array.isArray(data) ? data : (data ? [data] : []);
+      console.log('✅ Configuraciones a mostrar:', configsArray);
+      console.log('✅ Cantidad final:', configsArray.length);
+
+      setConfigs(configsArray);
+    } catch (error: any) {
+      console.error('❌ Error loading configs:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error response:', error.response?.data);
+      setConfigs([]);
     }
   };
 
   useEffect(() => {
+    console.log('🚀 useEffect ejecutado - llamando loadConfigs');
     loadConfigs();
   }, []);
 
@@ -68,7 +90,7 @@ export const BizlinksConfigScreen: React.FC<Props> = ({ navigation }) => {
   const renderConfig = ({ item }: { item: BizlinksConfig }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('BizlinksConfigEdit', { configId: item.id })}
+      onPress={() => navigation.navigate('BizlinksConfigEdit', { config: item })}
     >
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderLeft}>
@@ -126,13 +148,23 @@ export const BizlinksConfigScreen: React.FC<Props> = ({ navigation }) => {
     </TouchableOpacity>
   );
 
+  console.log('🎨 Renderizando BizlinksConfigScreen');
+  console.log('🎨 Loading:', loading);
+  console.log('🎨 Refreshing:', refreshing);
+  console.log('🎨 Configs:', configs);
+  console.log('🎨 Configs length:', configs.length);
+
   if (loading && !refreshing) {
+    console.log('⏳ Mostrando indicador de carga');
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#007bff" />
+        <Text style={{ marginTop: 16, color: '#666' }}>Cargando configuraciones...</Text>
       </View>
     );
   }
+
+  console.log('✅ Mostrando lista de configuraciones');
 
   return (
     <View style={styles.container}>
@@ -156,6 +188,7 @@ export const BizlinksConfigScreen: React.FC<Props> = ({ navigation }) => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No hay configuraciones</Text>
+            <Text style={styles.emptyText}>Configs en estado: {configs.length}</Text>
             <TouchableOpacity
               style={styles.emptyButton}
               onPress={() => navigation.navigate('BizlinksConfigCreate')}

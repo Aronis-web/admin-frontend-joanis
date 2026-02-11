@@ -299,7 +299,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Generar Documentos',
         route: MAIN_ROUTES.BIZLINKS_GENERATE_DOCUMENTS,
         color: '#10B981',
-        requiredPermissions: ['bizlinks.documents.emit'],
+        requiredPermissions: ['bizlinks.documents.send'],
       },
     ],
   },

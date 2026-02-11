@@ -20,8 +20,9 @@ export const bizlinksApi = {
   // ==================== CONFIGURATION ====================
 
   // Get all configurations - GET /bizlinks/config
-  getConfigs: async (params?: GetBizlinksConfigsParams): Promise<BizlinksConfig[]> => {
-    return apiClient.get<BizlinksConfig[]>('/bizlinks/config', { params });
+  // NOTA: Este endpoint devuelve UN OBJETO (la config activa), no un array
+  getConfigs: async (params?: GetBizlinksConfigsParams): Promise<BizlinksConfig> => {
+    return apiClient.get<BizlinksConfig>('/bizlinks/config', { params });
   },
 
   // Get configuration by ID - GET /bizlinks/config/:id
@@ -34,9 +35,10 @@ export const bizlinksApi = {
     return apiClient.get<BizlinksConfig[]>(`/bizlinks/config/company/${companyId}`);
   },
 
-  // Get active configuration for company/site - GET /bizlinks/config/active
+  // Get active configuration for company/site - GET /bizlinks/config
+  // NOTA: El backend no tiene endpoint /active, usa /bizlinks/config con params
   getActiveConfig: async (companyId: string, siteId?: string): Promise<BizlinksConfig> => {
-    return apiClient.get<BizlinksConfig>('/bizlinks/config/active', {
+    return apiClient.get<BizlinksConfig>('/bizlinks/config', {
       params: { companyId, siteId },
     });
   },

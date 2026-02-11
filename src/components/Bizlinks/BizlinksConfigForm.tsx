@@ -78,27 +78,53 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
         return;
       }
 
+      if (!formData.ubigeo || formData.ubigeo.length < 5) {
+        Alert.alert('Error', 'El ubigeo debe tener al menos 5 dígitos');
+        return;
+      }
+
+      if (!companyId) {
+        Alert.alert('Error', 'No se ha seleccionado una empresa');
+        return;
+      }
+
+      // Asegurar que ubigeo tenga 6 dígitos (agregar 0 al inicio si tiene 5)
+      const ubigeo = formData.ubigeo.length === 5 ? `0${formData.ubigeo}` : formData.ubigeo;
+
       let result: BizlinksConfig;
 
       if (config) {
         // Update
-        const updateData: UpdateBizlinksConfigDto = { ...formData };
+        console.log('📝 Actualizando configuración:', config.id);
+        const updateData: UpdateBizlinksConfigDto = {
+          ...formData,
+          ubigeo,
+        };
+        console.log('📝 Datos a actualizar:', updateData);
         result = await updateConfig(config.id, updateData);
         Alert.alert('Éxito', 'Configuración actualizada correctamente');
       } else {
         // Create
         const createData: CreateBizlinksConfigDto = {
           ...formData,
+          ubigeo,
           companyId,
           siteId,
         };
+        console.log('📝 Creando nueva configuración:', createData);
         result = await createConfig(createData);
+        console.log('✅ Configuración creada:', result);
         Alert.alert('Éxito', 'Configuración creada correctamente');
       }
 
       onSuccess?.(result);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Error al guardar la configuración');
+      console.error('❌ Error al guardar configuración:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+
+      const errorMessage = error.response?.data?.message || error.message || 'Error al guardar la configuración';
+      Alert.alert('Error', errorMessage);
     }
   };
 

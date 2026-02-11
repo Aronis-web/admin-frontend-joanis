@@ -975,7 +975,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={['bizlinks.read']}
+            requiredPermissions={['bizlinks.documents.view']}
           >
             <BizlinksMenuScreen {...props} />
           </ProtectedRoute>
@@ -989,7 +989,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.emit']}
+            requiredPermissions={['bizlinks.documents.send']}
           >
             <BizlinksGenerateDocumentsScreen {...props} />
           </ProtectedRoute>
@@ -1031,7 +1031,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={['bizlinks.config.create']}
+            requiredPermissions={['bizlinks.config.view']}
           >
             <BizlinksConfigCreateScreen {...props} />
           </ProtectedRoute>
@@ -1045,7 +1045,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={['bizlinks.config.update']}
+            requiredPermissions={['bizlinks.config.view']}
           >
             <BizlinksConfigEditScreen {...props} />
           </ProtectedRoute>
@@ -1087,7 +1087,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.emit']}
+            requiredPermissions={['bizlinks.documents.send']}
           >
             <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>

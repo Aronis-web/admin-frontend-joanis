@@ -257,15 +257,15 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   DOCUMENT_CORRELATIVES: 'billing.correlatives.read',
 
   // Bizlinks - Electronic Invoicing
-  BIZLINKS_MENU: 'bizlinks.read',
-  BIZLINKS_GENERATE_DOCUMENTS: 'bizlinks.documents.emit',
+  BIZLINKS_MENU: 'bizlinks.documents.view',
+  BIZLINKS_GENERATE_DOCUMENTS: 'bizlinks.documents.send',
   BIZLINKS_CONFIGURE_DOCUMENTS: 'bizlinks.config.view',
   BIZLINKS_CONFIG: 'bizlinks.config.view',
-  BIZLINKS_CONFIG_CREATE: 'bizlinks.config.create',
-  BIZLINKS_CONFIG_EDIT: 'bizlinks.config.update',
+  BIZLINKS_CONFIG_CREATE: 'bizlinks.config.view',
+  BIZLINKS_CONFIG_EDIT: 'bizlinks.config.view',
   BIZLINKS_DOCUMENTS: 'bizlinks.documents.view',
   BIZLINKS_DOCUMENT_DETAIL: 'bizlinks.documents.view',
-  BIZLINKS_EMITIR_FACTURA: 'bizlinks.documents.emit',
+  BIZLINKS_EMITIR_FACTURA: 'bizlinks.documents.send',
 
   // Balances
   BALANCES: 'balances.read',
