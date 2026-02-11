@@ -126,6 +126,13 @@ const DocumentTypesScreen = lazyLoad(() => import('@/screens/Billing').then(m =>
 const DocumentSeriesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentSeriesScreen })), 'Cargando series...');
 const DocumentCorrelativesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentCorrelativesScreen })), 'Cargando correlativos...');
 
+// Bizlinks Screens - Lazy Loaded
+const BizlinksMenuScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksMenuScreen })), 'Cargando Bizlinks...');
+const BizlinksGenerateDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksGenerateDocumentsScreen })), 'Cargando generación de documentos...');
+const BizlinksConfigureDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigureDocumentsScreen })), 'Cargando configuración de documentos...');
+const BizlinksConfigScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigScreen })), 'Cargando configuración Bizlinks...');
+const BizlinksDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksDocumentsScreen })), 'Cargando documentos...');
+
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -954,6 +961,79 @@ const MainStack = React.memo(() => {
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
+
+      {/* Bizlinks Screens */}
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BIZLINKS_MENU}
+        options={{
+          title: 'Bizlinks',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.read']}
+          >
+            <BizlinksMenuScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BIZLINKS_GENERATE_DOCUMENTS}
+        options={{
+          title: 'Generar Documentos',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.documents.emit']}
+          >
+            <BizlinksGenerateDocumentsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BIZLINKS_CONFIGURE_DOCUMENTS}
+        options={{
+          title: 'Configurar Documentos',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.config.view']}
+          >
+            <BizlinksConfigureDocumentsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BIZLINKS_CONFIG}
+        options={{
+          title: 'Configuración Bizlinks',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.config.view']}
+          >
+            <BizlinksConfigScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BIZLINKS_DOCUMENTS}
+        options={{
+          title: 'Documentos Electrónicos',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.documents.view']}
+          >
+            <BizlinksDocumentsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
       <MainStackNavigator.Screen
         name={AUTH_ROUTES.SITE_SELECTION}
         component={SiteSelectionScreen}
