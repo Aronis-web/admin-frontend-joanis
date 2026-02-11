@@ -234,19 +234,35 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       // Primero descargar los archivos desde Bizlinks
+      console.log('📥 Solicitando descarga de PDF para:', document.serieNumero);
       await downloadArtifacts(document.id, {
         downloadPdf: true,
         downloadXml: false,
         downloadCdr: false,
       });
 
+      // Esperar un momento para que el backend procese
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Recargar documentos para obtener URLs actualizadas
       await loadDocuments();
 
       // Buscar el documento actualizado
-      const updatedDoc = documents.find(d => d.id === document.id);
+      let updatedDoc = documents.find(d => d.id === document.id);
+
+      // Si no tiene pdfUrl, reintentar hasta 3 veces
+      let retries = 0;
+      while (!updatedDoc?.pdfUrl && retries < 3) {
+        console.log(`🔄 Reintento ${retries + 1}/3 para obtener PDF URL...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        await loadDocuments();
+        updatedDoc = documents.find(d => d.id === document.id);
+        retries++;
+      }
 
       if (updatedDoc?.pdfUrl) {
+        console.log('✅ PDF URL obtenida:', updatedDoc.pdfUrl);
+
         if (Platform.OS === 'web') {
           // En web, abrir en nueva pestaña
           window.open(updatedDoc.pdfUrl, '_blank');
@@ -270,9 +286,14 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
           }
         }
       } else {
-        Alert.alert('Error', 'El PDF no está disponible aún');
+        console.log('❌ PDF no disponible después de reintentos');
+        Alert.alert(
+          'PDF no disponible',
+          'El PDF aún se está generando. Por favor, intenta nuevamente en unos momentos.'
+        );
       }
     } catch (error: any) {
+      console.error('❌ Error al descargar PDF:', error);
       Alert.alert('Error', error.message || 'Error al descargar PDF');
     } finally {
       setDownloadingDocId(null);
@@ -284,21 +305,41 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
     setDownloadingDocId(document.id);
 
     try {
+      console.log('📥 Solicitando descarga de XML para:', document.serieNumero);
       await downloadArtifacts(document.id, {
         downloadPdf: false,
         downloadXml: true,
         downloadCdr: false,
       });
 
+      // Esperar un momento para que el backend procese
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       await loadDocuments();
-      const updatedDoc = documents.find(d => d.id === document.id);
+      let updatedDoc = documents.find(d => d.id === document.id);
+
+      // Si no tiene xmlSignUrl, reintentar hasta 3 veces
+      let retries = 0;
+      while (!updatedDoc?.xmlSignUrl && retries < 3) {
+        console.log(`🔄 Reintento ${retries + 1}/3 para obtener XML URL...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        await loadDocuments();
+        updatedDoc = documents.find(d => d.id === document.id);
+        retries++;
+      }
 
       if (updatedDoc?.xmlSignUrl) {
+        console.log('✅ XML URL obtenida:', updatedDoc.xmlSignUrl);
         Linking.openURL(updatedDoc.xmlSignUrl);
       } else {
-        Alert.alert('Error', 'El XML no está disponible aún');
+        console.log('❌ XML no disponible después de reintentos');
+        Alert.alert(
+          'XML no disponible',
+          'El XML aún se está generando. Por favor, intenta nuevamente en unos momentos.'
+        );
       }
     } catch (error: any) {
+      console.error('❌ Error al descargar XML:', error);
       Alert.alert('Error', error.message || 'Error al descargar XML');
     } finally {
       setDownloadingDocId(null);
