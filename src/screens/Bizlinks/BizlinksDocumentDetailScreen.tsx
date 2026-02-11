@@ -99,59 +99,81 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Información General</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Fecha de Emisión:</Text>
-            <Text style={styles.value}>
-              {new Date(document.fechaEmision).toLocaleDateString('es-PE')}
-            </Text>
+        {(document.fechaEmision || document.horaEmision || document.tipoMoneda) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Información General</Text>
+            {document.fechaEmision && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Fecha de Emisión:</Text>
+                <Text style={styles.value}>
+                  {new Date(document.fechaEmision).toLocaleDateString('es-PE')}
+                </Text>
+              </View>
+            )}
+            {document.horaEmision && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Hora:</Text>
+                <Text style={styles.value}>{document.horaEmision}</Text>
+              </View>
+            )}
+            {document.tipoMoneda && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Moneda:</Text>
+                <Text style={styles.value}>{document.tipoMoneda}</Text>
+              </View>
+            )}
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Hora:</Text>
-            <Text style={styles.value}>{document.horaEmision}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Moneda:</Text>
-            <Text style={styles.value}>{document.tipoMoneda}</Text>
-          </View>
-        </View>
+        )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cliente</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Razón Social:</Text>
-            <Text style={styles.value}>{document.razonSocialAdquiriente}</Text>
+        {(document.razonSocialAdquiriente || document.numeroDocumentoAdquiriente) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Cliente</Text>
+            {document.razonSocialAdquiriente && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Razón Social:</Text>
+                <Text style={styles.value}>{document.razonSocialAdquiriente}</Text>
+              </View>
+            )}
+            {document.numeroDocumentoAdquiriente && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Documento:</Text>
+                <Text style={styles.value}>
+                  {document.tipoDocumentoAdquiriente} - {document.numeroDocumentoAdquiriente}
+                </Text>
+              </View>
+            )}
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Documento:</Text>
-            <Text style={styles.value}>
-              {document.tipoDocumentoAdquiriente} - {document.numeroDocumentoAdquiriente}
-            </Text>
-          </View>
-        </View>
+        )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Totales</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Subtotal:</Text>
-            <Text style={styles.value}>
-              {formatCurrency(document.totalValorVenta, document.tipoMoneda)}
-            </Text>
+        {(document.totalValorVenta !== undefined || document.totalIgv !== undefined || document.totalVenta !== undefined) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Totales</Text>
+            {document.totalValorVenta !== undefined && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Subtotal:</Text>
+                <Text style={styles.value}>
+                  {formatCurrency(document.totalValorVenta, document.tipoMoneda)}
+                </Text>
+              </View>
+            )}
+            {document.totalIgv !== undefined && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>IGV:</Text>
+                <Text style={styles.value}>
+                  {formatCurrency(document.totalIgv, document.tipoMoneda)}
+                </Text>
+              </View>
+            )}
+            {document.totalVenta !== undefined && (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>TOTAL:</Text>
+                <Text style={styles.totalValue}>
+                  {formatCurrency(document.totalVenta, document.tipoMoneda)}
+                </Text>
+              </View>
+            )}
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>IGV:</Text>
-            <Text style={styles.value}>
-              {formatCurrency(document.totalIgv, document.tipoMoneda)}
-            </Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>TOTAL:</Text>
-            <Text style={styles.totalValue}>
-              {formatCurrency(document.totalVenta, document.tipoMoneda)}
-            </Text>
-          </View>
-        </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Estado SUNAT</Text>

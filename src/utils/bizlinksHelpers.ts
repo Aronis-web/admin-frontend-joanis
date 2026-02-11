@@ -232,8 +232,11 @@ export const validateSerieFormat = (serie: string, documentType: BizlinksDocumen
 };
 
 // Format helpers
-export const formatCurrency = (amount: number, currency: BizlinksCurrency = BizlinksCurrency.PEN): string => {
+export const formatCurrency = (amount: number | undefined | null, currency: BizlinksCurrency = BizlinksCurrency.PEN): string => {
   const symbol = getCurrencySymbol(currency);
+  if (amount === undefined || amount === null) {
+    return `${symbol} 0.00`;
+  }
   return `${symbol} ${amount.toFixed(2)}`;
 };
 

@@ -133,10 +133,10 @@ export interface BizlinksDocument {
   numeroDocumentoAdquiriente: string;
   razonSocialAdquiriente: string;
   // Totales
-  totalValorVenta: number;
-  totalPrecioVenta: number;
-  totalIgv: number;
-  totalVenta: number;
+  totalValorVenta?: number;
+  totalPrecioVenta?: number;
+  totalIgv?: number;
+  totalVenta?: number;
   // Estados
   statusWs?: BizlinksStatusWs;
   statusSunat?: BizlinksStatusSunat;
