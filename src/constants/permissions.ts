@@ -376,7 +376,7 @@ export const PERMISSIONS = {
     ADMIN: 'bizlinks.admin',
 
     CONFIG: {
-      READ: 'bizlinks.config.read',
+      VIEW: 'bizlinks.config.view',
       CREATE: 'bizlinks.config.create',
       UPDATE: 'bizlinks.config.update',
       DELETE: 'bizlinks.config.delete',
@@ -384,16 +384,17 @@ export const PERMISSIONS = {
     },
 
     DOCUMENTS: {
-      READ: 'bizlinks.documents.read',
+      VIEW: 'bizlinks.documents.view',
       EMIT: 'bizlinks.documents.emit',
-      REFRESH: 'bizlinks.documents.refresh',
-      DOWNLOAD: 'bizlinks.documents.download',
       SEND: 'bizlinks.documents.send',
+      QUERY: 'bizlinks.documents.query',
+      DOWNLOAD: 'bizlinks.documents.download',
+      RESEND: 'bizlinks.documents.resend',
       VOID: 'bizlinks.documents.void',
     },
 
     LOGS: {
-      READ: 'bizlinks.logs.read',
+      VIEW: 'bizlinks.logs.view',
     },
   },
 } as const;

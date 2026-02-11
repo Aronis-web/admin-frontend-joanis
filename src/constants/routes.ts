@@ -259,12 +259,12 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Bizlinks - Electronic Invoicing
   BIZLINKS_MENU: 'bizlinks.read',
   BIZLINKS_GENERATE_DOCUMENTS: 'bizlinks.documents.emit',
-  BIZLINKS_CONFIGURE_DOCUMENTS: 'bizlinks.config.read',
-  BIZLINKS_CONFIG: 'bizlinks.config.read',
+  BIZLINKS_CONFIGURE_DOCUMENTS: 'bizlinks.config.view',
+  BIZLINKS_CONFIG: 'bizlinks.config.view',
   BIZLINKS_CONFIG_CREATE: 'bizlinks.config.create',
   BIZLINKS_CONFIG_EDIT: 'bizlinks.config.update',
-  BIZLINKS_DOCUMENTS: 'bizlinks.documents.read',
-  BIZLINKS_DOCUMENT_DETAIL: 'bizlinks.documents.read',
+  BIZLINKS_DOCUMENTS: 'bizlinks.documents.view',
+  BIZLINKS_DOCUMENT_DETAIL: 'bizlinks.documents.view',
   BIZLINKS_EMITIR_FACTURA: 'bizlinks.documents.emit',
 
   // Balances

@@ -401,7 +401,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Configurar Documentos',
         route: MAIN_ROUTES.BIZLINKS_CONFIGURE_DOCUMENTS,
         color: '#6366F1',
-        requiredPermissions: ['bizlinks.config.read'],
+        requiredPermissions: ['bizlinks.config.view'],
       },
       // Apps
       {
