@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,12 @@ interface MenuOption {
 }
 
 export const BizlinksMenuScreen: React.FC<Props> = ({ navigation }) => {
+  // Redirigir automáticamente a la pantalla de documentos
+  useEffect(() => {
+    navigation.replace('BizlinksDocuments');
+  }, [navigation]);
+
+  // Este código ya no se ejecutará debido a la redirección inmediata
   const menuOptions: MenuOption[] = [
     {
       title: 'Comprobantes Electrónicos',
