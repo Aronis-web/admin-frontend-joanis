@@ -131,7 +131,11 @@ const BizlinksMenuScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m =>
 const BizlinksGenerateDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksGenerateDocumentsScreen })), 'Cargando generación de documentos...');
 const BizlinksConfigureDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigureDocumentsScreen })), 'Cargando configuración de documentos...');
 const BizlinksConfigScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigScreen })), 'Cargando configuración Bizlinks...');
+const BizlinksConfigCreateScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigCreateScreen })), 'Cargando formulario...');
+const BizlinksConfigEditScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigEditScreen })), 'Cargando formulario...');
 const BizlinksDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksDocumentsScreen })), 'Cargando documentos...');
+const BizlinksDocumentDetailScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksDocumentDetailScreen })), 'Cargando detalle...');
+const BizlinksEmitirFacturaScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksEmitirFacturaScreen })), 'Cargando formulario...');
 
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -1020,6 +1024,34 @@ const MainStack = React.memo(() => {
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BIZLINKS_CONFIG_CREATE}
+        options={{
+          title: 'Crear Configuración',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.config.create']}
+          >
+            <BizlinksConfigCreateScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BIZLINKS_CONFIG_EDIT}
+        options={{
+          title: 'Editar Configuración',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.config.update']}
+          >
+            <BizlinksConfigEditScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
         name={MAIN_ROUTES.BIZLINKS_DOCUMENTS}
         options={{
           title: 'Documentos Electrónicos',
@@ -1030,6 +1062,34 @@ const MainStack = React.memo(() => {
             requiredPermissions={['bizlinks.documents.view']}
           >
             <BizlinksDocumentsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BIZLINKS_DOCUMENT_DETAIL}
+        options={{
+          title: 'Detalle de Documento',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.documents.view']}
+          >
+            <BizlinksDocumentDetailScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BIZLINKS_EMITIR_FACTURA}
+        options={{
+          title: 'Emitir Factura',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.documents.emit']}
+          >
+            <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
