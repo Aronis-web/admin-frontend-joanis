@@ -23,6 +23,10 @@ import {
   formatDateForBizlinks,
   formatTimeForBizlinks,
 } from '../../utils/bizlinksHelpers';
+import { CustomerAutocomplete } from './CustomerAutocomplete';
+import { ProductAutocomplete } from './ProductAutocomplete';
+import { Customer } from '../../types/customers';
+import { Product } from '../../services/api/products';
 
 interface EmitirFacturaFormProps {
   companyId: string;
@@ -50,6 +54,7 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
   const { emitirFactura, emitirComprobante, loading } = useBizlinksDocuments();
   const { getActiveConfig, loading: loadingConfig } = useBizlinksConfig();
   const [configLoaded, setConfigLoaded] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const now = new Date();
   // Si se proporcionó una serie desde la selección, usarla
@@ -163,6 +168,58 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
 
     loadActiveConfig();
   }, [companyId, siteId]);
+
+  // Manejar selección de cliente
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+
+    // Determinar tipo de documento
+    let tipoDoc = BizlinksDocumentIdentityType.DNI;
+    if (customer.documentType === 'RUC') {
+      tipoDoc = BizlinksDocumentIdentityType.RUC;
+    } else if (customer.documentType === 'CE') {
+      tipoDoc = BizlinksDocumentIdentityType.CARNET_EXTRANJERIA;
+    } else if (customer.documentType === 'PASSPORT') {
+      tipoDoc = BizlinksDocumentIdentityType.PASAPORTE;
+    }
+
+    // Llenar datos del cliente automáticamente
+    setFormData((prev) => ({
+      ...prev,
+      tipoDocumentoAdquiriente: tipoDoc,
+      numeroDocumentoAdquiriente: customer.documentNumber,
+      razonSocialAdquiriente: customer.razonSocial || customer.fullName,
+      correoAdquiriente: customer.email || '',
+      direccionAdquiriente: customer.direccion || '',
+      telefonoAdquiriente: customer.phone || '',
+    }));
+  };
+
+  // Manejar selección de producto
+  const handleSelectProduct = (product: Product) => {
+    // Obtener la primera presentación o usar valores por defecto
+    const presentation = product.presentations?.[0];
+    const precioVenta = presentation?.salePrice || 0;
+    const precioConIgv = precioVenta * 1.18;
+
+    const newItem: BizlinksItemDto = {
+      numeroOrdenItem: items.length + 1,
+      cantidad: 1,
+      unidadMedida: BizlinksUnitMeasure.NIU,
+      codigoProducto: product.sku || '',
+      codigoProductoSunat: product.barcode || '',
+      descripcion: product.title,
+      valorUnitario: precioVenta,
+      precioVentaUnitario: precioConIgv,
+      codigoAfectacionIgv: BizlinksTaxType.IGV,
+      porcentajeIgv: 18,
+      montoIgvItem: precioVenta * 0.18,
+      valorVentaItem: precioVenta,
+      descuentoItem: 0,
+    };
+
+    setItems([...items, newItem]);
+  };
 
   // Calcular totales
   const calcularTotales = () => {
@@ -421,41 +478,63 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cliente</Text>
 
-        <Text style={styles.label}>Tipo de Documento *</Text>
-        <Picker
-          selectedValue={formData.tipoDocumentoAdquiriente}
-          onValueChange={(value) =>
-            setFormData({ ...formData, tipoDocumentoAdquiriente: value })
-          }
-          style={styles.picker}
-        >
-          <Picker.Item label="DNI" value={BizlinksDocumentIdentityType.DNI} />
-          <Picker.Item label="RUC" value={BizlinksDocumentIdentityType.RUC} />
-          <Picker.Item
-            label="Carnet de Extranjería"
-            value={BizlinksDocumentIdentityType.CARNET_EXTRANJERIA}
-          />
-          <Picker.Item label="Pasaporte" value={BizlinksDocumentIdentityType.PASAPORTE} />
-        </Picker>
-
-        <Text style={styles.label}>Número de Documento *</Text>
-        <TextInput
-          style={styles.input}
-          value={formData.numeroDocumentoAdquiriente}
-          onChangeText={(text) =>
-            setFormData({ ...formData, numeroDocumentoAdquiriente: text })
-          }
-          placeholder="20123456789"
-          keyboardType="numeric"
+        <Text style={styles.label}>Buscar Cliente</Text>
+        <CustomerAutocomplete
+          onSelectCustomer={handleSelectCustomer}
+          placeholder="Buscar por nombre, RUC o DNI..."
         />
 
-        <Text style={styles.label}>Razón Social / Nombre *</Text>
-        <TextInput
-          style={styles.input}
-          value={formData.razonSocialAdquiriente}
-          onChangeText={(text) => setFormData({ ...formData, razonSocialAdquiriente: text })}
-          placeholder="CLIENTE SAC"
-        />
+        {selectedCustomer && (
+          <View style={styles.customerSelectedInfo}>
+            <Text style={styles.customerSelectedLabel}>Cliente seleccionado:</Text>
+            <Text style={styles.customerSelectedName}>
+              {formData.razonSocialAdquiriente}
+            </Text>
+            <Text style={styles.customerSelectedDoc}>
+              {formData.tipoDocumentoAdquiriente === BizlinksDocumentIdentityType.RUC ? 'RUC' : 'DNI'}: {formData.numeroDocumentoAdquiriente}
+            </Text>
+          </View>
+        )}
+
+        {!selectedCustomer && (
+          <>
+            <Text style={styles.label}>Tipo de Documento *</Text>
+            <Picker
+              selectedValue={formData.tipoDocumentoAdquiriente}
+              onValueChange={(value) =>
+                setFormData({ ...formData, tipoDocumentoAdquiriente: value })
+              }
+              style={styles.picker}
+            >
+              <Picker.Item label="DNI" value={BizlinksDocumentIdentityType.DNI} />
+              <Picker.Item label="RUC" value={BizlinksDocumentIdentityType.RUC} />
+              <Picker.Item
+                label="Carnet de Extranjería"
+                value={BizlinksDocumentIdentityType.CARNET_EXTRANJERIA}
+              />
+              <Picker.Item label="Pasaporte" value={BizlinksDocumentIdentityType.PASAPORTE} />
+            </Picker>
+
+            <Text style={styles.label}>Número de Documento *</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.numeroDocumentoAdquiriente}
+              onChangeText={(text) =>
+                setFormData({ ...formData, numeroDocumentoAdquiriente: text })
+              }
+              placeholder="20123456789"
+              keyboardType="numeric"
+            />
+
+            <Text style={styles.label}>Razón Social / Nombre *</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.razonSocialAdquiriente}
+              onChangeText={(text) => setFormData({ ...formData, razonSocialAdquiriente: text })}
+              placeholder="CLIENTE SAC"
+            />
+          </>
+        )}
 
         <Text style={styles.label}>Email</Text>
         <TextInput
@@ -472,9 +551,16 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Items</Text>
           <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
-            <Text style={styles.addButtonText}>+ Agregar Item</Text>
+            <Text style={styles.addButtonText}>+ Agregar Item Manual</Text>
           </TouchableOpacity>
         </View>
+
+        <Text style={styles.label}>Buscar Producto</Text>
+        <ProductAutocomplete
+          onSelectProduct={handleSelectProduct}
+          placeholder="Buscar producto por nombre o código..."
+          excludeProductIds={items.map(item => item.codigoProducto).filter(Boolean)}
+        />
 
         {items.map((item, index) => (
           <View key={index} style={styles.itemCard}>
@@ -808,5 +894,29 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontWeight: '600',
     textAlign: 'center',
+  },
+  customerSelectedInfo: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#10B981',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  customerSelectedLabel: {
+    fontSize: 12,
+    color: '#059669',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  customerSelectedName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#065F46',
+    marginBottom: 2,
+  },
+  customerSelectedDoc: {
+    fontSize: 14,
+    color: '#047857',
   },
 });
