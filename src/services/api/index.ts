@@ -3,6 +3,7 @@
 
 export { default as apiClient } from './client';
 export { companiesApi } from './companies';
+export { sitesApi, sitesService } from './sites';
 export { inventoryApi } from './inventory';
 export { warehousesApi, warehouseAreasApi } from './warehouses';
 export { expensesApi } from './expenses';
