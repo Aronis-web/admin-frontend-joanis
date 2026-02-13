@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import { MotiView } from 'moti';
+// TEMPORARY: MotiView disabled due to build issues with framer-motion
+// import { MotiView } from 'moti';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Svg, Circle, Rect, Path } from 'react-native-svg';
 import { theme } from '@/theme';
@@ -22,37 +23,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ text = 'Iniciando ap
       />
 
       {/* Decorative circles */}
-      <MotiView
-        style={styles.decorativeCircle1}
-        from={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 0.1, scale: 1 }}
-        transition={{ duration: 1000, delay: 200 }}
-      />
-      <MotiView
-        style={styles.decorativeCircle2}
-        from={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 0.15, scale: 1 }}
-        transition={{ duration: 1000, delay: 400 }}
-      />
-      <MotiView
-        style={styles.decorativeCircle3}
-        from={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 0.1, scale: 1 }}
-        transition={{ duration: 1000, delay: 600 }}
-      />
+      <View style={styles.decorativeCircle1} />
+      <View style={styles.decorativeCircle2} />
+      <View style={styles.decorativeCircle3} />
 
       {/* Main icon */}
-      <MotiView
-        from={{ opacity: 0, scale: 0.5, translateY: 50 }}
-        animate={{ opacity: 1, scale: 1, translateY: 0 }}
-        transition={{
-          type: 'spring',
-          damping: 15,
-          stiffness: 150,
-          delay: 300,
-        }}
-        style={styles.iconContainer}
-      >
+      <View style={styles.iconContainer}>
         <Svg width={200} height={200} viewBox="0 0 1024 1024">
           <Rect x="212" y="212" width="600" height="600" rx="40" fill="white" opacity="0.95" />
           <Rect x="252" y="252" width="520" height="80" rx="20" fill="#1ECAD0" opacity="0.8" />
@@ -81,46 +57,25 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ text = 'Iniciando ap
           <Rect x="442" y="660" width="140" height="80" rx="15" fill="#DCC8FF" opacity="0.3" />
           <Rect x="592" y="660" width="140" height="80" rx="15" fill="#A88CFF" opacity="0.2" />
         </Svg>
-      </MotiView>
+      </View>
 
       {/* Loading dots */}
-      <MotiView style={styles.dotsContainer}>
+      <View style={styles.dotsContainer}>
         {[0, 1, 2].map((index) => (
-          <MotiView
-            key={index}
-            style={styles.dot}
-            from={{ opacity: 0.3, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1.2 }}
-            transition={{
-              type: 'timing',
-              duration: 800,
-              loop: true,
-              delay: index * 200,
-              repeatReverse: true,
-            }}
-          />
+          <View key={index} style={styles.dot} />
         ))}
-      </MotiView>
+      </View>
 
       {/* Loading text */}
-      <MotiView
-        from={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ duration: 600, delay: 800 }}
-      >
+      <View>
         <Text style={styles.text}>{text}</Text>
-      </MotiView>
+      </View>
 
       {/* App name */}
-      <MotiView
-        from={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 800, delay: 1000 }}
-        style={styles.appNameContainer}
-      >
+      <View style={styles.appNameContainer}>
         <Text style={styles.appName}>PanelAdmin</Text>
         <Text style={styles.appNameHighlight}>Grit</Text>
-      </MotiView>
+      </View>
     </View>
   );
 };
