@@ -35,6 +35,14 @@ const knownProblematicPackages = [
   "abort-controller"
 ];
 
+// Mapeo de imports específicos que necesitan archivos creados
+const specificImports = {
+  "abort-controller": [
+    "dist/abort-controller",
+    "dist/abort-controller.js"
+  ]
+};
+
 // Función genérica para arreglar un paquete
 function fixPackage(packageName, packageDir) {
   console.log(`\n[fix-package] Processing: ${packageName}`);
@@ -104,6 +112,9 @@ function fixPackage(packageName, packageDir) {
 
     // IMPORTANTE: Crear archivos faltantes en rutas específicas
     createMissingFiles(packageName, packageDir, originalMain);
+
+    // IMPORTANTE: Crear archivos para imports específicos (como abort-controller/dist/abort-controller)
+    createSpecificImportFiles(packageName, packageDir);
 
     // Generar código para el index.js
     const indexCode = generateIndexCode(packageName, originalMain, {
@@ -215,6 +226,79 @@ module.exports = tryLoad();
   return code;
 }
 
+// Crear archivos específicos para imports directos
+function createSpecificImportFiles(packageName, packageDir) {
+  if (!specificImports[packageName]) {
+    return;
+  }
+
+  console.log(`[fix-package] Creating specific import files for ${packageName}`);
+
+  specificImports[packageName].forEach(importPath => {
+    const fullPath = path.join(packageDir, importPath);
+
+    if (fs.existsSync(fullPath)) {
+      console.log(`[fix-package] File already exists: ${importPath}`);
+      return;
+    }
+
+    // Buscar archivos similares en el directorio
+    const dir = path.dirname(fullPath);
+    const basename = path.basename(importPath);
+
+    if (!fs.existsSync(dir)) {
+      console.log(`[fix-package] Directory doesn't exist: ${dir}`);
+      return;
+    }
+
+    const filesInDir = listDir(dir);
+    console.log(`[fix-package] Files in ${path.basename(dir)}/:`, filesInDir);
+
+    // Buscar archivos con el mismo nombre base
+    const nameWithoutExt = basename.replace(/\.(js|mjs|cjs)$/, '');
+    const possibleFiles = filesInDir.filter(f => {
+      return f.startsWith(nameWithoutExt);
+    });
+
+    console.log(`[fix-package] Possible files for ${basename}:`, possibleFiles);
+
+    if (possibleFiles.length > 0) {
+      // Crear wrapper que intente cargar los archivos encontrados
+      const relativeAttempts = possibleFiles.map(f => {
+        const relativePath = path.relative(packageDir, path.join(dir, f));
+        return './' + relativePath.replace(/\\/g, '/');
+      });
+
+      const wrapperCode = `// Auto-generated wrapper for ${packageName}/${importPath}
+'use strict';
+
+function tryLoad() {
+  const attempts = ${JSON.stringify(relativeAttempts, null, 2)};
+
+  for (let i = 0; i < attempts.length; i++) {
+    try {
+      const loaded = require(attempts[i]);
+      console.log('[${packageName}] Loaded from:', attempts[i]);
+      return loaded;
+    } catch (e) {
+      if (i === attempts.length - 1) {
+        console.error('[${packageName}] All attempts failed');
+        return {};
+      }
+    }
+  }
+  return {};
+}
+
+module.exports = tryLoad();
+`;
+
+      fs.writeFileSync(fullPath, wrapperCode, 'utf8');
+      console.log(`[fix-package] ✅ Created specific import file: ${fullPath}`);
+    }
+  });
+}
+
 // Crear archivos faltantes en rutas específicas dentro de dist/lib/build
 function createMissingFiles(packageName, packageDir, originalMain) {
   const filesToCreate = [];
@@ -306,6 +390,12 @@ knownProblematicPackages.forEach(pkgName => {
   }
 
   if (fs.existsSync(pkgDir)) {
+    // Primero crear archivos específicos si existen en el mapeo
+    if (specificImports[pkgName]) {
+      console.log(`\n[fix-package] Processing specific imports for: ${pkgName}`);
+      createSpecificImportFiles(pkgName, pkgDir);
+    }
+
     const fixed = fixPackage(pkgName, pkgDir);
     if (fixed) {
       fixedCount++;
