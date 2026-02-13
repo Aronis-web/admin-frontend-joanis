@@ -1,5 +1,11 @@
-import * as Sentry from '@sentry/react-native';
+// TEMPORARY: Sentry disabled due to build issues
+// import * as Sentry from '@sentry/react-native';
 import { logger } from './logger';
+
+// Temporary Sentry stub
+const Sentry = {
+  addBreadcrumb: () => {},
+};
 
 /**
  * Performance Monitoring Utility

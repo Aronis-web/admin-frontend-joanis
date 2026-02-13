@@ -1,7 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { trackScreen } from '@/utils/analytics';
 import { logger } from '@/utils/logger';
-import * as Sentry from '@sentry/react-native';
+// TEMPORARY: Sentry disabled due to build issues
+// import * as Sentry from '@sentry/react-native';
+
+// Temporary Sentry stub
+const Sentry = {
+  addBreadcrumb: () => {},
+  captureMessage: () => {},
+};
 
 /**
  * Hook to automatically track screen views and time spent on screen
