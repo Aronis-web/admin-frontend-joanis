@@ -7,6 +7,9 @@ const config = getDefaultConfig(__dirname);
 // Ensure proper module resolution
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
+// Disable package exports to avoid issues with packages that have incorrect exports configuration
+config.resolver.unstable_enablePackageExports = false;
+
 // Exclude electron, dist, and web-build folders from Metro bundler
 config.resolver.blockList = [
   /electron\/.*/,

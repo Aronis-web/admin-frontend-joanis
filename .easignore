@@ -1,0 +1,18 @@
+# Excluir archivos y carpetas de Electron del build de EAS
+electron/
+dist/
+web-build/
+electron-main.js
+fix-html-for-electron.js
+webpack.config.js
+
+# Excluir archivos de desarrollo
+.expo/
+.expo-shared/
+*.log
+
+# Excluir configuraciones de package managers que pueden causar problemas
+.npmrc
+.yarnrc
+.yarnrc.yml
+.pnpmfile.cjs

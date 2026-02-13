@@ -1,0 +1,58 @@
+{
+  "appId": "com.paneladmin.grit",
+  "productName": "Panel Admin Grit",
+  "forceCodeSigning": false,
+  "directories": {
+    "buildResources": "electron/build",
+    "output": "dist"
+  },
+  "files": [
+    "electron/**/*",
+    "electron-main.js",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "web-build",
+      "to": "web-build",
+      "filter": [
+        "**/*"
+      ]
+    }
+  ],
+  "extraMetadata": {
+    "main": "electron-main.js"
+  },
+  "win": {
+    "target": [
+      "nsis"
+    ],
+    "icon": "electron/build/icon.ico",
+    "sign": null
+  },
+  "mac": {
+    "target": [
+      "dmg"
+    ],
+    "icon": "electron/build/icon.icns",
+    "category": "public.app-category.business"
+  },
+  "linux": {
+    "target": [
+      "AppImage"
+    ],
+    "icon": "electron/build/icon.png",
+    "category": "Office"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "publish": {
+    "provider": "github",
+    "owner": "your-github-username",
+    "repo": "admin-frontend-joanis"
+  }
+}
