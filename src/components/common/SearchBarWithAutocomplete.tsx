@@ -25,6 +25,7 @@ interface SearchBarWithAutocompleteProps {
   placeholder?: string;
   onClear?: () => void;
   onSuggestionSelect?: (suggestion: PurchaseAutocompleteSuggestion) => void;
+  onSubmit?: (text: string) => void;
   style?: any;
   autoFocus?: boolean;
   minChars?: number;
@@ -37,19 +38,28 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
   placeholder = 'Buscar...',
   onClear,
   onSuggestionSelect,
+  onSubmit,
   style,
   autoFocus = false,
   minChars = 2,
   maxSuggestions = 10,
 }) => {
+  const [internalValue, setInternalValue] = useState(value);
   const [suggestions, setSuggestions] = useState<PurchaseAutocompleteSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
-  // Debounce search term
-  const debouncedSearchTerm = useDebounce(value, 300);
+  // Sync internal value with external value when it changes externally (e.g., clear)
+  useEffect(() => {
+    if (value === '') {
+      setInternalValue('');
+    }
+  }, [value]);
+
+  // Debounce internal search term for autocomplete only
+  const debouncedSearchTerm = useDebounce(internalValue, 300);
 
   // Fetch autocomplete suggestions
   const fetchSuggestions = useCallback(async (searchTerm: string) => {
@@ -84,6 +94,7 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
   }, [debouncedSearchTerm, isFocused, fetchSuggestions]);
 
   const handleClear = () => {
+    setInternalValue('');
     onChangeText('');
     setSuggestions([]);
     setShowSuggestions(false);
@@ -93,12 +104,25 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
   const handleSuggestionPress = (suggestion: PurchaseAutocompleteSuggestion) => {
     setShowSuggestions(false);
     setSuggestions([]);
+    setInternalValue('');
     onSuggestionSelect?.(suggestion);
+  };
+
+  const handleInternalChange = (text: string) => {
+    setInternalValue(text);
+    // Only update parent when user submits or clears, not on every keystroke
+  };
+
+  const handleSubmitEditing = () => {
+    // Update parent search term when user presses Enter
+    onChangeText(internalValue);
+    setShowSuggestions(false);
+    onSubmit?.(internalValue);
   };
 
   const handleFocus = () => {
     setIsFocused(true);
-    if (value.length >= minChars && suggestions.length > 0) {
+    if (internalValue.length >= minChars && suggestions.length > 0) {
       setShowSuggestions(true);
     }
   };
@@ -203,20 +227,22 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
         <TextInput
           ref={inputRef}
           style={styles.input}
-          value={value}
-          onChangeText={onChangeText}
+          value={internalValue}
+          onChangeText={handleInternalChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          onSubmitEditing={handleSubmitEditing}
           placeholder={placeholder}
           placeholderTextColor="#999"
           autoCapitalize="none"
           autoCorrect={false}
           autoFocus={autoFocus}
+          returnKeyType="search"
         />
         {isLoading && (
           <ActivityIndicator size="small" color="#6366F1" style={styles.loadingIndicator} />
         )}
-        {value.length > 0 && !isLoading && (
+        {internalValue.length > 0 && !isLoading && (
           <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
             <Ionicons name="close-circle" size={20} color="#999" />
           </TouchableOpacity>
@@ -238,7 +264,7 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
       )}
 
       {/* No results message */}
-      {showSuggestions && !isLoading && value.length >= minChars && suggestions.length === 0 && (
+      {showSuggestions && !isLoading && internalValue.length >= minChars && suggestions.length === 0 && (
         <View style={styles.noResultsContainer}>
           <Text style={styles.noResultsText}>No se encontraron resultados</Text>
         </View>
