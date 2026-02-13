@@ -6,7 +6,7 @@ export { companiesApi } from './companies';
 export { sitesApi, sitesService } from './sites';
 export { inventoryApi } from './inventory';
 export { warehousesApi, warehouseAreasApi } from './warehouses';
-export { expensesApi } from './expenses';
+export { expensesService } from './expenses';
 export { balancesApi } from './balances';
 export { biometricApi } from './biometric';
 export { filesApi } from './files';
@@ -22,11 +22,38 @@ export * from './transfers';
 export * from './campaigns';
 export * from './repartos';
 export * from './users';
-export * from './roles';
-export * from './apps';
-export * from './scopes';
+
+// Export roles API (avoid GetPermissionsParams conflict with apps)
+export { rolesApi } from './roles';
+export type { Role, CreateRoleRequest, CreateRoleResponse, Permission } from './roles';
+
+// Export apps API (avoid conflicts with roles and scopes)
+export { appsApi } from './apps';
+export type {
+  App,
+  AppsResponse,
+  CreateAppDto,
+  UpdateAppDto,
+  GetAppsParams,
+  Scope,
+  AppPermission,
+  UserAppRole,
+  AppUser,
+  UserRole,
+  AssignUserRoleDto,
+  UpdateUserRoleDto,
+  ScopesResponse,
+  PermissionsResponse as AppsPermissionsResponse
+} from './apps';
+
+// Export scopes API (avoid conflicts with apps)
+export { scopesApi } from './scopes';
+
 export * from './price-profiles';
-export * from './presentations';
+
+// Export presentations API (avoid Presentation conflict with products)
+export { presentationsApi } from './presentations';
+export type { PresentationsResponse, CreatePresentationDto, UpdatePresentationDto, GetPresentationsParams } from './presentations';
 
 export * from './billing';
 export * from './bizlinks';
