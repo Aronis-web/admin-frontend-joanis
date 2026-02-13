@@ -536,6 +536,37 @@ export const PurchaseProductStatusColors: Record<PurchaseProductStatus, string> 
 };
 
 // ============================================
+// Autocomplete Types
+// ============================================
+
+/**
+ * Match Type for Autocomplete
+ */
+export type AutocompleteMatchType = 'purchase' | 'supplier' | 'product';
+
+/**
+ * Autocomplete Suggestion
+ */
+export interface PurchaseAutocompleteSuggestion {
+  id: string;
+  code: string;
+  supplierName: string;
+  guideNumber: string;
+  guideDate: string;
+  status: PurchaseStatus;
+  matchedProduct?: string;
+  matchType: AutocompleteMatchType;
+}
+
+/**
+ * Autocomplete Response
+ */
+export interface PurchaseAutocompleteResponse {
+  suggestions: PurchaseAutocompleteSuggestion[];
+  total: number;
+}
+
+// ============================================
 // OCR Scanner Types
 // ============================================
 

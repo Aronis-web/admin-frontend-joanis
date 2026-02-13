@@ -21,6 +21,7 @@ import {
   OcrScanResponse,
   PurchaseTotalSumResponse,
   PurchaseValidationProgressResponse,
+  PurchaseAutocompleteResponse,
 } from '@/types/purchases';
 
 /**
@@ -38,6 +39,17 @@ class PurchasesService {
    */
   async getPurchases(params?: QueryPurchasesParams): Promise<PurchasesResponse> {
     return apiClient.get<PurchasesResponse>(this.basePath, { params });
+  }
+
+  /**
+   * Get autocomplete suggestions for purchases
+   * @param search - Search term (minimum 2 characters)
+   * @param limit - Maximum number of suggestions (default 10, max 20)
+   */
+  async getAutocomplete(search: string, limit: number = 10): Promise<PurchaseAutocompleteResponse> {
+    return apiClient.get<PurchaseAutocompleteResponse>(`${this.basePath}/autocomplete`, {
+      params: { search, limit },
+    });
   }
 
   /**

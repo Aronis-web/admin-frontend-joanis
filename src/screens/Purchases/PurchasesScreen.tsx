@@ -21,12 +21,13 @@ import {
   PurchaseStatusColors,
   QueryPurchasesParams,
   DateFieldType,
+  PurchaseAutocompleteSuggestion,
 } from '@/types/purchases';
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
-import { SearchBar } from '@/components/common/SearchBar';
+import { SearchBarWithAutocomplete } from '@/components/common/SearchBarWithAutocomplete';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
 import { formatDateToString } from '@/utils/dateHelpers';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -217,6 +218,16 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   const handlePurchasePress = useCallback(
     (purchase: Purchase) => {
       navigation.navigate('PurchaseDetail', { purchaseId: purchase.id });
+    },
+    [navigation]
+  );
+
+  const handleSuggestionSelect = useCallback(
+    (suggestion: PurchaseAutocompleteSuggestion) => {
+      // Navigate directly to the purchase detail
+      navigation.navigate('PurchaseDetail', { purchaseId: suggestion.id });
+      // Clear search term
+      setSearchTerm('');
     },
     [navigation]
   );
@@ -503,11 +514,14 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <SearchBar
+          <SearchBarWithAutocomplete
             value={searchTerm}
             onChangeText={setSearchTerm}
             placeholder="Buscar por código, proveedor, productos..."
             onClear={() => setSearchTerm('')}
+            onSuggestionSelect={handleSuggestionSelect}
+            minChars={2}
+            maxSuggestions={10}
           />
         </View>
 
