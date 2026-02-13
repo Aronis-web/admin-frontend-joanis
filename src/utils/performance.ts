@@ -4,7 +4,7 @@ import { logger } from './logger';
 
 // Temporary Sentry stub
 const Sentry = {
-  addBreadcrumb: () => {},
+  addBreadcrumb: (...args: any[]) => {},
 };
 
 /**
