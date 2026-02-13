@@ -4,9 +4,9 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('\n========================================');
-console.log('PATCHING REACT NATIVE setUpXHR.js');
-console.log('========================================\n');
+console.error('\n========================================');
+console.error('PATCHING REACT NATIVE setUpXHR.js');
+console.error('========================================\n');
 
 const workingDir = process.cwd();
 const setUpXHRPath = path.join(
@@ -18,8 +18,8 @@ const setUpXHRPath = path.join(
   'setUpXHR.js'
 );
 
-console.log('[patch-rn] Working directory:', workingDir);
-console.log('[patch-rn] Target file:', setUpXHRPath);
+console.error('[patch-rn] Working directory:', workingDir);
+console.error('[patch-rn] Target file:', setUpXHRPath);
 
 if (!fs.existsSync(setUpXHRPath)) {
   console.error('[patch-rn] ❌ File not found:', setUpXHRPath);
@@ -28,11 +28,11 @@ if (!fs.existsSync(setUpXHRPath)) {
 
 // Read the file
 let content = fs.readFileSync(setUpXHRPath, 'utf8');
-console.log('[patch-rn] File read successfully');
+console.error('[patch-rn] File read successfully');
 
 // Check if already patched
 if (content.includes('// PATCHED BY scripts/patch-react-native.js')) {
-  console.log('[patch-rn] ✅ File already patched, skipping');
+  console.error('[patch-rn] ✅ File already patched, skipping');
   process.exit(0);
 }
 
@@ -89,6 +89,6 @@ if (content.includes(originalSignalImport)) {
 // Write the patched file
 fs.writeFileSync(setUpXHRPath, content, 'utf8');
 
-console.log('[patch-rn] ✅ File patched successfully');
-console.log('[patch-rn] Applied fallback import logic for AbortController and AbortSignal');
-console.log('\n========================================\n');
+console.error('[patch-rn] ✅ File patched successfully');
+console.error('[patch-rn] Applied fallback import logic for AbortController and AbortSignal');
+console.error('\n========================================\n');

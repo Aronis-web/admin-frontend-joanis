@@ -19,11 +19,11 @@ function ensureDir(p) {
 const cwd = process.cwd();
 const nodeModulesDir = path.join(cwd, "node_modules");
 
-console.log("\n========================================");
-console.log("GENERIC PACKAGE FIXER FOR EAS BUILD");
-console.log("========================================\n");
-console.log("[fix-all] Working directory:", cwd);
-console.log("[fix-all] Node modules directory:", nodeModulesDir);
+console.error("\n========================================");
+console.error("GENERIC PACKAGE FIXER FOR EAS BUILD");
+console.error("========================================\n");
+console.error("[fix-all] Working directory:", cwd);
+console.error("[fix-all] Node modules directory:", nodeModulesDir);
 
 // Lista de paquetes que sabemos que tienen problemas
 const knownProblematicPackages = [
@@ -45,13 +45,13 @@ const specificImports = {
 
 // Función genérica para arreglar un paquete
 function fixPackage(packageName, packageDir) {
-  console.log(`\n[fix-package] Processing: ${packageName}`);
-  console.log(`[fix-package] Directory: ${packageDir}`);
+  console.error(`\n[fix-package] Processing: ${packageName}`);
+  console.error(`[fix-package] Directory: ${packageDir}`);
 
   const pkgJsonPath = path.join(packageDir, "package.json");
 
   if (!fs.existsSync(pkgJsonPath)) {
-    console.log(`[fix-package] No package.json found, skipping`);
+    console.error(`[fix-package] No package.json found, skipping`);
     return false;
   }
 
@@ -60,15 +60,15 @@ function fixPackage(packageName, packageDir) {
     const originalMain = pkgJson.main;
 
     if (!originalMain) {
-      console.log(`[fix-package] No main field in package.json, skipping`);
+      console.error(`[fix-package] No main field in package.json, skipping`);
       return false;
     }
 
-    console.log(`[fix-package] Original main: ${originalMain}`);
+    console.error(`[fix-package] Original main: ${originalMain}`);
 
     // Si el main ya apunta a index.js en la raíz, probablemente ya está arreglado
     if (originalMain === "index.js" || originalMain === "./index.js") {
-      console.log(`[fix-package] Already points to index.js, skipping`);
+      console.error(`[fix-package] Already points to index.js, skipping`);
       return false;
     }
 
@@ -78,15 +78,15 @@ function fixPackage(packageName, packageDir) {
                                originalMain.includes("build/");
 
     if (!mainPointsToSubdir) {
-      console.log(`[fix-package] Main doesn't point to dist/lib/build, skipping`);
+      console.error(`[fix-package] Main doesn't point to dist/lib/build, skipping`);
       return false;
     }
 
     const originalMainPath = path.join(packageDir, originalMain);
     const mainExists = fs.existsSync(originalMainPath);
 
-    console.log(`[fix-package] Original main path: ${originalMainPath}`);
-    console.log(`[fix-package] Original main exists: ${mainExists}`);
+    console.error(`[fix-package] Original main path: ${originalMainPath}`);
+    console.error(`[fix-package] Original main exists: ${mainExists}`);
 
     // Crear un index.js genérico que intente cargar desde diferentes ubicaciones
     const indexJsPath = path.join(packageDir, "index.js");
@@ -100,14 +100,14 @@ function fixPackage(packageName, packageDir) {
     const libExists = fs.existsSync(libDir);
     const buildExists = fs.existsSync(buildDir);
 
-    console.log(`[fix-package] dist/ exists: ${distExists}`);
-    console.log(`[fix-package] lib/ exists: ${libExists}`);
-    console.log(`[fix-package] build/ exists: ${buildExists}`);
+    console.error(`[fix-package] dist/ exists: ${distExists}`);
+    console.error(`[fix-package] lib/ exists: ${libExists}`);
+    console.error(`[fix-package] build/ exists: ${buildExists}`);
 
     // Listar archivos en dist/ si existe
     if (distExists) {
       const distFiles = listDir(distDir);
-      console.log(`[fix-package] dist/ files:`, distFiles ? distFiles.slice(0, 10) : []);
+      console.error(`[fix-package] dist/ files:`, distFiles ? distFiles.slice(0, 10) : []);
     }
 
     // IMPORTANTE: Crear archivos faltantes en rutas específicas
@@ -127,18 +127,18 @@ function fixPackage(packageName, packageDir) {
     });
 
     fs.writeFileSync(indexJsPath, indexCode, "utf8");
-    console.log(`[fix-package] Created index.js at: ${indexJsPath}`);
-    console.log(`[fix-package] File size: ${fs.statSync(indexJsPath).size} bytes`);
+    console.error(`[fix-package] Created index.js at: ${indexJsPath}`);
+    console.error(`[fix-package] File size: ${fs.statSync(indexJsPath).size} bytes`);
 
     // Actualizar package.json
     pkgJson.main = "index.js";
     fs.writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2), "utf8");
-    console.log(`[fix-package] Updated package.json main to: index.js`);
+    console.error(`[fix-package] Updated package.json main to: index.js`);
 
     // Verificar que el archivo es legible
     try {
       const content = fs.readFileSync(indexJsPath, "utf8");
-      console.log(`[fix-package] ✅ index.js is readable (${content.length} bytes)`);
+      console.error(`[fix-package] ✅ index.js is readable (${content.length} bytes)`);
       return true;
     } catch (e) {
       console.error(`[fix-package] ❌ ERROR: index.js not readable:`, e.message);
@@ -206,7 +206,7 @@ function generateIndexCode(packageName, originalMain, info) {
   for (let i = 0; i < attempts.length; i++) {
     try {
       const loaded = require('./' + attempts[i]);
-      console.log('[${packageName}] Loaded from:', attempts[i]);
+      console.error('[${packageName}] Loaded from:', attempts[i]);
       return loaded;
     } catch (e) {
       // Continue to next attempt
@@ -232,13 +232,13 @@ function createSpecificImportFiles(packageName, packageDir) {
     return;
   }
 
-  console.log(`[fix-package] Creating specific import files for ${packageName}`);
+  console.error(`[fix-package] Creating specific import files for ${packageName}`);
 
   specificImports[packageName].forEach(importPath => {
     const fullPath = path.join(packageDir, importPath);
 
     if (fs.existsSync(fullPath)) {
-      console.log(`[fix-package] File already exists: ${importPath}`);
+      console.error(`[fix-package] File already exists: ${importPath}`);
       return;
     }
 
@@ -247,12 +247,12 @@ function createSpecificImportFiles(packageName, packageDir) {
     const basename = path.basename(importPath);
 
     if (!fs.existsSync(dir)) {
-      console.log(`[fix-package] Directory doesn't exist: ${dir}`);
+      console.error(`[fix-package] Directory doesn't exist: ${dir}`);
       return;
     }
 
     const filesInDir = listDir(dir);
-    console.log(`[fix-package] Files in ${path.basename(dir)}/:`, filesInDir);
+    console.error(`[fix-package] Files in ${path.basename(dir)}/:`, filesInDir);
 
     // Buscar archivos con el mismo nombre base
     const nameWithoutExt = basename.replace(/\.(js|mjs|cjs)$/, '');
@@ -260,7 +260,7 @@ function createSpecificImportFiles(packageName, packageDir) {
       return f.startsWith(nameWithoutExt);
     });
 
-    console.log(`[fix-package] Possible files for ${basename}:`, possibleFiles);
+    console.error(`[fix-package] Possible files for ${basename}:`, possibleFiles);
 
     if (possibleFiles.length > 0) {
       // Crear wrapper que intente cargar los archivos encontrados
@@ -278,7 +278,7 @@ function tryLoad() {
   for (let i = 0; i < attempts.length; i++) {
     try {
       const loaded = require(attempts[i]);
-      console.log('[${packageName}] Loaded from:', attempts[i]);
+      console.error('[${packageName}] Loaded from:', attempts[i]);
       return loaded;
     } catch (e) {
       if (i === attempts.length - 1) {
@@ -294,7 +294,7 @@ module.exports = tryLoad();
 `;
 
       fs.writeFileSync(fullPath, wrapperCode, 'utf8');
-      console.log(`[fix-package] ✅ Created specific import file: ${fullPath}`);
+      console.error(`[fix-package] ✅ Created specific import file: ${fullPath}`);
     }
   });
 }
@@ -313,7 +313,7 @@ function createMissingFiles(packageName, packageDir, originalMain) {
 
     if (fs.existsSync(dir)) {
       const filesInDir = listDir(dir);
-      console.log(`[fix-package] Files in ${path.basename(dir)}/:`, filesInDir);
+      console.error(`[fix-package] Files in ${path.basename(dir)}/:`, filesInDir);
 
       // Buscar archivos con extensiones similares
       const possibleFiles = filesInDir.filter(f => {
@@ -321,7 +321,7 @@ function createMissingFiles(packageName, packageDir, originalMain) {
         return f.startsWith(nameWithoutExt) || f.includes(nameWithoutExt);
       });
 
-      console.log(`[fix-package] Possible alternative files:`, possibleFiles);
+      console.error(`[fix-package] Possible alternative files:`, possibleFiles);
 
       if (possibleFiles.length > 0) {
         // Crear un wrapper que intente cargar los archivos encontrados
@@ -339,7 +339,7 @@ function tryLoad() {
   for (let i = 0; i < attempts.length; i++) {
     try {
       const loaded = require(attempts[i]);
-      console.log('[${packageName}] Loaded from:', attempts[i]);
+      console.error('[${packageName}] Loaded from:', attempts[i]);
       return loaded;
     } catch (e) {
       if (i === attempts.length - 1) {
@@ -357,14 +357,14 @@ module.exports = tryLoad();
         // Crear el archivo en la ubicación exacta que se busca
         ensureDir(dir);
         fs.writeFileSync(originalMainPath, wrapperCode, 'utf8');
-        console.log(`[fix-package] ✅ Created missing file: ${originalMainPath}`);
+        console.error(`[fix-package] ✅ Created missing file: ${originalMainPath}`);
 
         // También crear versiones con extensiones .js, .mjs, .cjs si no existen
         ['.js', '.mjs', '.cjs'].forEach(ext => {
           const pathWithExt = originalMainPath + ext;
           if (!fs.existsSync(pathWithExt)) {
             fs.writeFileSync(pathWithExt, wrapperCode, 'utf8');
-            console.log(`[fix-package] ✅ Created: ${pathWithExt}`);
+            console.error(`[fix-package] ✅ Created: ${pathWithExt}`);
           }
         });
       }
@@ -376,7 +376,7 @@ module.exports = tryLoad();
 let fixedCount = 0;
 let skippedCount = 0;
 
-console.log("\n[fix-all] Scanning known problematic packages...\n");
+console.error("\n[fix-all] Scanning known problematic packages...\n");
 
 knownProblematicPackages.forEach(pkgName => {
   let pkgDir;
@@ -392,7 +392,7 @@ knownProblematicPackages.forEach(pkgName => {
   if (fs.existsSync(pkgDir)) {
     // Primero crear archivos específicos si existen en el mapeo
     if (specificImports[pkgName]) {
-      console.log(`\n[fix-package] Processing specific imports for: ${pkgName}`);
+      console.error(`\n[fix-package] Processing specific imports for: ${pkgName}`);
       createSpecificImportFiles(pkgName, pkgDir);
     }
 
@@ -403,13 +403,13 @@ knownProblematicPackages.forEach(pkgName => {
       skippedCount++;
     }
   } else {
-    console.log(`\n[fix-package] Package not found: ${pkgName}`);
+    console.error(`\n[fix-package] Package not found: ${pkgName}`);
     skippedCount++;
   }
 });
 
 // BONUS: Escanear TODOS los paquetes en node_modules para encontrar más problemas
-console.log("\n[fix-all] Scanning ALL packages in node_modules for potential issues...\n");
+console.error("\n[fix-all] Scanning ALL packages in node_modules for potential issues...\n");
 
 try {
   const allPackages = fs.readdirSync(nodeModulesDir);
@@ -435,7 +435,7 @@ try {
             const fixed = fixPackage(fullName, scopePkgPath);
             if (fixed) {
               fixedCount++;
-              console.log(`[fix-all] ✅ Found and fixed new package: ${fullName}`);
+              console.error(`[fix-all] ✅ Found and fixed new package: ${fullName}`);
             } else {
               skippedCount++;
             }
@@ -448,7 +448,7 @@ try {
         const fixed = fixPackage(item, itemPath);
         if (fixed) {
           fixedCount++;
-          console.log(`[fix-all] ✅ Found and fixed new package: ${item}`);
+          console.error(`[fix-all] ✅ Found and fixed new package: ${item}`);
         } else {
           skippedCount++;
         }
@@ -459,15 +459,15 @@ try {
   console.error("[fix-all] Error scanning all packages:", e.message);
 }
 
-console.log("\n========================================");
-console.log("SUMMARY");
-console.log("========================================");
-console.log(`✅ Fixed packages: ${fixedCount}`);
-console.log(`⏭️  Skipped packages: ${skippedCount}`);
-console.log("========================================\n");
+console.error("\n========================================");
+console.error("SUMMARY");
+console.error("========================================");
+console.error(`✅ Fixed packages: ${fixedCount}`);
+console.error(`⏭️  Skipped packages: ${skippedCount}`);
+console.error("========================================\n");
 
 if (fixedCount > 0) {
-  console.log("✅ Package fixes completed successfully!");
+  console.error("✅ Package fixes completed successfully!");
 } else {
-  console.log("⚠️  No packages were fixed. This might be okay if they're already fixed.");
+  console.error("⚠️  No packages were fixed. This might be okay if they're already fixed.");
 }
