@@ -9,11 +9,12 @@ import {
   Alert,
   ActivityIndicator,
   useWindowDimensions,
-  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { DatePicker } from '@/components/DatePicker';
 import { expensesService } from '@/services/api';
 import {
   DashboardResponse,
@@ -61,21 +62,81 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   const [trendsData, setTrendsData] = useState<TrendsResponse | null>(null);
   const [projectionsData, setProjectionsData] = useState<ProjectionsResponse | null>(null);
 
-  // Filter states
+  // Filter states - Default to current month
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
-    return new Date(date.getFullYear(), 0, 1).toISOString().split('T')[0];
+    return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => {
     const date = new Date();
-    return new Date(date.getFullYear(), 11, 31).toISOString().split('T')[0];
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
   });
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
 
+  // Date picker states
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [startDateObj, setStartDateObj] = useState(() => {
+    const date = new Date();
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+  });
+  const [endDateObj, setEndDateObj] = useState(() => {
+    const date = new Date();
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  });
+
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
+
+  // Quick date filter functions
+  const setQuickDateFilter = useCallback((filter: 'today' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'thisYear') => {
+    const now = new Date();
+    let start: Date;
+    let end: Date;
+
+    switch (filter) {
+      case 'today':
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'thisWeek':
+        const dayOfWeek = now.getDay();
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Monday as first day
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (6 - diff));
+        break;
+      case 'thisMonth':
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        break;
+      case 'lastMonth':
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+      case 'thisYear':
+        start = new Date(now.getFullYear(), 0, 1);
+        end = new Date(now.getFullYear(), 11, 31);
+        break;
+      default:
+        return;
+    }
+
+    setStartDateObj(start);
+    setEndDateObj(end);
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(end.toISOString().split('T')[0]);
+  }, []);
+
+  const formatDisplayDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
 
   const loadData = useCallback(
     async (view: ReportView) => {
@@ -564,27 +625,69 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
 
   const renderFilters = () => (
     <View style={styles.filtersContainer}>
-      <Text style={styles.filtersTitle}>Filtros</Text>
+      <Text style={styles.filtersTitle}>Filtros de Fecha</Text>
 
+      {/* Quick Filters */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.quickFiltersScroll}
+        contentContainerStyle={styles.quickFiltersContent}
+      >
+        <TouchableOpacity
+          style={styles.quickFilterButton}
+          onPress={() => setQuickDateFilter('today')}
+        >
+          <Text style={styles.quickFilterText}>📅 Hoy</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.quickFilterButton}
+          onPress={() => setQuickDateFilter('thisWeek')}
+        >
+          <Text style={styles.quickFilterText}>📆 Esta Semana</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.quickFilterButton, styles.quickFilterButtonActive]}
+          onPress={() => setQuickDateFilter('thisMonth')}
+        >
+          <Text style={[styles.quickFilterText, styles.quickFilterTextActive]}>📊 Este Mes</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.quickFilterButton}
+          onPress={() => setQuickDateFilter('lastMonth')}
+        >
+          <Text style={styles.quickFilterText}>⏮️ Mes Pasado</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.quickFilterButton}
+          onPress={() => setQuickDateFilter('thisYear')}
+        >
+          <Text style={styles.quickFilterText}>📈 Este Año</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Date Range Selectors */}
       <View style={styles.filterRow}>
         <View style={styles.filterItem}>
           <Text style={styles.filterLabel}>Fecha Inicio</Text>
-          <TextInput
-            style={styles.filterInput}
-            value={startDate}
-            onChangeText={setStartDate}
-            placeholder="YYYY-MM-DD"
-          />
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowStartDatePicker(true)}
+          >
+            <Ionicons name="calendar-outline" size={20} color="#4F46E5" />
+            <Text style={styles.dateButtonText}>{formatDisplayDate(startDate)}</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.filterItem}>
           <Text style={styles.filterLabel}>Fecha Fin</Text>
-          <TextInput
-            style={styles.filterInput}
-            value={endDate}
-            onChangeText={setEndDate}
-            placeholder="YYYY-MM-DD"
-          />
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowEndDatePicker(true)}
+          >
+            <Ionicons name="calendar-outline" size={20} color="#4F46E5" />
+            <Text style={styles.dateButtonText}>{formatDisplayDate(endDate)}</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -631,6 +734,32 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
         >
           {renderContent()}
         </ScrollView>
+
+        {/* Date Pickers */}
+        <DatePicker
+          visible={showStartDatePicker}
+          date={startDateObj}
+          onConfirm={(date) => {
+            setStartDateObj(date);
+            setStartDate(date.toISOString().split('T')[0]);
+            setShowStartDatePicker(false);
+          }}
+          onCancel={() => setShowStartDatePicker(false)}
+          title="Fecha de Inicio"
+        />
+
+        <DatePicker
+          visible={showEndDatePicker}
+          date={endDateObj}
+          onConfirm={(date) => {
+            setEndDateObj(date);
+            setEndDate(date.toISOString().split('T')[0]);
+            setShowEndDatePicker(false);
+          }}
+          onCancel={() => setShowEndDatePicker(false)}
+          minimumDate={startDateObj}
+          title="Fecha de Fin"
+        />
       </SafeAreaView>
     </ProtectedRoute>
   );
@@ -684,9 +813,37 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 12,
   },
+  quickFiltersScroll: {
+    marginBottom: 16,
+  },
+  quickFiltersContent: {
+    gap: 8,
+    paddingRight: 16,
+  },
+  quickFilterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  quickFilterButtonActive: {
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
+  },
+  quickFilterText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  quickFilterTextActive: {
+    color: '#FFFFFF',
+  },
   filterRow: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 12,
   },
   filterItem: {
     flex: 1,
@@ -697,21 +854,26 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 4,
   },
-  filterInput: {
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  dateButtonText: {
     fontSize: 14,
     color: '#1F2937',
-    backgroundColor: '#FFFFFF',
+    flex: 1,
   },
   applyButton: {
     backgroundColor: '#4F46E5',
     borderRadius: 8,
     paddingVertical: 10,
-    marginTop: 12,
     alignItems: 'center',
   },
   applyButtonText: {
