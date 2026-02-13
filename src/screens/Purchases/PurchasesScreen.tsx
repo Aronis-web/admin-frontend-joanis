@@ -506,7 +506,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           <SearchBar
             value={searchTerm}
             onChangeText={setSearchTerm}
-            placeholder="Buscar por código, proveedor..."
+            placeholder="Buscar por código, proveedor, productos..."
             onClear={() => setSearchTerm('')}
           />
         </View>
