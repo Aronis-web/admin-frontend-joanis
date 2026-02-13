@@ -31,7 +31,8 @@ const knownProblematicPackages = [
   "axios",
   "stacktrace-parser",
   "framer-motion",
-  "@sentry/react-native"
+  "@sentry/react-native",
+  "abort-controller"
 ];
 
 // Función genérica para arreglar un paquete
