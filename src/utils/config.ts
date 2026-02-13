@@ -2,6 +2,7 @@ export const config = {
   API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080',
   API_TIMEOUT: 30000,
   API_TIMEOUT_OCR: 0, // Sin límite de tiempo para escaneo OCR
+  API_TIMEOUT_BIZLINKS: 60000, // 60 segundos para emisión de comprobantes (firma + consulta + descarga)
   APP_ID: process.env.EXPO_PUBLIC_APP_ID || 'e28208b8-89b4-4682-80dc-925059424b1f',
 
   // Sentry Configuration

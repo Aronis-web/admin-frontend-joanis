@@ -82,27 +82,37 @@ export const bizlinksApi = {
 
   // Emit factura - POST /bizlinks/documents/factura
   emitirFactura: async (data: EmitirFacturaDto): Promise<BizlinksDocument> => {
-    return apiClient.post<BizlinksDocument>('/bizlinks/documents/factura', data);
+    return apiClient.post<BizlinksDocument>('/bizlinks/documents/factura', data, {
+      timeout: 60000, // 60 segundos para emisión de comprobantes
+    });
   },
 
   // Emit boleta - POST /bizlinks/documents/boleta
   emitirBoleta: async (data: EmitirFacturaDto): Promise<BizlinksDocument> => {
-    return apiClient.post<BizlinksDocument>('/bizlinks/documents/boleta', data);
+    return apiClient.post<BizlinksDocument>('/bizlinks/documents/boleta', data, {
+      timeout: 60000, // 60 segundos para emisión de comprobantes
+    });
   },
 
   // Emit nota de crédito - POST /bizlinks/documents/nota-credito
   emitirNotaCredito: async (data: EmitirFacturaDto): Promise<BizlinksDocument> => {
-    return apiClient.post<BizlinksDocument>('/bizlinks/documents/nota-credito', data);
+    return apiClient.post<BizlinksDocument>('/bizlinks/documents/nota-credito', data, {
+      timeout: 60000, // 60 segundos para emisión de comprobantes
+    });
   },
 
   // Emit nota de débito - POST /bizlinks/documents/nota-debito
   emitirNotaDebito: async (data: EmitirFacturaDto): Promise<BizlinksDocument> => {
-    return apiClient.post<BizlinksDocument>('/bizlinks/documents/nota-debito', data);
+    return apiClient.post<BizlinksDocument>('/bizlinks/documents/nota-debito', data, {
+      timeout: 60000, // 60 segundos para emisión de comprobantes
+    });
   },
 
   // Emit guía de remisión - POST /bizlinks/documents/guia-remision
   emitirGuiaRemision: async (data: EmitirFacturaDto): Promise<BizlinksDocument> => {
-    return apiClient.post<BizlinksDocument>('/bizlinks/documents/guia-remision', data);
+    return apiClient.post<BizlinksDocument>('/bizlinks/documents/guia-remision', data, {
+      timeout: 60000, // 60 segundos para emisión de comprobantes
+    });
   },
 
   // Refresh document status - POST /bizlinks/documents/:id/refresh

@@ -18,6 +18,7 @@ import {
   BizlinksUnitMeasure,
   BizlinksTaxType,
   BizlinksDocumentIdentityType,
+  BizlinksDocumentType,
 } from '../../types/bizlinks';
 import {
   formatDateForBizlinks,
@@ -330,6 +331,27 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
         return;
       }
 
+      // Validar tipo de documento según el tipo de comprobante
+      if (documentType === BizlinksDocumentType.BOLETA) {
+        // Boletas solo para personas naturales (DNI, CE, Pasaporte)
+        if (formData.tipoDocumentoAdquiriente === BizlinksDocumentIdentityType.RUC) {
+          Alert.alert(
+            'Error de Validación',
+            'Las boletas solo pueden emitirse para personas naturales (DNI, Carnet de Extranjería o Pasaporte).\n\nPara empresas (RUC) debe emitir una Factura.'
+          );
+          return;
+        }
+      } else if (documentType === BizlinksDocumentType.FACTURA) {
+        // Facturas solo para empresas (RUC)
+        if (formData.tipoDocumentoAdquiriente !== BizlinksDocumentIdentityType.RUC) {
+          Alert.alert(
+            'Error de Validación',
+            'Las facturas solo pueden emitirse para empresas (RUC).\n\nPara personas naturales debe emitir una Boleta.'
+          );
+          return;
+        }
+      }
+
       if (items.length === 0) {
         Alert.alert('Error', 'Debe agregar al menos un item');
         return;
@@ -481,7 +503,20 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
         <Text style={styles.label}>Buscar Cliente</Text>
         <CustomerAutocomplete
           onSelectCustomer={handleSelectCustomer}
-          placeholder="Buscar por nombre, RUC o DNI..."
+          placeholder={
+            documentType === BizlinksDocumentType.BOLETA
+              ? 'Buscar persona natural (DNI, CE, Pasaporte)...'
+              : documentType === BizlinksDocumentType.FACTURA
+              ? 'Buscar empresa (RUC)...'
+              : 'Buscar por nombre, RUC o DNI...'
+          }
+          documentTypeFilter={
+            documentType === BizlinksDocumentType.BOLETA
+              ? 'DNI'
+              : documentType === BizlinksDocumentType.FACTURA
+              ? 'RUC'
+              : 'ALL'
+          }
         />
 
         {selectedCustomer && (

@@ -17,12 +17,14 @@ interface CustomerAutocompleteProps {
   onSelectCustomer: (customer: Customer) => void;
   placeholder?: string;
   initialValue?: string;
+  documentTypeFilter?: 'RUC' | 'DNI' | 'ALL'; // Filtrar por tipo de documento
 }
 
 export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
   onSelectCustomer,
   placeholder = 'Buscar cliente por nombre, RUC o DNI...',
   initialValue = '',
+  documentTypeFilter = 'ALL',
 }) => {
   const [searchText, setSearchText] = useState(initialValue);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -47,15 +49,28 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
         limit: 10,
       });
 
-      setCustomers(response.data);
-      setShowDropdown(response.data.length > 0);
+      // Filtrar por tipo de documento si se especifica
+      let filteredCustomers = response.data;
+      if (documentTypeFilter !== 'ALL') {
+        filteredCustomers = response.data.filter((customer) => {
+          if (documentTypeFilter === 'RUC') {
+            return customer.documentType === 'RUC';
+          } else if (documentTypeFilter === 'DNI') {
+            return customer.documentType !== 'RUC'; // DNI, CE, Passport, etc.
+          }
+          return true;
+        });
+      }
+
+      setCustomers(filteredCustomers);
+      setShowDropdown(filteredCustomers.length > 0);
     } catch (error) {
       console.error('Error buscando clientes:', error);
       setCustomers([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [documentTypeFilter]);
 
   // Efecto para buscar cuando cambia el texto con debounce
   React.useEffect(() => {
@@ -78,24 +93,40 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
     setShowDropdown(false);
   };
 
-  const renderCustomerItem = ({ item }: { item: Customer }) => (
-    <TouchableOpacity
-      style={styles.dropdownItem}
-      onPress={() => handleSelectCustomer(item)}
-    >
-      <View style={styles.customerInfo}>
-        <Text style={styles.customerName}>
-          {item.razonSocial || item.fullName}
-        </Text>
-        <Text style={styles.customerDocument}>
-          {item.documentType === 'RUC' ? 'RUC' : 'DNI'}: {item.documentNumber}
-        </Text>
-        {item.email && (
-          <Text style={styles.customerEmail}>{item.email}</Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+  const renderCustomerItem = ({ item }: { item: Customer }) => {
+    const isCompany = item.documentType === 'RUC';
+
+    return (
+      <TouchableOpacity
+        style={styles.dropdownItem}
+        onPress={() => handleSelectCustomer(item)}
+      >
+        <View style={styles.customerInfo}>
+          <View style={styles.customerNameRow}>
+            <Text style={styles.customerName}>
+              {item.razonSocial || item.fullName}
+            </Text>
+            {isCompany && (
+              <View style={styles.companyBadge}>
+                <Text style={styles.companyBadgeText}>Empresa</Text>
+              </View>
+            )}
+            {!isCompany && (
+              <View style={styles.personBadge}>
+                <Text style={styles.personBadgeText}>Persona</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.customerDocument}>
+            {item.documentType}: {item.documentNumber}
+          </Text>
+          {item.email && (
+            <Text style={styles.customerEmail}>{item.email}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -242,10 +273,38 @@ const styles = StyleSheet.create({
   customerInfo: {
     gap: 4,
   },
+  customerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   customerName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    flex: 1,
+  },
+  companyBadge: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  companyBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E40AF',
+  },
+  personBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  personBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#92400E',
   },
   customerDocument: {
     fontSize: 14,
