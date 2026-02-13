@@ -60,6 +60,9 @@ function fixPackage(packageName, packageDir) {
     return false;
   }
 
+  // NOTE: makeerror and tmpl are dependencies of walker, but they CAN be fixed
+  // They are not direct Metro dependencies, so we allow the fixer to process them
+
   const pkgJsonPath = path.join(packageDir, "package.json");
 
   if (!fs.existsSync(pkgJsonPath)) {
@@ -167,6 +170,11 @@ function fixPackage(packageName, packageDir) {
 function generateIndexCode(packageName, originalMain, info) {
   const attempts = [];
 
+  // Si el originalMain no tiene extensión, intentar primero con .js
+  if (!originalMain.match(/\.(js|mjs|cjs)$/)) {
+    attempts.push(originalMain + '.js');
+  }
+
   // Intentar cargar desde el main original
   attempts.push(originalMain);
 
@@ -217,7 +225,9 @@ function generateIndexCode(packageName, originalMain, info) {
 
   for (let i = 0; i < attempts.length; i++) {
     try {
-      const loaded = require('./' + attempts[i]);
+      // Si el path ya empieza con ./ no agregarlo de nuevo
+      const path = attempts[i].startsWith('./') ? attempts[i] : './' + attempts[i];
+      const loaded = require(path);
       console.error('[${packageName}] Loaded from:', attempts[i]);
       return loaded;
     } catch (e) {
