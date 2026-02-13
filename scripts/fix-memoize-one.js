@@ -124,7 +124,7 @@ if (!fs.existsSync(targetFile)) {
 // Fix @sentry/react-native
 console.log("\n[fix-sentry] Starting Sentry fix...");
 const sentryPkgDir = path.join(cwd, "node_modules", "@sentry", "react-native");
-const sentryDistDir = path.join(sentryPkgDir, "dist", "js");
+const sentryDistDir = path.join(sentryPkgDir, "dist");
 const sentryPkgJsonFile = path.join(sentryPkgDir, "package.json");
 
 console.log("[fix-sentry] sentryPkgDir:", sentryPkgDir);
@@ -132,29 +132,41 @@ console.log("[fix-sentry] sentryDistDir exists?", fs.existsSync(sentryDistDir));
 console.log("[fix-sentry] sentryDistDir list:", listDir(sentryDistDir));
 
 if (fs.existsSync(sentryPkgDir)) {
-  // Copiar el archivo a la raíz del paquete
-  const sentryRootFile = path.join(sentryPkgDir, "index.js");
-  try {
-    const sentrySourceFile = path.join(sentryDistDir, "index.js");
-    if (fs.existsSync(sentrySourceFile)) {
-      fs.copyFileSync(sentrySourceFile, sentryRootFile);
-      console.log("[fix-sentry] Copied to root:", sentryRootFile);
-    } else {
-      console.log("[fix-sentry] Source file not found, will update package.json anyway");
-    }
-  } catch (e) {
-    console.error("[fix-sentry] Failed to copy to root:", e.message);
-  }
-
-  // Cambiar el package.json
   try {
     const sentryPkgJson = JSON.parse(fs.readFileSync(sentryPkgJsonFile, "utf8"));
     console.log("[fix-sentry] Original main:", sentryPkgJson.main);
-    sentryPkgJson.main = "index.js";
-    fs.writeFileSync(sentryPkgJsonFile, JSON.stringify(sentryPkgJson, null, 2), "utf8");
-    console.log("[fix-sentry] Updated package.json main to:", sentryPkgJson.main);
+
+    // Verificar si el archivo principal existe
+    const originalMain = sentryPkgJson.main || "dist/js/index.js";
+    const originalMainPath = path.join(sentryPkgDir, originalMain);
+    console.log("[fix-sentry] Original main path:", originalMainPath);
+    console.log("[fix-sentry] Original main exists?", fs.existsSync(originalMainPath));
+
+    // Verificar si dist/index.js existe
+    const distIndexPath = path.join(sentryPkgDir, "dist", "index.js");
+    console.log("[fix-sentry] dist/index.js exists?", fs.existsSync(distIndexPath));
+
+    if (fs.existsSync(distIndexPath)) {
+      // Si dist/index.js existe, actualizar package.json para usarlo
+      sentryPkgJson.main = "dist/index.js";
+      fs.writeFileSync(sentryPkgJsonFile, JSON.stringify(sentryPkgJson, null, 2), "utf8");
+      console.log("[fix-sentry] Updated package.json main to: dist/index.js");
+    } else if (!fs.existsSync(originalMainPath)) {
+      console.log("[fix-sentry] WARNING: Neither dist/index.js nor", originalMain, "exist!");
+      console.log("[fix-sentry] Listing dist directory contents:");
+      const distContents = listDir(sentryDistDir);
+      if (distContents) {
+        distContents.forEach(item => {
+          const itemPath = path.join(sentryDistDir, item);
+          const isDir = fs.statSync(itemPath).isDirectory();
+          console.log("[fix-sentry]   -", item, isDir ? "(dir)" : "(file)");
+        });
+      }
+    } else {
+      console.log("[fix-sentry] Original main exists, no fix needed");
+    }
   } catch (e) {
-    console.error("[fix-sentry] Failed to update package.json:", e.message);
+    console.error("[fix-sentry] Failed to fix Sentry:", e.message);
   }
 } else {
   console.log("[fix-sentry] @sentry/react-native not found, skipping");
