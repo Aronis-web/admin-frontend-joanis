@@ -15,6 +15,8 @@ function ensureDir(p) {
 }
 
 const cwd = process.cwd();
+
+// Fix memoize-one
 const pkgDir = path.join(cwd, "node_modules", "memoize-one");
 const distDir = path.join(pkgDir, "dist");
 const targetFile = path.join(distDir, "memoize-one.cjs.js");
@@ -117,4 +119,43 @@ console.log("[fix-memoize-one] distDir list after:", listDir(distDir));
 if (!fs.existsSync(targetFile)) {
   console.error("[fix-memoize-one] FAILED to create target file. FAIL.");
   process.exit(1);
+}
+
+// Fix @sentry/react-native
+console.log("\n[fix-sentry] Starting Sentry fix...");
+const sentryPkgDir = path.join(cwd, "node_modules", "@sentry", "react-native");
+const sentryDistDir = path.join(sentryPkgDir, "dist", "js");
+const sentryPkgJsonFile = path.join(sentryPkgDir, "package.json");
+
+console.log("[fix-sentry] sentryPkgDir:", sentryPkgDir);
+console.log("[fix-sentry] sentryDistDir exists?", fs.existsSync(sentryDistDir));
+console.log("[fix-sentry] sentryDistDir list:", listDir(sentryDistDir));
+
+if (fs.existsSync(sentryPkgDir)) {
+  // Copiar el archivo a la raíz del paquete
+  const sentryRootFile = path.join(sentryPkgDir, "index.js");
+  try {
+    const sentrySourceFile = path.join(sentryDistDir, "index.js");
+    if (fs.existsSync(sentrySourceFile)) {
+      fs.copyFileSync(sentrySourceFile, sentryRootFile);
+      console.log("[fix-sentry] Copied to root:", sentryRootFile);
+    } else {
+      console.log("[fix-sentry] Source file not found, will update package.json anyway");
+    }
+  } catch (e) {
+    console.error("[fix-sentry] Failed to copy to root:", e.message);
+  }
+
+  // Cambiar el package.json
+  try {
+    const sentryPkgJson = JSON.parse(fs.readFileSync(sentryPkgJsonFile, "utf8"));
+    console.log("[fix-sentry] Original main:", sentryPkgJson.main);
+    sentryPkgJson.main = "index.js";
+    fs.writeFileSync(sentryPkgJsonFile, JSON.stringify(sentryPkgJson, null, 2), "utf8");
+    console.log("[fix-sentry] Updated package.json main to:", sentryPkgJson.main);
+  } catch (e) {
+    console.error("[fix-sentry] Failed to update package.json:", e.message);
+  }
+} else {
+  console.log("[fix-sentry] @sentry/react-native not found, skipping");
 }
