@@ -54,6 +54,12 @@ function fixPackage(packageName, packageDir) {
     return false;
   }
 
+  // Skip walker - Metro bundler needs it with original configuration
+  if (packageName === "walker") {
+    console.error(`[fix-package] Skipping walker - Metro bundler dependency`);
+    return false;
+  }
+
   const pkgJsonPath = path.join(packageDir, "package.json");
 
   if (!fs.existsSync(pkgJsonPath)) {
