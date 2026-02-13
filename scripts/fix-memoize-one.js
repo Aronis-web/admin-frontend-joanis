@@ -90,10 +90,22 @@ fs.writeFileSync(targetFile, code, "utf8");
 console.log("[fix-memoize-one] wrote:", targetFile);
 console.log("[fix-memoize-one] file exists now?", fs.existsSync(targetFile));
 
-// También cambiar el package.json para que apunte al archivo .js en lugar de .cjs.js
+// Copiar el archivo a la raíz del paquete para que Metro lo encuentre
+const rootFile = path.join(pkgDir, "index.js");
+try {
+  const sourceFile = path.join(distDir, "memoize-one.js");
+  if (fs.existsSync(sourceFile)) {
+    fs.copyFileSync(sourceFile, rootFile);
+    console.log("[fix-memoize-one] Copied to root:", rootFile);
+  }
+} catch (e) {
+  console.error("[fix-memoize-one] Failed to copy to root:", e.message);
+}
+
+// Cambiar el package.json para que apunte al archivo en la raíz
 try {
   const pkgJson = JSON.parse(fs.readFileSync(pkgJsonFile, "utf8"));
-  pkgJson.main = "dist/memoize-one.js";
+  pkgJson.main = "index.js";
   fs.writeFileSync(pkgJsonFile, JSON.stringify(pkgJson, null, 2), "utf8");
   console.log("[fix-memoize-one] Updated package.json main to:", pkgJson.main);
 } catch (e) {
