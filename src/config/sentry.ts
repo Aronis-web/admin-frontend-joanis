@@ -3,23 +3,12 @@ import { config } from '@/utils/config';
 /**
  * Sentry Configuration for Error Tracking and Performance Monitoring
  *
- * Features:
- * - Automatic error tracking
- * - Performance monitoring
- * - Breadcrumbs for debugging
- * - Release tracking
- * - Environment-based configuration
+ * DISABLED: Sentry has been removed from the project
  */
 
-// Safe import of Sentry - wrapped in try-catch to prevent crashes
-let Sentry: any = null;
+// Sentry stub - all functions are no-ops
+const Sentry: any = null;
 let sentryInitialized = false;
-
-try {
-  Sentry = require('@sentry/react-native');
-} catch (error) {
-  console.warn('⚠️ Sentry module could not be loaded:', error);
-}
 
 export const initSentry = () => {
   // Only initialize Sentry in production or if explicitly enabled

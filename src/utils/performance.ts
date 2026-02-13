@@ -1,12 +1,7 @@
 import { logger } from './logger';
 
-// Safe import of Sentry - wrapped in try-catch to prevent crashes
-let Sentry: any = null;
-try {
-  Sentry = require('@sentry/react-native');
-} catch (error) {
-  console.warn('⚠️ Sentry module could not be loaded in performance.ts');
-}
+// Sentry has been removed - using stub
+const Sentry: any = null;
 
 /**
  * Performance Monitoring Utility
