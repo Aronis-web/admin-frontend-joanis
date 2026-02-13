@@ -33,6 +33,7 @@ import { useAuthStore } from '@/store/auth';
 import { BalanceOperationsFAB } from '@/components/Balances/BalanceOperationsFAB';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { BalanceOperationDetailModal } from '@/components/Balances/BalanceOperationDetailModal';
+import { formatDateToString, getTodayString } from '@/utils/dateHelpers';
 import { EditBalanceOperationModal } from '@/components/Balances/EditBalanceOperationModal';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -74,7 +75,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
     emitterSiteId: '',
     amount: '',
     currency: 'PEN',
-    operationDate: new Date().toISOString().split('T')[0],
+    operationDate: getTodayString(),
     paymentMethod: '' as PaymentMethod | '',
     description: '',
     reference: '',
@@ -290,7 +291,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
       emitterSiteId: '',
       amount: '',
       currency: 'PEN',
-      operationDate: new Date().toISOString().split('T')[0],
+      operationDate: getTodayString(),
       paymentMethod: '' as PaymentMethod | '',
       description: '',
       reference: '',
@@ -1074,7 +1075,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
         visible={showOperationDatePicker}
         date={new Date(formData.operationDate)}
         onConfirm={(date) => {
-          setFormData({ ...formData, operationDate: date.toISOString().split('T')[0] });
+          setFormData({ ...formData, operationDate: formatDateToString(date) });
           setShowOperationDatePicker(false);
         }}
         onCancel={() => setShowOperationDatePicker(false)}

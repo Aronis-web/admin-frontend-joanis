@@ -28,6 +28,7 @@ import { useAuthStore } from '@/store/auth';
 import * as ImagePicker from 'expo-image-picker';
 import { BalanceOperationDetailModal } from '@/components/Balances/BalanceOperationDetailModal';
 import { EditBalanceOperationModal } from '@/components/Balances/EditBalanceOperationModal';
+import { getTodayString } from '@/utils/dateHelpers';
 
 interface BalanceOperationsScreenProps {
   navigation: any;
@@ -66,7 +67,7 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
     emitterSiteId: '',
     amount: '',
     currency: 'PEN',
-    operationDate: new Date().toISOString().split('T')[0],
+    operationDate: getTodayString(),
     description: '',
     reference: '',
     notes: '',
@@ -255,7 +256,7 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
       emitterSiteId: '',
       amount: '',
       currency: 'PEN',
-      operationDate: new Date().toISOString().split('T')[0],
+      operationDate: getTodayString(),
       description: '',
       reference: '',
       notes: '',

@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/auth';
 import { expensesService, sitesService } from '@/services/api';
 import { CreateExpenseProjectRequest, ProjectStatus } from '@/types/expenses';
 import { DatePicker } from '@/components/DatePicker';
+import { formatDateToString, getTodayString } from '@/utils/dateHelpers';
 
 interface CreateExpenseProjectScreenProps {
   navigation: any;
@@ -37,7 +38,7 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
     description: '',
     budgetCents: 0,
     currency: 'PEN',
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: getTodayString(),
     endDate: '',
     status: ProjectStatus.PLANNING,
   });
@@ -136,13 +137,13 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
   };
 
   const handleStartDateConfirm = (date: Date) => {
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = formatDateToString(date);
     updateField('startDate', dateString);
     setShowStartDatePicker(false);
   };
 
   const handleEndDateConfirm = (date: Date) => {
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = formatDateToString(date);
     updateField('endDate', dateString);
     setShowEndDatePicker(false);
   };

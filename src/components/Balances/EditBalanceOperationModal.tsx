@@ -22,6 +22,7 @@ import {
   UpdateBalanceOperationRequest,
 } from '@/types/balances';
 import { balancesApi } from '@/services/api';
+import { getTodayString } from '@/utils/dateHelpers';
 
 interface EditBalanceOperationModalProps {
   visible: boolean;
@@ -39,7 +40,7 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
   const [operationType, setOperationType] = useState<OperationType>(OperationType.DISTRIBUTED);
   const [amountCents, setAmountCents] = useState('');
   const [currency, setCurrency] = useState('PEN');
-  const [operationDate, setOperationDate] = useState(new Date().toISOString().split('T')[0]);
+  const [operationDate, setOperationDate] = useState(getTodayString());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
   const [description, setDescription] = useState('');

@@ -28,6 +28,7 @@ import { AddButton } from '@/components/Navigation/AddButton';
 import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
 import { SearchBar } from '@/components/common/SearchBar';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
+import { formatDateToString } from '@/utils/dateHelpers';
 import { useDebounce } from '@/hooks/useDebounce';
 import { purchasesService } from '@/services/api';
 import * as FileSystem from 'expo-file-system';
@@ -184,14 +185,14 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   }, []);
 
   const handleStartDateConfirm = useCallback((date: Date) => {
-    const formattedDate = date.toISOString().split('T')[0];
+    const formattedDate = formatDateToString(date);
     setStartDate(formattedDate);
     setShowStartDatePicker(false);
     setPage(1);
   }, []);
 
   const handleEndDateConfirm = useCallback((date: Date) => {
-    const formattedDate = date.toISOString().split('T')[0];
+    const formattedDate = formatDateToString(date);
     setEndDate(formattedDate);
     setShowEndDatePicker(false);
     setPage(1);

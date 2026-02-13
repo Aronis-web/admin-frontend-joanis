@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { purchasesService, suppliersService } from '@/services/api';
 import { GuideType, GuideTypeLabels } from '@/types/purchases';
 import { Supplier } from '@/types/suppliers';
+import { getTodayString } from '@/utils/dateHelpers';
 
 interface CreatePurchaseScreenProps {
   navigation: any;
@@ -24,7 +25,7 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [guideNumber, setGuideNumber] = useState('');
   const [guideType, setGuideType] = useState<GuideType>(GuideType.FACTURA);
-  const [guideDate, setGuideDate] = useState(new Date().toISOString().split('T')[0]);
+  const [guideDate, setGuideDate] = useState(getTodayString());
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingSuppliers, setLoadingSuppliers] = useState(true);

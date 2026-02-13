@@ -28,6 +28,7 @@ import { BizlinksDocumentsFAB } from '@/components/Bizlinks';
 import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
 import { SearchBar } from '@/components/common/SearchBar';
 import { useDebounce } from '@/hooks/useDebounce';
+import { formatDateToString } from '@/utils/dateHelpers';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -200,14 +201,14 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   const handleStartDateConfirm = useCallback((date: Date) => {
-    const formattedDate = date.toISOString().split('T')[0];
+    const formattedDate = formatDateToString(date);
     setStartDate(formattedDate);
     setShowStartDatePicker(false);
     setPage(1);
   }, []);
 
   const handleEndDateConfirm = useCallback((date: Date) => {
-    const formattedDate = date.toISOString().split('T')[0];
+    const formattedDate = formatDateToString(date);
     setEndDate(formattedDate);
     setShowEndDatePicker(false);
     setPage(1);

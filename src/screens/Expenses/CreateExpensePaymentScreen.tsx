@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { expensesService } from '@/services/api';
 import { PaymentMethod, PaymentMethodLabels } from '@/types/expenses';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import { formatDateToString } from '@/utils/dateHelpers';
 
 interface CreateExpensePaymentScreenProps {
   navigation: any;
@@ -485,7 +486,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
           visible={showPaymentDatePicker}
           date={paymentDate ? new Date(paymentDate) : new Date()}
           onConfirm={(date) => {
-            setPaymentDate(date.toISOString().split('T')[0]);
+            setPaymentDate(formatDateToString(date));
             setShowPaymentDatePicker(false);
           }}
           onCancel={() => setShowPaymentDatePicker(false)}

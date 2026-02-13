@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DatePicker } from '@/components/DatePicker';
 import { expensesService } from '@/services/api';
+import { formatDateToString, formatDisplayDate } from '@/utils/dateHelpers';
 import {
   DashboardResponse,
   TotalExpensesSummaryResponse,
@@ -65,11 +66,11 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   // Filter states - Default to current month
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
-    return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+    return formatDateToString(new Date(date.getFullYear(), date.getMonth(), 1));
   });
   const [endDate, setEndDate] = useState(() => {
     const date = new Date();
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
+    return formatDateToString(new Date(date.getFullYear(), date.getMonth() + 1, 0));
   });
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
@@ -125,18 +126,9 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
 
     setStartDateObj(start);
     setEndDateObj(end);
-    setStartDate(start.toISOString().split('T')[0]);
-    setEndDate(end.toISOString().split('T')[0]);
+    setStartDate(formatDateToString(start));
+    setEndDate(formatDateToString(end));
   }, []);
-
-  const formatDisplayDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
 
   const loadData = useCallback(
     async (view: ReportView) => {
@@ -741,7 +733,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
           date={startDateObj}
           onConfirm={(date) => {
             setStartDateObj(date);
-            setStartDate(date.toISOString().split('T')[0]);
+            setStartDate(formatDateToString(date));
             setShowStartDatePicker(false);
           }}
           onCancel={() => setShowStartDatePicker(false)}
@@ -753,7 +745,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
           date={endDateObj}
           onConfirm={(date) => {
             setEndDateObj(date);
-            setEndDate(date.toISOString().split('T')[0]);
+            setEndDate(formatDateToString(date));
             setShowEndDatePicker(false);
           }}
           onCancel={() => setShowEndDatePicker(false)}

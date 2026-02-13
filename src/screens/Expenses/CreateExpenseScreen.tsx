@@ -17,6 +17,7 @@ import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { usePermissionError } from '@/hooks/usePermissionError';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
+import { formatDateToString } from '@/utils/dateHelpers';
 
 interface CreateExpenseScreenProps {
   navigation: any;
@@ -596,7 +597,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
             visible={showDueDatePicker}
             date={dueDate ? new Date(dueDate) : new Date()}
             onConfirm={(date) => {
-              setDueDate(date.toISOString().split('T')[0]);
+              setDueDate(formatDateToString(date));
               setShowDueDatePicker(false);
             }}
             onCancel={() => setShowDueDatePicker(false)}
