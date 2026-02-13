@@ -37,7 +37,12 @@ export const App = () => {
     const initialize = async () => {
       try {
         // Initialize Sentry first for error tracking
-        initSentry();
+        try {
+          initSentry();
+        } catch (sentryError) {
+          console.warn('⚠️ Sentry initialization failed:', sentryError);
+          // Continue app initialization even if Sentry fails
+        }
 
         // Set a timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
