@@ -10,6 +10,17 @@ config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 // Disable package exports to avoid issues with packages that have incorrect exports configuration
 config.resolver.unstable_enablePackageExports = false;
 
+// Resolve memoize-one to the ESM version to avoid missing CJS file issue
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'memoize-one') {
+    return {
+      filePath: require.resolve('memoize-one/dist/memoize-one.esm.js'),
+      type: 'sourceFile',
+    };
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 // Exclude electron, dist, and web-build folders from Metro bundler
 config.resolver.blockList = [
   /electron\/.*/,
