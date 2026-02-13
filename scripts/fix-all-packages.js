@@ -202,25 +202,20 @@ ${attempt}
     }
   });
 
-  // Cerrar todos los try-catch y agregar fallback final
-  for (let i = 0; i < attempts.length; i++) {
-    code += `  } catch (e${i + attempts.length}) {
-    console.warn('[${packageName}] Attempt ${i + attempts.length} failed:', e${i + attempts.length}.message);
+  // Cerrar todos los try-catch
+  for (let i = 1; i < attempts.length; i++) {
+    code += `  }
 `;
   }
 
-  code += `    // Final fallback: export empty object
-    console.error('[${packageName}] All load attempts failed, using empty stub');
-    module.exports = {};
-    module.exports.default = {};
-  }
+  // Agregar el catch final
+  code += `} catch (eFinal) {
+  // Final fallback: export empty object
+  console.error('[${packageName}] All load attempts failed, using empty stub');
+  module.exports = {};
+  module.exports.default = {};
+}
 `;
-
-  // Cerrar todos los catch anidados
-  for (let i = 0; i < attempts.length - 1; i++) {
-    code += `}
-`;
-  }
 
   code += `
 console.log('[${packageName}] Loaded successfully from index.js');
