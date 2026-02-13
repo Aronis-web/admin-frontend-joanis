@@ -18,6 +18,7 @@ const cwd = process.cwd();
 const pkgDir = path.join(cwd, "node_modules", "memoize-one");
 const distDir = path.join(pkgDir, "dist");
 const targetFile = path.join(distDir, "memoize-one.cjs.js");
+const pkgJsonFile = path.join(pkgDir, "package.json");
 
 console.log("[fix-memoize-one] cwd:", cwd);
 console.log("[fix-memoize-one] pkgDir:", pkgDir);
@@ -88,6 +89,17 @@ fs.writeFileSync(targetFile, code, "utf8");
 
 console.log("[fix-memoize-one] wrote:", targetFile);
 console.log("[fix-memoize-one] file exists now?", fs.existsSync(targetFile));
+
+// También cambiar el package.json para que apunte al archivo .js en lugar de .cjs.js
+try {
+  const pkgJson = JSON.parse(fs.readFileSync(pkgJsonFile, "utf8"));
+  pkgJson.main = "dist/memoize-one.js";
+  fs.writeFileSync(pkgJsonFile, JSON.stringify(pkgJson, null, 2), "utf8");
+  console.log("[fix-memoize-one] Updated package.json main to:", pkgJson.main);
+} catch (e) {
+  console.error("[fix-memoize-one] Failed to update package.json:", e.message);
+}
+
 console.log("[fix-memoize-one] distDir list after:", listDir(distDir));
 
 if (!fs.existsSync(targetFile)) {
