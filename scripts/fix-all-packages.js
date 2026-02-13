@@ -31,7 +31,7 @@ const knownProblematicPackages = [
   "axios",
   "stacktrace-parser",
   "framer-motion",
-  "@sentry/react-native",
+  // "@sentry/react-native", // EXCLUDED: Sentry works correctly with dist/js/index.js
   "abort-controller"
 ];
 
@@ -47,6 +47,12 @@ const specificImports = {
 function fixPackage(packageName, packageDir) {
   console.error(`\n[fix-package] Processing: ${packageName}`);
   console.error(`[fix-package] Directory: ${packageDir}`);
+
+  // Skip Sentry - it works correctly with its original configuration
+  if (packageName === "react-native" && packageDir.includes("@sentry")) {
+    console.error(`[fix-package] Skipping @sentry/react-native - works correctly as-is`);
+    return false;
+  }
 
   const pkgJsonPath = path.join(packageDir, "package.json");
 
@@ -431,6 +437,11 @@ try {
         const scopeStat = fs.statSync(scopePkgPath);
         if (scopeStat.isDirectory()) {
           const fullName = `${item}/${scopePkg}`;
+          // Skip Sentry packages - they work correctly with their original configuration
+          if (fullName === '@sentry/react-native' || item === '@sentry') {
+            skippedCount++;
+            return;
+          }
           if (!knownProblematicPackages.includes(fullName)) {
             const fixed = fixPackage(fullName, scopePkgPath);
             if (fixed) {
