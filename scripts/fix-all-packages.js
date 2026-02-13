@@ -102,6 +102,9 @@ function fixPackage(packageName, packageDir) {
       console.log(`[fix-package] dist/ files:`, distFiles ? distFiles.slice(0, 10) : []);
     }
 
+    // IMPORTANTE: Crear archivos faltantes en rutas específicas
+    createMissingFiles(packageName, packageDir, originalMain);
+
     // Generar código para el index.js
     const indexCode = generateIndexCode(packageName, originalMain, {
       distExists,
@@ -210,6 +213,79 @@ module.exports = tryLoad();
 `;
 
   return code;
+}
+
+// Crear archivos faltantes en rutas específicas dentro de dist/lib/build
+function createMissingFiles(packageName, packageDir, originalMain) {
+  const filesToCreate = [];
+
+  // Si el originalMain no existe, crear el archivo en esa ubicación exacta
+  const originalMainPath = path.join(packageDir, originalMain);
+
+  if (!fs.existsSync(originalMainPath)) {
+    // Intentar encontrar archivos similares en el mismo directorio
+    const dir = path.dirname(originalMainPath);
+    const basename = path.basename(originalMain);
+
+    if (fs.existsSync(dir)) {
+      const filesInDir = listDir(dir);
+      console.log(`[fix-package] Files in ${path.basename(dir)}/:`, filesInDir);
+
+      // Buscar archivos con extensiones similares
+      const possibleFiles = filesInDir.filter(f => {
+        const nameWithoutExt = basename.replace(/\.(js|mjs|cjs)$/, '');
+        return f.startsWith(nameWithoutExt) || f.includes(nameWithoutExt);
+      });
+
+      console.log(`[fix-package] Possible alternative files:`, possibleFiles);
+
+      if (possibleFiles.length > 0) {
+        // Crear un wrapper que intente cargar los archivos encontrados
+        const relativeAttempts = possibleFiles.map(f => {
+          const relativePath = path.relative(packageDir, path.join(dir, f));
+          return './' + relativePath.replace(/\\/g, '/');
+        });
+
+        const wrapperCode = `// Auto-generated wrapper for ${packageName}
+'use strict';
+
+function tryLoad() {
+  const attempts = ${JSON.stringify(relativeAttempts, null, 2)};
+
+  for (let i = 0; i < attempts.length; i++) {
+    try {
+      const loaded = require(attempts[i]);
+      console.log('[${packageName}] Loaded from:', attempts[i]);
+      return loaded;
+    } catch (e) {
+      if (i === attempts.length - 1) {
+        console.error('[${packageName}] All attempts failed');
+        return {};
+      }
+    }
+  }
+  return {};
+}
+
+module.exports = tryLoad();
+`;
+
+        // Crear el archivo en la ubicación exacta que se busca
+        ensureDir(dir);
+        fs.writeFileSync(originalMainPath, wrapperCode, 'utf8');
+        console.log(`[fix-package] ✅ Created missing file: ${originalMainPath}`);
+
+        // También crear versiones con extensiones .js, .mjs, .cjs si no existen
+        ['.js', '.mjs', '.cjs'].forEach(ext => {
+          const pathWithExt = originalMainPath + ext;
+          if (!fs.existsSync(pathWithExt)) {
+            fs.writeFileSync(pathWithExt, wrapperCode, 'utf8');
+            console.log(`[fix-package] ✅ Created: ${pathWithExt}`);
+          }
+        });
+      }
+    }
+  }
 }
 
 // Escanear todos los paquetes conocidos problemáticos
