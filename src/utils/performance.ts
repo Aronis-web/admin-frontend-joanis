@@ -1,11 +1,12 @@
-// TEMPORARY: Sentry disabled due to build issues
-// import * as Sentry from '@sentry/react-native';
 import { logger } from './logger';
 
-// Temporary Sentry stub
-const Sentry = {
-  addBreadcrumb: (...args: any[]) => {},
-};
+// Safe import of Sentry - wrapped in try-catch to prevent crashes
+let Sentry: any = null;
+try {
+  Sentry = require('@sentry/react-native');
+} catch (error) {
+  console.warn('⚠️ Sentry module could not be loaded in performance.ts');
+}
 
 /**
  * Performance Monitoring Utility
@@ -45,15 +46,21 @@ export const measurePerformance = async <T>(
     }
 
     // Log to Sentry as breadcrumb
-    Sentry.addBreadcrumb({
-      category: 'performance',
-      message: `${operationName} - ${duration}ms`,
-      level: 'info',
-      data: {
-        duration_ms: duration,
-        ...metadata,
-      },
-    });
+    try {
+      if (Sentry && typeof Sentry.addBreadcrumb === 'function') {
+        Sentry.addBreadcrumb({
+          category: 'performance',
+          message: `${operationName} - ${duration}ms`,
+          level: 'info',
+          data: {
+            duration_ms: duration,
+            ...metadata,
+          },
+        });
+      }
+    } catch (err) {
+      // Silently fail if Sentry is not available
+    }
 
     return result;
   } catch (error) {
@@ -85,15 +92,21 @@ export const measureSync = <T>(
     }
 
     // Log to Sentry as breadcrumb
-    Sentry.addBreadcrumb({
-      category: 'performance',
-      message: `${operationName} - ${duration}ms`,
-      level: 'info',
-      data: {
-        duration_ms: duration,
-        ...metadata,
-      },
-    });
+    try {
+      if (Sentry && typeof Sentry.addBreadcrumb === 'function') {
+        Sentry.addBreadcrumb({
+          category: 'performance',
+          message: `${operationName} - ${duration}ms`,
+          level: 'info',
+          data: {
+            duration_ms: duration,
+            ...metadata,
+          },
+        });
+      }
+    } catch (err) {
+      // Silently fail if Sentry is not available
+    }
 
     return result;
   } catch (error) {
@@ -118,12 +131,18 @@ export const createSpan = async <T>(
     const result = await operation();
     const duration = Date.now() - startTime;
 
-    Sentry.addBreadcrumb({
-      category: 'performance',
-      message: `Span: ${spanName} - ${duration}ms`,
-      level: 'info',
-      data: { duration_ms: duration },
-    });
+    try {
+      if (Sentry && typeof Sentry.addBreadcrumb === 'function') {
+        Sentry.addBreadcrumb({
+          category: 'performance',
+          message: `Span: ${spanName} - ${duration}ms`,
+          level: 'info',
+          data: { duration_ms: duration },
+        });
+      }
+    } catch (err) {
+      // Silently fail if Sentry is not available
+    }
 
     return result;
   } catch (error) {
@@ -229,15 +248,21 @@ export class PerformanceTimer {
     }
 
     // Log to Sentry as breadcrumb
-    Sentry.addBreadcrumb({
-      category: 'performance',
-      message: `${this.name} - ${duration}ms`,
-      level: 'info',
-      data: {
-        duration_ms: duration,
-        ...this.metadata,
-      },
-    });
+    try {
+      if (Sentry && typeof Sentry.addBreadcrumb === 'function') {
+        Sentry.addBreadcrumb({
+          category: 'performance',
+          message: `${this.name} - ${duration}ms`,
+          level: 'info',
+          data: {
+            duration_ms: duration,
+            ...this.metadata,
+          },
+        });
+      }
+    } catch (err) {
+      // Silently fail if Sentry is not available
+    }
 
     return metric;
   }
@@ -270,12 +295,18 @@ export const trackMemoryUsage = () => {
         logger.info('💾 Memory Usage:', memoryInfo);
       }
 
-      Sentry.addBreadcrumb({
-        category: 'performance',
-        message: 'Memory Usage',
-        level: 'info',
-        data: memoryInfo,
-      });
+      try {
+        if (Sentry && typeof Sentry.addBreadcrumb === 'function') {
+          Sentry.addBreadcrumb({
+            category: 'performance',
+            message: 'Memory Usage',
+            level: 'info',
+            data: memoryInfo,
+          });
+        }
+      } catch (err) {
+        // Silently fail if Sentry is not available
+      }
 
       return memoryInfo;
     }
@@ -296,14 +327,20 @@ export const markMetric = (metricName: string, value: number, unit: string = 'ms
     logger.info(`📊 Metric: ${metricName} = ${value}${unit}`);
   }
 
-  Sentry.addBreadcrumb({
-    category: 'metric',
-    message: `${metricName}: ${value}${unit}`,
-    level: 'info',
-    data: {
-      metric_name: metricName,
-      value,
-      unit,
-    },
-  });
+  try {
+    if (Sentry && typeof Sentry.addBreadcrumb === 'function') {
+      Sentry.addBreadcrumb({
+        category: 'metric',
+        message: `${metricName}: ${value}${unit}`,
+        level: 'info',
+        data: {
+          metric_name: metricName,
+          value,
+          unit,
+        },
+      });
+    }
+  } catch (err) {
+    // Silently fail if Sentry is not available
+  }
 };

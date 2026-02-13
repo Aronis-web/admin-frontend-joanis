@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { trackScreen } from '@/utils/analytics';
 import { logger } from '@/utils/logger';
-// TEMPORARY: Sentry disabled due to build issues
-// import * as Sentry from '@sentry/react-native';
 
-// Temporary Sentry stub
-const Sentry = {
-  addBreadcrumb: (...args: any[]) => {},
-  captureMessage: (...args: any[]) => {},
-};
+// Safe import of Sentry - wrapped in try-catch to prevent crashes
+let Sentry: any = null;
+try {
+  Sentry = require('@sentry/react-native');
+} catch (error) {
+  console.warn('⚠️ Sentry module could not be loaded in useScreenTracking.ts');
+}
 
 /**
  * Hook to automatically track screen views and time spent on screen
@@ -31,12 +31,18 @@ export const useScreenTracking = (
       hasTracked.current = true;
 
       // Add Sentry breadcrumb
-      Sentry.addBreadcrumb({
-        category: 'navigation',
-        message: `Screen viewed: ${screenName}`,
-        level: 'info',
-        data: params,
-      });
+      try {
+        if (Sentry && typeof Sentry.addBreadcrumb === 'function') {
+          Sentry.addBreadcrumb({
+            category: 'navigation',
+            message: `Screen viewed: ${screenName}`,
+            level: 'info',
+            data: params,
+          });
+        }
+      } catch (err) {
+        // Silently fail if Sentry is not available
+      }
 
       if (__DEV__) {
         logger.info(`📱 Screen Tracking: ${screenName}`, params);
@@ -53,16 +59,22 @@ export const useScreenTracking = (
       }
 
       // Add Sentry breadcrumb for time spent
-      Sentry.addBreadcrumb({
-        category: 'navigation',
-        message: `Time on ${screenName}: ${timeSpentSeconds}s`,
-        level: 'info',
-        data: {
-          screen_name: screenName,
-          duration_seconds: timeSpentSeconds,
-          duration_ms: timeSpent,
-        },
-      });
+      try {
+        if (Sentry && typeof Sentry.addBreadcrumb === 'function') {
+          Sentry.addBreadcrumb({
+            category: 'navigation',
+            message: `Time on ${screenName}: ${timeSpentSeconds}s`,
+            level: 'info',
+            data: {
+              screen_name: screenName,
+              duration_seconds: timeSpentSeconds,
+              duration_ms: timeSpent,
+            },
+          });
+        }
+      } catch (err) {
+        // Silently fail if Sentry is not available
+      }
 
       // TODO: Track to analytics service
       // trackEvent('screen_time', {
@@ -97,12 +109,18 @@ export const useInteractionTracking = (screenName: string) => {
     }
 
     // Add Sentry breadcrumb
-    Sentry.addBreadcrumb({
-      category: 'user_interaction',
-      message: `${interactionType}: ${interactionTarget}`,
-      level: 'info',
-      data: eventData,
-    });
+    try {
+      if (Sentry && typeof Sentry.addBreadcrumb === 'function') {
+        Sentry.addBreadcrumb({
+          category: 'user_interaction',
+          message: `${interactionType}: ${interactionTarget}`,
+          level: 'info',
+          data: eventData,
+        });
+      }
+    } catch (err) {
+      // Silently fail if Sentry is not available
+    }
 
     // TODO: Track to analytics service
     // trackEvent('user_interaction', eventData);
@@ -159,15 +177,21 @@ export const useErrorTracking = (screenName: string) => {
     logger.error(`Error on ${screenName}: ${errorMessage}`, errorData);
 
     // Capture in Sentry
-    Sentry.captureMessage(`Screen Error: ${screenName} - ${errorMessage}`, {
-      level: 'error',
-      contexts: {
-        screen: {
-          name: screenName,
-        },
-        error: errorData,
-      },
-    });
+    try {
+      if (Sentry && typeof Sentry.captureMessage === 'function') {
+        Sentry.captureMessage(`Screen Error: ${screenName} - ${errorMessage}`, {
+          level: 'error',
+          contexts: {
+            screen: {
+              name: screenName,
+            },
+            error: errorData,
+          },
+        });
+      }
+    } catch (err) {
+      // Silently fail if Sentry is not available
+    }
 
     // TODO: Track to analytics service
     // trackEvent('screen_error', errorData);
