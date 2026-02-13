@@ -4,11 +4,9 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
+  ScrollView,
   Text,
   ActivityIndicator,
-  Modal,
-  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { purchasesService } from '@/services/api';
@@ -129,10 +127,11 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
 
   const handleBlur = () => {
     // Delay to allow suggestion press to register
+    // Increased delay to allow scrolling
     setTimeout(() => {
       setIsFocused(false);
       setShowSuggestions(false);
-    }, 200);
+    }, 300);
   };
 
   const getMatchTypeIcon = (matchType: string) => {
@@ -252,14 +251,18 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
       {/* Suggestions Dropdown */}
       {showSuggestions && suggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
-          <FlatList
-            data={suggestions}
-            renderItem={renderSuggestion}
-            keyExtractor={(item) => item.id}
+          <ScrollView
             style={styles.suggestionsList}
+            nestedScrollEnabled={true}
             keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled
-          />
+            showsVerticalScrollIndicator={true}
+          >
+            {suggestions.map((item) => (
+              <View key={item.id}>
+                {renderSuggestion({ item })}
+              </View>
+            ))}
+          </ScrollView>
         </View>
       )}
 
@@ -318,9 +321,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     zIndex: 1001,
+    overflow: 'hidden',
   },
   suggestionsList: {
-    maxHeight: 400,
+    flexGrow: 0,
   },
   suggestionItem: {
     padding: 12,
