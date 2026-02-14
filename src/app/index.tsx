@@ -16,7 +16,8 @@ import { useTenantStore } from '@/store/tenant';
 import { Loader } from '@/components/common/Loader';
 import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
 import { QueryProvider } from '@/providers/QueryProvider';
-import { initSentry } from '@/config/sentry';
+// Sentry has been removed - import commented out
+// import { initSentry } from '@/config/sentry';
 import { useSessionWarning } from '@/hooks/useSessionWarning';
 
 export const App = () => {
@@ -36,13 +37,8 @@ export const App = () => {
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Initialize Sentry first for error tracking
-        try {
-          initSentry();
-        } catch (sentryError) {
-          console.warn('⚠️ Sentry initialization failed:', sentryError);
-          // Continue app initialization even if Sentry fails
-        }
+        // Sentry has been completely disabled
+        console.log('🔕 Sentry is disabled - skipping initialization');
 
         // Set a timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
