@@ -60,6 +60,13 @@ function fixPackage(packageName, packageDir) {
     return false;
   }
 
+  // Skip ngrok dependencies - they have special build processes
+  const ngrokDeps = ["defer-to-connect", "@szmarczak/http-timer", "got", "@sindresorhus/is"];
+  if (ngrokDeps.includes(packageName)) {
+    console.error(`[fix-package] Skipping ${packageName} - ngrok dependency`);
+    return false;
+  }
+
   // NOTE: makeerror and tmpl are dependencies of walker, but they CAN be fixed
   // They are not direct Metro dependencies, so we allow the fixer to process them
 
