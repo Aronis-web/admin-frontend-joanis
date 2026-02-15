@@ -23,11 +23,22 @@ try {
   // Change module to point to browser ESM version
   packageJson.module = './dist/esm/axios.js';
 
+  // Simplify exports to always use browser version
+  if (packageJson.exports && packageJson.exports['.']) {
+    packageJson.exports['.'] = {
+      types: packageJson.exports['.'].types,
+      'react-native': './dist/browser/axios.cjs',
+      browser: './dist/browser/axios.cjs',
+      default: './dist/browser/axios.cjs'
+    };
+  }
+
   fs.writeFileSync(axiosPackageJsonPath, JSON.stringify(packageJson, null, 2), 'utf8');
 
   console.log('[fix-axios] ✅ Successfully fixed axios package.json');
   console.log('[fix-axios]    main: ./dist/browser/axios.cjs');
   console.log('[fix-axios]    module: ./dist/esm/axios.js');
+  console.log('[fix-axios]    exports: simplified to always use browser version');
 } catch (error) {
   console.error('[fix-axios] ❌ Error fixing axios:', error.message);
   // Don't fail the build, just warn
