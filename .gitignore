@@ -10,6 +10,7 @@ node_modules/
 
 # Electron build output
 dist/
+dist-test/
 web-build/
 
 # Electron build resources (keep .gitkeep)
