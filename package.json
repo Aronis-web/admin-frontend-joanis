@@ -9,7 +9,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "web:serve": "npx serve web-build -p 8081",
-    "postinstall": "node scripts/fix-all-packages.js && node scripts/patch-react-native.js",
+
     "electron:run": "npm run build:web:quick && concurrently \"npm run web:serve\" \"wait-on http://localhost:8081 && electron electron/main.js\"",
     "electron:dev": "npm run build:web:quick && concurrently \"npm run web:serve\" \"wait-on http://localhost:8081 && electron electron/main.js --dev\"",
     "build:web": "npx expo export --platform web --output-dir web-build && node fix-html-for-electron.js",
@@ -87,22 +87,13 @@
     "@types/react": "~19.1.0",
     "@typescript-eslint/eslint-plugin": "^8.46.0",
     "@typescript-eslint/parser": "^8.46.0",
-    "concurrently": "^8.2.2",
-    "electron": "^28.1.0",
-    "electron-builder": "^24.9.1",
-    "electron-is-dev": "^3.0.1",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.0.0",
-    "null-loader": "^4.0.1",
     "prettier": "^3.8.1",
     "react-native-dotenv": "^3.4.11",
-    "typescript": "~5.9.2",
-    "wait-on": "^7.2.0"
-  },
-  "overrides": {
-    "memoize-one": "5.2.1"
+    "typescript": "~5.9.2"
   }
 }
