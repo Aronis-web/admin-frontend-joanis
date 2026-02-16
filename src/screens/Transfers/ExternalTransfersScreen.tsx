@@ -245,16 +245,35 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   };
 
   const updateTransferItemProduct = (index: number, product: Product) => {
-    console.log('📦 Producto seleccionado:', product.title);
-    console.log('📍 Stock items (total):', product.stockItems);
+    console.log('═══════════════════════════════════════════════════');
+    console.log('📦 PRODUCTO SELECCIONADO:', product.title);
+    console.log('🆔 Product ID:', product.id);
+    console.log('📍 Stock items (RAW):', JSON.stringify(product.stockItems, null, 2));
     console.log('🔢 Cantidad de ubicaciones (total):', product.stockItems?.length || 0);
+
+    // Mostrar detalle de cada ubicación
+    if (product.stockItems && product.stockItems.length > 0) {
+      product.stockItems.forEach((item, idx) => {
+        console.log(`\n  Ubicación ${idx + 1}:`);
+        console.log(`    - Warehouse ID: ${item.warehouseId}`);
+        console.log(`    - Warehouse Name: ${(item.warehouse as any)?.name}`);
+        console.log(`    - Warehouse SiteId: ${(item.warehouse as any)?.siteId}`);
+        console.log(`    - Area ID: ${item.areaId}`);
+        console.log(`    - Area Name: ${(item.area as any)?.name}`);
+        console.log(`    - Stock Disponible: ${item.availableQuantityBase}`);
+        console.log(`    - Stock Total: ${item.quantityBase}`);
+        console.log(`    - Stock Reservado: ${item.reservedQuantityBase}`);
+      });
+    }
 
     // Filtrar solo ubicaciones de la sede actual
     const currentSiteStockItems = product.stockItems?.filter(
       (stockItem) => (stockItem.warehouse as any)?.siteId === effectiveSite?.id
     ) || [];
-    console.log('🏢 Ubicaciones en sede actual:', currentSiteStockItems.length);
-    console.log('📋 Detalle ubicaciones sede actual:', currentSiteStockItems);
+    console.log('\n🏢 Sede actual ID:', effectiveSite?.id);
+    console.log('🏢 Ubicaciones en sede actual (filtradas):', currentSiteStockItems.length);
+    console.log('📋 Detalle ubicaciones filtradas:', JSON.stringify(currentSiteStockItems, null, 2));
+    console.log('═══════════════════════════════════════════════════\n');
 
     const newItems = [...transferItems];
     newItems[index].productId = product.id;
