@@ -56,17 +56,36 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
       console.log('🔍 Buscando productos con query:', searchQuery);
       setIsSearching(true);
       try {
-        // Usar endpoint v1 con include para obtener stock
-        const response = await productsApi.getAllProducts({
+        // Usar endpoint v2 para búsqueda (más rápido y con full-text search)
+        const response = await productsApi.searchProductsV2({
           q: searchQuery,
           limit: 10,
           status: 'active,preliminary',
-          include: 'stockItems.warehouse,stockItems.area', // ✅ Incluir stock con relaciones
+          includePhotos: true,
         });
 
-        console.log('✅ Productos encontrados:', response.products?.length || 0);
-        console.log('📦 Primer producto:', response.products?.[0]);
-        setFilteredProducts(response.products || []);
+        console.log('✅ Productos encontrados:', response.results?.length || 0);
+
+        // Cargar el stock de cada producto encontrado
+        if (response.results && response.results.length > 0) {
+          const productsWithStock = await Promise.all(
+            response.results.map(async (product) => {
+              try {
+                // Obtener el producto completo con stock
+                const fullProduct = await productsApi.getProductById(product.id);
+                console.log('📦 Producto con stock:', fullProduct.title, 'Stock items:', fullProduct.stockItems?.length || 0);
+                return fullProduct;
+              } catch (error) {
+                console.error('Error loading stock for product:', product.id, error);
+                return product; // Devolver el producto sin stock si falla
+              }
+            })
+          );
+          setFilteredProducts(productsWithStock);
+        } else {
+          setFilteredProducts([]);
+        }
+
         setShowDropdown(true); // Asegurar que el dropdown se muestre
       } catch (error) {
         console.error('❌ Error searching products:', error);
