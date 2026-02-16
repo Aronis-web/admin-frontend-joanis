@@ -125,11 +125,16 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
     // Si hay warehouseId específico, buscar solo ese almacén
     if (warehouseId) {
       const stockItem = product.stockItems.find((item) => item.warehouseId === warehouseId);
-      return stockItem?.quantityBase || 0;
+      // Usar availableQuantityBase (stock disponible = total - reservado)
+      return stockItem?.availableQuantityBase || stockItem?.quantityBase || 0;
     }
 
     // Si no hay warehouseId, sumar todo el stock disponible
-    return product.stockItems.reduce((total, item) => total + (item.quantityBase || 0), 0);
+    return product.stockItems.reduce((total, item) => {
+      // Usar availableQuantityBase si existe, sino quantityBase
+      const available = item.availableQuantityBase ?? item.quantityBase ?? 0;
+      return total + (typeof available === 'number' ? available : parseFloat(available) || 0);
+    }, 0);
   };
 
   return (

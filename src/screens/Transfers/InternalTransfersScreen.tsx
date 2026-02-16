@@ -294,12 +294,16 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
 
   const updateTransferItemLocation = (index: number, stockItem: any) => {
     const newItems = [...transferItems];
+    // Usar availableQuantityBase (stock disponible = total - reservado)
+    const availableStock = stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
+    const parsedStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
+
     newItems[index] = {
       ...newItems[index],
       selectedStockLocation: {
         warehouseId: stockItem.warehouseId,
         areaId: stockItem.areaId,
-        availableStock: stockItem.quantityBase || 0,
+        availableStock: parsedStock,
       },
     };
     setTransferItems(newItems);
@@ -669,20 +673,26 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                             item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
                             item.selectedStockLocation?.areaId === stockItem.areaId;
 
+                          // Usar availableQuantityBase (stock disponible = total - reservado)
+                          const availableStock = stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
+                          const parsedStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
+                          const totalStock = typeof stockItem.quantityBase === 'number' ? stockItem.quantityBase : parseFloat(stockItem.quantityBase) || 0;
+                          const reservedStock = typeof stockItem.reservedQuantityBase === 'number' ? stockItem.reservedQuantityBase : parseFloat(stockItem.reservedQuantityBase) || 0;
+
                           return (
                             <TouchableOpacity
                               key={stockIndex}
                               style={[
                                 styles.locationCard,
                                 isSelected && styles.locationCardSelected,
-                                stockItem.quantityBase === 0 && styles.locationCardDisabled,
+                                parsedStock === 0 && styles.locationCardDisabled,
                               ]}
                               onPress={() => {
-                                if (stockItem.quantityBase > 0) {
+                                if (parsedStock > 0) {
                                   updateTransferItemLocation(index, stockItem);
                                 }
                               }}
-                              disabled={stockItem.quantityBase === 0}
+                              disabled={parsedStock === 0}
                             >
                               <View style={styles.locationInfo}>
                                 <Text style={styles.locationWarehouse}>
@@ -695,10 +705,15 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                                 )}
                                 <Text style={[
                                   styles.locationStock,
-                                  stockItem.quantityBase === 0 && styles.locationStockZero,
+                                  parsedStock === 0 && styles.locationStockZero,
                                 ]}>
-                                  Stock: {stockItem.quantityBase?.toFixed(2) || '0.00'}
+                                  Disponible: {parsedStock.toFixed(2)}
                                 </Text>
+                                {reservedStock > 0 && (
+                                  <Text style={styles.locationReserved}>
+                                    Reservado: {reservedStock.toFixed(2)} | Total: {totalStock.toFixed(2)}
+                                  </Text>
+                                )}
                               </View>
                               {isSelected && (
                                 <Text style={styles.locationSelectedIcon}>✓</Text>
@@ -1125,6 +1140,11 @@ const styles = StyleSheet.create({
   },
   locationStockZero: {
     color: '#EF4444',
+  },
+  locationReserved: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
   },
   locationSelectedIcon: {
     fontSize: 24,
