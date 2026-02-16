@@ -53,6 +53,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
         return;
       }
 
+      console.log('🔍 Buscando productos con query:', searchQuery);
       setIsSearching(true);
       try {
         // Usar endpoint v1 con include para obtener stock
@@ -63,9 +64,12 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
           include: 'stockItems.warehouse,stockItems.area', // ✅ Incluir stock con relaciones
         });
 
+        console.log('✅ Productos encontrados:', response.products?.length || 0);
+        console.log('📦 Primer producto:', response.products?.[0]);
         setFilteredProducts(response.products || []);
+        setShowDropdown(true); // Asegurar que el dropdown se muestre
       } catch (error) {
-        console.error('Error searching products:', error);
+        console.error('❌ Error searching products:', error);
         setFilteredProducts([]);
       } finally {
         setIsSearching(false);
@@ -86,12 +90,18 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
   };
 
   const getProductStock = (product: Product): number => {
-    if (!warehouseId || !product.stockItems) {
+    if (!product.stockItems || product.stockItems.length === 0) {
       return 0;
     }
 
-    const stockItem = product.stockItems.find((item) => item.warehouseId === warehouseId);
-    return stockItem?.quantityBase || 0;
+    // Si hay warehouseId específico, buscar solo ese almacén
+    if (warehouseId) {
+      const stockItem = product.stockItems.find((item) => item.warehouseId === warehouseId);
+      return stockItem?.quantityBase || 0;
+    }
+
+    // Si no hay warehouseId, sumar todo el stock disponible
+    return product.stockItems.reduce((total, item) => total + (item.quantityBase || 0), 0);
   };
 
   return (
@@ -190,9 +200,18 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
             </View>
           )}
 
-          {showDropdown && searchQuery.trim() !== '' && filteredProducts.length === 0 && (
+          {showDropdown && searchQuery.trim() !== '' && filteredProducts.length === 0 && !isSearching && (
             <View style={styles.dropdown}>
               <Text style={styles.noResultsText}>No se encontraron productos</Text>
+            </View>
+          )}
+
+          {showDropdown && searchQuery.trim() !== '' && isSearching && filteredProducts.length === 0 && (
+            <View style={styles.dropdown}>
+              <View style={styles.searchingContainer}>
+                <ActivityIndicator size="small" color="#6366F1" />
+                <Text style={styles.searchingText}>Buscando productos...</Text>
+              </View>
             </View>
           )}
         </>
@@ -361,5 +380,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#64748B',
     fontSize: 14,
+  },
+  searchingContainer: {
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  searchingText: {
+    color: '#64748B',
+    fontSize: 14,
+    marginLeft: 8,
   },
 });
