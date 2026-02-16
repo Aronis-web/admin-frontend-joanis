@@ -332,15 +332,34 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
     for (let i = 0; i < transferItems.length; i++) {
       const item = transferItems[i];
       if (item.productId && !item.selectedStockLocation) {
-        Alert.alert('Error', `Selecciona la ubicación de origen para el producto ${i + 1}`);
+        Alert.alert(
+          'Error de Validación',
+          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\nSelecciona la ubicación de origen`
+        );
         return false;
       }
       if (item.productId && item.selectedStockLocation && !item.quantity) {
-        Alert.alert('Error', `Ingresa la cantidad para el producto ${i + 1}`);
+        Alert.alert(
+          'Error de Validación',
+          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\nIngresa la cantidad a trasladar`
+        );
+        return false;
+      }
+      if (item.productId && item.selectedStockLocation && parseFloat(item.quantity) <= 0) {
+        Alert.alert(
+          'Error de Validación',
+          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\nLa cantidad debe ser mayor a 0`
+        );
         return false;
       }
       if (item.productId && item.selectedStockLocation && parseFloat(item.quantity) > item.selectedStockLocation.availableStock) {
-        Alert.alert('Error', `La cantidad del producto ${i + 1} excede el stock disponible (${item.selectedStockLocation.availableStock})`);
+        Alert.alert(
+          'Error de Validación',
+          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\n\n` +
+          `Cantidad ingresada: ${parseFloat(item.quantity).toFixed(2)}\n` +
+          `Stock disponible: ${item.selectedStockLocation.availableStock.toFixed(2)}\n\n` +
+          `La cantidad excede el stock disponible`
+        );
         return false;
       }
     }
@@ -733,14 +752,30 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                   )}
 
                   {/* Cantidad - solo habilitado si se seleccionó ubicación */}
-                  <TextInput
-                    style={[styles.input, !item.selectedStockLocation && styles.inputDisabled]}
-                    placeholder={item.selectedStockLocation ? `Cantidad (máx: ${item.selectedStockLocation.availableStock})` : 'Selecciona ubicación primero'}
-                    value={item.quantity}
-                    onChangeText={(value) => updateTransferItem(index, 'quantity', value)}
-                    keyboardType="numeric"
-                    editable={!!item.selectedStockLocation}
-                  />
+                  <View>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        !item.selectedStockLocation && styles.inputDisabled,
+                        item.selectedStockLocation &&
+                        item.quantity &&
+                        parseFloat(item.quantity) > item.selectedStockLocation.availableStock &&
+                        styles.inputError
+                      ]}
+                      placeholder={item.selectedStockLocation ? `Cantidad (máx: ${item.selectedStockLocation.availableStock})` : 'Selecciona ubicación primero'}
+                      value={item.quantity}
+                      onChangeText={(value) => updateTransferItem(index, 'quantity', value)}
+                      keyboardType="numeric"
+                      editable={!!item.selectedStockLocation}
+                    />
+                    {item.selectedStockLocation &&
+                     item.quantity &&
+                     parseFloat(item.quantity) > item.selectedStockLocation.availableStock && (
+                      <Text style={styles.errorText}>
+                        ⚠️ La cantidad excede el stock disponible ({item.selectedStockLocation.availableStock})
+                      </Text>
+                    )}
+                  </View>
 
                   <TextInput
                     style={styles.input}
@@ -1058,6 +1093,18 @@ const styles = StyleSheet.create({
   inputDisabled: {
     backgroundColor: '#F1F5F9',
     color: '#94A3B8',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    borderWidth: 2,
+    backgroundColor: '#FEF2F2',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+    marginLeft: 4,
+    fontWeight: '500',
   },
   textArea: {
     minHeight: 80,
