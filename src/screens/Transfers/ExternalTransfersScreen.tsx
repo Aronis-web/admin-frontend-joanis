@@ -12,6 +12,7 @@ import {
   useWindowDimensions,
   Modal,
   FlatList,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -45,6 +46,11 @@ interface TransferItemInput {
   quantity: string;
   notes: string;
   product?: Product;
+  selectedStockLocation?: {
+    warehouseId: string;
+    areaId: string | null;
+    availableStock: number;
+  };
 }
 
 export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = ({ navigation }) => {
@@ -77,7 +83,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   const [destinationAreaId, setDestinationAreaId] = useState('');
   const [transferNotes, setTransferNotes] = useState('');
   const [transferItems, setTransferItems] = useState<TransferItemInput[]>([
-    { productId: '', quantity: '', notes: '', product: undefined },
+    { productId: '', quantity: '', notes: '', product: undefined, selectedStockLocation: undefined },
   ]);
 
   // Detail modal states
@@ -213,13 +219,13 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     setDestinationWarehouseId('');
     setDestinationAreaId('');
     setTransferNotes('');
-    setTransferItems([{ productId: '', quantity: '', notes: '', product: undefined }]);
+    setTransferItems([{ productId: '', quantity: '', notes: '', product: undefined, selectedStockLocation: undefined }]);
   };
 
   const addTransferItem = () => {
     setTransferItems([
       ...transferItems,
-      { productId: '', quantity: '', notes: '', product: undefined },
+      { productId: '', quantity: '', notes: '', product: undefined, selectedStockLocation: undefined },
     ]);
   };
 
@@ -239,9 +245,28 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   };
 
   const updateTransferItemProduct = (index: number, product: Product) => {
+    console.log('📦 Producto seleccionado:', product.title);
+    console.log('📍 Stock items:', product.stockItems);
+    console.log('🔢 Cantidad de ubicaciones:', product.stockItems?.length || 0);
+
     const newItems = [...transferItems];
     newItems[index].productId = product.id;
     newItems[index].product = product;
+    newItems[index].selectedStockLocation = undefined; // Reset location when product changes
+    setTransferItems(newItems);
+  };
+
+  const updateTransferItemLocation = (index: number, stockItem: any) => {
+    const newItems = [...transferItems];
+    // Usar availableQuantityBase (stock disponible = total - reservado)
+    const availableStock = stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
+    const parsedStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
+
+    newItems[index].selectedStockLocation = {
+      warehouseId: stockItem.warehouseId,
+      areaId: stockItem.areaId,
+      availableStock: parsedStock,
+    };
     setTransferItems(newItems);
   };
 
@@ -294,8 +319,8 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   };
 
   const validateCreateForm = (): boolean => {
-    if (!originWarehouseId) {
-      Alert.alert('Error', 'Selecciona un almacén de origen');
+    if (!destinationSiteId) {
+      Alert.alert('Error', 'Selecciona una sede de destino');
       return false;
     }
 
@@ -304,21 +329,10 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       return false;
     }
 
-    if (originWarehouseId === destinationWarehouseId) {
-      Alert.alert('Error', 'El almacén de origen y destino deben ser diferentes');
-      return false;
-    }
-
-    // Validate different sites - origin must be current site
-    const originWarehouse = warehouses.find((w) => w.id === originWarehouseId);
+    // Validate different sites
     const destinationWarehouse = warehouses.find((w) => w.id === destinationWarehouseId);
 
-    if (originWarehouse?.siteId !== effectiveSite?.id) {
-      Alert.alert('Error', 'El almacén de origen debe pertenecer a tu sede actual');
-      return false;
-    }
-
-    if (originWarehouse?.siteId === destinationWarehouse?.siteId) {
+    if (destinationWarehouse?.siteId === effectiveSite?.id) {
       Alert.alert(
         'Error',
         'Los traslados externos deben ser entre sedes diferentes. Usa traslados internos para la misma sede.'
@@ -327,12 +341,48 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     }
 
     const validItems = transferItems.filter(
-      (item) => item.productId && parseFloat(item.quantity) > 0
+      (item) => item.productId && item.selectedStockLocation && parseFloat(item.quantity) > 0
     );
 
     if (validItems.length === 0) {
-      Alert.alert('Error', 'Agrega al menos un producto con cantidad válida');
+      Alert.alert('Error', 'Agrega al menos un producto con ubicación de origen y cantidad válida');
       return false;
+    }
+
+    // Validar que cada item tenga ubicación seleccionada
+    for (let i = 0; i < transferItems.length; i++) {
+      const item = transferItems[i];
+      if (item.productId && !item.selectedStockLocation) {
+        Alert.alert(
+          'Error de Validación',
+          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\nSelecciona la ubicación de origen`
+        );
+        return false;
+      }
+      if (item.productId && item.selectedStockLocation && !item.quantity) {
+        Alert.alert(
+          'Error de Validación',
+          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\nIngresa la cantidad a trasladar`
+        );
+        return false;
+      }
+      if (item.productId && item.selectedStockLocation && parseFloat(item.quantity) <= 0) {
+        Alert.alert(
+          'Error de Validación',
+          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\nLa cantidad debe ser mayor a 0`
+        );
+        return false;
+      }
+      if (item.productId && item.selectedStockLocation && parseFloat(item.quantity) > item.selectedStockLocation.availableStock) {
+        Alert.alert(
+          'Error de Validación',
+          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\n\n` +
+          `Cantidad ingresada: ${parseFloat(item.quantity).toFixed(2)}\n` +
+          `Stock disponible: ${item.selectedStockLocation.availableStock.toFixed(2)}\n\n` +
+          `La cantidad excede el stock disponible`
+        );
+        return false;
+      }
     }
 
     return true;
@@ -344,40 +394,83 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     }
 
     try {
-      const validItems = transferItems
-        .filter((item) => item.productId && parseFloat(item.quantity) > 0)
-        .map((item) => ({
+      if (!user?.id) {
+        Alert.alert('Error', 'No se pudo identificar el usuario actual');
+        return;
+      }
+
+      // Agrupar items por ubicación de origen (warehouse + area)
+      const itemsByOrigin = new Map<string, typeof transferItems>();
+
+      transferItems
+        .filter((item) => item.productId && item.selectedStockLocation && parseFloat(item.quantity) > 0)
+        .forEach((item) => {
+          const key = `${item.selectedStockLocation!.warehouseId}-${item.selectedStockLocation!.areaId || 'null'}`;
+          if (!itemsByOrigin.has(key)) {
+            itemsByOrigin.set(key, []);
+          }
+          itemsByOrigin.get(key)!.push(item);
+        });
+
+      // Crear un traslado por cada ubicación de origen
+      const createdTransfers: any[] = [];
+
+      for (const [key, items] of itemsByOrigin.entries()) {
+        const firstItem = items[0];
+        const originWarehouseId = firstItem.selectedStockLocation!.warehouseId;
+        const originAreaId = firstItem.selectedStockLocation!.areaId;
+
+        const validItems = items.map((item) => ({
           productId: item.productId,
           quantity: parseFloat(item.quantity),
           notes: item.notes || undefined,
         }));
 
-      const createDto: CreateExternalTransferDto = {
-        originWarehouseId,
-        originAreaId: originAreaId || undefined,
-        destinationWarehouseId,
-        destinationAreaId: destinationAreaId || undefined,
-        requestedBy: user?.id || '',
-        items: validItems,
-        notes: transferNotes || undefined,
-      };
+        const createDto: CreateExternalTransferDto = {
+          originWarehouseId,
+          originAreaId: originAreaId || undefined,
+          destinationWarehouseId,
+          destinationAreaId: destinationAreaId || undefined,
+          requestedBy: user.id,
+          items: validItems,
+          notes: transferNotes || undefined,
+        };
 
-      const newTransfer = await transfersApi.createExternalTransfer(createDto);
+        const newTransfer = await transfersApi.createExternalTransfer(createDto);
+        createdTransfers.push(newTransfer);
+      }
 
-      Alert.alert(
-        'Éxito',
-        `Traslado externo ${newTransfer.transferNumber} creado exitosamente en estado BORRADOR.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setShowCreateModal(false);
-              resetCreateForm();
-              loadTransfers();
+      if (createdTransfers.length === 1) {
+        Alert.alert(
+          'Éxito',
+          `Traslado externo ${createdTransfers[0].transferNumber} creado exitosamente en estado BORRADOR.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setShowCreateModal(false);
+                resetCreateForm();
+                loadTransfers();
+              },
             },
-          },
-        ]
-      );
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Traslados Creados',
+          `Se crearon ${createdTransfers.length} traslados externos exitosamente (agrupados por ubicación de origen).`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setShowCreateModal(false);
+                resetCreateForm();
+                loadTransfers();
+              },
+            },
+          ]
+        );
+      }
     } catch (error: any) {
       console.error('Error creating external transfer:', error);
       Alert.alert('Error', error.message || 'No se pudo crear el traslado externo');
@@ -617,51 +710,177 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
           </View>
 
           <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalScrollContent}>
-            {/* Origin Section */}
+            {/* Sede Origen (solo informativa) */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📤 Origen</Text>
-
-              <Text style={styles.label}>Sede Origen</Text>
+              <Text style={styles.sectionTitle}>📤 Sede de Origen</Text>
               <View style={styles.infoBox}>
                 <Text style={styles.infoBoxText}>{effectiveSite?.name || 'No seleccionada'}</Text>
               </View>
-
-              <Text style={styles.label}>Almacén Origen *</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={originWarehouseId}
-                  onValueChange={handleOriginWarehouseChange}
-                  style={styles.picker}
-                  enabled={originWarehouses.length > 0}
-                >
-                  <Picker.Item label="Seleccionar almacén..." value="" />
-                  {originWarehouses.map((warehouse) => (
-                    <Picker.Item key={warehouse.id} label={warehouse.name} value={warehouse.id} />
-                  ))}
-                </Picker>
-              </View>
-
-              <Text style={styles.label}>Área Origen (Opcional)</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={originAreaId}
-                  onValueChange={setOriginAreaId}
-                  style={styles.picker}
-                  enabled={originAreas.length > 0}
-                >
-                  <Picker.Item label="Seleccionar área..." value="" />
-                  {originAreas.map((area) => (
-                    <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
-                  ))}
-                </Picker>
-              </View>
             </View>
 
-            {/* Destination Section */}
+            {/* Items Section - PRIMERO */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📥 Destino</Text>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>📦 Productos</Text>
+                <TouchableOpacity onPress={addTransferItem} style={styles.addItemButton}>
+                  <Text style={styles.addItemButtonText}>+ Agregar Producto</Text>
+                </TouchableOpacity>
+              </View>
 
-              <Text style={styles.label}>Sede Destino</Text>
+              {transferItems.map((item, index) => (
+                <View key={index} style={styles.itemContainer}>
+                  <View style={styles.itemHeader}>
+                    <Text style={styles.itemNumber}>Producto {index + 1}</Text>
+                    {transferItems.length > 1 && (
+                      <TouchableOpacity onPress={() => removeTransferItem(index)}>
+                        <Text style={styles.removeItemText}>✕ Eliminar</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <Text style={styles.label}>Producto *</Text>
+                  <ProductAutocomplete
+                    products={products}
+                    selectedProductId={item.productId}
+                    onSelectProduct={(product) => updateTransferItemProduct(index, product)}
+                    placeholder="Buscar producto por nombre, SKU o código de barras..."
+                  />
+
+                  {/* Mostrar foto del producto si existe */}
+                  {item.product && item.product.imageUrl && (
+                    <View style={styles.productImageContainer}>
+                      <Text style={styles.productImageLabel}>Producto:</Text>
+                      <View style={styles.productImageWrapper}>
+                        <Image
+                          source={{ uri: item.product.imageUrl }}
+                          style={styles.productImage}
+                          resizeMode="cover"
+                        />
+                        <Text style={styles.productImageTitle} numberOfLines={2}>
+                          {item.product.title}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Mostrar ubicaciones disponibles del producto */}
+                  {item.product && (
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>Ubicación de Origen *</Text>
+                      <Text style={styles.formHint}>Selecciona de dónde deseas trasladar este producto</Text>
+
+                      {item.product.stockItems && item.product.stockItems.length > 0 ? (
+                        item.product.stockItems.map((stockItem, stockIndex) => {
+                          const isSelected =
+                            item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
+                            item.selectedStockLocation?.areaId === stockItem.areaId;
+
+                          // Usar availableQuantityBase (stock disponible = total - reservado)
+                          const availableStock = stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
+                          const parsedStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
+                          const totalStock = typeof stockItem.quantityBase === 'number' ? stockItem.quantityBase : parseFloat(stockItem.quantityBase || '0') || 0;
+                          const reservedStock = typeof stockItem.reservedQuantityBase === 'number' ? stockItem.reservedQuantityBase : parseFloat(stockItem.reservedQuantityBase || '0') || 0;
+
+                          return (
+                            <TouchableOpacity
+                              key={stockIndex}
+                              style={[
+                                styles.locationCard,
+                                isSelected && styles.locationCardSelected,
+                                parsedStock === 0 && styles.locationCardDisabled,
+                              ]}
+                              onPress={() => {
+                                if (parsedStock > 0) {
+                                  updateTransferItemLocation(index, stockItem);
+                                }
+                              }}
+                              disabled={parsedStock === 0}
+                            >
+                              <View style={styles.locationInfo}>
+                                <Text style={styles.locationWarehouse}>
+                                  📦 {stockItem.warehouse?.name || 'Almacén'}
+                                </Text>
+                                {stockItem.area && (
+                                  <Text style={styles.locationArea}>
+                                    📍 {stockItem.area.name}
+                                  </Text>
+                                )}
+                                <Text style={[
+                                  styles.locationStock,
+                                  parsedStock === 0 && styles.locationStockZero,
+                                ]}>
+                                  Disponible: {parsedStock.toFixed(2)}
+                                </Text>
+                                {reservedStock > 0 && (
+                                  <Text style={styles.locationReserved}>
+                                    Reservado: {reservedStock.toFixed(2)} | Total: {totalStock.toFixed(2)}
+                                  </Text>
+                                )}
+                              </View>
+                              {isSelected && (
+                                <Text style={styles.locationSelectedIcon}>✓</Text>
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })
+                      ) : (
+                        <View style={styles.noStockContainer}>
+                          <Text style={styles.noStockIcon}>⚠️</Text>
+                          <Text style={styles.noStockText}>
+                            Este producto no tiene stock disponible en ninguna ubicación
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Cantidad - solo habilitado si se seleccionó ubicación */}
+                  <View>
+                    <Text style={styles.label}>Cantidad *</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        !item.selectedStockLocation && styles.inputDisabled,
+                        item.selectedStockLocation &&
+                        item.quantity &&
+                        parseFloat(item.quantity) > item.selectedStockLocation.availableStock &&
+                        styles.inputError
+                      ]}
+                      placeholder={item.selectedStockLocation ? `Cantidad (máx: ${item.selectedStockLocation.availableStock})` : 'Selecciona ubicación primero'}
+                      keyboardType="numeric"
+                      value={item.quantity}
+                      onChangeText={(value) => updateTransferItem(index, 'quantity', value)}
+                      placeholderTextColor="#94A3B8"
+                      editable={!!item.selectedStockLocation}
+                    />
+                    {item.selectedStockLocation &&
+                     item.quantity &&
+                     parseFloat(item.quantity) > item.selectedStockLocation.availableStock && (
+                      <Text style={styles.errorText}>
+                        ⚠️ La cantidad excede el stock disponible ({item.selectedStockLocation.availableStock})
+                      </Text>
+                    )}
+                  </View>
+
+                  <Text style={styles.label}>Notas (Opcional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Notas del producto..."
+                    value={item.notes}
+                    onChangeText={(value) => updateTransferItem(index, 'notes', value)}
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+              ))}
+            </View>
+
+            {/* Destination Section - AL FINAL */}
+            <View style={styles.sectionDivider}>
+              <Text style={styles.sectionTitle}>📍 Destino del Traslado</Text>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.label}>Sede Destino *</Text>
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={destinationSiteId}
@@ -704,57 +923,6 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                   ))}
                 </Picker>
               </View>
-            </View>
-
-            {/* Items Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>📦 Productos</Text>
-                <TouchableOpacity onPress={addTransferItem} style={styles.addItemButton}>
-                  <Text style={styles.addItemButtonText}>+ Agregar Producto</Text>
-                </TouchableOpacity>
-              </View>
-
-              {transferItems.map((item, index) => (
-                <View key={index} style={styles.itemContainer}>
-                  <View style={styles.itemHeader}>
-                    <Text style={styles.itemNumber}>Producto {index + 1}</Text>
-                    {transferItems.length > 1 && (
-                      <TouchableOpacity onPress={() => removeTransferItem(index)}>
-                        <Text style={styles.removeItemText}>✕ Eliminar</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <Text style={styles.label}>Producto *</Text>
-                  <ProductAutocomplete
-                    products={products}
-                    selectedProductId={item.productId}
-                    warehouseId={originWarehouseId}
-                    onSelectProduct={(product) => updateTransferItemProduct(index, product)}
-                    placeholder="Buscar producto por nombre, SKU o código de barras..."
-                  />
-
-                  <Text style={styles.label}>Cantidad *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    value={item.quantity}
-                    onChangeText={(value) => updateTransferItem(index, 'quantity', value)}
-                    placeholderTextColor="#94A3B8"
-                  />
-
-                  <Text style={styles.label}>Notas (Opcional)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Notas del producto..."
-                    value={item.notes}
-                    onChangeText={(value) => updateTransferItem(index, 'notes', value)}
-                    placeholderTextColor="#94A3B8"
-                  />
-                </View>
-              ))}
             </View>
 
             {/* Notes Section */}
@@ -1317,6 +1485,139 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  // Nuevos estilos para ubicaciones y validación
+  formGroup: {
+    marginBottom: 16,
+  },
+  formHint: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  productImageContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  productImageLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  productImageWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  productImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  productImageTitle: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#334155',
+  },
+  locationCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  locationCardSelected: {
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
+  },
+  locationCardDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#F8FAFC',
+  },
+  locationInfo: {
+    flex: 1,
+  },
+  locationWarehouse: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  locationArea: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  locationStock: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  locationStockZero: {
+    color: '#EF4444',
+  },
+  locationReserved: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  locationSelectedIcon: {
+    fontSize: 24,
+    color: '#6366F1',
+    fontWeight: 'bold',
+  },
+  noStockContainer: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    padding: 16,
+    alignItems: 'center',
+  },
+  noStockIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  noStockText: {
+    fontSize: 13,
+    color: '#991B1B',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  inputDisabled: {
+    backgroundColor: '#F1F5F9',
+    color: '#94A3B8',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    borderWidth: 2,
+    backgroundColor: '#FEF2F2',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  sectionDivider: {
+    marginTop: 24,
+    marginBottom: 16,
+    paddingTop: 16,
+    borderTopWidth: 2,
+    borderTopColor: '#E2E8F0',
   },
 });
 
