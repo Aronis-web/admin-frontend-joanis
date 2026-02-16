@@ -44,7 +44,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
     }
   }, [selectedProductId, products]);
 
-  // ✅ MIGRADO A V2: Búsqueda en tiempo real con Full-Text Search y caché Redis
+  // Búsqueda de productos con stock incluido
   useEffect(() => {
     const searchProducts = async () => {
       if (searchQuery.trim() === '') {
@@ -55,14 +55,15 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
 
       setIsSearching(true);
       try {
-        const response = await productsApi.searchProductsV2({
+        // Usar endpoint v1 con include para obtener stock
+        const response = await productsApi.getAllProducts({
           q: searchQuery,
           limit: 10,
-          status: 'active', // Solo productos activos
-          includePhotos: true, // ✅ Incluir fotos para futuras mejoras
+          status: 'active,preliminary',
+          include: 'stockItems.warehouse,stockItems.area', // ✅ Incluir stock con relaciones
         });
 
-        setFilteredProducts(response.results);
+        setFilteredProducts(response.products || []);
       } catch (error) {
         console.error('Error searching products:', error);
         setFilteredProducts([]);

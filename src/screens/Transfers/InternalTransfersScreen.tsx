@@ -278,6 +278,10 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
   };
 
   const updateTransferItemProduct = (index: number, product: Product) => {
+    console.log('📦 Producto seleccionado:', product.title);
+    console.log('📍 Stock items:', product.stockItems);
+    console.log('🔢 Cantidad de ubicaciones:', product.stockItems?.length || 0);
+
     const newItems = [...transferItems];
     newItems[index] = {
       ...newItems[index],
@@ -654,52 +658,62 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                   )}
 
                   {/* Mostrar ubicaciones disponibles del producto */}
-                  {item.product && item.product.stockItems && item.product.stockItems.length > 0 && (
+                  {item.product && (
                     <View style={styles.formGroup}>
                       <Text style={styles.formLabel}>Ubicación de Origen *</Text>
                       <Text style={styles.formHint}>Selecciona de dónde deseas trasladar este producto</Text>
-                      {item.product.stockItems.map((stockItem, stockIndex) => {
-                        const isSelected =
-                          item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
-                          item.selectedStockLocation?.areaId === stockItem.areaId;
 
-                        return (
-                          <TouchableOpacity
-                            key={stockIndex}
-                            style={[
-                              styles.locationCard,
-                              isSelected && styles.locationCardSelected,
-                              stockItem.quantityBase === 0 && styles.locationCardDisabled,
-                            ]}
-                            onPress={() => {
-                              if (stockItem.quantityBase > 0) {
-                                updateTransferItemLocation(index, stockItem);
-                              }
-                            }}
-                            disabled={stockItem.quantityBase === 0}
-                          >
-                            <View style={styles.locationInfo}>
-                              <Text style={styles.locationWarehouse}>
-                                📦 {stockItem.warehouse?.name || 'Almacén'}
-                              </Text>
-                              {stockItem.area && (
-                                <Text style={styles.locationArea}>
-                                  📍 {stockItem.area.name}
+                      {item.product.stockItems && item.product.stockItems.length > 0 ? (
+                        item.product.stockItems.map((stockItem, stockIndex) => {
+                          const isSelected =
+                            item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
+                            item.selectedStockLocation?.areaId === stockItem.areaId;
+
+                          return (
+                            <TouchableOpacity
+                              key={stockIndex}
+                              style={[
+                                styles.locationCard,
+                                isSelected && styles.locationCardSelected,
+                                stockItem.quantityBase === 0 && styles.locationCardDisabled,
+                              ]}
+                              onPress={() => {
+                                if (stockItem.quantityBase > 0) {
+                                  updateTransferItemLocation(index, stockItem);
+                                }
+                              }}
+                              disabled={stockItem.quantityBase === 0}
+                            >
+                              <View style={styles.locationInfo}>
+                                <Text style={styles.locationWarehouse}>
+                                  📦 {stockItem.warehouse?.name || 'Almacén'}
                                 </Text>
+                                {stockItem.area && (
+                                  <Text style={styles.locationArea}>
+                                    📍 {stockItem.area.name}
+                                  </Text>
+                                )}
+                                <Text style={[
+                                  styles.locationStock,
+                                  stockItem.quantityBase === 0 && styles.locationStockZero,
+                                ]}>
+                                  Stock: {stockItem.quantityBase?.toFixed(2) || '0.00'}
+                                </Text>
+                              </View>
+                              {isSelected && (
+                                <Text style={styles.locationSelectedIcon}>✓</Text>
                               )}
-                              <Text style={[
-                                styles.locationStock,
-                                stockItem.quantityBase === 0 && styles.locationStockZero,
-                              ]}>
-                                Stock: {stockItem.quantityBase?.toFixed(2) || '0.00'}
-                              </Text>
-                            </View>
-                            {isSelected && (
-                              <Text style={styles.locationSelectedIcon}>✓</Text>
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
+                            </TouchableOpacity>
+                          );
+                        })
+                      ) : (
+                        <View style={styles.noStockContainer}>
+                          <Text style={styles.noStockIcon}>⚠️</Text>
+                          <Text style={styles.noStockText}>
+                            Este producto no tiene stock disponible en ninguna ubicación
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
 
@@ -1116,6 +1130,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#6366F1',
     fontWeight: 'bold',
+  },
+  noStockContainer: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    padding: 16,
+    alignItems: 'center',
+  },
+  noStockIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  noStockText: {
+    fontSize: 13,
+    color: '#991B1B',
+    textAlign: 'center',
+    fontWeight: '500',
   },
   itemsHeader: {
     flexDirection: 'row',
