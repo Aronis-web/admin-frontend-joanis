@@ -246,8 +246,15 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
 
   const updateTransferItemProduct = (index: number, product: Product) => {
     console.log('📦 Producto seleccionado:', product.title);
-    console.log('📍 Stock items:', product.stockItems);
-    console.log('🔢 Cantidad de ubicaciones:', product.stockItems?.length || 0);
+    console.log('📍 Stock items (total):', product.stockItems);
+    console.log('🔢 Cantidad de ubicaciones (total):', product.stockItems?.length || 0);
+
+    // Filtrar solo ubicaciones de la sede actual
+    const currentSiteStockItems = product.stockItems?.filter(
+      (stockItem) => (stockItem.warehouse as any)?.siteId === effectiveSite?.id
+    ) || [];
+    console.log('🏢 Ubicaciones en sede actual:', currentSiteStockItems.length);
+    console.log('📋 Detalle ubicaciones sede actual:', currentSiteStockItems);
 
     const newItems = [...transferItems];
     newItems[index].productId = product.id;
@@ -767,10 +774,12 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                   {item.product && (
                     <View style={styles.formGroup}>
                       <Text style={styles.label}>Ubicación de Origen *</Text>
-                      <Text style={styles.formHint}>Selecciona de dónde deseas trasladar este producto</Text>
+                      <Text style={styles.formHint}>Selecciona de dónde deseas trasladar este producto (solo de tu sede actual)</Text>
 
                       {item.product.stockItems && item.product.stockItems.length > 0 ? (
-                        item.product.stockItems.map((stockItem, stockIndex) => {
+                        item.product.stockItems
+                          .filter((stockItem) => (stockItem.warehouse as any)?.siteId === effectiveSite?.id)
+                          .map((stockItem, stockIndex) => {
                           const isSelected =
                             item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
                             item.selectedStockLocation?.areaId === stockItem.areaId;
@@ -827,7 +836,9 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                         <View style={styles.noStockContainer}>
                           <Text style={styles.noStockIcon}>⚠️</Text>
                           <Text style={styles.noStockText}>
-                            Este producto no tiene stock disponible en ninguna ubicación
+                            {item.product.stockItems && item.product.stockItems.length > 0
+                              ? 'Este producto no tiene stock disponible en tu sede actual'
+                              : 'Este producto no tiene stock disponible en ninguna ubicación'}
                           </Text>
                         </View>
                       )}
