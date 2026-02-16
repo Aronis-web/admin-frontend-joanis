@@ -609,54 +609,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
           </View>
 
           <ScrollView style={styles.modalContent}>
-            {/* Destination Warehouse and Area */}
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Almacén de Destino *</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={destinationWarehouseId}
-                  onValueChange={(value) => {
-                    setDestinationWarehouseId(value);
-                    setDestinationAreaId('');
-                    if (value) {
-                      loadDestinationAreas(value);
-                    } else {
-                      setDestinationAreas([]);
-                    }
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Seleccionar almacén..." value="" />
-                  {warehouses.map((wh) => (
-                    <Picker.Item key={wh.id} label={wh.name} value={wh.id} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-
-            {destinationWarehouseId && (
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Área de Destino *</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={destinationAreaId}
-                    onValueChange={setDestinationAreaId}
-                    style={styles.picker}
-                    enabled={!loadingDestinationAreas}
-                  >
-                    <Picker.Item
-                      label={loadingDestinationAreas ? 'Cargando áreas...' : 'Seleccionar área...'}
-                      value=""
-                    />
-                    {destinationAreas.map((area) => (
-                      <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-            )}
-
-            {/* Items */}
+            {/* Items - PRIMERO */}
             <View style={styles.formGroup}>
               <View style={styles.itemsHeader}>
                 <Text style={styles.formLabel}>Productos *</Text>
@@ -770,6 +723,57 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                 </View>
               ))}
             </View>
+
+            {/* Destination Warehouse and Area - AL FINAL */}
+            <View style={styles.sectionDivider}>
+              <Text style={styles.sectionTitle}>📍 Destino del Traslado</Text>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Almacén de Destino *</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={destinationWarehouseId}
+                  onValueChange={(value) => {
+                    setDestinationWarehouseId(value);
+                    setDestinationAreaId('');
+                    if (value) {
+                      loadDestinationAreas(value);
+                    } else {
+                      setDestinationAreas([]);
+                    }
+                  }}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Seleccionar almacén..." value="" />
+                  {warehouses.map((wh) => (
+                    <Picker.Item key={wh.id} label={wh.name} value={wh.id} />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            {destinationWarehouseId && (
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Área de Destino *</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={destinationAreaId}
+                    onValueChange={setDestinationAreaId}
+                    style={styles.picker}
+                    enabled={!loadingDestinationAreas}
+                  >
+                    <Picker.Item
+                      label={loadingDestinationAreas ? 'Cargando áreas...' : 'Seleccionar área...'}
+                      value=""
+                    />
+                    {destinationAreas.map((area) => (
+                      <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            )}
 
             {/* Notes */}
             <View style={styles.formGroup}>
@@ -986,6 +990,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#334155',
+    marginBottom: 8,
+  },
+  sectionDivider: {
+    marginTop: 24,
+    marginBottom: 16,
+    paddingTop: 16,
+    borderTopWidth: 2,
+    borderTopColor: '#E2E8F0',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
     marginBottom: 8,
   },
   pickerContainer: {
