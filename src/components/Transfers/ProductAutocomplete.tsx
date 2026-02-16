@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Product, productsApi } from '@/services/api/products';
+import { inventoryApi } from '@/services/api/inventory';
 
 interface ProductAutocompleteProps {
   products: Product[]; // ⚠️ DEPRECATED - Ya no se usa, búsqueda en tiempo real con V2
@@ -66,18 +67,26 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
 
         console.log('✅ Productos encontrados:', response.results?.length || 0);
 
-        // Cargar el stock de cada producto encontrado
+        // Cargar el stock de cada producto encontrado usando inventoryApi
         if (response.results && response.results.length > 0) {
           const productsWithStock = await Promise.all(
             response.results.map(async (product) => {
               try {
-                // Obtener el producto completo con stock
-                const fullProduct = await productsApi.getProductById(product.id);
-                console.log('📦 Producto con stock:', fullProduct.title, 'Stock items:', fullProduct.stockItems?.length || 0);
-                return fullProduct;
+                // Obtener el stock del producto usando el endpoint de inventario
+                const stockItems = await inventoryApi.getStockByProduct(product.id);
+                console.log('📦 Producto:', product.title, 'Stock items:', stockItems?.length || 0);
+
+                // Agregar stockItems al producto
+                return {
+                  ...product,
+                  stockItems: stockItems || [],
+                };
               } catch (error) {
                 console.error('Error loading stock for product:', product.id, error);
-                return product; // Devolver el producto sin stock si falla
+                return {
+                  ...product,
+                  stockItems: [],
+                }; // Devolver el producto sin stock si falla
               }
             })
           );
