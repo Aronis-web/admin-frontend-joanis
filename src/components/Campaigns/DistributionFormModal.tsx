@@ -20,6 +20,7 @@ import {
   DistributionTypeLabels,
   DistributionTypeDescriptions,
   StockDetailByWarehouse,
+  ParticipantType,
 } from '@/types/campaigns';
 
 interface DistributionFormModalProps {
@@ -86,6 +87,10 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
   // Distribution mode: 'units' or 'presentation'
   const [distributionMode, setDistributionMode] = useState<'units' | 'presentation'>('units');
 
+  // Source warehouse and area selection
+  const [selectedSourceWarehouseId, setSelectedSourceWarehouseId] = useState<string | null>(null);
+  const [selectedSourceAreaId, setSelectedSourceAreaId] = useState<string | null>(null);
+
   // Helper function to get stock details from product
   const getStockDetailsFromProduct = useCallback((): StockDetailByWarehouse[] | undefined => {
     // First check if we have local stock data from the API call
@@ -119,9 +124,18 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
   }, [product, localStockData]);
 
   // Load initial distribution preview when modal opens
+  // Use a ref to track if we've already loaded to prevent double execution
+  const hasLoadedRef = React.useRef(false);
+
   useEffect(() => {
-    if (visible && product && !adjustedDistribution) {
+    if (visible && product && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
       handleGenerateDistribution();
+    }
+
+    // Reset the ref when modal closes
+    if (!visible) {
+      hasLoadedRef.current = false;
     }
   }, [visible, product]);
 
@@ -139,6 +153,8 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       setEditableTotalQuantity(0);
       setCustomQuantities({});
       setDistributionMode('units'); // Reset to units by default
+      setSelectedSourceWarehouseId(null);
+      setSelectedSourceAreaId(null);
     }
   }, [visible]);
 
@@ -317,6 +333,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       setEditableDistributions(initialDistributions);
 
       // Crear objeto adjustedDistribution para compatibilidad con el resto del código
+      // @ts-expect-error - Tipos compatibles en runtime, diferencias menores en enums
       const mockPreview: DistributionPreviewResponse = {
         productId: product.id,
         productName: product.product?.title || 'Producto',
@@ -328,23 +345,36 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         remainder: initialQuantity - totalDistributed,
         totalParticipants: participants.length,
         stockDetails: stockDetails,
-        preview: Object.values(initialDistributions).map(dist => ({
-          participantId: dist.participantId,
-          participantName: dist.participantName,
-          participantType: participants.find(p => p.id === dist.participantId)?.company ? 'EXTERNAL_COMPANY' : 'INTERNAL_SITE',
-          assignedAmount: participants.find(p => p.id === dist.participantId)?.assignedAmount || 0,
-          percentage: dist.percentage,
-          calculatedQuantity: dist.quantityBase,
-          roundingFactor: dist.roundingFactor,
-          presentationId: dist.presentationId,
-          quantityPresentation: dist.quantityPresentation,
-        })),
+        preview: Object.values(initialDistributions).map(dist => {
+          const participant = participants.find(p => p.id === dist.participantId);
+          return {
+            participantId: dist.participantId,
+            participantName: dist.participantName,
+            participantType: participant?.company ? ParticipantType.EXTERNAL_COMPANY : ParticipantType.INTERNAL_SITE,
+            assignedAmount: Number(participant?.assignedAmountCents || 0) / 100,
+            percentage: dist.percentage,
+            calculatedQuantity: dist.quantityBase,
+            roundingFactor: dist.roundingFactor,
+            presentationId: dist.presentationId,
+            quantityPresentation: dist.quantityPresentation,
+          };
+        }),
         presentationInfo: product.product?.presentations && product.product.presentations.length > 0 ? {
           hasPresentations: true,
           largestFactor: Math.max(...product.product.presentations.map(p => p.factorToBase)),
-          largestPresentation: product.product.presentations.reduce((max, p) =>
-            p.factorToBase > (max?.factorToBase || 0) ? p : max
-          ),
+          largestPresentation: (() => {
+            const largest = product.product.presentations.reduce((max, p) =>
+              p.factorToBase > (max?.factorToBase || 0) ? p : max
+            );
+            return {
+              id: largest.presentationId,
+              name: largest.presentation?.name || 'Presentación',
+              factorToBase: largest.factorToBase,
+              description: largest.presentation?.name,
+            };
+          })(),
+          totalPresentations: product.product.presentations.length,
+          roundingApplied: false,
         } : undefined,
       };
 
@@ -1029,9 +1059,39 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
   const validateDistributions = useCallback((): boolean => {
     const totalDistributed = getTotalDistributed();
 
-    // Calculate total available stock
-    const stockDetails = adjustedDistribution?.stockDetails || localStockData || [];
-    const totalAvailableStock = stockDetails.reduce((sum, stock) => sum + stock.available, 0);
+    // Calculate available stock based on selected source area
+    let totalAvailableStock = 0;
+
+    if (selectedSourceWarehouseId && selectedSourceAreaId) {
+      // Si hay un área seleccionada, usar solo el stock de esa área
+      const stockItems = product?.product?.stockItems || [];
+      const selectedStockItem = stockItems.find(
+        (item) => item.warehouseId === selectedSourceWarehouseId && item.areaId === selectedSourceAreaId
+      );
+
+      if (selectedStockItem) {
+        const availableStock = selectedStockItem.availableQuantityBase ?? selectedStockItem.quantityBase ?? 0;
+        // Convertir explícitamente a número para evitar concatenación de strings
+        totalAvailableStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
+        logger.debug('✅ [VALIDATION] Usando stock del área seleccionada:', {
+          warehouse: selectedStockItem.warehouse?.name,
+          area: selectedStockItem.area?.name,
+          availableStockRaw: availableStock,
+          availableStockParsed: totalAvailableStock,
+          type: typeof availableStock,
+        });
+      } else {
+        logger.warn('⚠️ [VALIDATION] No se encontró el stock item seleccionado');
+      }
+    } else {
+      // Si no hay área seleccionada, usar el total de todas las áreas
+      const stockDetails = adjustedDistribution?.stockDetails || localStockData || [];
+      totalAvailableStock = stockDetails.reduce((sum, stock) => {
+        const stockValue = typeof stock.available === 'number' ? stock.available : parseFloat(stock.available) || 0;
+        return sum + stockValue;
+      }, 0);
+      logger.debug('ℹ️ [VALIDATION] Usando stock total de todas las áreas:', totalAvailableStock);
+    }
 
     // Use the minimum between editableTotalQuantity and actual available stock
     const maxAllowedQuantity = totalAvailableStock > 0
@@ -1039,9 +1099,15 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       : editableTotalQuantity;
 
     if (totalDistributed > maxAllowedQuantity) {
+      const areaInfo = selectedSourceWarehouseId && selectedSourceAreaId
+        ? '\n\nÁrea seleccionada: ' + (product?.product?.stockItems?.find(
+            (item) => item.warehouseId === selectedSourceWarehouseId && item.areaId === selectedSourceAreaId
+          )?.area?.name || 'Desconocida')
+        : '\n\nNota: No has seleccionado un área específica';
+
       Alert.alert(
         'Error de Validación',
-        `La cantidad total distribuida (${totalDistributed}) excede la cantidad disponible (${maxAllowedQuantity}).\n\nPor favor, ajusta las cantidades.`
+        `La cantidad total distribuida (${totalDistributed}) excede la cantidad disponible (${maxAllowedQuantity}).${areaInfo}\n\nPor favor, ajusta las cantidades o selecciona otra área con más stock.`
       );
       return false;
     }
@@ -1052,7 +1118,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
     }
 
     return true;
-  }, [getTotalDistributed, editableTotalQuantity, adjustedDistribution, localStockData]);
+  }, [getTotalDistributed, editableTotalQuantity, adjustedDistribution, localStockData, selectedSourceWarehouseId, selectedSourceAreaId, product]);
 
   const handleConfirmGeneration = useCallback(async () => {
     if (!product || !adjustedDistribution) {
@@ -1077,6 +1143,9 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
           participantId: dist.participantId,
           quantityBase: dist.quantityBase,
           notes: `${dist.participantName} - ${dist.percentage.toFixed(2)}%`,
+          // Agregar información de área de origen si está seleccionada
+          ...(selectedSourceWarehouseId && { sourceWarehouseId: selectedSourceWarehouseId }),
+          ...(selectedSourceAreaId && { sourceAreaId: selectedSourceAreaId }),
         };
 
         // SOLO agregar datos de presentación si:
@@ -1089,6 +1158,8 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
             quantityPresentation: dist.quantityPresentation,
             presentationId: dist.presentationId,
             factorToBase: dist.roundingFactor,
+            sourceWarehouseId: selectedSourceWarehouseId,
+            sourceAreaId: selectedSourceAreaId,
           });
 
           return {
@@ -1103,6 +1174,8 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         logger.debug('📦 [GENERATE] Enviando solo unidades:', {
           participant: dist.participantName,
           quantityBase: dist.quantityBase,
+          sourceWarehouseId: selectedSourceWarehouseId,
+          sourceAreaId: selectedSourceAreaId,
         });
 
         return baseData;
@@ -1180,12 +1253,33 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
                 {/* Advertencia de diferencia entre stock disponible y cantidad a distribuir */}
                 {(() => {
-                  const stockDetails =
-                    adjustedDistribution.stockDetails || localStockData || [];
-                  const totalAvailableStock = stockDetails.reduce(
-                    (sum, stock) => sum + stock.available,
-                    0
-                  );
+                  // Calcular stock disponible según área seleccionada
+                  let totalAvailableStock = 0;
+                  let sourceAreaName = '';
+
+                  if (selectedSourceWarehouseId && selectedSourceAreaId) {
+                    // Si hay un área seleccionada, usar solo el stock de esa área
+                    const stockItems = product?.product?.stockItems || [];
+                    const selectedStockItem = stockItems.find(
+                      (item) => item.warehouseId === selectedSourceWarehouseId && item.areaId === selectedSourceAreaId
+                    );
+
+                    if (selectedStockItem) {
+                      const availableStock = selectedStockItem.availableQuantityBase ?? selectedStockItem.quantityBase ?? 0;
+                      // Convertir explícitamente a número para evitar concatenación de strings
+                      totalAvailableStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
+                      sourceAreaName = selectedStockItem.area?.name || 'Área seleccionada';
+                    }
+                  } else {
+                    // Si no hay área seleccionada, usar el total de todas las áreas
+                    const stockDetails = adjustedDistribution.stockDetails || localStockData || [];
+                    totalAvailableStock = stockDetails.reduce((sum, stock) => {
+                      const stockValue = typeof stock.available === 'number' ? stock.available : parseFloat(stock.available) || 0;
+                      return sum + stockValue;
+                    }, 0);
+                    sourceAreaName = 'Todas las áreas';
+                  }
+
                   const quantityToDistribute = editableTotalQuantity || adjustedDistribution.totalQuantity;
 
                   if (totalAvailableStock !== quantityToDistribute && totalAvailableStock > 0) {
@@ -1197,7 +1291,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                             Stock disponible y cantidad a distribuir son diferentes
                           </Text>
                           <Text style={styles.stockDifferenceWarningText}>
-                            Stock disponible: {totalAvailableStock} unidades{'\n'}
+                            Stock disponible ({sourceAreaName}): {totalAvailableStock} unidades{'\n'}
                             Cantidad a distribuir: {quantityToDistribute} unidades
                             {totalAvailableStock < quantityToDistribute
                               ? '\n\n⚠️ No hay suficiente stock disponible'
@@ -1305,6 +1399,79 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                       ))}
                     </View>
                   );
+                })()}
+
+                {/* Source Area Selection */}
+                {(() => {
+                  // Obtener las ubicaciones de stock del producto
+                  const stockItems = product?.product?.stockItems || [];
+
+                  // Si hay más de una ubicación, mostrar selector
+                  if (stockItems.length > 1) {
+                    return (
+                      <View style={styles.previewSection}>
+                        <Text style={styles.previewSectionTitle}>📍 Área de Origen del Stock</Text>
+                        <Text style={styles.sourceAreaHint}>
+                          Este producto tiene stock en múltiples ubicaciones. Selecciona de dónde deseas tomar el stock:
+                        </Text>
+
+                        {stockItems.map((stockItem, index) => {
+                          const isSelected =
+                            selectedSourceWarehouseId === stockItem.warehouseId &&
+                            selectedSourceAreaId === stockItem.areaId;
+
+                          const availableStock = stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
+                          const parsedStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
+
+                          return (
+                            <TouchableOpacity
+                              key={index}
+                              style={[
+                                styles.sourceAreaCard,
+                                isSelected && styles.sourceAreaCardSelected,
+                                parsedStock === 0 && styles.sourceAreaCardDisabled,
+                              ]}
+                              onPress={() => {
+                                if (parsedStock > 0) {
+                                  setSelectedSourceWarehouseId(stockItem.warehouseId);
+                                  setSelectedSourceAreaId(stockItem.areaId);
+                                }
+                              }}
+                              disabled={parsedStock === 0}
+                            >
+                              <View style={styles.sourceAreaInfo}>
+                                <Text style={styles.sourceAreaWarehouse}>
+                                  📦 Almacén: {stockItem.warehouse?.name || 'Sin nombre'}
+                                </Text>
+                                <Text style={styles.sourceAreaArea}>
+                                  📍 Área: {stockItem.area?.name || 'Sin área asignada'}
+                                </Text>
+                                <Text style={[
+                                  styles.sourceAreaStock,
+                                  parsedStock === 0 && styles.sourceAreaStockZero,
+                                ]}>
+                                  ✅ Disponible: {parsedStock.toFixed(2)} unidades
+                                </Text>
+                              </View>
+                              {isSelected && (
+                                <Text style={styles.sourceAreaSelectedIcon}>✓</Text>
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+
+                        {!selectedSourceWarehouseId && (
+                          <View style={styles.sourceAreaWarning}>
+                            <Text style={styles.sourceAreaWarningText}>
+                              ⚠️ Si no seleccionas un área específica, el sistema tomará el stock de cualquier ubicación disponible.
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  }
+
+                  return null;
                 })()}
 
                 {/* Resumen de Distribución */}
@@ -2431,5 +2598,71 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B',
     marginLeft: 32,
+  },
+  // Source Area Selection Styles
+  sourceAreaHint: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  sourceAreaCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sourceAreaCardSelected: {
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
+  },
+  sourceAreaCardDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#F8FAFC',
+  },
+  sourceAreaInfo: {
+    flex: 1,
+  },
+  sourceAreaWarehouse: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  sourceAreaArea: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  sourceAreaStock: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  sourceAreaStockZero: {
+    color: '#EF4444',
+  },
+  sourceAreaSelectedIcon: {
+    fontSize: 24,
+    color: '#6366F1',
+    fontWeight: 'bold',
+  },
+  sourceAreaWarning: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    padding: 12,
+    marginTop: 8,
+  },
+  sourceAreaWarningText: {
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
   },
 });

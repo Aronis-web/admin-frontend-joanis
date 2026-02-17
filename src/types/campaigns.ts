@@ -354,6 +354,9 @@ export interface DistributionGenerateItem {
   presentationId?: string;
   quantityPresentation?: number;
   notes?: string;
+  // Campos para especificar de qué área se toma el stock
+  sourceWarehouseId?: string;
+  sourceAreaId?: string;
 }
 
 /**

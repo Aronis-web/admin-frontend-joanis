@@ -715,22 +715,20 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                             >
                               <View style={styles.locationInfo}>
                                 <Text style={styles.locationWarehouse}>
-                                  📦 {stockItem.warehouse?.name || 'Almacén'}
+                                  📦 Almacén: {stockItem.warehouse?.name || 'Sin nombre'}
                                 </Text>
-                                {stockItem.area && (
-                                  <Text style={styles.locationArea}>
-                                    📍 {stockItem.area.name}
-                                  </Text>
-                                )}
+                                <Text style={styles.locationArea}>
+                                  📍 Área: {stockItem.area?.name || 'Sin área asignada'}
+                                </Text>
                                 <Text style={[
                                   styles.locationStock,
                                   parsedStock === 0 && styles.locationStockZero,
                                 ]}>
-                                  Disponible: {parsedStock.toFixed(2)}
+                                  ✅ Disponible: {parsedStock.toFixed(2)}
                                 </Text>
                                 {reservedStock > 0 && (
                                   <Text style={styles.locationReserved}>
-                                    Reservado: {reservedStock.toFixed(2)} | Total: {totalStock.toFixed(2)}
+                                    🔒 Reservado: {reservedStock.toFixed(2)} | Total: {totalStock.toFixed(2)}
                                   </Text>
                                 )}
                               </View>
