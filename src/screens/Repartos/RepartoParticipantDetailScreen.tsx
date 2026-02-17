@@ -135,6 +135,12 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const [repartoId, setRepartoId] = useState<string | null>(null);
   const [generatingConsolidated, setGeneratingConsolidated] = useState(false);
   const [consolidatedTransferGenerated, setConsolidatedTransferGenerated] = useState(false);
+  const [consolidatedTransferInfo, setConsolidatedTransferInfo] = useState<{
+    exists: boolean;
+    transferId: string | null;
+    transferNumber: string | null;
+    generatedAt: string | null;
+  } | null>(null);
   const [discrepanciasModalVisible, setDiscrepanciasModalVisible] = useState(false);
   const [notasModalVisible, setNotasModalVisible] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
@@ -287,6 +293,22 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       // Guardar el repartoId para usar en el reporte
       if (firstRepartoId) {
         setRepartoId(firstRepartoId);
+      }
+
+      // Verificar si ya existe un traslado consolidado
+      try {
+        const transferStatus = await repartosService.checkConsolidatedTransferStatus(
+          participantId,
+          campaignId
+        );
+        setConsolidatedTransferInfo(transferStatus);
+        if (transferStatus.exists) {
+          setConsolidatedTransferGenerated(true);
+          logger.info('✅ Traslado consolidado ya existe:', transferStatus);
+        }
+      } catch (error: any) {
+        logger.error('Error verificando estado del traslado consolidado:', error);
+        // No mostrar error al usuario, solo registrar en logs
       }
     } catch (error: any) {
       console.error('Error loading participant data:', error);
@@ -926,6 +948,20 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               <Text style={[styles.successMessageText, isTablet && styles.successMessageTextTablet]}>
                 ✅ Traslado consolidado generado exitosamente
               </Text>
+              {consolidatedTransferInfo?.exists && consolidatedTransferInfo.transferNumber && (
+                <Text style={[styles.successMessageSubtext, isTablet && styles.successMessageSubtextTablet]}>
+                  Traslado: {consolidatedTransferInfo.transferNumber}
+                  {consolidatedTransferInfo.generatedAt && (
+                    ` • ${new Date(consolidatedTransferInfo.generatedAt).toLocaleDateString('es-ES', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}`
+                  )}
+                </Text>
+              )}
             </View>
           )}
         </View>
@@ -1294,6 +1330,17 @@ const styles = StyleSheet.create({
   },
   successMessageTextTablet: {
     fontSize: 16,
+  },
+  successMessageSubtext: {
+    color: '#047857',
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  successMessageSubtextTablet: {
+    fontSize: 14,
+    marginTop: 6,
   },
   scrollView: {
     flex: 1,

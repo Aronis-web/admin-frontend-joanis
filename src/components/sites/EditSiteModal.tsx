@@ -13,7 +13,7 @@ import {
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { sitesApi } from '@/services/api';
 import { Site, UpdateSiteRequest } from '@/types/sites';
-import { LocationPickerModal } from './LocationPickerModal';
+
 import { LocationSearchInput, LocationData } from '@/components/common/LocationSearchInput';
 
 interface EditSiteModalProps {
@@ -49,7 +49,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
 
   const [errors, setErrors] = useState<Partial<Record<keyof UpdateSiteRequest, string>>>({});
   const [loading, setLoading] = useState(false);
-  const [showLocationPicker, setShowLocationPicker] = useState(false);
+
 
   // Initialize form data when site changes
   useEffect(() => {
@@ -226,22 +226,6 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setErrors((prev: any) => ({ ...prev, [field]: undefined }));
     }
-  };
-
-  const handleLocationSelected = (locationData: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setFormData((prev: any) => ({
-      ...prev,
-      latitude: locationData.latitude,
-      longitude: locationData.longitude,
-      addressLine1: locationData.addressLine1 || prev.addressLine1,
-      district: locationData.district || prev.district,
-      province: locationData.province || prev.province,
-      department: locationData.department || prev.department,
-      country: locationData.country || prev.country,
-      postalCode: locationData.postalCode || prev.postalCode,
-      ubigeo: locationData.ubigeo || prev.ubigeo,
-    }));
   };
 
   const handleLocationSearchSelected = (locationData: LocationData) => {
@@ -427,20 +411,6 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
 
             <Text style={styles.sectionTitle}>Coordenadas GPS (Opcional)</Text>
 
-            <TouchableOpacity
-              style={styles.mapButton}
-              onPress={() => setShowLocationPicker(true)}
-              disabled={loading}
-            >
-              <Text style={styles.mapButtonIcon}>🗺️</Text>
-              <View style={styles.mapButtonContent}>
-                <Text style={styles.mapButtonText}>Seleccionar en el Mapa</Text>
-                <Text style={styles.mapButtonSubtext}>
-                  Autocompletará la dirección y coordenadas
-                </Text>
-              </View>
-            </TouchableOpacity>
-
             <FormTextInput
               label="Latitud"
               placeholder="-12.046374"
@@ -487,16 +457,6 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
         </View>
       </View>
 
-      {/* Location Picker Modal */}
-      <LocationPickerModal
-        visible={showLocationPicker}
-        initialLocation={{
-          latitude: formData.latitude,
-          longitude: formData.longitude,
-        }}
-        onClose={() => setShowLocationPicker(false)}
-        onLocationSelected={handleLocationSelected}
-      />
     </Modal>
   );
 };

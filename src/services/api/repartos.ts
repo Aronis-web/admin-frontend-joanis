@@ -490,6 +490,29 @@ class RepartosService {
   // ============================================
 
   /**
+   * Check if consolidated transfer already exists for a participant in a campaign
+   * Returns transfer information if it exists
+   */
+  async checkConsolidatedTransferStatus(
+    campaignParticipantId: string,
+    campaignId: string
+  ): Promise<{
+    exists: boolean;
+    transferId: string | null;
+    transferNumber: string | null;
+    generatedAt: string | null;
+  }> {
+    return apiClient.get<{
+      exists: boolean;
+      transferId: string | null;
+      transferNumber: string | null;
+      generatedAt: string | null;
+    }>(
+      `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/consolidated-transfer-status`
+    );
+  }
+
+  /**
    * Generate consolidated transfer for a participant in a campaign
    * This will:
    * - Release ALL reservations

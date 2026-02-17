@@ -24,6 +24,7 @@ import {
 } from '@/types/companies';
 import { Site, CreateSiteRequest } from '@/types/sites';
 import { SiteDetailModal } from '@/components/sites/SiteDetailModal';
+import { EditSiteModal } from '@/components/sites/EditSiteModal';
 
 interface CompanyDetailScreenProps {
   navigation: any;
@@ -47,6 +48,7 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
   // Modals
   const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
   const [showCreateSiteModal, setShowCreateSiteModal] = useState(false);
+  const [showEditSiteModal, setShowEditSiteModal] = useState(false);
   const [showCreatePaymentModal, setShowCreatePaymentModal] = useState(false);
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
@@ -1016,11 +1018,27 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
           setSelectedSite(null);
         }}
         onEdit={(site) => {
-          // TODO: Implement edit site functionality
-          Alert.alert('Info', 'Editar sede desde aquí próximamente');
+          setSelectedSite(site);
+          setShowSiteDetailModal(false);
+          setShowEditSiteModal(true);
         }}
         onSiteDeleted={handleSiteDeleted}
         onSiteUpdated={handleSiteUpdated}
+      />
+
+      {/* Edit Site Modal */}
+      <EditSiteModal
+        visible={showEditSiteModal}
+        site={selectedSite}
+        onClose={() => {
+          setShowEditSiteModal(false);
+          setSelectedSite(null);
+        }}
+        onSiteUpdated={() => {
+          setShowEditSiteModal(false);
+          setSelectedSite(null);
+          loadSites();
+        }}
       />
     </View>
   );

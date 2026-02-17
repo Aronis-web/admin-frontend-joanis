@@ -73,6 +73,7 @@ export interface AutocompleteParams {
  */
 export interface PlaceDetailsParams {
   place_id: string;
+  address?: string;
 }
 
 /**
@@ -109,12 +110,16 @@ export const locationsApi = {
 
   /**
    * Get location details by place ID
-   * GET /api/locations/details?place_id=ChIJd8BlQ2BZwokRAFUEcm_qrcA
+   * GET /api/locations/details?place_id=ChIJd8BlQ2BZwokRAFUEcm_qrcA&address=Full+Address
    */
   async getDetails(params: PlaceDetailsParams): Promise<LocationDetails> {
     const queryParams = new URLSearchParams({
       place_id: params.place_id,
     });
+
+    if (params.address) {
+      queryParams.append('address', params.address);
+    }
 
     return apiClient.get<LocationDetails>(`/locations/details?${queryParams.toString()}`);
   },
