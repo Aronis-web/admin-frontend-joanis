@@ -788,6 +788,22 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     [activeTab, isTablet, tabs]
   );
 
+  // Early returns for loading and null campaign
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366F1" />
+          <Text style={styles.loadingText}>Cargando campaña...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!campaign) {
+    return null;
+  }
+
   const renderOverview = () => {
     if (!campaign) {
       return null;
@@ -2189,287 +2205,190 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     setEditingPrice,
   ]);
 
+  // Header component for products FlatList
+  const renderProductsListHeader = useCallback(() => {
+    if (!campaign) return null;
+
+    return (
+      <>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionHeaderLeft}>
+            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+              Productos ({campaign.products?.length || 0})
+            </Text>
+            {/* Estimated Total Purchase in Header */}
+            {campaign.products && campaign.products.length > 0 && (
+              <View style={styles.estimatedTotalHeaderCard}>
+                <Text style={styles.estimatedTotalHeaderLabel}>💰 Compra Total:</Text>
+                <Text style={styles.estimatedTotalHeaderValue}>
+                  {formatCurrency(estimatedTotalPurchase)}
+                </Text>
+              </View>
+            )}
+          </View>
+          {(campaign.status === CampaignStatus.DRAFT ||
+            campaign.status === CampaignStatus.ACTIVE) && (
+            <TouchableOpacity
+              style={[styles.addButton, isTablet && styles.addButtonTablet]}
+              onPress={() => navigation.navigate('AddCampaignProduct', { campaignId })}
+            >
+              <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
+                + Agregar
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Search bar */}
+        {campaign.products && campaign.products.length > 0 && (
+          <>
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+                placeholder="Buscar por nombre, SKU o cantidad..."
+                value={searchQuery}
+                onChangeText={handleSearchQueryChange}
+                placeholderTextColor="#94A3B8"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearSearchButton}
+                  onPress={() => {
+                    setSearchQuery('');
+                    setGlobalSearchResults([]);
+                    setShowGlobalSearchSuggestions(false);
+                  }}
+                >
+                  <Text style={styles.clearSearchText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Distribution filter */}
+            <View style={styles.filterContainer}>
+              <Text style={styles.filterLabel}>Reparto:</Text>
+              <View style={styles.filterButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    distributionFilter === 'all' && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setDistributionFilter('all')}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      distributionFilter === 'all' && styles.filterButtonTextActive,
+                    ]}
+                  >
+                    Todos ({campaign.products.length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    distributionFilter === 'generated' && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setDistributionFilter('generated')}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      distributionFilter === 'generated' && styles.filterButtonTextActive,
+                    ]}
+                  >
+                    ✓ Generado ({campaign.products.filter((p) => p.distributionGenerated).length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    distributionFilter === 'not-generated' && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setDistributionFilter('not-generated')}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      distributionFilter === 'not-generated' && styles.filterButtonTextActive,
+                    ]}
+                  >
+                    ✕ Sin generar (
+                    {campaign.products.filter((p) => !p.distributionGenerated).length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        )}
+
+        {filteredProducts.length === 0 && searchQuery.trim() && (
+          <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+            No se encontraron productos en la campaña que coincidan con "{searchQuery}"
+          </Text>
+        )}
+      </>
+    );
+  }, [
+    campaign,
+    isTablet,
+    estimatedTotalPurchase,
+    formatCurrency,
+    navigation,
+    campaignId,
+    searchQuery,
+    handleSearchQueryChange,
+    setSearchQuery,
+    setGlobalSearchResults,
+    setShowGlobalSearchSuggestions,
+    distributionFilter,
+    setDistributionFilter,
+    filteredProducts,
+    isGlobalSearching,
+    showGlobalSearchSuggestions,
+    globalSearchResults,
+    getProductStock,
+    handleQuickAddProduct,
+    addingQuickProduct,
+    handleOpenCustomAddModal,
+  ]);
+
   const renderProducts = () => {
     if (!campaign) {
       return null;
     }
 
-    return (
-      <View style={styles.tabContent}>
-        <View style={[styles.section, isTablet && styles.sectionTablet]}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionHeaderLeft}>
-              <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-                Productos ({campaign.products?.length || 0})
-              </Text>
-              {/* Estimated Total Purchase in Header */}
-              {campaign.products && campaign.products.length > 0 && (
-                <View style={styles.estimatedTotalHeaderCard}>
-                  <Text style={styles.estimatedTotalHeaderLabel}>💰 Compra Total:</Text>
-                  <Text style={styles.estimatedTotalHeaderValue}>
-                    {formatCurrency(estimatedTotalPurchase)}
-                  </Text>
-                </View>
-              )}
-            </View>
-            {(campaign.status === CampaignStatus.DRAFT ||
-              campaign.status === CampaignStatus.ACTIVE) && (
-              <TouchableOpacity
-                style={[styles.addButton, isTablet && styles.addButtonTablet]}
-                onPress={() => navigation.navigate('AddCampaignProduct', { campaignId })}
-              >
-                <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
-                  + Agregar
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Search bar */}
-          {campaign.products && campaign.products.length > 0 && (
-            <>
-              <View style={styles.searchContainer}>
-                <TextInput
-                  style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-                  placeholder="Buscar por nombre, SKU o cantidad..."
-                  value={searchQuery}
-                  onChangeText={handleSearchQueryChange}
-                  placeholderTextColor="#94A3B8"
-                />
-                {searchQuery.length > 0 && (
-                  <TouchableOpacity
-                    style={styles.clearSearchButton}
-                    onPress={() => {
-                      setSearchQuery('');
-                      setGlobalSearchResults([]);
-                      setShowGlobalSearchSuggestions(false);
-                    }}
-                  >
-                    <Text style={styles.clearSearchText}>✕</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {/* Distribution filter */}
-              <View style={styles.filterContainer}>
-                <Text style={styles.filterLabel}>Reparto:</Text>
-                <View style={styles.filterButtons}>
-                  <TouchableOpacity
-                    style={[
-                      styles.filterButton,
-                      distributionFilter === 'all' && styles.filterButtonActive,
-                    ]}
-                    onPress={() => setDistributionFilter('all')}
-                  >
-                    <Text
-                      style={[
-                        styles.filterButtonText,
-                        distributionFilter === 'all' && styles.filterButtonTextActive,
-                      ]}
-                    >
-                      Todos ({campaign.products.length})
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.filterButton,
-                      distributionFilter === 'generated' && styles.filterButtonActive,
-                    ]}
-                    onPress={() => setDistributionFilter('generated')}
-                  >
-                    <Text
-                      style={[
-                        styles.filterButtonText,
-                        distributionFilter === 'generated' && styles.filterButtonTextActive,
-                      ]}
-                    >
-                      ✓ Generado ({campaign.products.filter((p) => p.distributionGenerated).length})
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.filterButton,
-                      distributionFilter === 'not-generated' && styles.filterButtonActive,
-                    ]}
-                    onPress={() => setDistributionFilter('not-generated')}
-                  >
-                    <Text
-                      style={[
-                        styles.filterButtonText,
-                        distributionFilter === 'not-generated' && styles.filterButtonTextActive,
-                      ]}
-                    >
-                      ✕ Sin generar (
-                      {campaign.products.filter((p) => !p.distributionGenerated).length})
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </>
-          )}
-
-          {!campaign.products || campaign.products.length === 0 ? (
+    if (!campaign.products || campaign.products.length === 0) {
+      return (
+        <View style={styles.tabContent}>
+          <View style={[styles.section, isTablet && styles.sectionTablet]}>
+            {renderProductsListHeader()}
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
               No hay productos agregados
             </Text>
-          ) : (
-            <>
-              {/* Show filtered products from campaign */}
-              {filteredProducts.length === 0 && searchQuery.trim() ? (
-                <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                  No se encontraron productos en la campaña que coincidan con "{searchQuery}"
-                </Text>
-              ) : (
-                <FlatList
-                  data={filteredProducts}
-                  renderItem={renderProductItem}
-                  keyExtractor={(item) => item.id}
-                  scrollEnabled={false}
-                  removeClippedSubviews={true}
-                  maxToRenderPerBatch={10}
-                  updateCellsBatchingPeriod={50}
-                  initialNumToRender={10}
-                  windowSize={5}
-                  getItemLayout={(data, index) => ({
-                    length: 150,
-                    offset: 150 * index,
-                    index,
-                  })}
-                />
-              )}
+          </View>
+        </View>
+      );
+    }
 
-              {/* Loading indicator for global search */}
-              {searchQuery.trim() && isGlobalSearching && (
-                <View style={styles.globalSearchLoading}>
-                  <ActivityIndicator size="small" color="#6366F1" />
-                  <Text style={styles.globalSearchLoadingText}>Buscando en todos los productos...</Text>
-                </View>
-              )}
-
-              {/* Global search suggestions - Always show when searching */}
-              {searchQuery.trim() && !isGlobalSearching && showGlobalSearchSuggestions && globalSearchResults.length > 0 && (
-                <View style={styles.globalSearchContainer}>
-                  <Text style={styles.globalSearchTitle}>
-                    💡 Productos disponibles para agregar ({globalSearchResults.length})
-                  </Text>
-                  <Text style={styles.globalSearchHint}>
-                    Usa "Agregar Todo" para agregar con todo el stock o "Personalizado" para elegir la cantidad
-                  </Text>
-                  <ScrollView style={styles.globalSearchList} nestedScrollEnabled>
-                    {globalSearchResults.slice(0, 10).map((product) => {
-                      const isPreliminary = (product.status as any) === 'preliminary';
-                      const stockInfo = getProductStock(product);
-                      const isAlreadyAdded = campaign.products?.some(p => p.productId === product.id);
-
-                      return (
-                        <View
-                          key={product.id}
-                          style={[
-                            styles.globalSearchItem,
-                            isPreliminary && styles.globalSearchItemPreliminary,
-                            isAlreadyAdded && styles.globalSearchItemDisabled,
-                          ]}
-                        >
-                          {product.photos && product.photos.length > 0 ? (
-                            <Image
-                              source={{ uri: product.photos[0] }}
-                              style={styles.globalSearchImage}
-                              resizeMode="cover"
-                            />
-                          ) : product.imageUrl ? (
-                            <Image
-                              source={{ uri: product.imageUrl }}
-                              style={styles.globalSearchImage}
-                              resizeMode="cover"
-                            />
-                          ) : null}
-                          <View style={styles.globalSearchContent}>
-                            <Text
-                              style={[
-                                styles.globalSearchItemTitle,
-                                isAlreadyAdded && styles.globalSearchItemTitleDisabled,
-                              ]}
-                            >
-                              {product.correlativeNumber && `#${product.correlativeNumber} | `}
-                              {product.sku} - {product.title}
-                              {isAlreadyAdded && ' (Ya agregado)'}
-                            </Text>
-                            {isPreliminary && (
-                              <Text style={styles.globalSearchWarning}>
-                                ⚠️ Producto por validar Ingreso
-                              </Text>
-                            )}
-                            <View style={styles.globalSearchMeta}>
-                              <View style={styles.stockInfoContainer}>
-                                <Text
-                                  style={[
-                                    styles.globalSearchStock,
-                                    stockInfo.available > 0 ? styles.stockAvailable : styles.stockUnavailable,
-                                  ]}
-                                >
-                                  {isPreliminary ? '📦 Stock preliminar: ' : '✅ Disponible: '}{stockInfo.available}
-                                </Text>
-                                {!isPreliminary && stockInfo.reserved > 0 && (
-                                  <Text style={styles.stockReserved}>
-                                    🔒 Reservado: {stockInfo.reserved}
-                                  </Text>
-                                )}
-                                {!isPreliminary && stockInfo.total !== stockInfo.available && (
-                                  <Text style={styles.stockTotal}>
-                                    📊 Total: {stockInfo.total}
-                                  </Text>
-                                )}
-                              </View>
-                              <Text style={styles.globalSearchStatus}>
-                                {product.status === 'active' ? '✓ Activo' : '⚠ Preliminar'}
-                              </Text>
-                            </View>
-                          </View>
-                          {!isAlreadyAdded && stockInfo.available > 0 && (
-                            <View style={styles.globalSearchActions}>
-                              <TouchableOpacity
-                                style={styles.globalSearchActionButton}
-                                onPress={() => handleQuickAddProduct(product)}
-                                disabled={addingQuickProduct}
-                              >
-                                <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                style={styles.globalSearchActionButtonSecondary}
-                                onPress={() => handleOpenCustomAddModal(product)}
-                                disabled={addingQuickProduct}
-                              >
-                                <Text style={styles.globalSearchActionButtonSecondaryText}>⚙️ Personalizado</Text>
-                              </TouchableOpacity>
-                            </View>
-                          )}
-                        </View>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              )}
-            </>
-          )}
+    return (
+      <View style={styles.tabContent}>
+        <View style={[styles.section, isTablet && styles.sectionTablet]}>
+          <FlatList
+            data={filteredProducts}
+            renderItem={renderProductItem}
+            keyExtractor={(item) => item.id}
+            ListHeaderComponent={renderProductsListHeader}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            updateCellsBatchingPeriod={50}
+            initialNumToRender={10}
+            windowSize={5}
+          />
         </View>
       </View>
     );
   };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando campaña...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!campaign) {
-    return null;
-  }
 
   return (
     <ScreenLayout navigation={navigation}>
