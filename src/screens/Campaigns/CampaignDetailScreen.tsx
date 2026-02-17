@@ -1979,7 +1979,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   No se encontraron productos en la campaña que coincidan con "{searchQuery}"
                 </Text>
               ) : (
-                filteredProducts.map((product) => {
+                useMemo(() => filteredProducts.map((product) => {
                   // ✅ PRIORIZAR batch endpoint sobre producto embebido (batch tiene photoUrls)
                   const productDetails = products[product.productId] || product.product;
                   const costCents = productDetails?.costCents || 0;
@@ -2292,7 +2292,33 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       )}
                     </View>
                   );
-                })
+                }), [
+                  filteredProducts,
+                  products,
+                  expandedProducts,
+                  isTablet,
+                  navigation,
+                  campaignId,
+                  priceProfiles,
+                  getSalePriceForProfile,
+                  editingCost,
+                  editingPrice,
+                  savingPrice,
+                  calculatedFranquicia,
+                  toggleProductExpanded,
+                  handleShowBanner,
+                  handleDeleteProduct,
+                  handleSaveCost,
+                  handleStartEditCost,
+                  handleSavePrice,
+                  handleStartEditPrice,
+                  handleCalculateFranquiciaFromSocia,
+                  formatCurrency,
+                  handleOpenImageModal,
+                  campaign,
+                  setEditingCost,
+                  setEditingPrice,
+                ])
               )}
 
               {/* Loading indicator for global search */}
@@ -2449,6 +2475,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          removeClippedSubviews={true}
         >
           {activeTab === 'overview' && renderOverview()}
           {activeTab === 'participants' && renderParticipants()}
