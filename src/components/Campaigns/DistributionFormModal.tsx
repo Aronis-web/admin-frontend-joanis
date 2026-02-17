@@ -1179,18 +1179,34 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
       logger.debug('📤 [GENERATE] Distribuciones a enviar:', distributions);
 
-      // Preparar el request con sourceWarehouseId y sourceAreaId a nivel principal
+      // Preparar el request
       const generateRequest: any = {
         distributions,
         notes: `Reparto generado - ${distributionMode === 'presentation' ? 'Por presentación' : 'Por unidades'} - ${new Date().toLocaleString()}`,
       };
 
-      // Agregar información de área de origen si está seleccionada (a nivel de request, no por item)
-      if (selectedSourceWarehouseId) {
-        generateRequest.sourceWarehouseId = selectedSourceWarehouseId;
-      }
-      if (selectedSourceAreaId) {
-        generateRequest.sourceAreaId = selectedSourceAreaId;
+      // TODO: El backend aún no soporta sourceWarehouseId y sourceAreaId
+      // La UI de selección de área y la validación de stock funcionan correctamente,
+      // pero por ahora no enviamos estos campos al backend hasta que los soporte.
+      // Cuando el backend implemente esta funcionalidad, descomentar las siguientes líneas:
+      // if (selectedSourceWarehouseId) {
+      //   generateRequest.sourceWarehouseId = selectedSourceWarehouseId;
+      // }
+      // if (selectedSourceAreaId) {
+      //   generateRequest.sourceAreaId = selectedSourceAreaId;
+      // }
+
+      if (selectedSourceWarehouseId && selectedSourceAreaId) {
+        logger.info('ℹ️ [GENERATE] Área seleccionada (no enviada al backend aún):', {
+          warehouse: product?.product?.stockItems?.find(
+            (item) => item.warehouseId === selectedSourceWarehouseId && item.areaId === selectedSourceAreaId
+          )?.warehouse?.name,
+          area: product?.product?.stockItems?.find(
+            (item) => item.warehouseId === selectedSourceWarehouseId && item.areaId === selectedSourceAreaId
+          )?.area?.name,
+          sourceWarehouseId: selectedSourceWarehouseId,
+          sourceAreaId: selectedSourceAreaId,
+        });
       }
 
       logger.debug('📤 [GENERATE] Request completo:', generateRequest);
