@@ -11,8 +11,10 @@ import {
   Switch,
 } from 'react-native';
 import { FormTextInput } from '@/components/ui/FormTextInput';
-import { sitesApi, Site, UpdateSiteRequest } from '@/services/api';
+import { sitesApi } from '@/services/api';
+import { Site, UpdateSiteRequest } from '@/types/sites';
 import { LocationPickerModal } from './LocationPickerModal';
+import { LocationSearchInput, LocationData } from '@/components/common/LocationSearchInput';
 
 interface EditSiteModalProps {
   visible: boolean;
@@ -42,6 +44,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
     postalCode: '',
     latitude: undefined,
     longitude: undefined,
+    ubigeo: '',
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof UpdateSiteRequest, string>>>({});
@@ -66,6 +69,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
         postalCode: site.postalCode || '',
         latitude: site.latitude,
         longitude: site.longitude,
+        ubigeo: site.ubigeo || '',
       });
     }
   }, [site]);
@@ -171,6 +175,10 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
         siteData.postalCode = formData.postalCode.trim();
       }
 
+      if (formData.ubigeo?.trim()) {
+        siteData.ubigeo = formData.ubigeo.trim();
+      }
+
       if (
         formData.latitude !== undefined &&
         formData.latitude !== null &&
@@ -211,15 +219,18 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
     field: keyof UpdateSiteRequest,
     value: string | boolean | number | undefined
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setErrors((prev: any) => ({ ...prev, [field]: undefined }));
     }
   };
 
   const handleLocationSelected = (locationData: any) => {
-    setFormData((prev) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setFormData((prev: any) => ({
       ...prev,
       latitude: locationData.latitude,
       longitude: locationData.longitude,
@@ -229,6 +240,24 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
       department: locationData.department || prev.department,
       country: locationData.country || prev.country,
       postalCode: locationData.postalCode || prev.postalCode,
+      ubigeo: locationData.ubigeo || prev.ubigeo,
+    }));
+  };
+
+  const handleLocationSearchSelected = (locationData: LocationData) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setFormData((prev: any) => ({
+      ...prev,
+      latitude: locationData.latitude,
+      longitude: locationData.longitude,
+      addressLine1: locationData.addressLine1 || prev.addressLine1,
+      numberExt: locationData.numberExt || prev.numberExt,
+      district: locationData.district || prev.district,
+      province: locationData.province || prev.province,
+      department: locationData.department || prev.department,
+      country: locationData.country || prev.country,
+      postalCode: locationData.postalCode || prev.postalCode,
+      ubigeo: locationData.ubigeo || prev.ubigeo,
     }));
   };
 
@@ -302,6 +331,26 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
 
             <Text style={styles.sectionTitle}>Dirección</Text>
 
+            <View style={styles.locationSearchSection}>
+              <Text style={styles.locationSearchLabel}>🔍 Buscar Ubicación con Google Maps</Text>
+              <Text style={styles.locationSearchHint}>
+                Busca la dirección y se autocompletarán todos los campos
+              </Text>
+              <LocationSearchInput
+                onLocationSelected={handleLocationSearchSelected}
+                placeholder="Buscar dirección, negocio o lugar..."
+                disabled={loading}
+                country="pe"
+                language="es"
+              />
+            </View>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>o ingresa manualmente</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
             <FormTextInput
               label="Dirección Línea 1"
               placeholder="Av. Principal 123"
@@ -364,6 +413,16 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
               value={formData.postalCode}
               onChangeText={(text) => updateField('postalCode', text)}
               editable={!loading}
+            />
+
+            <FormTextInput
+              label="Ubigeo SUNAT"
+              placeholder="150122"
+              value={formData.ubigeo}
+              onChangeText={(text) => updateField('ubigeo', text)}
+              editable={!loading}
+              maxLength={6}
+              keyboardType="numeric"
             />
 
             <Text style={styles.sectionTitle}>Coordenadas GPS (Opcional)</Text>
@@ -578,6 +637,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  locationSearchSection: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  locationSearchLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0369A1',
+    marginBottom: 4,
+  },
+  locationSearchHint: {
+    fontSize: 12,
+    color: '#0284C7',
+    marginBottom: 12,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  dividerText: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginHorizontal: 12,
+    fontWeight: '500',
   },
 });
 

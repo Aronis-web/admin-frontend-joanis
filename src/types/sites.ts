@@ -18,6 +18,7 @@ export interface Site {
   fullAddress?: string;
   latitude?: number;
   longitude?: number;
+  ubigeo?: string; // Código SUNAT de 6 dígitos para guías de remisión
   createdAt: string;
   updatedAt: string;
   admins?: SiteAdmin[];
@@ -58,6 +59,7 @@ export interface CreateSiteRequest {
   postalCode?: string;
   latitude?: number;
   longitude?: number;
+  ubigeo?: string; // Código SUNAT de 6 dígitos para guías de remisión
   admins?: string[]; // Array of user IDs
 }
 
@@ -76,6 +78,7 @@ export interface UpdateSiteRequest {
   postalCode?: string;
   latitude?: number;
   longitude?: number;
+  ubigeo?: string; // Código SUNAT de 6 dígitos para guías de remisión
 }
 
 export interface GetSitesParams {

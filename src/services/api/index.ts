@@ -57,3 +57,12 @@ export type { PresentationsResponse, CreatePresentationDto, UpdatePresentationDt
 
 export * from './billing';
 export * from './bizlinks';
+
+export { locationsApi } from './locations';
+export type {
+  LocationSuggestion,
+  AutocompleteResponse,
+  LocationDetails,
+  GpsCoordinates,
+  UbigeosMap,
+} from './locations';

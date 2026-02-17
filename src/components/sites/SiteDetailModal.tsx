@@ -166,6 +166,7 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
                   {renderInfoRow('Departamento', site.department)}
                   {renderInfoRow('País', site.country)}
                   {renderInfoRow('Código Postal', site.postalCode)}
+                  {renderInfoRow('Ubigeo SUNAT', site.ubigeo, '🔢')}
                 </>
               )}
 
