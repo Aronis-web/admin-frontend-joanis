@@ -30,6 +30,7 @@ import { TransferReportDiscrepancy } from '@/types/consolidated-reports';
 import { useAuthStore } from '@/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
 import logger from '@/utils/logger';
+import { config } from '@/utils/config';
 
 interface RepartoParticipantDetailScreenProps {
   navigation: any;
@@ -141,6 +142,23 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     transferNumber: string | null;
     generatedAt: string | null;
   } | null>(null);
+  const [remissionGuideInfo, setRemissionGuideInfo] = useState<{
+    exists: boolean;
+    remissionGuideId: string | null;
+    remissionGuideNumber: string | null;
+    generatedAt: string | null;
+    documentType: string | null;
+    status: string | null;
+    statusSunat: string | null;
+    fechaEmision: string | null;
+    observations: string | null;
+    pdfUrl: string | null;
+    xmlUrl: string | null;
+    cdrUrl: string | null;
+    createdAt: string | null;
+  } | null>(null);
+  const [generatingRemissionGuide, setGeneratingRemissionGuide] = useState(false);
+  const [downloadingRemissionGuide, setDownloadingRemissionGuide] = useState(false);
   const [discrepanciasModalVisible, setDiscrepanciasModalVisible] = useState(false);
   const [notasModalVisible, setNotasModalVisible] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
@@ -308,6 +326,21 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         }
       } catch (error: any) {
         logger.error('Error verificando estado del traslado consolidado:', error);
+        // No mostrar error al usuario, solo registrar en logs
+      }
+
+      // Verificar si ya existe una guía de remisión
+      try {
+        const guideInfo = await repartosService.getRemissionGuideInfo(
+          participantId,
+          campaignId
+        );
+        setRemissionGuideInfo(guideInfo);
+        if (guideInfo.exists) {
+          logger.info('✅ Guía de remisión ya existe:', guideInfo);
+        }
+      } catch (error: any) {
+        logger.error('Error verificando estado de la guía de remisión:', error);
         // No mostrar error al usuario, solo registrar en logs
       }
     } catch (error: any) {
@@ -577,6 +610,141 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         },
       ]
     );
+  };
+
+  const handleGenerateRemissionGuide = async () => {
+    if (!participant) {
+      Alert.alert('Error', 'No se pudo obtener la información del participante');
+      return;
+    }
+
+    const participantName =
+      participant.participantType === ParticipantType.EXTERNAL_COMPANY
+        ? participant.company?.alias || participant.company?.name || 'Empresa'
+        : participant.site?.name || 'Sede';
+
+    // Confirmar acción
+    Alert.alert(
+      'Generar Guía de Remisión',
+      `¿Estás seguro de que deseas generar la guía de remisión electrónica para ${participantName}?\n\n` +
+        'Esta acción:\n' +
+        '• Generará una guía de remisión tipo 09 (Traslado)\n' +
+        '• Se enviará automáticamente a SUNAT\n' +
+        '• Quedará anexada al participante de la campaña',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Generar',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setGeneratingRemissionGuide(true);
+              logger.info('🔄 Generando guía de remisión para:', participantName);
+
+              const response = await repartosService.generateRemissionGuide(
+                participantId,
+                campaignId
+              );
+
+              logger.info('✅ Guía de remisión generada:', response);
+
+              Alert.alert(
+                'Éxito',
+                `Guía de remisión generada exitosamente:\n\n` +
+                  `📄 Número: ${response.remissionGuide.serieNumero}\n` +
+                  `✅ Estado: ${response.remissionGuide.status}\n` +
+                  `📦 Traslado: ${response.transfer.transferNumber}`,
+                [
+                  {
+                    text: 'Aceptar',
+                    onPress: () => {
+                      loadData(); // Recargar datos para actualizar el estado
+                    },
+                  },
+                ]
+              );
+            } catch (error: any) {
+              logger.error('Error generando guía de remisión:', error);
+              Alert.alert(
+                'Error',
+                error.response?.data?.message || 'No se pudo generar la guía de remisión'
+              );
+            } finally {
+              setGeneratingRemissionGuide(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDownloadRemissionGuide = async () => {
+    if (!remissionGuideInfo?.pdfUrl) {
+      Alert.alert('Error', 'No se encontró el PDF de la guía de remisión');
+      return;
+    }
+
+    const participantName =
+      participant?.participantType === ParticipantType.EXTERNAL_COMPANY
+        ? participant.company?.alias || participant.company?.name || 'Empresa'
+        : participant?.site?.name || 'Sede';
+
+    try {
+      setDownloadingRemissionGuide(true);
+      logger.info('🔄 Descargando guía de remisión:', remissionGuideInfo.remissionGuideNumber);
+
+      // Construir URL completa del PDF
+      const pdfUrl = `${config.API_URL}${remissionGuideInfo.pdfUrl}`;
+
+      if (Platform.OS === 'web') {
+        // Para web, abrir en nueva pestaña
+        window.open(pdfUrl, '_blank');
+        Alert.alert('Éxito', 'La guía de remisión se está descargando');
+      } else {
+        // Para móvil, descargar y compartir
+        const timestamp = new Date().getTime();
+        const fileName = `guia-remision-${remissionGuideInfo.remissionGuideNumber?.replace(/\s+/g, '-')}-${timestamp}.pdf`;
+        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
+
+        // Descargar el archivo
+        const response = await fetch(pdfUrl);
+        const blob = await response.blob();
+
+        // Convert blob to array buffer
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(blob);
+        });
+
+        // Write to file
+        await file.create();
+        const writer = file.writableStream().getWriter();
+        await writer.write(new Uint8Array(arrayBuffer));
+        await writer.close();
+
+        // Share the file
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Guía de Remisión - ${remissionGuideInfo.remissionGuideNumber}`,
+            UTI: 'com.adobe.pdf',
+          });
+        } else {
+          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
+        }
+      }
+    } catch (error: any) {
+      logger.error('Error descargando guía de remisión:', error);
+      Alert.alert('Error', 'No se pudo descargar la guía de remisión');
+    } finally {
+      setDownloadingRemissionGuide(false);
+    }
   };
 
   const handleManageDiscrepancyNotes = (discrepancy: TransferReportDiscrepancy) => {
@@ -964,6 +1132,77 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               )}
             </View>
           )}
+
+          {/* Generate Remission Guide Button - Solo si existe traslado consolidado y NO existe guía */}
+          {hasPermission('repartos.generate_transfer') &&
+           consolidatedTransferGenerated &&
+           !remissionGuideInfo?.exists && (
+            <TouchableOpacity
+              style={[
+                styles.remissionGuideButton,
+                isTablet && styles.remissionGuideButtonTablet,
+                generatingRemissionGuide && styles.downloadButtonDisabled,
+              ]}
+              onPress={handleGenerateRemissionGuide}
+              disabled={generatingRemissionGuide}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.remissionGuideButtonText,
+                  isTablet && styles.remissionGuideButtonTextTablet,
+                ]}
+              >
+                {generatingRemissionGuide ? '🔄 Generando Guía...' : '📋 Generar Guía de Remisión'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Download Remission Guide Button - Solo si existe la guía */}
+          {remissionGuideInfo?.exists && (
+            <View>
+              <TouchableOpacity
+                style={[
+                  styles.downloadGuideButton,
+                  isTablet && styles.downloadGuideButtonTablet,
+                  downloadingRemissionGuide && styles.downloadButtonDisabled,
+                ]}
+                onPress={handleDownloadRemissionGuide}
+                disabled={downloadingRemissionGuide}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.downloadGuideButtonText,
+                    isTablet && styles.downloadGuideButtonTextTablet,
+                  ]}
+                >
+                  {downloadingRemissionGuide ? '📥 Descargando...' : '📥 Descargar Guía de Remisión'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Remission Guide Info */}
+              <View style={[styles.guideInfoMessage, isTablet && styles.guideInfoMessageTablet]}>
+                <Text style={[styles.guideInfoText, isTablet && styles.guideInfoTextTablet]}>
+                  📋 Guía: {remissionGuideInfo.remissionGuideNumber}
+                </Text>
+                {remissionGuideInfo.status && (
+                  <Text style={[styles.guideInfoSubtext, isTablet && styles.guideInfoSubtextTablet]}>
+                    Estado: {remissionGuideInfo.status}
+                    {remissionGuideInfo.generatedAt && (
+                      ` • ${new Date(remissionGuideInfo.generatedAt).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}`
+                    )}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Products List */}
@@ -1341,6 +1580,86 @@ const styles = StyleSheet.create({
   successMessageSubtextTablet: {
     fontSize: 14,
     marginTop: 6,
+  },
+  remissionGuideButton: {
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#7C3AED',
+  },
+  remissionGuideButtonTablet: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
+  remissionGuideButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  remissionGuideButtonTextTablet: {
+    fontSize: 17,
+  },
+  downloadGuideButton: {
+    backgroundColor: '#0EA5E9',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#0284C7',
+  },
+  downloadGuideButtonTablet: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
+  downloadGuideButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  downloadGuideButtonTextTablet: {
+    fontSize: 16,
+  },
+  guideInfoMessage: {
+    backgroundColor: '#E0F2FE',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#0EA5E9',
+  },
+  guideInfoMessageTablet: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  guideInfoText: {
+    color: '#075985',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  guideInfoTextTablet: {
+    fontSize: 15,
+  },
+  guideInfoSubtext: {
+    color: '#0C4A6E',
+    fontSize: 11,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  guideInfoSubtextTablet: {
+    fontSize: 13,
+    marginTop: 5,
   },
   scrollView: {
     flex: 1,

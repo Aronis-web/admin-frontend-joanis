@@ -513,6 +513,88 @@ class RepartosService {
   }
 
   /**
+   * Get remission guide information for a participant in a campaign
+   * Returns remission guide details if it exists
+   */
+  async getRemissionGuideInfo(
+    campaignParticipantId: string,
+    campaignId: string
+  ): Promise<{
+    exists: boolean;
+    remissionGuideId: string | null;
+    remissionGuideNumber: string | null;
+    generatedAt: string | null;
+    documentType: string | null;
+    status: string | null;
+    statusSunat: string | null;
+    fechaEmision: string | null;
+    observations: string | null;
+    pdfUrl: string | null;
+    xmlUrl: string | null;
+    cdrUrl: string | null;
+    createdAt: string | null;
+  }> {
+    return apiClient.get<{
+      exists: boolean;
+      remissionGuideId: string | null;
+      remissionGuideNumber: string | null;
+      generatedAt: string | null;
+      documentType: string | null;
+      status: string | null;
+      statusSunat: string | null;
+      fechaEmision: string | null;
+      observations: string | null;
+      pdfUrl: string | null;
+      xmlUrl: string | null;
+      cdrUrl: string | null;
+      createdAt: string | null;
+    }>(
+      `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/remission-guide-info`
+    );
+  }
+
+  /**
+   * Generate remission guide for a participant's consolidated transfer
+   * Requires that a consolidated transfer has been generated first
+   */
+  async generateRemissionGuide(
+    campaignParticipantId: string,
+    campaignId: string
+  ): Promise<{
+    success: boolean;
+    remissionGuide: {
+      id: string;
+      serieNumero: string;
+      status: string;
+      pdfUrl: string;
+      xmlUrl: string;
+    };
+    transfer: {
+      id: string;
+      transferNumber: string;
+    };
+    message: string;
+  }> {
+    return apiClient.post<{
+      success: boolean;
+      remissionGuide: {
+        id: string;
+        serieNumero: string;
+        status: string;
+        pdfUrl: string;
+        xmlUrl: string;
+      };
+      transfer: {
+        id: string;
+        transferNumber: string;
+      };
+      message: string;
+    }>(
+      `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/generate-remission-guide`
+    );
+  }
+
+  /**
    * Generate consolidated transfer for a participant in a campaign
    * This will:
    * - Release ALL reservations
