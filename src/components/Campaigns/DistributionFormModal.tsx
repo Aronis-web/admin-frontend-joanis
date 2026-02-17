@@ -1146,9 +1146,6 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
           participantId: dist.participantId,
           quantityBase: dist.quantityBase,
           notes: `${dist.participantName} - ${dist.percentage.toFixed(2)}%`,
-          // Agregar información de área de origen si está seleccionada
-          ...(selectedSourceWarehouseId && { sourceWarehouseId: selectedSourceWarehouseId }),
-          ...(selectedSourceAreaId && { sourceAreaId: selectedSourceAreaId }),
         };
 
         // SOLO agregar datos de presentación si:
@@ -1161,8 +1158,6 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
             quantityPresentation: dist.quantityPresentation,
             presentationId: dist.presentationId,
             factorToBase: dist.roundingFactor,
-            sourceWarehouseId: selectedSourceWarehouseId,
-            sourceAreaId: selectedSourceAreaId,
           });
 
           return {
@@ -1177,8 +1172,6 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
         logger.debug('📦 [GENERATE] Enviando solo unidades:', {
           participant: dist.participantName,
           quantityBase: dist.quantityBase,
-          sourceWarehouseId: selectedSourceWarehouseId,
-          sourceAreaId: selectedSourceAreaId,
         });
 
         return baseData;
@@ -1186,11 +1179,24 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
       logger.debug('📤 [GENERATE] Distribuciones a enviar:', distributions);
 
-      // Generar distribución con cantidades exactas
-      const result = await campaignsService.generateDistribution(campaignId, product.id, {
+      // Preparar el request con sourceWarehouseId y sourceAreaId a nivel principal
+      const generateRequest: any = {
         distributions,
         notes: `Reparto generado - ${distributionMode === 'presentation' ? 'Por presentación' : 'Por unidades'} - ${new Date().toLocaleString()}`,
-      });
+      };
+
+      // Agregar información de área de origen si está seleccionada (a nivel de request, no por item)
+      if (selectedSourceWarehouseId) {
+        generateRequest.sourceWarehouseId = selectedSourceWarehouseId;
+      }
+      if (selectedSourceAreaId) {
+        generateRequest.sourceAreaId = selectedSourceAreaId;
+      }
+
+      logger.debug('📤 [GENERATE] Request completo:', generateRequest);
+
+      // Generar distribución con cantidades exactas
+      const result = await campaignsService.generateDistribution(campaignId, product.id, generateRequest);
 
       logger.debug('✅ [MODAL] Reparto generado exitosamente:', result.repartoCode);
 

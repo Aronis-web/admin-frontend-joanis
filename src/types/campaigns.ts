@@ -354,9 +354,6 @@ export interface DistributionGenerateItem {
   presentationId?: string;
   quantityPresentation?: number;
   notes?: string;
-  // Campos para especificar de qué área se toma el stock
-  sourceWarehouseId?: string;
-  sourceAreaId?: string;
 }
 
 /**
@@ -365,6 +362,9 @@ export interface DistributionGenerateItem {
 export interface GenerateDistributionRequest {
   distributions: DistributionGenerateItem[];
   notes?: string;
+  // Campos para especificar de qué área se toma el stock (a nivel de request, no por item)
+  sourceWarehouseId?: string;
+  sourceAreaId?: string;
 }
 
 /**
