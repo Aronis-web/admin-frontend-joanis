@@ -252,45 +252,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         setProducts(productsMap);
 
-        // OPTIMIZATION: Cargar precios de venta para todos los productos visibles
-        // Esto permite mostrar los primeros 2 perfiles en la vista de lista
-        // Se cargan en paralelo para mejor rendimiento
-        // Solo se cargan para productos que existen en el catálogo (no preliminares)
-        logger.debug('⚡ [PERF] Cargando precios de venta para productos visibles...');
+        // OPTIMIZATION: Extraer precios de venta de los productos ya cargados
+        // Los precios ya vienen incluidos en la respuesta de la campaña (include=products.product.salePrices)
+        // No es necesario hacer requests adicionales
+        logger.debug('⚡ [PERF] Extrayendo precios de venta de productos ya cargados...');
 
-        const productIds = data.products
-          .filter(p => {
-            // Solo cargar precios para productos que tienen datos embebidos o están en productsMap
-            const productExists = p.product || productsMap[p.productId];
-            const isPreliminary = productExists && (productExists as any).status === 'preliminary';
-            return productExists && !isPreliminary;
-          })
-          .map(p => p.productId);
+        const salePricesMap: Record<string, any[]> = {};
 
-        if (productIds.length > 0) {
-          const salePricesPromises = productIds.map(productId =>
-            priceProfilesApi.getProductSalePrices(productId)
-              .then((response) => {
-                const salePricesArray = (response as any).salePrices || response.data || [];
-                return { productId, salePrices: salePricesArray };
-              })
-              .catch((error) => {
-                logger.debug(`⚠️ [PERF] No se pudieron cargar precios para producto ${productId} (puede ser preliminar o no existir)`);
-                return { productId, salePrices: [] };
-              })
-          );
+        // Extraer sale prices de los productos en productsMap
+        Object.entries(productsMap).forEach(([productId, product]) => {
+          if (product.salePrices && Array.isArray(product.salePrices)) {
+            salePricesMap[productId] = product.salePrices;
+          }
+        });
 
-          Promise.all(salePricesPromises).then((results) => {
-            const salePricesMap: Record<string, any[]> = {};
-            results.forEach(({ productId, salePrices }) => {
-              salePricesMap[productId] = salePrices;
-            });
-            setProductSalePrices(salePricesMap);
-            logger.debug(`✅ [PERF] Precios de venta cargados para ${Object.keys(salePricesMap).length} productos`);
-          });
-        } else {
-          logger.debug('⚠️ [PERF] No hay productos válidos para cargar precios');
-        }
+        setProductSalePrices(salePricesMap);
+        logger.debug(`✅ [PERF] Precios de venta extraídos para ${Object.keys(salePricesMap).length} productos (sin requests adicionales)`);
+
       }
     } catch (error: any) {
       logger.error('Error loading campaign:', error);
