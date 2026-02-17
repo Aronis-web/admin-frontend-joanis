@@ -193,7 +193,10 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
       // Obtener stock disponible desde localStockData o product.product.stockItems
       const stockDetails = getStockDetailsFromProduct() || [];
-      const totalAvailableStock = stockDetails.reduce((sum, stock) => sum + stock.available, 0);
+      const totalAvailableStock = stockDetails.reduce((sum, stock) => {
+        const stockValue = typeof stock.available === 'number' ? stock.available : parseFloat(stock.available) || 0;
+        return sum + stockValue;
+      }, 0);
 
       logger.debug('📦 [MODAL] Stock disponible calculado:', {
         stockDetails,
