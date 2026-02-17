@@ -2206,7 +2206,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   ]);
 
   // Header component for products FlatList
-  const renderProductsListHeader = useCallback(() => {
+  const renderProductsListHeader = () => {
     if (!campaign) return null;
 
     return (
@@ -2329,29 +2329,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         )}
       </>
     );
-  }, [
-    campaign,
-    isTablet,
-    estimatedTotalPurchase,
-    formatCurrency,
-    navigation,
-    campaignId,
-    searchQuery,
-    handleSearchQueryChange,
-    setSearchQuery,
-    setGlobalSearchResults,
-    setShowGlobalSearchSuggestions,
-    distributionFilter,
-    setDistributionFilter,
-    filteredProducts,
-    isGlobalSearching,
-    showGlobalSearchSuggestions,
-    globalSearchResults,
-    getProductStock,
-    handleQuickAddProduct,
-    addingQuickProduct,
-    handleOpenCustomAddModal,
-  ]);
+  };
 
   const renderProducts = () => {
     if (!campaign) {
