@@ -2331,39 +2331,30 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   No se encontraron productos en la campaña que coincidan con "{searchQuery}"
                 </Text>
               ) : (
-                <FlatList
-                  data={paginatedProducts}
-                  renderItem={renderProductItem}
-                  keyExtractor={keyExtractor}
-                  initialNumToRender={15}
-                  maxToRenderPerBatch={15}
-                  windowSize={3}
-                  removeClippedSubviews={Platform.OS === 'android'}
-                  updateCellsBatchingPeriod={50}
-                  getItemLayout={(data, index) => ({
-                    length: 200,
-                    offset: 200 * index,
-                    index,
-                  })}
-                  onEndReached={handleLoadMore}
-                  onEndReachedThreshold={0.5}
-                  ListFooterComponent={
-                    displayedItemsCount < filteredProducts.length ? (
-                      <View style={styles.loadingMoreContainer}>
-                        <ActivityIndicator size="small" color="#6366F1" />
-                        <Text style={styles.loadingMoreText}>
-                          Cargando más... ({displayedItemsCount} de {filteredProducts.length})
-                        </Text>
-                      </View>
-                    ) : filteredProducts.length > ITEMS_PER_PAGE ? (
-                      <View style={styles.endOfListContainer}>
-                        <Text style={styles.endOfListText}>
-                          ✓ Mostrando todos los productos ({filteredProducts.length})
-                        </Text>
-                      </View>
-                    ) : null
-                  }
-                />
+                <>
+                  {paginatedProducts.map((product) => (
+                    <View key={product.id}>
+                      {renderProductItem({ item: product })}
+                    </View>
+                  ))}
+                  {displayedItemsCount < filteredProducts.length && (
+                    <TouchableOpacity
+                      style={styles.loadMoreButton}
+                      onPress={handleLoadMore}
+                    >
+                      <Text style={styles.loadMoreButtonText}>
+                        Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {displayedItemsCount >= filteredProducts.length && filteredProducts.length > ITEMS_PER_PAGE && (
+                    <View style={styles.endOfListContainer}>
+                      <Text style={styles.endOfListText}>
+                        ✓ Mostrando todos los productos ({filteredProducts.length})
+                      </Text>
+                    </View>
+                  )}
+                </>
               )}
 
               {/* Loading indicator for global search */}
