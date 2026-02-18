@@ -189,16 +189,32 @@ export type MainStackParamList = {
   PriceProfiles: undefined;
   Presentations: undefined;
 
-  // Billing / Tax Configuration
-  BillingConfig: undefined;
-  DocumentTypes: undefined;
-  DocumentSeries: undefined;
-  DocumentCorrelatives: undefined;
+  // Emission Points & Series Configuration
+  EmissionPoints: undefined;
+  EmissionPointSeries: {
+    emissionPointId: string;
+    emissionPointName: string;
+    emissionPointCode: string;
+  };
+  CreateEmissionPoint: undefined;
+  EditEmissionPoint: {
+    emissionPointId: string;
+  };
+  CreateSeries: {
+    emissionPointId: string;
+    emissionPointName: string;
+    emissionPointCode: string;
+  };
+  EditSeries: {
+    seriesId: string;
+    emissionPointId: string;
+    emissionPointName: string;
+    emissionPointCode: string;
+  };
 
   // Bizlinks - Electronic Invoicing
   BizlinksMenu: undefined;
   BizlinksGenerateDocuments: undefined;
-  BizlinksConfigureDocuments: undefined;
   BizlinksConfig: undefined;
   BizlinksConfigCreate: undefined;
   BizlinksConfigEdit: {

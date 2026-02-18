@@ -98,16 +98,17 @@ export const MAIN_ROUTES = {
   PRICE_PROFILES: 'PriceProfiles',
   PRESENTATIONS: 'Presentations',
 
-  // Billing / Tax Configuration
-  BILLING_CONFIG: 'BillingConfig',
-  DOCUMENT_TYPES: 'DocumentTypes',
-  DOCUMENT_SERIES: 'DocumentSeries',
-  DOCUMENT_CORRELATIVES: 'DocumentCorrelatives',
+  // Emission Points & Series Configuration
+  EMISSION_POINTS: 'EmissionPoints',
+  EMISSION_POINT_SERIES: 'EmissionPointSeries',
+  CREATE_EMISSION_POINT: 'CreateEmissionPoint',
+  EDIT_EMISSION_POINT: 'EditEmissionPoint',
+  CREATE_SERIES: 'CreateSeries',
+  EDIT_SERIES: 'EditSeries',
 
   // Bizlinks - Electronic Invoicing
   BIZLINKS_MENU: 'BizlinksMenu',
   BIZLINKS_GENERATE_DOCUMENTS: 'BizlinksGenerateDocuments',
-  BIZLINKS_CONFIGURE_DOCUMENTS: 'BizlinksConfigureDocuments',
   BIZLINKS_CONFIG: 'BizlinksConfig',
   BIZLINKS_CONFIG_CREATE: 'BizlinksConfigCreate',
   BIZLINKS_CONFIG_EDIT: 'BizlinksConfigEdit',
@@ -250,16 +251,17 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   PRICE_PROFILES: 'price_profiles.read',
   PRESENTATIONS: 'presentations.read',
 
-  // Billing / Tax Configuration
-  BILLING_CONFIG: 'billing.read',
-  DOCUMENT_TYPES: 'billing.document-types.read',
-  DOCUMENT_SERIES: 'billing.series.read',
-  DOCUMENT_CORRELATIVES: 'billing.correlatives.read',
+  // Emission Points & Series Configuration
+  EMISSION_POINTS: 'billing.emission-points.read',
+  EMISSION_POINT_SERIES: 'billing.series.read',
+  CREATE_EMISSION_POINT: 'billing.emission-points.create',
+  EDIT_EMISSION_POINT: 'billing.emission-points.update',
+  CREATE_SERIES: 'billing.series.create',
+  EDIT_SERIES: 'billing.series.update',
 
   // Bizlinks - Electronic Invoicing
   BIZLINKS_MENU: 'bizlinks.documents.view',
   BIZLINKS_GENERATE_DOCUMENTS: 'bizlinks.documents.send',
-  BIZLINKS_CONFIGURE_DOCUMENTS: 'bizlinks.config.view',
   BIZLINKS_CONFIG: 'bizlinks.config.view',
   BIZLINKS_CONFIG_CREATE: 'bizlinks.config.view',
   BIZLINKS_CONFIG_EDIT: 'bizlinks.config.view',

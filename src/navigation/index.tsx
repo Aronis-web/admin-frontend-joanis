@@ -120,16 +120,13 @@ const VerifyFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then
 // Organization Screens - Lazy Loaded
 const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').then(m => ({ default: m.OrganizationChartScreen })), 'Cargando organigrama...');
 
-// Billing Screens - Lazy Loaded
-const BillingConfigMenuScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.BillingConfigMenuScreen })), 'Cargando configuración tributaria...');
-const DocumentTypesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentTypesScreen })), 'Cargando tipos de documento...');
-const DocumentSeriesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentSeriesScreen })), 'Cargando series...');
-const DocumentCorrelativesScreen = lazyLoad(() => import('@/screens/Billing').then(m => ({ default: m.DocumentCorrelativesScreen })), 'Cargando correlativos...');
+// Emission Points Screens - Lazy Loaded
+const EmissionPointsScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointsScreen })), 'Cargando puntos de emisión...');
+const EmissionPointSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointSeriesScreen })), 'Cargando series...');
 
 // Bizlinks Screens - Lazy Loaded
 const BizlinksMenuScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksMenuScreen })), 'Cargando Bizlinks...');
 const BizlinksGenerateDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksGenerateDocumentsScreen })), 'Cargando generación de documentos...');
-const BizlinksConfigureDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigureDocumentsScreen })), 'Cargando configuración de documentos...');
 const BizlinksConfigScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigScreen })), 'Cargando configuración Bizlinks...');
 const BizlinksConfigCreateScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigCreateScreen })), 'Cargando formulario...');
 const BizlinksConfigEditScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigEditScreen })), 'Cargando formulario...');
@@ -894,75 +891,36 @@ const MainStack = React.memo(() => {
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
-      {/* Billing / Tax Configuration Screens */}
+      {/* Emission Points & Series Configuration Screens */}
       <MainStackNavigator.Screen
-        name={MAIN_ROUTES.BILLING_CONFIG}
+        name="EmissionPoints"
         options={{
-          title: 'Configuración Tributaria',
+          title: 'Configuración de Comprobantes',
         }}
       >
         {(props) => (
           <ProtectedRoute
             requiredPermissions={[
-              'billing.read',
-              'billing.document-types.read',
+              'billing.emission-points.read',
               'billing.series.read',
-              'billing.correlatives.read',
             ]}
             requireAll={false}
           >
-            <BillingConfigMenuScreen {...props} />
+            <EmissionPointsScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
-        name={MAIN_ROUTES.DOCUMENT_TYPES}
+        name="EmissionPointSeries"
         options={{
-          title: 'Tipos de Documentos',
+          title: 'Series del Punto de Emisión',
         }}
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={[
-              'billing.document-types.read',
-              'billing.document-types.manage',
-            ]}
-            requireAll={false}
+            requiredPermissions={['billing.series.read']}
           >
-            <DocumentTypesScreen {...props} />
-          </ProtectedRoute>
-        )}
-      </MainStackNavigator.Screen>
-      <MainStackNavigator.Screen
-        name={MAIN_ROUTES.DOCUMENT_SERIES}
-        options={{
-          title: 'Series de Documentos',
-        }}
-      >
-        {(props) => (
-          <ProtectedRoute
-            requiredPermissions={[
-              'billing.series.read',
-              'billing.series.create',
-              'billing.series.update',
-            ]}
-            requireAll={false}
-          >
-            <DocumentSeriesScreen {...props} />
-          </ProtectedRoute>
-        )}
-      </MainStackNavigator.Screen>
-      <MainStackNavigator.Screen
-        name={MAIN_ROUTES.DOCUMENT_CORRELATIVES}
-        options={{
-          title: 'Correlativos',
-        }}
-      >
-        {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['billing.correlatives.read']}
-          >
-            <DocumentCorrelativesScreen {...props} />
+            <EmissionPointSeriesScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -996,20 +954,7 @@ const MainStack = React.memo(() => {
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
-      <MainStackNavigator.Screen
-        name={MAIN_ROUTES.BIZLINKS_CONFIGURE_DOCUMENTS}
-        options={{
-          title: 'Configurar Documentos',
-        }}
-      >
-        {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.config.view']}
-          >
-            <BizlinksConfigureDocumentsScreen {...props} />
-          </ProtectedRoute>
-        )}
-      </MainStackNavigator.Screen>
+
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.BIZLINKS_CONFIG}
         options={{

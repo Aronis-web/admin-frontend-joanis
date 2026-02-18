@@ -2,7 +2,6 @@ export { BizlinksMenuScreen } from './BizlinksMenuScreen';
 export { BizlinksConfigScreen } from './BizlinksConfigScreen';
 export { BizlinksDocumentsScreen } from './BizlinksDocumentsScreen';
 export { BizlinksGenerateDocumentsScreen } from './BizlinksGenerateDocumentsScreen';
-export { BizlinksConfigureDocumentsScreen } from './BizlinksConfigureDocumentsScreen';
 export { BizlinksConfigCreateScreen } from './BizlinksConfigCreateScreen';
 export { BizlinksConfigEditScreen } from './BizlinksConfigEditScreen';
 export { BizlinksDocumentDetailScreen } from './BizlinksDocumentDetailScreen';

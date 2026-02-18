@@ -385,23 +385,14 @@ const menuCategories: MenuCategory[] = [
         color: '#FCA5A5',
         requiredPermissions: ['expenses.categories.read'],
       },
-      // Configuración Tributaria
+      // Configuración de Comprobantes
       {
-        id: 'billing-config',
+        id: 'emission-points',
         icon: '📄',
-        label: 'Configuración Tributaria',
-        route: MAIN_ROUTES.BILLING_CONFIG,
+        label: 'Configuración de Comprobantes',
+        route: MAIN_ROUTES.EMISSION_POINTS,
         color: '#8B5CF6',
-        requiredPermissions: ['billing.read', 'billing.document-types.read', 'billing.series.read', 'billing.correlatives.read'],
-      },
-      // Configurar Documentos (Bizlinks)
-      {
-        id: 'bizlinks-configure',
-        icon: '🔧',
-        label: 'Configurar Documentos',
-        route: MAIN_ROUTES.BIZLINKS_CONFIGURE_DOCUMENTS,
-        color: '#6366F1',
-        requiredPermissions: ['bizlinks.config.view'],
+        requiredPermissions: ['billing.emission-points.read', 'billing.series.read'],
       },
       // Apps
       {
