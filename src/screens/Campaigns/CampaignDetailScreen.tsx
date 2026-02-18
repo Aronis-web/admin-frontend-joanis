@@ -124,6 +124,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [selectedProductForCustomAdd, setSelectedProductForCustomAdd] = useState<any | null>(null);
   const [customQuantity, setCustomQuantity] = useState<string>('');
 
+  // Pagination states
+  const [displayedItemsCount, setDisplayedItemsCount] = useState(20);
+  const ITEMS_PER_PAGE = 20;
+
   const isTablet = width >= 768 || height >= 768;
 
   const loadCampaign = useCallback(async () => {
@@ -1834,6 +1838,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return filtered;
   }, [campaign?.products, products, searchQuery, distributionFilter]);
 
+  // Paginated products - only show a subset for better performance
+  const paginatedProducts = useMemo(() => {
+    return filteredProducts.slice(0, displayedItemsCount);
+  }, [filteredProducts, displayedItemsCount]);
+
+  // Reset pagination when filters change
+  useMemo(() => {
+    setDisplayedItemsCount(ITEMS_PER_PAGE);
+  }, [searchQuery, distributionFilter]);
+
+  // Load more items
+  const handleLoadMore = useCallback(() => {
+    if (displayedItemsCount < filteredProducts.length) {
+      setDisplayedItemsCount(prev => Math.min(prev + ITEMS_PER_PAGE, filteredProducts.length));
+    }
+  }, [displayedItemsCount, filteredProducts.length, ITEMS_PER_PAGE]);
+
   // Memoized render function for product items
   const renderProductItem = useCallback(({ item: product }: { item: CampaignProduct }) => {
     // ✅ PRIORIZAR batch endpoint sobre producto embebido (batch tiene photoUrls)
@@ -2311,7 +2332,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 </Text>
               ) : (
                 <FlatList
-                  data={filteredProducts}
+                  data={paginatedProducts}
                   renderItem={renderProductItem}
                   keyExtractor={keyExtractor}
                   initialNumToRender={10}
@@ -2320,6 +2341,24 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   removeClippedSubviews={true}
                   scrollEnabled={false}
                   nestedScrollEnabled={false}
+                  ListFooterComponent={
+                    displayedItemsCount < filteredProducts.length ? (
+                      <TouchableOpacity
+                        style={styles.loadMoreButton}
+                        onPress={handleLoadMore}
+                      >
+                        <Text style={styles.loadMoreButtonText}>
+                          Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
+                        </Text>
+                      </TouchableOpacity>
+                    ) : filteredProducts.length > ITEMS_PER_PAGE ? (
+                      <View style={styles.endOfListContainer}>
+                        <Text style={styles.endOfListText}>
+                          ✓ Mostrando todos los productos ({filteredProducts.length})
+                        </Text>
+                      </View>
+                    ) : null
+                  }
                 />
               )}
 
@@ -4141,6 +4180,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  // Pagination styles
+  loadMoreButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginVertical: 16,
+    marginHorizontal: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  loadMoreButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  endOfListContainer: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  endOfListText: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
   },
 });
 
