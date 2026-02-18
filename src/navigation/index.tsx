@@ -123,6 +123,7 @@ const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').
 // Emission Points Screens - Lazy Loaded
 const EmissionPointsScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointsScreen })), 'Cargando puntos de emisión...');
 const EmissionPointSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointSeriesScreen })), 'Cargando series...');
+const CreateEmissionPointScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.CreateEmissionPointScreen })), 'Cargando formulario...');
 
 // Bizlinks Screens - Lazy Loaded
 const BizlinksMenuScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksMenuScreen })), 'Cargando Bizlinks...');
@@ -921,6 +922,20 @@ const MainStack = React.memo(() => {
             requiredPermissions={['billing.series.read']}
           >
             <EmissionPointSeriesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="CreateEmissionPoint"
+        options={{
+          title: 'Nuevo Punto de Emisión',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['billing.emission-points.create']}
+          >
+            <CreateEmissionPointScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
