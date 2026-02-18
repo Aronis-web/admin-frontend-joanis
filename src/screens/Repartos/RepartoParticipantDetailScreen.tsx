@@ -695,9 +695,10 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     try {
       setDownloadingRemissionGuide(true);
       logger.info('🔄 Descargando guía de remisión:', remissionGuideInfo.remissionGuideNumber);
+      logger.info('📄 PDF URL:', remissionGuideInfo.pdfUrl);
 
-      // Construir URL completa del PDF
-      const pdfUrl = `${config.API_URL}${remissionGuideInfo.pdfUrl}`;
+      // La URL del PDF ya viene completa desde Bizlinks, no necesita concatenar con API_URL
+      const pdfUrl = remissionGuideInfo.pdfUrl;
 
       if (Platform.OS === 'web') {
         // Para web, abrir en nueva pestaña
