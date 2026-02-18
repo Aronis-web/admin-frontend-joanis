@@ -1833,6 +1833,336 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return filtered;
   }, [campaign?.products, products, searchQuery, distributionFilter]);
 
+  // Memoized render function for product items
+  const renderProductItem = useCallback(({ item: product }: { item: CampaignProduct }) => {
+    // ✅ PRIORIZAR batch endpoint sobre producto embebido (batch tiene photoUrls)
+    const productDetails = products[product.productId] || product.product;
+    const costCents = productDetails?.costCents || 0;
+    const isExpanded = expandedProducts.has(product.id);
+    // Resaltar productos cuyo estado del producto es 'preliminary' (no validado aún)
+    const isPreliminary = (productDetails?.status as any) === 'preliminary';
+
+    return (
+      <View
+        style={[
+          styles.productCard,
+          isTablet && styles.productCardTablet,
+          isPreliminary && styles.productCardPreliminary,
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.productCardMain}
+          onPress={() =>
+            navigation.navigate('CampaignProductDetail', {
+              campaignId,
+              productId: product.id,
+              fromCampaignDetail: true,
+            })
+          }
+        >
+          {/* Product content - keeping existing code */}
+          {(() => {
+            const batchProduct = products[product.productId];
+            const embeddedProduct = product.product;
+
+            const imageUri =
+              (productDetails as any)?.photoUrls?.[0] ||
+              (productDetails as any)?.photos?.[0] ||
+              (productDetails as any)?.imageUrl ||
+              (productDetails as any)?.imageUrls?.[0];
+
+            return imageUri ? (
+              <TouchableOpacity
+                onPress={() => handleOpenImageModal(imageUri)}
+                activeOpacity={0.7}
+              >
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.productImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.productImagePlaceholder}>
+                <Text style={styles.productImagePlaceholderText}>📦</Text>
+              </View>
+            );
+          })()}
+
+          <View style={styles.listItemContent}>
+            <View style={styles.productTitleRow}>
+              <Text
+                style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}
+              >
+                {productDetails?.title || `Producto ID: ${product.productId}`}
+              </Text>
+              {isPreliminary && (
+                <View style={styles.preliminaryIndicator}>
+                  <Text style={styles.preliminaryIndicatorText}>⚠️ PRELIMINAR</Text>
+                </View>
+              )}
+            </View>
+            <Text
+              style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}
+            >
+              SKU: {productDetails?.sku || 'N/A'} |{' '}
+              {(() => {
+                // Calcular cantidad repartida desde customDistributions.items.assignedQuantityBase
+                const distributedQty = product.customDistributions?.[0]?.items?.reduce(
+                  (sum: number, item: any) => sum + parseFloat(item.assignedQuantityBase || '0'),
+                  0
+                );
+
+                // Si tiene distribución generada, mostrar cantidad repartida
+                if (product.distributionGenerated && distributedQty) {
+                  return (
+                    <>
+                      Repartido:{' '}
+                      <Text style={styles.quickPriceValue}>
+                        {Math.floor(distributedQty)}
+                      </Text>{' '}
+                      ✔
+                    </>
+                  );
+                }
+                return <>Cant: {product.totalQuantityBase}</>;
+              })()}{' '}
+              | Costo:{' '}
+              <Text style={styles.quickPriceValue}>
+                S/ {(costCents / 100).toFixed(2)}
+              </Text>
+              {priceProfiles.slice(0, 2).map((profile, index) => {
+                const priceCents = getSalePriceForProfile(product.productId, profile.id);
+                const isPriceLowerThanCost = priceCents < costCents;
+                return (
+                  <Text key={profile.id}>
+                    {' | '}
+                    {profile.name}:{' '}
+                    <Text style={[
+                      styles.quickPriceValue,
+                      isPriceLowerThanCost && styles.priceLowerThanCost
+                    ]}>
+                      S/ {(priceCents / 100).toFixed(2)}
+                      {isPriceLowerThanCost && ' ⚠️'}
+                    </Text>
+                  </Text>
+                );
+              })}
+              {priceProfiles.length > 2 && <Text> (+{priceProfiles.length - 2})</Text>}
+            </Text>
+
+            <View style={styles.productBadges}>
+              <View
+                style={[
+                  styles.badge,
+                  product.productStatus === 'ACTIVE'
+                    ? styles.badgeActive
+                    : styles.badgePreliminary,
+                ]}
+              >
+                <Text style={styles.badgeText}>
+                  {product.productStatus === 'ACTIVE' ? 'Activo' : 'Preliminar'}
+                </Text>
+              </View>
+              {product.distributionGenerated && (
+                <View style={[styles.badge, styles.badgeGenerated]}>
+                  <Text style={styles.badgeText}>Generado</Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+
+        </TouchableOpacity>
+
+        {/* Action buttons */}
+        <View style={styles.productCardActions}>
+          <TouchableOpacity
+            style={[styles.productActionButton, styles.productExpandButton]}
+            onPress={() => toggleProductExpanded(product.id)}
+          >
+            <Text style={styles.productActionButtonText}>
+              {isExpanded ? '▼ Ocultar Precios' : '▶ Ver Precios'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.productActionButton, styles.productBannerButton]}
+            onPress={() => handleShowBanner(product)}
+          >
+            <Text style={styles.productActionButtonText}>📸 Banner</Text>
+          </TouchableOpacity>
+
+          {(campaign!.status === CampaignStatus.DRAFT ||
+            campaign!.status === CampaignStatus.ACTIVE) && (
+            <TouchableOpacity
+              style={[styles.productActionButton, styles.productDeleteButton]}
+              onPress={() => handleDeleteProduct(product)}
+            >
+              <Text style={styles.productDeleteButtonText}>🗑️</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Expanded price details */}
+        {isExpanded && (
+          <View style={styles.priceDetailsContainer}>
+            {/* Cost row */}
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Costo:</Text>
+              {editingCost?.productId === product.productId ? (
+                <View style={styles.priceEditRow}>
+                  <Text style={styles.currencySymbol}>S/</Text>
+                  <TextInput
+                    style={styles.priceInput}
+                    value={editingCost.value}
+                    onChangeText={(text) =>
+                      setEditingCost({ ...editingCost, value: text })
+                    }
+                    keyboardType="decimal-pad"
+                    autoFocus
+                    onSubmitEditing={() => handleSaveCost(product.productId)}
+                  />
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={() => handleSaveCost(product.productId)}
+                    disabled={savingPrice}
+                  >
+                    {savingPrice ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>✔</Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cancelEditButton}
+                    onPress={() => setEditingCost(null)}
+                  >
+                    <Text style={styles.cancelEditButtonText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.priceDisplayRow}>
+                  <Text style={styles.priceValue}>S/ {(costCents / 100).toFixed(2)}</Text>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => handleStartEditCost(product.productId, costCents)}
+                  >
+                    <Text style={styles.editButtonText}>✏️</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {/* Sale prices for first 2 profiles */}
+            {priceProfiles.slice(0, 2).map((profile) => {
+              const salePriceCents = getSalePriceForProfile(product.productId, profile.id);
+              const isEditingThisPrice =
+                editingPrice?.productId === product.productId &&
+                editingPrice?.profileId === profile.id;
+
+              return (
+                <View key={profile.id} style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>{profile.name}:</Text>
+                  {isEditingThisPrice ? (
+                    <View style={styles.priceEditRow}>
+                      <Text style={styles.currencySymbol}>S/</Text>
+                      <TextInput
+                        style={styles.priceInput}
+                        value={editingPrice.value}
+                        onChangeText={(value) =>
+                          setEditingPrice({ ...editingPrice, value })
+                        }
+                        keyboardType="decimal-pad"
+                        autoFocus
+                      />
+                      <TouchableOpacity
+                        style={styles.savePriceIconButton}
+                        onPress={() => handleSavePrice(product.productId, profile.id)}
+                        disabled={savingPrice}
+                      >
+                        <Text style={styles.savePriceIcon}>
+                          {savingPrice ? '⏳' : '✔'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.cancelPriceIconButton}
+                        onPress={() => setEditingPrice(null)}
+                      >
+                        <Text style={styles.cancelPriceIcon}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.priceDisplayRow}>
+                      <Text style={styles.priceValue}>
+                        {formatCurrency(salePriceCents)}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.editPriceIconButton}
+                        onPress={() =>
+                          handleStartEditPrice(product.productId, profile.id, salePriceCents)
+                        }
+                      >
+                        <Text style={styles.editPriceIcon}>✏️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+
+            {/* Calculate Franquicia button (only for Socia profile) */}
+            {priceProfiles.some(
+              (p) => p.code === 'SOCIA' || p.name.toLowerCase().includes('socia')
+            ) && (
+              <View style={styles.calculateFranquiciaContainer}>
+                <TouchableOpacity
+                  style={styles.calculateFranquiciaButton}
+                  onPress={() => handleCalculateFranquiciaFromSocia(product.productId)}
+                  disabled={savingPrice}
+                >
+                  <Text style={styles.calculateFranquiciaButtonText}>
+                    🧮 Calcular Precio Franquicia (/1.15)
+                  </Text>
+                </TouchableOpacity>
+                {calculatedFranquicia.has(product.productId) && (
+                  <View style={styles.calculatedBadge}>
+                    <Text style={styles.calculatedBadgeText}>✔ Calculado</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  }, [
+    products,
+    expandedProducts,
+    isTablet,
+    navigation,
+    campaignId,
+    handleOpenImageModal,
+    priceProfiles,
+    getSalePriceForProfile,
+    toggleProductExpanded,
+    handleShowBanner,
+    campaign,
+    handleDeleteProduct,
+    editingCost,
+    savingPrice,
+    handleSaveCost,
+    handleStartEditCost,
+    editingPrice,
+    handleSavePrice,
+    handleStartEditPrice,
+    formatCurrency,
+    handleCalculateFranquiciaFromSocia,
+    calculatedFranquicia,
+  ]);
+
+  const keyExtractor = useCallback((item: CampaignProduct) => item.id, []);
+
   // Calculate total estimated purchase based on filtered products
   const estimatedTotalPurchase = useMemo(() => {
     if (!filteredProducts || filteredProducts.length === 0) {
@@ -1979,320 +2309,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   No se encontraron productos en la campa├▒a que coincidan con "{searchQuery}"
                 </Text>
               ) : (
-                filteredProducts.map((product) => {
-                  // ✅ PRIORIZAR batch endpoint sobre producto embebido (batch tiene photoUrls)
-                  const productDetails = products[product.productId] || product.product;
-                  const costCents = productDetails?.costCents || 0;
-                  const isExpanded = expandedProducts.has(product.id);
-                  // Resaltar productos cuyo estado del producto es 'preliminary' (no validado a├║n)
-                  const isPreliminary = (productDetails?.status as any) === 'preliminary';
-
-                  return (
-                    <View
-                      key={product.id}
-                      style={[
-                        styles.productCard,
-                        isTablet && styles.productCardTablet,
-                        isPreliminary && styles.productCardPreliminary,
-                      ]}
-                    >
-                      <TouchableOpacity
-                        style={styles.productCardMain}
-                        onPress={() =>
-                          navigation.navigate('CampaignProductDetail', {
-                            campaignId,
-                            productId: product.id,
-                            fromCampaignDetail: true,
-                          })
-                        }
-                      >
-                        {/* Product content - keeping existing code */}
-                        {(() => {
-                          const batchProduct = products[product.productId];
-                          const embeddedProduct = product.product;
-
-                          logger.debug(`≡ƒô╕ Image data for ${product.productId}:`, {
-                            hasBatchProduct: !!batchProduct,
-                            hasEmbeddedProduct: !!embeddedProduct,
-                            batchPhotoUrls: (batchProduct as any)?.photoUrls,
-                            embeddedPhotoUrls: (embeddedProduct as any)?.photoUrls,
-                            productDetailsSource: productDetails === batchProduct ? 'batch' : 'embedded',
-                          });
-
-                          const imageUri =
-                            (productDetails as any)?.photoUrls?.[0] ||
-                            (productDetails as any)?.photos?.[0] ||
-                            (productDetails as any)?.imageUrl ||
-                            (productDetails as any)?.imageUrls?.[0];
-
-                          logger.debug(`≡ƒô╕ Final imageUri for ${product.productId}:`, imageUri);
-
-                          return imageUri ? (
-                            <TouchableOpacity
-                              onPress={() => handleOpenImageModal(imageUri)}
-                              activeOpacity={0.7}
-                            >
-                              <Image
-                                source={{ uri: imageUri }}
-                                style={styles.productImage}
-                                resizeMode="cover"
-                              />
-                            </TouchableOpacity>
-                          ) : (
-                            <View style={styles.productImagePlaceholder}>
-                              <Text style={styles.productImagePlaceholderText}>📦</Text>
-                            </View>
-                          );
-                        })()}
-
-                        <View style={styles.listItemContent}>
-                          <View style={styles.productTitleRow}>
-                            <Text
-                              style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}
-                            >
-                              {productDetails?.title || `Producto ID: ${product.productId}`}
-                            </Text>
-                            {isPreliminary && (
-                              <View style={styles.preliminaryIndicator}>
-                                <Text style={styles.preliminaryIndicatorText}>⚠️ PRELIMINAR</Text>
-                              </View>
-                            )}
-                          </View>
-                          <Text
-                            style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}
-                          >
-                            SKU: {productDetails?.sku || 'N/A'} |{' '}
-                            {(() => {
-                              // Calcular cantidad repartida desde customDistributions.items.assignedQuantityBase
-                              const distributedQty = product.customDistributions?.[0]?.items?.reduce(
-                                (sum: number, item: any) => sum + parseFloat(item.assignedQuantityBase || '0'),
-                                0
-                              );
-
-                              // Si tiene distribuci├│n generada, mostrar cantidad repartida
-                              if (product.distributionGenerated && distributedQty) {
-                                return (
-                                  <>
-                                    Repartido:{' '}
-                                    <Text style={styles.quickPriceValue}>
-                                      {Math.floor(distributedQty)}
-                                    </Text>{' '}
-                                    ✔
-                                  </>
-                                );
-                              }
-                              return <>Cant: {product.totalQuantityBase}</>;
-                            })()}{' '}
-                            | Costo:{' '}
-                            <Text style={styles.quickPriceValue}>
-                              S/ {(costCents / 100).toFixed(2)}
-                            </Text>
-                            {priceProfiles.slice(0, 2).map((profile, index) => {
-                              const priceCents = getSalePriceForProfile(product.productId, profile.id);
-                              const isPriceLowerThanCost = priceCents < costCents;
-                              return (
-                                <Text key={profile.id}>
-                                  {' | '}
-                                  {profile.name}:{' '}
-                                  <Text style={[
-                                    styles.quickPriceValue,
-                                    isPriceLowerThanCost && styles.priceLowerThanCost
-                                  ]}>
-                                    S/ {(priceCents / 100).toFixed(2)}
-                                    {isPriceLowerThanCost && ' ⚠️'}
-                                  </Text>
-                                </Text>
-                              );
-                            })}
-                            {priceProfiles.length > 2 && <Text> (+{priceProfiles.length - 2})</Text>}
-                          </Text>
-
-                          <View style={styles.productBadges}>
-                            <View
-                              style={[
-                                styles.badge,
-                                product.productStatus === 'ACTIVE'
-                                  ? styles.badgeActive
-                                  : styles.badgePreliminary,
-                              ]}
-                            >
-                              <Text style={styles.badgeText}>
-                                {product.productStatus === 'ACTIVE' ? 'Activo' : 'Preliminar'}
-                              </Text>
-                            </View>
-                            {product.distributionGenerated && (
-                              <View style={[styles.badge, styles.badgeGenerated]}>
-                                <Text style={styles.badgeText}>Generado</Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                        <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>ΓÇ║</Text>
-
-                      </TouchableOpacity>
-
-                      {/* Action buttons */}
-                      <View style={styles.productCardActions}>
-                        <TouchableOpacity
-                          style={[styles.productActionButton, styles.productExpandButton]}
-                          onPress={() => toggleProductExpanded(product.id)}
-                        >
-                          <Text style={styles.productActionButtonText}>
-                            {isExpanded ? 'Γû╝ Ocultar Precios' : 'Γû╢ Ver Precios'}
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[styles.productActionButton, styles.productBannerButton]}
-                          onPress={() => handleShowBanner(product)}
-                        >
-                          <Text style={styles.productActionButtonText}>≡ƒôè Banner</Text>
-                        </TouchableOpacity>
-
-                        {(campaign.status === CampaignStatus.DRAFT ||
-                          campaign.status === CampaignStatus.ACTIVE) && (
-                          <TouchableOpacity
-                            style={[styles.productActionButton, styles.productDeleteButton]}
-                            onPress={() => handleDeleteProduct(product)}
-                          >
-                            <Text style={styles.productDeleteButtonText}>🗑️</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-
-                      {/* Expanded price details */}
-                      {isExpanded && (
-                        <View style={styles.priceDetailsContainer}>
-                          {/* Cost row */}
-                          <View style={styles.priceRow}>
-                            <Text style={styles.priceLabel}>Costo:</Text>
-                            {editingCost?.productId === product.productId ? (
-                              <View style={styles.priceEditRow}>
-                                <Text style={styles.currencySymbol}>S/</Text>
-                                <TextInput
-                                  style={styles.priceInput}
-                                  value={editingCost.value}
-                                  onChangeText={(text) =>
-                                    setEditingCost({ ...editingCost, value: text })
-                                  }
-                                  keyboardType="decimal-pad"
-                                  autoFocus
-                                  onSubmitEditing={() => handleSaveCost(product.productId)}
-                                />
-                                <TouchableOpacity
-                                  style={styles.saveButton}
-                                  onPress={() => handleSaveCost(product.productId)}
-                                  disabled={savingPrice}
-                                >
-                                  {savingPrice ? (
-                                    <ActivityIndicator size="small" color="#FFFFFF" />
-                                  ) : (
-                                    <Text style={styles.saveButtonText}>✔</Text>
-                                  )}
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                  style={styles.cancelEditButton}
-                                  onPress={() => setEditingCost(null)}
-                                >
-                                  <Text style={styles.cancelEditButtonText}>✕</Text>
-                                </TouchableOpacity>
-                              </View>
-                            ) : (
-                              <View style={styles.priceDisplayRow}>
-                                <Text style={styles.priceValue}>S/ {(costCents / 100).toFixed(2)}</Text>
-                                <TouchableOpacity
-                                  style={styles.editButton}
-                                  onPress={() => handleStartEditCost(product.productId, costCents)}
-                                >
-                                  <Text style={styles.editButtonText}>✏️</Text>
-                                </TouchableOpacity>
-                              </View>
-                            )}
-                          </View>
-
-                          {/* Sale prices for first 2 profiles */}
-                          {priceProfiles.slice(0, 2).map((profile) => {
-                            const salePriceCents = getSalePriceForProfile(product.productId, profile.id);
-                            const isEditingThisPrice =
-                              editingPrice?.productId === product.productId &&
-                              editingPrice?.profileId === profile.id;
-
-                            return (
-                              <View key={profile.id} style={styles.priceRow}>
-                                <Text style={styles.priceLabel}>{profile.name}:</Text>
-                                {isEditingThisPrice ? (
-                                  <View style={styles.priceEditRow}>
-                                    <Text style={styles.currencySymbol}>S/</Text>
-                                    <TextInput
-                                      style={styles.priceInput}
-                                      value={editingPrice.value}
-                                      onChangeText={(value) =>
-                                        setEditingPrice({ ...editingPrice, value })
-                                      }
-                                      keyboardType="decimal-pad"
-                                      autoFocus
-                                    />
-                                    <TouchableOpacity
-                                      style={styles.savePriceIconButton}
-                                      onPress={() => handleSavePrice(product.productId, profile.id)}
-                                      disabled={savingPrice}
-                                    >
-                                      <Text style={styles.savePriceIcon}>
-                                        {savingPrice ? 'ΓÅ│' : '✔'}
-                                      </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                      style={styles.cancelPriceIconButton}
-                                      onPress={() => setEditingPrice(null)}
-                                    >
-                                      <Text style={styles.cancelPriceIcon}>✕</Text>
-                                    </TouchableOpacity>
-                                  </View>
-                                ) : (
-                                  <View style={styles.priceDisplayRow}>
-                                    <Text style={styles.priceValue}>
-                                      {formatCurrency(salePriceCents)}
-                                    </Text>
-                                    <TouchableOpacity
-                                      style={styles.editPriceIconButton}
-                                      onPress={() =>
-                                        handleStartEditPrice(product.productId, profile.id, salePriceCents)
-                                      }
-                                    >
-                                      <Text style={styles.editPriceIcon}>✏️</Text>
-                                    </TouchableOpacity>
-                                  </View>
-                                )}
-                              </View>
-                            );
-                          })}
-
-                          {/* Calculate Franquicia button (only for Socia profile) */}
-                          {priceProfiles.some(
-                            (p) => p.code === 'SOCIA' || p.name.toLowerCase().includes('socia')
-                          ) && (
-                            <View style={styles.calculateFranquiciaContainer}>
-                              <TouchableOpacity
-                                style={styles.calculateFranquiciaButton}
-                                onPress={() => handleCalculateFranquiciaFromSocia(product.productId)}
-                                disabled={savingPrice}
-                              >
-                                <Text style={styles.calculateFranquiciaButtonText}>
-                                  ≡ƒº« Calcular Precio Franquicia (/1.15)
-                                </Text>
-                              </TouchableOpacity>
-                              {calculatedFranquicia.has(product.productId) && (
-                                <View style={styles.calculatedBadge}>
-                                  <Text style={styles.calculatedBadgeText}>✔ Calculado</Text>
-                                </View>
-                              )}
-                            </View>
-                          )}
-                        </View>
-                      )}
-                    </View>
-                  );
-                })
+                <FlatList
+                  data={filteredProducts}
+                  renderItem={renderProductItem}
+                  keyExtractor={keyExtractor}
+                  initialNumToRender={10}
+                  maxToRenderPerBatch={10}
+                  windowSize={5}
+                  removeClippedSubviews={true}
+                  scrollEnabled={false}
+                  nestedScrollEnabled={false}
+                />
               )}
 
               {/* Loading indicator for global search */}
