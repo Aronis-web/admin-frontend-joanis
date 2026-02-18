@@ -203,7 +203,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         logger.info(`📦 Total campaign products: ${data.products.length}`);
 
         // ✅ SIEMPRE usar batch endpoint para obtener fotos y datos completos
-        // Los productos embebidos en la campa├▒a NO tienen photoUrls ni stockItems completos
+        // Los productos embebidos en la campaña NO tienen photoUrls ni stockItems completos
         const allProductIds = data.products
           .map((p) => p.productId)
           .filter((id, index, self) => self.indexOf(id) === index); // unique IDs
@@ -228,7 +228,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               );
             });
 
-            // Verificar si falt├│ alg├║n producto
+            // Verificar si faltó algún producto
             const fetchedIds = new Set(response.products.map((p: Product) => p.id));
             const notFoundIds = allProductIds.filter(id => !fetchedIds.has(id));
             if (notFoundIds.length > 0) {
@@ -259,12 +259,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         // OPTIMIZATION: Cargar precios de venta para todos los productos visibles
         // Esto permite mostrar los primeros 2 perfiles en la vista de lista
         // Se cargan en paralelo para mejor rendimiento
-        // Solo se cargan para productos que existen en el cat├ílogo (no preliminares)
-        logger.debug('ΓÜí [PERF] Cargando precios de venta para productos visibles...');
+        // Solo se cargan para productos que existen en el catálogo (no preliminares)
+        logger.debug('⚡ [PERF] Cargando precios de venta para productos visibles...');
 
         const productIds = data.products
           .filter(p => {
-            // Solo cargar precios para productos que tienen datos embebidos o est├ín en productsMap
+            // Solo cargar precios para productos que tienen datos embebidos o están en productsMap
             const productExists = p.product || productsMap[p.productId];
             const isPreliminary = productExists && (productExists as any).status === 'preliminary';
             return productExists && !isPreliminary;
@@ -293,12 +293,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             logger.debug(`✅ [PERF] Precios de venta cargados para ${Object.keys(salePricesMap).length} productos`);
           });
         } else {
-          logger.debug('⚠️ [PERF] No hay productos v├ílidos para cargar precios');
+          logger.debug('⚠️ [PERF] No hay productos válidos para cargar precios');
         }
       }
     } catch (error: any) {
       logger.error('Error loading campaign:', error);
-      Alert.alert('Error', 'No se pudo cargar la campa├▒a');
+      Alert.alert('Error', 'No se pudo cargar la campaña');
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -331,11 +331,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       });
 
       if (updatedProductId) {
-        // OPTIMIZATION: Solo actualizar el producto espec├¡fico sin recargar toda la campa├▒a
-        logger.debug('ΓÜí [CAMPAIGN] Actualizando solo producto:', updatedProductId);
+        // OPTIMIZATION: Solo actualizar el producto específico sin recargar toda la campaña
+        logger.debug('⚡ [CAMPAIGN] Actualizando solo producto:', updatedProductId);
         navigation.setParams({ updatedProductId: undefined } as any);
 
-        // Actualizar solo el producto espec├¡fico en el estado
+        // Actualizar solo el producto específico en el estado
         campaignsService.getProduct(campaignId, updatedProductId)
           .then((updatedProduct) => {
             setCampaign((prevCampaign) => {
@@ -468,7 +468,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         });
 
         console.log('≡ƒöì Search results:', response.results.length, 'products found');
-        console.log('ΓÜí Search time:', response.searchTime, 'ms');
+        console.log('⚡ Search time:', response.searchTime, 'ms');
         console.log('≡ƒÆ╛ Cached:', response.cached);
 
         // Log product statuses for debugging
@@ -584,7 +584,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     const stockInfo = getProductStock(selectedProductForCustomAdd);
 
     if (isNaN(quantity) || quantity <= 0) {
-      Alert.alert('Error', 'Por favor ingresa una cantidad v├ílida');
+      Alert.alert('Error', 'Por favor ingresa una cantidad válida');
       return;
     }
 
@@ -640,8 +640,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
 
     Alert.alert(
-      'Activar Campa├▒a',
-      '┬┐Est├ís seguro de activar esta campa├▒a? Podr├ís seguir editando y eliminando participantes y productos hasta que cierres la campa├▒a.',
+      'Activar Campaña',
+      '┬┐Estás seguro de activar esta campaña? Podrás seguir editando y eliminando participantes y productos hasta que cierres la campaña.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -651,12 +651,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             setActionLoading(true);
             try {
               await campaignsService.activateCampaign(campaignId);
-              Alert.alert('├ëxito', 'Campa├▒a activada exitosamente');
+              Alert.alert('├ëxito', 'Campaña activada exitosamente');
               loadCampaign();
             } catch (error: any) {
               Alert.alert(
                 'Error',
-                error.response?.data?.message || 'No se pudo activar la campa├▒a'
+                error.response?.data?.message || 'No se pudo activar la campaña'
               );
             } finally {
               setActionLoading(false);
@@ -673,8 +673,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
 
     Alert.alert(
-      'Cerrar Campa├▒a',
-      '┬┐Est├ís seguro de cerrar esta campa├▒a? Esta acci├│n no se puede deshacer.',
+      'Cerrar Campaña',
+      '┬┐Estás seguro de cerrar esta campaña? Esta acción no se puede deshacer.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -684,10 +684,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             setActionLoading(true);
             try {
               await campaignsService.closeCampaign(campaignId);
-              Alert.alert('├ëxito', 'Campa├▒a cerrada exitosamente');
+              Alert.alert('├ëxito', 'Campaña cerrada exitosamente');
               loadCampaign();
             } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'No se pudo cerrar la campa├▒a');
+              Alert.alert('Error', error.response?.data?.message || 'No se pudo cerrar la campaña');
             } finally {
               setActionLoading(false);
             }
@@ -702,19 +702,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       return;
     }
 
-    Alert.alert('Cancelar Campa├▒a', '┬┐Est├ís seguro de cancelar esta campa├▒a?', [
+    Alert.alert('Cancelar Campaña', '┬┐Estás seguro de cancelar esta campaña?', [
       { text: 'No', style: 'cancel' },
       {
-        text: 'S├¡, Cancelar',
+        text: 'Sí, Cancelar',
         style: 'destructive',
         onPress: async () => {
           setActionLoading(true);
           try {
             await campaignsService.cancelCampaign(campaignId);
-            Alert.alert('├ëxito', 'Campa├▒a cancelada exitosamente');
+            Alert.alert('├ëxito', 'Campaña cancelada exitosamente');
             loadCampaign();
           } catch (error: any) {
-            Alert.alert('Error', error.response?.data?.message || 'No se pudo cancelar la campa├▒a');
+            Alert.alert('Error', error.response?.data?.message || 'No se pudo cancelar la campaña');
           } finally {
             setActionLoading(false);
           }
@@ -808,11 +808,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         {/* Campaign Info */}
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            Informaci├│n General
+            Información General
           </Text>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>C├│digo:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Código:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {campaign.code}
             </Text>
@@ -828,7 +828,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           {campaign.description && (
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Descripci├│n:
+                Descripción:
               </Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {campaign.description}
@@ -897,7 +897,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         {/* Statistics */}
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            Estad├¡sticas
+            Estadísticas
           </Text>
 
           <View style={styles.statsGrid}>
@@ -958,7 +958,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
       const endTime = new Date().getTime();
       logger.info('✅ PDF descargado del servidor');
-      logger.info('📦 Tama├▒o del PDF:', pdfBlob.size, 'bytes');
+      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
       logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       if (Platform.OS === 'web') {
@@ -974,7 +974,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         // Clean up the blob URL after a short delay
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
 
-        Alert.alert('├ëxito', 'El reporte se est├í descargando');
+        Alert.alert('├ëxito', 'El reporte se está descargando');
       } else {
         // For mobile (iOS/Android), save to file system and share
         const timestamp = new Date().getTime();
@@ -1022,7 +1022,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const handleCopyParticipantsFromCampaign = useCallback(async (sourceCampaign: Campaign) => {
     try {
       if (!sourceCampaign || !sourceCampaign.participants) {
-        Alert.alert('Error', 'No se encontraron participantes en la campa├▒a seleccionada');
+        Alert.alert('Error', 'No se encontraron participantes en la campaña seleccionada');
         setActionLoading(false);
         return;
       }
@@ -1064,7 +1064,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           [{ text: 'OK', onPress: () => loadCampaign() }]
         );
       } else {
-        Alert.alert('Error', 'No se pudo copiar ning├║n participante');
+        Alert.alert('Error', 'No se pudo copiar ningún participante');
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudieron copiar los participantes');
@@ -1088,7 +1088,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const otherCampaigns = response.data.filter((c) => c.id !== campaignId);
 
       if (otherCampaigns.length === 0) {
-        Alert.alert('Error', 'No hay otras campa├▒as disponibles para copiar participantes');
+        Alert.alert('Error', 'No hay otras campañas disponibles para copiar participantes');
         setActionLoading(false);
         return;
       }
@@ -1097,13 +1097,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const latestCampaign = otherCampaigns[0];
 
       // Load the full campaign details with participants
-      logger.info('≡ƒôÑ Cargando participantes de la campa├▒a:', latestCampaign.code);
+      logger.info('≡ƒôÑ Cargando participantes de la campaña:', latestCampaign.code);
       const fullCampaign = await campaignsService.getCampaign(latestCampaign.id);
 
       if (!fullCampaign.participants || fullCampaign.participants.length === 0) {
         Alert.alert(
           'Error',
-          `La campa├▒a "${latestCampaign.code} - ${latestCampaign.name}" no tiene participantes para copiar`
+          `La campaña "${latestCampaign.code} - ${latestCampaign.name}" no tiene participantes para copiar`
         );
         setActionLoading(false);
         return;
@@ -1112,7 +1112,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // Show confirmation dialog
       Alert.alert(
         'Copiar Participantes',
-        `┬┐Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campa├▒a "${latestCampaign.code} - ${latestCampaign.name}"?`,
+        `┬┐Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campaña "${latestCampaign.code} - ${latestCampaign.name}"?`,
         [
           {
             text: 'Cancelar',
@@ -1127,7 +1127,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       );
     } catch (error: any) {
       logger.error('Error loading campaigns for copy:', error);
-      Alert.alert('Error', error.message || 'No se pudieron cargar las campa├▒as');
+      Alert.alert('Error', error.message || 'No se pudieron cargar las campañas');
       setActionLoading(false);
     }
   }, [campaignId, handleCopyParticipantsFromCampaign]);
@@ -1448,7 +1448,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const handleDeleteProduct = useCallback(async (product: CampaignProduct) => {
     Alert.alert(
       'Eliminar Producto',
-      `┬┐Est├ís seguro de eliminar "${product.product?.title || 'este producto'}" de la campa├▒a?`,
+      `┬┐Estás seguro de eliminar "${product.product?.title || 'este producto'}" de la campaña?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -1476,7 +1476,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 return rest;
               });
 
-              Alert.alert('├ëxito', 'Producto eliminado de la campa├▒a');
+              Alert.alert('├ëxito', 'Producto eliminado de la campaña');
             } catch (error: any) {
               logger.error('Error deleting product:', error);
               Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
@@ -1505,7 +1505,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       return;
     }
 
-    logger.debug('≡ƒöä [BANNER] Actualizando producto espec├¡fico:', selectedProduct.id);
+    logger.debug('≡ƒöä [BANNER] Actualizando producto específico:', selectedProduct.id);
 
     try {
       // Use provided updated product or fetch it
@@ -1541,11 +1541,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // Update selected product
       setSelectedProduct(updatedProduct);
 
-      logger.debug('✅ [BANNER] Producto actualizado en la lista sin recargar toda la campa├▒a');
+      logger.debug('✅ [BANNER] Producto actualizado en la lista sin recargar toda la campaña');
     } catch (error: any) {
       logger.error('❌ [BANNER] Error actualizando producto:', error);
       // Fallback: reload entire campaign
-      logger.debug('⚠️ [BANNER] Fallback: recargando toda la campa├▒a');
+      logger.debug('⚠️ [BANNER] Fallback: recargando toda la campaña');
       loadCampaign();
     }
   }, [selectedProduct, campaignId, loadCampaign]);
@@ -1559,13 +1559,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         newSet.add(productId);
 
         // OPTIMIZATION: Cargar precios solo cuando se expande por primera vez
-        // Solo si no est├ín ya cargados y el producto existe en el cat├ílogo
+        // Solo si no están ya cargados y el producto existe en el catálogo
         if (!productSalePrices[productId]) {
           const productDetails = products[productId];
           const isPreliminary = productDetails && (productDetails as any).status === 'preliminary';
 
           if (productDetails && !isPreliminary) {
-            logger.debug('ΓÜí [PERF] Cargando precios para producto expandido:', productId);
+            logger.debug('⚡ [PERF] Cargando precios para producto expandido:', productId);
 
             // Cargar precios en background
             priceProfilesApi.getProductSalePrices(productId)
@@ -1620,13 +1620,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
       await productsApi.updateProduct(productId, { costCents });
 
-      // ✅ Invalidar cach├⌐ V2 para reflejar cambios inmediatamente en b├║squedas
+      // ✅ Invalidar caché V2 para reflejar cambios inmediatamente en búsquedas
       try {
         await productsApi.invalidateProductsCacheV2();
-        logger.info('✅ Cach├⌐ V2 invalidado despu├⌐s de actualizar costo');
+        logger.info('✅ Caché V2 invalidado después de actualizar costo');
       } catch (cacheError) {
-        logger.warn('⚠️ No se pudo invalidar cach├⌐ V2:', cacheError);
-        // No bloqueamos la operaci├│n si falla la invalidaci├│n
+        logger.warn('⚠️ No se pudo invalidar caché V2:', cacheError);
+        // No bloqueamos la operación si falla la invalidación
       }
 
       // Update local state instead of reloading everything
@@ -2328,29 +2328,33 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               {/* Show filtered products from campaign */}
               {filteredProducts.length === 0 && searchQuery.trim() ? (
                 <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                  No se encontraron productos en la campa├▒a que coincidan con "{searchQuery}"
+                  No se encontraron productos en la campaña que coincidan con "{searchQuery}"
                 </Text>
               ) : (
                 <FlatList
                   data={paginatedProducts}
                   renderItem={renderProductItem}
                   keyExtractor={keyExtractor}
-                  initialNumToRender={10}
-                  maxToRenderPerBatch={10}
-                  windowSize={5}
-                  removeClippedSubviews={true}
-                  scrollEnabled={false}
-                  nestedScrollEnabled={false}
+                  initialNumToRender={15}
+                  maxToRenderPerBatch={15}
+                  windowSize={3}
+                  removeClippedSubviews={Platform.OS === 'android'}
+                  updateCellsBatchingPeriod={50}
+                  getItemLayout={(data, index) => ({
+                    length: 200,
+                    offset: 200 * index,
+                    index,
+                  })}
+                  onEndReached={handleLoadMore}
+                  onEndReachedThreshold={0.5}
                   ListFooterComponent={
                     displayedItemsCount < filteredProducts.length ? (
-                      <TouchableOpacity
-                        style={styles.loadMoreButton}
-                        onPress={handleLoadMore}
-                      >
-                        <Text style={styles.loadMoreButtonText}>
-                          Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
+                      <View style={styles.loadingMoreContainer}>
+                        <ActivityIndicator size="small" color="#6366F1" />
+                        <Text style={styles.loadingMoreText}>
+                          Cargando más... ({displayedItemsCount} de {filteredProducts.length})
                         </Text>
-                      </TouchableOpacity>
+                      </View>
                     ) : filteredProducts.length > ITEMS_PER_PAGE ? (
                       <View style={styles.endOfListContainer}>
                         <Text style={styles.endOfListText}>
@@ -2485,7 +2489,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando campa├▒a...</Text>
+          <Text style={styles.loadingText}>Cargando campaña...</Text>
         </View>
       </SafeAreaView>
     );
@@ -2536,7 +2540,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   isTablet && styles.cancelCampaignButtonTextTablet,
                 ]}
               >
-                Cancelar Campa├▒a
+                Cancelar Campaña
               </Text>
             </TouchableOpacity>
 
@@ -2551,7 +2555,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 <Text
                   style={[styles.activateButtonText, isTablet && styles.activateButtonTextTablet]}
                 >
-                  Activar Campa├▒a
+                  Activar Campaña
                 </Text>
               )}
             </TouchableOpacity>
@@ -2569,7 +2573,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={[styles.closeButtonText, isTablet && styles.closeButtonTextTablet]}>
-                  Cerrar Campa├▒a
+                  Cerrar Campaña
                 </Text>
               )}
             </TouchableOpacity>
@@ -2695,7 +2699,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   </View>
 
                   <View style={styles.customAddModalStockInfo}>
-                    <Text style={styles.customAddModalStockTitle}>Informaci├│n de Stock:</Text>
+                    <Text style={styles.customAddModalStockTitle}>Información de Stock:</Text>
                     {(() => {
                       const stockInfo = getProductStock(selectedProductForCustomAdd);
                       const isPreliminary = selectedProductForCustomAdd.status === 'preliminary';
@@ -4200,6 +4204,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  loadingMoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 12,
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
   },
   endOfListContainer: {
     paddingVertical: 16,
