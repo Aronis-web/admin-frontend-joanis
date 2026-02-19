@@ -75,6 +75,14 @@ const menuCategories: MenuCategory[] = [
         color: '#10B981',
         requiredPermissions: ['products.read'],
       },
+      {
+        id: 'fotos',
+        icon: '📸',
+        label: 'Fotos',
+        route: MAIN_ROUTES.PHOTOS,
+        color: '#EC4899',
+        requiredPermissions: ['products.read'],
+      },
     ],
   },
   // Compras - Sin submenú
