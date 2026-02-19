@@ -33,6 +33,7 @@ export type MainStackParamList = {
   // Products & Inventory
   Products: undefined;
   Stock: undefined;
+  Photos: undefined;
 
   // Purchases
   Purchases: undefined;
@@ -100,6 +101,9 @@ export type MainStackParamList = {
   // Suppliers
   Suppliers: undefined;
   SupplierDetail: {
+    supplierId: string;
+  };
+  SupplierDebts: {
     supplierId: string;
   };
 

@@ -168,7 +168,7 @@ class CampaignsService {
     return apiClient.get<CampaignProduct[]>(`${this.basePath}/${campaignId}/products`, {
       params: {
         include:
-          'product.category,product.presentations,product.salePrices,product.stockItems.warehouse,product.stockItems.area,purchase',
+          'product.category,product.presentations,product.salePrices,purchase',
       },
     });
   }

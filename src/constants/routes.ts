@@ -25,6 +25,7 @@ export const MAIN_ROUTES = {
   // Products & Inventory
   PRODUCTS: 'Products',
   STOCK: 'Stock',
+  PHOTOS: 'Photos',
 
   // Purchases
   PURCHASES: 'Purchases',
@@ -155,6 +156,7 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
   dashboard: 'HOME',
   productos: 'PRODUCTS',
   stock: 'STOCK',
+  fotos: 'PHOTOS',
   compras: 'PURCHASES',
   'gastos-templates': 'CREATE_EXPENSE_TEMPLATE',
   'gastos-lista': 'EXPENSES',
@@ -187,6 +189,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Products & Inventory
   PRODUCTS: 'products.read',
   STOCK: 'products.read',
+  PHOTOS: 'products.read',
 
   // Purchases
   PURCHASES: 'purchases.read',

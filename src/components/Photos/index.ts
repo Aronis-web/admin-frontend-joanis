@@ -1,0 +1,1 @@
+export { ProductPhotosModal } from './ProductPhotosModal';

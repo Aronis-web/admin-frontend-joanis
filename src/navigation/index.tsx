@@ -41,6 +41,7 @@ const WarehouseAreasScreen = lazyLoad(() => import('@/screens/Warehouses').then(
 const PermissionsDebugScreen = lazyLoad(() => import('@/screens/Debug/PermissionsDebugScreen').then(m => ({ default: m.PermissionsDebugScreen })));
 const ProductsScreen = lazyLoad(() => import('@/screens/Inventory/ProductsScreen').then(m => ({ default: m.ProductsScreen })), 'Cargando productos...');
 const StockScreen = lazyLoad(() => import('@/screens/Inventory/StockScreen').then(m => ({ default: m.StockScreen })), 'Cargando inventario...');
+const PhotosScreen = lazyLoad(() => import('@/screens/Photos/PhotosScreen').then(m => ({ default: m.PhotosScreen })), 'Cargando fotos...');
 const PriceProfilesScreen = lazyLoad(() => import('@/screens/PriceProfiles/PriceProfilesScreen').then(m => ({ default: m.PriceProfilesScreen })));
 const PresentationsScreen = lazyLoad(() => import('@/screens/Presentations/PresentationsScreen').then(m => ({ default: m.PresentationsScreen })));
 
@@ -124,6 +125,8 @@ const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').
 const EmissionPointsScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointsScreen })), 'Cargando puntos de emisión...');
 const EmissionPointSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointSeriesScreen })), 'Cargando series...');
 const CreateEmissionPointScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.CreateEmissionPointScreen })), 'Cargando formulario...');
+const CreateSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.CreateSeriesScreen })), 'Cargando formulario...');
+const EditSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EditSeriesScreen })), 'Cargando formulario...');
 
 // Bizlinks Screens - Lazy Loaded
 const BizlinksMenuScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksMenuScreen })), 'Cargando Bizlinks...');
@@ -293,6 +296,18 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['products.read']} requireAll={false}>
             <StockScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PHOTOS}
+        options={{
+          title: 'Fotos de Productos',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['products.read']} requireAll={false}>
+            <PhotosScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -936,6 +951,34 @@ const MainStack = React.memo(() => {
             requiredPermissions={['billing.emission-points.create']}
           >
             <CreateEmissionPointScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="CreateSeries"
+        options={{
+          title: 'Nueva Serie',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['billing.series.create']}
+          >
+            <CreateSeriesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="EditSeries"
+        options={{
+          title: 'Editar Serie',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['billing.series.update']}
+          >
+            <EditSeriesScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

@@ -67,3 +67,9 @@ export type {
   GpsCoordinates,
   UbigeosMap,
 } from './locations';
+
+export { geminiImageEditorApi } from './gemini-image-editor';
+export type {
+  GeminiEditImageRequest,
+  GeminiEditImageResponse,
+} from './gemini-image-editor';
