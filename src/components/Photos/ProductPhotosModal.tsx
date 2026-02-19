@@ -69,6 +69,24 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
     }
   }, [visible, product?.id]);
 
+  // Reset Gemini editor state when product changes
+  useEffect(() => {
+    if (visible && product?.id) {
+      // Clear Gemini editor states when switching products
+      setGeminiPrompt('');
+      setSelectedImageForGemini(null);
+      setEditedGeminiImage(null);
+      setShowGeminiPreview(false);
+
+      // Also clear Google Lens states
+      setLensResults([]);
+      setLensImageUrl('');
+
+      // Clear new images queue
+      setNewImages([]);
+    }
+  }, [product?.id]);
+
   const loadProductImages = async () => {
     try {
       setLoading(true);

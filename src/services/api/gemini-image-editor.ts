@@ -1,5 +1,6 @@
 import { config } from '@/utils/config';
 import { apiClient } from './client';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export interface GeminiEditImageRequest {
   file: string; // URI of the image file
@@ -47,7 +48,8 @@ export const geminiImageEditorApi = {
       formData.append('prompt', prompt);
 
       // Use apiClient to automatically include required headers (X-App-Id, Authorization, etc.)
-      const response = await apiClient.post<GeminiEditImageResponse>(
+      // Note: apiClient.post returns the data directly (not response.data) when using FormData
+      const data = await apiClient.post<GeminiEditImageResponse>(
         '/gemini-image-editor/edit',
         formData,
         {
@@ -60,13 +62,13 @@ export const geminiImageEditorApi = {
 
       console.log('✅ [Gemini] Image edited successfully');
       console.log('📊 [Gemini] Response:', {
-        success: response.data.success,
-        mimeType: response.data.mimeType,
-        prompt: response.data.prompt,
-        imageSize: response.data.editedImageBase64?.length || 0,
+        success: data.success,
+        mimeType: data.mimeType,
+        prompt: data.prompt,
+        imageSize: data.editedImageBase64?.length || 0,
       });
 
-      return response.data;
+      return data;
     } catch (error: any) {
       console.error('❌ [Gemini] Error editing image:', error);
       const errorMessage = error.response?.data?.message || error.message || 'No se pudo editar la imagen con Gemini';
@@ -97,8 +99,25 @@ export const geminiImageEditorApi = {
     filename: string
   ): Promise<string> {
     try {
-      // Dynamically import FileSystem
-      const FileSystem = await import('expo-file-system');
+      console.log('🔍 [Gemini] FileSystem module:', {
+        hasFileSystem: !!FileSystem,
+        hasCacheDirectory: !!FileSystem?.cacheDirectory,
+        hasWriteAsStringAsync: !!FileSystem?.writeAsStringAsync,
+        hasEncodingType: !!FileSystem?.EncodingType,
+        encodingTypeKeys: FileSystem?.EncodingType ? Object.keys(FileSystem.EncodingType) : [],
+      });
+
+      if (!FileSystem) {
+        throw new Error('FileSystem module is not available');
+      }
+
+      if (!FileSystem.cacheDirectory) {
+        throw new Error('FileSystem.cacheDirectory is not available');
+      }
+
+      if (!FileSystem.EncodingType) {
+        throw new Error('FileSystem.EncodingType is not available');
+      }
 
       const fileUri = `${FileSystem.cacheDirectory}${filename}`;
 
@@ -111,6 +130,10 @@ export const geminiImageEditorApi = {
       return fileUri;
     } catch (error: any) {
       console.error('❌ [Gemini] Error saving base64 to file:', error);
+      console.error('❌ [Gemini] Error details:', {
+        message: error.message,
+        stack: error.stack,
+      });
       throw new Error('No se pudo guardar la imagen editada');
     }
   },

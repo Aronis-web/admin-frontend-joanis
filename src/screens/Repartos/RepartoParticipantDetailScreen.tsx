@@ -166,7 +166,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const { hasPermission } = usePermissions();
 
   const loadData = useCallback(async () => {
@@ -710,8 +710,18 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         const fileName = `guia-remision-${remissionGuideInfo.remissionGuideNumber?.replace(/\s+/g, '-')}-${timestamp}.pdf`;
         const file = new FileSystem.File(FileSystem.Paths.document, fileName);
 
-        // Descargar el archivo
-        const response = await fetch(pdfUrl);
+        // Preparar headers con X-App-Id y Authorization
+        const headers: Record<string, string> = {
+          'X-App-Id': config.APP_ID,
+          'x-app-id': config.APP_ID,
+        };
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        // Descargar el archivo con headers
+        const response = await fetch(pdfUrl, { headers });
         const blob = await response.blob();
 
         // Convert blob to array buffer
