@@ -1,4 +1,5 @@
 import { config } from '@/utils/config';
+import { apiClient } from './client';
 
 export interface GeminiEditImageRequest {
   file: string; // URI of the image file
@@ -45,37 +46,31 @@ export const geminiImageEditorApi = {
       formData.append('file', imageFile);
       formData.append('prompt', prompt);
 
-      // Make the request
-      const response = await fetch(`${config.API_URL}/gemini-image-editor/edit`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          // Don't set Content-Type - let the browser set it with boundary
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `Error al editar imagen: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const data: GeminiEditImageResponse = await response.json();
+      // Use apiClient to automatically include required headers (X-App-Id, Authorization, etc.)
+      const response = await apiClient.post<GeminiEditImageResponse>(
+        '/gemini-image-editor/edit',
+        formData,
+        {
+          headers: {
+            // Don't set Content-Type - apiClient will handle it for FormData
+            Accept: 'application/json',
+          },
+        }
+      );
 
       console.log('✅ [Gemini] Image edited successfully');
       console.log('📊 [Gemini] Response:', {
-        success: data.success,
-        mimeType: data.mimeType,
-        prompt: data.prompt,
-        imageSize: data.editedImageBase64?.length || 0,
+        success: response.data.success,
+        mimeType: response.data.mimeType,
+        prompt: response.data.prompt,
+        imageSize: response.data.editedImageBase64?.length || 0,
       });
 
-      return data;
+      return response.data;
     } catch (error: any) {
       console.error('❌ [Gemini] Error editing image:', error);
-      throw new Error(error.message || 'No se pudo editar la imagen con Gemini');
+      const errorMessage = error.response?.data?.message || error.message || 'No se pudo editar la imagen con Gemini';
+      throw new Error(errorMessage);
     }
   },
 
