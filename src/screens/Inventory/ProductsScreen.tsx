@@ -18,7 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { ProductFormModal } from '@/components/Inventory/ProductFormModal';
-import { ProductImagesModal } from '@/components/Inventory/ProductImagesModal';
+import { ProductPhotosModal } from '@/components/Photos';
 import { ProductPriceProfilesModal } from '@/components/Inventory/ProductPriceProfilesModal';
 import { productsApi, Product } from '@/services/api/products';
 import { AddButton } from '@/components/Navigation/AddButton';
@@ -82,12 +82,16 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       page,
       limit,
       ...(statusFilter !== 'all' && { status: statusFilter }),
-      ...(debouncedSearchQuery.trim() && { q: debouncedSearchQuery.trim() }),
+      ...(debouncedSearchQuery.trim() && {
+        q: debouncedSearchQuery.trim(),
+        // ✅ Conectar searchType para búsqueda específica
+        ...(searchType !== 'all' && { searchField: searchType }),
+      }),
       include: 'images', // ✅ Incluir imágenes en la respuesta
       sortBy: 'correlativeNumber', // ✅ Ordenar por número correlativo
-      sortOrder: 'desc', // ✅ De mayor a menor (descendente)
+      sortOrder: 'desc' as const, // ✅ De mayor a menor (descendente)
     }),
-    [page, statusFilter, debouncedSearchQuery]
+    [page, statusFilter, debouncedSearchQuery, searchType] // ✅ Agregar searchType a dependencias
   );
 
   const {
@@ -560,13 +564,27 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                         )}
                       </View>
                     </View>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        { backgroundColor: getStatusColor(product.status) },
-                      ]}
-                    >
-                      <Text style={styles.statusText}>{getStatusText(product.status)}</Text>
+                    <View style={styles.badgesContainer}>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          { backgroundColor: getStatusColor(product.status) },
+                        ]}
+                      >
+                        <Text style={styles.statusText}>{getStatusText(product.status)}</Text>
+                      </View>
+                      {/* ✅ Badge para productos sin fotos */}
+                      {!(() => {
+                        const hasImage =
+                          (product.photos && product.photos.length > 0) ||
+                          product.imageUrl ||
+                          (product.imageUrls && product.imageUrls.length > 0);
+                        return hasImage;
+                      })() && (
+                        <View style={styles.noPhotoBadge}>
+                          <Text style={styles.noPhotoBadgeText}>📷 Sin foto</Text>
+                        </View>
+                      )}
                     </View>
                   </View>
 
@@ -751,9 +769,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         mode={modalMode}
       />
 
-      {/* Product Images Modal */}
+      {/* Product Photos Modal */}
       {selectedProductForImages && (
-        <ProductImagesModal
+        <ProductPhotosModal
           visible={isImagesModalVisible}
           onClose={() => setIsImagesModalVisible(false)}
           onSuccess={handleProductSuccess}
@@ -1358,6 +1376,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#D97706',
   },
+  badgesContainer: {
+    flexDirection: 'column',
+    gap: 6,
+    alignItems: 'flex-end',
+  },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1367,6 +1390,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  noPhotoBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  noPhotoBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#DC2626',
   },
   warningBanner: {
     flexDirection: 'row',
