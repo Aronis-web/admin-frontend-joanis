@@ -410,13 +410,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   refreshAccessToken: async () => {
     try {
-      await authService.refreshToken();
+      const refreshResponse = await authService.refreshToken();
       const newToken = authService.getAccessToken();
 
       if (newToken) {
-        // Update store with new token from authService (already synced)
-        // Note: authService already has the new token, just update the store
-        set({ token: newToken });
+        // Check if "Remember Me" is enabled
+        const rememberMeStr = await secureStorage.getItem(config.STORAGE_KEYS.REMEMBER_ME);
+        const rememberMe = rememberMeStr === 'true';
+
+        // Calculate new expiration time
+        let expiresAt: number | null = null;
+        if (rememberMe) {
+          // If "Remember Me" is enabled, extend session to 30 days from now
+          expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
+          console.log('🔐 Token refreshed with extended session (30 days)');
+        } else if (refreshResponse.accessTokenExpiresIn) {
+          // Use server-provided expiration
+          expiresAt = Date.now() + refreshResponse.accessTokenExpiresIn * 1000;
+          console.log('🔐 Token refreshed with standard expiration');
+        }
+
+        // Update expiration in storage
+        if (expiresAt) {
+          await secureStorage.setItem(config.STORAGE_KEYS.TOKEN_EXPIRES_AT, expiresAt.toString());
+        }
+
+        // Update store with new token and expiration
+        set({
+          token: newToken,
+          tokenExpiresAt: expiresAt,
+        });
         console.log('✅ Token refreshed and synced with store');
         return true;
       }

@@ -324,11 +324,25 @@ class AuthService {
   private async updateTokens(data: RefreshTokenResponse): Promise<void> {
     this.accessToken = data.accessToken;
     this.refreshTokenValue = data.refreshToken;
-    this.tokenExpiresAt = data.accessTokenExpiresIn
-      ? Date.now() + data.accessTokenExpiresIn * 1000
-      : null;
 
     try {
+      // Check if "Remember Me" is enabled
+      const rememberMeStr = await secureStorage.getItem(config.STORAGE_KEYS.REMEMBER_ME);
+      const rememberMe = rememberMeStr === 'true';
+
+      // Calculate expiration time
+      if (rememberMe) {
+        // If "Remember Me" is enabled, extend session to 30 days from now
+        this.tokenExpiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
+        console.log('🔐 AuthService: Token updated with extended session (30 days)');
+      } else if (data.accessTokenExpiresIn) {
+        // Use server-provided expiration
+        this.tokenExpiresAt = Date.now() + data.accessTokenExpiresIn * 1000;
+        console.log('🔐 AuthService: Token updated with standard expiration');
+      } else {
+        this.tokenExpiresAt = null;
+      }
+
       // Store sensitive data in secure storage (encrypted)
       await secureStorage.setItem(config.STORAGE_KEYS.AUTH_TOKEN, data.accessToken);
       if (data.refreshToken) {

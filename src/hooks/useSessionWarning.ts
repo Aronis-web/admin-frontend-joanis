@@ -3,8 +3,9 @@ import { useAuthStore } from '@/store/auth';
 
 /**
  * Hook to automatically refresh the session token before it expires
- * Refreshes the token automatically when 10 minutes or less remain
+ * Refreshes the token automatically when 15 minutes or less remain
  * Checks every 30 seconds for better responsiveness
+ * Respects "Remember Me" setting to extend sessions to 30 days
  */
 export const useSessionWarning = () => {
   const { tokenExpiresAt, isAuthenticated, refreshAccessToken } = useAuthStore();
@@ -26,16 +27,16 @@ export const useSessionWarning = () => {
     checkIntervalRef.current = setInterval(async () => {
       const now = Date.now();
       const timeUntilExpiry = tokenExpiresAt - now;
-      const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+      const fifteenMinutes = 15 * 60 * 1000; // 15 minutes in milliseconds
       const timeSinceLastRefresh = now - lastRefreshAttemptRef.current;
-      const minTimeBetweenRefreshes = 2 * 60 * 1000; // Don't refresh more than once every 2 minutes
+      const minTimeBetweenRefreshes = 1 * 60 * 1000; // Don't refresh more than once every 1 minute
 
       // Auto-refresh token if:
-      // 1. Less than 10 minutes remaining (increased from 5 for safety)
-      // 2. At least 2 minutes have passed since last refresh attempt
+      // 1. Less than 15 minutes remaining (increased from 10 for better safety margin)
+      // 2. At least 1 minute has passed since last refresh attempt (reduced from 2 for faster response)
       if (
         timeUntilExpiry > 0 &&
-        timeUntilExpiry <= tenMinutes &&
+        timeUntilExpiry <= fifteenMinutes &&
         timeSinceLastRefresh >= minTimeBetweenRefreshes
       ) {
         lastRefreshAttemptRef.current = now;
@@ -58,7 +59,7 @@ export const useSessionWarning = () => {
       }
 
       // Reset last refresh time if token was refreshed externally (expiry time changed significantly)
-      if (timeUntilExpiry > tenMinutes) {
+      if (timeUntilExpiry > fifteenMinutes) {
         lastRefreshAttemptRef.current = 0;
       }
     }, 30000); // Check every 30 seconds (more responsive than 60 seconds)
