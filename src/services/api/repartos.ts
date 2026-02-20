@@ -559,7 +559,11 @@ class RepartosService {
    */
   async generateRemissionGuide(
     campaignParticipantId: string,
-    campaignId: string
+    campaignId: string,
+    transportData?: {
+      vehicleId: string;
+      driverId: string;
+    }
   ): Promise<{
     success: boolean;
     remissionGuide: {
@@ -590,7 +594,8 @@ class RepartosService {
       };
       message: string;
     }>(
-      `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/generate-remission-guide`
+      `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/generate-remission-guide`,
+      transportData
     );
   }
 

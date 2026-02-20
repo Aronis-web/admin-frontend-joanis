@@ -139,6 +139,10 @@ const BizlinksDocumentDetailScreen = lazyLoad(() => import('@/screens/Bizlinks')
 const BizlinksSelectSeriesScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksSelectSeriesScreen })), 'Cargando series...');
 const BizlinksEmitirFacturaScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksEmitirFacturaScreen })), 'Cargando formulario...');
 
+// Transport Screens - Lazy Loaded
+const VehiclesScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.VehiclesScreen })), 'Cargando vehículos...');
+const DriversScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.DriversScreen })), 'Cargando conductores...');
+
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -1173,6 +1177,22 @@ const MainStack = React.memo(() => {
         component={SiteSelectionScreen}
         options={{
           title: 'Seleccionar Sede',
+        }}
+      />
+
+      {/* Transport Screens */}
+      <MainStackNavigator.Screen
+        name="Vehicles"
+        component={VehiclesScreen}
+        options={{
+          title: 'Vehículos',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="Drivers"
+        component={DriversScreen}
+        options={{
+          title: 'Conductores',
         }}
       />
     </MainStackNavigator.Navigator>

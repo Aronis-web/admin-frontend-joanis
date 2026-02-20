@@ -21,6 +21,7 @@ export * from './suppliers';
 export * from './transfers';
 export * from './campaigns';
 export * from './repartos';
+export * from './transport';
 export * from './users';
 
 // Export roles API (avoid GetPermissionsParams conflict with apps)

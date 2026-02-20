@@ -26,11 +26,13 @@ import {
   DiscrepanciasModal,
   NotasDiscrepanciaModal,
 } from '@/components/Repartos';
+import { VehicleSelectionModal, DriverSelectionModal } from '@/components/Transport';
 import { TransferReportDiscrepancy } from '@/types/consolidated-reports';
 import { useAuthStore } from '@/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
 import logger from '@/utils/logger';
 import { config } from '@/utils/config';
+import { Driver, Vehicle } from '@/types/transport';
 
 interface RepartoParticipantDetailScreenProps {
   navigation: any;
@@ -142,6 +144,10 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     transferNumber: string | null;
     generatedAt: string | null;
   } | null>(null);
+  const [vehicleModalVisible, setVehicleModalVisible] = useState(false);
+  const [driverModalVisible, setDriverModalVisible] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [remissionGuideInfo, setRemissionGuideInfo] = useState<{
     exists: boolean;
     remissionGuideId: string | null;
@@ -618,15 +624,38 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       return;
     }
 
-    const participantName =
-      participant.participantType === ParticipantType.EXTERNAL_COMPANY
-        ? participant.company?.alias || participant.company?.name || 'Empresa'
-        : participant.site?.name || 'Sede';
+    // Abrir modal de selección de vehículo primero
+    setVehicleModalVisible(true);
+  };
 
-    // Confirmar acción
+  const handleVehicleSelected = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
+    setVehicleModalVisible(false);
+    // Después de seleccionar vehículo, abrir modal de conductor
+    setDriverModalVisible(true);
+  };
+
+  const handleDriverSelected = async (driver: Driver) => {
+    setSelectedDriver(driver);
+    setDriverModalVisible(false);
+
+    if (!selectedVehicle) {
+      Alert.alert('Error', 'No se seleccionó un vehículo');
+      return;
+    }
+
+    const participantName =
+      participant?.participantType === ParticipantType.EXTERNAL_COMPANY
+        ? participant.company?.alias || participant.company?.name || 'Empresa'
+        : participant?.site?.name || 'Sede';
+
+    // Confirmar acción con los datos seleccionados
     Alert.alert(
       'Generar Guía de Remisión',
       `¿Estás seguro de que deseas generar la guía de remisión electrónica para ${participantName}?\n\n` +
+        `🚗 Vehículo: ${selectedVehicle.numeroPlaca} (${selectedVehicle.marca} ${selectedVehicle.modelo})\n` +
+        `👤 Conductor: ${driver.nombre} ${driver.apellido}\n` +
+        `📋 Licencia: ${driver.numeroLicencia}\n\n` +
         'Esta acción:\n' +
         '• Generará una guía de remisión tipo 09 (Traslado)\n' +
         '• Se enviará automáticamente a SUNAT\n' +
@@ -635,6 +664,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         {
           text: 'Cancelar',
           style: 'cancel',
+          onPress: () => {
+            // Limpiar selecciones si cancela
+            setSelectedVehicle(null);
+            setSelectedDriver(null);
+          },
         },
         {
           text: 'Generar',
@@ -643,10 +677,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             try {
               setGeneratingRemissionGuide(true);
               logger.info('🔄 Generando guía de remisión para:', participantName);
+              logger.info('🚗 Vehículo:', selectedVehicle.numeroPlaca);
+              logger.info('👤 Conductor:', `${driver.nombre} ${driver.apellido}`);
 
               const response = await repartosService.generateRemissionGuide(
                 participantId,
-                campaignId
+                campaignId,
+                {
+                  vehicleId: selectedVehicle.id,
+                  driverId: driver.id,
+                }
               );
 
               logger.info('✅ Guía de remisión generada:', response);
@@ -656,11 +696,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 `Guía de remisión generada exitosamente:\n\n` +
                   `📄 Número: ${response.remissionGuide.serieNumero}\n` +
                   `✅ Estado: ${response.remissionGuide.status}\n` +
-                  `📦 Traslado: ${response.transfer.transferNumber}`,
+                  `📦 Traslado: ${response.transfer.transferNumber}\n` +
+                  `🚗 Vehículo: ${selectedVehicle.numeroPlaca}\n` +
+                  `👤 Conductor: ${driver.nombre} ${driver.apellido}`,
                 [
                   {
                     text: 'Aceptar',
                     onPress: () => {
+                      // Limpiar selecciones
+                      setSelectedVehicle(null);
+                      setSelectedDriver(null);
                       loadData(); // Recargar datos para actualizar el estado
                     },
                   },
@@ -672,6 +717,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 'Error',
                 error.response?.data?.message || 'No se pudo generar la guía de remisión'
               );
+              // Limpiar selecciones en caso de error
+              setSelectedVehicle(null);
+              setSelectedDriver(null);
             } finally {
               setGeneratingRemissionGuide(false);
             }
@@ -1417,6 +1465,29 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             setSelectedDiscrepancy(null);
           }}
           onNotesUpdated={handleNotesUpdated}
+        />
+
+        {/* Vehicle Selection Modal */}
+        <VehicleSelectionModal
+          visible={vehicleModalVisible}
+          onClose={() => {
+            setVehicleModalVisible(false);
+            setSelectedVehicle(null);
+          }}
+          onSelect={handleVehicleSelected}
+          selectedVehicleId={selectedVehicle?.id}
+        />
+
+        {/* Driver Selection Modal */}
+        <DriverSelectionModal
+          visible={driverModalVisible}
+          onClose={() => {
+            setDriverModalVisible(false);
+            setSelectedDriver(null);
+            setSelectedVehicle(null); // También limpiar vehículo si cancela
+          }}
+          onSelect={handleDriverSelected}
+          selectedDriverId={selectedDriver?.id}
         />
       </SafeAreaView>
     </ScreenLayout>
