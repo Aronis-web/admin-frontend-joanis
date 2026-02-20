@@ -236,6 +236,15 @@ class PurchasesService {
     );
   }
 
+  /**
+   * Delete all validations for a purchase
+   */
+  async deleteValidations(purchaseId: string): Promise<{ deletedCount: number; message: string }> {
+    return apiClient.delete<{ deletedCount: number; message: string }>(
+      `${this.basePath}/${purchaseId}/validations`
+    );
+  }
+
   // ============================================
   // OCR Scanner
   // ============================================

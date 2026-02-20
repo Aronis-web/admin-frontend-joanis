@@ -140,9 +140,13 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     try {
       const response = await suppliersService.getSuppliers({ isActive: true });
       setSuppliers(response.data);
-      if (purchase?.supplier) {
-        setSelectedSupplier(purchase.supplier);
-        setSupplierSearchQuery(purchase.supplier.commercialName);
+      if (purchase?.supplier?.id) {
+        // Find the full supplier object from the list
+        const fullSupplier = response.data.find((s) => s.id === purchase.supplier?.id);
+        if (fullSupplier) {
+          setSelectedSupplier(fullSupplier);
+          setSupplierSearchQuery(fullSupplier.commercialName);
+        }
       }
     } catch (error) {
       console.error('Error loading suppliers:', error);
@@ -494,6 +498,45 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     ]);
   };
 
+  const handleDeleteValidations = async () => {
+    // Check if there are validated products
+    const hasValidatedProducts = products.some(
+      (p) => p.status === PurchaseProductStatus.VALIDATED
+    );
+
+    if (!hasValidatedProducts) {
+      Alert.alert('Información', 'No hay productos validados en esta compra');
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar Validaciones',
+      '¿Está seguro de eliminar todas las validaciones de productos de esta compra? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            setActionLoading(true);
+            try {
+              const result = await purchasesService.deleteValidations(purchaseId);
+              Alert.alert(
+                'Éxito',
+                `Se eliminaron ${result.deletedCount} validación(es) correctamente`
+              );
+              loadPurchase();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'No se pudieron eliminar las validaciones');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
@@ -556,6 +599,11 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     return (
       purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED
     );
+  };
+
+  const canDeleteValidations = () => {
+    // Can delete validations if there are validated products
+    return products.some((p) => p.status === PurchaseProductStatus.VALIDATED);
   };
 
   const renderProductCard = (product: PurchaseProduct) => {
@@ -1104,7 +1152,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       </ScrollView>
 
       {/* Action Buttons */}
-      {(canAssignDebts() || canClosePurchase() || canCancelPurchase()) && (
+      {(canAssignDebts() || canClosePurchase() || canCancelPurchase() || canDeleteValidations()) && (
         <View style={[styles.footer, isTablet && styles.footerTablet]}>
           {canCancelPurchase() && (
             <TouchableOpacity
@@ -1114,6 +1162,17 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
             >
               <Text style={[styles.cancelButtonText, isTablet && styles.cancelButtonTextTablet]}>
                 Cancelar Compra
+              </Text>
+            </TouchableOpacity>
+          )}
+          {canDeleteValidations() && (
+            <TouchableOpacity
+              style={[styles.deleteValidationsButton, isTablet && styles.deleteValidationsButtonTablet]}
+              onPress={handleDeleteValidations}
+              disabled={actionLoading}
+            >
+              <Text style={[styles.deleteValidationsButtonText, isTablet && styles.deleteValidationsButtonTextTablet]}>
+                🗑️ Eliminar Validaciones
               </Text>
             </TouchableOpacity>
           )}
@@ -2509,6 +2568,25 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   assignButtonTextTablet: {
+    fontSize: 17,
+  },
+  deleteValidationsButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+  },
+  deleteValidationsButtonTablet: {
+    paddingVertical: 16,
+    borderRadius: 14,
+  },
+  deleteValidationsButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  deleteValidationsButtonTextTablet: {
     fontSize: 17,
   },
   deleteButton: {
