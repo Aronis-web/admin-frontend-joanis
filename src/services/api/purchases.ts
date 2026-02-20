@@ -237,11 +237,14 @@ class PurchasesService {
   }
 
   /**
-   * Delete all validations for a purchase
+   * Delete all validations for a specific product
    */
-  async deleteValidations(purchaseId: string): Promise<{ deletedCount: number; message: string }> {
+  async deleteProductValidations(
+    purchaseId: string,
+    productId: string
+  ): Promise<{ deletedCount: number; message: string }> {
     return apiClient.delete<{ deletedCount: number; message: string }>(
-      `${this.basePath}/${purchaseId}/validations`
+      `${this.basePath}/${purchaseId}/products/${productId}/validations`
     );
   }
 

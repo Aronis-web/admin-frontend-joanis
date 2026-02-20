@@ -498,20 +498,10 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     ]);
   };
 
-  const handleDeleteValidations = async () => {
-    // Check if there are validated products
-    const hasValidatedProducts = products.some(
-      (p) => p.status === PurchaseProductStatus.VALIDATED
-    );
-
-    if (!hasValidatedProducts) {
-      Alert.alert('Información', 'No hay productos validados en esta compra');
-      return;
-    }
-
+  const handleDeleteProductValidations = async (product: PurchaseProduct) => {
     Alert.alert(
       'Eliminar Validaciones',
-      '¿Está seguro de eliminar todas las validaciones de productos de esta compra? Esta acción no se puede deshacer.',
+      `¿Está seguro de eliminar las validaciones del producto "${product.name}"? Esta acción no se puede deshacer.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -520,10 +510,10 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           onPress: async () => {
             setActionLoading(true);
             try {
-              const result = await purchasesService.deleteValidations(purchaseId);
+              const result = await purchasesService.deleteProductValidations(purchaseId, product.id);
               Alert.alert(
                 'Éxito',
-                `Se eliminaron ${result.deletedCount} validación(es) correctamente`
+                `Se eliminaron ${result.deletedCount} validación(es) del producto correctamente`
               );
               loadPurchase();
             } catch (error: any) {
@@ -599,11 +589,6 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     return (
       purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED
     );
-  };
-
-  const canDeleteValidations = () => {
-    // Can delete validations if there are validated products
-    return products.some((p) => p.status === PurchaseProductStatus.VALIDATED);
   };
 
   const renderProductCard = (product: PurchaseProduct) => {
@@ -777,6 +762,25 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
               style={[styles.infoProductButtonText, isTablet && styles.infoProductButtonTextTablet]}
             >
               📋 Información Registrada
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Delete validations button for VALIDATED products */}
+        {product.status === PurchaseProductStatus.VALIDATED && (
+          <TouchableOpacity
+            style={[styles.deleteValidationsProductButton, isTablet && styles.deleteValidationsProductButtonTablet]}
+            onPress={() => handleDeleteProductValidations(product)}
+            disabled={actionLoading}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.deleteValidationsProductButtonText,
+                isTablet && styles.deleteValidationsProductButtonTextTablet,
+              ]}
+            >
+              🗑️ Eliminar Validaciones
             </Text>
           </TouchableOpacity>
         )}
@@ -1152,7 +1156,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       </ScrollView>
 
       {/* Action Buttons */}
-      {(canAssignDebts() || canClosePurchase() || canCancelPurchase() || canDeleteValidations()) && (
+      {(canAssignDebts() || canClosePurchase() || canCancelPurchase()) && (
         <View style={[styles.footer, isTablet && styles.footerTablet]}>
           {canCancelPurchase() && (
             <TouchableOpacity
@@ -1162,17 +1166,6 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
             >
               <Text style={[styles.cancelButtonText, isTablet && styles.cancelButtonTextTablet]}>
                 Cancelar Compra
-              </Text>
-            </TouchableOpacity>
-          )}
-          {canDeleteValidations() && (
-            <TouchableOpacity
-              style={[styles.deleteValidationsButton, isTablet && styles.deleteValidationsButtonTablet]}
-              onPress={handleDeleteValidations}
-              disabled={actionLoading}
-            >
-              <Text style={[styles.deleteValidationsButtonText, isTablet && styles.deleteValidationsButtonTextTablet]}>
-                🗑️ Eliminar Validaciones
               </Text>
             </TouchableOpacity>
           )}
@@ -2570,25 +2563,6 @@ const styles = StyleSheet.create({
   assignButtonTextTablet: {
     fontSize: 17,
   },
-  deleteValidationsButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-  },
-  deleteValidationsButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  deleteValidationsButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  deleteValidationsButtonTextTablet: {
-    fontSize: 17,
-  },
   deleteButton: {
     width: 32,
     height: 32,
@@ -2652,6 +2626,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   infoProductButtonTextTablet: {
+    fontSize: 16,
+  },
+  deleteValidationsProductButton: {
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  deleteValidationsProductButtonTablet: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  deleteValidationsProductButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  deleteValidationsProductButtonTextTablet: {
     fontSize: 16,
   },
 });
