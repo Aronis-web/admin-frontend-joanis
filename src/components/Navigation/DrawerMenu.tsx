@@ -402,6 +402,23 @@ const menuCategories: MenuCategory[] = [
         color: '#8B5CF6',
         requiredPermissions: ['billing.emission-points.read', 'billing.series.read'],
       },
+      // Transporte
+      {
+        id: 'vehicles',
+        icon: '🚗',
+        label: 'Vehículos',
+        route: 'Vehicles',
+        color: '#06B6D4',
+        requiredPermissions: ['transport.vehicles.read'],
+      },
+      {
+        id: 'drivers',
+        icon: '👤',
+        label: 'Conductores',
+        route: 'Drivers',
+        color: '#14B8A6',
+        requiredPermissions: ['transport.drivers.read'],
+      },
       // Apps
       {
         id: 'apps',

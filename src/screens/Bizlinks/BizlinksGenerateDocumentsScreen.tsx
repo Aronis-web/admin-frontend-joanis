@@ -61,24 +61,6 @@ export const BizlinksGenerateDocumentsScreen: React.FC = () => {
       screen: 'BizlinksDocuments',
       available: true,
     },
-    {
-      id: 'vehicles',
-      title: 'Gestionar Vehículos',
-      description: 'Administrar vehículos para guías de remisión',
-      icon: '🚗',
-      color: '#06B6D4',
-      screen: 'Vehicles',
-      available: true,
-    },
-    {
-      id: 'drivers',
-      title: 'Gestionar Conductores',
-      description: 'Administrar conductores para guías de remisión',
-      icon: '👤',
-      color: '#14B8A6',
-      screen: 'Drivers',
-      available: true,
-    },
   ];
 
   return (
