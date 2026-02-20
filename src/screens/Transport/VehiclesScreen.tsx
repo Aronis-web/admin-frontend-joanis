@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { transportService } from '@/services/api';
 import { Vehicle, VehicleStatus } from '@/types/transport';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { AddButton } from '@/components/Navigation/AddButton';
 
 interface VehiclesScreenProps {
   navigation: any;
@@ -101,13 +102,18 @@ export const VehiclesScreen: React.FC<VehiclesScreenProps> = ({ navigation }) =>
     }
   };
 
+  const handleAddVehicle = () => {
+    navigation.navigate('VehicleDetail', {});
+  };
+
+  const handleVehiclePress = (vehicle: Vehicle) => {
+    navigation.navigate('VehicleDetail', { vehicleId: vehicle.id });
+  };
+
   const renderVehicleItem = ({ item }: { item: Vehicle }) => (
     <TouchableOpacity
       style={styles.vehicleCard}
-      onPress={() => {
-        // TODO: Navigate to vehicle detail/edit screen
-        Alert.alert('Vehículo', `Placa: ${item.numeroPlaca}`);
-      }}
+      onPress={() => handleVehiclePress(item)}
       activeOpacity={0.7}
     >
       <View style={styles.vehicleHeader}>
@@ -174,10 +180,7 @@ export const VehiclesScreen: React.FC<VehiclesScreenProps> = ({ navigation }) =>
           <Text style={styles.headerTitle}>Vehículos</Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => {
-              // TODO: Navigate to create vehicle screen
-              Alert.alert('Próximamente', 'Función de agregar vehículo en desarrollo');
-            }}
+            onPress={handleAddVehicle}
           >
             <Ionicons name="add" size={24} color="#6366F1" />
           </TouchableOpacity>
@@ -222,6 +225,9 @@ export const VehiclesScreen: React.FC<VehiclesScreenProps> = ({ navigation }) =>
             }
           />
         )}
+
+        {/* Floating Add Button */}
+        <AddButton onPress={handleAddVehicle} />
       </SafeAreaView>
     </ScreenLayout>
   );

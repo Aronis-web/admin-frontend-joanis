@@ -142,6 +142,8 @@ const BizlinksEmitirFacturaScreen = lazyLoad(() => import('@/screens/Bizlinks').
 // Transport Screens - Lazy Loaded
 const VehiclesScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.VehiclesScreen })), 'Cargando vehículos...');
 const DriversScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.DriversScreen })), 'Cargando conductores...');
+const VehicleDetailScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.VehicleDetailScreen })), 'Cargando detalle...');
+const DriverDetailScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.DriverDetailScreen })), 'Cargando detalle...');
 
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -1189,10 +1191,24 @@ const MainStack = React.memo(() => {
         }}
       />
       <MainStackNavigator.Screen
+        name="VehicleDetail"
+        component={VehicleDetailScreen}
+        options={{
+          title: 'Detalle de Vehículo',
+        }}
+      />
+      <MainStackNavigator.Screen
         name="Drivers"
         component={DriversScreen}
         options={{
           title: 'Conductores',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="DriverDetail"
+        component={DriverDetailScreen}
+        options={{
+          title: 'Detalle de Conductor',
         }}
       />
     </MainStackNavigator.Navigator>

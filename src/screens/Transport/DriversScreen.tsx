@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { transportService } from '@/services/api';
 import { Driver, DriverStatus } from '@/types/transport';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { AddButton } from '@/components/Navigation/AddButton';
 
 interface DriversScreenProps {
   navigation: any;
@@ -98,16 +99,21 @@ export const DriversScreen: React.FC<DriversScreenProps> = ({ navigation }) => {
     }
   };
 
+  const handleAddDriver = () => {
+    navigation.navigate('DriverDetail', {});
+  };
+
+  const handleDriverPress = (driver: Driver) => {
+    navigation.navigate('DriverDetail', { driverId: driver.id });
+  };
+
   const renderDriverItem = ({ item }: { item: Driver }) => {
     const fullName = `${item.nombre} ${item.apellido}`;
 
     return (
       <TouchableOpacity
         style={styles.driverCard}
-        onPress={() => {
-          // TODO: Navigate to driver detail/edit screen
-          Alert.alert('Conductor', fullName);
-        }}
+        onPress={() => handleDriverPress(item)}
         activeOpacity={0.7}
       >
         <View style={styles.driverHeader}>
@@ -175,10 +181,7 @@ export const DriversScreen: React.FC<DriversScreenProps> = ({ navigation }) => {
           <Text style={styles.headerTitle}>Conductores</Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => {
-              // TODO: Navigate to create driver screen
-              Alert.alert('Próximamente', 'Función de agregar conductor en desarrollo');
-            }}
+            onPress={handleAddDriver}
           >
             <Ionicons name="add" size={24} color="#6366F1" />
           </TouchableOpacity>
@@ -223,6 +226,9 @@ export const DriversScreen: React.FC<DriversScreenProps> = ({ navigation }) => {
             }
           />
         )}
+
+        {/* Floating Add Button */}
+        <AddButton onPress={handleAddDriver} />
       </SafeAreaView>
     </ScreenLayout>
   );

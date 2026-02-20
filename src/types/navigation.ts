@@ -261,7 +261,13 @@ export type MainStackParamList = {
 
   // Transport
   Vehicles: undefined;
+  VehicleDetail: {
+    vehicleId?: string;
+  };
   Drivers: undefined;
+  DriverDetail: {
+    driverId?: string;
+  };
 
   // Balances
   Balances: undefined;
