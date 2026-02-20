@@ -409,7 +409,12 @@ const menuCategories: MenuCategory[] = [
         label: 'Vehículos',
         route: 'Vehicles',
         color: '#06B6D4',
-        requiredPermissions: ['transport.vehicles.read'],
+        requiredPermissions: [
+          'transport.vehicles.read',
+          'transport.vehicles.create',
+          'transport.vehicles.update',
+          'transport.vehicles.delete',
+        ],
       },
       {
         id: 'drivers',
@@ -417,7 +422,12 @@ const menuCategories: MenuCategory[] = [
         label: 'Conductores',
         route: 'Drivers',
         color: '#14B8A6',
-        requiredPermissions: ['transport.drivers.read'],
+        requiredPermissions: [
+          'transport.drivers.read',
+          'transport.drivers.create',
+          'transport.drivers.update',
+          'transport.drivers.delete',
+        ],
       },
       // Apps
       {
