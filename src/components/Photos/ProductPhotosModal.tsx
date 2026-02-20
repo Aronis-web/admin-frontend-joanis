@@ -10,8 +10,11 @@ import {
   ActivityIndicator,
   Image,
   TextInput,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { Product } from '@/services/api/products';
 import { filesApi } from '@/services/api/files';
 import { productsApi } from '@/services/api/products';
@@ -45,6 +48,7 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const [newImages, setNewImages] = useState<
     Array<{ uri: string; filename: string; mimeType?: string }>
@@ -234,6 +238,60 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
         },
       ]
     );
+  };
+
+  // Download image
+  const handleDownloadImage = async (image: ProductImage) => {
+    try {
+      setDownloading(image.filename);
+      console.log('📥 Downloading image:', image.filename);
+
+      if (Platform.OS === 'web') {
+        // Web: Create download link
+        const link = document.createElement('a');
+        link.href = image.url;
+        link.download = image.filename;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        Alert.alert('Éxito', 'Imagen descargada correctamente');
+      } else {
+        // Mobile: Download and share
+        const fileUri = `${FileSystem.cacheDirectory}${image.filename}`;
+
+        // Download the image
+        const downloadResult = await FileSystem.downloadAsync(image.url, fileUri);
+
+        if (downloadResult.status === 200) {
+          console.log('✅ Image downloaded to:', downloadResult.uri);
+
+          // Check if sharing is available
+          const isSharingAvailable = await Sharing.isAvailableAsync();
+
+          if (isSharingAvailable) {
+            // Share the file (user can save to gallery from share menu)
+            await Sharing.shareAsync(downloadResult.uri, {
+              mimeType: 'image/jpeg',
+              dialogTitle: 'Guardar imagen',
+              UTI: 'public.jpeg',
+            });
+
+            Alert.alert('Éxito', 'Imagen descargada. Puedes guardarla desde el menú de compartir.');
+          } else {
+            Alert.alert('Éxito', `Imagen descargada en: ${downloadResult.uri}`);
+          }
+        } else {
+          throw new Error('Error al descargar la imagen');
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Error downloading image:', error);
+      Alert.alert('Error', error.message || 'No se pudo descargar la imagen');
+    } finally {
+      setDownloading(null);
+    }
   };
 
   // Upload new images
@@ -557,6 +615,18 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                             onPress={() => handleOpenGeminiEditor(image)}
                           >
                             <Text style={styles.geminiButtonText}>🎨</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              styles.downloadButton,
+                              downloading === image.filename && styles.downloadButtonDisabled,
+                            ]}
+                            onPress={() => handleDownloadImage(image)}
+                            disabled={downloading === image.filename}
+                          >
+                            <Text style={styles.downloadButtonText}>
+                              {downloading === image.filename ? '⏳' : '📥'}
+                            </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={[
@@ -1031,6 +1101,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   geminiButtonText: {
+    fontSize: 16,
+  },
+  downloadButton: {
+    flex: 1,
+    backgroundColor: '#DBEAFE',
+    paddingVertical: 6,
+    borderRadius: 4,
+    alignItems: 'center',
+  },
+  downloadButtonDisabled: {
+    opacity: 0.5,
+  },
+  downloadButtonText: {
     fontSize: 16,
   },
   deleteButton: {
