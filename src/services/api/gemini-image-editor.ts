@@ -14,6 +14,18 @@ export interface GeminiEditImageResponse {
   prompt: string;
 }
 
+export interface GeminiGenerateVideoRequest {
+  file: string; // URI of the image file
+  prompt: string; // Video generation instructions
+}
+
+export interface GeminiGenerateVideoResponse {
+  success: boolean;
+  videoBase64: string;
+  mimeType: string;
+  prompt: string;
+}
+
 /**
  * Gemini Image Editor API
  * Provides AI-powered image editing using Gemini
@@ -87,6 +99,61 @@ export const geminiImageEditorApi = {
   },
 
   /**
+   * Generate a video from an image using Gemini AI
+   * @param imageUri - Local URI of the image to animate
+   * @param prompt - Natural language instructions for video generation
+   * @param filename - Optional filename for the image
+   * @returns Promise with the generated video in base64 format
+   */
+  async generateVideo(
+    imageUri: string,
+    prompt: string,
+    filename?: string
+  ): Promise<GeminiGenerateVideoResponse> {
+    try {
+      console.log('🎬 [Gemini] Generating video with prompt:', prompt);
+
+      // Create FormData for multipart upload
+      const formData = new FormData();
+
+      // Add the image file
+      const imageFile = {
+        uri: imageUri,
+        type: 'image/jpeg', // Default to JPEG, can be adjusted
+        name: filename || `image_${Date.now()}.jpg`,
+      } as any;
+
+      formData.append('file', imageFile);
+      formData.append('prompt', prompt);
+
+      // Use apiClient to automatically include required headers
+      const data = await apiClient.post<GeminiGenerateVideoResponse>(
+        '/gemini-image-editor/generate-video',
+        formData,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      );
+
+      console.log('✅ [Gemini] Video generated successfully');
+      console.log('📊 [Gemini] Response:', {
+        success: data.success,
+        mimeType: data.mimeType,
+        prompt: data.prompt,
+        videoSize: data.videoBase64?.length || 0,
+      });
+
+      return data;
+    } catch (error: any) {
+      console.error('❌ [Gemini] Error generating video:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'No se pudo generar el video con Gemini';
+      throw new Error(errorMessage);
+    }
+  },
+
+  /**
    * Save base64 image to local file system (for React Native)
    * @param base64 - Base64 encoded image
    * @param mimeType - MIME type of the image
@@ -135,6 +202,46 @@ export const geminiImageEditorApi = {
         stack: error.stack,
       });
       throw new Error('No se pudo guardar la imagen editada');
+    }
+  },
+
+  /**
+   * Save base64 video to local file system (for React Native)
+   * @param base64 - Base64 encoded video
+   * @param mimeType - MIME type of the video
+   * @param filename - Filename to save as
+   * @returns Local file URI
+   */
+  async saveVideoBase64ToFile(
+    base64: string,
+    mimeType: string,
+    filename: string
+  ): Promise<string> {
+    try {
+      if (!FileSystem) {
+        throw new Error('FileSystem module is not available');
+      }
+
+      if (!FileSystem.cacheDirectory) {
+        throw new Error('FileSystem.cacheDirectory is not available');
+      }
+
+      if (!FileSystem.EncodingType) {
+        throw new Error('FileSystem.EncodingType is not available');
+      }
+
+      const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+
+      // Write base64 to file
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      console.log('💾 [Gemini] Saved video to:', fileUri);
+      return fileUri;
+    } catch (error: any) {
+      console.error('❌ [Gemini] Error saving video to file:', error);
+      throw new Error('No se pudo guardar el video');
     }
   },
 };

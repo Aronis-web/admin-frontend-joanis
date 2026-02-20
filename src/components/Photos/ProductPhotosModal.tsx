@@ -42,7 +42,7 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
   product,
 }) => {
   // Tab state
-  const [activeTab, setActiveTab] = useState<'gallery' | 'lens' | 'gemini'>('gallery');
+  const [activeTab, setActiveTab] = useState<'gallery' | 'lens' | 'gemini' | 'video'>('gallery');
 
   // Gallery tab states
   const [loading, setLoading] = useState(false);
@@ -66,6 +66,15 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
   const [editedGeminiImage, setEditedGeminiImage] = useState<GeminiEditImageResponse | null>(null);
   const [showGeminiPreview, setShowGeminiPreview] = useState(false);
 
+  // Video IA states
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [videoPrompt, setVideoPrompt] = useState(
+    'Crea un video comercial dinámico donde el producto cobre vida con movimiento suave de cámara, efectos de parallax y transiciones elegantes que resalten sus características principales'
+  );
+  const [selectedImageForVideo, setSelectedImageForVideo] = useState<ProductImage | null>(null);
+  const [generatedVideo, setGeneratedVideo] = useState<{ videoBase64: string; mimeType: string } | null>(null);
+  const [showVideoPreview, setShowVideoPreview] = useState(false);
+
   // Load product images when modal opens
   useEffect(() => {
     if (visible && product?.id) {
@@ -81,6 +90,12 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
       setSelectedImageForGemini(null);
       setEditedGeminiImage(null);
       setShowGeminiPreview(false);
+
+      // Clear Video IA states
+      setVideoPrompt('Crea un video comercial dinámico donde el producto cobre vida con movimiento suave de cámara, efectos de parallax y transiciones elegantes que resalten sus características principales');
+      setSelectedImageForVideo(null);
+      setGeneratedVideo(null);
+      setShowVideoPreview(false);
 
       // Also clear Google Lens states
       setLensResults([]);
@@ -518,6 +533,107 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
     }
   };
 
+  // Video IA functions
+  const handleOpenVideoGenerator = (image: ProductImage) => {
+    setSelectedImageForVideo(image);
+    setGeneratedVideo(null);
+    setShowVideoPreview(false);
+    setActiveTab('video');
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!selectedImageForVideo) {
+      Alert.alert('Error', 'No hay imagen seleccionada');
+      return;
+    }
+
+    if (!videoPrompt.trim()) {
+      Alert.alert('Error', 'Por favor ingresa las instrucciones para el video');
+      return;
+    }
+
+    try {
+      setGeneratingVideo(true);
+      console.log('🎬 Generating video with Gemini:', selectedImageForVideo.url);
+
+      const response = await geminiImageEditorApi.generateVideo(
+        selectedImageForVideo.url,
+        videoPrompt.trim(),
+        selectedImageForVideo.filename
+      );
+
+      setGeneratedVideo({
+        videoBase64: response.videoBase64,
+        mimeType: response.mimeType,
+      });
+      setShowVideoPreview(true);
+      Alert.alert('Éxito', 'Video generado con Gemini. Revisa el resultado.');
+    } catch (error: any) {
+      console.error('❌ Error generating video with Gemini:', error);
+      Alert.alert('Error', error.message || 'No se pudo generar el video con Gemini');
+    } finally {
+      setGeneratingVideo(false);
+    }
+  };
+
+  const handleRegenerateVideo = () => {
+    setGeneratedVideo(null);
+    setShowVideoPreview(false);
+  };
+
+  const handleDownloadVideo = async () => {
+    if (!generatedVideo) {
+      Alert.alert('Error', 'No hay video para descargar');
+      return;
+    }
+
+    try {
+      console.log('📥 Downloading video...');
+
+      if (Platform.OS === 'web') {
+        // Web: Create download link
+        const videoBlob = await fetch(`data:${generatedVideo.mimeType};base64,${generatedVideo.videoBase64}`).then(r => r.blob());
+        const url = URL.createObjectURL(videoBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `video_${product.title}_${Date.now()}.mp4`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        Alert.alert('Éxito', 'Video descargado correctamente');
+      } else {
+        // Mobile: Save and share
+        const filename = `video_${Date.now()}.mp4`;
+        const fileUri = await geminiImageEditorApi.saveVideoBase64ToFile(
+          generatedVideo.videoBase64,
+          generatedVideo.mimeType,
+          filename
+        );
+
+        // Check if sharing is available
+        const isSharingAvailable = await Sharing.isAvailableAsync();
+
+        if (isSharingAvailable) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: generatedVideo.mimeType,
+            dialogTitle: 'Guardar video',
+            UTI: 'public.movie',
+          });
+
+          Alert.alert('Éxito', 'Video descargado. Puedes guardarlo desde el menú de compartir.');
+        } else {
+          Alert.alert('Éxito', `Video guardado en: ${fileUri}`);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Error downloading video:', error);
+      Alert.alert('Error', error.message || 'No se pudo descargar el video');
+    }
+  };
+
   const formatLensPrice = (price: any): string | null => {
     if (!price) return null;
     if (typeof price === 'string') return price;
@@ -561,6 +677,14 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
           >
             <Text style={[styles.tabText, activeTab === 'gemini' && styles.tabTextActive]}>
               🎨 Editar IA
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'video' && styles.tabActive]}
+            onPress={() => setActiveTab('video')}
+          >
+            <Text style={[styles.tabText, activeTab === 'video' && styles.tabTextActive]}>
+              🎬 Video IA
             </Text>
           </TouchableOpacity>
         </View>
@@ -615,6 +739,12 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                             onPress={() => handleOpenGeminiEditor(image)}
                           >
                             <Text style={styles.geminiButtonText}>🎨</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.videoButton}
+                            onPress={() => handleOpenVideoGenerator(image)}
+                          >
+                            <Text style={styles.videoButtonText}>🎬</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={[
@@ -918,6 +1048,127 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
               </View>
             </>
           )}
+
+          {/* Video IA Tab */}
+          {activeTab === 'video' && (
+            <>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>🎬 Generador de Videos con IA (Gemini)</Text>
+
+                {productImages.length === 0 ? (
+                  <View style={styles.noImagesContainer}>
+                    <Text style={styles.noImagesText}>📦 No hay imágenes</Text>
+                    <Text style={styles.noImagesSubtext}>
+                      Primero agrega imágenes en la pestaña Galería
+                    </Text>
+                  </View>
+                ) : !selectedImageForVideo ? (
+                  <>
+                    <Text style={styles.infoText}>
+                      💡 Selecciona una imagen para generar un video comercial con IA
+                    </Text>
+
+                    <View style={styles.imagesGrid}>
+                      {productImages.map((image, index) => (
+                        <View key={image.filename} style={styles.imageCard}>
+                          <Image source={{ uri: image.url }} style={styles.image} resizeMode="cover" />
+                          {index === 0 && (
+                            <View style={styles.mainImageBadge}>
+                              <Text style={styles.mainImageBadgeText}>Principal</Text>
+                            </View>
+                          )}
+                          <TouchableOpacity
+                            style={styles.videoGenerateButton}
+                            onPress={() => handleOpenVideoGenerator(image)}
+                          >
+                            <Text style={styles.videoGenerateButtonText}>🎬 Generar Video</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.imageFilename} numberOfLines={1}>
+                            {image.filename}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    {/* Video Generator Interface */}
+                    <View style={styles.videoGeneratorContainer}>
+                      <Text style={styles.videoGeneratorTitle}>Imagen Seleccionada:</Text>
+                      <Image
+                        source={{ uri: selectedImageForVideo.url }}
+                        style={styles.videoSelectedImage}
+                        resizeMode="contain"
+                      />
+
+                      <TouchableOpacity
+                        style={styles.videoChangeImageButton}
+                        onPress={() => {
+                          setSelectedImageForVideo(null);
+                          setGeneratedVideo(null);
+                          setShowVideoPreview(false);
+                        }}
+                      >
+                        <Text style={styles.videoChangeImageButtonText}>Cambiar Imagen</Text>
+                      </TouchableOpacity>
+
+                      <Text style={styles.videoPromptLabel}>Instrucciones para el Video:</Text>
+                      <TextInput
+                        style={styles.videoPromptInput}
+                        placeholder="Describe cómo quieres que sea el video..."
+                        value={videoPrompt}
+                        onChangeText={setVideoPrompt}
+                        placeholderTextColor="#94A3B8"
+                        multiline
+                        numberOfLines={4}
+                      />
+
+                      <TouchableOpacity
+                        style={[styles.videoGenerateActionButton, generatingVideo && styles.buttonDisabled]}
+                        onPress={handleGenerateVideo}
+                        disabled={generatingVideo}
+                      >
+                        <Text style={styles.videoGenerateActionButtonText}>
+                          {generatingVideo ? '⏳ Generando video...' : '🎬 Generar Video con Gemini'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Preview of generated video */}
+                      {showVideoPreview && generatedVideo && (
+                        <View style={styles.videoPreviewContainer}>
+                          <Text style={styles.videoPreviewTitle}>Video Generado:</Text>
+
+                          <View style={styles.videoPlayerPlaceholder}>
+                            <Text style={styles.videoPlayerPlaceholderText}>
+                              🎬 Video generado exitosamente
+                            </Text>
+                            <Text style={styles.videoPlayerPlaceholderSubtext}>
+                              Tamaño: {(generatedVideo.videoBase64.length / 1024 / 1024).toFixed(2)} MB
+                            </Text>
+                          </View>
+
+                          <View style={styles.videoPreviewActions}>
+                            <TouchableOpacity
+                              style={styles.videoRegenerateButton}
+                              onPress={handleRegenerateVideo}
+                            >
+                              <Text style={styles.videoRegenerateButtonText}>🔄 Regenerar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.videoDownloadButton}
+                              onPress={handleDownloadVideo}
+                            >
+                              <Text style={styles.videoDownloadButtonText}>📥 Descargar Video</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
+              </View>
+            </>
+          )}
         </ScrollView>
 
         {/* Footer */}
@@ -1101,6 +1352,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   geminiButtonText: {
+    fontSize: 16,
+  },
+  videoButton: {
+    flex: 1,
+    backgroundColor: '#E0E7FF',
+    paddingVertical: 6,
+    borderRadius: 4,
+    alignItems: 'center',
+  },
+  videoButtonText: {
     fontSize: 16,
   },
   downloadButton: {
@@ -1352,6 +1613,134 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   geminiAddButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Video Generator Styles
+  videoGenerateButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  videoGenerateButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  videoGeneratorContainer: {
+    gap: 12,
+  },
+  videoGeneratorTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  videoSelectedImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+  },
+  videoChangeImageButton: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  videoChangeImageButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  videoPromptLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginTop: 8,
+  },
+  videoPromptInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#1E293B',
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  videoGenerateActionButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  videoGenerateActionButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  videoPreviewContainer: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  videoPreviewTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  videoPlayerPlaceholder: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    marginBottom: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPlayerPlaceholderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  videoPlayerPlaceholderSubtext: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  videoPreviewActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  videoRegenerateButton: {
+    flex: 1,
+    backgroundColor: '#64748B',
+    paddingVertical: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  videoRegenerateButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  videoDownloadButton: {
+    flex: 1,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  videoDownloadButtonText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#FFFFFF',
