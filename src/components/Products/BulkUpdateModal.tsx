@@ -11,11 +11,11 @@ import {
   TextInput,
   Platform,
 } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { productsApi } from '@/services/api/products';
 import logger from '@/utils/logger';
+import { getDocumentAsync } from '@/utils/filePicker';
 
 interface BulkUpdateModalProps {
   visible: boolean;
@@ -158,7 +158,7 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
 
   const handleSelectFile = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
+      const result = await getDocumentAsync({
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         copyToCacheDirectory: true,
       });

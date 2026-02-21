@@ -35,7 +35,13 @@ import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { BalanceOperationDetailModal } from '@/components/Balances/BalanceOperationDetailModal';
 import { formatDateToString, getTodayString } from '@/utils/dateHelpers';
 import { EditBalanceOperationModal } from '@/components/Balances/EditBalanceOperationModal';
-import * as ImagePicker from 'expo-image-picker';
+import {
+  launchImageLibraryAsync,
+  launchCameraAsync,
+  requestMediaLibraryPermissionsAsync,
+  requestCameraPermissionsAsync,
+  MediaTypeOptions
+} from '@/utils/filePicker';
 
 interface AllBalanceOperationsScreenProps {
   navigation: any;
@@ -341,21 +347,21 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
 
   const handlePickFile = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permiso Requerido', 'Se necesita permiso para acceder a las fotos.');
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.All,
         allowsEditing: false,
         quality: 0.8,
         allowsMultipleSelection: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newFiles = result.assets.map((asset) => ({
+        const newFiles = result.assets.map((asset: any) => ({
           uri: asset.uri,
           filename: asset.fileName || `archivo_${Date.now()}.${asset.uri.split('.').pop()}`,
           mimeType:
@@ -379,13 +385,13 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
 
   const handleTakePhoto = async () => {
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status } = await requestCameraPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permiso Requerido', 'Se necesita permiso para usar la cámara.');
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
+      const result = await launchCameraAsync({
         allowsEditing: false,
         quality: 0.8,
       });

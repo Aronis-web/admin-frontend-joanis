@@ -25,10 +25,16 @@ import {
   areFilesAllowed,
 } from '@/types/balances';
 import { useAuthStore } from '@/store/auth';
-import * as ImagePicker from 'expo-image-picker';
 import { BalanceOperationDetailModal } from '@/components/Balances/BalanceOperationDetailModal';
 import { EditBalanceOperationModal } from '@/components/Balances/EditBalanceOperationModal';
 import { getTodayString } from '@/utils/dateHelpers';
+import {
+  launchImageLibraryAsync,
+  launchCameraAsync,
+  requestMediaLibraryPermissionsAsync,
+  requestCameraPermissionsAsync,
+  MediaTypeOptions
+} from '@/utils/filePicker';
 
 interface BalanceOperationsScreenProps {
   navigation: any;
@@ -289,14 +295,14 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
 
   const handlePickFile = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permiso Requerido', 'Se necesita permiso para acceder a las fotos.');
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.All,
         allowsEditing: false,
         quality: 0.8,
         allowsMultipleSelection: true,
@@ -326,13 +332,13 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
 
   const handleTakePhoto = async () => {
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status } = await requestCameraPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permiso Requerido', 'Se necesita permiso para usar la cámara.');
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
+      const result = await launchCameraAsync({
         allowsEditing: false,
         quality: 0.8,
       });

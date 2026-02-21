@@ -12,11 +12,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { expensesService } from '@/services/api';
 import { PaymentMethod, PaymentMethodLabels } from '@/types/expenses';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { formatDateToString } from '@/utils/dateHelpers';
+import {
+  launchImageLibraryAsync,
+  launchCameraAsync,
+  requestMediaLibraryPermissionsAsync,
+  requestCameraPermissionsAsync,
+  MediaTypeOptions
+} from '@/utils/filePicker';
 
 interface CreateExpensePaymentScreenProps {
   navigation: any;
@@ -98,14 +104,14 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
 
   const handlePickFile = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permiso Requerido', 'Se necesita permiso para acceder a las fotos.');
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.All,
         allowsEditing: false,
         quality: 0.8,
       });
@@ -128,13 +134,13 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
 
   const handleTakePhoto = async () => {
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status } = await requestCameraPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permiso Requerido', 'Se necesita permiso para usar la cámara.');
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
+      const result = await launchCameraAsync({
         allowsEditing: false,
         quality: 0.8,
       });

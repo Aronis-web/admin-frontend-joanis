@@ -13,11 +13,17 @@ import {
   Image,
   Platform,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
 import logger from '@/utils/logger';
 import { useOcrScannerStore, OcrScannedProduct, ScanJob } from '@/store/ocrScanner';
 import { ocrScanQueue } from '@/services/ocrScanQueue';
+import {
+  launchImageLibraryAsync,
+  launchCameraAsync,
+  requestMediaLibraryPermissionsAsync,
+  requestCameraPermissionsAsync,
+  getDocumentAsync,
+  MediaTypeOptions
+} from '@/utils/filePicker';
 
 interface OcrScannedItem {
   sku: string;
@@ -323,7 +329,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
 
   const pickImage = useCallback(async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await requestMediaLibraryPermissionsAsync();
 
       if (status !== 'granted') {
         Alert.alert(
@@ -333,15 +339,15 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.Images,
         allowsEditing: false,
         allowsMultipleSelection: true, // Enable multiple selection
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newFiles = result.assets.map((asset, index) => ({
+        const newFiles = result.assets.map((asset: any, index: number) => ({
           uri: asset.uri,
           name: asset.fileName || `image_${Date.now()}_${index}.jpg`,
           mimeType: asset.mimeType || 'image/jpeg',
@@ -374,14 +380,14 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
         return;
       }
 
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status } = await requestCameraPermissionsAsync();
 
       if (status !== 'granted') {
         Alert.alert('Permisos requeridos', 'Se necesitan permisos para acceder a la cámara.');
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
+      const result = await launchCameraAsync({
         allowsEditing: false,
         quality: 0.8,
       });
@@ -410,7 +416,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
         return;
       }
 
-      const result = await DocumentPicker.getDocumentAsync({
+      const result = await getDocumentAsync({
         type: [
           'image/*',
           'application/pdf',
@@ -425,7 +431,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       }
 
       if (result.assets && result.assets.length > 0) {
-        const newFiles = result.assets.map((asset) => ({
+        const newFiles = result.assets.map((asset: any) => ({
           uri: asset.uri,
           name: asset.name,
           mimeType: asset.mimeType || 'application/pdf',

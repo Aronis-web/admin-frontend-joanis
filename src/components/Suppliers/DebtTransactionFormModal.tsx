@@ -14,12 +14,18 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
 import { suppliersService } from '@/services/api/suppliers';
 import { companiesApi } from '@/services/api/companies';
 import filesApi from '@/services/api/files';
 import { useAuthStore } from '@/store/auth';
+import {
+  launchImageLibraryAsync,
+  launchCameraAsync,
+  requestMediaLibraryPermissionsAsync,
+  requestCameraPermissionsAsync,
+  getDocumentAsync,
+  MediaTypeOptions
+} from '@/utils/filePicker';
 import {
   SupplierDebtTransaction,
   TransactionType,
@@ -120,14 +126,15 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
 
   const handlePickFile = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
+      const result = await getDocumentAsync({
         type: ['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
         copyToCacheDirectory: true,
       });
 
       if (result.canceled) return;
 
-      const file = result.assets[0];
+      const file = result.assets?.[0];
+      if (!file) return;
       await uploadFile(file.uri, file.name, file.mimeType || 'application/octet-stream');
     } catch (error) {
       console.error('Error picking file:', error);
@@ -137,21 +144,22 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
 
   const handlePickImage = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permiso denegado', 'Se necesita permiso para acceder a las fotos');
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.Images,
         allowsEditing: false,
         quality: 0.8,
       });
 
       if (result.canceled) return;
 
-      const asset = result.assets[0];
+      const asset = result.assets?.[0];
+      if (!asset) return;
       await uploadFile(asset.uri, `image_${Date.now()}.jpg`, 'image/jpeg');
     } catch (error) {
       console.error('Error picking image:', error);
@@ -161,20 +169,21 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
 
   const handleTakePhoto = async () => {
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status } = await requestCameraPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permiso denegado', 'Se necesita permiso para usar la cámara');
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
+      const result = await launchCameraAsync({
         allowsEditing: false,
         quality: 0.8,
       });
 
       if (result.canceled) return;
 
-      const asset = result.assets[0];
+      const asset = result.assets?.[0];
+      if (!asset) return;
       await uploadFile(asset.uri, `photo_${Date.now()}.jpg`, 'image/jpeg');
     } catch (error) {
       console.error('Error taking photo:', error);

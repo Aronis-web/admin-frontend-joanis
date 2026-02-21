@@ -12,7 +12,6 @@ import {
   TextInput,
   Platform,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Product } from '@/services/api/products';
@@ -21,6 +20,13 @@ import { productsApi } from '@/services/api/products';
 import { googleLensApi, GoogleLensResult } from '@/services/api/google-lens';
 import { geminiImageEditorApi, GeminiEditImageResponse } from '@/services/api/gemini-image-editor';
 import { validateImageFile } from '@/utils/fileHelpers';
+import {
+  launchImageLibraryAsync,
+  launchCameraAsync,
+  requestMediaLibraryPermissionsAsync,
+  requestCameraPermissionsAsync,
+  MediaTypeOptions
+} from '@/utils/filePicker';
 
 interface ProductPhotosModalProps {
   visible: boolean;
@@ -130,7 +136,7 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
 
   // Request camera roll permissions
   const requestPermissions = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permiso Requerido', 'Se necesita permiso para acceder a las fotos.');
       return false;
@@ -146,8 +152,8 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
     }
 
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         quality: 1,
       });
@@ -177,14 +183,14 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
 
   // Take photo with camera
   const handleTakePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    const { status } = await requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permiso Requerido', 'Se necesita permiso para usar la cámara.');
       return;
     }
 
     try {
-      const result = await ImagePicker.launchCameraAsync({
+      const result = await launchCameraAsync({
         quality: 1,
       });
 
@@ -351,8 +357,8 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
       const hasPermission = await requestPermissions();
       if (!hasPermission) return;
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.Images,
         allowsMultipleSelection: false,
         quality: 1,
       });

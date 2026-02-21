@@ -10,12 +10,12 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { inventoryApi } from '@/services/api/inventory';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
+import { getDocumentAsync } from '@/utils/filePicker';
 
 interface BulkUploadModalProps {
   visible: boolean;
@@ -144,7 +144,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     try {
       console.log('📂 Opening document picker...');
 
-      const result = await DocumentPicker.getDocumentAsync({
+      const result = await getDocumentAsync({
         type: [
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'application/vnd.ms-excel',

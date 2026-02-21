@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import Alert from '@/utils/alert';
 import { View, Text, StyleSheet, TouchableOpacity, Image} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import {
+  launchCameraAsync,
+  launchImageLibraryAsync,
+  requestCameraPermissionsAsync,
+  MediaTypeOptions
+} from '@/utils/filePicker';
 
 interface PhotoCaptureProps {
   onPhotoCapture: (photoUri: string) => void;
@@ -17,7 +22,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const [photo, setPhoto] = useState<string | undefined>(currentPhoto);
 
   const requestCameraPermission = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    const { status } = await requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permiso Requerido', 'Se necesita permiso para acceder a la cámara');
       return false;
@@ -32,8 +37,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     }
 
     try {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      const result = await launchCameraAsync({
+        mediaTypes: MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -50,8 +55,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   const handleSelectFromGallery = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
