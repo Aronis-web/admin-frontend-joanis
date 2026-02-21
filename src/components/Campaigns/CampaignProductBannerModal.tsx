@@ -11,12 +11,14 @@ import {
   TextInput,
   Alert,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { CampaignProduct, ProductStatus, StockDetailByWarehouse } from '@/types/campaigns';
 import { inventoryApi } from '@/services/api/inventory';
 import { purchasesService } from '@/services/api/purchases';
 import { priceProfilesApi } from '@/services/api/price-profiles';
 import { campaignsService } from '@/services/api';
+import { productsApi } from '@/services/api/products';
 import { ProductSalePrice, PriceProfile } from '@/types/price-profiles';
 import { DistributionFormModal } from './DistributionFormModal';
 import logger from '@/utils/logger';
@@ -78,11 +80,16 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     undefined
   );
 
+  // Product image states
+  const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
+
   // Fetch stock data and price profiles when modal opens
   useEffect(() => {
     if (visible && campaignProduct?.productId) {
       fetchStockData();
       fetchPriceProfiles();
+      fetchProductImage(); // Cargar imagen en segundo plano
       // Initialize cost value
       if (productDetails?.costCents !== undefined) {
         setCostValue((productDetails.costCents / 100).toFixed(2));
@@ -252,6 +259,34 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       Alert.alert('Error', error.message || 'No se pudieron cargar los perfiles de precio');
     } finally {
       setLoadingPrices(false);
+    }
+  };
+
+  const fetchProductImage = async () => {
+    if (!campaignProduct?.productId) {
+      return;
+    }
+
+    try {
+      setLoadingImage(true);
+      logger.debug('📸 Cargando imagen del producto en segundo plano...');
+
+      // Obtener las imágenes del producto
+      const imagesResponse = await productsApi.getProductImages(campaignProduct.productId);
+
+      if (imagesResponse && imagesResponse.images && imagesResponse.images.length > 0) {
+        // Usar la primera imagen disponible
+        setProductImageUrl(imagesResponse.images[0].url);
+        logger.debug('✅ Imagen del producto cargada:', imagesResponse.images[0].url);
+      } else {
+        logger.debug('⚠️ No se encontraron imágenes para el producto');
+        setProductImageUrl(null);
+      }
+    } catch (error) {
+      logger.error('❌ Error cargando imagen del producto:', error);
+      setProductImageUrl(null);
+    } finally {
+      setLoadingImage(false);
     }
   };
 
@@ -1040,6 +1075,48 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
               })
             )}
 
+            {/* Total Cost Banner - NEW */}
+            <View style={[styles.bannerSection, styles.bannerSectionTotal]}>
+              <Text style={styles.bannerLabel}>TOTAL COSTO</Text>
+              <Text style={styles.bannerLabelSubtitle}>
+                (Costo × Cantidad Campaña)
+              </Text>
+              <Text
+                style={[
+                  styles.bannerValue,
+                  styles.totalCostValue,
+                  isTablet && styles.bannerValueTablet,
+                ]}
+              >
+                {formatCurrency(costCents * (campaignProduct.totalQuantityBase || 0))}
+              </Text>
+              <Text style={styles.totalCostBreakdown}>
+                {formatCurrency(costCents)} × {campaignProduct.totalQuantityBase || 0} unidades
+              </Text>
+            </View>
+
+            {/* Product Image Banner - NEW */}
+            <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
+              <Text style={styles.bannerLabel}>FOTO DEL PRODUCTO</Text>
+              {loadingImage ? (
+                <View style={styles.loadingImageContainer}>
+                  <ActivityIndicator size="large" color="#6366F1" />
+                  <Text style={styles.loadingImageText}>Cargando imagen...</Text>
+                </View>
+              ) : productImageUrl ? (
+                <Image
+                  source={{ uri: productImageUrl }}
+                  style={styles.productImage}
+                  resizeMode="contain"
+                />
+              ) : (
+                <View style={styles.noImageContainer}>
+                  <Text style={styles.noImageIcon}>📷</Text>
+                  <Text style={styles.noImageText}>Sin imagen disponible</Text>
+                </View>
+              )}
+            </View>
+
             {/* Stock Banner - Moved to the end */}
             <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
               <Text style={styles.bannerLabel}>{stockLabel.toUpperCase()}</Text>
@@ -1713,5 +1790,75 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  // Total Cost styles
+  bannerSectionTotal: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    borderWidth: 3,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  bannerLabelSubtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  totalCostValue: {
+    color: '#D97706',
+    fontSize: 44,
+    fontWeight: '900',
+  },
+  totalCostBreakdown: {
+    fontSize: 13,
+    color: '#92400E',
+    marginTop: 8,
+    fontWeight: '600',
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  // Product Image styles
+  loadingImageContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  loadingImageText: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 12,
+  },
+  productImage: {
+    width: '100%',
+    height: 300,
+    borderRadius: 12,
+    marginTop: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  noImageContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+  },
+  noImageIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  noImageText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontWeight: '600',
   },
 });
