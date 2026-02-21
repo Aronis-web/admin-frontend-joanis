@@ -27,7 +27,8 @@
     "target": [
       "nsis"
     ],
-    "icon": "electron/build/icon.ico"
+    "icon": "electron/build/icon.ico",
+    "signAndEditExecutable": false
   },
   "mac": {
     "target": [
