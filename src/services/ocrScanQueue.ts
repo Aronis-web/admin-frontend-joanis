@@ -1,7 +1,7 @@
 import { purchasesService } from '@/services/api';
 import { useOcrScannerStore, ScanJob, OcrScannedProduct } from '@/store/ocrScanner';
 import logger from '@/utils/logger';
-import { Alert } from 'react-native';
+import Alert from '@/utils/alert';
 
 /**
  * Servicio para procesar la cola de trabajos de escaneo OCR en segundo plano

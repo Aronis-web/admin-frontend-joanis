@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
+import Alert from '@/utils/alert';
+import { View, Text, StyleSheet, TouchableOpacity, Linking} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   ExpensePayment,

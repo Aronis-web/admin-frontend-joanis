@@ -9,9 +9,25 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Platform,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { locationsApi, LocationDetails, LocationSuggestion } from '@/services/api';
+
+// Conditional import for react-native-maps (only on native platforms)
+let MapView: any = null;
+let Marker: any = null;
+let PROVIDER_GOOGLE: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const maps = require('react-native-maps');
+    MapView = maps.default;
+    Marker = maps.Marker;
+    PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
+  } catch (e) {
+    console.warn('react-native-maps not available');
+  }
+}
 
 export interface LocationData {
   latitude?: number;
@@ -58,7 +74,7 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
     longitude: number;
   } | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
 
   useEffect(() => {
     setSearchText(initialValue);
@@ -173,23 +189,23 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
       }
 
       // Si el backend devuelve coordenadas 0,0, usar las de la sugerencia original
-      let finalLatitude = details.gpsCoordinates.latitude;
-      let finalLongitude = details.gpsCoordinates.longitude;
+      let finalLatitude: number | string = details.gpsCoordinates.latitude;
+      let finalLongitude: number | string = details.gpsCoordinates.longitude;
 
       if (
-        (finalLatitude === 0 || finalLatitude === '0') &&
-        (finalLongitude === 0 || finalLongitude === '0') &&
+        (Number(finalLatitude) === 0) &&
+        (Number(finalLongitude) === 0) &&
         suggestion.latitude &&
         suggestion.longitude
       ) {
         console.log('⚠️ [LocationSearch] Backend devolvió coordenadas 0,0. Usando coordenadas de la sugerencia.');
-        finalLatitude = suggestion.latitude.toString();
-        finalLongitude = suggestion.longitude.toString();
+        finalLatitude = Number(suggestion.latitude);
+        finalLongitude = Number(suggestion.longitude);
       }
 
       const locationData: LocationData = {
-        latitude: finalLatitude,
-        longitude: finalLongitude,
+        latitude: typeof finalLatitude === 'number' ? finalLatitude : parseFloat(String(finalLatitude)),
+        longitude: typeof finalLongitude === 'number' ? finalLongitude : parseFloat(String(finalLongitude)),
         addressLine1: details.street || details.fullAddress,
         numberExt: streetNumber,
         district: details.district,
@@ -343,8 +359,8 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
         <Text style={styles.hintText}>Escribe al menos 3 caracteres para buscar</Text>
       )}
 
-      {/* Mapa para visualizar la ubicación seleccionada */}
-      {selectedCoordinates && (
+      {/* Mapa para visualizar la ubicación seleccionada - Solo en plataformas nativas */}
+      {selectedCoordinates && Platform.OS !== 'web' && MapView && (
         <View style={styles.mapContainer}>
           <Text style={styles.mapTitle}>📍 Ubicación Seleccionada</Text>
           <MapView
@@ -374,6 +390,24 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
           <View style={styles.mapInfo}>
             <Text style={styles.mapInfoText}>
               📌 Lat: {selectedCoordinates.latitude.toFixed(6)}, Lng: {selectedCoordinates.longitude.toFixed(6)}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Información de coordenadas en web (sin mapa) */}
+      {selectedCoordinates && Platform.OS === 'web' && (
+        <View style={styles.mapContainer}>
+          <Text style={styles.mapTitle}>📍 Ubicación Seleccionada</Text>
+          <View style={styles.webCoordinatesContainer}>
+            <Text style={styles.webCoordinatesText}>
+              📌 Latitud: {selectedCoordinates.latitude.toFixed(6)}
+            </Text>
+            <Text style={styles.webCoordinatesText}>
+              📌 Longitud: {selectedCoordinates.longitude.toFixed(6)}
+            </Text>
+            <Text style={styles.webCoordinatesHint}>
+              (El mapa interactivo solo está disponible en la versión móvil)
             </Text>
           </View>
         </View>
@@ -542,6 +576,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '500',
+  },
+  webCoordinatesContainer: {
+    padding: 16,
+    backgroundColor: '#F8FAFC',
+  },
+  webCoordinatesText: {
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  webCoordinatesHint: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontStyle: 'italic',
+    marginTop: 8,
   },
 });
 

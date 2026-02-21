@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+import Alert from '@/utils/alert';
+import { View, Text, StyleSheet, TouchableOpacity, Image} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 interface PhotoCaptureProps {

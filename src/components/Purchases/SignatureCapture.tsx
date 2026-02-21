@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, PanResponder, Alert } from 'react-native';
+import Alert from '@/utils/alert';
+import { View, Text, StyleSheet, TouchableOpacity, PanResponder} from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import ViewShot from 'react-native-view-shot';
 

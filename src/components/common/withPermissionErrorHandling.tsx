@@ -1,5 +1,6 @@
 import React, { ComponentType } from 'react';
-import { Alert } from 'react-native';
+import Alert from '@/utils/alert';
+
 import { usePermissionError } from '@/hooks/usePermissionError';
 
 /**

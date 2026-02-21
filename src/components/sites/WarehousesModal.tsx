@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import Alert from '@/utils/alert';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView} from 'react-native';
 import { Site } from '@/types/sites';
 import { Warehouse } from '@/types/warehouses';
 import { warehousesApi } from '@/services/api';

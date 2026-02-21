@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
+import Alert from '@/utils/alert';
 import { config } from '@/utils/config';
 import secureStorage from '@/utils/secureStorage';
 import { authService } from '@/services/AuthService';

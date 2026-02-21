@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import Alert from '@/utils/alert';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView} from 'react-native';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { warehousesApi, warehouseAreasApi } from '@/services/api';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';

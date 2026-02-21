@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
+import Alert from '@/utils/alert';
+import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SupplierDebtTransaction, TransactionType } from '@/types/suppliers';
 import filesApi from '@/services/api/files';

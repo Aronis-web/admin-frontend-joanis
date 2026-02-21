@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import Alert from '@/utils/alert';
+import { View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import { useAuthStore } from '@/store/auth';
 import { AuthError } from '@/types/auth';
 

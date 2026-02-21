@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+import Alert from '@/utils/alert';
 
 interface PermissionError {
   isPermissionError: boolean;

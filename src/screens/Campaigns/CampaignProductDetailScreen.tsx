@@ -5,13 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
   Modal,
   TextInput,
 } from 'react-native';
+import Alert from '@/utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { campaignsService, inventoryApi } from '@/services/api';

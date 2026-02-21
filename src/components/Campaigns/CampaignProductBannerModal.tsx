@@ -9,10 +9,10 @@ import {
   useWindowDimensions,
   ActivityIndicator,
   TextInput,
-  Alert,
   SafeAreaView,
   Image,
 } from 'react-native';
+import Alert from '@/utils/alert';
 import { CampaignProduct, ProductStatus, StockDetailByWarehouse } from '@/types/campaigns';
 import { inventoryApi } from '@/services/api/inventory';
 import { purchasesService } from '@/services/api/purchases';

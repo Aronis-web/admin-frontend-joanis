@@ -4,7 +4,7 @@
  * Helper functions for navigation-related operations
  */
 
-import { Alert } from 'react-native';
+import Alert from '@/utils/alert';
 import { getRouteParams, RouteProp } from '@/types/navigation';
 
 /**

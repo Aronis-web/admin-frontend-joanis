@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Modal,
   TextInput,
   useWindowDimensions,
 } from 'react-native';
+import Alert from '@/utils/alert';
 import { campaignsService, inventoryApi } from '@/services/api';
 import logger from '@/utils/logger';
 import {
@@ -336,7 +336,6 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       setEditableDistributions(initialDistributions);
 
       // Crear objeto adjustedDistribution para compatibilidad con el resto del código
-      // @ts-expect-error - Tipos compatibles en runtime, diferencias menores en enums
       const mockPreview: DistributionPreviewResponse = {
         productId: product.id,
         productName: product.product?.title || 'Producto',
