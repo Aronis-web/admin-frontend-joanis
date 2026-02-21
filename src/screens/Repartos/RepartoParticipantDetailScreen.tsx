@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { campaignsService, repartosService } from '@/services/api';
@@ -26,7 +27,7 @@ import {
   DiscrepanciasModal,
   NotasDiscrepanciaModal,
 } from '@/components/Repartos';
-import { VehicleSelectionModal, DriverSelectionModal } from '@/components/Transport';
+import { TransportSelectionModal } from '@/components/Transport';
 import { TransferReportDiscrepancy } from '@/types/consolidated-reports';
 import { useAuthStore } from '@/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -144,10 +145,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     transferNumber: string | null;
     generatedAt: string | null;
   } | null>(null);
-  const [vehicleModalVisible, setVehicleModalVisible] = useState(false);
-  const [driverModalVisible, setDriverModalVisible] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [transportModalVisible, setTransportModalVisible] = useState(false);
   const [remissionGuideInfo, setRemissionGuideInfo] = useState<{
     exists: boolean;
     remissionGuideId: string | null;
@@ -321,33 +319,45 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
       // Verificar si ya existe un traslado consolidado
       try {
+        logger.info('🔍 Verificando estado del traslado consolidado...');
         const transferStatus = await repartosService.checkConsolidatedTransferStatus(
           participantId,
           campaignId
         );
+        logger.info('📊 Respuesta del servidor (traslado):', JSON.stringify(transferStatus, null, 2));
         setConsolidatedTransferInfo(transferStatus);
+        // ✅ SIEMPRE actualizar el estado basado en la respuesta del servidor
+        setConsolidatedTransferGenerated(transferStatus.exists);
         if (transferStatus.exists) {
-          setConsolidatedTransferGenerated(true);
           logger.info('✅ Traslado consolidado ya existe:', transferStatus);
+        } else {
+          logger.info('ℹ️ Traslado consolidado NO existe aún');
         }
       } catch (error: any) {
-        logger.error('Error verificando estado del traslado consolidado:', error);
-        // No mostrar error al usuario, solo registrar en logs
+        logger.error('❌ Error verificando estado del traslado consolidado:', error);
+        // En caso de error, asumir que no existe
+        setConsolidatedTransferGenerated(false);
+        setConsolidatedTransferInfo(null);
       }
 
       // Verificar si ya existe una guía de remisión
       try {
+        logger.info('🔍 Verificando estado de la guía de remisión...');
         const guideInfo = await repartosService.getRemissionGuideInfo(
           participantId,
           campaignId
         );
+        logger.info('📊 Respuesta del servidor (guía):', JSON.stringify(guideInfo, null, 2));
         setRemissionGuideInfo(guideInfo);
         if (guideInfo.exists) {
           logger.info('✅ Guía de remisión ya existe:', guideInfo);
+        } else {
+          logger.info('ℹ️ Guía de remisión NO existe aún');
         }
       } catch (error: any) {
-        logger.error('Error verificando estado de la guía de remisión:', error);
-        // No mostrar error al usuario, solo registrar en logs
+        logger.error('❌ Error verificando estado de la guía de remisión:', error);
+        // En caso de error, asumir que no existe
+        setRemissionGuideInfo(null);
       }
     } catch (error: any) {
       console.error('Error loading participant data:', error);
@@ -624,51 +634,47 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       return;
     }
 
-    // Abrir modal de selección de vehículo primero
-    setVehicleModalVisible(true);
+    // Abrir modal de selección de transporte
+    setTransportModalVisible(true);
   };
 
-  const handleVehicleSelected = (vehicle: Vehicle) => {
-    setSelectedVehicle(vehicle);
-    setVehicleModalVisible(false);
-    // Después de seleccionar vehículo, abrir modal de conductor
-    setDriverModalVisible(true);
-  };
-
-  const handleDriverSelected = async (driver: Driver) => {
-    setSelectedDriver(driver);
-    setDriverModalVisible(false);
-
-    if (!selectedVehicle) {
-      Alert.alert('Error', 'No se seleccionó un vehículo');
-      return;
-    }
+  const handleTransportConfirm = async (vehicle: Vehicle | null, driver: Driver | null) => {
+    setTransportModalVisible(false);
 
     const participantName =
       participant?.participantType === ParticipantType.EXTERNAL_COMPANY
         ? participant.company?.alias || participant.company?.name || 'Empresa'
         : participant?.site?.name || 'Sede';
 
+    // Determinar si es transporte público
+    const isPublicTransport = !vehicle && !driver;
+
+    // Construir mensaje de confirmación
+    let confirmMessage = `¿Estás seguro de que deseas generar la guía de remisión electrónica para ${participantName}?\n\n`;
+
+    if (isPublicTransport) {
+      confirmMessage += `🚌 Transporte: Público\n\n`;
+    } else {
+      confirmMessage +=
+        `🚗 Vehículo: ${vehicle!.numeroPlaca} (${vehicle!.marca} ${vehicle!.modelo})\n` +
+        `👤 Conductor: ${driver!.nombre} ${driver!.apellido}\n` +
+        `📋 Licencia: ${driver!.numeroLicencia}\n\n`;
+    }
+
+    confirmMessage +=
+      'Esta acción:\n' +
+      '• Generará una guía de remisión tipo 09 (Traslado)\n' +
+      '• Se enviará automáticamente a SUNAT\n' +
+      '• Quedará anexada al participante de la campaña';
+
     // Confirmar acción con los datos seleccionados
     Alert.alert(
       'Generar Guía de Remisión',
-      `¿Estás seguro de que deseas generar la guía de remisión electrónica para ${participantName}?\n\n` +
-        `🚗 Vehículo: ${selectedVehicle.numeroPlaca} (${selectedVehicle.marca} ${selectedVehicle.modelo})\n` +
-        `👤 Conductor: ${driver.nombre} ${driver.apellido}\n` +
-        `📋 Licencia: ${driver.numeroLicencia}\n\n` +
-        'Esta acción:\n' +
-        '• Generará una guía de remisión tipo 09 (Traslado)\n' +
-        '• Se enviará automáticamente a SUNAT\n' +
-        '• Quedará anexada al participante de la campaña',
+      confirmMessage,
       [
         {
           text: 'Cancelar',
           style: 'cancel',
-          onPress: () => {
-            // Limpiar selecciones si cancela
-            setSelectedVehicle(null);
-            setSelectedDriver(null);
-          },
         },
         {
           text: 'Generar',
@@ -677,35 +683,46 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             try {
               setGeneratingRemissionGuide(true);
               logger.info('🔄 Generando guía de remisión para:', participantName);
-              logger.info('🚗 Vehículo:', selectedVehicle.numeroPlaca);
-              logger.info('👤 Conductor:', `${driver.nombre} ${driver.apellido}`);
+
+              if (isPublicTransport) {
+                logger.info('🚌 Tipo de transporte: Público');
+              } else {
+                logger.info('🚗 Vehículo:', vehicle!.numeroPlaca);
+                logger.info('👤 Conductor:', `${driver!.nombre} ${driver!.apellido}`);
+              }
 
               const response = await repartosService.generateRemissionGuide(
                 participantId,
                 campaignId,
-                {
-                  vehicleId: selectedVehicle.id,
-                  driverId: driver.id,
+                isPublicTransport ? undefined : {
+                  vehicleId: vehicle!.id,
+                  driverId: driver!.id,
                 }
               );
 
               logger.info('✅ Guía de remisión generada:', response);
 
+              let successMessage =
+                `Guía de remisión generada exitosamente:\n\n` +
+                `📄 Número: ${response.remissionGuide.serieNumero}\n` +
+                `✅ Estado: ${response.remissionGuide.status}\n` +
+                `📦 Traslado: ${response.transfer.transferNumber}\n`;
+
+              if (isPublicTransport) {
+                successMessage += `🚌 Transporte: Público`;
+              } else {
+                successMessage +=
+                  `🚗 Vehículo: ${vehicle!.numeroPlaca}\n` +
+                  `👤 Conductor: ${driver!.nombre} ${driver!.apellido}`;
+              }
+
               Alert.alert(
                 'Éxito',
-                `Guía de remisión generada exitosamente:\n\n` +
-                  `📄 Número: ${response.remissionGuide.serieNumero}\n` +
-                  `✅ Estado: ${response.remissionGuide.status}\n` +
-                  `📦 Traslado: ${response.transfer.transferNumber}\n` +
-                  `🚗 Vehículo: ${selectedVehicle.numeroPlaca}\n` +
-                  `👤 Conductor: ${driver.nombre} ${driver.apellido}`,
+                successMessage,
                 [
                   {
                     text: 'Aceptar',
                     onPress: () => {
-                      // Limpiar selecciones
-                      setSelectedVehicle(null);
-                      setSelectedDriver(null);
                       loadData(); // Recargar datos para actualizar el estado
                     },
                   },
@@ -717,9 +734,6 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 'Error',
                 error.response?.data?.message || 'No se pudo generar la guía de remisión'
               );
-              // Limpiar selecciones en caso de error
-              setSelectedVehicle(null);
-              setSelectedDriver(null);
             } finally {
               setGeneratingRemissionGuide(false);
             }
@@ -1220,6 +1234,67 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           {/* Download Remission Guide Button - Solo si existe la guía */}
           {remissionGuideInfo?.exists && (
             <View>
+              {/* Remission Guide Info Card */}
+              <View style={[styles.guideInfoCard, isTablet && styles.guideInfoCardTablet]}>
+                <View style={styles.guideInfoHeader}>
+                  <Ionicons name="document-text" size={24} color="#10B981" />
+                  <Text style={[styles.guideInfoTitle, isTablet && styles.guideInfoTitleTablet]}>
+                    Guía de Remisión Generada
+                  </Text>
+                </View>
+
+                <View style={styles.guideInfoDetails}>
+                  <View style={styles.guideInfoRow}>
+                    <Text style={[styles.guideInfoLabel, isTablet && styles.guideInfoLabelTablet]}>
+                      Número:
+                    </Text>
+                    <Text style={[styles.guideInfoValue, isTablet && styles.guideInfoValueTablet]}>
+                      {remissionGuideInfo.remissionGuideNumber || 'N/A'}
+                    </Text>
+                  </View>
+
+                  {remissionGuideInfo.status && (
+                    <View style={styles.guideInfoRow}>
+                      <Text style={[styles.guideInfoLabel, isTablet && styles.guideInfoLabelTablet]}>
+                        Estado:
+                      </Text>
+                      <Text style={[styles.guideInfoValue, isTablet && styles.guideInfoValueTablet]}>
+                        {remissionGuideInfo.status}
+                      </Text>
+                    </View>
+                  )}
+
+                  {remissionGuideInfo.statusSunat && (
+                    <View style={styles.guideInfoRow}>
+                      <Text style={[styles.guideInfoLabel, isTablet && styles.guideInfoLabelTablet]}>
+                        Estado SUNAT:
+                      </Text>
+                      <Text style={[styles.guideInfoValue, isTablet && styles.guideInfoValueTablet]}>
+                        {remissionGuideInfo.statusSunat}
+                      </Text>
+                    </View>
+                  )}
+
+                  {remissionGuideInfo.generatedAt && (
+                    <View style={styles.guideInfoRow}>
+                      <Text style={[styles.guideInfoLabel, isTablet && styles.guideInfoLabelTablet]}>
+                        Generada:
+                      </Text>
+                      <Text style={[styles.guideInfoValue, isTablet && styles.guideInfoValueTablet]}>
+                        {new Date(remissionGuideInfo.generatedAt).toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* Download Button */}
               <TouchableOpacity
                 style={[
                   styles.downloadGuideButton,
@@ -1230,36 +1305,21 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 disabled={downloadingRemissionGuide}
                 activeOpacity={0.7}
               >
+                <Ionicons
+                  name="download-outline"
+                  size={20}
+                  color="#FFFFFF"
+                  style={{ marginRight: 8 }}
+                />
                 <Text
                   style={[
                     styles.downloadGuideButtonText,
                     isTablet && styles.downloadGuideButtonTextTablet,
                   ]}
                 >
-                  {downloadingRemissionGuide ? '📥 Descargando...' : '📥 Descargar Guía de Remisión'}
+                  {downloadingRemissionGuide ? 'Descargando...' : 'Descargar Guía de Remisión'}
                 </Text>
               </TouchableOpacity>
-
-              {/* Remission Guide Info */}
-              <View style={[styles.guideInfoMessage, isTablet && styles.guideInfoMessageTablet]}>
-                <Text style={[styles.guideInfoText, isTablet && styles.guideInfoTextTablet]}>
-                  📋 Guía: {remissionGuideInfo.remissionGuideNumber}
-                </Text>
-                {remissionGuideInfo.status && (
-                  <Text style={[styles.guideInfoSubtext, isTablet && styles.guideInfoSubtextTablet]}>
-                    Estado: {remissionGuideInfo.status}
-                    {remissionGuideInfo.generatedAt && (
-                      ` • ${new Date(remissionGuideInfo.generatedAt).toLocaleDateString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}`
-                    )}
-                  </Text>
-                )}
-              </View>
             </View>
           )}
         </View>
@@ -1467,27 +1527,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           onNotesUpdated={handleNotesUpdated}
         />
 
-        {/* Vehicle Selection Modal */}
-        <VehicleSelectionModal
-          visible={vehicleModalVisible}
-          onClose={() => {
-            setVehicleModalVisible(false);
-            setSelectedVehicle(null);
-          }}
-          onSelect={handleVehicleSelected}
-          selectedVehicleId={selectedVehicle?.id}
-        />
-
-        {/* Driver Selection Modal */}
-        <DriverSelectionModal
-          visible={driverModalVisible}
-          onClose={() => {
-            setDriverModalVisible(false);
-            setSelectedDriver(null);
-            setSelectedVehicle(null); // También limpiar vehículo si cancela
-          }}
-          onSelect={handleDriverSelected}
-          selectedDriverId={selectedDriver?.id}
+        {/* Transport Selection Modal */}
+        <TransportSelectionModal
+          visible={transportModalVisible}
+          onClose={() => setTransportModalVisible(false)}
+          onConfirm={handleTransportConfirm}
         />
       </SafeAreaView>
     </ScreenLayout>
@@ -1693,6 +1737,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
     borderWidth: 2,
     borderColor: '#0284C7',
   },
@@ -1708,6 +1754,61 @@ const styles = StyleSheet.create({
   },
   downloadGuideButtonTextTablet: {
     fontSize: 16,
+  },
+  guideInfoCard: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: '#10B981',
+  },
+  guideInfoCardTablet: {
+    padding: 20,
+    marginTop: 16,
+  },
+  guideInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#BBF7D0',
+  },
+  guideInfoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#065F46',
+    marginLeft: 8,
+  },
+  guideInfoTitleTablet: {
+    fontSize: 18,
+  },
+  guideInfoDetails: {
+    gap: 8,
+  },
+  guideInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  guideInfoLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#047857',
+  },
+  guideInfoLabelTablet: {
+    fontSize: 15,
+  },
+  guideInfoValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#065F46',
+    flex: 1,
+    textAlign: 'right',
+  },
+  guideInfoValueTablet: {
+    fontSize: 15,
   },
   guideInfoMessage: {
     backgroundColor: '#E0F2FE',

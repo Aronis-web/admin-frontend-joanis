@@ -595,7 +595,10 @@ class RepartosService {
       message: string;
     }>(
       `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/generate-remission-guide`,
-      transportData
+      transportData,
+      {
+        timeout: config.API_TIMEOUT_REMISSION_GUIDE, // 90 segundos para comunicación con SUNAT
+      }
     );
   }
 
