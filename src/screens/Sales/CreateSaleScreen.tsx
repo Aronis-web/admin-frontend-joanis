@@ -145,28 +145,39 @@ export const CreateSaleScreen: React.FC = () => {
 
   const handleSelectProduct = useCallback(async (product: Product) => {
     try {
-      // Obtener stock del producto en todos los almacenes del sitio actual
-      if (!currentSite?.id) {
-        Alert.alert('Error', 'No se ha seleccionado una sede');
-        return;
-      }
-
-      const stockResponse = await inventoryApi.getProductStock(product.id, currentSite.id);
+      // Obtener stock del producto en todos los almacenes
+      const stockResponse = await inventoryApi.getStockByProductWithAreas(product.id);
 
       if (!stockResponse || stockResponse.length === 0) {
         Alert.alert(
           'Sin Stock',
-          'Este producto no tiene stock disponible en ningún almacén de esta sede.'
+          'Este producto no tiene stock disponible en ningún almacén.'
         );
         return;
       }
 
+      // Filtrar solo almacenes del sitio actual si hay sitio seleccionado
+      let filteredStock = stockResponse;
+      if (currentSite?.id) {
+        filteredStock = stockResponse.filter(
+          (s) => s.warehouse?.siteId === currentSite.id
+        );
+
+        if (filteredStock.length === 0) {
+          Alert.alert(
+            'Sin Stock',
+            'Este producto no tiene stock disponible en los almacenes de esta sede.'
+          );
+          return;
+        }
+      }
+
       // Encontrar el almacén con mayor stock disponible
-      const warehouseWithMostStock = stockResponse.reduce((prev, current) => {
+      const warehouseWithMostStock = filteredStock.reduce((prev, current) => {
         return (current.availableQuantityBase > prev.availableQuantityBase) ? current : prev;
       });
 
-      const totalStock = stockResponse.reduce((sum, s) => sum + s.availableQuantityBase, 0);
+      const totalStock = filteredStock.reduce((sum, s) => sum + s.availableQuantityBase, 0);
 
       // Obtener precio de venta según el perfil seleccionado
       let unitPriceCents = product.costCents || 0;
@@ -188,12 +199,10 @@ export const CreateSaleScreen: React.FC = () => {
         }
       }
 
-      // Auto-seleccionar el almacén si no hay uno seleccionado
-      if (!selectedWarehouse && warehouses.length > 0) {
-        const warehouse = warehouses.find(w => w.id === warehouseWithMostStock.warehouseId);
-        if (warehouse) {
-          setSelectedWarehouse(warehouse);
-        }
+      // Auto-seleccionar el almacén deducido
+      const deducedWarehouse = warehouses.find(w => w.id === warehouseWithMostStock.warehouseId);
+      if (deducedWarehouse && !selectedWarehouse) {
+        setSelectedWarehouse(deducedWarehouse);
       }
 
       const newItem: SaleItem = {
@@ -201,7 +210,7 @@ export const CreateSaleScreen: React.FC = () => {
         quantity: 1,
         unitPriceCents,
         discountCents: 0,
-        stock: stockResponse,
+        stock: filteredStock,
         availableStock: totalStock,
         warehouseId: warehouseWithMostStock.warehouseId,
         warehouseName: warehouseWithMostStock.warehouse?.name || 'Almacén',
@@ -428,35 +437,21 @@ export const CreateSaleScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Warehouse Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Almacén</Text>
-          {loadingWarehouses ? (
-            <ActivityIndicator size="small" color="#007bff" />
-          ) : (
-            <View style={styles.pickerContainer}>
-              {warehouses.map((warehouse) => (
-                <TouchableOpacity
-                  key={warehouse.id}
-                  style={[
-                    styles.pickerItem,
-                    selectedWarehouse?.id === warehouse.id && styles.pickerItemActive,
-                  ]}
-                  onPress={() => setSelectedWarehouse(warehouse)}
-                >
-                  <Text
-                    style={[
-                      styles.pickerItemText,
-                      selectedWarehouse?.id === warehouse.id && styles.pickerItemTextActive,
-                    ]}
-                  >
-                    {warehouse.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+        {/* Warehouse Info - Auto-deduced */}
+        {selectedWarehouse && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Almacén</Text>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoCardIcon}>📦</Text>
+              <View style={styles.infoCardContent}>
+                <Text style={styles.infoCardTitle}>{selectedWarehouse.name}</Text>
+                <Text style={styles.infoCardSubtitle}>
+                  Deducido automáticamente según el stock de los productos
+                </Text>
+              </View>
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Payment Method Selection */}
         <View style={styles.section}>
@@ -843,6 +838,33 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  infoCard: {
+    flexDirection: 'row',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+    alignItems: 'center',
+    gap: 12,
+  },
+  infoCardIcon: {
+    fontSize: 32,
+  },
+  infoCardContent: {
+    flex: 1,
+  },
+  infoCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E40AF',
+    marginBottom: 4,
+  },
+  infoCardSubtitle: {
+    fontSize: 13,
+    color: '#3B82F6',
+    fontStyle: 'italic',
   },
   selectButton: {
     backgroundColor: '#007bff',
