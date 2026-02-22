@@ -113,6 +113,16 @@ export type MainStackParamList = {
     customerId?: string;
   };
 
+  // Sales
+  Sales: undefined;
+  CreateSale: undefined;
+  SaleDetail: {
+    saleId: string;
+  };
+  RegisterSalePayment: {
+    saleId: string;
+  };
+
   // Campaigns
   Campaigns: undefined;
   CreateCampaign: undefined;

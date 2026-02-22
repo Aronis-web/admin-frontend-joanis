@@ -60,6 +60,11 @@ const SupplierDebtsScreen = lazyLoad(() => import('@/screens/Suppliers/SupplierD
 const CustomersScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomersScreen })));
 const CustomerDetailScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomerDetailScreen })));
 
+// Sales Screens - Lazy Loaded
+const SalesScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SalesScreen })), 'Cargando ventas...');
+const CreateSaleScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.CreateSaleScreen })));
+const SaleDetailScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SaleDetailScreen })));
+
 // Purchases Screens - Lazy Loaded
 const PurchasesScreen = lazyLoad(() => import('@/screens/Purchases/PurchasesScreen').then(m => ({ default: m.PurchasesScreen })), 'Cargando compras...');
 const CreatePurchaseScreen = lazyLoad(() => import('@/screens/Purchases/CreatePurchaseScreen').then(m => ({ default: m.CreatePurchaseScreen })));
@@ -449,6 +454,43 @@ const MainStack = React.memo(() => {
         component={CustomerDetailScreen}
         options={{
           title: 'Detalle de Cliente',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.SALES}
+        options={{
+          title: 'Ventas',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'sales.read',
+              'sales.create',
+              'sales.update',
+            ]}
+          >
+            <SalesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.CREATE_SALE}
+        options={{
+          title: 'Nueva Venta',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['sales.create']}>
+            <CreateSaleScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.SALE_DETAIL}
+        component={SaleDetailScreen}
+        options={{
+          title: 'Detalle de Venta',
         }}
       />
       <MainStackNavigator.Screen

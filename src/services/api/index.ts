@@ -23,6 +23,7 @@ export * from './campaigns';
 export * from './repartos';
 export * from './transport';
 export * from './users';
+export { salesApi } from './sales';
 
 // Export roles API (avoid GetPermissionsParams conflict with apps)
 export { rolesApi } from './roles';

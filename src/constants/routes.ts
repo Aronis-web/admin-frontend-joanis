@@ -70,6 +70,12 @@ export const MAIN_ROUTES = {
   CUSTOMERS: 'Customers',
   CUSTOMER_DETAIL: 'CustomerDetail',
 
+  // Sales
+  SALES: 'Sales',
+  CREATE_SALE: 'CreateSale',
+  SALE_DETAIL: 'SaleDetail',
+  REGISTER_SALE_PAYMENT: 'RegisterSalePayment',
+
   // Campaigns
   CAMPAIGNS: 'Campaigns',
   CREATE_CAMPAIGN: 'CreateCampaign',
@@ -227,6 +233,12 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Customers
   CUSTOMERS: 'customers.read',
   CUSTOMER_DETAIL: 'customers.read',
+
+  // Sales
+  SALES: 'sales.read',
+  CREATE_SALE: 'sales.create',
+  SALE_DETAIL: 'sales.read',
+  REGISTER_SALE_PAYMENT: 'sales.payment.register',
 
   // Campaigns
   CAMPAIGNS: 'campaigns.read',
