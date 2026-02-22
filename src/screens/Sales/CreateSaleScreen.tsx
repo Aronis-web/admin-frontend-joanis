@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,13 +15,16 @@ import { useAuthStore } from '@/store/auth';
 import { salesApi } from '@/services/api/sales';
 import { companiesApi } from '@/services/api/companies';
 import { warehousesApi } from '@/services/api/warehouses';
+import { priceProfilesApi } from '@/services/api/price-profiles';
+import { inventoryApi } from '@/services/api/inventory';
 import { CustomerSearchModal } from '@/components/Sales/CustomerSearchModal';
-import { ProductSearchModal } from '@/components/Sales/ProductSearchModal';
+import { ProductAutocomplete } from '@/components/Bizlinks/ProductAutocomplete';
 import { Customer, CustomerType } from '@/types/customers';
-import { Product } from '@/services/api/products';
+import { Product, ProductSalePrice } from '@/services/api/products';
 import { StockItemResponse } from '@/services/api/inventory';
 import { Warehouse } from '@/types/warehouses';
 import { PaymentMethod } from '@/types/companies';
+import { PriceProfile } from '@/types/price-profiles';
 import { SaleType, CreateSaleItemRequest } from '@/types/sales';
 import logger from '@/utils/logger';
 
@@ -32,6 +35,9 @@ interface SaleItem {
   discountCents: number;
   stock: StockItemResponse[];
   availableStock: number;
+  warehouseId?: string;
+  warehouseName?: string;
+  selectedPresentationId?: string;
 }
 
 export const CreateSaleScreen: React.FC = () => {
@@ -43,21 +49,23 @@ export const CreateSaleScreen: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [selectedPriceProfile, setSelectedPriceProfile] = useState<PriceProfile | null>(null);
   const [items, setItems] = useState<SaleItem[]>([]);
   const [notes, setNotes] = useState('');
 
   // Modals
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
-  const [showProductSearch, setShowProductSearch] = useState(false);
 
   // Loading states
   const [loading, setLoading] = useState(false);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+  const [loadingPriceProfiles, setLoadingPriceProfiles] = useState(false);
 
   // Data
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
 
   // Load warehouses
   useEffect(() => {
@@ -72,6 +80,11 @@ export const CreateSaleScreen: React.FC = () => {
       loadPaymentMethods();
     }
   }, [currentCompany?.id]);
+
+  // Load price profiles
+  useEffect(() => {
+    loadPriceProfiles();
+  }, []);
 
   const loadWarehouses = async () => {
     if (!currentSite?.id) return;
@@ -113,28 +126,93 @@ export const CreateSaleScreen: React.FC = () => {
     }
   };
 
+  const loadPriceProfiles = async () => {
+    setLoadingPriceProfiles(true);
+    try {
+      const profiles = await priceProfilesApi.getActivePriceProfiles();
+      setPriceProfiles(profiles);
+    } catch (error) {
+      logger.error('Error cargando perfiles de precio:', error);
+      // No mostrar alerta, es opcional
+    } finally {
+      setLoadingPriceProfiles(false);
+    }
+  };
+
   const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
   };
 
-  const handleSelectProduct = (product: Product, stock: StockItemResponse[]) => {
-    // Calcular stock disponible total
-    const totalStock = stock.reduce((sum, s) => sum + s.availableQuantityBase, 0);
+  const handleSelectProduct = useCallback(async (product: Product) => {
+    try {
+      // Obtener stock del producto en todos los almacenes del sitio actual
+      if (!currentSite?.id) {
+        Alert.alert('Error', 'No se ha seleccionado una sede');
+        return;
+      }
 
-    // Obtener precio base del producto (en centavos)
-    const unitPriceCents = product.costCents || 0;
+      const stockResponse = await inventoryApi.getProductStock(product.id, currentSite.id);
 
-    const newItem: SaleItem = {
-      product,
-      quantity: 1,
-      unitPriceCents,
-      discountCents: 0,
-      stock,
-      availableStock: totalStock,
-    };
+      if (!stockResponse || stockResponse.length === 0) {
+        Alert.alert(
+          'Sin Stock',
+          'Este producto no tiene stock disponible en ningún almacén de esta sede.'
+        );
+        return;
+      }
 
-    setItems([...items, newItem]);
-  };
+      // Encontrar el almacén con mayor stock disponible
+      const warehouseWithMostStock = stockResponse.reduce((prev, current) => {
+        return (current.availableQuantityBase > prev.availableQuantityBase) ? current : prev;
+      });
+
+      const totalStock = stockResponse.reduce((sum, s) => sum + s.availableQuantityBase, 0);
+
+      // Obtener precio de venta según el perfil seleccionado
+      let unitPriceCents = product.costCents || 0;
+
+      if (selectedPriceProfile && product.salePrices && product.salePrices.length > 0) {
+        // Buscar el precio de venta para el perfil seleccionado
+        const salePrice = product.salePrices.find(
+          (sp) => sp.profileId === selectedPriceProfile.id && !sp.presentationId
+        );
+
+        if (salePrice) {
+          unitPriceCents = salePrice.priceCents;
+        } else {
+          // Calcular precio basado en el factor del perfil
+          const factor = typeof selectedPriceProfile.factorToCost === 'string'
+            ? parseFloat(selectedPriceProfile.factorToCost)
+            : selectedPriceProfile.factorToCost;
+          unitPriceCents = Math.round(product.costCents * factor);
+        }
+      }
+
+      // Auto-seleccionar el almacén si no hay uno seleccionado
+      if (!selectedWarehouse && warehouses.length > 0) {
+        const warehouse = warehouses.find(w => w.id === warehouseWithMostStock.warehouseId);
+        if (warehouse) {
+          setSelectedWarehouse(warehouse);
+        }
+      }
+
+      const newItem: SaleItem = {
+        product,
+        quantity: 1,
+        unitPriceCents,
+        discountCents: 0,
+        stock: stockResponse,
+        availableStock: totalStock,
+        warehouseId: warehouseWithMostStock.warehouseId,
+        warehouseName: warehouseWithMostStock.warehouse?.name || 'Almacén',
+      };
+
+      setItems([...items, newItem]);
+    } catch (error) {
+      logger.error('Error al obtener stock del producto:', error);
+      Alert.alert('Error', 'No se pudo obtener el stock del producto');
+    }
+  }, [currentSite?.id, selectedPriceProfile, selectedWarehouse, warehouses, items]);
 
   const handleUpdateQuantity = (index: number, quantity: number) => {
     const newItems = [...items];
@@ -426,23 +504,92 @@ export const CreateSaleScreen: React.FC = () => {
           )}
         </View>
 
+        {/* Price Profile Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Perfil de Precio de Venta (Opcional)</Text>
+          <Text style={styles.sectionHint}>
+            Selecciona un perfil para aplicar precios automáticamente a los productos
+          </Text>
+          {loadingPriceProfiles ? (
+            <ActivityIndicator size="small" color="#007bff" />
+          ) : (
+            <View style={styles.pickerContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.pickerItem,
+                  !selectedPriceProfile && styles.pickerItemActive,
+                ]}
+                onPress={() => setSelectedPriceProfile(null)}
+              >
+                <Text
+                  style={[
+                    styles.pickerItemText,
+                    !selectedPriceProfile && styles.pickerItemTextActive,
+                  ]}
+                >
+                  Sin perfil (usar costo)
+                </Text>
+              </TouchableOpacity>
+              {priceProfiles.map((profile) => {
+                const factor = typeof profile.factorToCost === 'string'
+                  ? parseFloat(profile.factorToCost)
+                  : profile.factorToCost;
+                const margin = ((factor - 1) * 100).toFixed(0);
+                return (
+                  <TouchableOpacity
+                    key={profile.id}
+                    style={[
+                      styles.pickerItem,
+                      selectedPriceProfile?.id === profile.id && styles.pickerItemActive,
+                    ]}
+                    onPress={() => setSelectedPriceProfile(profile)}
+                  >
+                    <View style={styles.pickerItemContent}>
+                      <Text
+                        style={[
+                          styles.pickerItemText,
+                          selectedPriceProfile?.id === profile.id && styles.pickerItemTextActive,
+                        ]}
+                      >
+                        {profile.name}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.pickerItemSubtext,
+                          selectedPriceProfile?.id === profile.id && styles.pickerItemSubtextActive,
+                        ]}
+                      >
+                        +{margin}% margen
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
         {/* Products */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Productos ({items.length})</Text>
-            <TouchableOpacity
-              style={styles.addProductButton}
-              onPress={() => setShowProductSearch(true)}
-              disabled={!selectedWarehouse}
-            >
-              <Text style={styles.addProductButtonText}>+ Agregar Producto</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.sectionTitle}>Productos ({items.length})</Text>
+          <Text style={styles.sectionHint}>
+            Busca y agrega productos a la venta
+          </Text>
+
+          {/* Product Autocomplete - Always visible */}
+          <ProductAutocomplete
+            onSelectProduct={handleSelectProduct}
+            placeholder="Buscar producto por nombre, SKU o código de barras..."
+            excludeProductIds={items.map((item) => item.product.id)}
+          />
 
           {items.length === 0 ? (
             <View style={styles.emptyProducts}>
               <Text style={styles.emptyProductsText}>
                 No hay productos agregados
+              </Text>
+              <Text style={styles.emptyProductsHint}>
+                Usa el buscador de arriba para agregar productos
               </Text>
             </View>
           ) : (
@@ -450,9 +597,17 @@ export const CreateSaleScreen: React.FC = () => {
               {items.map((item, index) => (
                 <View key={index} style={styles.productItem}>
                   <View style={styles.productHeader}>
-                    <Text style={styles.productName} numberOfLines={2}>
-                      {item.product.title}
-                    </Text>
+                    <View style={styles.productHeaderLeft}>
+                      <Text style={styles.productName} numberOfLines={2}>
+                        {item.product.title}
+                      </Text>
+                      <Text style={styles.productSku}>SKU: {item.product.sku}</Text>
+                      {item.warehouseName && (
+                        <Text style={styles.productWarehouse}>
+                          📦 {item.warehouseName}
+                        </Text>
+                      )}
+                    </View>
                     <TouchableOpacity
                       onPress={() => handleRemoveItem(index)}
                       style={styles.removeProductButton}
@@ -461,10 +616,11 @@ export const CreateSaleScreen: React.FC = () => {
                     </TouchableOpacity>
                   </View>
 
-                  <Text style={styles.productSku}>SKU: {item.product.sku}</Text>
-                  <Text style={styles.productStock}>
-                    Stock disponible: {item.availableStock} unidades
-                  </Text>
+                  <View style={styles.stockInfo}>
+                    <Text style={styles.productStock}>
+                      Stock disponible: {item.availableStock} unidades
+                    </Text>
+                  </View>
 
                   <View style={styles.productInputs}>
                     <View style={styles.inputGroup}>
@@ -572,14 +728,6 @@ export const CreateSaleScreen: React.FC = () => {
         onSelectCustomer={handleSelectCustomer}
         customerType={saleType === SaleType.B2C ? CustomerType.PERSONA : CustomerType.EMPRESA}
       />
-
-      <ProductSearchModal
-        visible={showProductSearch}
-        onClose={() => setShowProductSearch(false)}
-        onSelectProduct={handleSelectProduct}
-        warehouseId={selectedWarehouse?.id}
-        excludeProductIds={items.map((item) => item.product.id)}
-      />
     </View>
   );
 };
@@ -625,6 +773,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 12,
+  },
+  sectionHint: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 12,
+    fontStyle: 'italic',
   },
   typeButtons: {
     flexDirection: 'row',
@@ -723,16 +877,18 @@ const styles = StyleSheet.create({
     color: '#007bff',
     fontWeight: '600',
   },
-  addProductButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+  pickerItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
   },
-  addProductButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+  pickerItemSubtext: {
+    fontSize: 12,
+    color: '#999',
+  },
+  pickerItemSubtextActive: {
+    color: '#007bff',
   },
   emptyProducts: {
     padding: 40,
@@ -742,13 +898,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderStyle: 'dashed',
+    marginTop: 16,
   },
   emptyProductsText: {
     fontSize: 16,
     color: '#999',
+    marginBottom: 8,
+  },
+  emptyProductsHint: {
+    fontSize: 13,
+    color: '#bbb',
+    fontStyle: 'italic',
   },
   productsList: {
     gap: 12,
+    marginTop: 16,
   },
   productItem: {
     backgroundColor: '#fff',
@@ -761,13 +925,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  productHeaderLeft: {
+    flex: 1,
+    gap: 4,
   },
   productName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    flex: 1,
   },
   removeProductButton: {
     width: 24,
@@ -785,12 +952,19 @@ const styles = StyleSheet.create({
   productSku: {
     fontSize: 13,
     color: '#666',
-    marginBottom: 4,
+  },
+  productWarehouse: {
+    fontSize: 12,
+    color: '#3B82F6',
+    fontWeight: '500',
+  },
+  stockInfo: {
+    marginBottom: 12,
   },
   productStock: {
     fontSize: 13,
     color: '#10B981',
-    marginBottom: 12,
+    fontWeight: '500',
   },
   productInputs: {
     flexDirection: 'row',
