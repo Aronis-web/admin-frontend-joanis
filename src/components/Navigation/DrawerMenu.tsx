@@ -102,6 +102,23 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // Ventas - Sin submenú
+  {
+    id: 'sales',
+    title: 'Ventas',
+    icon: '💰',
+    color: '#10B981',
+    items: [
+      {
+        id: 'sales',
+        icon: '💰',
+        label: 'Ventas',
+        route: MAIN_ROUTES.SALES,
+        color: '#10B981',
+        requiredPermissions: ['sales.read', 'sales.create', 'sales.update'],
+      },
+    ],
+  },
   // Campaña - Con submenú (Campañas y Repartos)
   {
     id: 'campana',
