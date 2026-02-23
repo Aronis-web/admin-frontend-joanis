@@ -131,6 +131,7 @@ const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').
 const EmissionPointsScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointsScreen })), 'Cargando puntos de emisión...');
 const EmissionPointSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointSeriesScreen })), 'Cargando series...');
 const CreateEmissionPointScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.CreateEmissionPointScreen })), 'Cargando formulario...');
+const EditEmissionPointScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EditEmissionPointScreen })), 'Cargando formulario...');
 const CreateSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.CreateSeriesScreen })), 'Cargando formulario...');
 const EditSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EditSeriesScreen })), 'Cargando formulario...');
 
@@ -1012,6 +1013,20 @@ const MainStack = React.memo(() => {
             requiredPermissions={['billing.emission-points.create']}
           >
             <CreateEmissionPointScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="EditEmissionPoint"
+        options={{
+          title: 'Editar Punto de Emisión',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['billing.emission-points.update']}
+          >
+            <EditEmissionPointScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
