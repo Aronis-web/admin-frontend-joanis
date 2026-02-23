@@ -280,11 +280,6 @@ export const CreateSaleScreen: React.FC = () => {
       return;
     }
 
-    if (!selectedWarehouse) {
-      Alert.alert('Error', 'Debe seleccionar un almacén');
-      return;
-    }
-
     if (items.length === 0) {
       Alert.alert('Error', 'Debe agregar al menos un producto');
       return;
@@ -292,6 +287,26 @@ export const CreateSaleScreen: React.FC = () => {
 
     if (!currentSite?.id) {
       Alert.alert('Error', 'No se ha seleccionado una sede');
+      return;
+    }
+
+    // Verificar que todos los productos tengan almacén asignado
+    const itemsWithoutWarehouse = items.filter(item => !item.warehouseId);
+    if (itemsWithoutWarehouse.length > 0) {
+      Alert.alert('Error', 'Algunos productos no tienen almacén asignado');
+      return;
+    }
+
+    // Obtener el almacén del primer producto (todos deberían estar en el mismo almacén)
+    const warehouseId = items[0].warehouseId;
+
+    // Verificar que todos los productos estén en el mismo almacén
+    const differentWarehouse = items.find(item => item.warehouseId !== warehouseId);
+    if (differentWarehouse) {
+      Alert.alert(
+        'Error',
+        'Todos los productos deben estar en el mismo almacén. Por favor, selecciona productos del mismo almacén.'
+      );
       return;
     }
 
@@ -309,7 +324,7 @@ export const CreateSaleScreen: React.FC = () => {
         customerId: saleType === SaleType.B2C ? selectedCustomer.id : undefined,
         companyId: saleType === SaleType.B2B ? selectedCustomer.id : undefined,
         siteId: currentSite.id,
-        warehouseId: selectedWarehouse.id,
+        warehouseId: warehouseId!, // Usar el almacén deducido de los productos
         items: saleItems,
         paymentMethodId: selectedPaymentMethod?.id,
         notes: notes.trim() || undefined,
@@ -552,7 +567,7 @@ export const CreateSaleScreen: React.FC = () => {
           ) : (
             <View style={styles.productsList}>
               {items.map((item, index) => (
-                <View key={index} style={styles.productItem}>
+                <View key={`${item.product.id}-${index}`} style={styles.productItem}>
                   <View style={styles.productHeader}>
                     <View style={styles.productHeaderLeft}>
                       <Text style={styles.productName} numberOfLines={2}>
