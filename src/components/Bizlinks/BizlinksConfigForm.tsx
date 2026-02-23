@@ -15,6 +15,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useBizlinksConfig } from '../../hooks/useBizlinks';
+import config from '@/config';
 import {
   BizlinksConfig,
   CreateBizlinksConfigDto,
@@ -208,13 +209,24 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
       }
 
       // Subir logo
-      const updatedConfig = await uploadLogo(config.id, logoFile);
-      setLogoUrl(updatedConfig.logoUrl);
+      const response = await uploadLogo(config.id, logoFile);
+
+      // El backend puede retornar logoUrl o logoPath
+      const newLogoUrl = (response as any).logoUrl || (response as any).logoPath;
+
+      if (newLogoUrl) {
+        // Si es una ruta relativa, construir la URL completa
+        const fullLogoUrl = newLogoUrl.startsWith('http')
+          ? newLogoUrl
+          : `${config.API_URL}/${newLogoUrl}`;
+        setLogoUrl(fullLogoUrl);
+      }
+
       Alert.alert('Éxito', 'Logo subido correctamente');
 
       // Actualizar config si hay callback
-      if (onSuccess) {
-        onSuccess(updatedConfig);
+      if (onSuccess && response) {
+        onSuccess(response);
       }
     } catch (error: any) {
       console.error('Error al subir logo:', error);

@@ -18,6 +18,7 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { emissionPointsApi, EmissionType, EmissionPoint } from '@/services/api/emission-points';
 import logger from '@/utils/logger';
+import config from '@/config';
 
 interface EditEmissionPointScreenProps {
   navigation: any;
@@ -263,8 +264,19 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
       }
 
       // Subir logo
-      const updatedEmissionPoint = await emissionPointsApi.uploadLogo(emissionPointId, logoFile);
-      setLogoUrl(updatedEmissionPoint.logoUrl);
+      const response = await emissionPointsApi.uploadLogo(emissionPointId, logoFile);
+
+      // El backend puede retornar logoUrl o logoPath
+      const newLogoUrl = (response as any).logoUrl || (response as any).logoPath;
+
+      if (newLogoUrl) {
+        // Si es una ruta relativa, construir la URL completa
+        const fullLogoUrl = newLogoUrl.startsWith('http')
+          ? newLogoUrl
+          : `${config.API_URL}/${newLogoUrl}`;
+        setLogoUrl(fullLogoUrl);
+      }
+
       Alert.alert('Éxito', 'Logo subido correctamente');
     } catch (error: any) {
       logger.error('Error al subir logo:', error);
