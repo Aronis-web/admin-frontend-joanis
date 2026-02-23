@@ -437,22 +437,6 @@ export const CreateSaleScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Warehouse Info - Auto-deduced */}
-        {selectedWarehouse && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Almacén</Text>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoCardIcon}>📦</Text>
-              <View style={styles.infoCardContent}>
-                <Text style={styles.infoCardTitle}>{selectedWarehouse.name}</Text>
-                <Text style={styles.infoCardSubtitle}>
-                  Deducido automáticamente según el stock de los productos
-                </Text>
-              </View>
-            </View>
-          </View>
-        )}
-
         {/* Payment Method Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Método de Pago (Opcional)</Text>
@@ -838,33 +822,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: '#F0F9FF',
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-    alignItems: 'center',
-    gap: 12,
-  },
-  infoCardIcon: {
-    fontSize: 32,
-  },
-  infoCardContent: {
-    flex: 1,
-  },
-  infoCardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E40AF',
-    marginBottom: 4,
-  },
-  infoCardSubtitle: {
-    fontSize: 13,
-    color: '#3B82F6',
-    fontStyle: 'italic',
   },
   selectButton: {
     backgroundColor: '#007bff',
