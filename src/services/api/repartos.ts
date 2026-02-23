@@ -603,6 +603,57 @@ class RepartosService {
   }
 
   /**
+   * Download remission guide PDF
+   * Returns a blob that can be used to download the PDF file
+   */
+  async downloadRemissionGuidePdf(
+    campaignParticipantId: string,
+    campaignId: string
+  ): Promise<Blob> {
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const url = `${config.API_URL}${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/remission-guide/pdf?t=${timestamp}`;
+
+    // Use downloadWithAuth helper that handles token refresh automatically
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+    return downloadWithAuth(url, { method: 'GET' });
+  }
+
+  /**
+   * Download remission guide XML
+   * Returns a blob that can be used to download the XML file
+   */
+  async downloadRemissionGuideXml(
+    campaignParticipantId: string,
+    campaignId: string
+  ): Promise<Blob> {
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const url = `${config.API_URL}${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/remission-guide/xml?t=${timestamp}`;
+
+    // Use downloadWithAuth helper that handles token refresh automatically
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+    return downloadWithAuth(url, { method: 'GET' });
+  }
+
+  /**
+   * Download remission guide CDR (Constancia de Recepción de SUNAT)
+   * Returns a blob that can be used to download the CDR XML file
+   */
+  async downloadRemissionGuideCdr(
+    campaignParticipantId: string,
+    campaignId: string
+  ): Promise<Blob> {
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const url = `${config.API_URL}${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/remission-guide/cdr?t=${timestamp}`;
+
+    // Use downloadWithAuth helper that handles token refresh automatically
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+    return downloadWithAuth(url, { method: 'GET' });
+  }
+
+  /**
    * Generate consolidated transfer for a participant in a campaign
    * This will:
    * - Release ALL reservations

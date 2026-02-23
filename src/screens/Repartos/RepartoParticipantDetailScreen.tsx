@@ -744,8 +744,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   };
 
   const handleDownloadRemissionGuide = async () => {
-    if (!remissionGuideInfo?.pdfUrl) {
-      Alert.alert('Error', 'No se encontró el PDF de la guía de remisión');
+    if (!remissionGuideInfo?.exists) {
+      Alert.alert('Error', 'No se encontró la guía de remisión');
+      return;
+    }
+
+    if (!participant?.id) {
+      Alert.alert('Error', 'No se encontró el ID del participante');
       return;
     }
 
@@ -757,34 +762,29 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     try {
       setDownloadingRemissionGuide(true);
       logger.info('🔄 Descargando guía de remisión:', remissionGuideInfo.remissionGuideNumber);
-      logger.info('📄 PDF URL:', remissionGuideInfo.pdfUrl);
 
-      // La URL del PDF ya viene completa desde Bizlinks, no necesita concatenar con API_URL
-      const pdfUrl = remissionGuideInfo.pdfUrl;
+      // Usar el nuevo endpoint para descargar el PDF
+      const blob = await repartosService.downloadRemissionGuidePdf(
+        participant.id,
+        campaignId
+      );
 
       if (Platform.OS === 'web') {
-        // Para web, abrir en nueva pestaña
-        window.open(pdfUrl, '_blank');
-        Alert.alert('Éxito', 'La guía de remisión se está descargando');
+        // Para web, crear URL del blob y descargar
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `guia-remision-${remissionGuideInfo.remissionGuideNumber?.replace(/\s+/g, '-')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        Alert.alert('Éxito', 'La guía de remisión se ha descargado');
       } else {
         // Para móvil, descargar y compartir
         const timestamp = new Date().getTime();
         const fileName = `guia-remision-${remissionGuideInfo.remissionGuideNumber?.replace(/\s+/g, '-')}-${timestamp}.pdf`;
         const file = new FileSystem.File(FileSystem.Paths.document, fileName);
-
-        // Preparar headers con X-App-Id y Authorization
-        const headers: Record<string, string> = {
-          'X-App-Id': config.APP_ID,
-          'x-app-id': config.APP_ID,
-        };
-
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        // Descargar el archivo con headers
-        const response = await fetch(pdfUrl, { headers });
-        const blob = await response.blob();
 
         // Convert blob to array buffer
         const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
@@ -814,7 +814,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       }
     } catch (error: any) {
       logger.error('Error descargando guía de remisión:', error);
-      Alert.alert('Error', 'No se pudo descargar la guía de remisión');
+      const errorMessage = error.message || 'No se pudo descargar la guía de remisión';
+      Alert.alert('Error', errorMessage);
     } finally {
       setDownloadingRemissionGuide(false);
     }
