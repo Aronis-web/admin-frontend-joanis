@@ -15,7 +15,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useBizlinksConfig } from '../../hooks/useBizlinks';
-import config from '@/config';
+import config from '@/utils/config';
 import {
   BizlinksConfig,
   CreateBizlinksConfigDto,

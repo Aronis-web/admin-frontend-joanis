@@ -18,7 +18,7 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { emissionPointsApi, EmissionType, EmissionPoint } from '@/services/api/emission-points';
 import logger from '@/utils/logger';
-import config from '@/config';
+import config from '@/utils/config';
 
 interface EditEmissionPointScreenProps {
   navigation: any;
