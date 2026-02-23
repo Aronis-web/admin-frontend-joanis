@@ -47,7 +47,9 @@ export const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
         limit: 20,
       });
 
-      setCustomers(response.data);
+      // La API devuelve { data: { data: [], meta: { ... } } }
+      const customersData = response.data?.data || response.data || [];
+      setCustomers(customersData);
     } catch (error) {
       console.error('Error buscando clientes:', error);
       setCustomers([]);
