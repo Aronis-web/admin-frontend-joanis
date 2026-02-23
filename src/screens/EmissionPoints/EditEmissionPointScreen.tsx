@@ -239,13 +239,31 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
 
       setUploadingLogo(true);
 
-      // Crear blob desde la URI
       const uri = result.assets[0].uri;
-      const response = await fetch(uri);
-      const blob = await response.blob();
+
+      // En React Native, necesitamos pasar un objeto con uri, type y name
+      // No convertir a blob porque causa problemas en móvil
+      let logoFile: any;
+
+      if (Platform.OS === 'web') {
+        // En web, convertir a blob
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        logoFile = blob;
+      } else {
+        // En móvil, pasar objeto con uri, type y name
+        const fileName = uri.split('/').pop() || 'logo.jpg';
+        const fileType = fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+        logoFile = {
+          uri: uri,
+          type: fileType,
+          name: fileName,
+        } as any;
+      }
 
       // Subir logo
-      const updatedEmissionPoint = await emissionPointsApi.uploadLogo(emissionPointId, blob);
+      const updatedEmissionPoint = await emissionPointsApi.uploadLogo(emissionPointId, logoFile);
       setLogoUrl(updatedEmissionPoint.logoUrl);
       Alert.alert('Éxito', 'Logo subido correctamente');
     } catch (error: any) {
