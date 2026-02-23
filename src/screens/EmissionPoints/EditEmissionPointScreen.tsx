@@ -9,8 +9,11 @@ import {
   Alert,
   ActivityIndicator,
   useWindowDimensions,
+  Image,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { emissionPointsApi, EmissionType, EmissionPoint } from '@/services/api/emission-points';
@@ -56,6 +59,8 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
 
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string | undefined>(undefined);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const { currentSite, currentCompany } = useAuthStore();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
@@ -77,6 +82,7 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
       setEmissionType(data.emissionType);
       setIsActive(data.isActive);
       setRequiresApproval(data.requiresApproval);
+      setLogoUrl(data.logoUrl);
 
       // Cargar metadata según el tipo
       if (data.metadata) {
@@ -204,6 +210,73 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
               Alert.alert('Error', error.response?.data?.message || 'No se pudo eliminar el punto de emisión');
             } finally {
               setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleUploadLogo = async () => {
+    try {
+      // Solicitar permisos
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permisos requeridos', 'Se necesitan permisos para acceder a la galería');
+        return;
+      }
+
+      // Seleccionar imagen
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      setUploadingLogo(true);
+
+      // Crear blob desde la URI
+      const uri = result.assets[0].uri;
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // Subir logo
+      const updatedEmissionPoint = await emissionPointsApi.uploadLogo(emissionPointId, blob);
+      setLogoUrl(updatedEmissionPoint.logoUrl);
+      Alert.alert('Éxito', 'Logo subido correctamente');
+    } catch (error: any) {
+      logger.error('Error al subir logo:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Error al subir el logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleDeleteLogo = async () => {
+    Alert.alert(
+      'Confirmar eliminación',
+      '¿Está seguro de eliminar el logo?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUploadingLogo(true);
+              const updatedEmissionPoint = await emissionPointsApi.deleteLogo(emissionPointId);
+              setLogoUrl(undefined);
+              Alert.alert('Éxito', 'Logo eliminado correctamente');
+            } catch (error: any) {
+              logger.error('Error al eliminar logo:', error);
+              Alert.alert('Error', error.response?.data?.message || 'Error al eliminar el logo');
+            } finally {
+              setUploadingLogo(false);
             }
           },
         },
@@ -409,6 +482,59 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
                 multiline
                 numberOfLines={3}
               />
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Logo del Punto de Emisión</Text>
+              <Text style={styles.helperText}>
+                El logo aparecerá en los documentos electrónicos generados desde este punto de emisión.
+                Formatos aceptados: JPG, PNG
+              </Text>
+
+              {logoUrl ? (
+                <View style={styles.logoContainer}>
+                  <Image
+                    source={{ uri: logoUrl }}
+                    style={styles.logoPreview}
+                    resizeMode="contain"
+                  />
+                  <View style={styles.logoActions}>
+                    <TouchableOpacity
+                      style={[styles.logoButton, styles.changeLogoButton]}
+                      onPress={handleUploadLogo}
+                      disabled={uploadingLogo || loading}
+                    >
+                      {uploadingLogo ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <Text style={styles.logoButtonText}>Cambiar Logo</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.logoButton, styles.deleteLogoButton]}
+                      onPress={handleDeleteLogo}
+                      disabled={uploadingLogo || loading}
+                    >
+                      <Text style={styles.logoButtonText}>Eliminar Logo</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.uploadLogoButton]}
+                  onPress={handleUploadLogo}
+                  disabled={uploadingLogo || loading}
+                >
+                  {uploadingLogo ? (
+                    <ActivityIndicator color="#6366F1" />
+                  ) : (
+                    <>
+                      <Text style={styles.uploadLogoIcon}>📷</Text>
+                      <Text style={styles.uploadLogoText}>Subir Logo</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
 
             {renderMetadataFields()}
@@ -641,5 +767,64 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  logoPreview: {
+    width: 200,
+    height: 150,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+  },
+  logoActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  logoButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  changeLogoButton: {
+    backgroundColor: '#6366F1',
+  },
+  deleteLogoButton: {
+    backgroundColor: '#EF4444',
+  },
+  logoButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  uploadLogoButton: {
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F9FAFB',
+  },
+  uploadLogoIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  uploadLogoText: {
+    fontSize: 16,
+    color: '#6366F1',
+    fontWeight: '600',
   },
 });
