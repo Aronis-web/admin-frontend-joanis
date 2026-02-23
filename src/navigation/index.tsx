@@ -64,6 +64,7 @@ const CustomerDetailScreen = lazyLoad(() => import('@/screens/Customers').then(m
 const SalesScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SalesScreen })), 'Cargando ventas...');
 const CreateSaleScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.CreateSaleScreen })));
 const SaleDetailScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SaleDetailScreen })));
+const RegisterSalePaymentScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.RegisterSalePaymentScreen })));
 
 // Purchases Screens - Lazy Loaded
 const PurchasesScreen = lazyLoad(() => import('@/screens/Purchases/PurchasesScreen').then(m => ({ default: m.PurchasesScreen })), 'Cargando compras...');
@@ -493,6 +494,18 @@ const MainStack = React.memo(() => {
           title: 'Detalle de Venta',
         }}
       />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.REGISTER_SALE_PAYMENT}
+        options={{
+          title: 'Registrar Pago',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['sales.payment.register']}>
+            <RegisterSalePaymentScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.PURCHASES}
         options={{
