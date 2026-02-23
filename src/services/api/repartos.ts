@@ -236,6 +236,10 @@ class RepartosService {
       headers['X-Site-Id'] = siteId;
     }
 
+    // Add X-App-Id header
+    headers['X-App-Id'] = config.APP_ID;
+    headers['x-app-id'] = config.APP_ID;
+
     // Add timestamp to prevent caching
     const timestamp = new Date().getTime();
 

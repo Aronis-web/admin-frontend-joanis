@@ -663,7 +663,14 @@ export const exampleUsage = {
       queryParams.append('q', params.q);
     }
 
-    const response = await fetch(`${config.API_URL}/catalog/products?${queryParams}`);
+    const headers: Record<string, string> = {
+      'X-App-Id': config.APP_ID,
+      'x-app-id': config.APP_ID,
+    };
+
+    const response = await fetch(`${config.API_URL}/catalog/products?${queryParams}`, {
+      headers,
+    });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -674,7 +681,14 @@ export const exampleUsage = {
 
   // Function to get product detail
   async getProduct(id: string): Promise<ProductDetail> {
-    const response = await fetch(`${config.API_URL}/catalog/products/${id}`);
+    const headers: Record<string, string> = {
+      'X-App-Id': config.APP_ID,
+      'x-app-id': config.APP_ID,
+    };
+
+    const response = await fetch(`${config.API_URL}/catalog/products/${id}`, {
+      headers,
+    });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

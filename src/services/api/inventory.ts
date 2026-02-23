@@ -312,6 +312,10 @@ export const inventoryApi = {
       headers['X-Warehouse-Id'] = effectiveWarehouseId;
     }
 
+    // Add X-App-Id header
+    headers['X-App-Id'] = config.APP_ID;
+    headers['x-app-id'] = config.APP_ID;
+
     const response = await fetch(`${baseURL}/admin/inventory/export`, {
       method: 'POST',
       headers,
@@ -381,6 +385,10 @@ export const inventoryApi = {
     if (effectiveWarehouseId) {
       headers['X-Warehouse-Id'] = effectiveWarehouseId;
     }
+
+    // Add X-App-Id header
+    headers['X-App-Id'] = config.APP_ID;
+    headers['x-app-id'] = config.APP_ID;
 
     const response = await fetch(`${baseURL}/admin/inventory/stock/download-format`, {
       method: 'POST',
