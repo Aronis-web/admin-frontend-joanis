@@ -49,10 +49,13 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
         limit: 10,
       });
 
+      // La API devuelve CustomersResponse con estructura { data: { data: [], meta: { ... } } }
+      const customersData = (response as any).data?.data || response.data || [];
+
       // Filtrar por tipo de documento si se especifica
-      let filteredCustomers = response.data;
+      let filteredCustomers = customersData;
       if (documentTypeFilter !== 'ALL') {
-        filteredCustomers = response.data.filter((customer) => {
+        filteredCustomers = customersData.filter((customer: Customer) => {
           if (documentTypeFilter === 'RUC') {
             return customer.documentType === 'RUC';
           } else if (documentTypeFilter === 'DNI') {

@@ -17,7 +17,7 @@ import { companiesApi } from '@/services/api/companies';
 import { warehousesApi } from '@/services/api/warehouses';
 import { priceProfilesApi } from '@/services/api/price-profiles';
 import { inventoryApi } from '@/services/api/inventory';
-import { CustomerSearchModal } from '@/components/Sales/CustomerSearchModal';
+import { CustomerAutocomplete } from '@/components/Bizlinks/CustomerAutocomplete';
 import { ProductAutocomplete } from '@/components/Bizlinks/ProductAutocomplete';
 import { Customer, CustomerType } from '@/types/customers';
 import { Product, ProductSalePrice } from '@/services/api/products';
@@ -53,8 +53,7 @@ export const CreateSaleScreen: React.FC = () => {
   const [items, setItems] = useState<SaleItem[]>([]);
   const [notes, setNotes] = useState('');
 
-  // Modals
-  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+
 
   // Loading states
   const [loading, setLoading] = useState(false);
@@ -405,36 +404,15 @@ export const CreateSaleScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>
             {saleType === SaleType.B2C ? 'Cliente' : 'Empresa'}
           </Text>
-          {selectedCustomer ? (
-            <View style={styles.selectedCard}>
-              <View style={styles.selectedCardContent}>
-                <Text style={styles.selectedCardTitle}>
-                  {selectedCustomer.razonSocial || selectedCustomer.fullName}
-                </Text>
-                <Text style={styles.selectedCardSubtitle}>
-                  {selectedCustomer.documentType}: {selectedCustomer.documentNumber}
-                </Text>
-                {selectedCustomer.email && (
-                  <Text style={styles.selectedCardDetail}>{selectedCustomer.email}</Text>
-                )}
-              </View>
-              <TouchableOpacity
-                onPress={() => setSelectedCustomer(null)}
-                style={styles.removeButton}
-              >
-                <Text style={styles.removeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.selectButton}
-              onPress={() => setShowCustomerSearch(true)}
-            >
-              <Text style={styles.selectButtonText}>
-                + Seleccionar {saleType === SaleType.B2C ? 'Cliente' : 'Empresa'}
-              </Text>
-            </TouchableOpacity>
-          )}
+          <CustomerAutocomplete
+            onSelectCustomer={handleSelectCustomer}
+            placeholder={
+              saleType === SaleType.B2C
+                ? 'Buscar cliente por nombre o DNI...'
+                : 'Buscar empresa por razón social o RUC...'
+            }
+            documentTypeFilter={saleType === SaleType.B2C ? 'DNI' : 'RUC'}
+          />
         </View>
 
         {/* Payment Method Selection */}
@@ -700,13 +678,6 @@ export const CreateSaleScreen: React.FC = () => {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Modals */}
-      <CustomerSearchModal
-        visible={showCustomerSearch}
-        onClose={() => setShowCustomerSearch(false)}
-        onSelectCustomer={handleSelectCustomer}
-        customerType={saleType === SaleType.B2C ? CustomerType.PERSONA : CustomerType.EMPRESA}
-      />
     </View>
   );
 };
