@@ -82,7 +82,8 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
       setEmissionType(data.emissionType);
       setIsActive(data.isActive);
       setRequiresApproval(data.requiresApproval);
-      setLogoUrl(data.logoUrl);
+      // El logo viene de la configuración de Bizlinks
+      setLogoUrl(data.bizlinksConfig?.logoUrl || data.logoUrl);
 
       // Cargar metadata según el tipo
       if (data.metadata) {
@@ -218,6 +219,11 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
   };
 
   const handleUploadLogo = async () => {
+    if (!emissionPoint?.bizlinksConfigId) {
+      Alert.alert('Error', 'Este punto de emisión no tiene una configuración de Bizlinks asociada');
+      return;
+    }
+
     try {
       // Solicitar permisos
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -244,10 +250,13 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
       const response = await fetch(uri);
       const blob = await response.blob();
 
-      // Subir logo
-      const updatedEmissionPoint = await emissionPointsApi.uploadLogo(emissionPointId, blob);
-      setLogoUrl(updatedEmissionPoint.logoUrl);
+      // Subir logo usando el configId de Bizlinks
+      const updatedConfig = await emissionPointsApi.uploadLogo(emissionPoint.bizlinksConfigId, blob);
+      setLogoUrl(updatedConfig.logoUrl);
       Alert.alert('Éxito', 'Logo subido correctamente');
+
+      // Recargar el punto de emisión para obtener los datos actualizados
+      await loadEmissionPoint();
     } catch (error: any) {
       logger.error('Error al subir logo:', error);
       Alert.alert('Error', error.response?.data?.message || 'Error al subir el logo');
@@ -257,6 +266,11 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
   };
 
   const handleDeleteLogo = async () => {
+    if (!emissionPoint?.bizlinksConfigId) {
+      Alert.alert('Error', 'Este punto de emisión no tiene una configuración de Bizlinks asociada');
+      return;
+    }
+
     Alert.alert(
       'Confirmar eliminación',
       '¿Está seguro de eliminar el logo?',
@@ -268,9 +282,13 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
           onPress: async () => {
             try {
               setUploadingLogo(true);
-              const updatedEmissionPoint = await emissionPointsApi.deleteLogo(emissionPointId);
+              // Eliminar logo usando el configId de Bizlinks
+              await emissionPointsApi.deleteLogo(emissionPoint.bizlinksConfigId);
               setLogoUrl(undefined);
               Alert.alert('Éxito', 'Logo eliminado correctamente');
+
+              // Recargar el punto de emisión para obtener los datos actualizados
+              await loadEmissionPoint();
             } catch (error: any) {
               logger.error('Error al eliminar logo:', error);
               Alert.alert('Error', error.response?.data?.message || 'Error al eliminar el logo');
