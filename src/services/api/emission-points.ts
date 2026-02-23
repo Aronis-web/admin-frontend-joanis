@@ -14,7 +14,6 @@ export interface EmissionPoint {
   name: string;
   description?: string;
   emissionType: EmissionType;
-  bizlinksConfigId?: string;
   logoUrl?: string;
   isActive: boolean;
   requiresApproval: boolean;
@@ -47,10 +46,6 @@ export interface EmissionPoint {
   company?: {
     id: string;
     name: string;
-  };
-  bizlinksConfig?: {
-    id: string;
-    logoUrl?: string;
   };
 }
 
@@ -207,21 +202,18 @@ export const emissionPointsApi = {
     return apiClient.delete<void>(`/billing/emission-points/${id}`);
   },
 
-  // Upload logo - POST /bizlinks/config/:configId/logo
-  uploadLogo: async (configId: string, logoFile: File | Blob): Promise<any> => {
+  // Upload logo - POST /billing/emission-points/:id/logo
+  uploadLogo: async (emissionPointId: string, logoFile: File | Blob): Promise<EmissionPoint> => {
     const formData = new FormData();
     formData.append('logo', logoFile);
 
-    return apiClient.post<any>(`/bizlinks/config/${configId}/logo`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // No establecer Content-Type manualmente - fetch lo establece automáticamente con el boundary
+    return apiClient.post<EmissionPoint>(`/billing/emission-points/${emissionPointId}/logo`, formData);
   },
 
-  // Delete logo - DELETE /bizlinks/config/:configId/logo
-  deleteLogo: async (configId: string): Promise<any> => {
-    return apiClient.delete<any>(`/bizlinks/config/${configId}/logo`);
+  // Delete logo - DELETE /billing/emission-points/:id/logo
+  deleteLogo: async (emissionPointId: string): Promise<EmissionPoint> => {
+    return apiClient.delete<EmissionPoint>(`/billing/emission-points/${emissionPointId}/logo`);
   },
 
   // ============================================

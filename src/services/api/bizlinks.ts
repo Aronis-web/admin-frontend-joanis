@@ -68,11 +68,8 @@ export const bizlinksApi = {
     const formData = new FormData();
     formData.append('logo', logoFile);
 
-    return apiClient.post<BizlinksConfig>(`/bizlinks/config/${configId}/logo`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // No establecer Content-Type manualmente - fetch lo establece automáticamente con el boundary
+    return apiClient.post<BizlinksConfig>(`/bizlinks/config/${configId}/logo`, formData);
   },
 
   // Delete logo - DELETE /bizlinks/config/:id/logo
