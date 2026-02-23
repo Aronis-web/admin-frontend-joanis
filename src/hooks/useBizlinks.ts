@@ -139,6 +139,36 @@ export const useBizlinksConfig = () => {
     }
   }, []);
 
+  const uploadLogo = useCallback(async (configId: string, logoFile: File | Blob) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const config = await bizlinksApi.uploadLogo(configId, logoFile);
+      return config;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Error al subir el logo';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteLogo = useCallback(async (configId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const config = await bizlinksApi.deleteLogo(configId);
+      return config;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Error al eliminar el logo';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     loading,
     error,
@@ -150,6 +180,8 @@ export const useBizlinksConfig = () => {
     updateConfig,
     deleteConfig,
     testConnection,
+    uploadLogo,
+    deleteLogo,
   };
 };
 

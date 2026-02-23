@@ -95,6 +95,7 @@ export interface BizlinksConfig {
   codigoPais: string;
   email: string;
   telefono?: string;
+  logoUrl?: string;
   autoSend: boolean;
   autoDownloadPdf: boolean;
   autoDownloadXml: boolean;

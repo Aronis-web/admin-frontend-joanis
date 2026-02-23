@@ -9,8 +9,11 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Image,
+  Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
 import { useBizlinksConfig } from '../../hooks/useBizlinks';
 import {
   BizlinksConfig,
@@ -33,7 +36,7 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
   onSuccess,
   onCancel,
 }) => {
-  const { createConfig, updateConfig, testConnection, loading } = useBizlinksConfig();
+  const { createConfig, updateConfig, testConnection, uploadLogo, deleteLogo, loading } = useBizlinksConfig();
 
   const [formData, setFormData] = useState({
     baseUrl: config?.baseUrl || 'http://localhost:8080',
@@ -59,6 +62,8 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
   });
 
   const [testing, setTesting] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | undefined>(config?.logoUrl);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const handleSubmit = async () => {
     try {
@@ -150,6 +155,93 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
     } finally {
       setTesting(false);
     }
+  };
+
+  const handleUploadLogo = async () => {
+    if (!config?.id) {
+      Alert.alert('Error', 'Debe guardar la configuración antes de subir un logo');
+      return;
+    }
+
+    try {
+      // Solicitar permisos
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permisos requeridos', 'Se necesitan permisos para acceder a la galería');
+        return;
+      }
+
+      // Seleccionar imagen
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      setUploadingLogo(true);
+
+      // Crear blob desde la URI
+      const uri = result.assets[0].uri;
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // Subir logo
+      const updatedConfig = await uploadLogo(config.id, blob);
+      setLogoUrl(updatedConfig.logoUrl);
+      Alert.alert('Éxito', 'Logo subido correctamente');
+
+      // Actualizar config si hay callback
+      if (onSuccess) {
+        onSuccess(updatedConfig);
+      }
+    } catch (error: any) {
+      console.error('Error al subir logo:', error);
+      Alert.alert('Error', error.message || 'Error al subir el logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleDeleteLogo = async () => {
+    if (!config?.id) {
+      Alert.alert('Error', 'No se puede eliminar el logo');
+      return;
+    }
+
+    Alert.alert(
+      'Confirmar eliminación',
+      '¿Está seguro de eliminar el logo?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUploadingLogo(true);
+              const updatedConfig = await deleteLogo(config.id);
+              setLogoUrl(undefined);
+              Alert.alert('Éxito', 'Logo eliminado correctamente');
+
+              // Actualizar config si hay callback
+              if (onSuccess) {
+                onSuccess(updatedConfig);
+              }
+            } catch (error: any) {
+              console.error('Error al eliminar logo:', error);
+              Alert.alert('Error', error.message || 'Error al eliminar el logo');
+            } finally {
+              setUploadingLogo(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -292,6 +384,61 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
           keyboardType="phone-pad"
         />
       </View>
+
+      {config && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Logo de la Empresa</Text>
+          <Text style={styles.helperText}>
+            El logo aparecerá en los documentos electrónicos (facturas, boletas, guías de remisión).
+            Formatos aceptados: JPG, PNG
+          </Text>
+
+          {logoUrl ? (
+            <View style={styles.logoContainer}>
+              <Image
+                source={{ uri: logoUrl }}
+                style={styles.logoPreview}
+                resizeMode="contain"
+              />
+              <View style={styles.logoActions}>
+                <TouchableOpacity
+                  style={[styles.logoButton, styles.changeLogoButton]}
+                  onPress={handleUploadLogo}
+                  disabled={uploadingLogo || loading}
+                >
+                  {uploadingLogo ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.logoButtonText}>Cambiar Logo</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.logoButton, styles.deleteLogoButton]}
+                  onPress={handleDeleteLogo}
+                  disabled={uploadingLogo || loading}
+                >
+                  <Text style={styles.logoButtonText}>Eliminar Logo</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.uploadLogoButton]}
+              onPress={handleUploadLogo}
+              disabled={uploadingLogo || loading}
+            >
+              {uploadingLogo ? (
+                <ActivityIndicator color="#007AFF" />
+              ) : (
+                <>
+                  <Text style={styles.uploadLogoIcon}>📷</Text>
+                  <Text style={styles.uploadLogoText}>Subir Logo</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Opciones</Text>
@@ -446,5 +593,64 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  logoPreview: {
+    width: 200,
+    height: 150,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#f9f9f9',
+  },
+  logoActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  logoButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  changeLogoButton: {
+    backgroundColor: '#007AFF',
+  },
+  deleteLogoButton: {
+    backgroundColor: '#dc3545',
+  },
+  logoButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  uploadLogoButton: {
+    borderWidth: 2,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  uploadLogoIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  uploadLogoText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
   },
 });

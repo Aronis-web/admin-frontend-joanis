@@ -63,6 +63,23 @@ export const bizlinksApi = {
     return apiClient.get<BizlinksTestConnectionResponse>(`/bizlinks/config/${id}/test`);
   },
 
+  // Upload logo - POST /bizlinks/config/:id/logo
+  uploadLogo: async (configId: string, logoFile: File | Blob): Promise<BizlinksConfig> => {
+    const formData = new FormData();
+    formData.append('logo', logoFile);
+
+    return apiClient.post<BizlinksConfig>(`/bizlinks/config/${configId}/logo`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Delete logo - DELETE /bizlinks/config/:id/logo
+  deleteLogo: async (configId: string): Promise<BizlinksConfig> => {
+    return apiClient.delete<BizlinksConfig>(`/bizlinks/config/${configId}/logo`);
+  },
+
   // ==================== DOCUMENTS ====================
 
   // Get all documents - GET /bizlinks/documents
