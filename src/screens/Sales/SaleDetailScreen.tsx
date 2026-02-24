@@ -179,86 +179,54 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         },
         {
           text: 'Devolución Total',
-          onPress: () => showCreditNoteForm('total'),
+          onPress: () => {
+            Alert.alert(
+              'Devolución Total',
+              '¿Confirmas la devolución total de esta venta?',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Confirmar',
+                  onPress: async () => {
+                    await createCreditNote({
+                      motivoNota: '06',
+                      sustentoNota: 'Devolución total de mercadería',
+                      observaciones: 'Devolución total solicitada por el cliente',
+                    });
+                  },
+                },
+              ]
+            );
+          },
         },
         {
-          text: 'Devolución Parcial',
-          onPress: () => showCreditNoteForm('parcial'),
+          text: 'Devolución 50%',
+          onPress: () => {
+            Alert.alert(
+              'Devolución Parcial',
+              '¿Confirmas la devolución del 50% de esta venta?',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Confirmar',
+                  onPress: async () => {
+                    await createCreditNote({
+                      motivoNota: '07',
+                      sustentoNota: 'Devolución parcial de mercadería',
+                      porcentajeDevolucion: 50,
+                      observaciones: 'Devolución del 50% de los productos',
+                    });
+                  },
+                },
+              ]
+            );
+          },
         },
       ]
     );
   };
 
-  const showCreditNoteForm = (tipo: 'total' | 'parcial') => {
-    if (tipo === 'total') {
-      // Devolución total
-      Alert.prompt(
-        'Devolución Total',
-        'Ingresa el motivo de la devolución:',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Crear',
-            onPress: async (sustentoNota) => {
-              if (!sustentoNota) {
-                Alert.alert('Error', 'Debes ingresar un motivo');
-                return;
-              }
-              await createCreditNote({
-                motivoNota: '06', // Devolución total
-                sustentoNota,
-                observaciones: 'Devolución total de mercadería',
-              });
-            },
-          },
-        ],
-        'plain-text'
-      );
-    } else {
-      // Devolución parcial
-      Alert.prompt(
-        'Devolución Parcial',
-        'Ingresa el porcentaje a devolver (1-100):',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Siguiente',
-            onPress: (porcentaje) => {
-              const porcentajeNum = parseInt(porcentaje || '0');
-              if (porcentajeNum < 1 || porcentajeNum > 100) {
-                Alert.alert('Error', 'El porcentaje debe estar entre 1 y 100');
-                return;
-              }
-              Alert.prompt(
-                'Devolución Parcial',
-                'Ingresa el motivo de la devolución:',
-                [
-                  { text: 'Cancelar', style: 'cancel' },
-                  {
-                    text: 'Crear',
-                    onPress: async (sustentoNota) => {
-                      if (!sustentoNota) {
-                        Alert.alert('Error', 'Debes ingresar un motivo');
-                        return;
-                      }
-                      await createCreditNote({
-                        motivoNota: '07', // Devolución por ítem
-                        sustentoNota,
-                        porcentajeDevolucion: porcentajeNum,
-                        observaciones: `Devolución del ${porcentajeNum}% de los productos`,
-                      });
-                    },
-                  },
-                ],
-                'plain-text'
-              );
-            },
-          },
-        ],
-        'plain-text'
-      );
-    }
-  };
+
 
   const createCreditNote = async (data: CreateCreditNoteRequest) => {
     if (!sale?.id) return;
@@ -287,41 +255,43 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const handleCreateDebitNote = () => {
     if (!sale?.id) return;
 
-    Alert.prompt(
+    Alert.alert(
       'Crear Nota de Débito',
-      'Ingresa el monto adicional a cobrar (S/):',
+      'Selecciona el monto del cargo adicional:',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'S/ 50.00',
+          onPress: () => confirmDebitNote(50, 'Intereses por mora'),
+        },
+        {
+          text: 'S/ 100.00',
+          onPress: () => confirmDebitNote(100, 'Penalidad por retraso'),
+        },
+        {
+          text: 'S/ 200.00',
+          onPress: () => confirmDebitNote(200, 'Cargo adicional'),
+        },
+      ]
+    );
+  };
+
+  const confirmDebitNote = (monto: number, motivo: string) => {
+    Alert.alert(
+      'Confirmar Nota de Débito',
+      `¿Confirmas crear una nota de débito por S/ ${monto.toFixed(2)}?\nMotivo: ${motivo}`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Siguiente',
-          onPress: (monto) => {
-            const montoNum = parseFloat(monto || '0');
-            if (montoNum <= 0) {
-              Alert.alert('Error', 'El monto debe ser mayor a 0');
-              return;
-            }
-            Alert.prompt(
-              'Nota de Débito',
-              'Ingresa el motivo (ej: Intereses por mora):',
-              [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                  text: 'Crear',
-                  onPress: async (sustentoNota) => {
-                    if (!sustentoNota) {
-                      Alert.alert('Error', 'Debes ingresar un motivo');
-                      return;
-                    }
-                    await createDebitNote(montoNum, sustentoNota);
-                  },
-                },
-              ],
-              'plain-text'
-            );
+          text: 'Confirmar',
+          onPress: async () => {
+            await createDebitNote(monto, motivo);
           },
         },
-      ],
-      'plain-text'
+      ]
     );
   };
 
