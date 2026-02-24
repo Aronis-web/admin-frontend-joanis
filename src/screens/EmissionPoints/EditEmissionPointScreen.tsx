@@ -83,7 +83,18 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
       setEmissionType(data.emissionType);
       setIsActive(data.isActive);
       setRequiresApproval(data.requiresApproval);
-      setLogoUrl(data.logoUrl);
+
+      // Construir URL del logo si existe
+      const logoPath = (data as any).logoUrl || (data as any).logoPath;
+      if (logoPath) {
+        const fullLogoUrl = logoPath.startsWith('http')
+          ? logoPath
+          : `${config.API_URL}/${logoPath}`;
+        setLogoUrl(fullLogoUrl);
+        console.log('📸 Logo loaded:', fullLogoUrl);
+      } else {
+        setLogoUrl(undefined);
+      }
 
       // Cargar metadata según el tipo
       if (data.metadata) {
@@ -163,7 +174,7 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
         };
       }
 
-      await emissionPointsApi.updateEmissionPoint(emissionPointId, {
+      const updatedData = await emissionPointsApi.updateEmissionPoint(emissionPointId, {
         code: code.toUpperCase(),
         name,
         description: description || undefined,
@@ -172,6 +183,16 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
         requiresApproval,
         metadata,
       });
+
+      // Actualizar logo si viene en la respuesta
+      const logoPath = (updatedData as any).logoUrl || (updatedData as any).logoPath;
+      if (logoPath) {
+        const fullLogoUrl = logoPath.startsWith('http')
+          ? logoPath
+          : `${config.API_URL}/${logoPath}`;
+        setLogoUrl(fullLogoUrl);
+        console.log('📸 Logo updated after PATCH:', fullLogoUrl);
+      }
 
       Alert.alert('Éxito', 'Punto de emisión actualizado exitosamente', [
         {
@@ -266,15 +287,30 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
       // Subir logo
       const response = await emissionPointsApi.uploadLogo(emissionPointId, logoFile);
 
+      console.log('📸 Upload response:', response);
+
       // El backend puede retornar logoUrl o logoPath
       const newLogoUrl = (response as any).logoUrl || (response as any).logoPath;
+
+      console.log('📸 newLogoUrl:', newLogoUrl);
+      console.log('📸 config.API_URL:', config.API_URL);
 
       if (newLogoUrl) {
         // Si es una ruta relativa, construir la URL completa
         const fullLogoUrl = newLogoUrl.startsWith('http')
           ? newLogoUrl
           : `${config.API_URL}/${newLogoUrl}`;
-        setLogoUrl(fullLogoUrl);
+
+        console.log('📸 fullLogoUrl:', fullLogoUrl);
+
+        // Agregar timestamp para evitar cache
+        const urlWithTimestamp = `${fullLogoUrl}?t=${Date.now()}`;
+        console.log('📸 URL with timestamp:', urlWithTimestamp);
+
+        setLogoUrl(urlWithTimestamp);
+        console.log('📸 Logo URL set successfully');
+      } else {
+        console.error('❌ No logoUrl or logoPath in response');
       }
 
       Alert.alert('Éxito', 'Logo subido correctamente');

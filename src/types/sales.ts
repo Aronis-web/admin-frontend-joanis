@@ -40,6 +40,7 @@ export enum ProcessingStatus {
 export enum DocumentType {
   FACTURA = 'FACTURA',
   BOLETA = 'BOLETA',
+  NOTA_VENTA = 'NOTA_VENTA',
   NOTA_CREDITO = 'NOTA_CREDITO',
   NOTA_DEBITO = 'NOTA_DEBITO',
   GUIA_REMISION = 'GUIA_REMISION',
@@ -150,6 +151,7 @@ export interface Sale {
   id: string;
   code: string;
   saleType: SaleType;
+  documentType: DocumentType;
   status: SaleStatus;
   processingStatus: ProcessingStatus;
 
@@ -236,6 +238,7 @@ export interface CreateSaleItemRequest {
  */
 export interface CreateSaleRequest {
   saleType: SaleType;
+  documentType: DocumentType;
   customerId?: string;
   companyId?: string;
   siteId: string;
@@ -359,6 +362,7 @@ export const PaymentStatusLabels: Record<PaymentStatus, string> = {
 export const DocumentTypeLabels: Record<DocumentType, string> = {
   [DocumentType.FACTURA]: 'Factura',
   [DocumentType.BOLETA]: 'Boleta',
+  [DocumentType.NOTA_VENTA]: 'Nota de Venta',
   [DocumentType.NOTA_CREDITO]: 'Nota de Crédito',
   [DocumentType.NOTA_DEBITO]: 'Nota de Débito',
   [DocumentType.GUIA_REMISION]: 'Guía de Remisión',

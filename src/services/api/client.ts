@@ -119,6 +119,9 @@ class ApiClient {
 
         // Add X-App-Id header to all requests (required by API)
         const appId = config.APP_ID;
+        if (!appId) {
+          console.error('❌ CRITICAL: X-App-Id is undefined! This will cause 400 errors.');
+        }
         console.log('🔑 Setting X-App-Id header:', appId);
         requestConfig.headers['X-App-Id'] = appId;
         requestConfig.headers['x-app-id'] = appId; // Also set lowercase for compatibility

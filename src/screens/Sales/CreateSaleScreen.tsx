@@ -25,7 +25,7 @@ import { StockItemResponse } from '@/services/api/inventory';
 import { Warehouse } from '@/types/warehouses';
 import { PaymentMethod } from '@/types/companies';
 import { PriceProfile } from '@/types/price-profiles';
-import { SaleType, CreateSaleItemRequest } from '@/types/sales';
+import { SaleType, DocumentType, CreateSaleItemRequest } from '@/types/sales';
 import logger from '@/utils/logger';
 
 interface SaleItem {
@@ -46,6 +46,7 @@ export const CreateSaleScreen: React.FC = () => {
 
   // State
   const [saleType, setSaleType] = useState<SaleType>(SaleType.B2C);
+  const [documentType, setDocumentType] = useState<DocumentType>(DocumentType.BOLETA);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
@@ -321,6 +322,7 @@ export const CreateSaleScreen: React.FC = () => {
 
       const saleData = {
         saleType,
+        documentType,
         customerId: saleType === SaleType.B2C ? selectedCustomer.id : undefined,
         companyId: saleType === SaleType.B2B ? selectedCustomer.id : undefined,
         siteId: currentSite.id,
@@ -409,6 +411,88 @@ export const CreateSaleScreen: React.FC = () => {
                 ]}
               >
                 B2B - Empresa
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Document Type */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Tipo de Documento</Text>
+          <Text style={styles.sectionHint}>
+            Selecciona el tipo de documento a generar para esta venta
+          </Text>
+          <View style={styles.documentTypeButtons}>
+            <TouchableOpacity
+              style={[
+                styles.documentTypeButton,
+                documentType === DocumentType.BOLETA && styles.documentTypeButtonActive,
+              ]}
+              onPress={() => setDocumentType(DocumentType.BOLETA)}
+            >
+              <Text
+                style={[
+                  styles.documentTypeButtonText,
+                  documentType === DocumentType.BOLETA && styles.documentTypeButtonTextActive,
+                ]}
+              >
+                📄 Boleta
+              </Text>
+              <Text
+                style={[
+                  styles.documentTypeButtonHint,
+                  documentType === DocumentType.BOLETA && styles.documentTypeButtonHintActive,
+                ]}
+              >
+                Documento tributario
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.documentTypeButton,
+                documentType === DocumentType.FACTURA && styles.documentTypeButtonActive,
+              ]}
+              onPress={() => setDocumentType(DocumentType.FACTURA)}
+            >
+              <Text
+                style={[
+                  styles.documentTypeButtonText,
+                  documentType === DocumentType.FACTURA && styles.documentTypeButtonTextActive,
+                ]}
+              >
+                📋 Factura
+              </Text>
+              <Text
+                style={[
+                  styles.documentTypeButtonHint,
+                  documentType === DocumentType.FACTURA && styles.documentTypeButtonHintActive,
+                ]}
+              >
+                Documento tributario
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.documentTypeButton,
+                documentType === DocumentType.NOTA_VENTA && styles.documentTypeButtonActive,
+              ]}
+              onPress={() => setDocumentType(DocumentType.NOTA_VENTA)}
+            >
+              <Text
+                style={[
+                  styles.documentTypeButtonText,
+                  documentType === DocumentType.NOTA_VENTA && styles.documentTypeButtonTextActive,
+                ]}
+              >
+                📝 Nota de Venta
+              </Text>
+              <Text
+                style={[
+                  styles.documentTypeButtonHint,
+                  documentType === DocumentType.NOTA_VENTA && styles.documentTypeButtonHintActive,
+                ]}
+              >
+                Solo control interno
               </Text>
             </TouchableOpacity>
           </View>
@@ -769,6 +853,40 @@ const styles = StyleSheet.create({
   },
   typeButtonTextActive: {
     color: '#007bff',
+  },
+  documentTypeButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  documentTypeButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  documentTypeButtonActive: {
+    borderColor: '#10B981',
+    backgroundColor: '#ECFDF5',
+  },
+  documentTypeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 4,
+  },
+  documentTypeButtonTextActive: {
+    color: '#10B981',
+  },
+  documentTypeButtonHint: {
+    fontSize: 11,
+    color: '#999',
+    textAlign: 'center',
+  },
+  documentTypeButtonHintActive: {
+    color: '#059669',
   },
   selectedCard: {
     flexDirection: 'row',
