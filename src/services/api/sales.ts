@@ -85,4 +85,12 @@ export const salesApi = {
   deleteSale: async (id: string): Promise<void> => {
     return apiClient.delete<void>(`/sales/${id}`);
   },
+
+  /**
+   * Get sale documents
+   * GET /sales/:id/documents
+   */
+  getSaleDocuments: async (id: string): Promise<any> => {
+    return apiClient.get<any>(`/sales/${id}/documents`);
+  },
 };

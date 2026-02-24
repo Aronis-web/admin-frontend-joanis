@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { salesApi } from '@/services/api/sales';
@@ -19,6 +20,7 @@ import {
   PaymentStatusLabels,
   SaleTypeLabels,
   ProcessingStatusLabels,
+  DocumentType,
 } from '@/types/sales';
 import logger from '@/utils/logger';
 
@@ -40,6 +42,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [saleDocuments, setSaleDocuments] = useState<any>(null);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
 
   // Load sale
   const loadSale = async (isRefresh: boolean = false) => {
@@ -57,6 +61,11 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       });
 
       setSale(data);
+
+      // Load documents if sale has documents generated
+      if (data.isDocumentGenerated) {
+        loadSaleDocuments();
+      }
     } catch (error) {
       logger.error('Error cargando venta:', error);
       Alert.alert('Error', 'No se pudo cargar la venta');
@@ -64,6 +73,19 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  // Load sale documents
+  const loadSaleDocuments = async () => {
+    setLoadingDocuments(true);
+    try {
+      const docs = await salesApi.getSaleDocuments(saleId);
+      setSaleDocuments(docs);
+    } catch (error) {
+      logger.error('Error cargando documentos:', error);
+    } finally {
+      setLoadingDocuments(false);
     }
   };
 
@@ -106,6 +128,25 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     if (sale?.id) {
       (navigation as any).navigate('RegisterSalePayment', { saleId: sale.id });
     }
+  };
+
+  const handleDownloadDocument = async () => {
+    if (!saleDocuments || !saleDocuments.documents || saleDocuments.documents.length === 0) {
+      Alert.alert('Error', 'No hay documentos disponibles para descargar');
+      return;
+    }
+
+    const document = saleDocuments.documents[0];
+
+    // Aquí puedes implementar la lógica de descarga
+    // Por ahora mostramos la información del documento
+    Alert.alert(
+      'Documento Generado',
+      `Documento: ${document.documentNumber}\nEstado: ${document.status}\nTotal: S/ ${(document.totalCents / 100).toFixed(2)}`,
+      [
+        { text: 'OK' }
+      ]
+    );
   };
 
   const getStatusColor = (status: SaleStatus) => {
@@ -381,9 +422,63 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
           </View>
         )}
 
+        {/* Documents Section */}
+        {sale.isDocumentGenerated && saleDocuments && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Documentos Generados</Text>
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Tipo de Documento:</Text>
+                <Text style={styles.infoValue}>{sale.documentType}</Text>
+              </View>
+              {saleDocuments.documents && saleDocuments.documents.length > 0 && (
+                <>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Número:</Text>
+                    <Text style={styles.infoValue}>{saleDocuments.documents[0].documentNumber}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Estado:</Text>
+                    <Text style={styles.infoValue}>{saleDocuments.documents[0].status}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Generado:</Text>
+                    <Text style={styles.infoValue}>
+                      {new Date(saleDocuments.documentGeneratedAt).toLocaleDateString('es-PE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Actions */}
         {sale.status !== SaleStatus.CANCELLED && (
           <View style={styles.actionsSection}>
+            {/* Download Document Button */}
+            {sale.isDocumentGenerated && saleDocuments && saleDocuments.documents && saleDocuments.documents.length > 0 && (
+              <TouchableOpacity
+                style={styles.downloadButton}
+                onPress={handleDownloadDocument}
+                disabled={loadingDocuments}
+              >
+                {loadingDocuments ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.downloadButtonText}>📄 Descargar {sale.documentType === DocumentType.BOLETA ? 'Boleta' : sale.documentType === DocumentType.FACTURA ? 'Factura' : 'Documento'}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
             {sale.balanceCents > 0 && (
               <TouchableOpacity
                 style={styles.paymentButton}
@@ -654,6 +749,17 @@ const styles = StyleSheet.create({
   actionsSection: {
     gap: 12,
     marginTop: 8,
+  },
+  downloadButton: {
+    backgroundColor: '#3B82F6',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  downloadButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   paymentButton: {
     backgroundColor: '#10B981',
