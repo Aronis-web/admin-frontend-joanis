@@ -9,6 +9,7 @@ import {
   Alert,
   RefreshControl,
   Linking,
+  Platform,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { salesApi } from '@/services/api/sales';
@@ -22,7 +23,11 @@ import {
   ProcessingStatusLabels,
   DocumentType,
 } from '@/types/sales';
+import { useAuthStore } from '@/store/auth';
+import config from '@/config';
 import logger from '@/utils/logger';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 
 interface SaleDetailScreenProps {
   route: {
@@ -36,6 +41,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { saleId } = route.params as { saleId: string };
+  const { token, currentCompany, currentSite } = useAuthStore();
 
   // State
   const [sale, setSale] = useState<Sale | null>(null);
@@ -137,16 +143,84 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     }
 
     const document = saleDocuments.documents[0];
+    setLoadingDocuments(true);
 
-    // Aquí puedes implementar la lógica de descarga
-    // Por ahora mostramos la información del documento
-    Alert.alert(
-      'Documento Generado',
-      `Documento: ${document.documentNumber}\nEstado: ${document.status}\nTotal: S/ ${(document.totalCents / 100).toFixed(2)}`,
-      [
-        { text: 'OK' }
-      ]
-    );
+    try {
+      logger.info('📥 Descargando documento:', document.documentNumber);
+
+      if (Platform.OS === 'web') {
+        // En web, usar el endpoint directo que devuelve el blob
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${document.id}/pdf`;
+
+        // Abrir en nueva pestaña
+        window.open(pdfUrl, '_blank');
+      } else {
+        // En móvil, descargar usando el endpoint directo con autenticación
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${document.id}/pdf`;
+
+        logger.info('🌐 URL de descarga:', pdfUrl);
+
+        const fileName = `${document.documentNumber}.pdf`;
+        const fileUri = FileSystem.documentDirectory + fileName;
+
+        // Incluir headers de autenticación
+        const headers: Record<string, string> = {
+          'X-App-Id': config.APP_ID,
+        };
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        if (currentCompany?.id) {
+          headers['X-Company-Id'] = currentCompany.id;
+        }
+        if (currentSite?.id) {
+          headers['X-Site-Id'] = currentSite.id;
+        }
+
+        logger.info('📤 Headers:', Object.keys(headers));
+
+        const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri, {
+          headers,
+        });
+
+        logger.info('📦 Download result:', {
+          uri: downloadResult.uri,
+          status: downloadResult.status,
+        });
+
+        // Verificar que el archivo se descargó correctamente
+        if (downloadResult.status !== 200) {
+          throw new Error(`Error del servidor: ${downloadResult.status}`);
+        }
+
+        // Verificar el tamaño del archivo
+        const fileInfo = await FileSystem.getInfoAsync(downloadResult.uri);
+        logger.info('📄 File info:', fileInfo);
+
+        if (fileInfo.exists && fileInfo.size === 0) {
+          throw new Error('El archivo descargado está vacío');
+        }
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `${sale?.documentType} ${document.documentNumber}`,
+          });
+        } else {
+          Alert.alert('Éxito', `PDF guardado en: ${downloadResult.uri}`);
+        }
+      }
+
+      logger.info('✅ Documento descargado exitosamente');
+    } catch (error: any) {
+      logger.error('❌ Error al descargar documento:', error);
+      Alert.alert('Error', error.message || 'Error al descargar el documento');
+    } finally {
+      setLoadingDocuments(false);
+    }
   };
 
   const getStatusColor = (status: SaleStatus) => {

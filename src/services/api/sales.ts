@@ -93,4 +93,14 @@ export const salesApi = {
   getSaleDocuments: async (id: string): Promise<any> => {
     return apiClient.get<any>(`/sales/${id}/documents`);
   },
+
+  /**
+   * Download sale document PDF
+   * GET /sales/:saleId/documents/:documentId/pdf
+   */
+  downloadDocumentPDF: async (saleId: string, documentId: string): Promise<Blob> => {
+    return apiClient.get<Blob>(`/sales/${saleId}/documents/${documentId}/pdf`, {
+      responseType: 'blob',
+    });
+  },
 };
