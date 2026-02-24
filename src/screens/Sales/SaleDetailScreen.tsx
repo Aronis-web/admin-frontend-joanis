@@ -24,7 +24,7 @@ import {
   DocumentType,
 } from '@/types/sales';
 import { useAuthStore } from '@/store/auth';
-import config from '@/config';
+import { config } from '@/utils/config';
 import logger from '@/utils/logger';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
