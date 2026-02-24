@@ -90,11 +90,20 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     try {
       const docs = await salesApi.getSaleDocuments(saleId);
       logger.info('📄 Documentos cargados:', docs);
-      logger.info('📄 Tiene documentos:', docs?.documents?.length > 0);
-      if (docs?.documents?.length > 0) {
-        logger.info('📄 Primer documento:', docs.documents[0]);
+
+      // El backend devuelve allDocuments en lugar de documents
+      const allDocs = docs?.allDocuments || docs?.documents || [];
+      logger.info('📄 Tiene documentos:', allDocs.length > 0);
+      if (allDocs.length > 0) {
+        logger.info('📄 Primer documento:', allDocs[0]);
       }
-      setSaleDocuments(docs);
+
+      // Crear objeto compatible con el formato esperado
+      const formattedDocs = {
+        ...docs,
+        documents: allDocs,
+      };
+      setSaleDocuments(formattedDocs);
 
       // Separar notas de crédito y débito
       if (docs?.creditNotes) {
