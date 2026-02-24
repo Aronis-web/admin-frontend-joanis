@@ -68,10 +68,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
 
       setSale(data);
 
-      // Load documents if sale has documents generated
-      if (data.isDocumentGenerated) {
-        loadSaleDocuments();
-      }
+      // Load documents - siempre intentar cargar documentos
+      loadSaleDocuments();
     } catch (error) {
       logger.error('Error cargando venta:', error);
       Alert.alert('Error', 'No se pudo cargar la venta');
@@ -497,37 +495,35 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         )}
 
         {/* Documents Section */}
-        {sale.isDocumentGenerated && saleDocuments && (
+        {saleDocuments && saleDocuments.documents && saleDocuments.documents.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Documentos Generados</Text>
+            <Text style={styles.sectionTitle}>Documentos</Text>
             <View style={styles.card}>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Tipo de Documento:</Text>
                 <Text style={styles.infoValue}>{sale.documentType}</Text>
               </View>
-              {saleDocuments.documents && saleDocuments.documents.length > 0 && (
-                <>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Número:</Text>
-                    <Text style={styles.infoValue}>{saleDocuments.documents[0].documentNumber}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Estado:</Text>
-                    <Text style={styles.infoValue}>{saleDocuments.documents[0].status}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Generado:</Text>
-                    <Text style={styles.infoValue}>
-                      {new Date(saleDocuments.documentGeneratedAt).toLocaleDateString('es-PE', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Text>
-                  </View>
-                </>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Número:</Text>
+                <Text style={styles.infoValue}>{saleDocuments.documents[0].documentNumber}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Estado:</Text>
+                <Text style={styles.infoValue}>{saleDocuments.documents[0].status}</Text>
+              </View>
+              {saleDocuments.documentGeneratedAt && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Generado:</Text>
+                  <Text style={styles.infoValue}>
+                    {new Date(saleDocuments.documentGeneratedAt).toLocaleDateString('es-PE', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                </View>
               )}
             </View>
           </View>
@@ -536,8 +532,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         {/* Actions */}
         {sale.status !== SaleStatus.CANCELLED && (
           <View style={styles.actionsSection}>
-            {/* Download Document Button */}
-            {sale.isDocumentGenerated && saleDocuments && saleDocuments.documents && saleDocuments.documents.length > 0 && (
+            {/* Download Document Button - Mostrar siempre que haya documentos, sin importar el estado */}
+            {saleDocuments && saleDocuments.documents && saleDocuments.documents.length > 0 && (
               <TouchableOpacity
                 style={styles.downloadButton}
                 onPress={handleDownloadDocument}
