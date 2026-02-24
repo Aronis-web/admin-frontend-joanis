@@ -47,6 +47,30 @@ export enum DocumentType {
 }
 
 /**
+ * Credit Note Item Interface
+ */
+export interface CreditNoteItem {
+  sku: string;
+  descripcion: string;
+  cantidad: number;
+  unidadMedida: string;
+  valorUnitario: number;
+  precioVentaUnitario: number;
+}
+
+/**
+ * Debit Note Item Interface
+ */
+export interface DebitNoteItem {
+  sku: string;
+  descripcion: string;
+  cantidad: number;
+  unidadMedida: string;
+  valorUnitario: number;
+  precioVentaUnitario: number;
+}
+
+/**
  * Payment Status Enum
  */
 export enum PaymentStatus {
@@ -264,6 +288,27 @@ export interface CreateSalePaymentRequest {
   amountCents: number;
   referenceNumber?: string;
   notes?: string;
+}
+
+/**
+ * Create Credit Note Request
+ */
+export interface CreateCreditNoteRequest {
+  motivoNota: string;
+  sustentoNota: string;
+  porcentajeDevolucion?: number;
+  items?: CreditNoteItem[];
+  observaciones?: string;
+}
+
+/**
+ * Create Debit Note Request
+ */
+export interface CreateDebitNoteRequest {
+  motivoNota: string;
+  sustentoNota: string;
+  items: DebitNoteItem[];
+  observaciones?: string;
 }
 
 /**

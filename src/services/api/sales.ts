@@ -8,6 +8,8 @@ import {
   SalePayment,
   QuerySalesParams,
   ProcessingStatusResponse,
+  CreateCreditNoteRequest,
+  CreateDebitNoteRequest,
 } from '@/types/sales';
 
 /**
@@ -102,5 +104,21 @@ export const salesApi = {
     return apiClient.get<Blob>(`/sales/${saleId}/documents/${documentId}/pdf`, {
       responseType: 'blob',
     });
+  },
+
+  /**
+   * Create credit note
+   * POST /sales/:id/credit-note
+   */
+  createCreditNote: async (saleId: string, data: CreateCreditNoteRequest): Promise<any> => {
+    return apiClient.post<any>(`/sales/${saleId}/credit-note`, data);
+  },
+
+  /**
+   * Create debit note
+   * POST /sales/:id/debit-note
+   */
+  createDebitNote: async (saleId: string, data: CreateDebitNoteRequest): Promise<any> => {
+    return apiClient.post<any>(`/sales/${saleId}/debit-note`, data);
   },
 };

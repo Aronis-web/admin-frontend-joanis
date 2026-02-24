@@ -22,6 +22,8 @@ import {
   SaleTypeLabels,
   ProcessingStatusLabels,
   DocumentType,
+  CreateCreditNoteRequest,
+  CreateDebitNoteRequest,
 } from '@/types/sales';
 import { useAuthStore } from '@/store/auth';
 import { config } from '@/utils/config';
@@ -140,6 +142,208 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const handleRegisterPayment = () => {
     if (sale?.id) {
       (navigation as any).navigate('RegisterSalePayment', { saleId: sale.id });
+    }
+  };
+
+  const handleCreateCreditNote = () => {
+    if (!sale?.id) return;
+
+    Alert.alert(
+      'Crear Nota de Crédito',
+      'Selecciona el tipo de devolución:',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Devolución Total',
+          onPress: () => showCreditNoteForm('total'),
+        },
+        {
+          text: 'Devolución Parcial',
+          onPress: () => showCreditNoteForm('parcial'),
+        },
+      ]
+    );
+  };
+
+  const showCreditNoteForm = (tipo: 'total' | 'parcial') => {
+    if (tipo === 'total') {
+      // Devolución total
+      Alert.prompt(
+        'Devolución Total',
+        'Ingresa el motivo de la devolución:',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Crear',
+            onPress: async (sustentoNota) => {
+              if (!sustentoNota) {
+                Alert.alert('Error', 'Debes ingresar un motivo');
+                return;
+              }
+              await createCreditNote({
+                motivoNota: '06', // Devolución total
+                sustentoNota,
+                observaciones: 'Devolución total de mercadería',
+              });
+            },
+          },
+        ],
+        'plain-text'
+      );
+    } else {
+      // Devolución parcial
+      Alert.prompt(
+        'Devolución Parcial',
+        'Ingresa el porcentaje a devolver (1-100):',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Siguiente',
+            onPress: (porcentaje) => {
+              const porcentajeNum = parseInt(porcentaje || '0');
+              if (porcentajeNum < 1 || porcentajeNum > 100) {
+                Alert.alert('Error', 'El porcentaje debe estar entre 1 y 100');
+                return;
+              }
+              Alert.prompt(
+                'Devolución Parcial',
+                'Ingresa el motivo de la devolución:',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  {
+                    text: 'Crear',
+                    onPress: async (sustentoNota) => {
+                      if (!sustentoNota) {
+                        Alert.alert('Error', 'Debes ingresar un motivo');
+                        return;
+                      }
+                      await createCreditNote({
+                        motivoNota: '07', // Devolución por ítem
+                        sustentoNota,
+                        porcentajeDevolucion: porcentajeNum,
+                        observaciones: `Devolución del ${porcentajeNum}% de los productos`,
+                      });
+                    },
+                  },
+                ],
+                'plain-text'
+              );
+            },
+          },
+        ],
+        'plain-text'
+      );
+    }
+  };
+
+  const createCreditNote = async (data: CreateCreditNoteRequest) => {
+    if (!sale?.id) return;
+
+    setLoadingDocuments(true);
+    try {
+      const result = await salesApi.createCreditNote(sale.id, data);
+      Alert.alert(
+        'Éxito',
+        `Nota de crédito creada: ${result.documentNumber}\nEstado: ${result.status}`,
+        [
+          {
+            text: 'OK',
+            onPress: () => loadSale(true),
+          },
+        ]
+      );
+    } catch (error: any) {
+      logger.error('Error creando nota de crédito:', error);
+      Alert.alert('Error', error?.response?.data?.message || 'No se pudo crear la nota de crédito');
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
+
+  const handleCreateDebitNote = () => {
+    if (!sale?.id) return;
+
+    Alert.prompt(
+      'Crear Nota de Débito',
+      'Ingresa el monto adicional a cobrar (S/):',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Siguiente',
+          onPress: (monto) => {
+            const montoNum = parseFloat(monto || '0');
+            if (montoNum <= 0) {
+              Alert.alert('Error', 'El monto debe ser mayor a 0');
+              return;
+            }
+            Alert.prompt(
+              'Nota de Débito',
+              'Ingresa el motivo (ej: Intereses por mora):',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Crear',
+                  onPress: async (sustentoNota) => {
+                    if (!sustentoNota) {
+                      Alert.alert('Error', 'Debes ingresar un motivo');
+                      return;
+                    }
+                    await createDebitNote(montoNum, sustentoNota);
+                  },
+                },
+              ],
+              'plain-text'
+            );
+          },
+        },
+      ],
+      'plain-text'
+    );
+  };
+
+  const createDebitNote = async (monto: number, sustentoNota: string) => {
+    if (!sale?.id) return;
+
+    setLoadingDocuments(true);
+    try {
+      const valorUnitario = monto / 1.18; // Sin IGV
+      const precioVentaUnitario = monto; // Con IGV
+
+      const data: CreateDebitNoteRequest = {
+        motivoNota: '01', // Intereses por mora
+        sustentoNota,
+        items: [
+          {
+            sku: 'CARGO-ADICIONAL',
+            descripcion: sustentoNota,
+            cantidad: 1,
+            unidadMedida: 'ZZ',
+            valorUnitario: Math.round(valorUnitario * 100) / 100,
+            precioVentaUnitario: Math.round(precioVentaUnitario * 100) / 100,
+          },
+        ],
+        observaciones: `Cargo adicional: S/ ${monto.toFixed(2)}`,
+      };
+
+      const result = await salesApi.createDebitNote(sale.id, data);
+      Alert.alert(
+        'Éxito',
+        `Nota de débito creada: ${result.documentNumber}\nEstado: ${result.status}`,
+        [
+          {
+            text: 'OK',
+            onPress: () => loadSale(true),
+          },
+        ]
+      );
+    } catch (error: any) {
+      logger.error('Error creando nota de débito:', error);
+      Alert.alert('Error', error?.response?.data?.message || 'No se pudo crear la nota de débito');
+    } finally {
+      setLoadingDocuments(false);
     }
   };
 
@@ -574,6 +778,35 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
               </TouchableOpacity>
             )}
 
+            {/* Botones de Notas de Crédito y Débito - Solo para ventas confirmadas con documento tributario */}
+            {sale.status === SaleStatus.CONFIRMED && (sale.documentType === DocumentType.BOLETA || sale.documentType === DocumentType.FACTURA) && (
+              <>
+                <TouchableOpacity
+                  style={styles.creditNoteButton}
+                  onPress={handleCreateCreditNote}
+                  disabled={loadingDocuments}
+                >
+                  {loadingDocuments ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.creditNoteButtonText}>📝 Crear Nota de Crédito</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.debitNoteButton}
+                  onPress={handleCreateDebitNote}
+                  disabled={loadingDocuments}
+                >
+                  {loadingDocuments ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.debitNoteButtonText}>📝 Crear Nota de Débito</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
             {sale.status === SaleStatus.CONFIRMED && (
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -865,6 +1098,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  creditNoteButton: {
+    backgroundColor: '#F59E0B',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  creditNoteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  debitNoteButton: {
+    backgroundColor: '#8B5CF6',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  debitNoteButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
