@@ -85,9 +85,18 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     setLoadingDocuments(true);
     try {
       const docs = await salesApi.getSaleDocuments(saleId);
+      logger.info('📄 Documentos cargados:', docs);
+      logger.info('📄 Tiene documentos:', docs?.documents?.length > 0);
+      if (docs?.documents?.length > 0) {
+        logger.info('📄 Primer documento:', docs.documents[0]);
+      }
       setSaleDocuments(docs);
-    } catch (error) {
-      logger.error('Error cargando documentos:', error);
+    } catch (error: any) {
+      logger.error('❌ Error cargando documentos:', error);
+      logger.error('❌ Error message:', error?.message);
+      logger.error('❌ Error response:', error?.response?.data);
+      // No mostrar error al usuario, solo loggearlo
+      // Esto permite que la app continúe funcionando aunque no haya documentos
     } finally {
       setLoadingDocuments(false);
     }
@@ -270,6 +279,13 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
 
   const customerName = sale.customerSnapshot?.fullName || sale.companySnapshot?.razonSocial || 'Sin cliente';
   const documentNumber = sale.customerSnapshot?.documentNumber || sale.companySnapshot?.ruc || '';
+
+  // Debug logs para ver el estado de los documentos
+  logger.info('🔍 Render - saleDocuments:', saleDocuments);
+  logger.info('🔍 Render - tiene saleDocuments:', !!saleDocuments);
+  logger.info('🔍 Render - tiene documents array:', !!saleDocuments?.documents);
+  logger.info('🔍 Render - documents length:', saleDocuments?.documents?.length);
+  logger.info('🔍 Render - condición botón:', !!(saleDocuments && saleDocuments.documents && saleDocuments.documents.length > 0));
 
   return (
     <View style={styles.container}>
