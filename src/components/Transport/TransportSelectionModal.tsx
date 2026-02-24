@@ -32,7 +32,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isPublicTransport, setIsPublicTransport] = useState(false);
+  const [isPublicTransport, setIsPublicTransport] = useState(true);
 
   useEffect(() => {
     if (visible) {
@@ -41,7 +41,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
       // Reset selections when modal closes
       setSelectedVehicle(null);
       setSelectedDriver(null);
-      setIsPublicTransport(false);
+      setIsPublicTransport(true);
     }
   }, [visible]);
 
