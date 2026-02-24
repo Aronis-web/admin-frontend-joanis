@@ -52,6 +52,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const [cancelling, setCancelling] = useState(false);
   const [saleDocuments, setSaleDocuments] = useState<any>(null);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [creditNotes, setCreditNotes] = useState<any[]>([]);
+  const [debitNotes, setDebitNotes] = useState<any[]>([]);
 
   // Load sale
   const loadSale = async (isRefresh: boolean = false) => {
@@ -93,6 +95,16 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         logger.info('📄 Primer documento:', docs.documents[0]);
       }
       setSaleDocuments(docs);
+
+      // Separar notas de crédito y débito
+      if (docs?.creditNotes) {
+        setCreditNotes(docs.creditNotes);
+        logger.info('📝 Notas de crédito encontradas:', docs.creditNotes.length);
+      }
+      if (docs?.debitNotes) {
+        setDebitNotes(docs.debitNotes);
+        logger.info('📝 Notas de débito encontradas:', docs.debitNotes.length);
+      }
     } catch (error: any) {
       logger.error('❌ Error cargando documentos:', error);
       logger.error('❌ Error message:', error?.message);
@@ -347,6 +359,68 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     }
   };
 
+  const handleDownloadNoteDocument = async (documentId: string, documentNumber: string) => {
+    setLoadingDocuments(true);
+    try {
+      logger.info('📥 Descargando nota:', documentNumber);
+
+      if (Platform.OS === 'web') {
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${documentId}/pdf`;
+        window.open(pdfUrl, '_blank');
+      } else {
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${documentId}/pdf`;
+
+        const fileName = `${documentNumber}.pdf`;
+        const fileUri = FileSystem.documentDirectory + fileName;
+
+        const headers: Record<string, string> = {
+          'X-App-Id': config.APP_ID,
+        };
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        if (currentCompany?.id) {
+          headers['X-Company-Id'] = currentCompany.id;
+        }
+        if (currentSite?.id) {
+          headers['X-Site-Id'] = currentSite.id;
+        }
+
+        const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri, {
+          headers,
+        });
+
+        if (downloadResult.status !== 200) {
+          throw new Error(`Error del servidor: ${downloadResult.status}`);
+        }
+
+        const fileInfo = await FileSystem.getInfoAsync(downloadResult.uri);
+        if (fileInfo.exists && fileInfo.size === 0) {
+          throw new Error('El archivo descargado está vacío');
+        }
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: documentNumber,
+          });
+        } else {
+          Alert.alert('Éxito', `PDF guardado en: ${downloadResult.uri}`);
+        }
+      }
+
+      logger.info('✅ Nota descargada exitosamente');
+    } catch (error: any) {
+      logger.error('❌ Error al descargar nota:', error);
+      Alert.alert('Error', error.message || 'Error al descargar la nota');
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
+
   const handleDownloadDocument = async () => {
     if (!saleDocuments || !saleDocuments.documents || saleDocuments.documents.length === 0) {
       Alert.alert('Error', 'No hay documentos disponibles para descargar');
@@ -459,6 +533,23 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         return '#6B7280';
       case PaymentStatus.OVERDUE:
         return '#EF4444';
+      default:
+        return '#6B7280';
+    }
+  };
+
+  const getDocumentStatusColor = (status: string) => {
+    switch (status) {
+      case 'DRAFT':
+        return '#F59E0B'; // Naranja
+      case 'SENT_TO_SUNAT':
+        return '#3B82F6'; // Azul
+      case 'ACCEPTED':
+        return '#10B981'; // Verde
+      case 'REJECTED':
+        return '#EF4444'; // Rojo
+      case 'CANCELLED':
+        return '#6B7280'; // Gris
       default:
         return '#6B7280';
     }
@@ -746,6 +837,90 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                 </View>
               )}
             </View>
+          </View>
+        )}
+
+        {/* Credit Notes Section */}
+        {creditNotes.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Notas de Crédito ({creditNotes.length})</Text>
+            {creditNotes.map((note, index) => (
+              <View key={note.id || index} style={styles.noteCard}>
+                <View style={styles.noteHeader}>
+                  <Text style={styles.noteNumber}>{note.documentNumber}</Text>
+                  <Text style={[styles.noteStatus, { color: getDocumentStatusColor(note.status) }]}>
+                    {note.status}
+                  </Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Monto:</Text>
+                  <Text style={styles.infoValue}>S/ {(note.totalCents / 100).toFixed(2)}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Motivo:</Text>
+                  <Text style={styles.infoValue}>{note.creditNoteReason}</Text>
+                </View>
+                {note.notes && (
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Observaciones:</Text>
+                    <Text style={styles.infoValue}>{note.notes}</Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.downloadNoteButton}
+                  onPress={() => handleDownloadNoteDocument(note.id, note.documentNumber)}
+                  disabled={loadingDocuments}
+                >
+                  {loadingDocuments ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.downloadNoteButtonText}>📄 Descargar PDF</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Debit Notes Section */}
+        {debitNotes.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Notas de Débito ({debitNotes.length})</Text>
+            {debitNotes.map((note, index) => (
+              <View key={note.id || index} style={styles.noteCard}>
+                <View style={styles.noteHeader}>
+                  <Text style={styles.noteNumber}>{note.documentNumber}</Text>
+                  <Text style={[styles.noteStatus, { color: getDocumentStatusColor(note.status) }]}>
+                    {note.status}
+                  </Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Monto:</Text>
+                  <Text style={styles.infoValue}>S/ {(note.totalCents / 100).toFixed(2)}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Motivo:</Text>
+                  <Text style={styles.infoValue}>{note.debitNoteReason}</Text>
+                </View>
+                {note.notes && (
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Observaciones:</Text>
+                    <Text style={styles.infoValue}>{note.notes}</Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.downloadNoteButton}
+                  onPress={() => handleDownloadNoteDocument(note.id, note.documentNumber)}
+                  disabled={loadingDocuments}
+                >
+                  {loadingDocuments ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.downloadNoteButtonText}>📄 Descargar PDF</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ))}
           </View>
         )}
 
@@ -1123,5 +1298,44 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  noteCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  noteNumber: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  noteStatus: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  downloadNoteButton: {
+    backgroundColor: '#3B82F6',
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  downloadNoteButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
