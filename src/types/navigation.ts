@@ -226,6 +226,24 @@ export type MainStackParamList = {
     emissionPointCode: string;
   };
 
+  // Cash Registers (POS)
+  CashRegisters: {
+    emissionPointId: string;
+    emissionPointName: string;
+    emissionPointCode: string;
+  };
+  CreateCashRegister: {
+    emissionPointId: string;
+    emissionPointName: string;
+    emissionPointCode: string;
+  };
+  EditCashRegister: {
+    cashRegisterId: string;
+    emissionPointId: string;
+    emissionPointName: string;
+    emissionPointCode: string;
+  };
+
   // Bizlinks - Electronic Invoicing
   BizlinksMenu: undefined;
   BizlinksGenerateDocuments: undefined;

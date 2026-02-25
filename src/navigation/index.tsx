@@ -135,6 +135,11 @@ const EditEmissionPointScreen = lazyLoad(() => import('@/screens/EmissionPoints'
 const CreateSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.CreateSeriesScreen })), 'Cargando formulario...');
 const EditSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EditSeriesScreen })), 'Cargando formulario...');
 
+// Cash Registers Screens - Lazy Loaded
+const CashRegistersScreen = lazyLoad(() => import('@/screens/CashRegisters').then(m => ({ default: m.CashRegistersScreen })), 'Cargando cajas registradoras...');
+const CreateCashRegisterScreen = lazyLoad(() => import('@/screens/CashRegisters').then(m => ({ default: m.CreateCashRegisterScreen })), 'Cargando formulario...');
+const EditCashRegisterScreen = lazyLoad(() => import('@/screens/CashRegisters').then(m => ({ default: m.EditCashRegisterScreen })), 'Cargando formulario...');
+
 // Bizlinks Screens - Lazy Loaded
 const BizlinksMenuScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksMenuScreen })), 'Cargando Bizlinks...');
 const BizlinksGenerateDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksGenerateDocumentsScreen })), 'Cargando generación de documentos...');
@@ -1055,6 +1060,50 @@ const MainStack = React.memo(() => {
             requiredPermissions={['billing.series.update']}
           >
             <EditSeriesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Cash Registers Screens */}
+      <MainStackNavigator.Screen
+        name="CashRegisters"
+        options={{
+          title: 'Cajas Registradoras',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['pos.cash-registers.read']}
+          >
+            <CashRegistersScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="CreateCashRegister"
+        options={{
+          title: 'Nueva Caja Registradora',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['pos.cash-registers.create']}
+          >
+            <CreateCashRegisterScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="EditCashRegister"
+        options={{
+          title: 'Editar Caja Registradora',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['pos.cash-registers.update']}
+          >
+            <EditCashRegisterScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

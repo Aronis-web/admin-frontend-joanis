@@ -74,6 +74,14 @@ export const EmissionPointsScreen: React.FC<EmissionPointsScreenProps> = ({ navi
     });
   };
 
+  const handleConfigureCashRegisters = (emissionPoint: EmissionPoint) => {
+    navigation.navigate('CashRegisters', {
+      emissionPointId: emissionPoint.id,
+      emissionPointName: emissionPoint.name,
+      emissionPointCode: emissionPoint.code,
+    });
+  };
+
   const handleEditEmissionPoint = (emissionPoint: EmissionPoint) => {
     navigation.navigate('EditEmissionPoint', { emissionPointId: emissionPoint.id });
   };
@@ -180,6 +188,14 @@ export const EmissionPointsScreen: React.FC<EmissionPointsScreenProps> = ({ navi
         >
           <Text style={styles.primaryButtonText}>📄 Ver Series</Text>
         </TouchableOpacity>
+        {point.emissionType === 'POS' && (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.primaryButton]}
+            onPress={() => handleConfigureCashRegisters(point)}
+          >
+            <Text style={styles.primaryButtonText}>💰 Configurar Cajas</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={[styles.actionButton, styles.secondaryButton]}
           onPress={() => handleEditEmissionPoint(point)}

@@ -113,6 +113,11 @@ export const MAIN_ROUTES = {
   CREATE_SERIES: 'CreateSeries',
   EDIT_SERIES: 'EditSeries',
 
+  // Cash Registers (POS)
+  CASH_REGISTERS: 'CashRegisters',
+  CREATE_CASH_REGISTER: 'CreateCashRegister',
+  EDIT_CASH_REGISTER: 'EditCashRegister',
+
   // Bizlinks - Electronic Invoicing
   BIZLINKS_MENU: 'BizlinksMenu',
   BIZLINKS_GENERATE_DOCUMENTS: 'BizlinksGenerateDocuments',
@@ -273,6 +278,11 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   EDIT_EMISSION_POINT: 'billing.emission-points.update',
   CREATE_SERIES: 'billing.series.create',
   EDIT_SERIES: 'billing.series.update',
+
+  // Cash Registers (POS)
+  CASH_REGISTERS: 'pos.cash-registers.read',
+  CREATE_CASH_REGISTER: 'pos.cash-registers.create',
+  EDIT_CASH_REGISTER: 'pos.cash-registers.update',
 
   // Bizlinks - Electronic Invoicing
   BIZLINKS_MENU: 'bizlinks.documents.view',

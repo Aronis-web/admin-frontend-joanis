@@ -60,6 +60,7 @@ export type { PresentationsResponse, CreatePresentationDto, UpdatePresentationDt
 export * from './billing';
 export * from './bizlinks';
 export * from './emission-points';
+export * from './cash-registers';
 
 export { locationsApi } from './locations';
 export type {
