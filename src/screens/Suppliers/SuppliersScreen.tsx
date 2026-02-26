@@ -19,6 +19,7 @@ import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { suppliersService } from '@/services/api/suppliers';
 import { Supplier } from '@/types/suppliers';
 import { AddButton } from '@/components/Navigation/AddButton';
+import { SUPPLIER_TYPE_LABELS, SUPPLIER_TYPE_ICONS, SUPPLIER_TYPE_COLORS } from '@/constants/supplierTypes';
 
 interface SuppliersScreenProps {
   navigation: any;
@@ -205,6 +206,35 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
             <Text style={styles.statusBadgeText}>{supplier.isActive ? '✓' : '✗'}</Text>
           </View>
         </View>
+
+        {/* v1.1.0 - Tipos de Proveedor */}
+        {supplier.primaryType && (
+          <View style={styles.typesSection}>
+            <View style={[styles.typeBadge, { backgroundColor: SUPPLIER_TYPE_COLORS[supplier.primaryType] + '20' }]}>
+              <Text style={styles.typeBadgeIcon}>{SUPPLIER_TYPE_ICONS[supplier.primaryType]}</Text>
+              <Text style={[styles.typeBadgeText, { color: SUPPLIER_TYPE_COLORS[supplier.primaryType] }]}>
+                {SUPPLIER_TYPE_LABELS[supplier.primaryType]}
+              </Text>
+            </View>
+            {supplier.supplierTypes && supplier.supplierTypes.length > 1 && (
+              <Text style={styles.additionalTypesText}>
+                +{supplier.supplierTypes.length - 1} más
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* v1.1.0 - Categoría */}
+        {supplier.category && (
+          <View style={styles.categorySection}>
+            <Text style={styles.categoryText}>📂 {supplier.category}</Text>
+            {supplier.rating && (
+              <View style={styles.ratingContainer}>
+                <Text style={styles.ratingText}>⭐ {supplier.rating.toFixed(1)}</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         <View style={styles.supplierDetails}>
           {supplier.email && (
@@ -763,5 +793,52 @@ const styles = StyleSheet.create({
   },
   paginationButtonTextDisabled: {
     color: '#94A3B8',
+  },
+  // v1.1.0 - Estilos para tipos de proveedor
+  typesSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  typeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  typeBadgeIcon: {
+    fontSize: 14,
+  },
+  typeBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  additionalTypesText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontStyle: 'italic',
+  },
+  categorySection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  categoryText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '600',
   },
 });

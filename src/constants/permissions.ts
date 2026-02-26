@@ -96,25 +96,6 @@ export const PERMISSIONS = {
     },
   },
 
-  // ========== CUENTAS POR PAGAR ==========
-  ACCOUNTS_PAYABLE: {
-    CREATE: 'accounts-payable.create',
-    READ: 'accounts-payable.read',
-    UPDATE: 'accounts-payable.update',
-    DELETE: 'accounts-payable.delete',
-    CANCEL: 'accounts-payable.cancel',
-
-    PAYMENT: {
-      CREATE: 'accounts-payable.payment.create',
-      READ: 'accounts-payable.payment.read',
-      DELETE: 'accounts-payable.payment.delete',
-    },
-
-    REPORTS: {
-      READ: 'accounts-payable.reports.read',
-    },
-  },
-
   // ========== MÉTODOS DE PAGO ==========
   PAYMENT_METHODS: {
     CREATE: 'payment_methods.create',

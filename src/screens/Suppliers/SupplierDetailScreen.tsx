@@ -13,6 +13,7 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Picker } from '@react-native-picker/picker';
 import { suppliersService } from '@/services/api/suppliers';
 import {
   Supplier,
@@ -25,12 +26,22 @@ import {
   SupplierBankAccount,
   CreateSupplierLegalEntityDto,
   CreateSupplierContactDto,
+  SupplierType,
 } from '@/types/suppliers';
 import { ScreenProps } from '@/types/navigation';
+import {
+  SUPPLIER_TYPE_LABELS,
+  SUPPLIER_TYPE_ICONS,
+  getSupplierTypeOptions,
+  PAYMENT_FREQUENCIES,
+  PREFERRED_PAYMENT_METHODS,
+  CURRENCIES,
+  PREDEFINED_TAGS,
+} from '@/constants/supplierTypes';
 
 type SupplierDetailScreenProps = ScreenProps<'SupplierDetail'>;
 
-type TabType = 'general' | 'legal' | 'contacts' | 'banks' | 'debts' | 'payments';
+type TabType = 'general' | 'types' | 'legal' | 'contacts' | 'banks' | 'debts' | 'payments';
 
 export const SupplierDetailScreen = ({ navigation, route }: any) => {
   const supplierId = route?.params?.supplierId;
@@ -62,6 +73,24 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
     notes: '',
     isActive: true,
   });
+
+  // v1.1.0 - Nuevos campos de tipos y campos universales
+  const [selectedTypes, setSelectedTypes] = useState<SupplierType[]>([]);
+  const [primaryType, setPrimaryType] = useState<SupplierType | ''>('');
+  const [category, setCategory] = useState('');
+  const [subcategory, setSubcategory] = useState('');
+  const [website, setWebsite] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [paymentFrequency, setPaymentFrequency] = useState('');
+  const [preferredPaymentMethod, setPreferredPaymentMethod] = useState('');
+  const [preferredCurrency, setPreferredCurrency] = useState('PEN');
+  const [rating, setRating] = useState('');
+  const [certifications, setCertifications] = useState<string[]>([]);
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [licenseExpiryDate, setLicenseExpiryDate] = useState('');
+  const [insurancePolicyNumber, setInsurancePolicyNumber] = useState('');
+  const [insuranceExpiryDate, setInsuranceExpiryDate] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
 
   // Legal entities state
   const [legalEntities, setLegalEntities] = useState<CreateSupplierLegalEntityDto[]>([]);
@@ -121,6 +150,24 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
         notes: data.notes || '',
         isActive: data.isActive,
       });
+
+      // v1.1.0 - Populate new fields
+      setSelectedTypes(data.supplierTypes || []);
+      setPrimaryType(data.primaryType || '');
+      setCategory(data.category || '');
+      setSubcategory(data.subcategory || '');
+      setWebsite(data.website || '');
+      setAccountNumber(data.accountNumber || '');
+      setPaymentFrequency(data.paymentFrequency || '');
+      setPreferredPaymentMethod(data.preferredPaymentMethod || '');
+      setPreferredCurrency(data.preferredCurrency || 'PEN');
+      setRating(data.rating?.toString() || '');
+      setCertifications(data.certifications || []);
+      setLicenseNumber(data.licenseNumber || '');
+      setLicenseExpiryDate(data.licenseExpiryDate || '');
+      setInsurancePolicyNumber(data.insurancePolicyNumber || '');
+      setInsuranceExpiryDate(data.insuranceExpiryDate || '');
+      setTags(data.tags || []);
 
       // Set legal entities
       if (data.legalEntities) {
@@ -207,6 +254,23 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             : undefined,
           notes: formData.notes.trim() || undefined,
           isActive: formData.isActive,
+          // v1.1.0 - New fields
+          supplierTypes: selectedTypes.length > 0 ? selectedTypes : undefined,
+          primaryType: primaryType || undefined,
+          category: category.trim() || undefined,
+          subcategory: subcategory.trim() || undefined,
+          website: website.trim() || undefined,
+          accountNumber: accountNumber.trim() || undefined,
+          paymentFrequency: paymentFrequency || undefined,
+          preferredPaymentMethod: preferredPaymentMethod || undefined,
+          preferredCurrency: preferredCurrency || undefined,
+          rating: rating ? parseFloat(rating) : undefined,
+          certifications: certifications.length > 0 ? certifications : undefined,
+          licenseNumber: licenseNumber.trim() || undefined,
+          licenseExpiryDate: licenseExpiryDate || undefined,
+          insurancePolicyNumber: insurancePolicyNumber.trim() || undefined,
+          insuranceExpiryDate: insuranceExpiryDate || undefined,
+          tags: tags.length > 0 ? tags : undefined,
         };
 
         await suppliersService.updateSupplier(supplierId, updateData);
@@ -234,6 +298,23 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             : undefined,
           notes: formData.notes.trim() || undefined,
           isActive: formData.isActive,
+          // v1.1.0 - New fields
+          supplierTypes: selectedTypes.length > 0 ? selectedTypes : undefined,
+          primaryType: primaryType || undefined,
+          category: category.trim() || undefined,
+          subcategory: subcategory.trim() || undefined,
+          website: website.trim() || undefined,
+          accountNumber: accountNumber.trim() || undefined,
+          paymentFrequency: paymentFrequency || undefined,
+          preferredPaymentMethod: preferredPaymentMethod || undefined,
+          preferredCurrency: preferredCurrency || undefined,
+          rating: rating ? parseFloat(rating) : undefined,
+          certifications: certifications.length > 0 ? certifications : undefined,
+          licenseNumber: licenseNumber.trim() || undefined,
+          licenseExpiryDate: licenseExpiryDate || undefined,
+          insurancePolicyNumber: insurancePolicyNumber.trim() || undefined,
+          insuranceExpiryDate: insuranceExpiryDate || undefined,
+          tags: tags.length > 0 ? tags : undefined,
           legalEntities,
           contacts: contacts.length > 0 ? contacts : undefined,
         };
@@ -375,6 +456,28 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
         },
       },
     ]);
+  };
+
+  const toggleSupplierType = (type: SupplierType) => {
+    if (selectedTypes.includes(type)) {
+      setSelectedTypes(selectedTypes.filter(t => t !== type));
+      if (primaryType === type) {
+        setPrimaryType('');
+      }
+    } else {
+      setSelectedTypes([...selectedTypes, type]);
+      if (!primaryType) {
+        setPrimaryType(type);
+      }
+    }
+  };
+
+  const toggleTag = (tag: string) => {
+    if (tags.includes(tag)) {
+      setTags(tags.filter(t => t !== tag));
+    } else {
+      setTags([...tags, tag]);
+    }
   };
 
   const renderGeneralTab = () => (
@@ -552,6 +655,257 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             thumbColor="#FFFFFF"
           />
         </View>
+      </View>
+    </View>
+  );
+
+  const renderTypesTab = () => (
+    <View style={styles.tabContent}>
+      <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+        Tipos de Proveedor
+      </Text>
+      <Text style={styles.helperText}>
+        Seleccione uno o más tipos que describan a este proveedor
+      </Text>
+
+      <View style={styles.typesList}>
+        {getSupplierTypeOptions().map((option) => (
+          <TouchableOpacity
+            key={option.value}
+            style={[
+              styles.typeCard,
+              selectedTypes.includes(option.value) && styles.typeCardSelected,
+            ]}
+            onPress={() => toggleSupplierType(option.value)}
+          >
+            <Text style={styles.typeIcon}>{option.icon}</Text>
+            <View style={styles.typeInfo}>
+              <Text style={[
+                styles.typeLabel,
+                selectedTypes.includes(option.value) && styles.typeLabelSelected,
+              ]}>
+                {option.label}
+              </Text>
+              <Text style={styles.typeDescription}>{option.description}</Text>
+            </View>
+            {selectedTypes.includes(option.value) && (
+              <Text style={styles.typeCheckmark}>✓</Text>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {selectedTypes.length > 0 && (
+        <>
+          <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet, { marginTop: 20 }]}>
+            Tipo Principal
+          </Text>
+          <Text style={styles.helperText}>
+            Seleccione el tipo principal para clasificación y reportes
+          </Text>
+          <View style={styles.formGroup}>
+            <Picker
+              selectedValue={primaryType}
+              onValueChange={(value) => setPrimaryType(value as SupplierType)}
+              style={styles.picker}
+            >
+              <Picker.Item label="Seleccione tipo principal..." value="" />
+              {selectedTypes.map((type) => (
+                <Picker.Item
+                  key={type}
+                  label={`${SUPPLIER_TYPE_ICONS[type]} ${SUPPLIER_TYPE_LABELS[type]}`}
+                  value={type}
+                />
+              ))}
+            </Picker>
+          </View>
+        </>
+      )}
+
+      <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet, { marginTop: 20 }]}>
+        Clasificación
+      </Text>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Categoría</Text>
+        <TextInput
+          style={[styles.input, isTablet && styles.inputTablet]}
+          value={category}
+          onChangeText={setCategory}
+          placeholder="Ej: Materiales de Construcción"
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Subcategoría</Text>
+        <TextInput
+          style={[styles.input, isTablet && styles.inputTablet]}
+          value={subcategory}
+          onChangeText={setSubcategory}
+          placeholder="Ej: Cemento y Agregados"
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Sitio Web</Text>
+        <TextInput
+          style={[styles.input, isTablet && styles.inputTablet]}
+          value={website}
+          onChangeText={setWebsite}
+          placeholder="https://www.ejemplo.com"
+          placeholderTextColor="#94A3B8"
+          keyboardType="url"
+          autoCapitalize="none"
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Número de Cuenta</Text>
+        <TextInput
+          style={[styles.input, isTablet && styles.inputTablet]}
+          value={accountNumber}
+          onChangeText={setAccountNumber}
+          placeholder="Código interno de la empresa"
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+
+      <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet, { marginTop: 20 }]}>
+        Términos de Pago
+      </Text>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Frecuencia de Pago</Text>
+        <Picker
+          selectedValue={paymentFrequency}
+          onValueChange={setPaymentFrequency}
+          style={styles.picker}
+        >
+          <Picker.Item label="Seleccione frecuencia..." value="" />
+          {PAYMENT_FREQUENCIES.map((freq) => (
+            <Picker.Item key={freq.value} label={freq.label} value={freq.value} />
+          ))}
+        </Picker>
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Método de Pago Preferido</Text>
+        <Picker
+          selectedValue={preferredPaymentMethod}
+          onValueChange={setPreferredPaymentMethod}
+          style={styles.picker}
+        >
+          <Picker.Item label="Seleccione método..." value="" />
+          {PREFERRED_PAYMENT_METHODS.map((method) => (
+            <Picker.Item key={method.value} label={method.label} value={method.value} />
+          ))}
+        </Picker>
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Moneda Preferida</Text>
+        <Picker
+          selectedValue={preferredCurrency}
+          onValueChange={setPreferredCurrency}
+          style={styles.picker}
+        >
+          {CURRENCIES.map((currency) => (
+            <Picker.Item
+              key={currency.value}
+              label={`${currency.label} (${currency.symbol})`}
+              value={currency.value}
+            />
+          ))}
+        </Picker>
+      </View>
+
+      <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet, { marginTop: 20 }]}>
+        Calificación y Certificaciones
+      </Text>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Calificación (1-5)</Text>
+        <TextInput
+          style={[styles.input, isTablet && styles.inputTablet]}
+          value={rating}
+          onChangeText={setRating}
+          placeholder="4.5"
+          placeholderTextColor="#94A3B8"
+          keyboardType="decimal-pad"
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Número de Licencia</Text>
+        <TextInput
+          style={[styles.input, isTablet && styles.inputTablet]}
+          value={licenseNumber}
+          onChangeText={setLicenseNumber}
+          placeholder="LIC-123456"
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Vencimiento de Licencia</Text>
+        <TextInput
+          style={[styles.input, isTablet && styles.inputTablet]}
+          value={licenseExpiryDate}
+          onChangeText={setLicenseExpiryDate}
+          placeholder="YYYY-MM-DD"
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Número de Póliza de Seguro</Text>
+        <TextInput
+          style={[styles.input, isTablet && styles.inputTablet]}
+          value={insurancePolicyNumber}
+          onChangeText={setInsurancePolicyNumber}
+          placeholder="POL-123456"
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, isTablet && styles.labelTablet]}>Vencimiento de Seguro</Text>
+        <TextInput
+          style={[styles.input, isTablet && styles.inputTablet]}
+          value={insuranceExpiryDate}
+          onChangeText={setInsuranceExpiryDate}
+          placeholder="YYYY-MM-DD"
+          placeholderTextColor="#94A3B8"
+        />
+      </View>
+
+      <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet, { marginTop: 20 }]}>
+        Etiquetas
+      </Text>
+      <Text style={styles.helperText}>
+        Seleccione etiquetas para clasificar al proveedor
+      </Text>
+
+      <View style={styles.tagsList}>
+        {PREDEFINED_TAGS.map((tag) => (
+          <TouchableOpacity
+            key={tag}
+            style={[
+              styles.tagChip,
+              tags.includes(tag) && styles.tagChipSelected,
+            ]}
+            onPress={() => toggleTag(tag)}
+          >
+            <Text style={[
+              styles.tagChipText,
+              tags.includes(tag) && styles.tagChipTextSelected,
+            ]}>
+              {tag}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </View>
   );
@@ -794,6 +1148,14 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
+            style={[styles.tab, activeTab === 'types' && styles.tabActive]}
+            onPress={() => setActiveTab('types')}
+          >
+            <Text style={[styles.tabText, activeTab === 'types' && styles.tabTextActive]}>
+              Tipos y Clasificación
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.tab, activeTab === 'legal' && styles.tabActive]}
             onPress={() => setActiveTab('legal')}
           >
@@ -843,6 +1205,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
       {/* Content */}
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {activeTab === 'general' && renderGeneralTab()}
+        {activeTab === 'types' && renderTypesTab()}
         {activeTab === 'legal' && renderLegalEntitiesTab()}
         {activeTab === 'contacts' && renderContactsTab()}
         {activeTab === 'banks' && renderBanksTab()}
@@ -1358,5 +1721,97 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
+  },
+  primaryButton: {
+    backgroundColor: '#667eea',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  // v1.1.0 - Nuevos estilos para tipos de proveedor
+  helperText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 16,
+    marginTop: -8,
+  },
+  typesList: {
+    gap: 12,
+    marginTop: 12,
+  },
+  typeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 14,
+    gap: 12,
+  },
+  typeCardSelected: {
+    borderColor: '#667eea',
+    backgroundColor: '#EEF2FF',
+  },
+  typeIcon: {
+    fontSize: 32,
+  },
+  typeInfo: {
+    flex: 1,
+  },
+  typeLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  typeLabelSelected: {
+    color: '#667eea',
+  },
+  typeDescription: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  typeCheckmark: {
+    fontSize: 24,
+    color: '#667eea',
+  },
+  picker: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+  },
+  tagsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  tagChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  tagChipSelected: {
+    backgroundColor: '#667eea',
+    borderColor: '#667eea',
+  },
+  tagChipText: {
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  tagChipTextSelected: {
+    color: '#FFFFFF',
   },
 });

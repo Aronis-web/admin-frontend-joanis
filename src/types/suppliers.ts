@@ -41,32 +41,6 @@ export enum TransactionType {
 }
 
 /**
- * Source types for Accounts Payable
- */
-export enum SourceType {
-  PURCHASE = 'PURCHASE',
-  EXPENSE = 'EXPENSE',
-  SERVICE = 'SERVICE',
-  INVESTMENT = 'INVESTMENT',
-  ASSET = 'ASSET',
-  LOAN = 'LOAN',
-  TAX = 'TAX',
-  PAYROLL = 'PAYROLL',
-  OTHER = 'OTHER',
-}
-
-/**
- * Payable status
- */
-export enum PayableStatus {
-  PENDING = 'PENDING',
-  PARTIAL = 'PARTIAL',
-  PAID = 'PAID',
-  OVERDUE = 'OVERDUE',
-  CANCELLED = 'CANCELLED',
-}
-
-/**
  * Payment status
  */
 export enum PaymentStatus {
@@ -76,8 +50,25 @@ export enum PaymentStatus {
 }
 
 /**
+ * Supplier Types - v1.1.0
+ * Categorización de proveedores según el tipo de bien o servicio que proveen
+ */
+export enum SupplierType {
+  MERCHANDISE = 'MERCHANDISE',    // Mercadería/Productos
+  SERVICES = 'SERVICES',          // Servicios profesionales
+  UTILITIES = 'UTILITIES',        // Servicios públicos (luz, agua, internet)
+  RENT = 'RENT',                  // Alquiler/Arrendamiento
+  PAYROLL = 'PAYROLL',            // Nómina/Planilla
+  TAXES = 'TAXES',                // Impuestos y tributos
+  LOANS = 'LOANS',                // Préstamos y financiamiento
+  INSURANCE = 'INSURANCE',        // Seguros
+  MAINTENANCE = 'MAINTENANCE',    // Mantenimiento
+  TRANSPORT = 'TRANSPORT',        // Transporte y logística
+  OTHER = 'OTHER',                // Otros
+}
+
+/**
  * Supplier Legal Entity (Razón Social)
- * ⚠️ IMPORTANTE: Las cuentas por pagar se vinculan a este nivel (razón social)
  */
 export interface SupplierLegalEntity {
   id: string;
@@ -88,7 +79,6 @@ export interface SupplierLegalEntity {
   isPrimary: boolean;
   createdAt: string;
   updatedAt: string;
-  accountsPayable?: AccountPayable[]; // Cuentas por pagar vinculadas a esta razón social
 }
 
 /**
@@ -249,153 +239,9 @@ export interface SupplierPayment {
   };
 }
 
-// ============================================
-// ACCOUNTS PAYABLE (CUENTAS POR PAGAR)
-// ============================================
-
 /**
- * Account Payable (Cuenta por Pagar)
- * ⚠️ IMPORTANTE: Las cuentas por pagar SIEMPRE se vinculan a SupplierLegalEntity (razón social)
- */
-export interface AccountPayable {
-  id: string;
-  code: string; // AP-YYYY-NNNNN (auto-generado)
-
-  // Origen
-  sourceType: SourceType;
-  sourceId: string;
-  sourceCode?: string;
-
-  // Proveedor (SIEMPRE a través de razón social)
-  supplierId: string;
-  supplierLegalEntityId: string;
-
-  // Montos (en centavos)
-  totalAmountCents: number;
-  paidAmountCents: number;
-  balanceCents: number;
-  currency: string; // PEN, USD
-
-  // Fechas
-  issueDate: string;
-  dueDate: string;
-  paymentDate?: string;
-
-  // Documento
-  documentType?: string; // FACTURA, BOLETA, etc.
-  documentNumber?: string;
-  description?: string;
-
-  // Estado
-  status: PayableStatus;
-  overdueDay: number;
-
-  // Organización
-  companyId: string;
-  siteId?: string;
-
-  // Adicional
-  notes?: string;
-  metadata?: Record<string, any>;
-
-  // Auditoría
-  createdBy?: string;
-  updatedBy?: string;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt?: string;
-
-  // Relaciones
-  supplier?: Supplier;
-  supplierLegalEntity?: SupplierLegalEntity;
-  company?: {
-    id: string;
-    name: string;
-  };
-  site?: {
-    id: string;
-    name: string;
-  };
-  payments?: AccountPayablePayment[];
-  schedules?: AccountPayableSchedule[];
-  statusHistory?: AccountPayableStatusHistory[];
-}
-
-/**
- * Account Payable Payment (Pago de Cuenta por Pagar)
- */
-export interface AccountPayablePayment {
-  id: string;
-  paymentNumber: string; // PAY-YYYY-NNNNN (auto-generado)
-  accountPayableId: string;
-
-  paymentDate: string;
-  amountCents: number;
-  currency: string;
-  exchangeRate?: number;
-
-  paymentMethodId?: string;
-  paymentMethodName: string;
-
-  bankName?: string;
-  accountNumber?: string;
-  transactionReference?: string;
-
-  notes?: string;
-  metadata?: Record<string, any>;
-
-  createdBy?: string;
-  createdAt: string;
-  deletedAt?: string;
-
-  accountPayable?: AccountPayable;
-}
-
-/**
- * Account Payable Schedule (Cronograma de Pagos)
- */
-export interface AccountPayableSchedule {
-  id: string;
-  accountPayableId: string;
-
-  installmentNumber: number;
-  dueDate: string;
-  amountCents: number;
-  paidAmountCents: number;
-  balanceCents: number;
-
-  isPaid: boolean;
-  paymentDate?: string;
-
-  notes?: string;
-
-  createdAt: string;
-  updatedAt: string;
-
-  accountPayable?: AccountPayable;
-}
-
-/**
- * Account Payable Status History (Historial de Estados)
- */
-export interface AccountPayableStatusHistory {
-  id: string;
-  accountPayableId: string;
-
-  previousStatus?: PayableStatus;
-  newStatus: PayableStatus;
-
-  reason?: string;
-  notes?: string;
-
-  changedBy?: string;
-  changedAt: string;
-
-  accountPayable?: AccountPayable;
-}
-
-/**
- * Main Supplier Entity
+ * Main Supplier Entity - v1.1.0
+ * Actualizado con tipos de proveedor y campos universales
  */
 export interface Supplier {
   id: string;
@@ -420,12 +266,113 @@ export interface Supplier {
   deletedAt?: string;
   createdAt: string;
   updatedAt: string;
+
+  // ============================================
+  // NUEVOS CAMPOS v1.1.0 - Tipos de Proveedor
+  // ============================================
+
+  /**
+   * Tipos de proveedor (puede tener múltiples)
+   * Ejemplo: ["MERCHANDISE", "SERVICES"]
+   */
+  supplierTypes?: SupplierType[];
+
+  /**
+   * Tipo principal de proveedor
+   * Usado para clasificación y reportes
+   */
+  primaryType?: SupplierType;
+
+  // ============================================
+  // CAMPOS UNIVERSALES (14 campos)
+  // ============================================
+
+  /**
+   * Categoría del proveedor
+   * Ejemplo: "Materiales de Construcción", "Servicios de Limpieza"
+   */
+  category?: string;
+
+  /**
+   * Subcategoría del proveedor
+   * Ejemplo: "Cemento y Agregados", "Limpieza de Oficinas"
+   */
+  subcategory?: string;
+
+  /**
+   * Sitio web del proveedor
+   */
+  website?: string;
+
+  /**
+   * Número de cuenta del proveedor
+   * Código interno de la empresa para este proveedor
+   */
+  accountNumber?: string;
+
+  /**
+   * Frecuencia de pago
+   * Ejemplo: "WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "ANNUAL"
+   */
+  paymentFrequency?: string;
+
+  /**
+   * Método de pago preferido
+   * Ejemplo: "TRANSFER", "CHECK", "CASH", "CARD"
+   */
+  preferredPaymentMethod?: string;
+
+  /**
+   * Moneda preferida
+   * Ejemplo: "PEN", "USD", "EUR"
+   */
+  preferredCurrency?: string;
+
+  /**
+   * Calificación del proveedor (1-5)
+   */
+  rating?: number;
+
+  /**
+   * Certificaciones del proveedor
+   * Ejemplo: ["ISO 9001", "ISO 14001"]
+   */
+  certifications?: string[];
+
+  /**
+   * Número de licencia del proveedor
+   */
+  licenseNumber?: string;
+
+  /**
+   * Fecha de vencimiento de la licencia
+   */
+  licenseExpiryDate?: string;
+
+  /**
+   * Número de póliza de seguro
+   */
+  insurancePolicyNumber?: string;
+
+  /**
+   * Fecha de vencimiento del seguro
+   */
+  insuranceExpiryDate?: string;
+
+  /**
+   * Etiquetas personalizadas
+   * Ejemplo: ["VIP", "Proveedor Crítico", "Descuento Especial"]
+   */
+  tags?: string[];
+
+  // ============================================
+  // Relaciones
+  // ============================================
   legalEntities?: SupplierLegalEntity[];
   contacts?: SupplierContact[];
   bankAccounts?: SupplierBankAccount[];
   companyDebts?: SupplierCompanyDebt[];
   unassignedBalance?: SupplierUnassignedBalance;
-  accountsPayable?: AccountPayable[]; // Cuentas por pagar
 }
 
 // ============================================
@@ -454,7 +401,8 @@ export interface CreateSupplierContactDto {
 }
 
 /**
- * Create Supplier Request
+ * Create Supplier Request - v1.1.0
+ * Actualizado con tipos de proveedor y campos universales
  */
 export interface CreateSupplierRequest {
   code: string;
@@ -475,12 +423,32 @@ export interface CreateSupplierRequest {
   creditLimitCents?: number;
   notes?: string;
   isActive?: boolean;
+
+  // Nuevos campos v1.1.0
+  supplierTypes?: SupplierType[];
+  primaryType?: SupplierType;
+  category?: string;
+  subcategory?: string;
+  website?: string;
+  accountNumber?: string;
+  paymentFrequency?: string;
+  preferredPaymentMethod?: string;
+  preferredCurrency?: string;
+  rating?: number;
+  certifications?: string[];
+  licenseNumber?: string;
+  licenseExpiryDate?: string;
+  insurancePolicyNumber?: string;
+  insuranceExpiryDate?: string;
+  tags?: string[];
+
   legalEntities?: CreateSupplierLegalEntityDto[];
   contacts?: CreateSupplierContactDto[];
 }
 
 /**
- * Update Supplier Request
+ * Update Supplier Request - v1.1.0
+ * Actualizado con tipos de proveedor y campos universales
  */
 export interface UpdateSupplierRequest {
   code?: string;
@@ -501,10 +469,29 @@ export interface UpdateSupplierRequest {
   creditLimitCents?: number;
   notes?: string;
   isActive?: boolean;
+
+  // Nuevos campos v1.1.0
+  supplierTypes?: SupplierType[];
+  primaryType?: SupplierType;
+  category?: string;
+  subcategory?: string;
+  website?: string;
+  accountNumber?: string;
+  paymentFrequency?: string;
+  preferredPaymentMethod?: string;
+  preferredCurrency?: string;
+  rating?: number;
+  certifications?: string[];
+  licenseNumber?: string;
+  licenseExpiryDate?: string;
+  insurancePolicyNumber?: string;
+  insuranceExpiryDate?: string;
+  tags?: string[];
 }
 
 /**
- * Query Suppliers Parameters
+ * Query Suppliers Parameters - v1.1.0
+ * Actualizado con filtros por tipo de proveedor
  */
 export interface QuerySuppliersParams {
   q?: string; // Search in code, commercial name, RUC
@@ -512,9 +499,18 @@ export interface QuerySuppliersParams {
   department?: string;
   province?: string;
   district?: string;
+
+  // Nuevos filtros v1.1.0
+  primaryType?: SupplierType; // Filtrar por tipo principal
+  supplierTypes?: string; // Filtrar por tipos (comma-separated: "MERCHANDISE,SERVICES")
+  category?: string; // Filtrar por categoría
+  subcategory?: string; // Filtrar por subcategoría
+  rating?: number; // Filtrar por calificación mínima
+  tags?: string; // Filtrar por etiquetas (comma-separated)
+
   page?: number;
   limit?: number;
-  orderBy?: 'code' | 'commercialName' | 'createdAt';
+  orderBy?: 'code' | 'commercialName' | 'createdAt' | 'rating';
   orderDir?: 'ASC' | 'DESC';
 }
 
@@ -733,320 +729,4 @@ export interface PaymentsResponse {
   total: number;
   page: number;
   limit: number;
-}
-
-// ============================================
-// ACCOUNTS PAYABLE REQUEST/RESPONSE TYPES
-// ============================================
-
-/**
- * Create Account Payable Request
- */
-export interface CreateAccountPayableRequest {
-  sourceType: SourceType;
-  sourceId: string;
-  sourceCode?: string;
-  supplierId: string;
-  supplierLegalEntityId: string;
-  totalAmountCents: number;
-  currency: string;
-  issueDate: string;
-  dueDate: string;
-  documentType?: string;
-  documentNumber?: string;
-  description?: string;
-  companyId: string;
-  siteId?: string;
-  notes?: string;
-  metadata?: Record<string, any>;
-}
-
-/**
- * Update Account Payable Request
- */
-export interface UpdateAccountPayableRequest {
-  dueDate?: string;
-  notes?: string;
-  metadata?: Record<string, any>;
-}
-
-/**
- * Cancel Account Payable Request
- */
-export interface CancelAccountPayableRequest {
-  reason: string;
-  notes?: string;
-}
-
-/**
- * Query Accounts Payable Parameters
- */
-export interface QueryAccountsPayableParams {
-  page?: number;
-  limit?: number;
-  companyId?: string;
-  supplierId?: string;
-  supplierLegalEntityId?: string;
-  status?: PayableStatus | PayableStatus[];
-  currency?: string;
-  sourceType?: SourceType;
-  dueDateFrom?: string;
-  dueDateTo?: string;
-  issueDateFrom?: string;
-  issueDateTo?: string;
-  minAmount?: number;
-  maxAmount?: number;
-  isOverdue?: boolean;
-  search?: string;
-  sortBy?: 'dueDate' | 'issueDate' | 'totalAmountCents' | 'code';
-  sortOrder?: 'ASC' | 'DESC';
-}
-
-/**
- * Accounts Payable Response with Pagination
- */
-export interface AccountsPayableResponse {
-  data: AccountPayable[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
-/**
- * Create Account Payable Payment Request
- */
-export interface CreateAccountPayablePaymentRequest {
-  paymentDate: string;
-  amountCents: number;
-  currency: string;
-  paymentMethodId?: string;
-  paymentMethodName: string;
-  bankName?: string;
-  accountNumber?: string;
-  transactionReference?: string;
-  exchangeRate?: number;
-  notes?: string;
-}
-
-/**
- * Account Payable Payments Response
- */
-export interface AccountPayablePaymentsResponse {
-  data: AccountPayablePayment[];
-  meta: {
-    total: number;
-    totalAmountCents: number;
-  };
-}
-
-/**
- * Create Account Payable Schedule Request
- */
-export interface CreateAccountPayableScheduleRequest {
-  installmentNumber: number;
-  dueDate: string;
-  amountCents: number;
-  notes?: string;
-}
-
-// ============================================
-// ACCOUNTS PAYABLE REPORTS
-// ============================================
-
-/**
- * Report by Supplier
- */
-export interface AccountPayableReportBySupplier {
-  supplierId: string;
-  supplierName: string;
-  supplierLegalEntityId: string;
-  supplierLegalName: string;
-  supplierRuc: string;
-  currency: string;
-  status: PayableStatus;
-  totalAccounts: number;
-  totalAmountCents: number;
-  paidAmountCents: number;
-  balanceCents: number;
-  pendingCount: number;
-  partialCount: number;
-  paidCount: number;
-  overdueCount: number;
-  overdueBalanceCents: number;
-  avgOverdueDays: number;
-  firstIssueDate: string;
-  lastIssueDate: string;
-  earliestDueDate: string;
-  latestDueDate: string;
-}
-
-/**
- * Report by Supplier Response
- */
-export interface AccountPayableReportBySupplierResponse {
-  data: AccountPayableReportBySupplier[];
-  meta: {
-    total: number;
-    totalAmountCents: number;
-    totalBalanceCents: number;
-  };
-}
-
-/**
- * Aging Report
- */
-export interface AccountPayableAgingReport {
-  asOfDate: string;
-  currency: string;
-  summary: {
-    totalBalanceCents: number;
-    totalAccounts: number;
-  };
-  aging: {
-    current: {
-      balanceCents: number;
-      accounts: number;
-      percentage: number;
-    };
-    days1to30: {
-      balanceCents: number;
-      accounts: number;
-      percentage: number;
-    };
-    days31to60: {
-      balanceCents: number;
-      accounts: number;
-      percentage: number;
-    };
-    days61to90: {
-      balanceCents: number;
-      accounts: number;
-      percentage: number;
-    };
-    over90: {
-      balanceCents: number;
-      accounts: number;
-      percentage: number;
-    };
-  };
-  bySupplier: Array<{
-    supplierId: string;
-    supplierName: string;
-    supplierLegalName: string;
-    supplierRuc: string;
-    totalBalanceCents: number;
-    current: number;
-    days1to30: number;
-    days31to60: number;
-    days61to90: number;
-    over90: number;
-  }>;
-}
-
-/**
- * Summary Report
- */
-export interface AccountPayableSummaryReport {
-  period: {
-    from: string;
-    to: string;
-  };
-  currency: string;
-  totals: {
-    totalAccounts: number;
-    totalAmountCents: number;
-    paidAmountCents: number;
-    balanceCents: number;
-  };
-  byStatus: {
-    [key in PayableStatus]?: {
-      count: number;
-      balanceCents: number;
-    };
-  };
-  bySourceType: {
-    [key in SourceType]?: {
-      count: number;
-      totalAmountCents: number;
-    };
-  };
-  topSuppliers: Array<{
-    supplierId: string;
-    supplierName: string;
-    totalAmountCents: number;
-    balanceCents: number;
-    accountsCount: number;
-  }>;
-}
-
-/**
- * Overdue Accounts Report
- */
-export interface AccountPayableOverdueReport {
-  data: Array<{
-    id: string;
-    code: string;
-    supplier: {
-      id: string;
-      commercialName: string;
-    };
-    supplierLegalEntity: {
-      legalName: string;
-      ruc: string;
-    };
-    documentNumber: string;
-    issueDate: string;
-    dueDate: string;
-    balanceCents: number;
-    currency: string;
-    overdueDay: number;
-    status: PayableStatus;
-  }>;
-  summary: {
-    totalOverdueAccounts: number;
-    totalOverdueBalanceCents: number;
-    avgOverdueDays: number;
-  };
-}
-
-/**
- * Payment Projection Report
- */
-export interface AccountPayablePaymentProjectionReport {
-  period: {
-    from: string;
-    to: string;
-  };
-  currency: string;
-  groupBy: 'day' | 'week' | 'month';
-  projection: Array<{
-    period: string;
-    dueAmountCents: number;
-    accountsCount: number;
-    suppliers: number;
-  }>;
-  totals: {
-    totalDueAmountCents: number;
-    totalAccounts: number;
-    uniqueSuppliers: number;
-  };
-}
-
-/**
- * Query Reports Parameters
- */
-export interface QueryAccountPayableReportsParams {
-  companyId?: string;
-  currency?: string;
-  status?: PayableStatus | PayableStatus[];
-  asOfDate?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  minOverdueDays?: number;
-  groupBy?: 'day' | 'week' | 'month';
-  sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC';
 }
