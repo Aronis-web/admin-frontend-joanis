@@ -18,6 +18,7 @@ export { organizationApi } from './organization';
 export * from './products';
 export * from './purchases';
 export * from './suppliers';
+export * from './accountsPayable';
 export * from './transfers';
 export * from './campaigns';
 export * from './repartos';

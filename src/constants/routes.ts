@@ -66,6 +66,12 @@ export const MAIN_ROUTES = {
   SUPPLIER_DETAIL: 'SupplierDetail',
   SUPPLIER_DEBTS: 'SupplierDebts',
 
+  // Accounts Payable
+  ACCOUNTS_PAYABLE: 'AccountsPayable',
+  ACCOUNT_PAYABLE_DETAIL: 'AccountPayableDetail',
+  CREATE_ACCOUNT_PAYABLE: 'CreateAccountPayable',
+  ACCOUNTS_PAYABLE_REPORTS: 'AccountsPayableReports',
+
   // Customers
   CUSTOMERS: 'Customers',
   CUSTOMER_DETAIL: 'CustomerDetail',
@@ -179,6 +185,7 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
   'traslados-externos': 'EXTERNAL_TRANSFERS',
   recepciones: 'RECEPTIONS',
   proveedores: 'SUPPLIERS',
+  'cuentas-por-pagar': 'ACCOUNTS_PAYABLE',
   clientes: 'CUSTOMERS',
   campanas: 'CAMPAIGNS',
   usuarios: 'USERS',
@@ -234,6 +241,12 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   SUPPLIERS: 'suppliers.read',
   SUPPLIER_DETAIL: 'suppliers.read',
   SUPPLIER_DEBTS: 'suppliers.debts.read',
+
+  // Accounts Payable
+  ACCOUNTS_PAYABLE: 'accounts-payable.read',
+  ACCOUNT_PAYABLE_DETAIL: 'accounts-payable.read',
+  CREATE_ACCOUNT_PAYABLE: 'accounts-payable.create',
+  ACCOUNTS_PAYABLE_REPORTS: 'accounts-payable.reports.read',
 
   // Customers
   CUSTOMERS: 'customers.read',
