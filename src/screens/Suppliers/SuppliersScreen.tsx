@@ -84,6 +84,13 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
         isActive: true,
       });
 
+      console.log('📊 Suppliers loaded:', {
+        page: response.page,
+        total: response.total,
+        totalPages: Math.ceil(response.total / response.limit),
+        itemsInPage: response.data.length,
+      });
+
       setSuppliers(response.data);
 
       // Update pagination info - API returns flat structure
@@ -397,7 +404,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
       </ScrollView>
 
       {/* Pagination Controls */}
-      {!loading && pagination.total > 0 && !searchQuery && (
+      {!loading && pagination.total > 0 && (
         <View style={styles.paginationContainer}>
           <TouchableOpacity
             style={[
@@ -422,7 +429,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
               Pág. {pagination.page}/{pagination.totalPages}
             </Text>
             <Text style={styles.paginationSubtext}>
-              {filteredSuppliers.length} de {pagination.total}
+              {searchQuery ? filteredSuppliers.length : (pagination.page - 1) * pagination.limit + filteredSuppliers.length} de {pagination.total} proveedores
             </Text>
           </View>
 
@@ -751,44 +758,58 @@ const styles = StyleSheet.create({
   },
   paginationContainer: {
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopWidth: 2,
+    borderTopColor: '#667eea',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     gap: 16,
     marginBottom: 60,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   paginationInfo: {
     alignItems: 'center',
-    minWidth: 100,
+    minWidth: 120,
+    flex: 1,
   },
   paginationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
   },
   paginationSubtext: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
   },
   paginationButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#6366F1',
-    minWidth: 110,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    backgroundColor: '#667eea',
+    minWidth: 120,
     alignItems: 'center',
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   paginationButtonDisabled: {
     backgroundColor: '#E2E8F0',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   paginationButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   paginationButtonTextDisabled: {
