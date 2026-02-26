@@ -23,7 +23,13 @@
 **Desarrollo:**
 ```bash
 cd C:/Users/aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis
-npm run electron
+# Opción 1: Usando el script npm (puede tener problemas de timeout)
+npm run electron:run
+
+# Opción 2: Ejecutar manualmente (recomendado)
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "npx serve web-build -p 8081" -WindowStyle Minimized
+Start-Sleep -Seconds 5
+npx electron electron/main.js
 ```
 
 **Generar .exe para Windows:**

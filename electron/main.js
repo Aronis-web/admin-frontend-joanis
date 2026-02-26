@@ -176,7 +176,10 @@ function createMenu() {
 
 // App lifecycle
 app.whenReady().then(async () => {
-  await startServer();
+  // Don't start server if running in dev mode (serve is already running)
+  if (app.isPackaged) {
+    await startServer();
+  }
   createWindow();
 });
 
