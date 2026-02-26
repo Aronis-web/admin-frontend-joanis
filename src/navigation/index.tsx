@@ -56,6 +56,10 @@ const SuppliersScreen = lazyLoad(() => import('@/screens/Suppliers/SuppliersScre
 const SupplierDetailScreen = lazyLoad(() => import('@/screens/Suppliers/SupplierDetailScreen').then(m => ({ default: m.SupplierDetailScreen })));
 const SupplierDebtsScreen = lazyLoad(() => import('@/screens/Suppliers/SupplierDebtsScreen').then(m => ({ default: m.SupplierDebtsScreen })));
 
+// Accounts Payable Screens - Lazy Loaded
+const AccountsPayableScreen = lazyLoad(() => import('@/screens/AccountsPayable').then(m => ({ default: m.AccountsPayableScreen })), 'Cargando cuentas por pagar...');
+const AccountPayableDetailScreen = lazyLoad(() => import('@/screens/AccountsPayable').then(m => ({ default: m.AccountPayableDetailScreen })), 'Cargando detalle...');
+
 // Customers Screens - Lazy Loaded
 const CustomersScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomersScreen })));
 const CustomerDetailScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomerDetailScreen })));
@@ -436,6 +440,31 @@ const MainStack = React.memo(() => {
         component={SupplierDebtsScreen}
         options={{
           title: 'Deudas de Proveedor',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ACCOUNTS_PAYABLE}
+        options={{
+          title: 'Cuentas por Pagar',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'accounts-payable.read',
+              'accounts-payable.search',
+            ]}
+            requireAll={false}
+          >
+            <AccountsPayableScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ACCOUNT_PAYABLE_DETAIL}
+        component={AccountPayableDetailScreen}
+        options={{
+          title: 'Detalle de Cuenta por Pagar',
         }}
       />
       <MainStackNavigator.Screen

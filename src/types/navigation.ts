@@ -107,6 +107,12 @@ export type MainStackParamList = {
     supplierId: string;
   };
 
+  // Accounts Payable
+  AccountsPayable: undefined;
+  AccountPayableDetail: {
+    accountPayableId: string;
+  };
+
   // Customers
   Customers: undefined;
   CustomerDetail: {

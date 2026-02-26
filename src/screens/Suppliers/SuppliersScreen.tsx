@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { suppliersService } from '@/services/api/suppliers';
-import { Supplier } from '@/types/suppliers';
+import { Supplier, SupplierType } from '@/types/suppliers';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { SUPPLIER_TYPE_LABELS, SUPPLIER_TYPE_ICONS, SUPPLIER_TYPE_COLORS } from '@/constants/supplierTypes';
 
@@ -31,105 +31,126 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [selectedType, setSelectedType] = useState<SupplierType | 'ALL'>('ALL');
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [chatBadge] = useState(3);
   const [notificationsBadge] = useState(7);
+  const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
     total: 0,
     totalPages: 0,
   });
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
+  // Debounce search query
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      // Reset to page 1 when search changes
+      if (searchQuery !== debouncedSearchQuery) {
+        setPage(1);
+      }
+    }, 500);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Load suppliers when page, search, or type filter changes
   useEffect(() => {
     loadSuppliers();
-  }, []);
+  }, [page, debouncedSearchQuery, selectedType]);
 
+  // Reset to page 1 when type filter changes
   useEffect(() => {
-    if (!Array.isArray(suppliers)) {
-      setFilteredSuppliers([]);
-      return;
-    }
+    setPage(1);
+  }, [selectedType]);
 
-    if (searchQuery.trim() === '') {
-      setFilteredSuppliers(suppliers);
-    } else {
-      const filtered = suppliers.filter(
-        (supplier) =>
-          (supplier.commercialName &&
-            supplier.commercialName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (supplier.code && supplier.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (supplier.legalEntities &&
-            supplier.legalEntities.some(
-              (le) =>
-                le.ruc.includes(searchQuery) ||
-                le.legalName.toLowerCase().includes(searchQuery.toLowerCase())
-            ))
-      );
-      setFilteredSuppliers(filtered);
-    }
-  }, [searchQuery, suppliers]);
-
-  const loadSuppliers = async (page: number = 1) => {
+  const loadSuppliers = async () => {
     try {
       setLoading(true);
-      const response = await suppliersService.getSuppliers({
-        page,
-        limit: pagination.limit,
-        isActive: true,
-      });
 
-      console.log('📊 Suppliers loaded:', {
+      // Build search params
+      const params: any = {
+        page,
+        limit: 20,
+        isActive: true,
+      };
+
+      // Add search query if present
+      if (debouncedSearchQuery.trim()) {
+        params.query = debouncedSearchQuery.trim();
+      }
+
+      // Add type filter if selected
+      if (selectedType !== 'ALL') {
+        params.primaryType = selectedType;
+      }
+
+      // Use standard endpoint (search endpoint not yet implemented in backend)
+      const response = await suppliersService.getSuppliers(params);
+
+      console.log('🔍 Suppliers search results:', {
+        query: debouncedSearchQuery,
+        type: selectedType,
         page: response.page,
         total: response.total,
-        totalPages: Math.ceil(response.total / response.limit),
+        totalPages: response.totalPages,
         itemsInPage: response.data.length,
       });
 
       setSuppliers(response.data);
 
-      // Update pagination info - API returns flat structure
-      const totalPages = Math.ceil(response.total / response.limit);
+      // Update pagination from meta
       setPagination({
-        page: response.page,
-        limit: response.limit,
-        total: response.total,
-        totalPages: totalPages,
+        page: response.page || page,
+        limit: response.limit || 20,
+        total: response.total || 0,
+        totalPages: response.totalPages || 0,
       });
     } catch (error: any) {
-      console.error('Error loading suppliers:', error);
+      console.error('❌ Error loading suppliers:', error);
       const errorMessage =
         error.response?.data?.message || error.message || 'No se pudieron cargar los proveedores';
       Alert.alert('Error', errorMessage);
       setSuppliers([]);
-      setFilteredSuppliers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadSuppliers(1);
+    setPage(1);
+    await loadSuppliers();
     setRefreshing(false);
-  };
+  }, [debouncedSearchQuery, selectedType]);
 
-  const handlePreviousPage = () => {
-    if (pagination.page > 1) {
-      loadSuppliers(pagination.page - 1);
+  const handlePreviousPage = useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1);
     }
-  };
+  }, [page]);
 
-  const handleNextPage = () => {
-    if (pagination.page < pagination.totalPages) {
-      loadSuppliers(pagination.page + 1);
+  const handleNextPage = useCallback(() => {
+    if (page < pagination.totalPages) {
+      setPage(page + 1);
     }
-  };
+  }, [page, pagination.totalPages]);
 
   const handleMenuToggle = () => {
     setIsMenuVisible(!isMenuVisible);
@@ -345,7 +366,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-          placeholder="Buscar por nombre, código o RUC..."
+          placeholder="Buscar por nombre, código, RUC, categoría..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#94A3B8"
@@ -355,12 +376,124 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
             <Text style={styles.clearButtonText}>✕</Text>
           </TouchableOpacity>
         )}
+        {searchQuery !== debouncedSearchQuery && (
+          <ActivityIndicator size="small" color="#667eea" style={styles.searchLoader} />
+        )}
       </View>
 
-      {/* Create Button */}
-      <ProtectedElement requiredPermissions={['suppliers.create']} fallback={null}>
-        <AddButton onPress={handleCreateSupplier} icon="🏢" />
-      </ProtectedElement>
+      {/* Type Filter */}
+      <View style={styles.filterContainer}>
+        <Text style={styles.filterLabel}>Tipo:</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'ALL' && styles.filterChipActive]}
+            onPress={() => setSelectedType('ALL')}
+          >
+            <Text style={[styles.filterChipText, selectedType === 'ALL' && styles.filterChipTextActive]}>
+              Todos
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'MERCHANDISE' && styles.filterChipActive]}
+            onPress={() => setSelectedType('MERCHANDISE')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.MERCHANDISE}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'MERCHANDISE' && styles.filterChipTextActive]}>
+              Mercadería
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'SERVICES' && styles.filterChipActive]}
+            onPress={() => setSelectedType('SERVICES')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.SERVICES}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'SERVICES' && styles.filterChipTextActive]}>
+              Servicios
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'UTILITIES' && styles.filterChipActive]}
+            onPress={() => setSelectedType('UTILITIES')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.UTILITIES}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'UTILITIES' && styles.filterChipTextActive]}>
+              Servicios Públicos
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'RENT' && styles.filterChipActive]}
+            onPress={() => setSelectedType('RENT')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.RENT}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'RENT' && styles.filterChipTextActive]}>
+              Alquiler
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'PAYROLL' && styles.filterChipActive]}
+            onPress={() => setSelectedType('PAYROLL')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.PAYROLL}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'PAYROLL' && styles.filterChipTextActive]}>
+              Nómina
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'TAXES' && styles.filterChipActive]}
+            onPress={() => setSelectedType('TAXES')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.TAXES}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'TAXES' && styles.filterChipTextActive]}>
+              Impuestos
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'LOANS' && styles.filterChipActive]}
+            onPress={() => setSelectedType('LOANS')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.LOANS}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'LOANS' && styles.filterChipTextActive]}>
+              Préstamos
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'INSURANCE' && styles.filterChipActive]}
+            onPress={() => setSelectedType('INSURANCE')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.INSURANCE}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'INSURANCE' && styles.filterChipTextActive]}>
+              Seguros
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'MAINTENANCE' && styles.filterChipActive]}
+            onPress={() => setSelectedType('MAINTENANCE')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.MAINTENANCE}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'MAINTENANCE' && styles.filterChipTextActive]}>
+              Mantenimiento
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'TRANSPORT' && styles.filterChipActive]}
+            onPress={() => setSelectedType('TRANSPORT')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.TRANSPORT}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'TRANSPORT' && styles.filterChipTextActive]}>
+              Transporte
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, selectedType === 'OTHER' && styles.filterChipActive]}
+            onPress={() => setSelectedType('OTHER')}
+          >
+            <Text style={styles.filterChipIcon}>{SUPPLIER_TYPE_ICONS.OTHER}</Text>
+            <Text style={[styles.filterChipText, selectedType === 'OTHER' && styles.filterChipTextActive]}>
+              Otros
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
 
       {/* Suppliers List */}
       <ScrollView
@@ -375,13 +508,15 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
               Cargando proveedores...
             </Text>
           </View>
-        ) : filteredSuppliers.length === 0 ? (
+        ) : suppliers.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>📦</Text>
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-              {searchQuery ? 'No se encontraron proveedores' : 'No hay proveedores registrados'}
+              {debouncedSearchQuery || selectedType !== 'ALL'
+                ? 'No se encontraron proveedores con los filtros aplicados'
+                : 'No hay proveedores registrados'}
             </Text>
-            {!searchQuery && (
+            {!debouncedSearchQuery && selectedType === 'ALL' && (
               <ProtectedElement requiredPermissions={['suppliers.create']} fallback={null}>
                 <TouchableOpacity
                   style={[styles.emptyButton, isTablet && styles.emptyButtonTablet]}
@@ -398,7 +533,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
           <View
             style={[styles.suppliersGrid, isTablet && isLandscape && styles.suppliersGridLandscape]}
           >
-            {filteredSuppliers.map(renderSupplierCard)}
+            {suppliers.map(renderSupplierCard)}
           </View>
         )}
       </ScrollView>
@@ -429,7 +564,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
               Pág. {pagination.page}/{pagination.totalPages}
             </Text>
             <Text style={styles.paginationSubtext}>
-              {searchQuery ? filteredSuppliers.length : (pagination.page - 1) * pagination.limit + filteredSuppliers.length} de {pagination.total} proveedores
+              {suppliers.length} de {pagination.total} proveedores
             </Text>
           </View>
 
@@ -452,6 +587,11 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Create Button */}
+      <ProtectedElement requiredPermissions={['suppliers.create']} fallback={null}>
+        <AddButton onPress={handleCreateSupplier} icon="🏢" />
+      </ProtectedElement>
     </SafeAreaView>
   );
 };
@@ -546,6 +686,51 @@ const styles = StyleSheet.create({
   clearButtonText: {
     fontSize: 18,
     color: '#94A3B8',
+  },
+  searchLoader: {
+    marginLeft: 8,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+    marginRight: 12,
+  },
+  filterScroll: {
+    flex: 1,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    marginRight: 8,
+    gap: 4,
+  },
+  filterChipActive: {
+    backgroundColor: '#667eea',
+  },
+  filterChipIcon: {
+    fontSize: 14,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
   },
   content: {
     flex: 1,
@@ -757,6 +942,10 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   paginationContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 2,
     borderTopColor: '#667eea',
@@ -766,7 +955,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
-    marginBottom: 60,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,

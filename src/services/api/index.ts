@@ -76,3 +76,12 @@ export type {
   GeminiEditImageRequest,
   GeminiEditImageResponse,
 } from './gemini-image-editor';
+
+export { accountsPayableService } from './accounts-payable';
+export type {
+  AccountPayable,
+  AccountsPayableResponse,
+  QueryAccountsPayableParams,
+  CreateAccountPayableRequest,
+  UpdateAccountPayableRequest,
+} from './accounts-payable';

@@ -48,6 +48,22 @@ class SuppliersService {
   }
 
   /**
+   * Search suppliers with intelligent ranking (v1.1.0)
+   */
+  async searchSuppliers(params?: QuerySuppliersParams): Promise<SuppliersResponse> {
+    return apiClient.get<SuppliersResponse>(`${this.basePath}/search`, { params });
+  }
+
+  /**
+   * Autocomplete suppliers (v1.1.0)
+   */
+  async autocompleteSuppliers(query: string, limit: number = 10, includeInactive: boolean = false): Promise<SuppliersResponse> {
+    return apiClient.get<SuppliersResponse>(`${this.basePath}/autocomplete`, {
+      params: { query, limit, includeInactive }
+    });
+  }
+
+  /**
    * Get a single supplier by ID
    */
   async getSupplier(id: string): Promise<Supplier> {
