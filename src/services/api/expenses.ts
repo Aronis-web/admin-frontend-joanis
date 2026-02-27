@@ -464,6 +464,38 @@ class ExpensesService {
     return apiClient.post<Expense[]>(`${this.templatesPath}/generate-recurring`);
   }
 
+  /**
+   * Download bulk upload format for expense templates
+   */
+  async downloadBulkUploadFormat(): Promise<Blob> {
+    return apiClient.get(`${this.templatesPath}/bulk-upload/format`, {
+      responseType: 'blob',
+    });
+  }
+
+  /**
+   * Upload bulk expense templates file
+   */
+  async uploadBulkTemplates(file: any): Promise<{
+    success: boolean;
+    totalRows: number;
+    createdRows: number;
+    errors: Array<{
+      row: number;
+      name: string;
+      error: string;
+    }>;
+  }> {
+    const formData = new FormData();
+    formData.append('file', file as any);
+
+    return apiClient.post(`${this.templatesPath}/bulk-upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
+
   // ============================================
   // Expense Projections (Legacy - Old API)
   // ============================================

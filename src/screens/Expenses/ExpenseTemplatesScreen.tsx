@@ -18,6 +18,7 @@ import { expensesService } from '@/services/api/expenses';
 import { TemplateCard } from '@/components/Expenses/TemplateCard';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { ExpenseReportModal } from '@/components/Expenses/ExpenseReportModal';
+import { ExpenseTemplateBulkUploadModal } from '@/components/Expenses/ExpenseTemplateBulkUploadModal';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -33,6 +34,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showInactive, setShowInactive] = useState(false); // Filter state: false = active only, true = show all
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [bulkUploadModalVisible, setBulkUploadModalVisible] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -120,6 +122,14 @@ export const ExpenseTemplatesScreen: React.FC = () => {
 
   const handleOpenReportModal = () => {
     setReportModalVisible(true);
+  };
+
+  const handleOpenBulkUploadModal = () => {
+    setBulkUploadModalVisible(true);
+  };
+
+  const handleBulkUploadSuccess = () => {
+    loadTemplates();
   };
 
   const handleTemplatePress = (template: ExpenseTemplate) => {
@@ -294,7 +304,16 @@ export const ExpenseTemplatesScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Download Report Button - Above Add Button */}
+      {/* Bulk Upload Button - Top floating button */}
+      <TouchableOpacity
+        style={styles.bulkUploadButton}
+        onPress={handleOpenBulkUploadModal}
+        activeOpacity={0.9}
+      >
+        <Ionicons name="cloud-upload" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+
+      {/* Download Report Button - Middle floating button */}
       <TouchableOpacity
         style={styles.downloadButton}
         onPress={handleOpenReportModal}
@@ -303,7 +322,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
         <Ionicons name="download" size={24} color="#FFFFFF" />
       </TouchableOpacity>
 
-      {/* Floating Action Button */}
+      {/* Floating Action Button - Bottom */}
       <AddButton onPress={handleCreateTemplate} icon="🔄" />
 
       {/* Report Modal */}
@@ -311,6 +330,13 @@ export const ExpenseTemplatesScreen: React.FC = () => {
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         isRecurrent={true}
+      />
+
+      {/* Bulk Upload Modal */}
+      <ExpenseTemplateBulkUploadModal
+        visible={bulkUploadModalVisible}
+        onClose={() => setBulkUploadModalVisible(false)}
+        onSuccess={handleBulkUploadSuccess}
       />
     </SafeAreaView>
   );
@@ -458,6 +484,25 @@ const styles = StyleSheet.create({
   },
   paginationButtonTextDisabled: {
     color: '#94A3B8',
+  },
+  bulkUploadButton: {
+    position: 'absolute',
+    bottom: 230, // Above the Download button (160px) + 70px spacing
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    zIndex: 9998,
   },
   downloadButton: {
     position: 'absolute',
