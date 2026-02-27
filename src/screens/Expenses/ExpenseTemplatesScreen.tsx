@@ -19,6 +19,7 @@ import { TemplateCard } from '@/components/Expenses/TemplateCard';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { ExpenseReportModal } from '@/components/Expenses/ExpenseReportModal';
 import { ExpenseTemplateBulkUploadModal } from '@/components/Expenses/ExpenseTemplateBulkUploadModal';
+import { ExpenseTemplatesFAB } from '@/components/Expenses/ExpenseTemplatesFAB';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -350,40 +351,14 @@ export const ExpenseTemplatesScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Test Generation Button - Top floating button */}
-      <TouchableOpacity
-        style={styles.testGenerationButton}
-        onPress={handleTestGeneration}
-        activeOpacity={0.9}
-        disabled={generatingExpenses}
-      >
-        {generatingExpenses ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <Ionicons name="play-circle" size={24} color="#FFFFFF" />
-        )}
-      </TouchableOpacity>
-
-      {/* Bulk Upload Button - Second floating button */}
-      <TouchableOpacity
-        style={styles.bulkUploadButton}
-        onPress={handleOpenBulkUploadModal}
-        activeOpacity={0.9}
-      >
-        <Ionicons name="cloud-upload" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
-
-      {/* Download Report Button - Third floating button */}
-      <TouchableOpacity
-        style={styles.downloadButton}
-        onPress={handleOpenReportModal}
-        activeOpacity={0.9}
-      >
-        <Ionicons name="download" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
-
-      {/* Floating Action Button - Bottom */}
-      <AddButton onPress={handleCreateTemplate} icon="🔄" />
+      {/* Floating Action Button with animations */}
+      <ExpenseTemplatesFAB
+        onCreateTemplate={handleCreateTemplate}
+        onDownloadReport={handleOpenReportModal}
+        onBulkUpload={handleOpenBulkUploadModal}
+        onTestGeneration={handleTestGeneration}
+        generatingExpenses={generatingExpenses}
+      />
 
       {/* Report Modal */}
       <ExpenseReportModal
@@ -544,63 +519,6 @@ const styles = StyleSheet.create({
   },
   paginationButtonTextDisabled: {
     color: '#94A3B8',
-  },
-  testGenerationButton: {
-    position: 'absolute',
-    bottom: 300, // Above the Bulk Upload button (230px) + 70px spacing
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#F59E0B',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    zIndex: 9999,
-  },
-  bulkUploadButton: {
-    position: 'absolute',
-    bottom: 230, // Above the Download button (160px) + 70px spacing
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    zIndex: 9998,
-  },
-  downloadButton: {
-    position: 'absolute',
-    bottom: 160, // Above the Add button (90px) + 70px spacing
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    zIndex: 9997,
   },
 });
 

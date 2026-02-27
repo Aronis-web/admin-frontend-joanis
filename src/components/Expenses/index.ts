@@ -11,3 +11,7 @@ export { ProjectStatusBadge } from './ProjectStatusBadge';
 export { ReconcileAmountModal } from './ReconcileAmountModal';
 
 export { ExpenseReportModal } from './ExpenseReportModal';
+
+export { ExpenseBulkUploadModal } from './ExpenseBulkUploadModal';
+export { ExpensesFAB } from './ExpensesFAB';
+export { ExpenseTemplatesFAB } from './ExpenseTemplatesFAB';

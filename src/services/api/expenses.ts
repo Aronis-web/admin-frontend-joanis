@@ -851,6 +851,37 @@ class ExpensesService {
       endDate: params?.endDate,
     });
   }
+
+  // ============================================
+  // Bulk Upload
+  // ============================================
+
+  /**
+   * Download bulk upload format (Excel template)
+   * GET /expenses/bulk-upload/format?companyId={companyId}
+   */
+  async downloadBulkUploadFormat(companyId: string): Promise<Blob> {
+    return apiClient.get(`${this.basePath}/bulk-upload/format`, {
+      params: { companyId },
+      responseType: 'blob',
+    });
+  }
+
+  /**
+   * Upload expenses in bulk (Excel file)
+   * POST /expenses/bulk-upload
+   */
+  async uploadBulkExpenses(file: File | Blob, companyId: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('companyId', companyId);
+
+    return apiClient.post(`${this.basePath}/bulk-upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
 }
 
 export const expensesService = new ExpensesService();

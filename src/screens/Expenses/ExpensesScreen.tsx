@@ -24,6 +24,8 @@ import { ExpenseCard } from '@/components/Expenses/ExpenseCard';
 import { ReconcileAmountModal } from '@/components/Expenses/ReconcileAmountModal';
 import { PaymentsModal } from '@/components/Expenses/PaymentsModal';
 import { ExpenseReportModal } from '@/components/Expenses/ExpenseReportModal';
+import { ExpenseBulkUploadModal } from '@/components/Expenses/ExpenseBulkUploadModal';
+import { ExpensesFAB } from '@/components/Expenses/ExpensesFAB';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
@@ -40,6 +42,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
   const [reconcileModalVisible, setReconcileModalVisible] = useState(false);
   const [paymentsModalVisible, setPaymentsModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [bulkUploadModalVisible, setBulkUploadModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [page, setPage] = useState(1);
   const limit = 50;
@@ -166,6 +169,14 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
   const handleOpenReportModal = useCallback(() => {
     setReportModalVisible(true);
   }, []);
+
+  const handleOpenBulkUploadModal = useCallback(() => {
+    setBulkUploadModalVisible(true);
+  }, []);
+
+  const handleBulkUploadSuccess = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const handleExpensePress = useCallback(
     (expense: Expense) => {
@@ -431,16 +442,12 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
 
         {renderContent()}
 
-        {/* Download Report Button - Above Add Button */}
-        <TouchableOpacity
-          style={styles.downloadButton}
-          onPress={handleOpenReportModal}
-          activeOpacity={0.9}
-        >
-          <Ionicons name="download" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-
-        <AddButton onPress={handleCreateExpense} />
+        {/* Floating Action Button with animations */}
+        <ExpensesFAB
+          onCreateExpense={handleCreateExpense}
+          onDownloadReport={handleOpenReportModal}
+          onBulkUpload={handleOpenBulkUploadModal}
+        />
       </View>
 
       {/* Reconcile Amount Modal */}
@@ -473,6 +480,13 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         isRecurrent={false}
+      />
+
+      {/* Bulk Upload Modal */}
+      <ExpenseBulkUploadModal
+        visible={bulkUploadModalVisible}
+        onClose={() => setBulkUploadModalVisible(false)}
+        onSuccess={handleBulkUploadSuccess}
       />
     </SafeAreaView>
   );
@@ -631,25 +645,6 @@ const styles = StyleSheet.create({
   },
   paginationButtonTextDisabled: {
     color: '#94A3B8',
-  },
-  downloadButton: {
-    position: 'absolute',
-    bottom: 160, // Above the Add button (90px) + 70px spacing
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    zIndex: 9997,
   },
 });
 
