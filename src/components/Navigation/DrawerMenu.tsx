@@ -177,35 +177,6 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
-  // Balances
-  {
-    id: 'balances',
-    title: 'Balances',
-    icon: '⚖️',
-    color: '#0EA5E9',
-    items: [
-      {
-        id: 'balances',
-        icon: '📊',
-        label: 'Balances',
-        route: MAIN_ROUTES.BALANCES,
-        color: '#0EA5E9',
-        requiredPermissions: ['balances.read', 'balances.create', 'balances.update'],
-      },
-      {
-        id: 'balance-operations',
-        icon: '🔄',
-        label: 'Operaciones',
-        route: MAIN_ROUTES.ALL_BALANCE_OPERATIONS,
-        color: '#38BDF8',
-        requiredPermissions: [
-          'balances.operations.read',
-          'balances.operations.create',
-          'balances.operations.update',
-        ],
-      },
-    ],
-  },
   // Transmisiones - Sin submenú
   {
     id: 'transmisiones',
