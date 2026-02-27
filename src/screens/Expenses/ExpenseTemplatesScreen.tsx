@@ -35,6 +35,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
   const [showInactive, setShowInactive] = useState(false); // Filter state: false = active only, true = show all
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [bulkUploadModalVisible, setBulkUploadModalVisible] = useState(false);
+  const [generatingExpenses, setGeneratingExpenses] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -130,6 +131,52 @@ export const ExpenseTemplatesScreen: React.FC = () => {
 
   const handleBulkUploadSuccess = () => {
     loadTemplates();
+  };
+
+  const handleTestGeneration = async () => {
+    Alert.alert(
+      'Generar Gastos',
+      '¿Deseas ejecutar la generación manual de gastos desde las plantillas activas?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Generar',
+          onPress: async () => {
+            try {
+              setGeneratingExpenses(true);
+              console.log('🚀 Iniciando generación manual de gastos...');
+
+              const result = await expensesService.testGeneration();
+
+              console.log('✅ Resultado de generación:', result);
+
+              Alert.alert(
+                'Éxito',
+                result.message || `Se generaron ${result.generated} gastos correctamente.`,
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // Refresh the templates list
+                      loadTemplates();
+                    },
+                  },
+                ]
+              );
+            } catch (error: any) {
+              console.error('❌ Error en generación manual:', error);
+              Alert.alert(
+                'Error',
+                error.response?.data?.message || error.message ||
+                  'No se pudieron generar los gastos. Por favor, intenta nuevamente.'
+              );
+            } finally {
+              setGeneratingExpenses(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleTemplatePress = (template: ExpenseTemplate) => {
@@ -304,7 +351,21 @@ export const ExpenseTemplatesScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Bulk Upload Button - Top floating button */}
+      {/* Test Generation Button - Top floating button */}
+      <TouchableOpacity
+        style={styles.testGenerationButton}
+        onPress={handleTestGeneration}
+        activeOpacity={0.9}
+        disabled={generatingExpenses}
+      >
+        {generatingExpenses ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <Ionicons name="play-circle" size={24} color="#FFFFFF" />
+        )}
+      </TouchableOpacity>
+
+      {/* Bulk Upload Button - Second floating button */}
       <TouchableOpacity
         style={styles.bulkUploadButton}
         onPress={handleOpenBulkUploadModal}
@@ -313,7 +374,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
         <Ionicons name="cloud-upload" size={24} color="#FFFFFF" />
       </TouchableOpacity>
 
-      {/* Download Report Button - Middle floating button */}
+      {/* Download Report Button - Third floating button */}
       <TouchableOpacity
         style={styles.downloadButton}
         onPress={handleOpenReportModal}
@@ -484,6 +545,25 @@ const styles = StyleSheet.create({
   },
   paginationButtonTextDisabled: {
     color: '#94A3B8',
+  },
+  testGenerationButton: {
+    position: 'absolute',
+    bottom: 300, // Above the Bulk Upload button (230px) + 70px spacing
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F59E0B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    zIndex: 9999,
   },
   bulkUploadButton: {
     position: 'absolute',

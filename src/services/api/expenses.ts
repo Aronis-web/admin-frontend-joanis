@@ -496,6 +496,19 @@ class ExpensesService {
     });
   }
 
+  /**
+   * Test generation - Manually trigger expense generation from templates
+   * This endpoint executes the generation without waiting for the scheduler
+   */
+  async testGeneration(): Promise<{
+    success: boolean;
+    generated: number;
+    message: string;
+    expenses?: any[];
+  }> {
+    return apiClient.post(`${this.templatesPath}/test-generation`);
+  }
+
   // ============================================
   // Expense Projections (Legacy - Old API)
   // ============================================
