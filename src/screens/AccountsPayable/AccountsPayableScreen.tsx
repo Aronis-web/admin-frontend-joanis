@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/constants/permissions';
 import { accountsPayableService } from '@/services/api/accounts-payable';
 import {
   AccountPayable,
@@ -38,6 +40,20 @@ interface AccountsPayableScreenProps {
 
 export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ navigation }) => {
   const { user } = useAuthStore();
+  const { hasPermission, hasAnyPermission } = usePermissions();
+
+  // Verificar permisos de lectura
+  const canRead = hasAnyPermission([
+    PERMISSIONS.ACCOUNTS_PAYABLE.READ,
+    PERMISSIONS.ACCOUNTS_PAYABLE.READ_OWN_COMPANY,
+    PERMISSIONS.ACCOUNTS_PAYABLE.READ_ALL,
+  ]);
+
+  const canReadDetails = hasPermission(PERMISSIONS.ACCOUNTS_PAYABLE.READ_DETAILS);
+  const canUseIntelligentSearch = hasPermission(PERMISSIONS.ACCOUNTS_PAYABLE.SEARCH_INTELLIGENT);
+  const canSearchAllCompanies = hasPermission(PERMISSIONS.ACCOUNTS_PAYABLE.SEARCH_ALL_COMPANIES);
+  const canViewReports = hasPermission(PERMISSIONS.ACCOUNTS_PAYABLE.REPORTS.SUMMARY);
+
   const [accountsPayable, setAccountsPayable] = useState<AccountPayable[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

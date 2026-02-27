@@ -494,7 +494,8 @@ export interface UpdateSupplierRequest {
  * Actualizado con filtros por tipo de proveedor
  */
 export interface QuerySuppliersParams {
-  q?: string; // Search in code, commercial name, RUC
+  q?: string; // Search in code, commercial name, RUC (alias for query)
+  query?: string; // Search in code, commercial name, RUC (backend expects this)
   isActive?: boolean;
   department?: string;
   province?: string;

@@ -52,7 +52,8 @@ src/screens/AccountsPayable/
 ├── AccountsPayableScreen.tsx       # Pantalla principal con listado y filtros
 ├── AccountPayableDetailScreen.tsx  # Pantalla de detalle de una cuenta
 ├── index.ts                        # Exportaciones del módulo
-└── README.md                       # Esta documentación
+├── README.md                       # Esta documentación
+└── PERMISSIONS.md                  # Documentación completa de permisos
 
 src/services/api/
 └── accounts-payable.ts             # Servicio API para cuentas por pagar
@@ -61,7 +62,8 @@ src/types/
 └── accounts-payable.ts             # Tipos TypeScript
 
 src/constants/
-└── accountsPayable.ts              # Constantes (estados, iconos, colores)
+├── accountsPayable.ts              # Constantes (estados, iconos, colores)
+└── permissions.ts                  # Constantes de permisos del sistema
 ```
 
 ## 🚀 Uso
@@ -183,9 +185,42 @@ enum AccountPayableStatus {
 
 ## 🔒 Permisos Requeridos
 
+### Permisos Básicos
 - `accounts-payable.read`: Ver cuentas por pagar
+- `accounts-payable.read-own-company`: Ver solo cuentas de su empresa
+- `accounts-payable.read-all`: Ver todas las cuentas de todas las empresas
+- `accounts-payable.read-details`: Ver detalles completos (pagos, historial)
+
+### Permisos de Búsqueda
 - `accounts-payable.search`: Buscar cuentas por pagar
-- `accounts-payable.details`: Ver detalles completos
+- `accounts-payable.search-intelligent`: Usar búsqueda inteligente avanzada
+- `accounts-payable.search-all-companies`: Buscar en todas las empresas
+
+### Permisos de Reportes
+- `accounts-payable.reports.summary`: Ver resumen general
+- `accounts-payable.reports.export`: Exportar reportes
+- `accounts-payable.reports.download-excel`: Descargar en Excel
+- `accounts-payable.reports.download-pdf`: Descargar en PDF
+
+### Permisos de Pagos
+- `accounts-payable.payments.read`: Ver pagos
+- `accounts-payable.payments.create`: Registrar pagos
+- `accounts-payable.payments.approve`: Aprobar pagos
+
+### Permisos de Cronograma
+- `accounts-payable.schedule.read`: Ver cronograma de pagos
+- `accounts-payable.schedule.create`: Crear cronograma
+
+### Permisos de Historial
+- `accounts-payable.history.read`: Ver historial de cambios
+- `accounts-payable.history.export`: Exportar historial
+
+### Permisos de Documentos
+- `accounts-payable.documents.read`: Ver documentos adjuntos
+- `accounts-payable.documents.upload`: Subir documentos
+- `accounts-payable.documents.download`: Descargar documentos
+
+📖 **Para documentación completa de permisos, ver [PERMISSIONS.md](./PERMISSIONS.md)**
 
 ## ⚡ Optimizaciones de Performance
 

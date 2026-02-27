@@ -42,7 +42,8 @@ import {
  * Expenses API Service - New Backend Structure
  */
 class ExpensesService {
-  private readonly basePath = '/admin/expenses';
+  private readonly basePath = '/expenses';
+  private readonly paymentsBasePath = '/admin/expenses'; // Payments endpoints use /admin prefix
   private readonly categoriesPath = '/admin/expense-categories';
   private readonly templatesPath = '/admin/expense-templates';
   private readonly projectionsPath = '/admin/expense-projections';
@@ -59,7 +60,7 @@ class ExpensesService {
   /**
    * Búsqueda optimizada de gastos (v2)
    * Usa caché Redis y búsqueda multi-campo
-   * GET /admin/expenses/v2/search
+   * GET /expenses (with search param)
    */
   async searchExpensesV2(params: {
     q: string;
@@ -77,12 +78,23 @@ class ExpensesService {
     searchTime: number;
     cached: boolean;
   }> {
-    return apiClient.get(`${this.basePath}/v2/search`, { params });
+    // Clean undefined params
+    const cleanParams: any = {
+      search: params.q,
+      limit: params.limit,
+      includeAccountPayable: true,
+    };
+    if (params.status) cleanParams.status = params.status;
+    if (params.projectId) cleanParams.projectId = params.projectId;
+    if (params.categoryId) cleanParams.categoryId = params.categoryId;
+    if (params.siteId) cleanParams.siteId = params.siteId;
+
+    return apiClient.get('/expenses', { params: cleanParams });
   }
 
   /**
    * Listado paginado optimizado de gastos (v2)
-   * GET /admin/expenses/v2/list
+   * GET /expenses
    */
   async getExpensesV2(params?: {
     page?: number;
@@ -109,16 +121,27 @@ class ExpensesService {
     searchTime?: number;
     cached?: boolean;
   }> {
-    const response = await apiClient.get(`${this.basePath}/v2/list`, { params });
+    // Clean undefined params and add includeAccountPayable
+    const cleanParams: any = {
+      page: params?.page || 1,
+      limit: params?.limit || 50,
+      includeAccountPayable: true,
+    };
+    if (params?.status) cleanParams.status = params.status;
+    if (params?.projectId) cleanParams.projectId = params.projectId;
+    if (params?.categoryId) cleanParams.categoryId = params.categoryId;
+    if (params?.q) cleanParams.search = params.q;
+
+    const response = await apiClient.get('/expenses', { params: cleanParams });
     return response;
   }
 
   /**
    * Invalidar caché de gastos (v2)
-   * DELETE /admin/expenses/v2/cache
+   * DELETE /expenses/cache
    */
   async invalidateExpensesCacheV2(): Promise<void> {
-    return apiClient.delete(`${this.basePath}/v2/cache`);
+    return apiClient.delete('/expenses/cache');
   }
 
   /**
@@ -174,14 +197,21 @@ class ExpensesService {
    * Get all expenses with optional filters
    */
   async getExpenses(params?: QueryExpensesParams): Promise<ExpensesResponse> {
-    return apiClient.get<ExpensesResponse>(this.basePath, { params });
+    // Add includeAccountPayable to always fetch account payable data
+    const enhancedParams = {
+      ...params,
+      includeAccountPayable: true,
+    };
+    return apiClient.get<ExpensesResponse>(this.basePath, { params: enhancedParams });
   }
 
   /**
    * Get a single expense by ID
    */
   async getExpense(id: string): Promise<Expense> {
-    return apiClient.get<Expense>(`${this.basePath}/${id}`);
+    return apiClient.get<Expense>(`${this.basePath}/${id}`, {
+      params: { includeAccountPayable: true }
+    });
   }
 
   /**
@@ -245,7 +275,7 @@ class ExpensesService {
    * Create a payment for an expense
    */
   async createPayment(expenseId: string, data: CreateExpensePaymentRequest): Promise<any> {
-    return apiClient.post(`${this.basePath}/${expenseId}/payments`, data);
+    return apiClient.post(`${this.paymentsBasePath}/${expenseId}/payments`, data);
   }
 
   /**
@@ -289,14 +319,14 @@ class ExpensesService {
     }
 
     // Don't set Content-Type manually - let axios set it with the boundary
-    return apiClient.post(`${this.basePath}/${expenseId}/payments/with-file`, formData);
+    return apiClient.post(`${this.paymentsBasePath}/${expenseId}/payments/with-file`, formData);
   }
 
   /**
    * Register a partial payment
    */
   async registerPartialPayment(expenseId: string, data: PartialPaymentRequest): Promise<any> {
-    return apiClient.post(`${this.basePath}/${expenseId}/payments/partial`, data);
+    return apiClient.post(`${this.paymentsBasePath}/${expenseId}/payments/partial`, data);
   }
 
   /**
@@ -331,28 +361,28 @@ class ExpensesService {
     }
 
     // Don't set Content-Type manually - let axios set it with the boundary
-    return apiClient.post(`${this.basePath}/${expenseId}/payments/partial/with-file`, formData);
+    return apiClient.post(`${this.paymentsBasePath}/${expenseId}/payments/partial/with-file`, formData);
   }
 
   /**
    * Reconcile actual amount
    */
   async reconcileAmount(expenseId: string, data: ReconcileAmountRequest): Promise<any> {
-    return apiClient.post(`${this.basePath}/${expenseId}/payments/reconcile`, data);
+    return apiClient.post(`${this.paymentsBasePath}/${expenseId}/payments/reconcile`, data);
   }
 
   /**
    * Get all payments for an expense
    */
   async getPayments(expenseId: string): Promise<any[]> {
-    return apiClient.get(`${this.basePath}/${expenseId}/payments`);
+    return apiClient.get(`${this.paymentsBasePath}/${expenseId}/payments`);
   }
 
   /**
    * Get payment status
    */
   async getPaymentStatus(expenseId: string): Promise<PaymentStatusResponse> {
-    return apiClient.get(`${this.basePath}/${expenseId}/payments/status`);
+    return apiClient.get(`${this.paymentsBasePath}/${expenseId}/payments/status`);
   }
 
   /**
@@ -546,105 +576,105 @@ class ExpensesService {
 
   /**
    * 1. Get Total Expenses Summary
-   * GET /admin/expenses/summary/total
+   * GET /expenses/summary/total
    */
   async getTotalExpensesSummary(
     params: import('@/types/expenses').SummaryQueryParams
   ): Promise<import('@/types/expenses').TotalExpensesSummaryResponse> {
     return apiClient.get<import('@/types/expenses').TotalExpensesSummaryResponse>(
-      `${this.basePath}/summary/total`,
+      '/expenses/summary/total',
       { params }
     );
   }
 
   /**
    * 2. Get Recurring Expenses Summary
-   * GET /admin/expenses/summary/recurring
+   * GET /expenses/summary/recurring
    */
   async getRecurringExpensesSummary(
     params: import('@/types/expenses').SummaryQueryParams
   ): Promise<import('@/types/expenses').RecurringExpensesSummaryResponse> {
     return apiClient.get<import('@/types/expenses').RecurringExpensesSummaryResponse>(
-      `${this.basePath}/summary/recurring`,
+      '/expenses/summary/recurring',
       { params }
     );
   }
 
   /**
    * 3. Get Summary by Category and Currency
-   * GET /admin/expenses/summary/by-category-currency
+   * GET /expenses/summary/by-category-currency
    */
   async getSummaryByCategoryAndCurrency(
     params: Partial<import('@/types/expenses').SummaryQueryParams>
   ): Promise<import('@/types/expenses').SummaryByCategoryResponse> {
     return apiClient.get<import('@/types/expenses').SummaryByCategoryResponse>(
-      `${this.basePath}/summary/by-category-currency`,
+      '/expenses/summary/by-category-currency',
       { params }
     );
   }
 
   /**
    * 4. Get Summary by Site
-   * GET /admin/expenses/summary/by-site
+   * GET /expenses/summary/by-site
    */
   async getSummaryBySite(
     params: Partial<import('@/types/expenses').SummaryQueryParams>
   ): Promise<import('@/types/expenses').SummaryBySiteResponse> {
     return apiClient.get<import('@/types/expenses').SummaryBySiteResponse>(
-      `${this.basePath}/summary/by-site`,
+      '/expenses/summary/by-site',
       { params }
     );
   }
 
   /**
    * 5. Compare Periods
-   * GET /admin/expenses/summary/compare
+   * GET /expenses/summary/compare
    */
   async comparePeriods(
     params: import('@/types/expenses').ComparisonQueryParams
   ): Promise<import('@/types/expenses').PeriodComparisonResponse> {
     return apiClient.get<import('@/types/expenses').PeriodComparisonResponse>(
-      `${this.basePath}/summary/compare`,
+      '/expenses/summary/compare',
       { params }
     );
   }
 
   /**
    * 6. Get Trends
-   * GET /admin/expenses/summary/trends
+   * GET /expenses/summary/trends
    */
   async getTrends(
     params: import('@/types/expenses').TrendsQueryParams
   ): Promise<import('@/types/expenses').TrendsResponse> {
     return apiClient.get<import('@/types/expenses').TrendsResponse>(
-      `${this.basePath}/summary/trends`,
+      '/expenses/summary/trends',
       { params }
     );
   }
 
   /**
    * 7. Get Projections
-   * GET /admin/expenses/summary/projections
+   * GET /expenses/summary/projections
    */
   async getExpenseProjections(
     params?: import('@/types/expenses').ProjectionsQueryParams
   ): Promise<import('@/types/expenses').ProjectionsResponse> {
     return apiClient.get<import('@/types/expenses').ProjectionsResponse>(
-      `${this.basePath}/summary/projections`,
+      '/expenses/summary/projections',
       { params }
     );
   }
 
   /**
    * 8. Get Dashboard
-   * GET /admin/expenses/summary/dashboard
+   * GET /expenses/summary/dashboard
    */
   async getDashboard(params: {
     startDate: string;
     endDate: string;
   }): Promise<import('@/types/expenses').DashboardResponse> {
     return apiClient.get<import('@/types/expenses').DashboardResponse>(
-      `${this.basePath}/summary/dashboard`,
+      '/expenses/summary/dashboard',
       { params }
     );
   }

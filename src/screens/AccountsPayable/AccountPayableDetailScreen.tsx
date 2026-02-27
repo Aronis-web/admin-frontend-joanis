@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/constants/permissions';
 import { accountsPayableService } from '@/services/api/accounts-payable';
 import { AccountPayable } from '@/types/accounts-payable';
 import {
@@ -36,6 +38,15 @@ export const AccountPayableDetailScreen: React.FC<AccountPayableDetailScreenProp
   route,
 }) => {
   const { accountPayableId } = route.params;
+  const { hasPermission } = usePermissions();
+
+  // Verificar permisos
+  const canReadDetails = hasPermission(PERMISSIONS.ACCOUNTS_PAYABLE.READ_DETAILS);
+  const canViewPayments = hasPermission(PERMISSIONS.ACCOUNTS_PAYABLE.PAYMENTS.READ);
+  const canViewSchedule = hasPermission(PERMISSIONS.ACCOUNTS_PAYABLE.SCHEDULE.READ);
+  const canViewHistory = hasPermission(PERMISSIONS.ACCOUNTS_PAYABLE.HISTORY.READ);
+  const canViewDocuments = hasPermission(PERMISSIONS.ACCOUNTS_PAYABLE.DOCUMENTS.READ);
+
   const [accountPayable, setAccountPayable] = useState<AccountPayable | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

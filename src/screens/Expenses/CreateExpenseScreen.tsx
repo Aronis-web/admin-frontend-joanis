@@ -11,9 +11,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { expensesService } from '@/services/api';
-import { ExpenseStatus, CreateExpenseRequest } from '@/types/expenses';
+import { expensesService, suppliersService } from '@/services/api';
+import { ExpenseStatus, CreateExpenseRequest, Supplier, SupplierLegalEntity } from '@/types/expenses';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
 import { usePermissionError } from '@/hooks/usePermissionError';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
@@ -65,6 +66,13 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
   const [description, setDescription] = useState('');
   const [manualSiteId, setManualSiteId] = useState('');
 
+  // ============================================
+  // NUEVOS CAMPOS - Integración con Proveedores
+  // ============================================
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [supplierLegalEntityId, setSupplierLegalEntityId] = useState('');
+  const [legalEntities, setLegalEntities] = useState<SupplierLegalEntity[]>([]);
+
   // Date picker state
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
 
@@ -80,6 +88,42 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
       loadTemplate();
     }
   }, [expenseId, projectId, templateIdParam]);
+
+  // ============================================
+  // EFECTO: Cargar razones sociales cuando se selecciona proveedor
+  // ============================================
+  useEffect(() => {
+    if (selectedSupplier?.id) {
+      loadLegalEntities(selectedSupplier.id);
+    } else {
+      setLegalEntities([]);
+      setSupplierLegalEntityId('');
+    }
+  }, [selectedSupplier?.id]);
+
+  const loadLegalEntities = async (supplierId: string) => {
+    try {
+      const supplier = await suppliersService.getSupplier(supplierId);
+      if (supplier.legalEntities && supplier.legalEntities.length > 0) {
+        setLegalEntities(supplier.legalEntities);
+
+        // Auto-select primary legal entity if exists
+        const primaryEntity = supplier.legalEntities.find((le) => le.isPrimary);
+        if (primaryEntity && !supplierLegalEntityId) {
+          setSupplierLegalEntityId(primaryEntity.id);
+        }
+      } else {
+        setLegalEntities([]);
+        Alert.alert(
+          'Advertencia',
+          'Este proveedor no tiene razones sociales registradas. Por favor, agregue al menos una razón social antes de continuar.'
+        );
+      }
+    } catch (error) {
+      console.error('Error loading legal entities:', error);
+      Alert.alert('Error', 'No se pudieron cargar las razones sociales del proveedor');
+    }
+  };
 
   const loadExpense = async () => {
     if (!expenseId) {
@@ -115,6 +159,14 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
       setPurchaseId(expense.purchase?.id || '');
       setNotes(expense.notes || '');
       setDescription(expense.description || '');
+
+      // Load supplier data if exists
+      if (expense.supplier) {
+        setSelectedSupplier(expense.supplier);
+      }
+      if (expense.supplierLegalEntityId) {
+        setSupplierLegalEntityId(expense.supplierLegalEntityId);
+      }
     } catch (error: any) {
       console.error('❌ Error loading expense:', error);
       Alert.alert('Error', 'No se pudo cargar el gasto para editar');
@@ -177,23 +229,67 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
       // Import sitesService
       const { sitesService } = await import('@/services/api');
 
-      const [categoriesRes, templatesRes, sitesRes] = await Promise.all([
-        expensesService.getCategories(),
-        expensesService.getTemplates(),
-        sitesService.getSites({ page: 1, limit: 100 }),
-      ]);
-      console.log('📦 Categories:', categoriesRes);
-      console.log('📦 Templates:', templatesRes);
-      console.log('📦 Sites:', sitesRes);
+      // Load data one by one to identify which one fails
+      let categoriesData = [];
+      let templatesData = [];
+      let sitesData = [];
 
-      // Templates now returns an array directly
-      setCategories(categoriesRes.data || []);
-      setTemplates(Array.isArray(templatesRes) ? templatesRes : []);
-      setSites(sitesRes.data || []);
+      // Load categories
+      try {
+        console.log('📦 Loading categories...');
+        const categoriesRes = await expensesService.getCategories();
+        console.log('✅ Categories loaded:', categoriesRes);
+        categoriesData = categoriesRes.data || [];
+        console.log('📦 Categories count:', categoriesData.length);
+      } catch (catError: any) {
+        console.error('❌ Error loading categories:', catError);
+        console.error('❌ Categories error details:', {
+          message: catError.message,
+          status: catError.response?.status,
+          data: catError.response?.data,
+        });
+        // Continue without categories
+      }
 
-      console.log('📦 Categories count:', (categoriesRes.data || []).length);
-      console.log('📦 Templates count:', (Array.isArray(templatesRes) ? templatesRes : []).length);
-      console.log('📦 Sites count:', (sitesRes.data || []).length);
+      // Load templates
+      try {
+        console.log('📦 Loading templates...');
+        const templatesRes = await expensesService.getTemplates();
+        console.log('✅ Templates loaded:', templatesRes);
+        templatesData = Array.isArray(templatesRes) ? templatesRes : [];
+        console.log('📦 Templates count:', templatesData.length);
+      } catch (tmpError: any) {
+        console.error('❌ Error loading templates:', tmpError);
+        console.error('❌ Templates error details:', {
+          message: tmpError.message,
+          status: tmpError.response?.status,
+          data: tmpError.response?.data,
+        });
+        // Continue without templates
+      }
+
+      // Load sites
+      try {
+        console.log('📦 Loading sites...');
+        const sitesRes = await sitesService.getSites({ page: 1, limit: 100 });
+        console.log('✅ Sites loaded:', sitesRes);
+        sitesData = sitesRes.data || [];
+        console.log('📦 Sites count:', sitesData.length);
+      } catch (siteError: any) {
+        console.error('❌ Error loading sites:', siteError);
+        console.error('❌ Sites error details:', {
+          message: siteError.message,
+          status: siteError.response?.status,
+          data: siteError.response?.data,
+        });
+        // Continue without sites
+      }
+
+      setCategories(categoriesData);
+      setTemplates(templatesData);
+      setSites(sitesData);
+
+      console.log('✅ Data loading completed');
     } catch (error: any) {
       console.error('❌ Error loading data:', error);
 
@@ -229,6 +325,14 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
       return;
     }
 
+    // ============================================
+    // VALIDACIÓN: Si hay proveedor, DEBE haber RUC
+    // ============================================
+    if (selectedSupplier && !supplierLegalEntityId) {
+      Alert.alert('Error', 'Debe seleccionar el RUC del proveedor');
+      return;
+    }
+
     const amountValue = parseFloat(amount);
 
     if (isNaN(amountValue) || amountValue <= 0) {
@@ -247,12 +351,16 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           dueDate,
           expenseType,
           costType,
-          categoryId: categoryId || undefined,
-          templateId: templateId || undefined,
-          purchaseId: purchaseId || undefined,
-          notes: notes.trim() || undefined,
-          description: description.trim() || undefined,
         };
+
+        // Only add optional fields if they have values
+        if (categoryId) updateData.categoryId = categoryId;
+        if (templateId) updateData.templateId = templateId;
+        if (purchaseId) updateData.purchaseId = purchaseId;
+        if (selectedSupplier?.id) updateData.supplierId = selectedSupplier.id;
+        if (supplierLegalEntityId) updateData.supplierLegalEntityId = supplierLegalEntityId;
+        if (notes.trim()) updateData.notes = notes.trim();
+        if (description.trim()) updateData.description = description.trim();
 
         await expensesService.updateExpense(expenseId, updateData);
         Alert.alert('Éxito', 'Gasto actualizado correctamente', [
@@ -290,7 +398,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
         }
 
         // Create new expense
-        const createData: CreateExpenseRequest = {
+        const createData: any = {
           name: name.trim(),
           companyId: currentCompany.id,
           siteId: siteIdToUse, // Required field
@@ -300,19 +408,23 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           expenseType,
           costType,
           // Note: status is set automatically by backend (ACTIVE by default)
-          categoryId: categoryId || undefined,
-          templateId: templateId || undefined,
-          purchaseId: purchaseId || undefined,
-          projectId: projectId || undefined, // Include projectId if creating from project
-          notes: notes.trim() || undefined,
-          description: description.trim() || undefined,
         };
+
+        // Only add optional fields if they have values
+        if (categoryId) createData.categoryId = categoryId;
+        if (templateId) createData.templateId = templateId;
+        if (purchaseId) createData.purchaseId = purchaseId;
+        if (projectId) createData.projectId = projectId;
+        if (selectedSupplier?.id) createData.supplierId = selectedSupplier.id;
+        if (supplierLegalEntityId) createData.supplierLegalEntityId = supplierLegalEntityId;
+        if (notes.trim()) createData.notes = notes.trim();
+        if (description.trim()) createData.description = description.trim();
 
         console.log('📝 Creating expense:', {
           ...createData,
           isFromProject,
           projectId,
-          siteName: selectedSite.name,
+          siteName: selectedSite?.name,
         });
 
         const newExpense = await expensesService.createExpense(createData);
@@ -577,6 +689,51 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
               ])}
           </View>
 
+          {/* ============================================ */}
+          {/* NUEVA SECCIÓN: Proveedor y Razón Social */}
+          {/* ============================================ */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Proveedor (Opcional)</Text>
+
+            {/* Buscador de Proveedor */}
+            <SupplierSearchInput
+              selectedSupplier={selectedSupplier || undefined}
+              onSelect={(supplier) => setSelectedSupplier(supplier)}
+              label="Proveedor"
+              placeholder="Buscar proveedor..."
+            />
+
+            {/* Selector de Razón Social (RUC) */}
+            {selectedSupplier && legalEntities.length > 0 && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>
+                  RUC del Proveedor <Text style={styles.required}>*</Text>
+                </Text>
+                {renderPicker('', supplierLegalEntityId, setSupplierLegalEntityId, [
+                  { label: 'Seleccionar RUC', value: '' },
+                  ...legalEntities.map((le) => ({
+                    label: `${le.legalName} - RUC: ${le.ruc}${le.isPrimary ? ' (Principal)' : ''}`,
+                    value: le.id,
+                  })),
+                ])}
+                <Text style={styles.infoText}>
+                  💡 Seleccione el RUC específico para la facturación
+                </Text>
+              </View>
+            )}
+
+            {/* Información sobre Cuenta por Pagar */}
+            {selectedSupplier && supplierLegalEntityId && (
+              <View style={styles.infoBanner}>
+                <Ionicons name="information-circle" size={20} color="#6366F1" />
+                <Text style={styles.infoBannerText}>
+                  Al guardar este gasto, se creará automáticamente una cuenta por pagar vinculada
+                  al proveedor seleccionado.
+                </Text>
+              </View>
+            )}
+          </View>
+
           {/* Notes */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Notas Adicionales</Text>
@@ -773,25 +930,6 @@ const styles = StyleSheet.create({
     color: '#6366F1',
     marginBottom: 12,
   },
-  infoText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 12,
-    lineHeight: 18,
-  },
-  disabledInput: {
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  disabledInputText: {
-    fontSize: 15,
-    color: '#64748B',
-    fontWeight: '500',
-  },
   projectBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -859,6 +997,26 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 6,
     fontStyle: 'italic',
+  },
+  required: {
+    color: '#EF4444',
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 16,
+    gap: 12,
+  },
+  infoBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#6366F1',
+    lineHeight: 18,
   },
 });
 

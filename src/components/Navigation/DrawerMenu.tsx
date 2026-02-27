@@ -257,20 +257,44 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
-  // Gastos
+  // Finanzas
   {
-    id: 'expenses',
-    title: 'Gastos',
+    id: 'finances',
+    title: 'Finanzas',
     icon: '💰',
     color: '#DC2626',
     items: [
       {
-        id: 'expenses-reports',
-        icon: '📈',
-        label: 'Reportes',
-        route: MAIN_ROUTES.EXPENSES_REPORTS,
+        id: 'accounts-payable',
+        icon: '💰',
+        label: 'Cuentas por Pagar',
+        route: MAIN_ROUTES.ACCOUNTS_PAYABLE,
         color: '#F59E0B',
-        requiredPermissions: ['expenses.reports.view'],
+        requiredPermissions: ['accounts-payable.read', 'accounts-payable.read-own-company', 'accounts-payable.read-all'],
+      },
+      {
+        id: 'accounts-receivable',
+        icon: '💵',
+        label: 'Cuentas por Cobrar (Próximamente)',
+        route: MAIN_ROUTES.HOME, // Temporal hasta que se implemente
+        color: '#10B981',
+        requiredPermissions: [],
+      },
+      {
+        id: 'treasury',
+        icon: '🏦',
+        label: 'Tesorería (Próximamente)',
+        route: MAIN_ROUTES.HOME, // Temporal hasta que se implemente
+        color: '#3B82F6',
+        requiredPermissions: [],
+      },
+      {
+        id: 'expenses-list',
+        icon: '📋',
+        label: 'Lista de Gastos',
+        route: MAIN_ROUTES.EXPENSES,
+        color: '#DC2626',
+        requiredPermissions: ['expenses.read'],
       },
       {
         id: 'expenses-templates',
@@ -284,30 +308,6 @@ const menuCategories: MenuCategory[] = [
           'expenses.templates.update',
           'expenses.templates.delete',
         ],
-      },
-      {
-        id: 'expenses-list',
-        icon: '📋',
-        label: 'Lista de Gastos',
-        route: MAIN_ROUTES.EXPENSES,
-        color: '#DC2626',
-        requiredPermissions: ['expenses.read'],
-      },
-      {
-        id: 'expenses-projects',
-        icon: '📊',
-        label: 'Proyectos',
-        route: MAIN_ROUTES.EXPENSES_PROJECTS,
-        color: '#F87171',
-        requiredPermissions: ['expenses.projects.read'],
-      },
-      {
-        id: 'supplier-debts',
-        icon: '💳',
-        label: 'Deudas de Proveedores',
-        route: MAIN_ROUTES.SUPPLIER_DEBTS,
-        color: '#EF4444',
-        requiredPermissions: ['suppliers.debts.read'],
       },
     ],
   },

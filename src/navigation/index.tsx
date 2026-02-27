@@ -452,7 +452,8 @@ const MainStack = React.memo(() => {
           <ProtectedRoute
             requiredPermissions={[
               'accounts-payable.read',
-              'accounts-payable.search',
+              'accounts-payable.read-own-company',
+              'accounts-payable.read-all',
             ]}
             requireAll={false}
           >
@@ -462,11 +463,22 @@ const MainStack = React.memo(() => {
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.ACCOUNT_PAYABLE_DETAIL}
-        component={AccountPayableDetailScreen}
         options={{
           title: 'Detalle de Cuenta por Pagar',
         }}
-      />
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'accounts-payable.read',
+              'accounts-payable.read-details',
+            ]}
+            requireAll={false}
+          >
+            <AccountPayableDetailScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.CUSTOMERS}
         options={{

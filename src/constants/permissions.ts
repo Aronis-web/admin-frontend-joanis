@@ -384,6 +384,113 @@ export const PERMISSIONS = {
       RESEND: 'bizlinks.documents.resend',
     },
   },
+
+  // ========== CUENTAS POR PAGAR ==========
+  ACCOUNTS_PAYABLE: {
+    // Lectura
+    READ: 'accounts-payable.read',
+    READ_ALL: 'accounts-payable.read-all',
+    READ_OWN_COMPANY: 'accounts-payable.read-own-company',
+    READ_DETAILS: 'accounts-payable.read-details',
+
+    // Escritura
+    CREATE: 'accounts-payable.create',
+    UPDATE: 'accounts-payable.update',
+    DELETE: 'accounts-payable.delete',
+
+    // Búsqueda
+    SEARCH: 'accounts-payable.search',
+    SEARCH_INTELLIGENT: 'accounts-payable.search-intelligent',
+    SEARCH_ALL_COMPANIES: 'accounts-payable.search-all-companies',
+
+    // Estado
+    CHANGE_STATUS: 'accounts-payable.change-status',
+    APPROVE: 'accounts-payable.approve',
+    REJECT: 'accounts-payable.reject',
+    CANCEL: 'accounts-payable.cancel',
+    DISPUTE: 'accounts-payable.dispute',
+
+    // Pagos
+    PAYMENTS: {
+      READ: 'accounts-payable.payments.read',
+      CREATE: 'accounts-payable.payments.create',
+      UPDATE: 'accounts-payable.payments.update',
+      DELETE: 'accounts-payable.payments.delete',
+      APPROVE: 'accounts-payable.payments.approve',
+    },
+
+    // Reportes
+    REPORTS: {
+      SUMMARY: 'accounts-payable.reports.summary',
+      BY_SUPPLIER: 'accounts-payable.reports.by-supplier',
+      BY_STATUS: 'accounts-payable.reports.by-status',
+      AGING: 'accounts-payable.reports.aging',
+      OVERDUE: 'accounts-payable.reports.overdue',
+      EXPORT: 'accounts-payable.reports.export',
+      DOWNLOAD_EXCEL: 'accounts-payable.reports.download-excel',
+      DOWNLOAD_PDF: 'accounts-payable.reports.download-pdf',
+    },
+
+    // Cronograma
+    SCHEDULE: {
+      READ: 'accounts-payable.schedule.read',
+      CREATE: 'accounts-payable.schedule.create',
+      UPDATE: 'accounts-payable.schedule.update',
+      DELETE: 'accounts-payable.schedule.delete',
+    },
+
+    // Historial
+    HISTORY: {
+      READ: 'accounts-payable.history.read',
+      EXPORT: 'accounts-payable.history.export',
+    },
+
+    // Documentos
+    DOCUMENTS: {
+      READ: 'accounts-payable.documents.read',
+      UPLOAD: 'accounts-payable.documents.upload',
+      DOWNLOAD: 'accounts-payable.documents.download',
+      DELETE: 'accounts-payable.documents.delete',
+    },
+
+    // Administración
+    ADMIN: {
+      UPDATE_OVERDUE: 'accounts-payable.admin.update-overdue',
+      BULK_UPDATE: 'accounts-payable.admin.bulk-update',
+      BULK_DELETE: 'accounts-payable.admin.bulk-delete',
+      RESTORE: 'accounts-payable.admin.restore',
+      VIEW_DELETED: 'accounts-payable.admin.view-deleted',
+      PERMANENT_DELETE: 'accounts-payable.admin.permanent-delete',
+    },
+
+    // Configuración
+    CONFIG: {
+      READ: 'accounts-payable.config.read',
+      UPDATE: 'accounts-payable.config.update',
+    },
+
+    // Notificaciones
+    NOTIFICATIONS: {
+      READ: 'accounts-payable.notifications.read',
+      CREATE: 'accounts-payable.notifications.create',
+      UPDATE: 'accounts-payable.notifications.update',
+      DELETE: 'accounts-payable.notifications.delete',
+    },
+
+    // Integración
+    INTEGRATION: {
+      SYNC: 'accounts-payable.integration.sync',
+      IMPORT: 'accounts-payable.integration.import',
+      EXPORT: 'accounts-payable.integration.export',
+    },
+
+    // Permisos Combinados
+    READ_FULL: 'accounts-payable.read-full',
+    WRITE_FULL: 'accounts-payable.write-full',
+    REPORTS_FULL: 'accounts-payable.reports-full',
+    ADMIN_FULL: 'accounts-payable.admin-full',
+    FULL_ACCESS: 'accounts-payable.full-access',
+  },
 } as const;
 
 /**

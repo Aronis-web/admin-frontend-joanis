@@ -242,7 +242,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Accounts Payable
   ACCOUNTS_PAYABLE: 'accounts-payable.read',
-  ACCOUNT_PAYABLE_DETAIL: 'accounts-payable.read',
+  ACCOUNT_PAYABLE_DETAIL: 'accounts-payable.read-details',
 
   // Customers
   CUSTOMERS: 'customers.read',

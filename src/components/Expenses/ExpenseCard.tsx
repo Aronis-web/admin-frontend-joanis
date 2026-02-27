@@ -42,6 +42,33 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
     return `${currencySymbol} ${amount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  // Helper function to get account payable status label
+  const getAccountPayableStatusLabel = (status: string): string => {
+    const labels: Record<string, string> = {
+      PENDING: 'Pendiente',
+      PARTIAL: 'Parcial',
+      PAID: 'Pagado',
+      CANCELLED: 'Cancelado',
+    };
+    return labels[status] || status;
+  };
+
+  // Helper function to get account payable status style
+  const getAccountPayableStatusStyle = (status: string) => {
+    switch (status) {
+      case 'PAID':
+        return { backgroundColor: '#D1FAE5', borderColor: '#10B981' };
+      case 'PARTIAL':
+        return { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' };
+      case 'PENDING':
+        return { backgroundColor: '#F1F5F9', borderColor: '#94A3B8' };
+      case 'CANCELLED':
+        return { backgroundColor: '#FEE2E2', borderColor: '#EF4444' };
+      default:
+        return { backgroundColor: '#F1F5F9', borderColor: '#94A3B8' };
+    }
+  };
+
   const canChangeStatus = expense.status !== 'PAID' && expense.status !== 'CANCELLED';
 
   // Calculate payment progress
@@ -158,6 +185,28 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
               </Text>
             </View>
           )}
+
+          {/* ============================================ */}
+          {/* NUEVO: Información del Proveedor */}
+          {/* ============================================ */}
+          {expense.supplier && (
+            <View style={styles.metaInfoItem}>
+              <Ionicons name="person-outline" size={12} color="#10B981" />
+              <Text style={styles.metaInfoText} numberOfLines={1}>
+                {expense.supplier.commercialName}
+              </Text>
+            </View>
+          )}
+
+          {/* NUEVO: RUC del Proveedor */}
+          {expense.supplierLegalEntity && (
+            <View style={styles.metaInfoItem}>
+              <Ionicons name="card-outline" size={12} color="#64748B" />
+              <Text style={styles.metaInfoText} numberOfLines={1}>
+                RUC: {expense.supplierLegalEntity.ruc}
+              </Text>
+            </View>
+          )}
         </View>
 
         {expense.purchase && (
@@ -166,6 +215,42 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
             <Text style={styles.purchaseText} numberOfLines={1}>
               Compra: {expense.purchase.code}
             </Text>
+          </View>
+        )}
+
+        {/* ============================================ */}
+        {/* NUEVO: Cuenta por Pagar */}
+        {/* ============================================ */}
+        {expense.accountPayable && (
+          <View style={styles.accountPayableContainer}>
+            <View style={styles.accountPayableHeader}>
+              <Ionicons name="document-text" size={14} color="#F59E0B" />
+              <Text style={styles.accountPayableCode}>{expense.accountPayable.code}</Text>
+              <View
+                style={[
+                  styles.accountPayableStatusBadge,
+                  getAccountPayableStatusStyle(expense.accountPayable.status),
+                ]}
+              >
+                <Text style={styles.accountPayableStatusText}>
+                  {getAccountPayableStatusLabel(expense.accountPayable.status)}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.accountPayableDetails}>
+              <Text style={styles.accountPayableLabel}>Saldo:</Text>
+              <Text style={styles.accountPayableBalance}>
+                {formatAmount(expense.accountPayable.balanceCents, expense.currency)}
+              </Text>
+            </View>
+            {expense.accountPayable.overdueDays && expense.accountPayable.overdueDays > 0 && (
+              <View style={styles.overdueWarning}>
+                <Ionicons name="warning" size={12} color="#EF4444" />
+                <Text style={styles.overdueText}>
+                  Vencido hace {expense.accountPayable.overdueDays} días
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -491,6 +576,67 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF',
     borderWidth: 1,
     borderColor: '#C7D2FE',
+  },
+  // ============================================
+  // NUEVOS ESTILOS: Cuenta por Pagar
+  // ============================================
+  accountPayableContainer: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 8,
+  },
+  accountPayableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  accountPayableCode: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400E',
+    marginLeft: 6,
+    flex: 1,
+  },
+  accountPayableStatusBadge: {
+    borderRadius: 4,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  accountPayableStatusText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  accountPayableDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  accountPayableLabel: {
+    fontSize: 11,
+    color: '#78716C',
+  },
+  accountPayableBalance: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F59E0B',
+  },
+  overdueWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#FDE68A',
+  },
+  overdueText: {
+    fontSize: 11,
+    color: '#EF4444',
+    fontWeight: '600',
+    marginLeft: 4,
   },
 });
 

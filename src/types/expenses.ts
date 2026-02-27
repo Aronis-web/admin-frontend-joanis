@@ -129,6 +129,78 @@ export interface ExpenseCategory {
 }
 
 /**
+ * Supplier Type for Expenses
+ */
+export type SupplierType =
+  | 'UTILITIES'
+  | 'MERCHANDISE'
+  | 'SERVICES'
+  | 'MAINTENANCE'
+  | 'TECHNOLOGY'
+  | 'MARKETING'
+  | 'LOGISTICS'
+  | 'PROFESSIONAL'
+  | 'GOVERNMENT'
+  | 'FINANCIAL'
+  | 'RENT'
+  | 'PAYROLL'
+  | 'TAXES'
+  | 'LOANS'
+  | 'INSURANCE'
+  | 'TRANSPORT'
+  | 'OTHER';
+
+/**
+ * Supplier Legal Entity (Razón Social)
+ */
+export interface SupplierLegalEntity {
+  id: string;
+  supplierId: string;
+  legalName: string;
+  ruc: string;
+  taxAddress?: string;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Supplier for Expenses
+ */
+export interface Supplier {
+  id: string;
+  code: string;
+  commercialName: string;
+  primaryType?: SupplierType;
+  supplierTypes?: SupplierType[];
+  category?: string;
+  email?: string;
+  phone?: string;
+  legalEntities?: SupplierLegalEntity[];
+}
+
+/**
+ * Account Payable Status
+ */
+export type AccountPayableStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'CANCELLED';
+
+/**
+ * Account Payable
+ */
+export interface AccountPayable {
+  id: string;
+  code: string;
+  status: AccountPayableStatus;
+  totalAmountCents: number;
+  paidAmountCents: number;
+  balanceCents: number;
+  dueDate: string;
+  overdueDays?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * Expense - New Backend Structure
  */
 export interface Expense {
@@ -183,6 +255,36 @@ export interface Expense {
   paymentStatus?: PaymentCompletionStatus;
   paymentsCount?: number;
   lastPaymentAt?: string;
+
+  // ============================================
+  // NUEVOS CAMPOS - Integración con Proveedores y Cuentas por Pagar
+  // ============================================
+
+  /**
+   * ID del proveedor asociado
+   */
+  supplierId?: string;
+
+  /**
+   * Proveedor asociado (incluye información completa)
+   */
+  supplier?: Supplier;
+
+  /**
+   * ID de la razón social del proveedor
+   */
+  supplierLegalEntityId?: string;
+
+  /**
+   * Razón social del proveedor (RUC específico)
+   */
+  supplierLegalEntity?: SupplierLegalEntity;
+
+  /**
+   * Cuenta por pagar vinculada (si el gasto tiene proveedor)
+   */
+  accountPayable?: AccountPayable;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -380,7 +482,23 @@ export interface CreateExpenseRequest {
   projectId?: string; // Associate with project
   templateId?: string;
   purchaseId?: string;
-  supplierId?: string; // Supplier association
+
+  // ============================================
+  // NUEVOS CAMPOS - Integración con Proveedores
+  // ============================================
+
+  /**
+   * ID del proveedor (opcional)
+   * Si se proporciona, se debe proporcionar también supplierLegalEntityId
+   */
+  supplierId?: string;
+
+  /**
+   * ID de la razón social del proveedor (RUC específico)
+   * OBLIGATORIO si se proporciona supplierId
+   */
+  supplierLegalEntityId?: string;
+
   notes?: string;
   description?: string;
   // Invoice fields
@@ -405,6 +523,23 @@ export interface UpdateExpenseRequest {
   categoryId?: string;
   templateId?: string;
   purchaseId?: string;
+
+  // ============================================
+  // NUEVOS CAMPOS - Integración con Proveedores
+  // ============================================
+
+  /**
+   * ID del proveedor (opcional)
+   * Si se proporciona, se debe proporcionar también supplierLegalEntityId
+   */
+  supplierId?: string;
+
+  /**
+   * ID de la razón social del proveedor (RUC específico)
+   * OBLIGATORIO si se proporciona supplierId
+   */
+  supplierLegalEntityId?: string;
+
   notes?: string;
   description?: string;
 }
@@ -517,6 +652,31 @@ export interface QueryExpensesParams {
   categoryId?: string;
   templateId?: string;
   purchaseId?: string;
+
+  // ============================================
+  // NUEVOS FILTROS - Integración con Proveedores
+  // ============================================
+
+  /**
+   * Filtrar por proveedor específico
+   */
+  supplierId?: string;
+
+  /**
+   * Filtrar por tipo principal de proveedor
+   */
+  supplierPrimaryType?: SupplierType;
+
+  /**
+   * Filtrar solo gastos con cuenta por pagar
+   */
+  onlyWithAccountPayable?: boolean;
+
+  /**
+   * Incluir información de cuenta por pagar en la respuesta
+   */
+  includeAccountPayable?: boolean;
+
   page?: number;
   limit?: number;
   sortBy?: string;
