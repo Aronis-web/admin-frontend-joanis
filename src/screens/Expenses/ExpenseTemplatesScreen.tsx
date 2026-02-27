@@ -294,7 +294,6 @@ export const ExpenseTemplatesScreen: React.FC = () => {
                 key={template.id}
                 template={template}
                 onPress={handleTemplatePress}
-                onGenerate={canGenerate ? handleGenerateExpense : undefined}
                 onEdit={canUpdate ? handleEditTemplate : undefined}
                 onDelete={canDelete ? handleDeleteTemplate : undefined}
               />
