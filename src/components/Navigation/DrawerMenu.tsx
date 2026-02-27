@@ -177,57 +177,7 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
-  // Transmisiones - Sin submenú
-  {
-    id: 'transmisiones',
-    title: 'Transmisiones',
-    icon: '📡',
-    color: '#8B5CF6',
-    items: [
-      {
-        id: 'transmisiones',
-        icon: '📡',
-        label: 'Transmisiones',
-        route: MAIN_ROUTES.TRANSMISIONES,
-        color: '#8B5CF6',
-        requiredPermissions: ['transmisiones.read', 'transmisiones.create', 'transmisiones.update'],
-      },
-    ],
-  },
-  // Reconocimiento Facial
-  {
-    id: 'face-recognition',
-    title: 'Reconocimiento Facial',
-    icon: '👤',
-    color: '#EC4899',
-    items: [
-      {
-        id: 'face-recognition-menu',
-        icon: '📸',
-        label: 'Reconocimiento Facial',
-        route: MAIN_ROUTES.FACE_RECOGNITION_MENU,
-        color: '#EC4899',
-        requiredPermissions: ['biometric.read', 'biometric.register', 'biometric.verify'],
-      },
-    ],
-  },
-  // Organización
-  {
-    id: 'organization',
-    title: 'Organización',
-    icon: '🏗️',
-    color: '#F59E0B',
-    items: [
-      {
-        id: 'organization-chart',
-        icon: '📊',
-        label: 'Organigrama',
-        route: MAIN_ROUTES.ORGANIZATION_CHART,
-        color: '#F59E0B',
-        requiredPermissions: ['organization.positions.company.read', 'organization.positions.site.read'],
-      },
-    ],
-  },
+
   // Finanzas
   {
     id: 'finances',
@@ -380,6 +330,24 @@ const menuCategories: MenuCategory[] = [
         route: MAIN_ROUTES.EXPENSES_CATEGORIES,
         color: '#FCA5A5',
         requiredPermissions: ['expenses.categories.read'],
+      },
+      // Organización
+      {
+        id: 'organization-chart',
+        icon: '📊',
+        label: 'Organigrama',
+        route: MAIN_ROUTES.ORGANIZATION_CHART,
+        color: '#F59E0B',
+        requiredPermissions: ['organization.positions.company.read', 'organization.positions.site.read'],
+      },
+      // Reconocimiento Facial
+      {
+        id: 'face-recognition-menu',
+        icon: '📸',
+        label: 'Reconocimiento Facial',
+        route: MAIN_ROUTES.FACE_RECOGNITION_MENU,
+        color: '#EC4899',
+        requiredPermissions: ['biometric.read', 'biometric.register', 'biometric.verify'],
       },
       // Configuración de Comprobantes
       {
