@@ -477,14 +477,14 @@ class ExpensesService {
    * Upload bulk expense templates file
    */
   async uploadBulkTemplates(file: any): Promise<{
-    success: boolean;
-    totalRows: number;
-    createdRows: number;
+    success: number;
+    created: any[];
     errors: Array<{
       row: number;
-      name: string;
       error: string;
+      data?: any;
     }>;
+    message: string;
   }> {
     const formData = new FormData();
     formData.append('file', file as any);

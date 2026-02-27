@@ -33,14 +33,14 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
   const [loading, setLoading] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [uploadResult, setUploadResult] = useState<{
-    success: boolean;
-    totalRows: number;
-    createdRows: number;
+    success: number;
+    created: any[];
     errors: Array<{
       row: number;
-      name: string;
       error: string;
+      data?: any;
     }>;
+    message: string;
   } | null>(null);
 
   // Get effective site (prefer tenant store, fallback to auth store)
@@ -212,7 +212,7 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
       setUploadResult(result);
 
       if (result.errors.length === 0) {
-        Alert.alert('Éxito', `Se crearon ${result.createdRows} plantillas de gastos correctamente.`, [
+        Alert.alert('Éxito', `Se crearon ${result.success} plantillas de gastos correctamente.`, [
           {
             text: 'OK',
             onPress: () => {
@@ -221,10 +221,10 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
             },
           },
         ]);
-      } else if (result.createdRows > 0) {
+      } else if (result.success > 0) {
         Alert.alert(
           'Creación Parcial',
-          `Se crearon ${result.createdRows} plantillas correctamente.\n\n` +
+          `Se crearon ${result.success} plantillas correctamente.\n\n` +
             `${result.errors.length} registros tuvieron errores. Revisa los detalles a continuación.`
         );
       } else {
@@ -329,12 +329,14 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
 
                 <View style={styles.resultStats}>
                   <View style={styles.resultStatItem}>
-                    <Text style={styles.resultStatValue}>{uploadResult.totalRows}</Text>
+                    <Text style={styles.resultStatValue}>
+                      {uploadResult.success + uploadResult.errors.length}
+                    </Text>
                     <Text style={styles.resultStatLabel}>Total Filas</Text>
                   </View>
                   <View style={[styles.resultStatItem, styles.successStat]}>
                     <Text style={[styles.resultStatValue, styles.successText]}>
-                      {uploadResult.createdRows}
+                      {uploadResult.success}
                     </Text>
                     <Text style={styles.resultStatLabel}>Creadas</Text>
                   </View>
@@ -346,6 +348,13 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
                   </View>
                 </View>
 
+                {/* Message */}
+                {uploadResult.message && (
+                  <View style={styles.messageSection}>
+                    <Text style={styles.messageText}>{uploadResult.message}</Text>
+                  </View>
+                )}
+
                 {/* Errors List */}
                 {uploadResult.errors.length > 0 && (
                   <View style={styles.errorsSection}>
@@ -356,7 +365,22 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
                       {uploadResult.errors.map((error, index) => (
                         <View key={index} style={styles.errorItem}>
                           <Text style={styles.errorRow}>Fila {error.row}</Text>
-                          <Text style={styles.errorSku}>Nombre: {error.name}</Text>
+                          {error.data && (
+                            <>
+                              {error.data.code && (
+                                <Text style={styles.errorSku}>Código: {error.data.code}</Text>
+                              )}
+                              {error.data.name && (
+                                <Text style={styles.errorSku}>Nombre: {error.data.name}</Text>
+                              )}
+                              {error.data.categoryCode && (
+                                <Text style={styles.errorSku}>Categoría: {error.data.categoryCode}</Text>
+                              )}
+                              {error.data.siteCode && (
+                                <Text style={styles.errorSku}>Sede: {error.data.siteCode}</Text>
+                              )}
+                            </>
+                          )}
                           <Text style={styles.errorMessage}>{error.error}</Text>
                         </View>
                       ))}
@@ -553,6 +577,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '500',
+  },
+  messageSection: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3B82F6',
+  },
+  messageText: {
+    fontSize: 13,
+    color: '#1E40AF',
+    lineHeight: 18,
   },
   errorsSection: {
     marginTop: 16,
