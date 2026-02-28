@@ -115,9 +115,19 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
     // Backend retorna "expenses" directamente en el objeto
     const expensesData = (expensesResponseV2 as any)?.expenses || (expensesResponseV2 as any)?.results || (expensesResponseV2 as any)?.data;
     if (!expensesData) return [];
-    // Sites are already included in the expense data from the API
-    return expensesData;
-  }, [expensesResponseV2, searchResultsV2, isUsingSearch]);
+
+    // Map expenses to include site object if only siteId is present
+    return expensesData.map((expense: any) => {
+      // If expense has siteId but no site object, add the current site
+      if (expense.siteId && !expense.site && currentSite) {
+        return {
+          ...expense,
+          site: currentSite,
+        };
+      }
+      return expense;
+    });
+  }, [expensesResponseV2, searchResultsV2, isUsingSearch, currentSite]);
 
   // Calculate pagination
   const pagination = useMemo(() => {
