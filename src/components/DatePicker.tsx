@@ -383,8 +383,9 @@ export const DatePickerButton: React.FC<DatePickerButtonProps> = ({
     if (!dateString) {
       return placeholder;
     }
-    // Handle both YYYY-MM-DD and full ISO string formats
-    const date = new Date(dateString);
+    // Parse YYYY-MM-DD format to avoid timezone issues
+    const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
+    const date = new Date(year, month - 1, day, 12, 0, 0, 0);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
       month: 'long',
