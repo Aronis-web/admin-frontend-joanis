@@ -1,52 +1,112 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ExpenseCategory } from '@/types/expenses';
 
 interface CategoryCardProps {
   category: ExpenseCategory;
   onPress: (category: ExpenseCategory) => void;
+  isSubcategory?: boolean;
+  showSubcategories?: boolean;
 }
 
-export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onPress }) => {
+export const CategoryCard: React.FC<CategoryCardProps> = ({
+  category,
+  onPress,
+  isSubcategory = false,
+  showSubcategories = true,
+}) => {
+  const hasSubcategories = category.subcategories && category.subcategories.length > 0;
+
   return (
-    <TouchableOpacity style={styles.card} onPress={() => onPress(category)} activeOpacity={0.7}>
-      <View style={styles.iconContainer}>
-        {category.icon ? (
-          <Text style={styles.iconText}>{category.icon}</Text>
-        ) : (
-          <View style={[styles.iconPlaceholder, { backgroundColor: category.color || '#6366F1' }]}>
-            <Text style={styles.iconPlaceholderText}>{category.name.charAt(0).toUpperCase()}</Text>
-          </View>
-        )}
-      </View>
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={[styles.card, isSubcategory && styles.subcategoryCard]}
+        onPress={() => onPress(category)}
+        activeOpacity={0.7}
+      >
+        {isSubcategory && <View style={styles.subcategoryIndicator} />}
 
-      <View style={styles.content}>
-        <Text style={styles.categoryName} numberOfLines={1}>
-          {category.name}
-        </Text>
-        <Text style={styles.categoryCode}>{category.code}</Text>
-        {category.description && (
-          <Text style={styles.categoryDescription} numberOfLines={2}>
-            {category.description}
+        <View style={styles.iconContainer}>
+          {category.icon ? (
+            <Ionicons
+              name={category.icon as any}
+              size={isSubcategory ? 24 : 32}
+              color={category.color || '#6366F1'}
+            />
+          ) : (
+            <View
+              style={[
+                styles.iconPlaceholder,
+                isSubcategory && styles.iconPlaceholderSmall,
+                { backgroundColor: category.color || '#6366F1' },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.iconPlaceholderText,
+                  isSubcategory && styles.iconPlaceholderTextSmall,
+                ]}
+              >
+                {category.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.content}>
+          <Text style={[styles.categoryName, isSubcategory && styles.subcategoryName]} numberOfLines={1}>
+            {category.name}
           </Text>
-        )}
-      </View>
+          <Text style={styles.categoryCode}>{category.code}</Text>
+          {category.description && (
+            <Text style={styles.categoryDescription} numberOfLines={2}>
+              {category.description}
+            </Text>
+          )}
+        </View>
 
-      {!category.isActive && (
-        <View style={styles.inactiveBadge}>
-          <Text style={styles.inactiveBadgeText}>Inactivo</Text>
+        <View style={styles.badges}>
+          {!category.isActive && (
+            <View style={styles.inactiveBadge}>
+              <Text style={styles.inactiveBadgeText}>Inactivo</Text>
+            </View>
+          )}
+          {!isSubcategory && hasSubcategories && (
+            <View style={styles.subcategoryCountBadge}>
+              <Ionicons name="folder-outline" size={12} color="#6366F1" />
+              <Text style={styles.subcategoryCountText}>{category.subcategories!.length}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      {/* Render subcategories */}
+      {!isSubcategory && showSubcategories && hasSubcategories && (
+        <View style={styles.subcategoriesContainer}>
+          {category.subcategories!.map((subcat) => (
+            <CategoryCard
+              key={subcat.id}
+              category={subcat}
+              onPress={onPress}
+              isSubcategory={true}
+              showSubcategories={false}
+            />
+          ))}
         </View>
       )}
-    </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    marginBottom: 8,
+  },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -57,6 +117,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  subcategoryCard: {
+    marginLeft: 24,
+    marginTop: 8,
+    backgroundColor: '#F8FAFC',
+    borderLeftWidth: 3,
+    borderLeftColor: '#6366F1',
+    elevation: 1,
+  },
+  subcategoryIndicator: {
+    position: 'absolute',
+    left: -24,
+    top: '50%',
+    width: 20,
+    height: 2,
+    backgroundColor: '#CBD5E1',
   },
   iconContainer: {
     width: 56,
@@ -74,10 +150,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconPlaceholderSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
   iconPlaceholderText: {
     fontSize: 24,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  iconPlaceholderTextSmall: {
+    fontSize: 18,
   },
   content: {
     flex: 1,
@@ -87,6 +171,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E293B',
     marginBottom: 2,
+  },
+  subcategoryName: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   categoryCode: {
     fontSize: 12,
@@ -99,6 +187,10 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 16,
   },
+  badges: {
+    gap: 4,
+    alignItems: 'flex-end',
+  },
   inactiveBadge: {
     backgroundColor: '#94A3B8',
     borderRadius: 10,
@@ -109,6 +201,23 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  subcategoryCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    gap: 4,
+  },
+  subcategoryCountText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  subcategoriesContainer: {
+    marginTop: 4,
   },
 });
 

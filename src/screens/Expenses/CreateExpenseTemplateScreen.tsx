@@ -26,6 +26,7 @@ import {
 } from '@/types/expenses';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
+import { CategorySubcategorySelector } from '@/components/Expenses/CategorySubcategorySelector';
 import { useAuthStore } from '@/store/auth';
 import { usePermissionError } from '@/hooks/usePermissionError';
 
@@ -65,6 +66,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
   const [occurrences, setOccurrences] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [categoryId, setCategoryId] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState(''); // ⚠️ NUEVO: Subcategoría
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('PEN');
 
@@ -172,6 +174,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
       setOccurrences(template.occurrences ? String(template.occurrences) : '');
       setIsActive(template.isActive ?? true);
       setCategoryId(template.category?.id || '');
+      setSubcategoryId(template.subcategory?.id || ''); // ⚠️ NUEVO: Cargar subcategoría
       setAmount(template.amountCents ? String(template.amountCents / 100) : '');
       setCurrency(template.currency || 'PEN');
 
@@ -218,6 +221,11 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
 
     if (!categoryId) {
       Alert.alert('Error', 'Debe seleccionar una categoría');
+      return;
+    }
+
+    if (!subcategoryId) {
+      Alert.alert('Error', 'Debe seleccionar una subcategoría');
       return;
     }
 
@@ -297,6 +305,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           occurrences: occurrences ? parseInt(occurrences) : undefined,
           isActive,
           categoryId,
+          subcategoryId, // ⚠️ NUEVO: Incluir subcategoría
           supplierId: selectedSupplier.id,
           supplierLegalEntityId: supplierLegalEntityId,
         };
@@ -328,6 +337,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           occurrences: occurrences ? parseInt(occurrences) : undefined,
           isActive,
           categoryId,
+          subcategoryId, // ⚠️ NUEVO: Incluir subcategoría
           createdBy: user.id,
           supplierId: selectedSupplier.id,
           supplierLegalEntityId: supplierLegalEntityId,
@@ -636,19 +646,21 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           )}
         </View>
 
-        {/* Category */}
+        {/* Category and Subcategory */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Categorización</Text>
 
-          {renderPicker(
-            'Categoría',
-            categoryId,
-            setCategoryId,
-            categories.map((cat) => ({
-              label: cat.name,
-              value: cat.id,
-            }))
-          )}
+          {/* Selector de Categoría y Subcategoría */}
+          <CategorySubcategorySelector
+            categoryId={categoryId}
+            subcategoryId={subcategoryId}
+            onCategoryChange={setCategoryId}
+            onSubcategoryChange={setSubcategoryId}
+            required={true}
+            disabled={loading}
+            error={!categoryId && 'Debe seleccionar una categoría'}
+            subcategoryError={!subcategoryId && 'Debe seleccionar una subcategoría'}
+          />
         </View>
 
         {/* ============================================ */}

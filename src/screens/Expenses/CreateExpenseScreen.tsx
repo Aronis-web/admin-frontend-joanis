@@ -16,6 +16,7 @@ import { ExpenseStatus, CreateExpenseRequest, Supplier, SupplierLegalEntity } fr
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
 import { TemplateSearchInput } from '@/components/Expenses/TemplateSearchInput';
+import { CategorySubcategorySelector } from '@/components/Expenses/CategorySubcategorySelector';
 import { usePermissionError } from '@/hooks/usePermissionError';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
@@ -61,6 +62,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
   const [expenseType, setExpenseType] = useState<'UNIQUE'>('UNIQUE');
   const [costType, setCostType] = useState<'FIXED' | 'VARIABLE'>('FIXED');
   const [categoryId, setCategoryId] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState(''); // ⚠️ NUEVO: Subcategoría
   const [templateId, setTemplateId] = useState(route?.params?.templateId || '');
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [purchaseId, setPurchaseId] = useState(route?.params?.purchaseId || '');
@@ -157,6 +159,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
       setExpenseType('UNIQUE');
       setCostType(expense.costType || 'FIXED');
       setCategoryId(expense.category?.id || '');
+      setSubcategoryId(expense.subcategory?.id || ''); // ⚠️ NUEVO: Cargar subcategoría
       setTemplateId(expense.template?.id || '');
       setPurchaseId(expense.purchase?.id || '');
       setNotes(expense.notes || '');
@@ -214,6 +217,9 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
       }
       if (template.categoryId) {
         setCategoryId(template.categoryId);
+      }
+      if (template.subcategoryId) {
+        setSubcategoryId(template.subcategoryId); // ⚠️ NUEVO: Cargar subcategoría de plantilla
       }
       if (template.description) {
         setDescription(template.description);
@@ -362,6 +368,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
 
         // Only add optional fields if they have values
         if (categoryId) updateData.categoryId = categoryId;
+        if (subcategoryId) updateData.subcategoryId = subcategoryId; // ⚠️ NUEVO: Subcategoría
         if (templateId) updateData.templateId = templateId;
         if (purchaseId) updateData.purchaseId = purchaseId;
         if (selectedSupplier?.id) updateData.supplierId = selectedSupplier.id;
@@ -419,6 +426,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
 
         // Only add optional fields if they have values
         if (categoryId) createData.categoryId = categoryId;
+        if (subcategoryId) createData.subcategoryId = subcategoryId; // ⚠️ NUEVO: Subcategoría
         if (templateId) createData.templateId = templateId;
         if (purchaseId) createData.purchaseId = purchaseId;
         if (projectId) createData.projectId = projectId;
@@ -672,13 +680,15 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Categorización</Text>
 
-            {renderPicker('Categoría (opcional)', categoryId, setCategoryId, [
-              { label: 'Sin categoría', value: '' },
-              ...categories.map((cat) => ({
-                label: cat.name,
-                value: cat.id,
-              })),
-            ])}
+            {/* Selector de Categoría y Subcategoría */}
+            <CategorySubcategorySelector
+              categoryId={categoryId}
+              subcategoryId={subcategoryId}
+              onCategoryChange={setCategoryId}
+              onSubcategoryChange={setSubcategoryId}
+              required={false}
+              disabled={loading}
+            />
 
             {/* Plantilla - Ahora es un buscador opcional */}
             <TemplateSearchInput

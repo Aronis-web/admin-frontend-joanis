@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Expense } from '@/types/expenses';
 import { ExpenseStatusBadge } from './ExpenseStatusBadge';
+import { CategoryBadge } from './CategoryBadge';
 
 interface ExpenseCardProps {
   expense: Expense;
@@ -156,9 +157,26 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
         <View style={styles.row}>
           <View style={styles.infoItem}>
             <Text style={styles.label}>Categoría</Text>
-            <Text style={styles.value} numberOfLines={1}>
-              {expense.category?.name || 'Sin categoría'}
-            </Text>
+            {expense.category && expense.subcategory ? (
+              <CategoryBadge
+                category={{
+                  name: expense.category.name,
+                  code: expense.category.code || '',
+                  color: expense.category.color,
+                  icon: expense.category.icon,
+                }}
+                subcategory={{
+                  name: expense.subcategory.name,
+                  code: expense.subcategory.code || '',
+                }}
+                size="small"
+                showCode={false}
+              />
+            ) : (
+              <Text style={styles.value} numberOfLines={1}>
+                {expense.category?.name || 'Sin categoría'}
+              </Text>
+            )}
           </View>
           <View style={styles.infoItem}>
             <Text style={styles.label}>Fecha</Text>

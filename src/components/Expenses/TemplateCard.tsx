@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ExpenseTemplate, TemplateFrequencyLabels } from '@/types/expenses';
+import { CategoryBadge } from './CategoryBadge';
 
 interface TemplateCardProps {
   template: ExpenseTemplate;
@@ -86,9 +87,26 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
           </View>
           <View style={styles.infoItem}>
             <Text style={styles.label}>Categoría</Text>
-            <Text style={styles.value} numberOfLines={1}>
-              {template.category?.name || 'Sin categoría'}
-            </Text>
+            {template.category && template.subcategory ? (
+              <CategoryBadge
+                category={{
+                  name: template.category.name,
+                  code: template.category.code || '',
+                  color: template.category.color,
+                  icon: template.category.icon,
+                }}
+                subcategory={{
+                  name: template.subcategory.name,
+                  code: template.subcategory.code || '',
+                }}
+                size="small"
+                showCode={false}
+              />
+            ) : (
+              <Text style={styles.value} numberOfLines={1}>
+                {template.category?.name || 'Sin categoría'}
+              </Text>
+            )}
           </View>
         </View>
 

@@ -115,15 +115,21 @@ export enum ProjectStatus {
 // ============================================
 
 /**
- * Expense Category - New Backend Structure
+ * Expense Category - New Backend Structure with Subcategories Support
  */
 export interface ExpenseCategory {
   id: string;
   name: string;
+  code: string;
   description?: string;
+  isSubcategory: boolean; // false para categorías principales, true para subcategorías
+  parentId: string | null; // null para categorías principales, ID de la categoría padre para subcategorías
   color?: string;
   icon?: string;
+  displayOrder: number;
   isActive: boolean;
+  subcategories?: ExpenseCategory[]; // Array de subcategorías (solo para categorías principales)
+  parentCategory?: ExpenseCategory; // Categoría padre (solo para subcategorías)
   createdAt: string;
   updatedAt: string;
 }
@@ -216,6 +222,7 @@ export interface Expense {
     name: string;
   };
   categoryId?: string;
+  subcategoryId?: string; // ⚠️ NUEVO: ID de subcategoría (OBLIGATORIO)
   projectId?: string;
   project?: {
     id: string;
@@ -235,6 +242,7 @@ export interface Expense {
   expenseDate?: string;
   notes?: string;
   category?: ExpenseCategory;
+  subcategory?: ExpenseCategory; // ⚠️ NUEVO: Subcategoría asociada
   template?: ExpenseTemplate;
   purchase?: {
     id: string;
@@ -305,7 +313,9 @@ export interface ExpenseTemplate {
     name: string;
   };
   categoryId?: string;
+  subcategoryId?: string; // ⚠️ NUEVO: ID de subcategoría (OBLIGATORIO)
   category?: ExpenseCategory;
+  subcategory?: ExpenseCategory; // ⚠️ NUEVO: Subcategoría asociada
   projectId?: string;
   project?: {
     id: string;
@@ -480,6 +490,7 @@ export interface CreateExpenseRequest {
   costType: 'FIXED' | 'VARIABLE';
   // Note: status is set automatically by backend (ACTIVE by default)
   categoryId?: string;
+  subcategoryId?: string; // ⚠️ NUEVO: ID de subcategoría (OBLIGATORIO si se proporciona categoryId)
   projectId?: string; // Associate with project
   templateId?: string;
   purchaseId?: string;
@@ -522,6 +533,7 @@ export interface UpdateExpenseRequest {
   expenseType?: 'UNIQUE' | 'RECURRENT' | 'SEMI_RECURRENT';
   costType?: 'FIXED' | 'VARIABLE';
   categoryId?: string;
+  subcategoryId?: string; // ⚠️ NUEVO: ID de subcategoría
   templateId?: string;
   purchaseId?: string;
 
@@ -570,6 +582,7 @@ export interface CreateExpenseTemplateRequest {
   companyId: string;
   siteId: string; // Required - sede must be selected manually
   categoryId: string; // Required - must be UUID
+  subcategoryId: string; // ⚠️ NUEVO: ID de subcategoría (OBLIGATORIO)
   projectId?: string;
   supplierId?: string;
   supplierLegalEntityId?: string;
@@ -596,6 +609,7 @@ export interface CreateExpenseTemplateRequest {
 export interface UpdateExpenseTemplateRequest {
   code?: string;
   categoryId?: string;
+  subcategoryId?: string; // ⚠️ NUEVO: ID de subcategoría
   projectId?: string;
   supplierId?: string;
   supplierLegalEntityId?: string;
@@ -796,9 +810,14 @@ export type ExpenseProjectsResponse = PaginatedResult<ExpenseProject>;
  */
 export interface CreateExpenseCategoryRequest {
   name: string;
+  code: string;
   description?: string;
+  isSubcategory?: boolean; // false para categoría principal, true para subcategoría
+  parentId?: string; // ID de la categoría padre (solo para subcategorías)
   icon?: string;
   color?: string;
+  displayOrder?: number;
+  isActive?: boolean;
 }
 
 /**
@@ -806,9 +825,13 @@ export interface CreateExpenseCategoryRequest {
  */
 export interface UpdateExpenseCategoryRequest {
   name?: string;
+  code?: string;
   description?: string;
+  isSubcategory?: boolean;
+  parentId?: string;
   icon?: string;
   color?: string;
+  displayOrder?: number;
   isActive?: boolean;
 }
 

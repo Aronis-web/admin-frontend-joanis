@@ -189,6 +189,20 @@ class ExpensesService {
     return apiClient.delete<void>(`${this.categoriesPath}/${id}`);
   }
 
+  /**
+   * Activate an expense category
+   */
+  async activateCategory(id: string): Promise<ExpenseCategory> {
+    return apiClient.post<ExpenseCategory>(`${this.categoriesPath}/${id}/activate`);
+  }
+
+  /**
+   * Deactivate an expense category
+   */
+  async deactivateCategory(id: string): Promise<ExpenseCategory> {
+    return apiClient.post<ExpenseCategory>(`${this.categoriesPath}/${id}/deactivate`);
+  }
+
   // ============================================
   // Expenses CRUD
   // ============================================
