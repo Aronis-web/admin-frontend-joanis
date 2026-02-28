@@ -70,6 +70,10 @@ export const MAIN_ROUTES = {
   ACCOUNTS_PAYABLE: 'AccountsPayable',
   ACCOUNT_PAYABLE_DETAIL: 'AccountPayableDetail',
 
+  // Accounts Receivable
+  ACCOUNTS_RECEIVABLE: 'AccountsReceivable',
+  ACCOUNT_RECEIVABLE_DETAIL: 'AccountReceivableDetail',
+
   // Customers
   CUSTOMERS: 'Customers',
   CUSTOMER_DETAIL: 'CustomerDetail',
@@ -243,6 +247,10 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Accounts Payable
   ACCOUNTS_PAYABLE: 'accounts-payable.read',
   ACCOUNT_PAYABLE_DETAIL: 'accounts-payable.read-details',
+
+  // Accounts Receivable
+  ACCOUNTS_RECEIVABLE: 'accounts-receivable.read',
+  ACCOUNT_RECEIVABLE_DETAIL: 'accounts-receivable.read-details',
 
   // Customers
   CUSTOMERS: 'customers.read',

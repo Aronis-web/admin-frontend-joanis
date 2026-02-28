@@ -491,6 +491,114 @@ export const PERMISSIONS = {
     ADMIN_FULL: 'accounts-payable.admin-full',
     FULL_ACCESS: 'accounts-payable.full-access',
   },
+
+  // ========== CUENTAS POR COBRAR ==========
+  ACCOUNTS_RECEIVABLE: {
+    // Lectura
+    READ: 'accounts-receivable.read',
+    READ_ALL: 'accounts-receivable.read-all',
+    READ_OWN_COMPANY: 'accounts-receivable.read-own-company',
+    READ_DETAILS: 'accounts-receivable.read-details',
+
+    // Escritura
+    CREATE: 'accounts-receivable.create',
+    UPDATE: 'accounts-receivable.update',
+    DELETE: 'accounts-receivable.delete',
+
+    // Búsqueda
+    SEARCH: 'accounts-receivable.search',
+    SEARCH_INTELLIGENT: 'accounts-receivable.search-intelligent',
+    SEARCH_ALL_COMPANIES: 'accounts-receivable.search-all-companies',
+
+    // Estado
+    CHANGE_STATUS: 'accounts-receivable.change-status',
+    APPROVE: 'accounts-receivable.approve',
+    CANCEL: 'accounts-receivable.cancel',
+    DISPUTE: 'accounts-receivable.dispute',
+    WRITE_OFF: 'accounts-receivable.write-off',
+
+    // Cobros
+    COLLECTIONS: {
+      READ: 'accounts-receivable.collections.read',
+      CREATE: 'accounts-receivable.collections.create',
+      UPDATE: 'accounts-receivable.collections.update',
+      DELETE: 'accounts-receivable.collections.delete',
+      APPROVE: 'accounts-receivable.collections.approve',
+    },
+
+    // Reportes
+    REPORTS: {
+      SUMMARY: 'accounts-receivable.reports.summary',
+      BY_DEBTOR: 'accounts-receivable.reports.by-debtor',
+      BY_STATUS: 'accounts-receivable.reports.by-status',
+      AGING: 'accounts-receivable.reports.aging',
+      OVERDUE: 'accounts-receivable.reports.overdue',
+      CASH_FLOW: 'accounts-receivable.reports.cash-flow',
+      EXPORT: 'accounts-receivable.reports.export',
+      DOWNLOAD_EXCEL: 'accounts-receivable.reports.download-excel',
+      DOWNLOAD_PDF: 'accounts-receivable.reports.download-pdf',
+    },
+
+    // Cronograma
+    SCHEDULE: {
+      READ: 'accounts-receivable.schedule.read',
+      CREATE: 'accounts-receivable.schedule.create',
+      UPDATE: 'accounts-receivable.schedule.update',
+      DELETE: 'accounts-receivable.schedule.delete',
+    },
+
+    // Historial
+    HISTORY: {
+      READ: 'accounts-receivable.history.read',
+      EXPORT: 'accounts-receivable.history.export',
+    },
+
+    // Documentos
+    DOCUMENTS: {
+      READ: 'accounts-receivable.documents.read',
+      UPLOAD: 'accounts-receivable.documents.upload',
+      DOWNLOAD: 'accounts-receivable.documents.download',
+      DELETE: 'accounts-receivable.documents.delete',
+    },
+
+    // Administración
+    ADMIN: {
+      UPDATE_OVERDUE: 'accounts-receivable.admin.update-overdue',
+      BULK_UPDATE: 'accounts-receivable.admin.bulk-update',
+      BULK_DELETE: 'accounts-receivable.admin.bulk-delete',
+      RESTORE: 'accounts-receivable.admin.restore',
+      VIEW_DELETED: 'accounts-receivable.admin.view-deleted',
+      PERMANENT_DELETE: 'accounts-receivable.admin.permanent-delete',
+    },
+
+    // Configuración
+    CONFIG: {
+      READ: 'accounts-receivable.config.read',
+      UPDATE: 'accounts-receivable.config.update',
+    },
+
+    // Notificaciones
+    NOTIFICATIONS: {
+      READ: 'accounts-receivable.notifications.read',
+      CREATE: 'accounts-receivable.notifications.create',
+      UPDATE: 'accounts-receivable.notifications.update',
+      DELETE: 'accounts-receivable.notifications.delete',
+    },
+
+    // Integración
+    INTEGRATION: {
+      SYNC: 'accounts-receivable.integration.sync',
+      IMPORT: 'accounts-receivable.integration.import',
+      EXPORT: 'accounts-receivable.integration.export',
+    },
+
+    // Permisos Combinados
+    READ_FULL: 'accounts-receivable.read-full',
+    WRITE_FULL: 'accounts-receivable.write-full',
+    REPORTS_FULL: 'accounts-receivable.reports-full',
+    ADMIN_FULL: 'accounts-receivable.admin-full',
+    FULL_ACCESS: 'accounts-receivable.full-access',
+  },
 } as const;
 
 /**

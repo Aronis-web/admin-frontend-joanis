@@ -68,6 +68,11 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
     navigation.navigate('CreateExpenseCategory', { categoryId: category.id });
   };
 
+  const handleCreateSubcategory = (category: ExpenseCategory) => {
+    // Navigate to create subcategory screen
+    navigation.navigate('CreateExpenseCategory', { parentCategoryId: category.id });
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -108,6 +113,7 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
             key={category.id}
             category={category}
             onPress={handleCategoryPress}
+            onCreateSubcategory={handleCreateSubcategory}
             showSubcategories={true}
           />
         ))}

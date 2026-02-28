@@ -2,10 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ExpenseCategory } from '@/types/expenses';
+import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
 
 interface CategoryCardProps {
   category: ExpenseCategory;
   onPress: (category: ExpenseCategory) => void;
+  onCreateSubcategory?: (category: ExpenseCategory) => void;
   isSubcategory?: boolean;
   showSubcategories?: boolean;
 }
@@ -13,16 +15,41 @@ interface CategoryCardProps {
 export const CategoryCard: React.FC<CategoryCardProps> = ({
   category,
   onPress,
+  onCreateSubcategory,
   isSubcategory = false,
   showSubcategories = true,
 }) => {
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const hasSubcategories = category.subcategories && category.subcategories.length > 0;
+  const safeIconName = getSafeIconName(category.icon, getCategoryFallbackIcon(category.name));
+
+  const handlePress = () => {
+    if (!isSubcategory && hasSubcategories) {
+      // Toggle expansion for main categories with subcategories
+      setIsExpanded(!isExpanded);
+    } else {
+      // Navigate to edit for subcategories or categories without subcategories
+      onPress(category);
+    }
+  };
+
+  const handleEditPress = (e: any) => {
+    e.stopPropagation();
+    onPress(category);
+  };
+
+  const handleCreateSubcategory = (e: any) => {
+    e.stopPropagation();
+    if (onCreateSubcategory) {
+      onCreateSubcategory(category);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={[styles.card, isSubcategory && styles.subcategoryCard]}
-        onPress={() => onPress(category)}
+        onPress={handlePress}
         activeOpacity={0.7}
       >
         {isSubcategory && <View style={styles.subcategoryIndicator} />}
@@ -30,7 +57,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
         <View style={styles.iconContainer}>
           {category.icon ? (
             <Ionicons
-              name={category.icon as any}
+              name={safeIconName as any}
               size={isSubcategory ? 24 : 32}
               color={category.color || '#6366F1'}
             />
@@ -79,10 +106,32 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
             </View>
           )}
         </View>
+
+        {/* Action buttons for main categories */}
+        {!isSubcategory && (
+          <View style={styles.actionButtons}>
+            {onCreateSubcategory && (
+              <TouchableOpacity onPress={handleCreateSubcategory} style={styles.addButton}>
+                <Ionicons name="add-circle-outline" size={20} color="#10B981" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={handleEditPress} style={styles.editButton}>
+              <Ionicons name="create-outline" size={20} color="#6366F1" />
+            </TouchableOpacity>
+            {hasSubcategories && (
+              <Ionicons
+                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color="#64748B"
+                style={styles.expandIcon}
+              />
+            )}
+          </View>
+        )}
       </TouchableOpacity>
 
-      {/* Render subcategories */}
-      {!isSubcategory && showSubcategories && hasSubcategories && (
+      {/* Render subcategories - only when expanded */}
+      {!isSubcategory && showSubcategories && hasSubcategories && isExpanded && (
         <View style={styles.subcategoriesContainer}>
           {category.subcategories!.map((subcat) => (
             <CategoryCard
@@ -215,6 +264,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: '#6366F1',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 8,
+  },
+  addButton: {
+    padding: 4,
+  },
+  editButton: {
+    padding: 4,
+  },
+  expandIcon: {
+    marginLeft: 4,
   },
   subcategoriesContainer: {
     marginTop: 4,

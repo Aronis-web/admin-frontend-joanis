@@ -16,12 +16,14 @@ import { Picker } from '@react-native-picker/picker';
 import { expensesService } from '@/services/api';
 import { ExpenseCategory, CreateExpenseCategoryRequest } from '@/types/expenses';
 import { usePermissionError } from '@/hooks/usePermissionError';
+import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
 
 interface CreateExpenseCategoryScreenProps {
   navigation: any;
   route?: {
     params?: {
       categoryId?: string;
+      parentCategoryId?: string; // Para crear subcategorías
     };
   };
 }
@@ -36,36 +38,40 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
   const { handlePermissionError } = usePermissionError();
 
   const categoryId = route?.params?.categoryId;
+  const parentCategoryId = route?.params?.parentCategoryId;
   const isEditing = !!categoryId;
+  const isCreatingSubcategory = !!parentCategoryId;
 
   // Form fields
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
-  const [isSubcategory, setIsSubcategory] = useState(false);
-  const [parentId, setParentId] = useState('');
-  const [color, setColor] = useState('#6366F1');
-  const [icon, setIcon] = useState('');
-  const [displayOrder, setDisplayOrder] = useState('0');
   const [isActive, setIsActive] = useState(true);
+
+  // Parent category info (for display when creating subcategory)
+  const [parentCategory, setParentCategory] = useState<ExpenseCategory | null>(null);
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    loadMainCategories();
     if (isEditing && categoryId) {
       loadCategory();
+    } else if (isCreatingSubcategory && parentCategoryId) {
+      loadParentCategory();
     }
-  }, [categoryId]);
+  }, [categoryId, parentCategoryId]);
 
-  const loadMainCategories = async () => {
+  const loadParentCategory = async () => {
+    if (!parentCategoryId) return;
+
     try {
-      const response = await expensesService.getCategories();
-      const mains = response.data.filter((cat) => !cat.isSubcategory && cat.isActive);
-      setMainCategories(mains);
+      const category = await expensesService.getCategory(parentCategoryId);
+      setParentCategory(category);
     } catch (error) {
-      console.error('Error loading main categories:', error);
+      console.error('Error loading parent category:', error);
+      Alert.alert('Error', 'No se pudo cargar la categoría principal');
+      navigation.goBack();
     }
   };
 
@@ -79,12 +85,13 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
       setName(category.name);
       setCode(category.code);
       setDescription(category.description || '');
-      setIsSubcategory(category.isSubcategory);
-      setParentId(category.parentId || '');
-      setColor(category.color || '#6366F1');
-      setIcon(category.icon || '');
-      setDisplayOrder(category.displayOrder.toString());
       setIsActive(category.isActive);
+
+      // If editing a subcategory, load parent info
+      if (category.parentId) {
+        const parent = await expensesService.getCategory(category.parentId);
+        setParentCategory(parent);
+      }
     } catch (error: any) {
       console.error('Error loading category:', error);
       Alert.alert('Error', 'No se pudo cargar la categoría');
@@ -111,10 +118,6 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
       newErrors.code = 'El código solo puede contener mayúsculas, números y guiones';
     }
 
-    if (isSubcategory && !parentId) {
-      newErrors.parentId = 'Debe seleccionar una categoría principal';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -132,11 +135,8 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
         name: name.trim(),
         code: code.trim().toUpperCase(),
         description: description.trim() || undefined,
-        isSubcategory,
-        parentId: isSubcategory ? parentId : undefined,
-        color: color || undefined,
-        icon: icon.trim() || undefined,
-        displayOrder: parseInt(displayOrder) || 0,
+        isSubcategory: isCreatingSubcategory || !!parentCategory,
+        parentId: isCreatingSubcategory ? parentCategoryId : (parentCategory?.id || undefined),
         isActive,
       };
 
@@ -144,8 +144,9 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
         await expensesService.updateCategory(categoryId, data);
         Alert.alert('Éxito', 'Categoría actualizada correctamente');
       } else {
+        const message = isCreatingSubcategory ? 'Subcategoría creada correctamente' : 'Categoría creada correctamente';
         await expensesService.createCategory(data);
-        Alert.alert('Éxito', 'Categoría creada correctamente');
+        Alert.alert('Éxito', message);
       }
 
       navigation.goBack();
@@ -181,49 +182,32 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
           <Ionicons name="arrow-back" size={24} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {isEditing ? 'Editar Categoría' : 'Nueva Categoría'}
+          {isEditing
+            ? (parentCategory ? 'Editar Subcategoría' : 'Editar Categoría')
+            : (isCreatingSubcategory ? 'Nueva Subcategoría' : 'Nueva Categoría')
+          }
         </Text>
         <View style={styles.headerRight} />
       </View>
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-        {/* Tipo de Categoría */}
-        <View style={styles.section}>
-          <View style={styles.switchRow}>
-            <View style={styles.switchLabel}>
-              <Text style={styles.label}>Es una subcategoría</Text>
-              <Text style={styles.helpText}>
-                Las subcategorías pertenecen a una categoría principal
-              </Text>
-            </View>
-            <Switch
-              value={isSubcategory}
-              onValueChange={setIsSubcategory}
-              trackColor={{ false: '#CBD5E1', true: '#A5B4FC' }}
-              thumbColor={isSubcategory ? '#6366F1' : '#F1F5F9'}
-            />
-          </View>
-        </View>
-
-        {/* Categoría Principal (solo si es subcategoría) */}
-        {isSubcategory && (
+        {/* Mostrar categoría padre si es subcategoría */}
+        {parentCategory && (
           <View style={styles.section}>
-            <Text style={styles.label}>
-              Categoría Principal <Text style={styles.required}>*</Text>
-            </Text>
-            <View style={[styles.pickerContainer, errors.parentId && styles.inputError]}>
-              <Picker
-                selectedValue={parentId}
-                onValueChange={setParentId}
-                style={styles.picker}
-              >
-                <Picker.Item label="Seleccione una categoría..." value="" />
-                {mainCategories.map((cat) => (
-                  <Picker.Item key={cat.id} label={`${cat.name} (${cat.code})`} value={cat.id} />
-                ))}
-              </Picker>
+            <Text style={styles.label}>Categoría Principal</Text>
+            <View style={styles.parentCategoryCard}>
+              <View style={[styles.parentIconContainer, { backgroundColor: parentCategory.color || '#6366F1' }]}>
+                <Ionicons
+                  name={getSafeIconName(parentCategory.icon, getCategoryFallbackIcon(parentCategory.name)) as any}
+                  size={24}
+                  color="#FFFFFF"
+                />
+              </View>
+              <View style={styles.parentCategoryInfo}>
+                <Text style={styles.parentCategoryName}>{parentCategory.name}</Text>
+                <Text style={styles.parentCategoryCode}>{parentCategory.code}</Text>
+              </View>
             </View>
-            {errors.parentId && <Text style={styles.errorText}>{errors.parentId}</Text>}
           </View>
         )}
 
@@ -274,56 +258,6 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
             numberOfLines={3}
             textAlignVertical="top"
           />
-        </View>
-
-        {/* Color */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Color</Text>
-          <View style={styles.colorRow}>
-            <View style={[styles.colorPreview, { backgroundColor: color }]} />
-            <TextInput
-              style={[styles.input, styles.colorInput]}
-              value={color}
-              onChangeText={setColor}
-              placeholder="#6366F1"
-              maxLength={7}
-            />
-          </View>
-          <Text style={styles.helpText}>Formato hexadecimal (ej: #6366F1)</Text>
-        </View>
-
-        {/* Icono */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Icono (Ionicons)</Text>
-          <View style={styles.iconRow}>
-            {icon && (
-              <View style={styles.iconPreview}>
-                <Ionicons name={icon as any} size={24} color={color} />
-              </View>
-            )}
-            <TextInput
-              style={[styles.input, styles.iconInput]}
-              value={icon}
-              onChangeText={setIcon}
-              placeholder="Ej: settings, wifi, home"
-            />
-          </View>
-          <Text style={styles.helpText}>
-            Nombre del icono de Ionicons (ej: settings, wifi, home)
-          </Text>
-        </View>
-
-        {/* Orden de Visualización */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Orden de Visualización</Text>
-          <TextInput
-            style={styles.input}
-            value={displayOrder}
-            onChangeText={setDisplayOrder}
-            placeholder="0"
-            keyboardType="numeric"
-          />
-          <Text style={styles.helpText}>Número para ordenar las categorías (menor = primero)</Text>
         </View>
 
         {/* Activo */}
@@ -483,35 +417,35 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  colorRow: {
+  parentCategoryCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  colorPreview: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-  },
-  colorInput: {
-    flex: 1,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconPreview: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  parentIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  parentCategoryInfo: {
+    flex: 1,
+  },
+  parentCategoryName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  parentCategoryCode: {
+    fontSize: 13,
+    color: '#64748B',
   },
   iconInput: {
     flex: 1,

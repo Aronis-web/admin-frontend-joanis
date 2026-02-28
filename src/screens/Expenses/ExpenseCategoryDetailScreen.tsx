@@ -13,6 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { expensesService } from '@/services/api';
 import { ExpenseCategory } from '@/types/expenses';
+import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
 
 interface ExpenseCategoryDetailScreenProps {
   navigation: any;
@@ -138,7 +139,7 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
         {/* Category Header */}
         <View style={styles.categoryHeader}>
           <View style={[styles.iconContainer, { backgroundColor: category.color || '#6366F1' }]}>
-            <Ionicons name={(category.icon as any) || 'pricetag'} size={32} color="#FFFFFF" />
+            <Ionicons name={getSafeIconName(category.icon, getCategoryFallbackIcon(category.name)) as any} size={32} color="#FFFFFF" />
           </View>
           <View style={styles.categoryInfo}>
             <Text style={styles.categoryName}>{category.name}</Text>
@@ -183,38 +184,38 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
         </View>
 
         {/* Parent Category */}
-        {category.parent && (
+        {category.parentCategory && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Categoría Padre</Text>
             <View style={styles.parentCategory}>
               <View
                 style={[
                   styles.iconContainer,
-                  { backgroundColor: category.parent.color || '#6366F1' },
+                  { backgroundColor: category.parentCategory.color || '#6366F1' },
                 ]}
               >
                 <Ionicons
-                  name={(category.parent.icon as any) || 'pricetag'}
+                  name={getSafeIconName(category.parentCategory.icon, getCategoryFallbackIcon(category.parentCategory.name)) as any}
                   size={20}
                   color="#FFFFFF"
                 />
               </View>
               <View style={styles.parentInfo}>
-                <Text style={styles.parentName}>{category.parent.name}</Text>
-                <Text style={styles.parentCode}>{category.parent.code}</Text>
+                <Text style={styles.parentName}>{category.parentCategory.name}</Text>
+                <Text style={styles.parentCode}>{category.parentCategory.code}</Text>
               </View>
             </View>
           </View>
         )}
 
         {/* Children Categories */}
-        {category.children && category.children.length > 0 && (
+        {category.subcategories && category.subcategories.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Subcategorías ({category.children.length})</Text>
-            {category.children.map((child) => (
+            <Text style={styles.sectionTitle}>Subcategorías ({category.subcategories.length})</Text>
+            {category.subcategories.map((child: ExpenseCategory) => (
               <View key={child.id} style={styles.childCategory}>
                 <View style={[styles.iconContainer, { backgroundColor: child.color || '#6366F1' }]}>
-                  <Ionicons name={(child.icon as any) || 'pricetag'} size={20} color="#FFFFFF" />
+                  <Ionicons name={getSafeIconName(child.icon, getCategoryFallbackIcon(child.name)) as any} size={20} color="#FFFFFF" />
                 </View>
                 <View style={styles.childInfo}>
                   <Text style={styles.childName}>{child.name}</Text>
@@ -227,6 +228,19 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
 
         {/* Actions */}
         <View style={styles.actionsSection}>
+          {/* Solo mostrar botón de crear subcategoría si es categoría principal */}
+          {!category.isSubcategory && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.createSubcategoryButton]}
+              onPress={() => navigation.navigate('CreateExpenseCategory', { parentCategoryId: categoryId })}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#10B981" />
+              <Text style={[styles.actionButtonText, styles.createSubcategoryButtonText]}>
+                Crear Subcategoría
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity style={styles.actionButton} onPress={handleEdit}>
             <Ionicons name="create-outline" size={20} color="#6366F1" />
             <Text style={styles.actionButtonText}>Editar</Text>
@@ -448,6 +462,12 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: '#DC2626',
+  },
+  createSubcategoryButton: {
+    backgroundColor: '#ECFDF5',
+  },
+  createSubcategoryButtonText: {
+    color: '#10B981',
   },
   bottomSpacer: {
     height: 20,

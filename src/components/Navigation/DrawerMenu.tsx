@@ -196,10 +196,10 @@ const menuCategories: MenuCategory[] = [
       {
         id: 'accounts-receivable',
         icon: '💵',
-        label: 'Cuentas por Cobrar (Próximamente)',
-        route: MAIN_ROUTES.HOME, // Temporal hasta que se implemente
+        label: 'Cuentas por Cobrar',
+        route: MAIN_ROUTES.ACCOUNTS_RECEIVABLE,
         color: '#10B981',
-        requiredPermissions: [],
+        requiredPermissions: ['accounts-receivable.read', 'accounts-receivable.read-own-company', 'accounts-receivable.read-all'],
       },
       {
         id: 'treasury',

@@ -85,3 +85,12 @@ export type {
   CreateAccountPayableRequest,
   UpdateAccountPayableRequest,
 } from './accounts-payable';
+
+export { accountsReceivableService } from './accounts-receivable';
+export type {
+  AccountReceivable,
+  AccountsReceivableResponse,
+  QueryAccountsReceivableParams,
+  CreateAccountReceivableRequest,
+  UpdateAccountReceivableRequest,
+} from './accounts-receivable';

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
 
 interface CategoryBadgeProps {
   category: {
@@ -51,6 +52,7 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
   };
 
   const currentSize = sizeStyles[size];
+  const safeIconName = getSafeIconName(category.icon, getCategoryFallbackIcon(category.name));
 
   return (
     <View style={[styles.container, currentSize.container]}>
@@ -64,7 +66,7 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
       >
         {category.icon && (
           <Ionicons
-            name={category.icon as any}
+            name={safeIconName as any}
             size={currentSize.icon}
             color="#FFFFFF"
             style={styles.icon}

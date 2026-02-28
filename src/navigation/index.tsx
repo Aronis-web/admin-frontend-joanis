@@ -60,6 +60,10 @@ const SupplierDebtsScreen = lazyLoad(() => import('@/screens/Suppliers/SupplierD
 const AccountsPayableScreen = lazyLoad(() => import('@/screens/AccountsPayable').then(m => ({ default: m.AccountsPayableScreen })), 'Cargando cuentas por pagar...');
 const AccountPayableDetailScreen = lazyLoad(() => import('@/screens/AccountsPayable').then(m => ({ default: m.AccountPayableDetailScreen })), 'Cargando detalle...');
 
+// Accounts Receivable Screens - Lazy Loaded
+const AccountsReceivableScreen = lazyLoad(() => import('@/screens/AccountsReceivable').then(m => ({ default: m.AccountsReceivableScreen })), 'Cargando cuentas por cobrar...');
+const AccountReceivableDetailScreen = lazyLoad(() => import('@/screens/AccountsReceivable').then(m => ({ default: m.AccountReceivableDetailScreen })), 'Cargando detalle...');
+
 // Customers Screens - Lazy Loaded
 const CustomersScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomersScreen })));
 const CustomerDetailScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomerDetailScreen })));
@@ -89,6 +93,7 @@ const CreateExpenseProjectScreen = lazyLoad(() => import('@/screens/Expenses/Cre
 const ExpenseProjectDetailScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseProjectDetailScreen').then(m => ({ default: m.ExpenseProjectDetailScreen })));
 const ExpenseCategoriesScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseCategoriesScreen').then(m => ({ default: m.ExpenseCategoriesScreen })));
 const ExpenseCategoryDetailScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseCategoryDetailScreen').then(m => ({ default: m.ExpenseCategoryDetailScreen })));
+const CreateExpenseCategoryScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpenseCategoryScreen'));
 const ExpenseReportsScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseReportsScreen').then(m => ({ default: m.ExpenseReportsScreen })));
 const ExpenseTemplatesScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseTemplatesScreen').then(m => ({ default: m.ExpenseTemplatesScreen })));
 const CreateExpenseTemplateScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpenseTemplateScreen').then(m => ({ default: m.CreateExpenseTemplateScreen })));
@@ -480,6 +485,43 @@ const MainStack = React.memo(() => {
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ACCOUNTS_RECEIVABLE}
+        options={{
+          title: 'Cuentas por Cobrar',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'accounts-receivable.read',
+              'accounts-receivable.read-own-company',
+              'accounts-receivable.read-all',
+            ]}
+            requireAll={false}
+          >
+            <AccountsReceivableScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ACCOUNT_RECEIVABLE_DETAIL}
+        options={{
+          title: 'Detalle de Cuenta por Cobrar',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'accounts-receivable.read',
+              'accounts-receivable.read-details',
+            ]}
+            requireAll={false}
+          >
+            <AccountReceivableDetailScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
         name={MAIN_ROUTES.CUSTOMERS}
         options={{
           title: 'Clientes',
@@ -703,6 +745,20 @@ const MainStack = React.memo(() => {
         component={ExpenseCategoryDetailScreen}
         options={{
           title: 'Detalle de Categoría',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.CREATE_EXPENSE_CATEGORY}
+        component={CreateExpenseCategoryScreen}
+        options={{
+          title: 'Crear Categoría',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.EDIT_EXPENSE_CATEGORY}
+        component={CreateExpenseCategoryScreen}
+        options={{
+          title: 'Editar Categoría',
         }}
       />
       <MainStackNavigator.Screen
