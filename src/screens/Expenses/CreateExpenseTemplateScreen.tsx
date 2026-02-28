@@ -165,8 +165,8 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
       setTemplateExpenseType(template.templateExpenseType || TemplateExpenseType.RECURRENT);
       setRecurrenceType(template.recurrenceType || RecurrenceType.REGULAR);
       setFrequency(template.frequency || TemplateFrequency.MONTHLY);
-      setDayOfWeek(template.dayOfWeek);
-      setDayOfMonth(template.dayOfMonth);
+      setDayOfWeek(template.dayOfWeek ?? undefined);
+      setDayOfMonth(template.dayOfMonth ?? undefined);
       setStartDate(template.startDate || '');
       setEndDate(template.endDate || '');
       setOccurrences(template.occurrences ? String(template.occurrences) : '');
@@ -177,7 +177,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
 
       // Load supplier data if exists
       if (template.supplier) {
-        setSelectedSupplier(template.supplier);
+        setSelectedSupplier(template.supplier as unknown as Supplier);
       }
       if (template.supplierLegalEntityId) {
         setSupplierLegalEntityId(template.supplierLegalEntityId);

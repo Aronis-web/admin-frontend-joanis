@@ -429,7 +429,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           ...createData,
           isFromProject,
           projectId,
-          siteName: selectedSite?.name,
+          siteName: (selectedSite && selectedSite.name) || 'N/A',
         });
 
         const newExpense = await expensesService.createExpense(createData);
@@ -981,47 +981,6 @@ const styles = StyleSheet.create({
   },
   bannerContent: {
     flex: 1,
-  },
-  disabledInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-  },
-  disabledInputText: {
-    fontSize: 15,
-    color: '#475569',
-    fontWeight: '500',
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 6,
-    fontStyle: 'italic',
-  },
-  required: {
-    color: '#EF4444',
-  },
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#EEF2FF',
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 16,
-    gap: 12,
-  },
-  infoBannerText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#6366F1',
-    lineHeight: 18,
   },
 });
 

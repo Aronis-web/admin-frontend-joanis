@@ -318,6 +318,7 @@ export interface ExpenseTemplate {
     name: string;
     [key: string]: any;
   };
+  supplierLegalEntityId?: string;
   company?: {
     id: string;
     name: string;
@@ -571,6 +572,7 @@ export interface CreateExpenseTemplateRequest {
   categoryId: string; // Required - must be UUID
   projectId?: string;
   supplierId?: string;
+  supplierLegalEntityId?: string;
   name: string;
   description?: string;
   templateExpenseType: TemplateExpenseType; // REQUIRED: RECURRENT or SEMI_RECURRENT
@@ -596,6 +598,7 @@ export interface UpdateExpenseTemplateRequest {
   categoryId?: string;
   projectId?: string;
   supplierId?: string;
+  supplierLegalEntityId?: string;
   name?: string;
   description?: string;
   templateExpenseType?: TemplateExpenseType;
