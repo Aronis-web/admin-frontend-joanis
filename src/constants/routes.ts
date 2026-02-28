@@ -157,6 +157,10 @@ export const MAIN_ROUTES = {
 
   // Organization
   ORGANIZATION_CHART: 'OrganizationChart',
+
+  // Cash Reconciliation
+  CASH_RECONCILIATION_MENU: 'CashReconciliationMenu',
+  UPLOAD_CASH_RECONCILIATION_FILES: 'UploadCashReconciliationFiles',
 } as const;
 
 /**
@@ -332,6 +336,10 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Organization
   ORGANIZATION_CHART: 'organization.positions.company.read',
+
+  // Cash Reconciliation
+  CASH_RECONCILIATION_MENU: 'cash-reconciliation.read',
+  UPLOAD_CASH_RECONCILIATION_FILES: 'cash-reconciliation.upload',
 };
 
 /**

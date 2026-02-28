@@ -332,6 +332,16 @@ export type MainStackParamList = {
 
   // Organization
   OrganizationChart: undefined;
+
+  // Cash Reconciliation
+  CashReconciliationMenu: undefined;
+  UploadCashReconciliationFiles: undefined;
+
+  // Accounts Receivable
+  AccountsReceivable: undefined;
+  AccountReceivableDetail: {
+    accountReceivableId: string;
+  };
 };
 
 /**
