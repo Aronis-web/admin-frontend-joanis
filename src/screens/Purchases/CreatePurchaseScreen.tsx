@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,46 +11,27 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { purchasesService, suppliersService } from '@/services/api';
+import { purchasesService } from '@/services/api';
 import { GuideType, GuideTypeLabels } from '@/types/purchases';
-import { Supplier } from '@/types/suppliers';
+import { Supplier } from '@/types/expenses';
 import { getTodayString } from '@/utils/dateHelpers';
+import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
 
 interface CreatePurchaseScreenProps {
   navigation: any;
 }
 
 export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navigation }) => {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [guideNumber, setGuideNumber] = useState('');
   const [guideType, setGuideType] = useState<GuideType>(GuideType.FACTURA);
   const [guideDate, setGuideDate] = useState(getTodayString());
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingSuppliers, setLoadingSuppliers] = useState(true);
   const [showGuideTypePicker, setShowGuideTypePicker] = useState(false);
-  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
-  const [showSupplierSuggestions, setShowSupplierSuggestions] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
-
-  useEffect(() => {
-    loadSuppliers();
-  }, []);
-
-  const loadSuppliers = async () => {
-    try {
-      const response = await suppliersService.getSuppliers({ isActive: true });
-      setSuppliers(response.data);
-    } catch (error) {
-      console.error('Error loading suppliers:', error);
-      Alert.alert('Error', 'No se pudieron cargar los proveedores');
-    } finally {
-      setLoadingSuppliers(false);
-    }
-  };
 
   const handleCreate = async () => {
     if (!selectedSupplier) {
@@ -89,27 +70,7 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
     }
   };
 
-  const filteredSuppliers = suppliers.filter((supplier) => {
-    const query = supplierSearchQuery.toLowerCase();
-    return (
-      supplier.commercialName.toLowerCase().includes(query) ||
-      supplier.code.toLowerCase().includes(query)
-    );
-  });
 
-  const handleSupplierSelect = (supplier: Supplier) => {
-    setSelectedSupplier(supplier);
-    setSupplierSearchQuery(supplier.commercialName);
-    setShowSupplierSuggestions(false);
-  };
-
-  const handleSupplierSearchChange = (text: string) => {
-    setSupplierSearchQuery(text);
-    setShowSupplierSuggestions(true);
-    if (!text.trim()) {
-      setSelectedSupplier(null);
-    }
-  };
 
   const renderGuideTypePicker = () => {
     if (!showGuideTypePicker) {
@@ -156,17 +117,6 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
     );
   };
 
-  if (loadingSuppliers) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -186,64 +136,19 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
         style={styles.content}
         contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
       >
-        {/* Supplier Search */}
+        {/* Supplier Search - Smart Search with MERCHANDISE filter */}
         <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Proveedor <Text style={styles.required}>*</Text>
+          <SupplierSearchInput
+            selectedSupplier={selectedSupplier || undefined}
+            onSelect={(supplier) => setSelectedSupplier(supplier)}
+            label="Proveedor de Mercadería"
+            placeholder="Buscar proveedor de mercadería..."
+            required
+            filterByType="MERCHANDISE"
+          />
+          <Text style={[styles.infoText, isTablet && styles.infoTextTablet]}>
+            💡 Solo se muestran proveedores de tipo Mercadería
           </Text>
-          <View style={styles.autocompleteContainer}>
-            <TextInput
-              style={[styles.input, isTablet && styles.inputTablet]}
-              value={supplierSearchQuery}
-              onChangeText={handleSupplierSearchChange}
-              onFocus={() => setShowSupplierSuggestions(true)}
-              placeholder="Buscar proveedor por nombre o código"
-              placeholderTextColor="#94A3B8"
-            />
-            {showSupplierSuggestions && supplierSearchQuery.trim() !== '' && (
-              <View style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}>
-                <ScrollView
-                  style={styles.suggestionsList}
-                  keyboardShouldPersistTaps="handled"
-                  nestedScrollEnabled
-                >
-                  {filteredSuppliers.length > 0 ? (
-                    filteredSuppliers.map((supplier) => (
-                      <TouchableOpacity
-                        key={supplier.id}
-                        style={[
-                          styles.suggestionItem,
-                          selectedSupplier?.id === supplier.id && styles.suggestionItemSelected,
-                        ]}
-                        onPress={() => handleSupplierSelect(supplier)}
-                      >
-                        <Text
-                          style={[
-                            styles.suggestionItemText,
-                            isTablet && styles.suggestionItemTextTablet,
-                            selectedSupplier?.id === supplier.id && styles.suggestionItemTextSelected,
-                          ]}
-                        >
-                          {supplier.commercialName}
-                        </Text>
-                        <Text
-                          style={[styles.suggestionItemSubtext, isTablet && styles.suggestionItemSubtextTablet]}
-                        >
-                          {supplier.code}
-                        </Text>
-                      </TouchableOpacity>
-                    ))
-                  ) : (
-                    <View style={styles.noResultsContainer}>
-                      <Text style={[styles.noResultsText, isTablet && styles.noResultsTextTablet]}>
-                        No se encontraron proveedores
-                      </Text>
-                    </View>
-                  )}
-                </ScrollView>
-              </View>
-            )}
-          </View>
         </View>
 
         {/* Guide Number */}
@@ -347,16 +252,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748B',
   },
   header: {
     flexDirection: 'row',
@@ -603,73 +498,14 @@ const styles = StyleSheet.create({
   pickerItemSubtextTablet: {
     fontSize: 15,
   },
-  autocompleteContainer: {
-    position: 'relative',
-    zIndex: 1000,
-  },
-  suggestionsContainer: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    marginTop: 4,
-    maxHeight: 250,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    zIndex: 1001,
-  },
-  suggestionsContainerTablet: {
-    borderRadius: 14,
-    maxHeight: 300,
-  },
-  suggestionsList: {
-    maxHeight: 250,
-  },
-  suggestionItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  suggestionItemSelected: {
-    backgroundColor: '#EEF2FF',
-  },
-  suggestionItemText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  suggestionItemTextTablet: {
-    fontSize: 17,
-  },
-  suggestionItemTextSelected: {
-    color: '#6366F1',
-  },
-  suggestionItemSubtext: {
-    fontSize: 13,
+  infoText: {
+    fontSize: 12,
     color: '#64748B',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
-  suggestionItemSubtextTablet: {
-    fontSize: 15,
-  },
-  noResultsContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  noResultsText: {
+  infoTextTablet: {
     fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
-  },
-  noResultsTextTablet: {
-    fontSize: 16,
   },
 });
 

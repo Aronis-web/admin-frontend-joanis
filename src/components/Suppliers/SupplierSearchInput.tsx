@@ -23,6 +23,7 @@ interface SupplierSearchInputProps {
   error?: string;
   disabled?: boolean;
   required?: boolean;
+  filterByType?: 'MERCHANDISE' | 'UTILITIES' | 'SERVICES' | 'MAINTENANCE' | 'TECHNOLOGY' | 'MARKETING' | 'LOGISTICS' | 'PROFESSIONAL' | 'GOVERNMENT' | 'FINANCIAL' | 'RENT' | 'PAYROLL' | 'TAXES' | 'LOANS' | 'INSURANCE' | 'TRANSPORT' | 'OTHER'; // Filter suppliers by primary type
 }
 
 export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
@@ -34,6 +35,7 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
   error,
   disabled = false,
   required = false,
+  filterByType,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,6 +73,7 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
         query: query, // Backend expects 'query' parameter
         isActive: true,
         limit: 20,
+        ...(filterByType && { primaryType: filterByType }), // Filter by type if provided
       });
       setSuppliers(response.data || []);
     } catch (error) {
@@ -79,7 +82,7 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterByType]);
 
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
