@@ -153,8 +153,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const handleConfirm = () => {
-    console.log('📅 DatePicker confirm:', selectedDate);
-    onConfirm(selectedDate);
+    // Create a new date at noon to avoid timezone issues
+    const confirmedDate = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      12, // Set to noon to avoid timezone issues
+      0,
+      0,
+      0
+    );
+    console.log('📅 DatePicker confirm:', { selectedDate, confirmedDate });
+    onConfirm(confirmedDate);
   };
 
   const monthNames = [

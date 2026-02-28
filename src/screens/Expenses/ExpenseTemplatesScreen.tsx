@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { ExpenseTemplate, TemplateFrequencyLabels } from '@/types/expenses';
 import { expensesService } from '@/services/api/expenses';
+import { sitesService } from '@/services/api';
 import { TemplateCard } from '@/components/Expenses/TemplateCard';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { ExpenseReportModal } from '@/components/Expenses/ExpenseReportModal';
@@ -58,6 +59,10 @@ export const ExpenseTemplatesScreen: React.FC = () => {
         return;
       }
 
+      // Load sites to map siteId to site name
+      const sitesResponse = await sitesService.getSites({ page: 1, limit: 100 });
+      const sitesMap = new Map(sitesResponse.data.map((site: any) => [site.id, site]));
+
       // Backend returns array directly (no pagination support yet)
       const response = await expensesService.getTemplates({
         includeInactive: showInactive, // true = show all, false/undefined = active only
@@ -65,7 +70,12 @@ export const ExpenseTemplatesScreen: React.FC = () => {
 
       // Handle array response and implement client-side pagination
       if (Array.isArray(response)) {
-        const allTemplates = response;
+        // Map siteId to site object
+        const allTemplates = response.map((template) => ({
+          ...template,
+          site: template.siteId ? sitesMap.get(template.siteId) : template.site,
+        }));
+
         const total = allTemplates.length;
         const totalPages = Math.ceil(total / pagination.limit);
         const startIndex = (page - 1) * pagination.limit;
