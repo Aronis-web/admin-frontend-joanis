@@ -724,7 +724,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
         {/* Date Pickers */}
         <DatePicker
           visible={showStartDatePicker}
-          date={startDate ? new Date(startDate) : new Date()}
+          date={startDate || new Date().toISOString().split('T')[0]}
           onConfirm={(date) => {
             // Send ISO 8601 date string (YYYY-MM-DD format)
             // Backend expects valid ISO 8601 date string
@@ -740,7 +740,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
 
         <DatePicker
           visible={showEndDatePicker}
-          date={endDate ? new Date(endDate) : new Date()}
+          date={endDate || new Date().toISOString().split('T')[0]}
           onConfirm={(date) => {
             // Send ISO 8601 date string (YYYY-MM-DD format)
             // Backend expects valid ISO 8601 date string

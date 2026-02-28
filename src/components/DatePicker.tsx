@@ -35,7 +35,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     if (typeof d === 'string') {
       // Parse ISO date string (YYYY-MM-DD) to avoid timezone issues
       const [year, month, day] = d.split('-').map(Number);
-      return new Date(year, month - 1, day);
+      // Create date at noon to avoid timezone issues
+      return new Date(year, month - 1, day, 12, 0, 0, 0);
     }
     return d;
   };

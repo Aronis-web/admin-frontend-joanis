@@ -757,7 +757,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           {/* Date Picker */}
           <DatePicker
             visible={showDueDatePicker}
-            date={dueDate ? new Date(dueDate) : new Date()}
+            date={dueDate || new Date().toISOString().split('T')[0]}
             onConfirm={(date) => {
               setDueDate(formatDateToString(date));
               setShowDueDatePicker(false);
