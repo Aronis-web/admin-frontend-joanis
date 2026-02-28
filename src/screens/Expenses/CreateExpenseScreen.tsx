@@ -326,9 +326,14 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
     }
 
     // ============================================
-    // VALIDACIÓN: Si hay proveedor, DEBE haber RUC
+    // VALIDACIÓN: Proveedor y RUC son OBLIGATORIOS
     // ============================================
-    if (selectedSupplier && !supplierLegalEntityId) {
+    if (!selectedSupplier) {
+      Alert.alert('Error', 'Debe seleccionar un proveedor');
+      return;
+    }
+
+    if (!supplierLegalEntityId) {
       Alert.alert('Error', 'Debe seleccionar el RUC del proveedor');
       return;
     }
@@ -693,13 +698,13 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           {/* NUEVA SECCIÓN: Proveedor y Razón Social */}
           {/* ============================================ */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Proveedor (Opcional)</Text>
+            <Text style={styles.cardTitle}>Proveedor</Text>
 
             {/* Buscador de Proveedor */}
             <SupplierSearchInput
               selectedSupplier={selectedSupplier || undefined}
               onSelect={(supplier) => setSelectedSupplier(supplier)}
-              label="Proveedor"
+              label="Proveedor *"
               placeholder="Buscar proveedor..."
             />
 

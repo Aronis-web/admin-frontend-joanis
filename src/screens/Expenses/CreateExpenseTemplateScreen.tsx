@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { expensesService, sitesService } from '@/services/api';
+import { expensesService, sitesService, suppliersService } from '@/services/api';
 import {
   RecurrenceType,
   RecurrenceTypeLabels,
@@ -21,8 +21,11 @@ import {
   TemplateExpenseTypeLabels,
   CreateExpenseTemplateRequest,
   UpdateExpenseTemplateRequest,
+  Supplier,
+  SupplierLegalEntity,
 } from '@/types/expenses';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
 import { useAuthStore } from '@/store/auth';
 import { usePermissionError } from '@/hooks/usePermissionError';
 
@@ -65,6 +68,13 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('PEN');
 
+  // ============================================
+  // NUEVOS CAMPOS - Integración con Proveedores
+  // ============================================
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [supplierLegalEntityId, setSupplierLegalEntityId] = useState('');
+  const [legalEntities, setLegalEntities] = useState<SupplierLegalEntity[]>([]);
+
   // Date picker state
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
@@ -75,6 +85,42 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
       loadTemplateData(route.params.templateId);
     }
   }, [route?.params?.templateId]);
+
+  // ============================================
+  // EFECTO: Cargar razones sociales cuando se selecciona proveedor
+  // ============================================
+  useEffect(() => {
+    if (selectedSupplier?.id) {
+      loadLegalEntities(selectedSupplier.id);
+    } else {
+      setLegalEntities([]);
+      setSupplierLegalEntityId('');
+    }
+  }, [selectedSupplier?.id]);
+
+  const loadLegalEntities = async (supplierId: string) => {
+    try {
+      const supplier = await suppliersService.getSupplier(supplierId);
+      if (supplier.legalEntities && supplier.legalEntities.length > 0) {
+        setLegalEntities(supplier.legalEntities);
+
+        // Auto-select primary legal entity if exists
+        const primaryEntity = supplier.legalEntities.find((le) => le.isPrimary);
+        if (primaryEntity && !supplierLegalEntityId) {
+          setSupplierLegalEntityId(primaryEntity.id);
+        }
+      } else {
+        setLegalEntities([]);
+        Alert.alert(
+          'Advertencia',
+          'Este proveedor no tiene razones sociales registradas. Por favor, agregue al menos una razón social antes de continuar.'
+        );
+      }
+    } catch (error) {
+      console.error('Error loading legal entities:', error);
+      Alert.alert('Error', 'No se pudieron cargar las razones sociales del proveedor');
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -128,6 +174,14 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
       setCategoryId(template.category?.id || '');
       setAmount(template.amountCents ? String(template.amountCents / 100) : '');
       setCurrency(template.currency || 'PEN');
+
+      // Load supplier data if exists
+      if (template.supplier) {
+        setSelectedSupplier(template.supplier);
+      }
+      if (template.supplierLegalEntityId) {
+        setSupplierLegalEntityId(template.supplierLegalEntityId);
+      }
 
       console.log('✅ Template data loaded successfully');
     } catch (error: any) {
@@ -200,6 +254,19 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
       return;
     }
 
+    // ============================================
+    // VALIDACIÓN: Proveedor y RUC son OBLIGATORIOS
+    // ============================================
+    if (!selectedSupplier) {
+      Alert.alert('Error', 'Debe seleccionar un proveedor');
+      return;
+    }
+
+    if (!supplierLegalEntityId) {
+      Alert.alert('Error', 'Debe seleccionar el RUC del proveedor');
+      return;
+    }
+
     setLoading(true);
     try {
       const templateId = route?.params?.templateId;
@@ -222,6 +289,8 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           occurrences: occurrences ? parseInt(occurrences) : undefined,
           isActive,
           categoryId,
+          supplierId: selectedSupplier.id,
+          supplierLegalEntityId: supplierLegalEntityId,
         };
 
         await expensesService.updateTemplate(templateId, updateData);
@@ -252,6 +321,8 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           isActive,
           categoryId,
           createdBy: user.id,
+          supplierId: selectedSupplier.id,
+          supplierLegalEntityId: supplierLegalEntityId,
         };
 
         await expensesService.createTemplate(createData);
@@ -569,6 +640,51 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           )}
         </View>
 
+        {/* ============================================ */}
+        {/* NUEVA SECCIÓN: Proveedor y Razón Social */}
+        {/* ============================================ */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Proveedor</Text>
+
+          {/* Buscador de Proveedor */}
+          <SupplierSearchInput
+            selectedSupplier={selectedSupplier || undefined}
+            onSelect={(supplier) => setSelectedSupplier(supplier)}
+            label="Proveedor *"
+            placeholder="Buscar proveedor..."
+          />
+
+          {/* Selector de Razón Social (RUC) */}
+          {selectedSupplier && legalEntities.length > 0 && (
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>
+                RUC del Proveedor <Text style={styles.required}>*</Text>
+              </Text>
+              {renderPicker('', supplierLegalEntityId, setSupplierLegalEntityId, [
+                { label: 'Seleccionar RUC', value: '' },
+                ...legalEntities.map((le) => ({
+                  label: `${le.legalName} - RUC: ${le.ruc}${le.isPrimary ? ' (Principal)' : ''}`,
+                  value: le.id,
+                })),
+              ])}
+              <Text style={styles.infoText}>
+                💡 Seleccione el RUC específico para la facturación
+              </Text>
+            </View>
+          )}
+
+          {/* Información sobre Cuenta por Pagar */}
+          {selectedSupplier && supplierLegalEntityId && (
+            <View style={styles.infoBanner}>
+              <Ionicons name="information-circle" size={20} color="#6366F1" />
+              <Text style={styles.infoBannerText}>
+                Los gastos generados desde esta plantilla se vincularán automáticamente al
+                proveedor seleccionado.
+              </Text>
+            </View>
+          )}
+        </View>
+
         {/* Status */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Estado</Text>
@@ -825,6 +941,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     marginTop: 12,
+    lineHeight: 18,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    gap: 12,
+  },
+  infoBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#6366F1',
     lineHeight: 18,
   },
 });
