@@ -80,8 +80,14 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         purchasesService.getPurchaseTotalSum(purchaseId).catch(() => null), // Don't fail if endpoint not available yet
       ]);
 
+      console.log('📦 Purchase loaded:', {
+        purchaseId: purchaseData.id,
+        supplierId: purchaseData.supplierId,
+        supplierInObject: purchaseData.supplier?.id,
+        supplierName: purchaseData.supplier?.commercialName,
+      });
+
       // Debug: Log para verificar si vienen las validaciones
-      console.log('📦 Products data:', JSON.stringify(productsData, null, 2));
       if (productsData.length > 0) {
         console.log('🔍 First product validations:', productsData[0].validations);
       }
@@ -136,7 +142,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const handleOpenEditSupplierModal = () => {
     // Set the current supplier as selected
     if (purchase?.supplier) {
-      setSelectedSupplier(purchase.supplier);
+      // Cast to ExpenseSupplier type (simplified supplier from purchase response)
+      setSelectedSupplier(purchase.supplier as ExpenseSupplier);
     }
     setShowEditSupplierModal(true);
   };
@@ -163,8 +170,21 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
     setUpdatingSupplier(true);
     try {
-      await purchasesService.updatePurchase(purchaseId, {
+      console.log('🔄 Updating supplier:', {
+        purchaseId,
+        currentSupplierId: purchase?.supplier?.id,
+        newSupplierId: selectedSupplier.id,
+        newSupplierName: selectedSupplier.commercialName,
+      });
+
+      const updatedPurchase = await purchasesService.updatePurchase(purchaseId, {
         supplierId: selectedSupplier.id,
+      });
+
+      console.log('✅ Purchase updated, response:', {
+        supplierId: updatedPurchase.supplierId,
+        supplierInResponse: updatedPurchase.supplier?.id,
+        supplierName: updatedPurchase.supplier?.commercialName,
       });
 
       // Reload purchase data to get updated supplier info
@@ -175,7 +195,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
       Alert.alert('Éxito', 'Proveedor actualizado correctamente');
     } catch (error: any) {
-      console.error('Error updating supplier:', error);
+      console.error('❌ Error updating supplier:', error);
       Alert.alert('Error', error.message || 'No se pudo actualizar el proveedor');
     } finally {
       setUpdatingSupplier(false);
