@@ -30,6 +30,7 @@ import {
 } from '@/types/purchases';
 import { Supplier } from '@/types/suppliers';
 import { OcrScannerModal } from '@/components/Purchases/OcrScannerModal';
+import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ScreenProps } from '@/types/navigation';
 import { MAIN_ROUTES } from '@/constants/routes';
@@ -63,10 +64,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
-  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
   const [updatingSupplier, setUpdatingSupplier] = useState(false);
 
   const { width, height } = useWindowDimensions();
@@ -134,44 +132,21 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     setSelectedProductForInfo(null);
   };
 
-  const handleOpenEditSupplierModal = async () => {
-    setShowEditSupplierModal(true);
-    setLoadingSuppliers(true);
-    try {
-      const response = await suppliersService.getSuppliers({ isActive: true });
-      setSuppliers(response.data);
-      if (purchase?.supplier?.id) {
-        // Find the full supplier object from the list
-        const fullSupplier = response.data.find((s) => s.id === purchase.supplier?.id);
-        if (fullSupplier) {
-          setSelectedSupplier(fullSupplier);
-          setSupplierSearchQuery(fullSupplier.commercialName);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading suppliers:', error);
-      Alert.alert('Error', 'No se pudieron cargar los proveedores');
-    } finally {
-      setLoadingSuppliers(false);
+  const handleOpenEditSupplierModal = () => {
+    // Set the current supplier as selected
+    if (purchase?.supplier) {
+      setSelectedSupplier(purchase.supplier);
     }
+    setShowEditSupplierModal(true);
   };
 
   const handleCloseEditSupplierModal = () => {
     setShowEditSupplierModal(false);
-    setSupplierSearchQuery('');
     setSelectedSupplier(null);
   };
 
-  const handleSupplierSelect = (supplier: Supplier) => {
+  const handleSupplierSelect = (supplier: Supplier | null) => {
     setSelectedSupplier(supplier);
-    setSupplierSearchQuery(supplier.commercialName);
-  };
-
-  const handleSupplierSearchChange = (text: string) => {
-    setSupplierSearchQuery(text);
-    if (!text.trim()) {
-      setSelectedSupplier(null);
-    }
   };
 
   const handleUpdateSupplier = async () => {
@@ -1220,13 +1195,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       <EditSupplierModal
         visible={showEditSupplierModal}
         onClose={handleCloseEditSupplierModal}
-        suppliers={suppliers}
-        supplierSearchQuery={supplierSearchQuery}
-        onSupplierSearchChange={handleSupplierSearchChange}
         onSupplierSelect={handleSupplierSelect}
         selectedSupplier={selectedSupplier}
         onUpdate={handleUpdateSupplier}
-        loading={loadingSuppliers}
         updating={updatingSupplier}
         isTablet={isTablet}
       />
@@ -1719,13 +1690,9 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value, isTablet, highlight }) 
 interface EditSupplierModalProps {
   visible: boolean;
   onClose: () => void;
-  suppliers: Supplier[];
-  supplierSearchQuery: string;
-  onSupplierSearchChange: (text: string) => void;
-  onSupplierSelect: (supplier: Supplier) => void;
+  onSupplierSelect: (supplier: Supplier | null) => void;
   selectedSupplier: Supplier | null;
   onUpdate: () => void;
-  loading: boolean;
   updating: boolean;
   isTablet: boolean;
 }
@@ -1733,24 +1700,12 @@ interface EditSupplierModalProps {
 const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
   visible,
   onClose,
-  suppliers,
-  supplierSearchQuery,
-  onSupplierSearchChange,
   onSupplierSelect,
   selectedSupplier,
   onUpdate,
-  loading,
   updating,
   isTablet,
 }) => {
-  const filteredSuppliers = suppliers.filter((supplier) => {
-    const query = supplierSearchQuery.toLowerCase();
-    return (
-      supplier.commercialName.toLowerCase().includes(query) ||
-      supplier.code.toLowerCase().includes(query)
-    );
-  });
-
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={editSupplierModalStyles.overlay}>
@@ -1762,7 +1717,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
                 ✏️ Editar Proveedor
               </Text>
               <Text style={[editSupplierModalStyles.subtitle, isTablet && editSupplierModalStyles.subtitleTablet]}>
-                Seleccione un nuevo proveedor
+                Seleccione un nuevo proveedor de mercadería
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={editSupplierModalStyles.closeButton}>
@@ -1772,74 +1727,18 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
 
           {/* Content */}
           <View style={editSupplierModalStyles.content}>
-            {loading ? (
-              <View style={editSupplierModalStyles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6366F1" />
-                <Text style={editSupplierModalStyles.loadingText}>Cargando proveedores...</Text>
-              </View>
-            ) : (
-              <>
-                {/* Search Input */}
-                <View style={editSupplierModalStyles.searchSection}>
-                  <Text style={[editSupplierModalStyles.label, isTablet && editSupplierModalStyles.labelTablet]}>
-                    Buscar Proveedor
-                  </Text>
-                  <TextInput
-                    style={[editSupplierModalStyles.searchInput, isTablet && editSupplierModalStyles.searchInputTablet]}
-                    value={supplierSearchQuery}
-                    onChangeText={onSupplierSearchChange}
-                    placeholder="Buscar por nombre o código"
-                    placeholderTextColor="#94A3B8"
-                    autoFocus
-                  />
-                </View>
-
-                {/* Suppliers List */}
-                <ScrollView style={editSupplierModalStyles.suppliersList}>
-                  {filteredSuppliers.length > 0 ? (
-                    filteredSuppliers.map((supplier) => (
-                      <TouchableOpacity
-                        key={supplier.id}
-                        style={[
-                          editSupplierModalStyles.supplierItem,
-                          selectedSupplier?.id === supplier.id && editSupplierModalStyles.supplierItemSelected,
-                        ]}
-                        onPress={() => onSupplierSelect(supplier)}
-                      >
-                        <View style={editSupplierModalStyles.supplierItemContent}>
-                          <Text
-                            style={[
-                              editSupplierModalStyles.supplierName,
-                              isTablet && editSupplierModalStyles.supplierNameTablet,
-                              selectedSupplier?.id === supplier.id && editSupplierModalStyles.supplierNameSelected,
-                            ]}
-                          >
-                            {supplier.commercialName}
-                          </Text>
-                          <Text
-                            style={[
-                              editSupplierModalStyles.supplierCode,
-                              isTablet && editSupplierModalStyles.supplierCodeTablet,
-                            ]}
-                          >
-                            {supplier.code}
-                          </Text>
-                        </View>
-                        {selectedSupplier?.id === supplier.id && (
-                          <Text style={editSupplierModalStyles.checkmark}>✓</Text>
-                        )}
-                      </TouchableOpacity>
-                    ))
-                  ) : (
-                    <View style={editSupplierModalStyles.noResults}>
-                      <Text style={[editSupplierModalStyles.noResultsText, isTablet && editSupplierModalStyles.noResultsTextTablet]}>
-                        No se encontraron proveedores
-                      </Text>
-                    </View>
-                  )}
-                </ScrollView>
-              </>
-            )}
+            {/* Smart Supplier Search Input with MERCHANDISE filter */}
+            <SupplierSearchInput
+              selectedSupplier={selectedSupplier || undefined}
+              onSelect={onSupplierSelect}
+              label="Proveedor de Mercadería"
+              placeholder="Buscar proveedor de mercadería..."
+              required
+              filterByType="MERCHANDISE"
+            />
+            <Text style={[editSupplierModalStyles.infoText, isTablet && editSupplierModalStyles.infoTextTablet]}>
+              💡 Solo se muestran proveedores de tipo Mercadería
+            </Text>
           </View>
 
           {/* Footer */}
@@ -2855,6 +2754,14 @@ const editSupplierModalStyles = StyleSheet.create({
   },
   updateButtonTextTablet: {
     fontSize: 17,
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 8,
+  },
+  infoTextTablet: {
+    fontSize: 15,
   },
 });
 
