@@ -244,6 +244,14 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
       }
     }
 
+    // Validación: Número de ocurrencias es OBLIGATORIO para semi-recurrentes
+    if (templateExpenseType === TemplateExpenseType.SEMI_RECURRENT) {
+      if (!occurrences || parseInt(occurrences) <= 0) {
+        Alert.alert('Error', 'Debe especificar el número de ocurrencias para gastos semi-recurrentes');
+        return;
+      }
+    }
+
     if (!currentCompany?.id) {
       Alert.alert('Error', 'No hay una empresa seleccionada');
       return;
@@ -285,7 +293,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           dayOfWeek,
           dayOfMonth,
           startDate: startDate,
-          endDate: endDate || undefined,
+          endDate: undefined, // Fecha de fin removida
           occurrences: occurrences ? parseInt(occurrences) : undefined,
           isActive,
           categoryId,
@@ -316,7 +324,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           dayOfWeek,
           dayOfMonth,
           startDate: startDate,
-          endDate: endDate || undefined,
+          endDate: undefined, // Fecha de fin removida
           occurrences: occurrences ? parseInt(occurrences) : undefined,
           isActive,
           categoryId,
@@ -608,20 +616,23 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
             placeholder="Seleccionar fecha de inicio"
           />
 
-          <DatePickerButton
-            label="Fecha de Fin (opcional)"
-            value={endDate}
-            onPress={() => setShowEndDatePicker(true)}
-            placeholder="Seleccionar fecha de fin"
-          />
+          {/* Fecha de Fin - REMOVIDA */}
 
-          {renderInput(
-            'Número de Ocurrencias (opcional)',
-            occurrences,
-            setOccurrences,
-            'Ej: 12',
-            'number-pad',
-            'repeat'
+          {/* Número de Ocurrencias - Solo para SEMI_RECURRENT */}
+          {templateExpenseType === TemplateExpenseType.SEMI_RECURRENT && (
+            <>
+              {renderInput(
+                'Número de Ocurrencias *',
+                occurrences,
+                setOccurrences,
+                'Ej: 12',
+                'number-pad',
+                'repeat'
+              )}
+              <Text style={styles.infoText}>
+                💡 Especifique cuántas veces se generará este gasto
+              </Text>
+            </>
           )}
         </View>
 
@@ -646,13 +657,28 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Proveedor</Text>
 
-          {/* Buscador de Proveedor */}
+          {/* Buscador de Proveedor con botón para crear nuevo */}
           <SupplierSearchInput
             selectedSupplier={selectedSupplier || undefined}
             onSelect={(supplier) => setSelectedSupplier(supplier)}
             label="Proveedor *"
             placeholder="Buscar proveedor..."
           />
+
+          {/* Botón para crear nuevo proveedor */}
+          <TouchableOpacity
+            style={styles.createSupplierButton}
+            onPress={() => {
+              navigation.navigate('CreateSupplier' as never, {
+                onSuccess: (newSupplier: Supplier) => {
+                  setSelectedSupplier(newSupplier);
+                },
+              } as never);
+            }}
+          >
+            <Ionicons name="add-circle-outline" size={20} color="#6366F1" />
+            <Text style={styles.createSupplierButtonText}>Crear nuevo proveedor</Text>
+          </TouchableOpacity>
 
           {/* Selector de Razón Social (RUC) */}
           {selectedSupplier && legalEntities.length > 0 && (
@@ -738,21 +764,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           title="Fecha de Inicio"
         />
 
-        <DatePicker
-          visible={showEndDatePicker}
-          date={endDate || new Date().toISOString().split('T')[0]}
-          onConfirm={(date) => {
-            // Send ISO 8601 date string (YYYY-MM-DD format)
-            // Backend expects valid ISO 8601 date string
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            setEndDate(`${year}-${month}-${day}`);
-            setShowEndDatePicker(false);
-          }}
-          onCancel={() => setShowEndDatePicker(false)}
-          title="Fecha de Fin"
-        />
+        {/* DatePicker de Fecha de Fin - REMOVIDO */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -962,6 +974,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6366F1',
     lineHeight: 18,
+  },
+  createSupplierButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    gap: 8,
+  },
+  createSupplierButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
   },
 });
 

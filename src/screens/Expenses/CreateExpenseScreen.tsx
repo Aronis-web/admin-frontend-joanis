@@ -15,6 +15,7 @@ import { expensesService, suppliersService } from '@/services/api';
 import { ExpenseStatus, CreateExpenseRequest, Supplier, SupplierLegalEntity } from '@/types/expenses';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
+import { TemplateSearchInput } from '@/components/Expenses/TemplateSearchInput';
 import { usePermissionError } from '@/hooks/usePermissionError';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
@@ -61,6 +62,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
   const [costType, setCostType] = useState<'FIXED' | 'VARIABLE'>('FIXED');
   const [categoryId, setCategoryId] = useState('');
   const [templateId, setTemplateId] = useState(route?.params?.templateId || '');
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [purchaseId, setPurchaseId] = useState(route?.params?.purchaseId || '');
   const [notes, setNotes] = useState('');
   const [description, setDescription] = useState('');
@@ -396,9 +398,9 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           console.log('📍 Using current selected site:', siteIdToUse);
         }
 
-        // Validate required fields
+        // Validate required fields - Sede es OBLIGATORIA
         if (!siteIdToUse) {
-          Alert.alert('Error', 'No hay una sede seleccionada. Por favor, selecciona una sede.');
+          Alert.alert('Error', 'Debe seleccionar una sede');
           return;
         }
 
@@ -411,7 +413,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           currency,
           dueDate,
           expenseType,
-          costType,
+          costType: 'FIXED', // Siempre enviar FIXED
           // Note: status is set automatically by backend (ACTIVE by default)
         };
 
@@ -578,45 +580,47 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Información Básica</Text>
 
-            {/* Site Selection - Only show manual selector if NOT from project or template */}
-            {!isFromProject && !isFromTemplate && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Sede *</Text>
-                {renderPicker('', manualSiteId, setManualSiteId, [
+            {/* Site Selection - SIEMPRE OBLIGATORIO */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>
+                Sede <Text style={styles.required}>*</Text>
+              </Text>
+              {!isFromProject && !isFromTemplate ? (
+                renderPicker('', manualSiteId, setManualSiteId, [
                   { label: 'Seleccionar sede', value: '' },
                   ...sites.map((site) => ({
                     label: site.name,
                     value: site.id,
                   })),
-                ])}
-              </View>
-            )}
-
-            {/* Show site info if from project */}
-            {isFromProject && projectData?.site && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Sede</Text>
-                <View style={styles.disabledInput}>
-                  <Ionicons name="business" size={16} color="#6366F1" style={{ marginRight: 8 }} />
-                  <Text style={styles.disabledInputText}>{projectData.site.name}</Text>
-                </View>
-                <Text style={styles.infoText}>💡 La sede se toma automáticamente del proyecto</Text>
-              </View>
-            )}
-
-            {/* Show site info if from template */}
-            {isFromTemplate && templateData?.site && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Sede</Text>
-                <View style={styles.disabledInput}>
-                  <Ionicons name="business" size={16} color="#10B981" style={{ marginRight: 8 }} />
-                  <Text style={styles.disabledInputText}>{templateData.site.name}</Text>
-                </View>
-                <Text style={styles.infoText}>
-                  💡 La sede se toma automáticamente del gasto recurrente
-                </Text>
-              </View>
-            )}
+                ])
+              ) : isFromProject && projectData?.site ? (
+                <>
+                  <View style={styles.disabledInput}>
+                    <Ionicons name="business" size={16} color="#6366F1" style={{ marginRight: 8 }} />
+                    <Text style={styles.disabledInputText}>{projectData.site.name}</Text>
+                  </View>
+                  <Text style={styles.infoText}>💡 La sede se toma automáticamente del proyecto</Text>
+                </>
+              ) : isFromTemplate && templateData?.site ? (
+                <>
+                  <View style={styles.disabledInput}>
+                    <Ionicons name="business" size={16} color="#10B981" style={{ marginRight: 8 }} />
+                    <Text style={styles.disabledInputText}>{templateData.site.name}</Text>
+                  </View>
+                  <Text style={styles.infoText}>
+                    💡 La sede se toma automáticamente del gasto recurrente
+                  </Text>
+                </>
+              ) : (
+                renderPicker('', manualSiteId, setManualSiteId, [
+                  { label: 'Seleccionar sede', value: '' },
+                  ...sites.map((site) => ({
+                    label: site.name,
+                    value: site.id,
+                  })),
+                ])
+              )}
+            </View>
 
             {renderInput(
               'Nombre del Gasto',
@@ -661,15 +665,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
               </Text>
             </View>
 
-            {renderPicker(
-              'Tipo de Costo',
-              costType,
-              (value) => setCostType(value as 'FIXED' | 'VARIABLE'),
-              [
-                { label: 'Fijo', value: 'FIXED' },
-                { label: 'Variable', value: 'VARIABLE' },
-              ]
-            )}
+            {/* Tipo de Costo - Removido del formulario, siempre se envía FIXED */}
           </View>
 
           {/* Category and Template */}
@@ -684,14 +680,16 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
               })),
             ])}
 
-            {templates.length > 0 &&
-              renderPicker('Plantilla (opcional)', templateId, setTemplateId, [
-                { label: 'Sin plantilla', value: '' },
-                ...templates.map((tmpl) => ({
-                  label: tmpl.name,
-                  value: tmpl.id,
-                })),
-              ])}
+            {/* Plantilla - Ahora es un buscador opcional */}
+            <TemplateSearchInput
+              selectedTemplate={selectedTemplate}
+              onSelect={(template) => {
+                setSelectedTemplate(template);
+                setTemplateId(template?.id || '');
+              }}
+              label="Plantilla (opcional)"
+              placeholder="Buscar plantilla..."
+            />
           </View>
 
           {/* ============================================ */}
@@ -700,13 +698,28 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Proveedor</Text>
 
-            {/* Buscador de Proveedor */}
+            {/* Buscador de Proveedor con botón para crear nuevo */}
             <SupplierSearchInput
               selectedSupplier={selectedSupplier || undefined}
               onSelect={(supplier) => setSelectedSupplier(supplier)}
               label="Proveedor *"
               placeholder="Buscar proveedor..."
             />
+
+            {/* Botón para crear nuevo proveedor */}
+            <TouchableOpacity
+              style={styles.createSupplierButton}
+              onPress={() => {
+                navigation.navigate('CreateSupplier' as never, {
+                  onSuccess: (newSupplier: Supplier) => {
+                    setSelectedSupplier(newSupplier);
+                  },
+                } as never);
+              }}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#6366F1" />
+              <Text style={styles.createSupplierButtonText}>Crear nuevo proveedor</Text>
+            </TouchableOpacity>
 
             {/* Selector de Razón Social (RUC) */}
             {selectedSupplier && legalEntities.length > 0 && (
@@ -981,6 +994,24 @@ const styles = StyleSheet.create({
   },
   bannerContent: {
     flex: 1,
+  },
+  createSupplierButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    gap: 8,
+  },
+  createSupplierButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
   },
 });
 
