@@ -28,7 +28,8 @@ import {
   GuideTypeLabels,
   PurchaseTotalSumResponse,
 } from '@/types/purchases';
-import { Supplier } from '@/types/suppliers';
+import { Supplier as FullSupplier } from '@/types/suppliers';
+import { Supplier as ExpenseSupplier } from '@/types/expenses';
 import { OcrScannerModal } from '@/components/Purchases/OcrScannerModal';
 import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -64,7 +65,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<ExpenseSupplier | null>(null);
   const [updatingSupplier, setUpdatingSupplier] = useState(false);
 
   const { width, height } = useWindowDimensions();
@@ -145,7 +146,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     setSelectedSupplier(null);
   };
 
-  const handleSupplierSelect = (supplier: Supplier | null) => {
+  const handleSupplierSelect = (supplier: ExpenseSupplier | null) => {
     setSelectedSupplier(supplier);
   };
 
@@ -165,9 +166,14 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       await purchasesService.updatePurchase(purchaseId, {
         supplierId: selectedSupplier.id,
       });
-      Alert.alert('Éxito', 'Proveedor actualizado correctamente');
+
+      // Reload purchase data to get updated supplier info
+      await loadPurchase();
+
+      // Close modal after successful update and reload
       handleCloseEditSupplierModal();
-      loadPurchase();
+
+      Alert.alert('Éxito', 'Proveedor actualizado correctamente');
     } catch (error: any) {
       console.error('Error updating supplier:', error);
       Alert.alert('Error', error.message || 'No se pudo actualizar el proveedor');
@@ -1690,8 +1696,8 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value, isTablet, highlight }) 
 interface EditSupplierModalProps {
   visible: boolean;
   onClose: () => void;
-  onSupplierSelect: (supplier: Supplier | null) => void;
-  selectedSupplier: Supplier | null;
+  onSupplierSelect: (supplier: ExpenseSupplier | null) => void;
+  selectedSupplier: ExpenseSupplier | null;
   onUpdate: () => void;
   updating: boolean;
   isTablet: boolean;
