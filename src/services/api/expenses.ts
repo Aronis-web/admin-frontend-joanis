@@ -467,7 +467,7 @@ class ExpensesService {
   /**
    * Download bulk upload format for expense templates
    */
-  async downloadBulkUploadFormat(): Promise<Blob> {
+  async downloadTemplateBulkUploadFormat(): Promise<Blob> {
     return apiClient.get(`${this.templatesPath}/bulk-upload/format`, {
       responseType: 'blob',
     });

@@ -56,7 +56,7 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
       }
 
       // Download the format from the API
-      const blob = await expensesService.downloadBulkUploadFormat();
+      const blob = await expensesService.downloadTemplateBulkUploadFormat();
       console.log('✅ Format downloaded successfully');
       console.log('📦 Tamaño del archivo:', blob.size, 'bytes');
 
