@@ -112,6 +112,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
+          'X-App-Id': config.APP_ID,
         },
         body: formData,
       });
