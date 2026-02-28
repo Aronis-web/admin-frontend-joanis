@@ -11,7 +11,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
-import { API_BASE_URL } from '@/config/api';
+import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
 
 type Props = NativeStackScreenProps<any, 'UploadCashReconciliationFiles'>;
@@ -108,7 +108,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       console.log('📤 Subiendo archivo:', selectedFile.name);
       console.log('📋 Tipo de reporte:', selectedReportType);
 
-      const response = await fetch(`${API_BASE_URL}/cash-reconciliation/analyze-structure`, {
+      const response = await fetch(`${config.API_URL}/cash-reconciliation/analyze-structure`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

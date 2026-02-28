@@ -21,7 +21,7 @@ export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) =>
     {
       id: 'upload-files',
       title: 'Subir Archivos',
-      description: 'Cargar archivos Excel para análisis de cuadre de caja',
+      description: 'Cargar archivos Excel para análisis de cuadre de caja (Ventas, Izipay, Prosegur)',
       icon: '📤',
       route: 'UploadCashReconciliationFiles',
       color: '#10B981',
