@@ -215,7 +215,6 @@ const menuCategories: MenuCategory[] = [
         label: 'Cuadre de Caja',
         route: MAIN_ROUTES.CASH_RECONCILIATION_MENU,
         color: '#06B6D4',
-        requiredPermissions: ['cash-reconciliation.read'],
       },
       {
         id: 'expenses-list',

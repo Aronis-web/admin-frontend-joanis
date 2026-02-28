@@ -1079,28 +1079,18 @@ const MainStack = React.memo(() => {
       {/* Cash Reconciliation Screens */}
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.CASH_RECONCILIATION_MENU}
+        component={CashReconciliationMenuScreen}
         options={{
           title: 'Cuadre de Caja',
         }}
-      >
-        {(props) => (
-          <ProtectedRoute requiredPermissions={['cash-reconciliation.read']}>
-            <CashReconciliationMenuScreen {...props} />
-          </ProtectedRoute>
-        )}
-      </MainStackNavigator.Screen>
+      />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.UPLOAD_CASH_RECONCILIATION_FILES}
+        component={UploadCashReconciliationFilesScreen}
         options={{
           title: 'Subir Archivos',
         }}
-      >
-        {(props) => (
-          <ProtectedRoute requiredPermissions={['cash-reconciliation.upload']}>
-            <UploadCashReconciliationFilesScreen {...props} />
-          </ProtectedRoute>
-        )}
-      </MainStackNavigator.Screen>
+      />
 
       {/* Emission Points & Series Configuration Screens */}
       <MainStackNavigator.Screen
