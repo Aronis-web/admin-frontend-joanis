@@ -21,9 +21,10 @@ interface MenuItem {
   id: string;
   icon: string;
   label: string;
-  route: string;
+  route?: string;
   color: string;
   requiredPermissions?: string[];
+  subItems?: MenuItem[];
 }
 
 interface MenuCategory {
@@ -230,21 +231,20 @@ const menuCategories: MenuCategory[] = [
           'expenses.templates.delete',
         ],
       },
-    ],
-  },
-  // Cuadre de Caja
-  {
-    id: 'cash-reconciliation',
-    title: 'Cuadre de Caja',
-    icon: '📊',
-    color: '#06B6D4',
-    items: [
       {
-        id: 'upload-cash-files',
-        icon: '📤',
-        label: 'Subir Archivos',
-        route: MAIN_ROUTES.UPLOAD_CASH_RECONCILIATION_FILES,
-        color: '#10B981',
+        id: 'cash-reconciliation',
+        icon: '📊',
+        label: 'Cuadre de Caja',
+        color: '#06B6D4',
+        subItems: [
+          {
+            id: 'upload-cash-files',
+            icon: '📤',
+            label: 'Subir Archivos',
+            route: MAIN_ROUTES.UPLOAD_CASH_RECONCILIATION_FILES,
+            color: '#10B981',
+          },
+        ],
       },
     ],
   },
@@ -431,6 +431,7 @@ interface DrawerMenuProps {
 export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side = 'left' }) => {
   const [slideAnim] = useState(new Animated.Value(side === 'left' ? -300 : 300));
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['main']));
+  const [expandedSubItems, setExpandedSubItems] = useState<Set<string>>(new Set());
   const navigation = useNavigation();
   const { logout, user } = useAuthStore();
   const { selectedSite, setSelectedSite } = useTenantStore();
@@ -489,6 +490,18 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
         // Close all other categories and open this one (accordion behavior)
         newSet.clear();
         newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSubItem = (itemId: string) => {
+    setExpandedSubItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
       }
       return newSet;
     });
@@ -623,19 +636,65 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
 
                   {/* Category Items */}
                   {isExpanded &&
-                    category.items.map((item) => (
-                      <TouchableOpacity
-                        key={item.id}
-                        style={styles.menuItem}
-                        onPress={() => handleMenuItemPress(item.route)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={[styles.menuItemIcon, { backgroundColor: item.color }]}>
-                          <Text style={styles.menuItemEmoji}>{item.icon}</Text>
-                        </View>
-                        <Text style={styles.menuItemLabel}>{item.label}</Text>
-                      </TouchableOpacity>
-                    ))}
+                    category.items.map((item) => {
+                      // Si el item tiene subitems, renderizar como subcategoría
+                      if (item.subItems && item.subItems.length > 0) {
+                        const isSubExpanded = expandedSubItems.has(item.id);
+                        return (
+                          <View key={item.id}>
+                            <TouchableOpacity
+                              style={styles.subCategoryHeader}
+                              onPress={() => toggleSubItem(item.id)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={[styles.menuItemIcon, { backgroundColor: item.color }]}>
+                                <Text style={styles.menuItemEmoji}>{item.icon}</Text>
+                              </View>
+                              <Text style={styles.menuItemLabel}>{item.label}</Text>
+                              <Text
+                                style={[
+                                  styles.subCategoryArrow,
+                                  isSubExpanded && styles.subCategoryArrowExpanded,
+                                ]}
+                              >
+                                ›
+                              </Text>
+                            </TouchableOpacity>
+                            {isSubExpanded &&
+                              item.subItems.map((subItem) => (
+                                <TouchableOpacity
+                                  key={subItem.id}
+                                  style={styles.subMenuItem}
+                                  onPress={() => handleMenuItemPress(subItem.route!)}
+                                  activeOpacity={0.7}
+                                >
+                                  <View
+                                    style={[styles.subMenuItemIcon, { backgroundColor: subItem.color }]}
+                                  >
+                                    <Text style={styles.subMenuItemEmoji}>{subItem.icon}</Text>
+                                  </View>
+                                  <Text style={styles.subMenuItemLabel}>{subItem.label}</Text>
+                                </TouchableOpacity>
+                              ))}
+                          </View>
+                        );
+                      }
+
+                      // Item normal sin subitems
+                      return (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={styles.menuItem}
+                          onPress={() => handleMenuItemPress(item.route!)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={[styles.menuItemIcon, { backgroundColor: item.color }]}>
+                            <Text style={styles.menuItemEmoji}>{item.icon}</Text>
+                          </View>
+                          <Text style={styles.menuItemLabel}>{item.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                 </View>
               );
             })}
@@ -863,6 +922,53 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: '#374151',
+    flex: 1,
+  },
+  subCategoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingLeft: 68,
+  },
+  subCategoryArrow: {
+    fontSize: 20,
+    color: '#9CA3AF',
+    fontWeight: '600',
+    marginLeft: 8,
+    transform: [{ rotate: '0deg' }],
+  },
+  subCategoryArrowExpanded: {
+    transform: [{ rotate: '90deg' }],
+  },
+  subMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingLeft: 92,
+  },
+  subMenuItemIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  subMenuItemEmoji: {
+    fontSize: 14,
+  },
+  subMenuItemLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
     flex: 1,
   },
   footer: {

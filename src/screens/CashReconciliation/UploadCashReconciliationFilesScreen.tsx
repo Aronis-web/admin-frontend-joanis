@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,11 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
+import { Picker } from '@react-native-picker/picker';
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
+import { sitesApi } from '@/services/api/sites';
+import { Site } from '@/types/sites';
 
 type Props = NativeStackScreenProps<any, 'UploadCashReconciliationFiles'>;
 
@@ -28,9 +31,12 @@ interface ReportTypeOption {
 
 export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { token } = useAuthStore();
+  const { token, currentCompany } = useAuthStore();
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [selectedReportType, setSelectedReportType] = useState<ReportType | null>(null);
+  const [selectedSede, setSelectedSede] = useState<string>('');
+  const [sedes, setSedes] = useState<Site[]>([]);
+  const [isLoadingSedes, setIsLoadingSedes] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const reportTypes: ReportTypeOption[] = [
@@ -56,6 +62,40 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       icon: '🏦',
     },
   ];
+
+  // Cargar sedes cuando se selecciona "ventas"
+  useEffect(() => {
+    if (selectedReportType === 'ventas' && currentCompany) {
+      loadSedes();
+    } else {
+      setSedes([]);
+      setSelectedSede('');
+    }
+  }, [selectedReportType, currentCompany]);
+
+  const loadSedes = async () => {
+    if (!currentCompany) {
+      console.warn('⚠️ No hay empresa seleccionada');
+      return;
+    }
+
+    setIsLoadingSedes(true);
+    try {
+      console.log('📍 Cargando sedes para empresa:', currentCompany.id);
+      const response = await sitesApi.getSites({
+        companyId: currentCompany.id,
+        isActive: true,
+        limit: 100,
+      });
+      setSedes(response.data);
+      console.log('✅ Sedes cargadas:', response.data.length);
+    } catch (error) {
+      console.error('❌ Error al cargar sedes:', error);
+      Alert.alert('Error', 'No se pudieron cargar las sedes');
+    } finally {
+      setIsLoadingSedes(false);
+    }
+  };
 
   const handleSelectFile = async () => {
     try {
@@ -90,6 +130,12 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       return;
     }
 
+    // Validar sede solo para tipo "ventas"
+    if (selectedReportType === 'ventas' && !selectedSede) {
+      Alert.alert('Error', 'Por favor selecciona una sede');
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -105,10 +151,18 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       // Agregar el tipo de reporte
       formData.append('tipo_reporte', selectedReportType);
 
+      // Agregar sede_id solo para ventas
+      if (selectedReportType === 'ventas' && selectedSede) {
+        formData.append('sede_id', selectedSede);
+      }
+
       console.log('📤 Subiendo archivo:', selectedFile.name);
       console.log('📋 Tipo de reporte:', selectedReportType);
+      if (selectedReportType === 'ventas') {
+        console.log('🏢 Sede seleccionada:', selectedSede);
+      }
 
-      const response = await fetch(`${config.API_URL}/cash-reconciliation/analyze-structure`, {
+      const response = await fetch(`${config.API_URL}/cash-reconciliation/upload`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -117,25 +171,33 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         body: formData,
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
       if (response.ok) {
+        const data = result.data || result;
+        const message = `✅ Archivo procesado exitosamente\n\n` +
+          `📊 Total de registros: ${data.total_registros || 0}\n` +
+          `✨ Registros nuevos: ${data.registros_nuevos || 0}\n` +
+          `🔄 Registros duplicados: ${data.registros_duplicados || 0}\n` +
+          `❌ Registros con error: ${data.registros_con_error || 0}`;
+
         Alert.alert(
           'Éxito',
-          'Archivo analizado correctamente. Revisa la consola del servidor para ver los detalles.',
+          message,
           [
             {
               text: 'OK',
               onPress: () => {
                 setSelectedFile(null);
                 setSelectedReportType(null);
+                setSelectedSede('');
               },
             },
           ]
         );
-        console.log('✅ Respuesta del servidor:', data);
+        console.log('✅ Respuesta del servidor:', result);
       } else {
-        throw new Error(data.message || 'Error al analizar el archivo');
+        throw new Error(result.message || 'Error al procesar el archivo');
       }
     } catch (error: any) {
       console.error('❌ Error al subir archivo:', error);
@@ -189,8 +251,46 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
           </View>
         </View>
 
+        {/* Selector de Sede - Solo para Ventas */}
+        {selectedReportType === 'ventas' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>2. Seleccionar Sede</Text>
+            {isLoadingSedes ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator color="#10B981" size="small" />
+                <Text style={styles.loadingText}>Cargando sedes...</Text>
+              </View>
+            ) : sedes.length > 0 ? (
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={selectedSede}
+                  onValueChange={(value) => setSelectedSede(value)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Selecciona una sede" value="" />
+                  {sedes.map((sede) => (
+                    <Picker.Item
+                      key={sede.id}
+                      label={`${sede.name} (${sede.code})`}
+                      value={sede.id}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            ) : (
+              <View style={styles.noSedesContainer}>
+                <Text style={styles.noSedesText}>
+                  ⚠️ No hay sedes disponibles para esta empresa
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Seleccionar Archivo Excel</Text>
+          <Text style={styles.sectionTitle}>
+            {selectedReportType === 'ventas' ? '3. Seleccionar Archivo Excel' : '2. Seleccionar Archivo Excel'}
+          </Text>
           <TouchableOpacity
             style={styles.selectFileButton}
             onPress={handleSelectFile}
@@ -214,26 +314,36 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. Subir y Analizar</Text>
+          <Text style={styles.sectionTitle}>
+            {selectedReportType === 'ventas' ? '4. Subir y Procesar' : '3. Subir y Procesar'}
+          </Text>
           <TouchableOpacity
             style={[
               styles.uploadButton,
-              (!selectedFile || !selectedReportType || isUploading) &&
+              (!selectedFile ||
+               !selectedReportType ||
+               (selectedReportType === 'ventas' && !selectedSede) ||
+               isUploading) &&
                 styles.uploadButtonDisabled,
             ]}
             onPress={handleUpload}
-            disabled={!selectedFile || !selectedReportType || isUploading}
+            disabled={
+              !selectedFile ||
+              !selectedReportType ||
+              (selectedReportType === 'ventas' && !selectedSede) ||
+              isUploading
+            }
             activeOpacity={0.7}
           >
             {isUploading ? (
               <>
                 <ActivityIndicator color="#FFFFFF" size="small" />
-                <Text style={styles.uploadButtonText}>Analizando...</Text>
+                <Text style={styles.uploadButtonText}>Procesando...</Text>
               </>
             ) : (
               <>
                 <Text style={styles.uploadButtonIcon}>📤</Text>
-                <Text style={styles.uploadButtonText}>Subir y Analizar Archivo</Text>
+                <Text style={styles.uploadButtonText}>Subir y Procesar Archivo</Text>
               </>
             )}
           </TouchableOpacity>
@@ -243,9 +353,10 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
           <Text style={styles.infoTitle}>ℹ️ Información</Text>
           <Text style={styles.infoText}>
             • El archivo debe estar en formato Excel (.xlsx){'\n'}
-            • El análisis mostrará la estructura del archivo en la consola del servidor{'\n'}
-            • Se detectarán automáticamente las columnas y tipos de datos{'\n'}
-            • Revisa la consola del servidor para ver los resultados del análisis
+            • Para reportes de ventas, debes seleccionar una sede{'\n'}
+            • El sistema detectará automáticamente duplicados{'\n'}
+            • Se validarán los datos antes de insertarlos en la base de datos{'\n'}
+            • Recibirás un resumen del procesamiento al finalizar
           </Text>
         </View>
       </ScrollView>
@@ -435,5 +546,43 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#78350F',
     lineHeight: 20,
+  },
+  pickerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  noSedesContainer: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  noSedesText: {
+    fontSize: 14,
+    color: '#92400E',
+    textAlign: 'center',
   },
 });
