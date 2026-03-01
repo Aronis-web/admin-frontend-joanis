@@ -139,6 +139,7 @@ const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').
 // Cash Reconciliation Screens - Lazy Loaded
 const CashReconciliationMenuScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CashReconciliationMenuScreen })), 'Cargando cuadre de caja...');
 const UploadCashReconciliationFilesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.UploadCashReconciliationFilesScreen })), 'Cargando subir archivos...');
+const SeriesConfigScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.SeriesConfigScreen })), 'Cargando configuración...');
 
 // Emission Points Screens - Lazy Loaded
 const EmissionPointsScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointsScreen })), 'Cargando puntos de emisión...');
@@ -1089,6 +1090,13 @@ const MainStack = React.memo(() => {
         component={UploadCashReconciliationFilesScreen}
         options={{
           title: 'Subir Archivos',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.SERIES_CONFIG}
+        component={SeriesConfigScreen}
+        options={{
+          title: 'Configuración de Series',
         }}
       />
 

@@ -210,13 +210,6 @@ const menuCategories: MenuCategory[] = [
         requiredPermissions: [],
       },
       {
-        id: 'cash-reconciliation',
-        icon: '📊',
-        label: 'Cuadre de Caja',
-        route: MAIN_ROUTES.CASH_RECONCILIATION_MENU,
-        color: '#06B6D4',
-      },
-      {
         id: 'expenses-list',
         icon: '📋',
         label: 'Lista de Gastos',
@@ -236,6 +229,22 @@ const menuCategories: MenuCategory[] = [
           'expenses.templates.update',
           'expenses.templates.delete',
         ],
+      },
+    ],
+  },
+  // Cuadre de Caja
+  {
+    id: 'cash-reconciliation',
+    title: 'Cuadre de Caja',
+    icon: '📊',
+    color: '#06B6D4',
+    items: [
+      {
+        id: 'upload-cash-files',
+        icon: '📤',
+        label: 'Subir Archivos',
+        route: MAIN_ROUTES.UPLOAD_CASH_RECONCILIATION_FILES,
+        color: '#10B981',
       },
     ],
   },
@@ -337,6 +346,14 @@ const menuCategories: MenuCategory[] = [
         route: MAIN_ROUTES.EXPENSES_CATEGORIES,
         color: '#FCA5A5',
         requiredPermissions: ['expenses.categories.read'],
+      },
+      // Cuadre de Caja Config
+      {
+        id: 'series-config',
+        icon: '📊',
+        label: 'Cuadre de Caja',
+        route: MAIN_ROUTES.SERIES_CONFIG,
+        color: '#06B6D4',
       },
       // Organización
       {

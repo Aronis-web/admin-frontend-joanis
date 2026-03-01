@@ -161,6 +161,7 @@ export const MAIN_ROUTES = {
   // Cash Reconciliation
   CASH_RECONCILIATION_MENU: 'CashReconciliationMenu',
   UPLOAD_CASH_RECONCILIATION_FILES: 'UploadCashReconciliationFiles',
+  SERIES_CONFIG: 'SeriesConfig',
 } as const;
 
 /**
@@ -340,6 +341,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Cash Reconciliation
   CASH_RECONCILIATION_MENU: 'cash-reconciliation.read',
   UPLOAD_CASH_RECONCILIATION_FILES: 'cash-reconciliation.upload',
+  SERIES_CONFIG: 'cash-reconciliation.series-config.read',
 };
 
 /**

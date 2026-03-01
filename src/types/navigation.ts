@@ -336,6 +336,7 @@ export type MainStackParamList = {
   // Cash Reconciliation
   CashReconciliationMenu: undefined;
   UploadCashReconciliationFiles: undefined;
+  SeriesConfig: undefined;
 
   // Accounts Receivable
   AccountsReceivable: undefined;
