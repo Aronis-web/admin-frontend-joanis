@@ -151,15 +151,21 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       // Agregar el tipo de reporte
       formData.append('tipo_reporte', selectedReportType);
 
-      // Agregar sede_id solo para ventas
-      if (selectedReportType === 'ventas' && selectedSede) {
-        formData.append('sede_id', selectedSede);
-      }
-
-      console.log('📤 Subiendo archivo:', selectedFile.name);
-      console.log('📋 Tipo de reporte:', selectedReportType);
+      // CASO 1: VENTAS - Requiere sede_id
       if (selectedReportType === 'ventas') {
-        console.log('🏢 Sede seleccionada:', selectedSede);
+        formData.append('sede_id', selectedSede);
+        console.log('📤 [VENTAS] Subiendo archivo:', selectedFile.name);
+        console.log('🏢 [VENTAS] Sede seleccionada:', selectedSede);
+      }
+      // CASO 2: IZIPAY - NO requiere sede_id (se detecta automáticamente)
+      else if (selectedReportType === 'izipay') {
+        console.log('📤 [IZIPAY] Subiendo archivo:', selectedFile.name);
+        console.log('💳 [IZIPAY] Las sedes se detectarán automáticamente por código de comercio');
+      }
+      // CASO 3: PROSEGUR - NO requiere sede_id (pendiente de implementación)
+      else if (selectedReportType === 'prosegur') {
+        console.log('📤 [PROSEGUR] Subiendo archivo:', selectedFile.name);
+        console.log('🏦 [PROSEGUR] Procesamiento pendiente de implementación');
       }
 
       const response = await fetch(`${config.API_URL}/cash-reconciliation/upload`, {
@@ -175,11 +181,30 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 
       if (response.ok) {
         const data = result.data || result;
-        const message = `✅ Archivo procesado exitosamente\n\n` +
-          `📊 Total de registros: ${data.total_registros || 0}\n` +
-          `✨ Registros nuevos: ${data.registros_nuevos || 0}\n` +
-          `🔄 Registros duplicados: ${data.registros_duplicados || 0}\n` +
-          `❌ Registros con error: ${data.registros_con_error || 0}`;
+
+        // Construir mensaje según el tipo de reporte
+        let message = '✅ Archivo procesado exitosamente\n\n';
+
+        if (selectedReportType === 'ventas') {
+          message += `📊 Total de registros: ${data.total_registros || 0}\n` +
+            `✨ Registros nuevos: ${data.registros_nuevos || 0}\n` +
+            `🔄 Registros duplicados: ${data.registros_duplicados || 0}\n` +
+            `❌ Registros con error: ${data.registros_con_error || 0}`;
+        } else if (selectedReportType === 'izipay') {
+          message += `📊 Total de transacciones: ${data.total_registros || 0}\n` +
+            `✨ Transacciones nuevas: ${data.registros_nuevos || 0}\n` +
+            `🔄 Transacciones duplicadas: ${data.registros_duplicados || 0}\n` +
+            `❌ Transacciones con error: ${data.registros_con_error || 0}\n\n`;
+
+          if (data.sedes_procesadas && data.sedes_procesadas.length > 0) {
+            message += `🏢 Sedes procesadas:\n${data.sedes_procesadas.map((s: string) => `  • ${s}`).join('\n')}`;
+          }
+        } else if (selectedReportType === 'prosegur') {
+          message += `📊 Total de registros: ${data.total_registros || 0}\n` +
+            `✨ Registros nuevos: ${data.registros_nuevos || 0}\n` +
+            `🔄 Registros duplicados: ${data.registros_duplicados || 0}\n` +
+            `❌ Registros con error: ${data.registros_con_error || 0}`;
+        }
 
         Alert.alert(
           'Éxito',
@@ -351,13 +376,43 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 
         <View style={styles.infoSection}>
           <Text style={styles.infoTitle}>ℹ️ Información</Text>
-          <Text style={styles.infoText}>
-            • El archivo debe estar en formato Excel (.xlsx){'\n'}
-            • Para reportes de ventas, debes seleccionar una sede{'\n'}
-            • El sistema detectará automáticamente duplicados{'\n'}
-            • Se validarán los datos antes de insertarlos en la base de datos{'\n'}
-            • Recibirás un resumen del procesamiento al finalizar
-          </Text>
+          {selectedReportType === 'ventas' && (
+            <Text style={styles.infoText}>
+              📊 VENTAS{'\n'}
+              • Debes seleccionar una sede específica{'\n'}
+              • El archivo debe contener el reporte de ventas del sistema{'\n'}
+              • Se validarán campos: ID, Serie, Correlativo, Fecha, Total, Método de pago{'\n'}
+              • Se excluyen automáticamente: Notas de Crédito y ventas anuladas{'\n'}
+              • El sistema detectará duplicados por: sede + sale_id + fuente + fecha
+            </Text>
+          )}
+          {selectedReportType === 'izipay' && (
+            <Text style={styles.infoText}>
+              💳 IZIPAY{'\n'}
+              • NO requiere seleccionar sede (se detecta automáticamente){'\n'}
+              • El archivo debe ser CSV dentro de Excel con delimitador ";" (punto y coma){'\n'}
+              • Las sedes se asignan según el código de comercio{'\n'}
+              • Solo se procesan transacciones tipo "COMPRA" con importe mayor a 0{'\n'}
+              • Se excluyen: Comisiones, devoluciones y ajustes
+            </Text>
+          )}
+          {selectedReportType === 'prosegur' && (
+            <Text style={styles.infoText}>
+              🏦 PROSEGUR{'\n'}
+              • Funcionalidad en desarrollo{'\n'}
+              • El archivo debe contener el reporte de recaudación Prosegur{'\n'}
+              • Próximamente disponible
+            </Text>
+          )}
+          {!selectedReportType && (
+            <Text style={styles.infoText}>
+              • Selecciona un tipo de reporte para ver información específica{'\n'}
+              • El archivo debe estar en formato Excel (.xlsx){'\n'}
+              • El sistema detectará automáticamente duplicados{'\n'}
+              • Se validarán los datos antes de insertarlos en la base de datos{'\n'}
+              • Recibirás un resumen del procesamiento al finalizar
+            </Text>
+          )}
         </View>
       </ScrollView>
     </View>
