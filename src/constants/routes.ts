@@ -161,6 +161,7 @@ export const MAIN_ROUTES = {
   // Cash Reconciliation
   CASH_RECONCILIATION_MENU: 'CashReconciliationMenu',
   UPLOAD_CASH_RECONCILIATION_FILES: 'UploadCashReconciliationFiles',
+  UPLOADED_FILES_LIST: 'UploadedFilesList',
   SERIES_CONFIG: 'SeriesConfig',
 } as const;
 

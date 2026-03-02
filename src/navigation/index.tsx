@@ -139,6 +139,7 @@ const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').
 // Cash Reconciliation Screens - Lazy Loaded
 const CashReconciliationMenuScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CashReconciliationMenuScreen })), 'Cargando cuadre de caja...');
 const UploadCashReconciliationFilesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.UploadCashReconciliationFilesScreen })), 'Cargando subir archivos...');
+const UploadedFilesListScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.UploadedFilesListScreen })), 'Cargando archivos...');
 const SeriesConfigScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.SeriesConfigScreen })), 'Cargando configuración...');
 
 // Emission Points Screens - Lazy Loaded
@@ -1090,6 +1091,13 @@ const MainStack = React.memo(() => {
         component={UploadCashReconciliationFilesScreen}
         options={{
           title: 'Subir Archivos',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.UPLOADED_FILES_LIST}
+        component={UploadedFilesListScreen}
+        options={{
+          title: 'Archivos Subidos',
         }}
       />
       <MainStackNavigator.Screen

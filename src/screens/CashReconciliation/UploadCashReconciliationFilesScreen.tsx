@@ -16,6 +16,7 @@ import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
 import { sitesApi } from '@/services/api/sites';
 import { Site } from '@/types/sites';
+import { MAIN_ROUTES } from '@/constants/routes';
 
 type Props = NativeStackScreenProps<any, 'UploadCashReconciliationFiles'>;
 
@@ -414,6 +415,18 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
             </Text>
           )}
         </View>
+
+        {/* Botón para ver archivos subidos */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.viewFilesButton}
+            onPress={() => navigation.navigate(MAIN_ROUTES.UPLOADED_FILES_LIST as any)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.viewFilesButtonIcon}>📋</Text>
+            <Text style={styles.viewFilesButtonText}>Ver Archivos Subidos</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -639,5 +652,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#92400E',
     textAlign: 'center',
+  },
+  viewFilesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    padding: 16,
+    gap: 8,
+  },
+  viewFilesButtonIcon: {
+    fontSize: 20,
+  },
+  viewFilesButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
