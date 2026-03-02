@@ -338,6 +338,10 @@ export type MainStackParamList = {
   UploadCashReconciliationFiles: undefined;
   UploadedFilesList: undefined;
   SeriesConfig: undefined;
+  ReviewDocumentsMenu: undefined;
+  ReviewSales: undefined;
+  ReviewIzipay: undefined;
+  ReviewProsegur: undefined;
 
   // Accounts Receivable
   AccountsReceivable: undefined;

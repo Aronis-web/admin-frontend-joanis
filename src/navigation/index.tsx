@@ -141,6 +141,10 @@ const CashReconciliationMenuScreen = lazyLoad(() => import('@/screens/CashReconc
 const UploadCashReconciliationFilesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.UploadCashReconciliationFilesScreen })), 'Cargando subir archivos...');
 const UploadedFilesListScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.UploadedFilesListScreen })), 'Cargando archivos...');
 const SeriesConfigScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.SeriesConfigScreen })), 'Cargando configuración...');
+const ReviewDocumentsMenuScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewDocumentsMenuScreen })), 'Cargando revisar documentos...');
+const ReviewSalesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewSalesScreen })), 'Cargando ventas...');
+const ReviewIzipayScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewIzipayScreen })), 'Cargando Izipay...');
+const ReviewProsegurScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewProsegurScreen })), 'Cargando Prosegur...');
 
 // Emission Points Screens - Lazy Loaded
 const EmissionPointsScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointsScreen })), 'Cargando puntos de emisión...');
@@ -1105,6 +1109,34 @@ const MainStack = React.memo(() => {
         component={SeriesConfigScreen}
         options={{
           title: 'Configuración de Series',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.REVIEW_DOCUMENTS_MENU}
+        component={ReviewDocumentsMenuScreen}
+        options={{
+          title: 'Revisar Documentos',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.REVIEW_SALES}
+        component={ReviewSalesScreen}
+        options={{
+          title: 'Revisar Ventas',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.REVIEW_IZIPAY}
+        component={ReviewIzipayScreen}
+        options={{
+          title: 'Revisar Izipay',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.REVIEW_PROSEGUR}
+        component={ReviewProsegurScreen}
+        options={{
+          title: 'Revisar Prosegur',
         }}
       />
 

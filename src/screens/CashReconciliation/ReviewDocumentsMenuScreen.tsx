@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MAIN_ROUTES } from '@/constants/routes';
 
-type Props = NativeStackScreenProps<any, 'CashReconciliationMenu'>;
+type Props = NativeStackScreenProps<any, 'ReviewDocumentsMenu'>;
 
 interface MenuOption {
   id: string;
@@ -14,25 +15,33 @@ interface MenuOption {
   color: string;
 }
 
-export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) => {
+export const ReviewDocumentsMenuScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
 
   const menuOptions: MenuOption[] = [
     {
-      id: 'upload-files',
-      title: 'Subir Archivos',
-      description: 'Cargar archivos Excel para análisis de cuadre de caja (Ventas, Izipay, Prosegur)',
-      icon: '📤',
-      route: 'UploadCashReconciliationFiles',
+      id: 'review-sales',
+      title: 'Revisar Ventas',
+      description: 'Consultar y filtrar ventas registradas en el sistema',
+      icon: '💰',
+      route: 'ReviewSales',
       color: '#10B981',
     },
     {
-      id: 'review-documents',
-      title: 'Revisar Documentos',
-      description: 'Consultar y filtrar ventas, transacciones Izipay y depósitos Prosegur',
-      icon: '📋',
-      route: 'ReviewDocumentsMenu',
+      id: 'review-izipay',
+      title: 'Revisar Izipay',
+      description: 'Consultar transacciones de Izipay con filtros avanzados',
+      icon: '💳',
+      route: 'ReviewIzipay',
       color: '#3B82F6',
+    },
+    {
+      id: 'review-prosegur',
+      title: 'Revisar Prosegur',
+      description: 'Consultar depósitos y recogidas de Prosegur',
+      icon: '🏦',
+      route: 'ReviewProsegur',
+      color: '#8B5CF6',
     },
   ];
 
@@ -61,13 +70,14 @@ export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) =>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cuadre de Caja</Text>
+        <Text style={styles.headerTitle}>Revisar Documentos</Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Menu Options */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.menuContainer}>
+          <Text style={styles.sectionTitle}>Selecciona el tipo de documento a revisar</Text>
           {menuOptions.map(renderOption)}
         </View>
       </ScrollView>
@@ -116,6 +126,14 @@ const styles = StyleSheet.create({
   },
   menuContainer: {
     padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   menuCard: {
     flexDirection: 'row',

@@ -163,6 +163,10 @@ export const MAIN_ROUTES = {
   UPLOAD_CASH_RECONCILIATION_FILES: 'UploadCashReconciliationFiles',
   UPLOADED_FILES_LIST: 'UploadedFilesList',
   SERIES_CONFIG: 'SeriesConfig',
+  REVIEW_DOCUMENTS_MENU: 'ReviewDocumentsMenu',
+  REVIEW_SALES: 'ReviewSales',
+  REVIEW_IZIPAY: 'ReviewIzipay',
+  REVIEW_PROSEGUR: 'ReviewProsegur',
 } as const;
 
 /**
@@ -343,6 +347,10 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   CASH_RECONCILIATION_MENU: 'cash-reconciliation.read',
   UPLOAD_CASH_RECONCILIATION_FILES: 'cash-reconciliation.upload',
   SERIES_CONFIG: 'cash-reconciliation.series-config.read',
+  REVIEW_DOCUMENTS_MENU: 'cash-reconciliation.read',
+  REVIEW_SALES: 'cash-reconciliation.read',
+  REVIEW_IZIPAY: 'cash-reconciliation.read',
+  REVIEW_PROSEGUR: 'cash-reconciliation.read',
 };
 
 /**
