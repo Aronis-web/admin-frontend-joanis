@@ -244,6 +244,13 @@ const menuCategories: MenuCategory[] = [
             route: MAIN_ROUTES.UPLOAD_CASH_RECONCILIATION_FILES,
             color: '#10B981',
           },
+          {
+            id: 'review-documents',
+            icon: '📋',
+            label: 'Revisar Documentos',
+            route: MAIN_ROUTES.REVIEW_DOCUMENTS_MENU,
+            color: '#3B82F6',
+          },
         ],
       },
     ],
