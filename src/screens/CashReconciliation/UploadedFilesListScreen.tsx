@@ -9,6 +9,8 @@ import {
   Alert,
   RefreshControl,
   Linking,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -65,6 +67,12 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
   const [filterType, setFilterType] = useState<FileType>('');
   const [filterStatus, setFilterStatus] = useState<FileStatus | ''>('');
   const [showReverted, setShowReverted] = useState(false);
+
+  // Modal de reversión
+  const [showRevertModal, setShowRevertModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<SourceFile | null>(null);
+  const [revertReason, setRevertReason] = useState('');
+  const [isReverting, setIsReverting] = useState(false);
 
   const limit = 20;
 
@@ -127,35 +135,28 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
         {
           text: 'Revertir',
           style: 'destructive',
-          onPress: () => promptRevertReason(file),
+          onPress: () => {
+            setSelectedFile(file);
+            setRevertReason('');
+            setShowRevertModal(true);
+          },
         },
       ]
     );
   };
 
-  const promptRevertReason = (file: SourceFile) => {
-    Alert.prompt(
-      'Razón de Reversión',
-      'Por favor indica la razón de la reversión:',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: async (razon?: string) => {
-            await executeRevert(file.id, razon || 'Sin razón especificada');
-          },
-        },
-      ],
-      'plain-text',
-      '',
-      'default'
-    );
-  };
+  const handleConfirmRevert = async () => {
+    if (!selectedFile) return;
 
-  const executeRevert = async (fileId: string, razon: string) => {
+    if (!revertReason.trim()) {
+      Alert.alert('Error', 'Por favor indica la razón de la reversión');
+      return;
+    }
+
+    setIsReverting(true);
     try {
       const response = await fetch(
-        `${config.API_URL}/cash-reconciliation/source-files/${fileId}/revert`,
+        `${config.API_URL}/cash-reconciliation/source-files/${selectedFile.id}/revert`,
         {
           method: 'DELETE',
           headers: {
@@ -163,13 +164,16 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
             'X-App-Id': config.APP_ID,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ razon }),
+          body: JSON.stringify({ razon: revertReason.trim() }),
         }
       );
 
       const result = await response.json();
 
       if (response.ok && result.success) {
+        setShowRevertModal(false);
+        setSelectedFile(null);
+        setRevertReason('');
         Alert.alert(
           'Éxito',
           `Archivo revertido exitosamente\n\n` +
@@ -182,6 +186,8 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
     } catch (error: any) {
       console.error('❌ Error al revertir archivo:', error);
       Alert.alert('Error', error.message || 'No se pudo revertir el archivo');
+    } finally {
+      setIsReverting(false);
     }
   };
 
@@ -402,6 +408,101 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.headerTitle}>Archivos Subidos</Text>
         <View style={styles.placeholder} />
       </View>
+
+      {/* Modal de Reversión */}
+      <Modal
+        visible={showRevertModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!isReverting) {
+            setShowRevertModal(false);
+            setSelectedFile(null);
+            setRevertReason('');
+          }
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Razón de Reversión</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (!isReverting) {
+                    setShowRevertModal(false);
+                    setSelectedFile(null);
+                    setRevertReason('');
+                  }
+                }}
+                style={styles.modalCloseButton}
+                disabled={isReverting}
+              >
+                <Text style={styles.modalCloseButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Modal Content */}
+            <View style={styles.modalContent}>
+              {selectedFile && (
+                <View style={styles.modalFileInfo}>
+                  <Text style={styles.modalFileLabel}>Archivo:</Text>
+                  <Text style={styles.modalFileName}>{selectedFile.nombre_archivo}</Text>
+                  <Text style={styles.modalFileWarning}>
+                    ⚠️ Se eliminarán {selectedFile.registros_nuevos} registros
+                  </Text>
+                </View>
+              )}
+
+              <Text style={styles.modalInputLabel}>
+                Por favor indica la razón de la reversión:
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={revertReason}
+                onChangeText={setRevertReason}
+                placeholder="Ej: Archivo incorrecto, datos duplicados, etc."
+                placeholderTextColor="#9CA3AF"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                editable={!isReverting}
+              />
+            </View>
+
+            {/* Modal Actions */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => {
+                  setShowRevertModal(false);
+                  setSelectedFile(null);
+                  setRevertReason('');
+                }}
+                disabled={isReverting}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  styles.modalConfirmButton,
+                  isReverting && styles.modalButtonDisabled,
+                ]}
+                onPress={handleConfirmRevert}
+                disabled={isReverting}
+              >
+                {isReverting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalConfirmButtonText}>Confirmar Reversión</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Filters */}
       <View style={styles.filtersContainer}>
@@ -846,5 +947,129 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     fontWeight: '500',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButtonText: {
+    fontSize: 20,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  modalContent: {
+    padding: 20,
+  },
+  modalFileInfo: {
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  modalFileLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#991B1B',
+    marginBottom: 4,
+  },
+  modalFileName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7F1D1D',
+    marginBottom: 8,
+  },
+  modalFileWarning: {
+    fontSize: 13,
+    color: '#DC2626',
+    fontWeight: '600',
+  },
+  modalInputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  modalInput: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#1F2937',
+    minHeight: 100,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  modalCancelButton: {
+    backgroundColor: '#F3F4F6',
+  },
+  modalCancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  modalConfirmButton: {
+    backgroundColor: '#EF4444',
+  },
+  modalConfirmButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalButtonDisabled: {
+    opacity: 0.6,
   },
 });
