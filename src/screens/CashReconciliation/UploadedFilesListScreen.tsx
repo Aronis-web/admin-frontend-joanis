@@ -187,14 +187,48 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleDownloadFile = async (file: SourceFile) => {
     try {
+      // Construir URL con headers como query params para Linking
+      // O usar fetch para descargar y luego abrir
       const downloadUrl = `${config.API_URL}${file.url_descarga}`;
-      const supported = await Linking.canOpenURL(downloadUrl);
 
-      if (supported) {
-        await Linking.openURL(downloadUrl);
-      } else {
-        Alert.alert('Error', 'No se puede abrir el enlace de descarga');
+      console.log('📥 Descargando archivo:', file.nombre_archivo);
+
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-App-Id': config.APP_ID,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al descargar el archivo');
       }
+
+      // Obtener el blob del archivo
+      const blob = await response.blob();
+
+      // Crear URL temporal del blob
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Abrir en nueva ventana/tab (para web) o descargar
+      const supported = await Linking.canOpenURL(blobUrl);
+      if (supported) {
+        await Linking.openURL(blobUrl);
+      } else {
+        // Fallback: crear elemento <a> para descargar
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = file.nombre_archivo;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Limpiar URL temporal después de un tiempo
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+      }
+
+      console.log('✅ Archivo descargado exitosamente');
     } catch (error) {
       console.error('❌ Error al descargar archivo:', error);
       Alert.alert('Error', 'No se pudo descargar el archivo');
