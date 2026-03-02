@@ -90,7 +90,7 @@ export const ReviewIzipayScreen: React.FC<Props> = ({ navigation }) => {
   const loadSedes = async () => {
     try {
       setIsLoadingSedes(true);
-      const response = await sitesApi.getSites({ limit: 1000 });
+      const response = await sitesApi.getSites({ limit: 100 });
       setSedes(response.data || []);
     } catch (error) {
       console.error('Error loading sedes:', error);
@@ -124,6 +124,7 @@ export const ReviewIzipayScreen: React.FC<Props> = ({ navigation }) => {
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
+              'X-App-Id': config.APP_ID,
             },
           }
         );
