@@ -100,8 +100,23 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 
   const handleSelectFile = async () => {
     try {
+      // Determinar tipos de archivo permitidos según el tipo de reporte
+      let allowedTypes: string | string[];
+
+      if (selectedReportType === 'prosegur') {
+        // Prosegur acepta Excel o ZIP
+        allowedTypes = [
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+          'application/zip', // .zip
+          'application/x-zip-compressed', // .zip (alternativo)
+        ];
+      } else {
+        // Ventas e Izipay solo aceptan Excel
+        allowedTypes = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      }
+
       const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        type: allowedTypes,
         copyToCacheDirectory: true,
       });
 
@@ -113,6 +128,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         const file = result.assets[0];
         setSelectedFile(file);
         console.log('📄 Archivo seleccionado:', file.name);
+        console.log('📋 Tipo MIME:', file.mimeType);
       }
     } catch (error) {
       console.error('❌ Error al seleccionar archivo:', error);
@@ -315,7 +331,11 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {selectedReportType === 'ventas' ? '3. Seleccionar Archivo Excel' : '2. Seleccionar Archivo Excel'}
+            {selectedReportType === 'ventas'
+              ? '3. Seleccionar Archivo'
+              : selectedReportType === 'prosegur'
+              ? '2. Seleccionar Archivo (Excel o ZIP)'
+              : '2. Seleccionar Archivo Excel'}
           </Text>
           <TouchableOpacity
             style={styles.selectFileButton}
@@ -324,7 +344,11 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
           >
             <Text style={styles.selectFileIcon}>📁</Text>
             <Text style={styles.selectFileText}>
-              {selectedFile ? selectedFile.name : 'Seleccionar archivo .xlsx'}
+              {selectedFile
+                ? selectedFile.name
+                : selectedReportType === 'prosegur'
+                ? 'Seleccionar archivo .xlsx o .zip'
+                : 'Seleccionar archivo .xlsx'}
             </Text>
           </TouchableOpacity>
 
@@ -400,9 +424,11 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
           {selectedReportType === 'prosegur' && (
             <Text style={styles.infoText}>
               🏦 PROSEGUR{'\n'}
-              • Funcionalidad en desarrollo{'\n'}
+              • Acepta archivos Excel (.xlsx) o ZIP (.zip){'\n'}
+              • Si es ZIP, se procesará el primer Excel encontrado{'\n'}
               • El archivo debe contener el reporte de recaudación Prosegur{'\n'}
-              • Próximamente disponible
+              • Se detecta automáticamente el tipo de archivo (Excel o ZIP){'\n'}
+              • El sistema extrae y procesa el contenido automáticamente
             </Text>
           )}
           {!selectedReportType && (
