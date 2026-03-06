@@ -33,7 +33,7 @@ import { useAuthStore } from '@/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
 import logger from '@/utils/logger';
 import { config } from '@/utils/config';
-import { Driver, Vehicle } from '@/types/transport';
+import { Driver, Vehicle, Transporter } from '@/types/transport';
 
 interface RepartoParticipantDetailScreenProps {
   navigation: any;
@@ -638,7 +638,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     setTransportModalVisible(true);
   };
 
-  const handleTransportConfirm = async (vehicle: Vehicle | null, driver: Driver | null) => {
+  const handleTransportConfirm = async (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
     setTransportModalVisible(false);
 
     const participantName =
@@ -646,16 +646,20 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         ? participant.company?.alias || participant.company?.name || 'Empresa'
         : participant?.site?.name || 'Sede';
 
-    // Determinar si es transporte público
-    const isPublicTransport = !vehicle && !driver;
+    // Determinar si es transporte público (tiene transportista pero no vehículo ni conductor)
+    const isPublicTransport = transporter !== null && !vehicle && !driver;
 
     // Construir mensaje de confirmación
     let confirmMessage = `¿Estás seguro de que deseas generar la guía de remisión electrónica para ${participantName}?\n\n`;
 
     if (isPublicTransport) {
-      confirmMessage += `🚌 Transporte: Público\n\n`;
+      confirmMessage +=
+        `🚌 Transporte: Público\n` +
+        `🏢 Transportista: ${transporter!.razonSocial}\n` +
+        `📋 RUC: ${transporter!.numeroRuc}\n\n`;
     } else {
       confirmMessage +=
+        `🚗 Transporte: Privado\n` +
         `🚗 Vehículo: ${vehicle!.numeroPlaca} (${vehicle!.marca} ${vehicle!.modelo})\n` +
         `👤 Conductor: ${driver!.nombre} ${driver!.apellido}\n` +
         `📋 Licencia: ${driver!.numeroLicencia}\n\n`;
@@ -686,7 +690,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
               if (isPublicTransport) {
                 logger.info('🚌 Tipo de transporte: Público');
+                logger.info('🏢 Transportista:', transporter!.razonSocial);
               } else {
+                logger.info('🚗 Tipo de transporte: Privado');
                 logger.info('🚗 Vehículo:', vehicle!.numeroPlaca);
                 logger.info('👤 Conductor:', `${driver!.nombre} ${driver!.apellido}`);
               }
@@ -694,7 +700,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               const response = await repartosService.generateRemissionGuide(
                 participantId,
                 campaignId,
-                isPublicTransport ? undefined : {
+                isPublicTransport ? {
+                  transporterId: transporter!.id,
+                } : {
                   vehicleId: vehicle!.id,
                   driverId: driver!.id,
                 }
@@ -709,9 +717,12 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 `📦 Traslado: ${response.transfer.transferNumber}\n`;
 
               if (isPublicTransport) {
-                successMessage += `🚌 Transporte: Público`;
+                successMessage +=
+                  `🚌 Transporte: Público\n` +
+                  `🏢 Transportista: ${transporter!.razonSocial}`;
               } else {
                 successMessage +=
+                  `🚗 Transporte: Privado\n` +
                   `🚗 Vehículo: ${vehicle!.numeroPlaca}\n` +
                   `👤 Conductor: ${driver!.nombre} ${driver!.apellido}`;
               }

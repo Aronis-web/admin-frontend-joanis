@@ -13,13 +13,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { Vehicle, Driver, VehicleStatus, DriverStatus } from '@/types/transport';
+import { Vehicle, Driver, VehicleStatus, DriverStatus, Transporter, TransporterStatus } from '@/types/transport';
 import { transportService } from '@/services/api';
 
 interface TransportSelectionModalProps {
   visible: boolean;
   onClose: () => void;
-  onConfirm: (vehicle: Vehicle | null, driver: Driver | null) => void;
+  onConfirm: (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => void;
 }
 
 export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = ({
@@ -29,10 +29,12 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [transporters, setTransporters] = useState<Transporter[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [selectedTransporter, setSelectedTransporter] = useState<Transporter | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isPublicTransport, setIsPublicTransport] = useState(true);
+  const [isPublicTransport, setIsPublicTransport] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -41,7 +43,8 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
       // Reset selections when modal closes
       setSelectedVehicle(null);
       setSelectedDriver(null);
-      setIsPublicTransport(true);
+      setSelectedTransporter(null);
+      setIsPublicTransport(false);
     }
   }, [visible]);
 
@@ -49,8 +52,8 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
     try {
       setLoading(true);
 
-      // Load vehicles and drivers in parallel
-      const [vehiclesResponse, driversResponse] = await Promise.all([
+      // Load vehicles, drivers, and transporters in parallel
+      const [vehiclesResponse, driversResponse, transportersResponse] = await Promise.all([
         transportService.getVehicles({
           status: VehicleStatus.ACTIVE,
           isActive: true,
@@ -61,10 +64,16 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
           isActive: true,
           limit: 1000,
         }),
+        transportService.getTransporters({
+          status: TransporterStatus.ACTIVE,
+          isActive: true,
+          limit: 1000,
+        }),
       ]);
 
       setVehicles(vehiclesResponse.data);
       setDrivers(driversResponse.data);
+      setTransporters(transportersResponse.data);
 
       // Auto-select first items if available
       if (vehiclesResponse.data.length > 0) {
@@ -72,6 +81,9 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
       }
       if (driversResponse.data.length > 0) {
         setSelectedDriver(driversResponse.data[0]);
+      }
+      if (transportersResponse.data.length > 0) {
+        setSelectedTransporter(transportersResponse.data[0]);
       }
     } catch (error: any) {
       console.error('Error loading transport data:', error);
@@ -83,11 +95,17 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
 
   const handleConfirm = () => {
     if (isPublicTransport) {
-      // Para transporte público, enviar null en ambos
-      onConfirm(null, null);
+      // Para transporte público, validar que se haya seleccionado un transportista
+      if (!selectedTransporter) {
+        Alert.alert('Error', 'Debes seleccionar un transportista para transporte público');
+        return;
+      }
+      // Enviar null para vehículo y conductor, pero el transportista seleccionado
+      onConfirm(null, null, selectedTransporter);
       return;
     }
 
+    // Para transporte privado, validar vehículo y conductor
     if (!selectedVehicle) {
       Alert.alert('Error', 'Debes seleccionar un vehículo');
       return;
@@ -97,15 +115,30 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
       return;
     }
 
-    onConfirm(selectedVehicle, selectedDriver);
+    // Enviar vehículo y conductor, sin transportista
+    onConfirm(selectedVehicle, selectedDriver, null);
   };
 
   const handlePublicTransportToggle = () => {
     setIsPublicTransport(!isPublicTransport);
     if (!isPublicTransport) {
-      // Si se activa transporte público, limpiar selecciones
+      // Si se activa transporte público, limpiar selecciones de vehículo y conductor
       setSelectedVehicle(null);
       setSelectedDriver(null);
+      // Auto-seleccionar primer transportista si está disponible
+      if (transporters.length > 0 && !selectedTransporter) {
+        setSelectedTransporter(transporters[0]);
+      }
+    } else {
+      // Si se desactiva transporte público, limpiar transportista
+      setSelectedTransporter(null);
+      // Auto-seleccionar primer vehículo y conductor si están disponibles
+      if (vehicles.length > 0 && !selectedVehicle) {
+        setSelectedVehicle(vehicles[0]);
+      }
+      if (drivers.length > 0 && !selectedDriver) {
+        setSelectedDriver(drivers[0]);
+      }
     }
   };
 
@@ -120,6 +153,13 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
     const driver = drivers.find((d) => d.id === driverId);
     if (driver) {
       setSelectedDriver(driver);
+    }
+  };
+
+  const handleTransporterChange = (transporterId: string) => {
+    const transporter = transporters.find((t) => t.id === transporterId);
+    if (transporter) {
+      setSelectedTransporter(transporter);
     }
   };
 
@@ -176,7 +216,94 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                   </Text>
                 </View>
                 <Text style={styles.publicTransportSubtext}>
-                  Generar guía sin asignar conductor ni vehículo
+                  Seleccionar transportista externo
+                </Text>
+              </TouchableOpacity>
+
+              {/* Transporter Selection - Only visible when Public Transport is selected */}
+              {isPublicTransport && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="business" size={24} color="#6366F1" />
+                    <Text style={styles.sectionTitle}>Transportista</Text>
+                  </View>
+
+                  {transporters.length === 0 ? (
+                    <View style={styles.emptyState}>
+                      <Ionicons name="business-outline" size={48} color="#D1D5DB" />
+                      <Text style={styles.emptyText}>No hay transportistas disponibles</Text>
+                      <Text style={styles.emptySubtext}>
+                        Registra transportistas en Configuración
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      <View style={styles.pickerContainer}>
+                        <Picker
+                          selectedValue={selectedTransporter?.id || ''}
+                          onValueChange={handleTransporterChange}
+                          style={styles.picker}
+                        >
+                          {transporters.map((transporter) => (
+                            <Picker.Item
+                              key={transporter.id}
+                              label={`${transporter.razonSocial} - RUC: ${transporter.numeroRuc}`}
+                              value={transporter.id}
+                            />
+                          ))}
+                        </Picker>
+                      </View>
+
+                      {/* Transporter Details */}
+                      {selectedTransporter && (
+                        <View style={styles.detailsCard}>
+                          <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Razón Social:</Text>
+                            <Text style={styles.detailValue}>{selectedTransporter.razonSocial}</Text>
+                          </View>
+                          <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>RUC:</Text>
+                            <Text style={styles.detailValue}>{selectedTransporter.numeroRuc}</Text>
+                          </View>
+                          {selectedTransporter.numeroRegistroMTC && (
+                            <View style={styles.detailRow}>
+                              <Text style={styles.detailLabel}>Registro MTC:</Text>
+                              <Text style={styles.detailValue}>{selectedTransporter.numeroRegistroMTC}</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+              )}
+
+              {/* Private Transport Option */}
+              <TouchableOpacity
+                style={[
+                  styles.publicTransportCard,
+                  !isPublicTransport && styles.publicTransportCardActive,
+                ]}
+                onPress={handlePublicTransportToggle}
+                activeOpacity={0.7}
+              >
+                <View style={styles.publicTransportHeader}>
+                  <Ionicons
+                    name={!isPublicTransport ? 'checkbox' : 'square-outline'}
+                    size={24}
+                    color={!isPublicTransport ? '#10B981' : '#6B7280'}
+                  />
+                  <Text
+                    style={[
+                      styles.publicTransportTitle,
+                      !isPublicTransport && styles.publicTransportTitleActive,
+                    ]}
+                  >
+                    🚗 Transporte Privado
+                  </Text>
+                </View>
+                <Text style={styles.publicTransportSubtext}>
+                  Asignar conductor y vehículo propios
                 </Text>
               </TouchableOpacity>
 
@@ -304,10 +431,10 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
               style={[
                 styles.button,
                 styles.confirmButton,
-                (!isPublicTransport && (!selectedVehicle || !selectedDriver) || loading) && styles.buttonDisabled,
+                ((isPublicTransport && !selectedTransporter) || (!isPublicTransport && (!selectedVehicle || !selectedDriver)) || loading) && styles.buttonDisabled,
               ]}
               onPress={handleConfirm}
-              disabled={!isPublicTransport && (!selectedVehicle || !selectedDriver) || loading}
+              disabled={(isPublicTransport && !selectedTransporter) || (!isPublicTransport && (!selectedVehicle || !selectedDriver)) || loading}
               activeOpacity={0.7}
             >
               <Text style={styles.confirmButtonText}>Confirmar</Text>

@@ -565,8 +565,9 @@ class RepartosService {
     campaignParticipantId: string,
     campaignId: string,
     transportData?: {
-      vehicleId: string;
-      driverId: string;
+      vehicleId?: string;
+      driverId?: string;
+      transporterId?: string;
     }
   ): Promise<{
     success: boolean;
