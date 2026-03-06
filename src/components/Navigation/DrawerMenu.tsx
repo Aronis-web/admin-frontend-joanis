@@ -231,28 +231,6 @@ const menuCategories: MenuCategory[] = [
           'expenses.templates.delete',
         ],
       },
-      {
-        id: 'cash-reconciliation',
-        icon: '📊',
-        label: 'Cuadre de Caja',
-        color: '#06B6D4',
-        subItems: [
-          {
-            id: 'upload-cash-files',
-            icon: '📤',
-            label: 'Subir Archivos',
-            route: MAIN_ROUTES.UPLOAD_CASH_RECONCILIATION_FILES,
-            color: '#10B981',
-          },
-          {
-            id: 'review-documents',
-            icon: '📋',
-            label: 'Revisar Documentos',
-            route: MAIN_ROUTES.REVIEW_DOCUMENTS_MENU,
-            color: '#3B82F6',
-          },
-        ],
-      },
     ],
   },
   // Generar Documentos (Bizlinks)
@@ -289,19 +267,6 @@ const menuCategories: MenuCategory[] = [
         color: '#6366F1',
       },
       {
-        id: 'suppliers',
-        icon: '🏢',
-        label: 'Proveedores',
-        route: MAIN_ROUTES.SUPPLIERS,
-        color: '#3B82F6',
-        requiredPermissions: [
-          'suppliers.read',
-          'suppliers.create',
-          'suppliers.update',
-          'providers.read',
-        ],
-      },
-      {
         id: 'customers',
         icon: '👥',
         label: 'Clientes',
@@ -313,117 +278,163 @@ const menuCategories: MenuCategory[] = [
           'customers.update',
         ],
       },
-      // Usuarios
+      // Productos (Subcategoría)
       {
-        id: 'users',
-        icon: '👥',
-        label: 'Usuarios',
-        route: MAIN_ROUTES.USERS,
+        id: 'products-config',
+        icon: '📦',
+        label: 'Productos',
         color: '#8B5CF6',
-        requiredPermissions: ['users.read', 'users.create', 'users.update'],
+        subItems: [
+          {
+            id: 'presentations',
+            icon: '📋',
+            label: 'Presentaciones',
+            route: MAIN_ROUTES.PRESENTATIONS,
+            color: '#F59E0B',
+          },
+          {
+            id: 'price-profiles',
+            icon: '💰',
+            label: 'Perfiles de Precio',
+            route: MAIN_ROUTES.PRICE_PROFILES,
+            color: '#14B8A6',
+          },
+          {
+            id: 'suppliers',
+            icon: '🏢',
+            label: 'Proveedores',
+            route: MAIN_ROUTES.SUPPLIERS,
+            color: '#3B82F6',
+            requiredPermissions: [
+              'suppliers.read',
+              'suppliers.create',
+              'suppliers.update',
+              'providers.read',
+            ],
+          },
+        ],
       },
+      // Documentos (Subcategoría)
       {
-        id: 'roles',
-        icon: '🔐',
-        label: 'Roles y Permisos',
-        route: MAIN_ROUTES.ROLES_PERMISSIONS,
-        color: '#EF4444',
-        requiredPermissions: ['roles.read', 'roles.create', 'roles.update', 'permissions.read'],
-      },
-      // Productos Config
-      {
-        id: 'presentations',
-        icon: '📋',
-        label: 'Presentaciones',
-        route: MAIN_ROUTES.PRESENTATIONS,
-        color: '#F59E0B',
-      },
-      {
-        id: 'price-profiles',
-        icon: '💰',
-        label: 'Perfiles de Precio',
-        route: MAIN_ROUTES.PRICE_PROFILES,
-        color: '#14B8A6',
-      },
-      // Gastos Config
-      {
-        id: 'expenses-categories',
-        icon: '🏷️',
-        label: 'Categorías de Gastos',
-        route: MAIN_ROUTES.EXPENSES_CATEGORIES,
-        color: '#FCA5A5',
-        requiredPermissions: ['expenses.categories.read'],
-      },
-      // Cuadre de Caja Config
-      {
-        id: 'series-config',
-        icon: '📊',
-        label: 'Cuadre de Caja',
-        route: MAIN_ROUTES.SERIES_CONFIG,
-        color: '#06B6D4',
-      },
-      // Organización
-      {
-        id: 'organization-chart',
-        icon: '📊',
-        label: 'Organigrama',
-        route: MAIN_ROUTES.ORGANIZATION_CHART,
-        color: '#F59E0B',
-        requiredPermissions: ['organization.positions.company.read', 'organization.positions.site.read'],
-      },
-      // Reconocimiento Facial
-      {
-        id: 'face-recognition-menu',
-        icon: '📸',
-        label: 'Reconocimiento Facial',
-        route: MAIN_ROUTES.FACE_RECOGNITION_MENU,
-        color: '#EC4899',
-        requiredPermissions: ['biometric.read', 'biometric.register', 'biometric.verify'],
-      },
-      // Configuración de Comprobantes
-      {
-        id: 'emission-points',
+        id: 'documents-config',
         icon: '📄',
-        label: 'Configuración de Comprobantes',
-        route: MAIN_ROUTES.EMISSION_POINTS,
+        label: 'Documentos',
         color: '#8B5CF6',
-        requiredPermissions: ['billing.emission-points.read', 'billing.series.read'],
-      },
-      // Transporte
-      {
-        id: 'vehicles',
-        icon: '🚗',
-        label: 'Vehículos',
-        route: 'Vehicles',
-        color: '#06B6D4',
-        requiredPermissions: [
-          'transport.vehicles.read',
-          'transport.vehicles.create',
-          'transport.vehicles.update',
-          'transport.vehicles.delete',
+        subItems: [
+          {
+            id: 'emission-points',
+            icon: '📝',
+            label: 'Generación de Comprobantes',
+            route: MAIN_ROUTES.EMISSION_POINTS,
+            color: '#8B5CF6',
+            requiredPermissions: ['billing.emission-points.read', 'billing.series.read'],
+          },
+          {
+            id: 'vehicles',
+            icon: '🚗',
+            label: 'Vehículos',
+            route: 'Vehicles',
+            color: '#06B6D4',
+            requiredPermissions: [
+              'transport.vehicles.read',
+              'transport.vehicles.create',
+              'transport.vehicles.update',
+              'transport.vehicles.delete',
+            ],
+          },
+          {
+            id: 'drivers',
+            icon: '👤',
+            label: 'Conductores',
+            route: 'Drivers',
+            color: '#14B8A6',
+            requiredPermissions: [
+              'transport.drivers.read',
+              'transport.drivers.create',
+              'transport.drivers.update',
+              'transport.drivers.delete',
+            ],
+          },
+          {
+            id: 'transporters',
+            icon: '🚛',
+            label: 'Transportistas',
+            route: 'Transporters',
+            color: '#10B981',
+            requiredPermissions: [
+              'transport.transporters.read',
+              'transport.transporters.create',
+              'transport.transporters.update',
+              'transport.transporters.delete',
+            ],
+          },
         ],
       },
+      // Acceso (Subcategoría)
       {
-        id: 'drivers',
-        icon: '👤',
-        label: 'Conductores',
-        route: 'Drivers',
-        color: '#14B8A6',
-        requiredPermissions: [
-          'transport.drivers.read',
-          'transport.drivers.create',
-          'transport.drivers.update',
-          'transport.drivers.delete',
+        id: 'access-config',
+        icon: '🔐',
+        label: 'Acceso',
+        color: '#EF4444',
+        subItems: [
+          {
+            id: 'users',
+            icon: '👥',
+            label: 'Usuarios',
+            route: MAIN_ROUTES.USERS,
+            color: '#8B5CF6',
+            requiredPermissions: ['users.read', 'users.create', 'users.update'],
+          },
+          {
+            id: 'organization-chart',
+            icon: '📊',
+            label: 'Organigrama',
+            route: MAIN_ROUTES.ORGANIZATION_CHART,
+            color: '#F59E0B',
+            requiredPermissions: ['organization.positions.company.read', 'organization.positions.site.read'],
+          },
+          {
+            id: 'roles',
+            icon: '🔐',
+            label: 'Roles y Permisos',
+            route: MAIN_ROUTES.ROLES_PERMISSIONS,
+            color: '#EF4444',
+            requiredPermissions: ['roles.read', 'roles.create', 'roles.update', 'permissions.read'],
+          },
         ],
       },
-      // Apps
+      // Otros (Subcategoría)
       {
-        id: 'apps',
-        icon: '📱',
-        label: 'Apps',
-        route: MAIN_ROUTES.APPS,
-        color: '#06B6D4',
-        requiredPermissions: ['apps.manage', 'apps.read'],
+        id: 'others-config',
+        icon: '⚙️',
+        label: 'Otros',
+        color: '#6B7280',
+        subItems: [
+          {
+            id: 'face-recognition-menu',
+            icon: '📸',
+            label: 'Reconocimiento Facial',
+            route: MAIN_ROUTES.FACE_RECOGNITION_MENU,
+            color: '#EC4899',
+            requiredPermissions: ['biometric.read', 'biometric.register', 'biometric.verify'],
+          },
+          {
+            id: 'apps',
+            icon: '📱',
+            label: 'Apps',
+            route: MAIN_ROUTES.APPS,
+            color: '#06B6D4',
+            requiredPermissions: ['apps.manage', 'apps.read'],
+          },
+          {
+            id: 'expenses-categories',
+            icon: '🏷️',
+            label: 'Categorías de Gastos',
+            route: MAIN_ROUTES.EXPENSES_CATEGORIES,
+            color: '#FCA5A5',
+            requiredPermissions: ['expenses.categories.read'],
+          },
+        ],
       },
     ],
   },
@@ -466,11 +477,16 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
     }
   }, [visible, side, drawerWidth]);
 
-  const handleMenuItemPress = (route: string) => {
+  const handleMenuItemPress = (route: string | undefined) => {
+    if (!route) return;
     onClose();
     setTimeout(() => {
       navigation.navigate(route as never);
     }, 300);
+  };
+
+  const safeHandleMenuItemPress = (route?: string) => {
+    handleMenuItemPress(route || '');
   };
 
   const handleLogout = () => {
@@ -603,12 +619,15 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
               // Si solo tiene un item, renderizar directamente sin categoría
               if (isSingleItem) {
                 const item = category.items[0];
+                // @ts-ignore - TypeScript narrowing issue with optional route
+                const handlePress = () => safeHandleMenuItemPress(item.route);
                 return (
                   <TouchableOpacity
                     key={category.id}
                     style={styles.singleMenuItem}
-                    onPress={() => handleMenuItemPress(item.route)}
+                    onPress={handlePress}
                     activeOpacity={0.7}
+                    disabled={!item.route}
                   >
                     <View style={[styles.menuItemIcon, { backgroundColor: item.color }]}>
                       <Text style={styles.menuItemEmoji}>{item.icon}</Text>
@@ -668,13 +687,15 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                               </Text>
                             </TouchableOpacity>
                             {isSubExpanded &&
-                              item.subItems.map((subItem) => (
-                                <TouchableOpacity
-                                  key={subItem.id}
-                                  style={styles.subMenuItem}
-                                  onPress={() => handleMenuItemPress(subItem.route!)}
-                                  activeOpacity={0.7}
-                                >
+                              item.subItems.map((subItem) => {
+                                if (!subItem.route) return null;
+                                return (
+                                  <TouchableOpacity
+                                    key={subItem.id}
+                                    style={styles.subMenuItem}
+                                    onPress={() => handleMenuItemPress(subItem.route)}
+                                    activeOpacity={0.7}
+                                  >
                                   <View
                                     style={[styles.subMenuItemIcon, { backgroundColor: subItem.color }]}
                                   >
@@ -682,7 +703,8 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                                   </View>
                                   <Text style={styles.subMenuItemLabel}>{subItem.label}</Text>
                                 </TouchableOpacity>
-                              ))}
+                                );
+                              })}
                           </View>
                         );
                       }
@@ -692,7 +714,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                         <TouchableOpacity
                           key={item.id}
                           style={styles.menuItem}
-                          onPress={() => handleMenuItemPress(item.route!)}
+                          onPress={() => handleMenuItemPress(item.route)}
                           activeOpacity={0.7}
                         >
                           <View style={[styles.menuItemIcon, { backgroundColor: item.color }]}>

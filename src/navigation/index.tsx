@@ -175,6 +175,9 @@ const VehiclesScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({
 const DriversScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.DriversScreen })), 'Cargando conductores...');
 const VehicleDetailScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.VehicleDetailScreen })), 'Cargando detalle...');
 const DriverDetailScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.DriverDetailScreen })), 'Cargando detalle...');
+const TransportersScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.TransportersScreen })), 'Cargando transportistas...');
+const TransporterDetailScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.TransporterDetailScreen })), 'Cargando detalle...');
+const CreateTransporterScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.CreateTransporterScreen })), 'Cargando formulario...');
 
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -1496,6 +1499,45 @@ const MainStack = React.memo(() => {
           title: 'Detalle de Conductor',
         }}
       />
+      <MainStackNavigator.Screen
+        name="Transporters"
+        options={{
+          title: 'Transportistas',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'transport.transporters.read',
+              'transport.transporters.create',
+              'transport.transporters.update',
+              'transport.transporters.delete',
+            ]}
+            requireAll={false}
+          >
+            <TransportersScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="TransporterDetail"
+        component={TransporterDetailScreen}
+        options={{
+          title: 'Detalle de Transportista',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="CreateTransporter"
+        options={{
+          title: 'Crear Transportista',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['transport.transporters.create']}>
+            <CreateTransporterScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
     </MainStackNavigator.Navigator>
   );
 });

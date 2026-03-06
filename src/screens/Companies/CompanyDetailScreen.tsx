@@ -25,6 +25,7 @@ import {
 import { Site, CreateSiteRequest } from '@/types/sites';
 import { SiteDetailModal } from '@/components/sites/SiteDetailModal';
 import { EditSiteModal } from '@/components/sites/EditSiteModal';
+import { SiteContactsModal } from '@/components/sites/SiteContactsModal';
 
 interface CompanyDetailScreenProps {
   navigation: any;
@@ -54,6 +55,7 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [showSiteDetailModal, setShowSiteDetailModal] = useState(false);
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [showContactsModal, setShowContactsModal] = useState(false);
 
   // Form states
   const [companyForm, setCompanyForm] = useState({
@@ -456,6 +458,15 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
                 }
               >
                 <Text style={styles.warehousesButtonText}>📦 Almacenes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.contactsButton}
+                onPress={() => {
+                  setSelectedSite(item);
+                  setShowContactsModal(true);
+                }}
+              >
+                <Text style={styles.contactsButtonText}>📞 Contactos</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteSite(item)}>
                 <Text style={styles.deleteButtonText}>🗑️ Eliminar</Text>
@@ -1040,6 +1051,16 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
           loadSites();
         }}
       />
+
+      {/* Site Contacts Modal */}
+      <SiteContactsModal
+        visible={showContactsModal}
+        site={selectedSite}
+        onClose={() => {
+          setShowContactsModal(false);
+          setSelectedSite(null);
+        }}
+      />
     </View>
   );
 };
@@ -1419,6 +1440,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFF',
+  },
+  contactsButton: {
+    flex: 1,
+    backgroundColor: '#D1FAE5',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  contactsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
   },
 });
 

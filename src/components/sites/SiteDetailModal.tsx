@@ -10,6 +10,7 @@ import { WarehousesModal } from './WarehousesModal';
 import { WarehouseFormModal } from './WarehouseFormModal';
 import { WarehouseDetailModal } from './WarehouseDetailModal';
 import { WarehouseAreaFormModal } from './WarehouseAreaFormModal';
+import { SiteContactsModal } from './SiteContactsModal';
 
 interface SiteDetailModalProps {
   visible: boolean;
@@ -33,6 +34,7 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
   const [showWarehouseFormModal, setShowWarehouseFormModal] = useState(false);
   const [showWarehouseDetailModal, setShowWarehouseDetailModal] = useState(false);
   const [showAreaFormModal, setShowAreaFormModal] = useState(false);
+  const [showContactsModal, setShowContactsModal] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
   const [selectedArea, setSelectedArea] = useState<WarehouseArea | null>(null);
 
@@ -181,9 +183,9 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
                 </>
               )}
 
-            {/* Warehouses - Always visible */}
+            {/* Warehouses and Contacts - Always visible */}
             {renderSection(
-              'Almacenes',
+              'Gestión de Sede',
               <>
                 <TouchableOpacity
                   style={styles.manageButton}
@@ -192,8 +194,15 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
                   <Text style={styles.manageButtonIcon}>📦</Text>
                   <Text style={styles.manageButtonText}>Gestionar Almacenes</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.manageButton, styles.contactsButton]}
+                  onPress={() => setShowContactsModal(true)}
+                >
+                  <Text style={styles.manageButtonIcon}>📞</Text>
+                  <Text style={styles.manageButtonText}>Gestionar Contactos</Text>
+                </TouchableOpacity>
                 <Text style={styles.sectionHint}>
-                  Administra los almacenes y áreas de esta sede
+                  Administra los almacenes, contactos y notificaciones de esta sede
                 </Text>
               </>
             )}
@@ -398,6 +407,13 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
         setShowWarehouseDetailModal(true);
       }}
     />
+
+    {/* Site Contacts Modal - Outside main modal */}
+    <SiteContactsModal
+      visible={showContactsModal}
+      site={site}
+      onClose={() => setShowContactsModal(false)}
+    />
   </>
   );
 };
@@ -583,6 +599,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     marginBottom: 8,
+  },
+  contactsButton: {
+    backgroundColor: '#10B981',
   },
   manageButtonIcon: {
     fontSize: 18,
