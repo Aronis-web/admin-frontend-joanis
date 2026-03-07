@@ -185,6 +185,11 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         console.log('🏦 [PROSEGUR] Procesamiento pendiente de implementación');
       }
 
+      console.log('⏱️ [CASH-RECONCILIATION] Usando timeout ilimitado para procesamiento de cuadre de caja');
+      console.log('📊 [CASH-RECONCILIATION] El procesamiento puede tardar varios minutos, por favor espere...');
+
+      // Crear un AbortController sin timeout para permitir procesamiento largo
+      // No se establece timeout ya que el procesamiento puede tardar varios minutos
       const response = await fetch(`${config.API_URL}/cash-reconciliation/upload`, {
         method: 'POST',
         headers: {
@@ -192,6 +197,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
           'X-App-Id': config.APP_ID,
         },
         body: formData,
+        // No se establece signal para evitar timeout - el procesamiento puede tardar varios minutos
       });
 
       const result = await response.json();
@@ -388,7 +394,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
             {isUploading ? (
               <>
                 <ActivityIndicator color="#FFFFFF" size="small" />
-                <Text style={styles.uploadButtonText}>Procesando...</Text>
+                <Text style={styles.uploadButtonText}>Procesando archivo...</Text>
               </>
             ) : (
               <>
@@ -397,6 +403,16 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
               </>
             )}
           </TouchableOpacity>
+
+          {isUploading && (
+            <View style={styles.processingWarning}>
+              <Text style={styles.processingWarningIcon}>⏳</Text>
+              <Text style={styles.processingWarningText}>
+                El procesamiento puede tardar varios minutos dependiendo del tamaño del archivo.{'\n'}
+                Por favor, no cierre esta pantalla hasta que termine.
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.infoSection}>
@@ -695,5 +711,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  processingWarning: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  processingWarningIcon: {
+    fontSize: 24,
+    marginTop: 2,
+  },
+  processingWarningText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#92400E',
+    lineHeight: 20,
+    fontWeight: '500',
   },
 });
