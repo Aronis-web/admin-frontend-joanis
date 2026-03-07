@@ -45,17 +45,20 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
 
-  const [selectedFilter, setSelectedFilter] = useState<DateFilter>('month');
+  const [selectedFilter, setSelectedFilter] = useState<DateFilter>('today');
   const [purchasesSummary, setPurchasesSummary] = useState<PurchasesSummary | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canViewPurchases = hasPermission(PERMISSIONS.DASHBOARD.PURCHASES);
 
   useEffect(() => {
+    console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'selectedFilter:', selectedFilter);
     if (canViewPurchases) {
       loadPurchasesSummary();
+    } else {
+      setLoading(false);
     }
   }, [selectedFilter, canViewPurchases]);
 
@@ -117,14 +120,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       setError(null);
 
       const { startDate, endDate } = getDateRange(selectedFilter);
+      console.log('📅 Loading purchases summary:', { startDate, endDate, filter: selectedFilter });
 
-      const response = await apiClient.get<PurchasesSummary>('/admin/purchases/summary/by-date', {
+      const data = await apiClient.get<PurchasesSummary>('/admin/purchases/summary/by-date', {
         params: { startDate, endDate },
       });
 
-      setPurchasesSummary(response.data);
+      console.log('✅ Purchases summary loaded:', data);
+      setPurchasesSummary(data);
     } catch (err: any) {
-      console.error('Error loading purchases summary:', err);
+      console.error('❌ Error loading purchases summary:', err);
       setError(err.response?.data?.message || 'Error al cargar el resumen de compras');
     } finally {
       setLoading(false);
@@ -253,7 +258,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             )}
 
             {/* Summary Cards */}
-            {!loading && !error && purchasesSummary && (
+            {!loading && !error && purchasesSummary !== null && (
               <>
                 {/* Stats Grid */}
                 <View style={[styles.statsGrid, isTablet && styles.statsGridTablet]}>
