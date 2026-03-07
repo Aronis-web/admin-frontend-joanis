@@ -8,12 +8,15 @@ import {
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/constants/permissions';
 import { apiClient } from '@/services/api';
+import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import Svg, { Rect, Line, Text as SvgText, Circle } from 'react-native-svg';
 
 interface PurchasesSummary {
   startDate: string;
@@ -32,7 +35,28 @@ interface PurchasesSummary {
   }[];
 }
 
-type DateFilter = 'today' | 'yesterday' | 'week' | 'month' | 'year' | 'custom';
+interface GroupedData {
+  label: string;
+  periodStart: string;
+  periodEnd: string;
+  totalValidatedCents: number;
+  totalValidated: number;
+  purchaseCount: number;
+  productCount: number;
+}
+
+interface PurchasesGroupedSummary {
+  startDate: string;
+  endDate: string;
+  groupBy: string;
+  totalValidatedCents: number;
+  totalValidated: number;
+  totalPurchases: number;
+  totalProducts: number;
+  groupedData: GroupedData[];
+}
+
+type DateFilter = 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | 'year' | 'custom';
 
 interface DashboardScreenProps {
   navigation: any;
@@ -46,7 +70,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const isTablet = width >= 768;
 
   const [selectedFilter, setSelectedFilter] = useState<DateFilter>('today');
+  const [customStartDate, setCustomStartDate] = useState<Date>(new Date());
+  const [customEndDate, setCustomEndDate] = useState<Date>(new Date());
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
+
   const [purchasesSummary, setPurchasesSummary] = useState<PurchasesSummary | null>(null);
+  const [purchasesGrouped, setPurchasesGrouped] = useState<PurchasesGroupedSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +88,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'selectedFilter:', selectedFilter);
     if (canViewPurchases) {
       loadPurchasesSummary();
+      loadPurchasesGrouped();
     } else {
       setLoading(false);
     }
@@ -92,9 +124,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
         break;
+      case 'lastMonth':
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        break;
       case 'year':
         start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
         end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+        break;
+      case 'custom':
+        start = new Date(customStartDate.getFullYear(), customStartDate.getMonth(), customStartDate.getDate(), 0, 0, 0);
+        end = new Date(customEndDate.getFullYear(), customEndDate.getMonth(), customEndDate.getDate(), 23, 59, 59);
         break;
       default:
         start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
@@ -112,6 +152,40 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       startDate: formatDate(start),
       endDate: formatDate(end),
     };
+  };
+
+  const getGroupBy = (filter: DateFilter): string => {
+    switch (filter) {
+      case 'today':
+      case 'yesterday':
+        return 'DAILY'; // Muestra la semana por día
+      case 'week':
+        return 'DAILY'; // Muestra la semana por día
+      case 'month':
+        return 'DAILY_IN_MONTH'; // Muestra el mes por día
+      case 'lastMonth':
+        return 'DAILY_IN_MONTH'; // Muestra el mes pasado por día
+      case 'year':
+        return 'MONTHLY'; // Muestra el año por mes
+      case 'custom':
+        // Para custom, decidir según el rango de días
+        const { startDate, endDate } = getDateRange(filter);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 7) {
+          return 'DAILY';
+        } else if (diffDays <= 31) {
+          return 'DAILY_IN_MONTH';
+        } else if (diffDays <= 365) {
+          return 'MONTHLY';
+        } else {
+          return 'YEARLY';
+        }
+      default:
+        return 'DAILY';
+    }
   };
 
   const loadPurchasesSummary = async () => {
@@ -136,10 +210,33 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     }
   };
 
+  const loadPurchasesGrouped = async () => {
+    try {
+      const { startDate, endDate } = getDateRange(selectedFilter);
+      const groupBy = getGroupBy(selectedFilter);
+      console.log('📊 Loading purchases grouped:', { startDate, endDate, groupBy, filter: selectedFilter });
+
+      const data = await apiClient.get<PurchasesGroupedSummary>('/admin/purchases/summary/grouped', {
+        params: { startDate, endDate, groupBy },
+      });
+
+      console.log('✅ Purchases grouped loaded:', data);
+      setPurchasesGrouped(data);
+    } catch (err: any) {
+      console.error('❌ Error loading purchases grouped:', err);
+      // No mostramos error aquí para no interferir con el resumen principal
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadPurchasesSummary();
+    await Promise.all([loadPurchasesSummary(), loadPurchasesGrouped()]);
     setRefreshing(false);
+  };
+
+  const handleCustomDateApply = () => {
+    setShowCustomDateModal(false);
+    setSelectedFilter('custom');
   };
 
   const formatCurrency = (amount: number) => {
@@ -171,8 +268,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         return 'Esta Semana';
       case 'month':
         return 'Este Mes';
+      case 'lastMonth':
+        return 'Mes Pasado';
       case 'year':
         return 'Este Año';
+      case 'custom':
+        return 'Personalizado';
       default:
         return 'Este Mes';
     }
@@ -186,7 +287,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         selectedFilter === filter && styles.filterButtonActive,
         isTablet && styles.filterButtonTablet,
       ]}
-      onPress={() => setSelectedFilter(filter)}
+      onPress={() => {
+        if (filter === 'custom') {
+          setShowCustomDateModal(true);
+        } else {
+          setSelectedFilter(filter);
+        }
+      }}
     >
       <Text
         style={[
@@ -199,6 +306,122 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       </Text>
     </TouchableOpacity>
   );
+
+  const renderChart = () => {
+    if (!purchasesGrouped || !purchasesGrouped.groupedData || purchasesGrouped.groupedData.length === 0) {
+      return null;
+    }
+
+    const chartWidth = width - 32; // padding
+    const chartHeight = 200;
+    const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+    const graphWidth = chartWidth - padding.left - padding.right;
+    const graphHeight = chartHeight - padding.top - padding.bottom;
+
+    const data = purchasesGrouped.groupedData;
+    const maxValue = Math.max(...data.map(d => d.totalValidated), 1);
+    const barWidth = Math.max(graphWidth / data.length - 8, 20);
+
+    return (
+      <View style={styles.chartContainer}>
+        <Text style={[styles.chartTitle, isTablet && styles.chartTitleTablet]}>
+          📈 Compras en el Período
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <Svg width={Math.max(chartWidth, data.length * (barWidth + 8) + padding.left + padding.right)} height={chartHeight}>
+            {/* Eje Y - Líneas de referencia */}
+            {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
+              const y = padding.top + graphHeight * (1 - ratio);
+              const value = maxValue * ratio;
+              return (
+                <React.Fragment key={`grid-${index}`}>
+                  <Line
+                    x1={padding.left}
+                    y1={y}
+                    x2={padding.left + Math.max(graphWidth, data.length * (barWidth + 8))}
+                    y2={y}
+                    stroke="#E2E8F0"
+                    strokeWidth="1"
+                    strokeDasharray="4,4"
+                  />
+                  <SvgText
+                    x={padding.left - 5}
+                    y={y + 4}
+                    fontSize="10"
+                    fill="#64748B"
+                    textAnchor="end"
+                  >
+                    {formatCurrency(value).replace('S/', '')}
+                  </SvgText>
+                </React.Fragment>
+              );
+            })}
+
+            {/* Barras */}
+            {data.map((item, index) => {
+              const barHeight = (item.totalValidated / maxValue) * graphHeight;
+              const x = padding.left + index * (barWidth + 8);
+              const y = padding.top + graphHeight - barHeight;
+
+              return (
+                <React.Fragment key={`bar-${index}`}>
+                  {/* Barra */}
+                  <Rect
+                    x={x}
+                    y={y}
+                    width={barWidth}
+                    height={barHeight}
+                    fill="#6366F1"
+                    rx="4"
+                  />
+                  {/* Punto en la parte superior */}
+                  {item.totalValidated > 0 && (
+                    <Circle
+                      cx={x + barWidth / 2}
+                      cy={y}
+                      r="3"
+                      fill="#4F46E5"
+                    />
+                  )}
+                  {/* Label del eje X */}
+                  <SvgText
+                    x={x + barWidth / 2}
+                    y={chartHeight - 10}
+                    fontSize="9"
+                    fill="#64748B"
+                    textAnchor="middle"
+                    transform={`rotate(-45, ${x + barWidth / 2}, ${chartHeight - 10})`}
+                  >
+                    {item.label.length > 10 ? item.label.substring(0, 10) + '...' : item.label}
+                  </SvgText>
+                </React.Fragment>
+              );
+            })}
+
+            {/* Eje X */}
+            <Line
+              x1={padding.left}
+              y1={padding.top + graphHeight}
+              x2={padding.left + Math.max(graphWidth, data.length * (barWidth + 8))}
+              y2={padding.top + graphHeight}
+              stroke="#94A3B8"
+              strokeWidth="2"
+            />
+
+            {/* Eje Y */}
+            <Line
+              x1={padding.left}
+              y1={padding.top}
+              x2={padding.left}
+              y2={padding.top + graphHeight}
+              stroke="#94A3B8"
+              strokeWidth="2"
+            />
+          </Svg>
+        </ScrollView>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -235,7 +458,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               {renderFilterButton('yesterday', 'Ayer')}
               {renderFilterButton('week', 'Esta Semana')}
               {renderFilterButton('month', 'Este Mes')}
+              {renderFilterButton('lastMonth', 'Mes Pasado')}
               {renderFilterButton('year', 'Este Año')}
+              {renderFilterButton('custom', '📅 Personalizado')}
             </ScrollView>
 
             {/* Loading State */}
@@ -289,6 +514,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     </Text>
                   </View>
                 </View>
+
+                {/* Chart */}
+                {renderChart()}
 
                 {/* Top Suppliers */}
                 {purchasesSummary.topSuppliers.length > 0 && (
@@ -356,6 +584,79 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           </View>
         )}
       </ScrollView>
+
+      {/* Custom Date Range Modal */}
+      <Modal
+        visible={showCustomDateModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCustomDateModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>📅 Rango Personalizado</Text>
+              <TouchableOpacity onPress={() => setShowCustomDateModal(false)}>
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.dateLabel}>Fecha de Inicio</Text>
+              <DatePickerButton
+                date={customStartDate}
+                onPress={() => setShowStartDatePicker(true)}
+              />
+
+              <Text style={[styles.dateLabel, { marginTop: 16 }]}>Fecha de Fin</Text>
+              <DatePickerButton
+                date={customEndDate}
+                onPress={() => setShowEndDatePicker(true)}
+              />
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowCustomDateModal(false)}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalApplyButton}
+                onPress={handleCustomDateApply}
+              >
+                <Text style={styles.modalApplyButtonText}>Aplicar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Date Pickers */}
+      <DatePicker
+        visible={showStartDatePicker}
+        date={customStartDate}
+        onConfirm={(date) => {
+          setCustomStartDate(date);
+          setShowStartDatePicker(false);
+        }}
+        onCancel={() => setShowStartDatePicker(false)}
+        maximumDate={customEndDate}
+        title="Fecha de Inicio"
+      />
+
+      <DatePicker
+        visible={showEndDatePicker}
+        date={customEndDate}
+        onConfirm={(date) => {
+          setCustomEndDate(date);
+          setShowEndDatePicker(false);
+        }}
+        onCancel={() => setShowEndDatePicker(false)}
+        minimumDate={customStartDate}
+        title="Fecha de Fin"
+      />
     </SafeAreaView>
   );
 };
@@ -660,6 +961,100 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#B45309',
     textAlign: 'center',
+  },
+  // Chart styles
+  chartContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 16,
+  },
+  chartTitleTablet: {
+    fontSize: 20,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  modalCloseButton: {
+    fontSize: 24,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  dateLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 8,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 12,
+  },
+  modalCancelButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  modalCancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  modalApplyButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#6366F1',
+  },
+  modalApplyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 
