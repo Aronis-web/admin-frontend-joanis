@@ -16,6 +16,12 @@
  */
 
 export const PERMISSIONS = {
+  // ========== DASHBOARD ==========
+  DASHBOARD: {
+    READ: 'dashboard.read',
+    PURCHASES: 'dashboard.purchases',
+  },
+
   // ========== USUARIOS ==========
   USERS: {
     CREATE: 'users.create',

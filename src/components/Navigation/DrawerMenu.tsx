@@ -37,19 +37,36 @@ interface MenuCategory {
 }
 
 const menuCategories: MenuCategory[] = [
+  // Dashboard - Sin submenú
+  {
+    id: 'dashboard',
+    title: 'Dashboard',
+    icon: '📊',
+    color: '#6366F1',
+    items: [
+      {
+        id: 'dashboard',
+        icon: '📊',
+        label: 'Dashboard',
+        route: MAIN_ROUTES.DASHBOARD,
+        color: '#6366F1',
+        requiredPermissions: ['dashboard.read'],
+      },
+    ],
+  },
   // Inicio - Sin submenú
   {
     id: 'home',
     title: 'Inicio',
     icon: '🏠',
-    color: '#6366F1',
+    color: '#8B5CF6',
     items: [
       {
         id: 'home',
         icon: '🏠',
         label: 'Inicio',
         route: MAIN_ROUTES.HOME,
-        color: '#6366F1',
+        color: '#8B5CF6',
       },
     ],
   },

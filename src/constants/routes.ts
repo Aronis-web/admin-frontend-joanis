@@ -20,6 +20,7 @@ export const AUTH_ROUTES = {
  */
 export const MAIN_ROUTES = {
   // Dashboard
+  DASHBOARD: 'Dashboard',
   HOME: 'Home',
 
   // Products & Inventory
@@ -182,7 +183,8 @@ export const ROUTES = {
  * Maps menu item IDs to their corresponding route names
  */
 export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
-  dashboard: 'HOME',
+  dashboard: 'DASHBOARD',
+  home: 'HOME',
   productos: 'PRODUCTS',
   stock: 'STOCK',
   fotos: 'PHOTOS',
@@ -216,6 +218,9 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
  * Based on actual permissions from the backend system
  */
 export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>> = {
+  // Dashboard
+  DASHBOARD: 'dashboard.read',
+
   // Products & Inventory
   PRODUCTS: 'products.read',
   STOCK: 'products.read',

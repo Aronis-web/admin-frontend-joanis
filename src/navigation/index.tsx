@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/store/auth';
 import { lazyLoad } from '@/utils/lazyLoad';
+import { PERMISSIONS } from '@/constants/permissions';
 
 // Type Definitions
 import { AuthStackParamList, MainStackParamList } from '@/types/navigation';
@@ -24,6 +25,9 @@ import { SiteSelectionScreen } from '@/screens/Selection/SiteSelectionScreen';
 
 // Home Screen (first screen after auth)
 import HomeScreen from '@/screens/Home/HomeScreen';
+
+// Dashboard Screen (eager loaded for quick access)
+import DashboardScreen from '@/screens/Dashboard/DashboardScreen';
 
 // ============================================
 // LAZY LOADED - Heavy screens (loaded on demand)
@@ -229,6 +233,7 @@ const AuthStack = React.memo(() => {
 const MainStack = React.memo(() => {
   return (
     <MainStackNavigator.Navigator screenOptions={{ headerShown: false }}>
+      <MainStackNavigator.Screen name={MAIN_ROUTES.DASHBOARD} component={DashboardScreen} />
       <MainStackNavigator.Screen name={MAIN_ROUTES.HOME} component={HomeScreen} />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.COMPANIES}
@@ -1545,7 +1550,7 @@ const MainStack = React.memo(() => {
 const NAVIGATION_PERSISTENCE_KEY = 'NAVIGATION_STATE_V1';
 
 export const Navigation = () => {
-  const { isAuthenticated, currentCompany, currentSite } = useAuthStore();
+  const { isAuthenticated, currentCompany, currentSite, user } = useAuthStore();
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [initialState, setInitialState] = useState();
@@ -1557,6 +1562,9 @@ export const Navigation = () => {
 
   // Determine which stack to show based on authentication and selection state
   const showMainStack = !!(isAuthenticated && hasValidCompany && hasValidSite);
+
+  // Check if user has dashboard permission
+  const hasDashboardPermission = user?.permissions?.includes(PERMISSIONS.DASHBOARD.READ) || false;
 
   console.log('🔄 Navigation render:', {
     isAuthenticated,
@@ -1613,7 +1621,16 @@ export const Navigation = () => {
         routes: [{ name: AUTH_ROUTES.SITE_SELECTION }],
       });
     }
-  }, [isAuthenticated, hasValidCompany, hasValidSite, showMainStack, isReady]);
+    // Si está completamente autenticado y tiene todo válido, navegar a la pantalla inicial correcta
+    else if (showMainStack && navigationRef.current.getCurrentRoute()?.name === AUTH_ROUTES.SITE_SELECTION) {
+      const initialRoute = hasDashboardPermission ? MAIN_ROUTES.DASHBOARD : MAIN_ROUTES.HOME;
+      console.log(`🔄 Auto-navegando a ${initialRoute} (usuario tiene permiso de dashboard: ${hasDashboardPermission})`);
+      navigationRef.current?.reset({
+        index: 0,
+        routes: [{ name: initialRoute }],
+      });
+    }
+  }, [isAuthenticated, hasValidCompany, hasValidSite, showMainStack, isReady, hasDashboardPermission]);
 
   // Don't render until we've restored state
   if (!isReady) {
