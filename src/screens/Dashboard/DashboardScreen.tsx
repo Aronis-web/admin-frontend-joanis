@@ -742,8 +742,32 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     </Text>
                   </View>
 
-                  {/* Total a Recibir */}
+                  {/* Total Prosegur */}
+                  <View style={[styles.statCard, styles.statCardInfo]}>
+                    <Text style={styles.statIcon}>🏦</Text>
+                    <Text style={styles.statLabel}>Prosegur</Text>
+                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                      {formatCurrency(salesSummary.totales_periodo.prosegur_depositos)}
+                    </Text>
+                    <Text style={styles.statSubtext}>
+                      {salesSummary.totales_periodo.prosegur_cantidad} depósitos
+                    </Text>
+                  </View>
+
+                  {/* Total Izipay Neto */}
                   <View style={[styles.statCard, styles.statCardPrimary]}>
+                    <Text style={styles.statIcon}>💳</Text>
+                    <Text style={styles.statLabel}>Izipay Neto</Text>
+                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                      {formatCurrency(salesSummary.totales_periodo.izipay_neto)}
+                    </Text>
+                    <Text style={styles.statSubtext}>
+                      {salesSummary.totales_periodo.izipay_cantidad} transacciones
+                    </Text>
+                  </View>
+
+                  {/* Total a Recibir */}
+                  <View style={[styles.statCard, styles.statCardSuccess]}>
                     <Text style={styles.statIcon}>💰</Text>
                     <Text style={styles.statLabel}>Total a Recibir</Text>
                     <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
