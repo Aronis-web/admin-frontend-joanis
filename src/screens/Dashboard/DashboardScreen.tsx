@@ -158,9 +158,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     switch (filter) {
       case 'today':
       case 'yesterday':
-        return 'DAILY'; // Muestra la semana por día
+        return 'WEEKLY'; // Muestra la semana completa por día
       case 'week':
-        return 'DAILY'; // Muestra la semana por día
+        return 'WEEKLY'; // Muestra la semana por día
       case 'month':
         return 'DAILY_IN_MONTH'; // Muestra el mes por día
       case 'lastMonth':
@@ -244,6 +244,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       style: 'currency',
       currency: 'PEN',
     }).format(amount);
+  };
+
+  const formatCompactNumber = (amount: number): string => {
+    if (amount >= 1000000) {
+      return `${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      return `${(amount / 1000).toFixed(1)}K`;
+    } else {
+      return amount.toFixed(0);
+    }
   };
 
   const formatDateShort = (dateStr: string): string => {
@@ -351,7 +361,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     fill="#64748B"
                     textAnchor="end"
                   >
-                    {formatCurrency(value).replace('S/', '')}
+                    {formatCompactNumber(value)}
                   </SvgText>
                 </React.Fragment>
               );
