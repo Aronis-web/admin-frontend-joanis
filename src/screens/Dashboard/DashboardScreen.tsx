@@ -827,12 +827,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     </Text>
                   </View>
 
-                  {/* Total Izipay Neto */}
+                  {/* Total Izipay Bruto */}
                   <View style={[styles.statCard, styles.statCardPrimary]}>
                     <Text style={styles.statIcon}>💳</Text>
-                    <Text style={styles.statLabel}>Izipay Neto</Text>
+                    <Text style={styles.statLabel}>Izipay Bruto</Text>
                     <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                      {formatCurrency(salesSummary.totales_periodo.izipay_neto)}
+                      {formatCurrency(salesSummary.totales_periodo.izipay_bruto)}
                     </Text>
                     <Text style={styles.statSubtext}>
                       {salesSummary.totales_periodo.izipay_cantidad} transacciones
