@@ -18,8 +18,9 @@ import { apiClient } from '@/services/api';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import Svg, { Line, Text as SvgText, Circle, Polyline, Path } from 'react-native-svg';
 import { cashReconciliationApi, ResumenDiarioResponse } from '@/services/api/cash-reconciliation';
-import { sitesApi } from '@/services/api/sites';
+import { companiesApi } from '@/services/api/companies';
 import { Site } from '@/types/sites';
+import { useAuthStore } from '@/store/auth';
 
 interface PurchasesSummary {
   startDate: string;
@@ -71,6 +72,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const { hasPermission } = usePermissions();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const { currentCompany } = useAuthStore();
 
   const [selectedFilter, setSelectedFilter] = useState<DateFilter>('today');
   const [customStartDate, setCustomStartDate] = useState<Date>(new Date());
@@ -97,10 +99,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const canViewPurchases = hasPermission(PERMISSIONS.DASHBOARD.PURCHASES);
   const canViewSales = hasPermission(PERMISSIONS.DASHBOARD.PURCHASES); // Usar el mismo permiso por ahora
 
-  // Load sedes on mount
+  // Load sedes when company changes
   useEffect(() => {
-    loadSedes();
-  }, []);
+    if (currentCompany?.id) {
+      loadSedes();
+    }
+  }, [currentCompany?.id]);
 
   useEffect(() => {
     console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'canViewSales:', canViewSales, 'selectedFilter:', selectedFilter, 'selectedSedeId:', selectedSedeId);
@@ -278,10 +282,24 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const loadSedes = async () => {
     try {
       setLoadingSedes(true);
-      const response = await sitesApi.getSites({ limit: 100, isActive: true });
+
+      if (!currentCompany?.id) {
+        console.warn('No hay empresa seleccionada');
+        setSedes([]);
+        return;
+      }
+
+      console.log('📍 Cargando sedes para empresa:', currentCompany.id, currentCompany.name);
+      const response = await companiesApi.getCompanySites(currentCompany.id, {
+        limit: 100,
+        isActive: true,
+      });
+
+      console.log('✅ Sedes cargadas:', response.data?.length || 0);
       setSedes(response.data || []);
     } catch (error) {
       console.error('Error loading sedes:', error);
+      setSedes([]);
     } finally {
       setLoadingSedes(false);
     }
