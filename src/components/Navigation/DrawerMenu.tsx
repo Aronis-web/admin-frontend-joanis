@@ -248,6 +248,14 @@ const menuCategories: MenuCategory[] = [
           'expenses.templates.delete',
         ],
       },
+      {
+        id: 'cash-reconciliation',
+        icon: '📊',
+        label: 'Cuadre de Caja',
+        route: MAIN_ROUTES.CASH_RECONCILIATION_MENU,
+        color: '#8B5CF6',
+        requiredPermissions: ['cash-reconciliation.read'],
+      },
     ],
   },
   // Generar Documentos (Bizlinks)
