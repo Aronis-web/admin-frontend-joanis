@@ -599,12 +599,36 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
     })
     .map((category) => ({
       ...category,
-      items: category.items.filter((item) => {
-        if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
-          return true;
-        }
-        return item.requiredPermissions.some((permission) => hasPermission(permission));
-      }),
+      items: category.items
+        .filter((item) => {
+          if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
+            return true;
+          }
+          return item.requiredPermissions.some((permission) => hasPermission(permission));
+        })
+        .map((item) => {
+          // Filter subitems if they exist
+          if (item.subItems && item.subItems.length > 0) {
+            const filteredSubItems = item.subItems.filter((subItem) => {
+              if (!subItem.requiredPermissions || subItem.requiredPermissions.length === 0) {
+                return true;
+              }
+              return subItem.requiredPermissions.some((permission) => hasPermission(permission));
+            });
+            return {
+              ...item,
+              subItems: filteredSubItems,
+            };
+          }
+          return item;
+        })
+        .filter((item) => {
+          // Keep items without subitems, or items with at least one visible subitem
+          if (!item.subItems || item.subItems.length === 0) {
+            return true;
+          }
+          return item.subItems.length > 0;
+        }),
     }))
     .filter((category) => category.items.length > 0);
 
