@@ -353,7 +353,26 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
     const data = purchasesGrouped.groupedData;
     const maxValue = Math.max(...data.map(d => d.totalValidated), 1);
-    const barWidth = Math.max(graphWidth / data.length - 8, 20);
+    const pointSpacing = Math.max(graphWidth / (data.length - 1 || 1), 40);
+    const totalWidth = Math.max(chartWidth, (data.length - 1) * pointSpacing + padding.left + padding.right);
+
+    // Generar puntos para la línea
+    const points = data.map((item, index) => {
+      const x = padding.left + index * pointSpacing;
+      const y = padding.top + graphHeight - (item.totalValidated / maxValue) * graphHeight;
+      return { x, y, item };
+    });
+
+    // Crear path para la línea
+    const linePath = points.map((point, index) => {
+      if (index === 0) {
+        return `M ${point.x} ${point.y}`;
+      }
+      return `L ${point.x} ${point.y}`;
+    }).join(' ');
+
+    // Crear path para el área bajo la línea (gradiente)
+    const areaPath = `${linePath} L ${points[points.length - 1].x} ${padding.top + graphHeight} L ${padding.left} ${padding.top + graphHeight} Z`;
 
     return (
       <View style={styles.chartContainer}>
@@ -361,7 +380,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           📈 Compras en el Período
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <Svg width={Math.max(chartWidth, data.length * (barWidth + 8) + padding.left + padding.right)} height={chartHeight}>
+          <Svg width={totalWidth} height={chartHeight}>
             {/* Eje Y - Líneas de referencia */}
             {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
               const y = padding.top + graphHeight * (1 - ratio);
@@ -371,7 +390,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                   <Line
                     x1={padding.left}
                     y1={y}
-                    x2={padding.left + Math.max(graphWidth, data.length * (barWidth + 8))}
+                    x2={totalWidth - padding.right}
                     y2={y}
                     stroke="#E2E8F0"
                     strokeWidth="1"
@@ -390,52 +409,54 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               );
             })}
 
-            {/* Barras */}
-            {data.map((item, index) => {
-              const barHeight = (item.totalValidated / maxValue) * graphHeight;
-              const x = padding.left + index * (barWidth + 8);
-              const y = padding.top + graphHeight - barHeight;
+            {/* Área bajo la línea (gradiente suave) */}
+            <Path
+              d={areaPath}
+              fill="#6366F1"
+              fillOpacity="0.1"
+            />
 
-              return (
-                <React.Fragment key={`bar-${index}`}>
-                  {/* Barra */}
-                  <Rect
-                    x={x}
-                    y={y}
-                    width={barWidth}
-                    height={barHeight}
-                    fill="#6366F1"
-                    rx="4"
-                  />
-                  {/* Punto en la parte superior */}
-                  {item.totalValidated > 0 && (
-                    <Circle
-                      cx={x + barWidth / 2}
-                      cy={y}
-                      r="3"
-                      fill="#4F46E5"
-                    />
-                  )}
-                  {/* Label del eje X */}
-                  <SvgText
-                    x={x + barWidth / 2}
-                    y={chartHeight - 10}
-                    fontSize="9"
-                    fill="#64748B"
-                    textAnchor="middle"
-                    transform={`rotate(-45, ${x + barWidth / 2}, ${chartHeight - 10})`}
-                  >
-                    {item.label.length > 10 ? item.label.substring(0, 10) + '...' : item.label}
-                  </SvgText>
-                </React.Fragment>
-              );
-            })}
+            {/* Línea principal */}
+            <Path
+              d={linePath}
+              stroke="#6366F1"
+              strokeWidth="3"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {/* Puntos en cada dato */}
+            {points.map((point, index) => (
+              <React.Fragment key={`point-${index}`}>
+                {/* Círculo exterior (borde blanco) */}
+                <Circle
+                  cx={point.x}
+                  cy={point.y}
+                  r="5"
+                  fill="#FFFFFF"
+                  stroke="#6366F1"
+                  strokeWidth="2"
+                />
+                {/* Label del eje X */}
+                <SvgText
+                  x={point.x}
+                  y={chartHeight - 10}
+                  fontSize="9"
+                  fill="#64748B"
+                  textAnchor="middle"
+                  transform={`rotate(-45, ${point.x}, ${chartHeight - 10})`}
+                >
+                  {point.item.label.length > 10 ? point.item.label.substring(0, 10) + '...' : point.item.label}
+                </SvgText>
+              </React.Fragment>
+            ))}
 
             {/* Eje X */}
             <Line
               x1={padding.left}
               y1={padding.top + graphHeight}
-              x2={padding.left + Math.max(graphWidth, data.length * (barWidth + 8))}
+              x2={totalWidth - padding.right}
               y2={padding.top + graphHeight}
               stroke="#94A3B8"
               strokeWidth="2"
