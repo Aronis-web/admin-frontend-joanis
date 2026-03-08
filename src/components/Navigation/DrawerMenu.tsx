@@ -253,7 +253,7 @@ const menuCategories: MenuCategory[] = [
         icon: '📊',
         label: 'Cuadre de Caja',
         color: '#06B6D4',
-        requiredPermissions: ['cash-reconciliation.read'],
+        requiredPermissions: ['cash_reconciliation.read'],
         subItems: [
           {
             id: 'upload-cash-files',
@@ -261,7 +261,7 @@ const menuCategories: MenuCategory[] = [
             label: 'Subir Archivos',
             route: MAIN_ROUTES.UPLOAD_CASH_RECONCILIATION_FILES,
             color: '#10B981',
-            requiredPermissions: ['cash-reconciliation.upload'],
+            requiredPermissions: ['cash_reconciliation.upload'],
           },
           {
             id: 'review-documents',
@@ -269,7 +269,7 @@ const menuCategories: MenuCategory[] = [
             label: 'Revisar Documentos',
             route: MAIN_ROUTES.REVIEW_DOCUMENTS_MENU,
             color: '#3B82F6',
-            requiredPermissions: ['cash-reconciliation.read'],
+            requiredPermissions: ['cash_reconciliation.read'],
           },
           {
             id: 'cuadre',
@@ -277,7 +277,7 @@ const menuCategories: MenuCategory[] = [
             label: 'Cuadre',
             route: MAIN_ROUTES.CUADRE,
             color: '#8B5CF6',
-            requiredPermissions: ['cash-reconciliation.read'],
+            requiredPermissions: ['cash_reconciliation.read'],
           },
         ],
       },
@@ -490,7 +490,7 @@ const menuCategories: MenuCategory[] = [
             label: 'Config. Series Cuadre',
             route: MAIN_ROUTES.SERIES_CONFIG,
             color: '#06B6D4',
-            requiredPermissions: ['cash-reconciliation.series-config.read'],
+            requiredPermissions: ['cash_reconciliation.config'],
           },
         ],
       },

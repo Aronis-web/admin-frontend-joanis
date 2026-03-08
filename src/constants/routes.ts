@@ -350,14 +350,14 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   ORGANIZATION_CHART: 'organization.positions.company.read',
 
   // Cash Reconciliation
-  CASH_RECONCILIATION_MENU: 'cash-reconciliation.read',
-  UPLOAD_CASH_RECONCILIATION_FILES: 'cash-reconciliation.upload',
-  SERIES_CONFIG: 'cash-reconciliation.series-config.read',
-  REVIEW_DOCUMENTS_MENU: 'cash-reconciliation.read',
-  REVIEW_SALES: 'cash-reconciliation.read',
-  REVIEW_IZIPAY: 'cash-reconciliation.read',
-  REVIEW_PROSEGUR: 'cash-reconciliation.read',
-  CUADRE: 'cash-reconciliation.read',
+  CASH_RECONCILIATION_MENU: 'cash_reconciliation.read',
+  UPLOAD_CASH_RECONCILIATION_FILES: 'cash_reconciliation.upload',
+  SERIES_CONFIG: 'cash_reconciliation.config',
+  REVIEW_DOCUMENTS_MENU: 'cash_reconciliation.read',
+  REVIEW_SALES: 'cash_reconciliation.read',
+  REVIEW_IZIPAY: 'cash_reconciliation.read',
+  REVIEW_PROSEGUR: 'cash_reconciliation.read',
+  CUADRE: 'cash_reconciliation.read',
 };
 
 /**
