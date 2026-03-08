@@ -17,6 +17,7 @@ import { PERMISSIONS } from '@/constants/permissions';
 import { apiClient } from '@/services/api';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import Svg, { Line, Text as SvgText, Circle, Polyline, Path } from 'react-native-svg';
+import { cashReconciliationApi, ResumenDiarioResponse } from '@/services/api/cash-reconciliation';
 
 interface PurchasesSummary {
   startDate: string;
@@ -78,21 +79,31 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
   const [purchasesSummary, setPurchasesSummary] = useState<PurchasesSummary | null>(null);
   const [purchasesGrouped, setPurchasesGrouped] = useState<PurchasesGroupedSummary | null>(null);
+  const [salesSummary, setSalesSummary] = useState<ResumenDiarioResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingSales, setLoadingSales] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [salesError, setSalesError] = useState<string | null>(null);
 
   const canViewPurchases = hasPermission(PERMISSIONS.DASHBOARD.PURCHASES);
+  const canViewSales = hasPermission(PERMISSIONS.DASHBOARD.PURCHASES); // Usar el mismo permiso por ahora
 
   useEffect(() => {
-    console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'selectedFilter:', selectedFilter);
+    console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'canViewSales:', canViewSales, 'selectedFilter:', selectedFilter);
     if (canViewPurchases) {
       loadPurchasesSummary();
       loadPurchasesGrouped();
     } else {
       setLoading(false);
     }
-  }, [selectedFilter, canViewPurchases]);
+
+    if (canViewSales) {
+      loadSalesSummary();
+    } else {
+      setLoadingSales(false);
+    }
+  }, [selectedFilter, canViewPurchases, canViewSales]);
 
   const getDateRange = (filter: DateFilter): { startDate: string; endDate: string } => {
     const now = new Date();
@@ -251,9 +262,42 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     }
   };
 
+  const loadSalesSummary = async () => {
+    try {
+      setLoadingSales(true);
+      setSalesError(null);
+
+      const { startDate, endDate } = getDateRange(selectedFilter);
+      console.log('📅 Loading sales summary:', { startDate, endDate, filter: selectedFilter });
+
+      const data = await cashReconciliationApi.getResumenDiario({
+        fecha_inicio: startDate,
+        fecha_fin: endDate,
+      });
+
+      console.log('✅ Sales summary loaded:', data);
+      setSalesSummary(data);
+    } catch (err: any) {
+      console.error('❌ Error loading sales summary:', err);
+      setSalesError(err.response?.data?.message || 'Error al cargar el resumen de ventas');
+    } finally {
+      setLoadingSales(false);
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadPurchasesSummary(), loadPurchasesGrouped()]);
+    const promises = [];
+
+    if (canViewPurchases) {
+      promises.push(loadPurchasesSummary(), loadPurchasesGrouped());
+    }
+
+    if (canViewSales) {
+      promises.push(loadSalesSummary());
+    }
+
+    await Promise.all(promises);
     setRefreshing(false);
   };
 
@@ -340,8 +384,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     </TouchableOpacity>
   );
 
-  const renderChart = () => {
-    if (!purchasesGrouped || !purchasesGrouped.groupedData || purchasesGrouped.groupedData.length === 0) {
+  const renderChart = (
+    data: GroupedData[] | undefined,
+    title: string,
+    color: string = '#6366F1'
+  ) => {
+    if (!data || data.length === 0) {
       return null;
     }
 
@@ -351,7 +399,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     const graphWidth = chartWidth - padding.left - padding.right;
     const graphHeight = chartHeight - padding.top - padding.bottom;
 
-    const data = purchasesGrouped.groupedData;
     const maxValue = Math.max(...data.map(d => d.totalValidated), 1);
     const pointSpacing = Math.max(graphWidth / (data.length - 1 || 1), 40);
     const totalWidth = Math.max(chartWidth, (data.length - 1) * pointSpacing + padding.left + padding.right);
@@ -377,7 +424,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     return (
       <View style={styles.chartContainer}>
         <Text style={[styles.chartTitle, isTablet && styles.chartTitleTablet]}>
-          📈 Compras en el Período
+          {title}
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <Svg width={totalWidth} height={chartHeight}>
@@ -412,14 +459,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             {/* Área bajo la línea (gradiente suave) */}
             <Path
               d={areaPath}
-              fill="#6366F1"
+              fill={color}
               fillOpacity="0.1"
             />
 
             {/* Línea principal */}
             <Path
               d={linePath}
-              stroke="#6366F1"
+              stroke={color}
               strokeWidth="3"
               fill="none"
               strokeLinecap="round"
@@ -435,7 +482,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                   cy={point.y}
                   r="5"
                   fill="#FFFFFF"
-                  stroke="#6366F1"
+                  stroke={color}
                   strokeWidth="2"
                 />
                 {/* Label del eje X */}
@@ -448,6 +495,141 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                   transform={`rotate(-45, ${point.x}, ${chartHeight - 10})`}
                 >
                   {point.item.label.length > 10 ? point.item.label.substring(0, 10) + '...' : point.item.label}
+                </SvgText>
+              </React.Fragment>
+            ))}
+
+            {/* Eje X */}
+            <Line
+              x1={padding.left}
+              y1={padding.top + graphHeight}
+              x2={totalWidth - padding.right}
+              y2={padding.top + graphHeight}
+              stroke="#94A3B8"
+              strokeWidth="2"
+            />
+
+            {/* Eje Y */}
+            <Line
+              x1={padding.left}
+              y1={padding.top}
+              x2={padding.left}
+              y2={padding.top + graphHeight}
+              stroke="#94A3B8"
+              strokeWidth="2"
+            />
+          </Svg>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderSalesChart = () => {
+    if (!salesSummary || !salesSummary.detalle_diario || salesSummary.detalle_diario.length === 0) {
+      return null;
+    }
+
+    const chartWidth = width - 32;
+    const chartHeight = 200;
+    const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+    const graphWidth = chartWidth - padding.left - padding.right;
+    const graphHeight = chartHeight - padding.top - padding.bottom;
+
+    const data = salesSummary.detalle_diario;
+    const maxValue = Math.max(...data.map(d => d.total_a_recibir), 1);
+    const pointSpacing = Math.max(graphWidth / (data.length - 1 || 1), 40);
+    const totalWidth = Math.max(chartWidth, (data.length - 1) * pointSpacing + padding.left + padding.right);
+
+    // Generar puntos para la línea
+    const points = data.map((item, index) => {
+      const x = padding.left + index * pointSpacing;
+      const y = padding.top + graphHeight - (item.total_a_recibir / maxValue) * graphHeight;
+      return { x, y, item };
+    });
+
+    // Crear path para la línea
+    const linePath = points.map((point, index) => {
+      if (index === 0) {
+        return `M ${point.x} ${point.y}`;
+      }
+      return `L ${point.x} ${point.y}`;
+    }).join(' ');
+
+    // Crear path para el área bajo la línea
+    const areaPath = `${linePath} L ${points[points.length - 1].x} ${padding.top + graphHeight} L ${padding.left} ${padding.top + graphHeight} Z`;
+
+    return (
+      <View style={styles.chartContainer}>
+        <Text style={[styles.chartTitle, isTablet && styles.chartTitleTablet]}>
+          📈 Ventas en el Período
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <Svg width={totalWidth} height={chartHeight}>
+            {/* Eje Y - Líneas de referencia */}
+            {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
+              const y = padding.top + graphHeight * (1 - ratio);
+              const value = maxValue * ratio;
+              return (
+                <React.Fragment key={`grid-${index}`}>
+                  <Line
+                    x1={padding.left}
+                    y1={y}
+                    x2={totalWidth - padding.right}
+                    y2={y}
+                    stroke="#E2E8F0"
+                    strokeWidth="1"
+                    strokeDasharray="4,4"
+                  />
+                  <SvgText
+                    x={padding.left - 5}
+                    y={y + 4}
+                    fontSize="10"
+                    fill="#64748B"
+                    textAnchor="end"
+                  >
+                    {formatCompactNumber(value)}
+                  </SvgText>
+                </React.Fragment>
+              );
+            })}
+
+            {/* Área bajo la línea */}
+            <Path
+              d={areaPath}
+              fill="#10B981"
+              fillOpacity="0.1"
+            />
+
+            {/* Línea principal */}
+            <Path
+              d={linePath}
+              stroke="#10B981"
+              strokeWidth="3"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {/* Puntos en cada dato */}
+            {points.map((point, index) => (
+              <React.Fragment key={`point-${index}`}>
+                <Circle
+                  cx={point.x}
+                  cy={point.y}
+                  r="5"
+                  fill="#FFFFFF"
+                  stroke="#10B981"
+                  strokeWidth="2"
+                />
+                <SvgText
+                  x={point.x}
+                  y={chartHeight - 10}
+                  fontSize="9"
+                  fill="#64748B"
+                  textAnchor="middle"
+                  transform={`rotate(-45, ${point.x}, ${chartHeight - 10})`}
+                >
+                  {formatDateShort(point.item.fecha)}
                 </SvgText>
               </React.Fragment>
             ))}
@@ -492,16 +674,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           </Text>
         </View>
 
-        {/* Purchases Summary Section */}
-        {canViewPurchases && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-                🛒 Compras
-              </Text>
-            </View>
-
-            {/* Date Filters */}
+        {/* Date Filters - Ahora arriba de todo */}
+        {(canViewPurchases || canViewSales) && (
+          <View style={styles.filtersSection}>
+            <Text style={[styles.filtersLabel, isTablet && styles.filtersLabelTablet]}>
+              📅 Período de Análisis
+            </Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -516,6 +694,104 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               {renderFilterButton('year', 'Este Año')}
               {renderFilterButton('custom', '📅 Personalizado')}
             </ScrollView>
+          </View>
+        )}
+
+        {/* Sales Summary Section */}
+        {canViewSales && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                💰 Ventas
+              </Text>
+            </View>
+
+            {/* Loading State */}
+            {loadingSales && !refreshing && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#10B981" />
+                <Text style={styles.loadingText}>Cargando resumen de ventas...</Text>
+              </View>
+            )}
+
+            {/* Error State */}
+            {salesError && !loadingSales && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorIcon}>⚠️</Text>
+                <Text style={styles.errorText}>{salesError}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={loadSalesSummary}>
+                  <Text style={styles.retryButtonText}>Reintentar</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Summary Cards */}
+            {!loadingSales && !salesError && salesSummary !== null && (
+              <>
+                {/* Stats Grid */}
+                <View style={[styles.statsGrid, isTablet && styles.statsGridTablet]}>
+                  {/* Total Ventas */}
+                  <View style={[styles.statCard, styles.statCardSuccess]}>
+                    <Text style={styles.statIcon}>💵</Text>
+                    <Text style={styles.statLabel}>Total Ventas</Text>
+                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                      {formatCurrency(salesSummary.totales_periodo.ventas_total)}
+                    </Text>
+                    <Text style={styles.statSubtext}>
+                      {salesSummary.totales_periodo.ventas_cantidad} operaciones
+                    </Text>
+                  </View>
+
+                  {/* Total a Recibir */}
+                  <View style={[styles.statCard, styles.statCardPrimary]}>
+                    <Text style={styles.statIcon}>💰</Text>
+                    <Text style={styles.statLabel}>Total a Recibir</Text>
+                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                      {formatCurrency(salesSummary.totales_periodo.total_a_recibir)}
+                    </Text>
+                    <Text style={styles.statSubtext}>
+                      Prosegur + Izipay neto
+                    </Text>
+                  </View>
+
+                  {/* Comisiones */}
+                  <View style={[styles.statCard, styles.statCardWarning]}>
+                    <Text style={styles.statIcon}>📊</Text>
+                    <Text style={styles.statLabel}>Comisiones</Text>
+                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                      {formatCurrency(salesSummary.totales_periodo.total_comisiones)}
+                    </Text>
+                    <Text style={styles.statSubtext}>
+                      Izipay
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Chart */}
+                {renderSalesChart()}
+
+                {/* Empty State */}
+                {salesSummary.detalle_diario.length === 0 && (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateIcon}>📭</Text>
+                    <Text style={styles.emptyStateText}>
+                      No hay ventas en el período seleccionado
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Purchases Summary Section */}
+        {canViewPurchases && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                🛒 Compras
+              </Text>
+            </View>
 
             {/* Loading State */}
             {loading && !refreshing && (
@@ -570,7 +846,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 </View>
 
                 {/* Chart */}
-                {renderChart()}
+                {renderChart(purchasesGrouped?.groupedData, '📈 Compras en el Período', '#6366F1')}
 
                 {/* Top Suppliers */}
                 {purchasesSummary.topSuppliers.length > 0 && (
@@ -892,6 +1168,34 @@ const styles = StyleSheet.create({
   },
   statValueTablet: {
     fontSize: 24,
+  },
+  statSubtext: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  filtersSection: {
+    marginBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  filtersLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  filtersLabelTablet: {
+    fontSize: 18,
+  },
+  statCardWarning: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
   suppliersSection: {
     backgroundColor: '#FFFFFF',

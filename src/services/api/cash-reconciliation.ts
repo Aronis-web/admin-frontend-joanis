@@ -108,6 +108,56 @@ export interface CuadreCajaParams {
   agrupar_por_sede?: boolean;
 }
 
+// ==================== Resumen Diario Types ====================
+
+export interface DetalleDiario {
+  fecha: string;
+  ventas_total: number;
+  ventas_efectivo: number;
+  ventas_tarjeta: number;
+  ventas_cantidad: number;
+  izipay_bruto: number;
+  izipay_comisiones: number;
+  izipay_neto: number;
+  izipay_cantidad: number;
+  prosegur_depositos: number;
+  prosegur_cantidad: number;
+  total_a_recibir: number;
+  diferencia: number;
+}
+
+export interface TotalesPeriodo {
+  ventas_total: number;
+  ventas_efectivo: number;
+  ventas_tarjeta: number;
+  ventas_cantidad: number;
+  izipay_bruto: number;
+  izipay_comisiones: number;
+  izipay_neto: number;
+  izipay_cantidad: number;
+  prosegur_depositos: number;
+  prosegur_cantidad: number;
+  total_a_recibir: number;
+  total_comisiones: number;
+  diferencia_total: number;
+}
+
+export interface ResumenDiarioResponse {
+  fecha_inicio: string;
+  fecha_fin: string;
+  sedes: SedeInfo[];
+  detalle_diario: DetalleDiario[];
+  totales_periodo: TotalesPeriodo;
+  generado_en: string;
+}
+
+export interface ResumenDiarioParams {
+  fecha_inicio: string;
+  fecha_fin: string;
+  sede_id?: string;
+  sede_code?: string;
+}
+
 // ==================== API Service ====================
 
 class CashReconciliationApi {
@@ -140,6 +190,33 @@ class CashReconciliationApi {
 
     return apiClient.get<CuadreCajaResponse | CuadreAgrupadoResponse>(
       `${this.basePath}/cuadre-caja`,
+      { params: queryParams }
+    );
+  }
+
+  /**
+   * Get daily summary report (resumen diario)
+   * @param params - Query parameters for the report
+   * @returns Daily summary report
+   */
+  async getResumenDiario(
+    params: ResumenDiarioParams
+  ): Promise<ResumenDiarioResponse> {
+    const queryParams: Record<string, string> = {
+      fecha_inicio: params.fecha_inicio,
+      fecha_fin: params.fecha_fin,
+    };
+
+    if (params.sede_id) {
+      queryParams.sede_id = params.sede_id;
+    }
+
+    if (params.sede_code) {
+      queryParams.sede_code = params.sede_code;
+    }
+
+    return apiClient.get<ResumenDiarioResponse>(
+      `${this.basePath}/resumen-diario`,
       { params: queryParams }
     );
   }
