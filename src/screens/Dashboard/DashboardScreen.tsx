@@ -158,9 +158,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     switch (filter) {
       case 'today':
       case 'yesterday':
-        return 'WEEKLY'; // Muestra la semana completa por día
       case 'week':
-        return 'WEEKLY'; // Muestra la semana por día
+        return 'DAILY'; // Muestra los últimos 7 días
       case 'month':
         return 'DAILY_IN_MONTH'; // Muestra el mes por día
       case 'lastMonth':
@@ -212,12 +211,36 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
   const loadPurchasesGrouped = async () => {
     try {
-      const { startDate, endDate } = getDateRange(selectedFilter);
+      // Para la gráfica, siempre usar los últimos 7 días si es hoy, ayer o semana
+      let dateRange;
+      if (selectedFilter === 'today' || selectedFilter === 'yesterday' || selectedFilter === 'week') {
+        // Últimos 7 días
+        const now = new Date();
+        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        const startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - 6);
+        startDate.setHours(0, 0, 0, 0);
+
+        const formatDate = (date: Date): string => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
+        dateRange = {
+          startDate: formatDate(startDate),
+          endDate: formatDate(endDate),
+        };
+      } else {
+        dateRange = getDateRange(selectedFilter);
+      }
+
       const groupBy = getGroupBy(selectedFilter);
-      console.log('📊 Loading purchases grouped:', { startDate, endDate, groupBy, filter: selectedFilter });
+      console.log('📊 Loading purchases grouped:', { ...dateRange, groupBy, filter: selectedFilter });
 
       const data = await apiClient.get<PurchasesGroupedSummary>('/admin/purchases/summary/grouped', {
-        params: { startDate, endDate, groupBy },
+        params: { ...dateRange, groupBy },
       });
 
       console.log('✅ Purchases grouped loaded:', data);
