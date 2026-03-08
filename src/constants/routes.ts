@@ -168,6 +168,7 @@ export const MAIN_ROUTES = {
   REVIEW_SALES: 'ReviewSales',
   REVIEW_IZIPAY: 'ReviewIzipay',
   REVIEW_PROSEGUR: 'ReviewProsegur',
+  CUADRE: 'Cuadre',
 } as const;
 
 /**
@@ -356,6 +357,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   REVIEW_SALES: 'cash-reconciliation.read',
   REVIEW_IZIPAY: 'cash-reconciliation.read',
   REVIEW_PROSEGUR: 'cash-reconciliation.read',
+  CUADRE: 'cash-reconciliation.read',
 };
 
 /**

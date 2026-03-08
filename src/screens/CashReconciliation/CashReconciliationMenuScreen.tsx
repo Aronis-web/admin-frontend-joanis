@@ -34,6 +34,14 @@ export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) =>
       route: 'ReviewDocumentsMenu',
       color: '#3B82F6',
     },
+    {
+      id: 'cuadre',
+      title: 'Cuadre',
+      description: 'Generar reportes de cuadre de caja por rango de fechas y sede',
+      icon: '📊',
+      route: 'Cuadre',
+      color: '#8B5CF6',
+    },
   ];
 
   const renderOption = (option: MenuOption) => (

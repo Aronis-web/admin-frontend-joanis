@@ -16,7 +16,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/constants/permissions';
 import { apiClient } from '@/services/api';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
-import Svg, { Rect, Line, Text as SvgText, Circle } from 'react-native-svg';
+import Svg, { Line, Text as SvgText, Circle, Polyline, Path } from 'react-native-svg';
 
 interface PurchasesSummary {
   startDate: string;

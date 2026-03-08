@@ -149,6 +149,7 @@ const ReviewDocumentsMenuScreen = lazyLoad(() => import('@/screens/CashReconcili
 const ReviewSalesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewSalesScreen })), 'Cargando ventas...');
 const ReviewIzipayScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewIzipayScreen })), 'Cargando Izipay...');
 const ReviewProsegurScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewProsegurScreen })), 'Cargando Prosegur...');
+const CuadreScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CuadreScreen })), 'Cargando cuadre...');
 
 // Emission Points Screens - Lazy Loaded
 const EmissionPointsScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointsScreen })), 'Cargando puntos de emisión...');
@@ -1145,6 +1146,13 @@ const MainStack = React.memo(() => {
         component={ReviewProsegurScreen}
         options={{
           title: 'Revisar Prosegur',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.CUADRE}
+        component={CuadreScreen}
+        options={{
+          title: 'Cuadre',
         }}
       />
 
