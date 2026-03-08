@@ -18,6 +18,8 @@ import { apiClient } from '@/services/api';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import Svg, { Line, Text as SvgText, Circle, Polyline, Path } from 'react-native-svg';
 import { cashReconciliationApi, ResumenDiarioResponse } from '@/services/api/cash-reconciliation';
+import { sitesApi } from '@/services/api/sites';
+import { Site } from '@/types/sites';
 
 interface PurchasesSummary {
   startDate: string;
@@ -86,11 +88,22 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const [error, setError] = useState<string | null>(null);
   const [salesError, setSalesError] = useState<string | null>(null);
 
+  // Sede selector states
+  const [sedes, setSedes] = useState<Site[]>([]);
+  const [selectedSedeId, setSelectedSedeId] = useState<string>('');
+  const [loadingSedes, setLoadingSedes] = useState(false);
+  const [showSedeModal, setShowSedeModal] = useState(false);
+
   const canViewPurchases = hasPermission(PERMISSIONS.DASHBOARD.PURCHASES);
   const canViewSales = hasPermission(PERMISSIONS.DASHBOARD.PURCHASES); // Usar el mismo permiso por ahora
 
+  // Load sedes on mount
   useEffect(() => {
-    console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'canViewSales:', canViewSales, 'selectedFilter:', selectedFilter);
+    loadSedes();
+  }, []);
+
+  useEffect(() => {
+    console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'canViewSales:', canViewSales, 'selectedFilter:', selectedFilter, 'selectedSedeId:', selectedSedeId);
     if (canViewPurchases) {
       loadPurchasesSummary();
       loadPurchasesGrouped();
@@ -103,7 +116,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     } else {
       setLoadingSales(false);
     }
-  }, [selectedFilter, canViewPurchases, canViewSales]);
+  }, [selectedFilter, selectedSedeId, canViewPurchases, canViewSales]);
 
   const getDateRange = (filter: DateFilter): { startDate: string; endDate: string } => {
     const now = new Date();
@@ -262,18 +275,36 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     }
   };
 
+  const loadSedes = async () => {
+    try {
+      setLoadingSedes(true);
+      const response = await sitesApi.getSites({ limit: 100, isActive: true });
+      setSedes(response.data || []);
+    } catch (error) {
+      console.error('Error loading sedes:', error);
+    } finally {
+      setLoadingSedes(false);
+    }
+  };
+
   const loadSalesSummary = async () => {
     try {
       setLoadingSales(true);
       setSalesError(null);
 
       const { startDate, endDate } = getDateRange(selectedFilter);
-      console.log('📅 Loading sales summary:', { startDate, endDate, filter: selectedFilter });
+      console.log('📅 Loading sales summary:', { startDate, endDate, filter: selectedFilter, sedeId: selectedSedeId });
 
-      const data = await cashReconciliationApi.getResumenDiario({
+      const params: any = {
         fecha_inicio: startDate,
         fecha_fin: endDate,
-      });
+      };
+
+      if (selectedSedeId) {
+        params.sede_id = selectedSedeId;
+      }
+
+      const data = await cashReconciliationApi.getResumenDiario(params);
 
       console.log('✅ Sales summary loaded:', data);
       setSalesSummary(data);
@@ -668,10 +699,34 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>📊 Dashboard</Text>
-          <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-            Resumen de información clave
-          </Text>
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <Text style={[styles.title, isTablet && styles.titleTablet]}>📊 Dashboard</Text>
+              <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
+                Resumen de información clave
+              </Text>
+            </View>
+
+            {/* Sede Selector - Discreto */}
+            {sedes.length > 0 && (
+              <TouchableOpacity
+                style={styles.sedeSelector}
+                onPress={() => setShowSedeModal(true)}
+                disabled={loadingSedes}
+              >
+                <Text style={styles.sedeSelectorIcon}>🏪</Text>
+                <View style={styles.sedeSelectorText}>
+                  <Text style={styles.sedeSelectorLabel}>Sede</Text>
+                  <Text style={styles.sedeSelectorValue}>
+                    {selectedSedeId
+                      ? sedes.find(s => s.id === selectedSedeId)?.name || 'Todas'
+                      : 'Todas'}
+                  </Text>
+                </View>
+                <Text style={styles.sedeSelectorArrow}>▼</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Date Filters - Ahora arriba de todo */}
@@ -1011,6 +1066,76 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         minimumDate={customStartDate}
         title="Fecha de Fin"
       />
+
+      {/* Sede Selection Modal */}
+      <Modal
+        visible={showSedeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSedeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>🏪 Seleccionar Sede</Text>
+              <TouchableOpacity onPress={() => setShowSedeModal(false)}>
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {/* Opción "Todas las sedes" */}
+              <TouchableOpacity
+                style={[
+                  styles.sedeModalItem,
+                  !selectedSedeId && styles.sedeModalItemSelected,
+                ]}
+                onPress={() => {
+                  setSelectedSedeId('');
+                  setShowSedeModal(false);
+                }}
+              >
+                <View style={styles.sedeModalItemContent}>
+                  <Text style={styles.sedeModalItemIcon}>🏢</Text>
+                  <View style={styles.sedeModalItemText}>
+                    <Text style={styles.sedeModalItemName}>Todas las Sedes</Text>
+                    <Text style={styles.sedeModalItemCode}>Ver datos consolidados</Text>
+                  </View>
+                </View>
+                {!selectedSedeId && <Text style={styles.sedeModalItemCheck}>✓</Text>}
+              </TouchableOpacity>
+
+              {/* Lista de sedes */}
+              {sedes.map((sede) => (
+                <TouchableOpacity
+                  key={sede.id}
+                  style={[
+                    styles.sedeModalItem,
+                    selectedSedeId === sede.id && styles.sedeModalItemSelected,
+                  ]}
+                  onPress={() => {
+                    setSelectedSedeId(sede.id);
+                    setShowSedeModal(false);
+                  }}
+                >
+                  <View style={styles.sedeModalItemContent}>
+                    <Text style={styles.sedeModalItemIcon}>🏪</Text>
+                    <View style={styles.sedeModalItemText}>
+                      <Text style={styles.sedeModalItemName}>{sede.name}</Text>
+                      {sede.code && (
+                        <Text style={styles.sedeModalItemCode}>Código: {sede.code}</Text>
+                      )}
+                    </View>
+                  </View>
+                  {selectedSedeId === sede.id && (
+                    <Text style={styles.sedeModalItemCheck}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1030,6 +1155,14 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 24,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
   title: {
     fontSize: 28,
     fontWeight: '700',
@@ -1046,6 +1179,41 @@ const styles = StyleSheet.create({
   },
   subtitleTablet: {
     fontSize: 17,
+  },
+  sedeSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginLeft: 12,
+    minWidth: 140,
+  },
+  sedeSelectorIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  sedeSelectorText: {
+    flex: 1,
+  },
+  sedeSelectorLabel: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  sedeSelectorValue: {
+    fontSize: 13,
+    color: '#1E293B',
+    fontWeight: '600',
+  },
+  sedeSelectorArrow: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginLeft: 4,
   },
   section: {
     marginBottom: 24,
@@ -1437,6 +1605,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  sedeModalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  sedeModalItemSelected: {
+    backgroundColor: '#F0F9FF',
+  },
+  sedeModalItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  sedeModalItemIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  sedeModalItemText: {
+    flex: 1,
+  },
+  sedeModalItemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  sedeModalItemCode: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  sedeModalItemCheck: {
+    fontSize: 20,
+    color: '#3B82F6',
+    fontWeight: '700',
   },
 });
 
