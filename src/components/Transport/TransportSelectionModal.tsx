@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: '90%',
     maxWidth: 600,
-    maxHeight: '90%',
+    height: '85%',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -889,6 +889,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
 });
+
 
 
 // Placeholder components for create modals - these will be simple forms
