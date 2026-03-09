@@ -938,6 +938,41 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
+  // Estilos para modales secundarios (modal sobre modal)
+  secondaryModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    width: '85%',
+    maxWidth: 500,
+    height: '70%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 10,
+  },
+  formInput: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
 });
 
 
@@ -976,12 +1011,12 @@ const CreateVehicleModal: React.FC<{
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.modalOverlay}
       >
-        <View style={[styles.modalContent, { height: 'auto', maxHeight: '80%' }]}>
+        <View style={styles.secondaryModalContent}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Crear Vehículo</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -989,13 +1024,11 @@ const CreateVehicleModal: React.FC<{
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content}>
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Placa *
-              </Text>
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Placa *</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Ej: ABC-123"
                 value={formData.numeroPlaca}
                 onChangeText={(text) => setFormData({ ...formData, numeroPlaca: text.toUpperCase() })}
@@ -1003,36 +1036,30 @@ const CreateVehicleModal: React.FC<{
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Marca *
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Marca *</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Ej: Toyota"
                 value={formData.marca}
                 onChangeText={(text) => setFormData({ ...formData, marca: text })}
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Modelo *
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Modelo *</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Ej: Hilux"
                 value={formData.modelo}
                 onChangeText={(text) => setFormData({ ...formData, modelo: text })}
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Año
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Año</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Ej: 2023"
                 value={formData.anio?.toString() || ''}
                 onChangeText={(text) => setFormData({ ...formData, anio: parseInt(text) || undefined })}
@@ -1040,12 +1067,10 @@ const CreateVehicleModal: React.FC<{
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Color
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Color</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Ej: Blanco"
                 value={formData.color || ''}
                 onChangeText={(text) => setFormData({ ...formData, color: text })}
@@ -1099,12 +1124,12 @@ const CreateDriverModal: React.FC<{
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.modalOverlay}
       >
-        <View style={[styles.modalContent, { height: 'auto', maxHeight: '80%' }]}>
+        <View style={styles.secondaryModalContent}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Crear Conductor</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -1112,37 +1137,31 @@ const CreateDriverModal: React.FC<{
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content}>
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Nombre *
-              </Text>
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Nombre *</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Nombre"
                 value={formData.nombre}
                 onChangeText={(text) => setFormData({ ...formData, nombre: text })}
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Apellido *
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Apellido *</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Apellido"
                 value={formData.apellido}
                 onChangeText={(text) => setFormData({ ...formData, apellido: text })}
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Número de Documento *
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Número de Documento *</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="DNI"
                 value={formData.numeroDocumento}
                 onChangeText={(text) => setFormData({ ...formData, numeroDocumento: text })}
@@ -1150,12 +1169,10 @@ const CreateDriverModal: React.FC<{
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Número de Licencia *
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Número de Licencia *</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Ej: Q12345678"
                 value={formData.numeroLicencia}
                 onChangeText={(text) => setFormData({ ...formData, numeroLicencia: text.toUpperCase() })}
@@ -1163,24 +1180,20 @@ const CreateDriverModal: React.FC<{
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Categoría de Licencia *
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Categoría de Licencia *</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Ej: A-IIIb"
                 value={formData.categoriaLicencia}
                 onChangeText={(text) => setFormData({ ...formData, categoriaLicencia: text })}
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Teléfono
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Teléfono</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Ej: 987654321"
                 value={formData.telefono || ''}
                 onChangeText={(text) => setFormData({ ...formData, telefono: text })}
@@ -1225,12 +1238,12 @@ const CreateTransporterModal: React.FC<{
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.modalOverlay}
       >
-        <View style={[styles.modalContent, { height: 'auto', maxHeight: '80%' }]}>
+        <View style={styles.secondaryModalContent}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Crear Transportista</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -1238,13 +1251,11 @@ const CreateTransporterModal: React.FC<{
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content}>
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                RUC *
-              </Text>
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>RUC *</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Ej: 20123456789"
                 value={formData.numeroRuc}
                 onChangeText={(text) => setFormData({ ...formData, numeroRuc: text })}
@@ -1253,36 +1264,30 @@ const CreateTransporterModal: React.FC<{
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Razón Social *
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Razón Social *</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Nombre de la empresa"
                 value={formData.razonSocial}
                 onChangeText={(text) => setFormData({ ...formData, razonSocial: text })}
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Registro MTC
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Registro MTC</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Número de registro MTC"
                 value={formData.numeroRegistroMTC || ''}
                 onChangeText={(text) => setFormData({ ...formData, numeroRegistroMTC: text })}
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Teléfono
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Teléfono</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Ej: 987654321"
                 value={formData.telefono || ''}
                 onChangeText={(text) => setFormData({ ...formData, telefono: text })}
@@ -1290,12 +1295,10 @@ const CreateTransporterModal: React.FC<{
               />
             </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
-                Dirección
-              </Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Dirección</Text>
               <TextInput
-                style={styles.searchInput}
+                style={styles.formInput}
                 placeholder="Dirección de la empresa"
                 value={formData.direccion || ''}
                 onChangeText={(text) => setFormData({ ...formData, direccion: text })}
