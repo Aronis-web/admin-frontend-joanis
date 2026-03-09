@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,23 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
-import { Vehicle, Driver, VehicleStatus, DriverStatus, Transporter, TransporterStatus } from '@/types/transport';
+import {
+  Vehicle,
+  Driver,
+  VehicleStatus,
+  DriverStatus,
+  Transporter,
+  TransporterStatus,
+  CreateVehicleRequest,
+  CreateDriverRequest,
+  CreateTransporterRequest,
+  VehicleType,
+  DocumentType,
+  TransporterDocumentType,
+} from '@/types/transport';
 import { transportService } from '@/services/api';
 
 interface TransportSelectionModalProps {
@@ -36,6 +49,21 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
   const [loading, setLoading] = useState(false);
   const [isPublicTransport, setIsPublicTransport] = useState(false);
 
+  // Search states
+  const [vehicleSearch, setVehicleSearch] = useState('');
+  const [driverSearch, setDriverSearch] = useState('');
+  const [transporterSearch, setTransporterSearch] = useState('');
+
+  // Create modals states
+  const [showCreateVehicle, setShowCreateVehicle] = useState(false);
+  const [showCreateDriver, setShowCreateDriver] = useState(false);
+  const [showCreateTransporter, setShowCreateTransporter] = useState(false);
+
+  // Dropdown visibility states
+  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+  const [showDriverDropdown, setShowDriverDropdown] = useState(false);
+  const [showTransporterDropdown, setShowTransporterDropdown] = useState(false);
+
   useEffect(() => {
     if (visible) {
       loadData();
@@ -45,6 +73,12 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
       setSelectedDriver(null);
       setSelectedTransporter(null);
       setIsPublicTransport(false);
+      setVehicleSearch('');
+      setDriverSearch('');
+      setTransporterSearch('');
+      setShowVehicleDropdown(false);
+      setShowDriverDropdown(false);
+      setShowTransporterDropdown(false);
     }
   }, [visible]);
 
@@ -74,17 +108,6 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
       setVehicles(vehiclesResponse.data);
       setDrivers(driversResponse.data);
       setTransporters(transportersResponse.data);
-
-      // Auto-select first items if available
-      if (vehiclesResponse.data.length > 0) {
-        setSelectedVehicle(vehiclesResponse.data[0]);
-      }
-      if (driversResponse.data.length > 0) {
-        setSelectedDriver(driversResponse.data[0]);
-      }
-      if (transportersResponse.data.length > 0) {
-        setSelectedTransporter(transportersResponse.data[0]);
-      }
     } catch (error: any) {
       console.error('Error loading transport data:', error);
       Alert.alert('Error', 'No se pudieron cargar los datos de transporte');
@@ -92,6 +115,40 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
       setLoading(false);
     }
   };
+
+  // Filtered lists based on search
+  const filteredVehicles = useMemo(() => {
+    if (!vehicleSearch.trim()) return vehicles;
+    const search = vehicleSearch.toLowerCase();
+    return vehicles.filter(
+      (v) =>
+        v.numeroPlaca.toLowerCase().includes(search) ||
+        v.marca.toLowerCase().includes(search) ||
+        v.modelo.toLowerCase().includes(search)
+    );
+  }, [vehicles, vehicleSearch]);
+
+  const filteredDrivers = useMemo(() => {
+    if (!driverSearch.trim()) return drivers;
+    const search = driverSearch.toLowerCase();
+    return drivers.filter(
+      (d) =>
+        d.nombre.toLowerCase().includes(search) ||
+        d.apellido.toLowerCase().includes(search) ||
+        d.numeroDocumento.includes(search) ||
+        d.numeroLicencia.toLowerCase().includes(search)
+    );
+  }, [drivers, driverSearch]);
+
+  const filteredTransporters = useMemo(() => {
+    if (!transporterSearch.trim()) return transporters;
+    const search = transporterSearch.toLowerCase();
+    return transporters.filter(
+      (t) =>
+        t.razonSocial.toLowerCase().includes(search) ||
+        t.numeroRuc.includes(search)
+    );
+  }, [transporters, transporterSearch]);
 
   const handleConfirm = () => {
     if (isPublicTransport) {
@@ -125,158 +182,222 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
       // Si se activa transporte público, limpiar selecciones de vehículo y conductor
       setSelectedVehicle(null);
       setSelectedDriver(null);
-      // Auto-seleccionar primer transportista si está disponible
-      if (transporters.length > 0 && !selectedTransporter) {
-        setSelectedTransporter(transporters[0]);
-      }
+      setVehicleSearch('');
+      setDriverSearch('');
     } else {
       // Si se desactiva transporte público, limpiar transportista
       setSelectedTransporter(null);
-      // Auto-seleccionar primer vehículo y conductor si están disponibles
-      if (vehicles.length > 0 && !selectedVehicle) {
-        setSelectedVehicle(vehicles[0]);
-      }
-      if (drivers.length > 0 && !selectedDriver) {
-        setSelectedDriver(drivers[0]);
-      }
+      setTransporterSearch('');
     }
   };
 
-  const handleVehicleChange = (vehicleId: string) => {
-    const vehicle = vehicles.find((v) => v.id === vehicleId);
-    if (vehicle) {
-      setSelectedVehicle(vehicle);
+  const handleSelectVehicle = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
+    setVehicleSearch(`${vehicle.numeroPlaca} - ${vehicle.marca} ${vehicle.modelo}`);
+    setShowVehicleDropdown(false);
+  };
+
+  const handleSelectDriver = (driver: Driver) => {
+    setSelectedDriver(driver);
+    setDriverSearch(`${driver.nombre} ${driver.apellido} - Lic: ${driver.numeroLicencia}`);
+    setShowDriverDropdown(false);
+  };
+
+  const handleSelectTransporter = (transporter: Transporter) => {
+    setSelectedTransporter(transporter);
+    setTransporterSearch(`${transporter.razonSocial} - RUC: ${transporter.numeroRuc}`);
+    setShowTransporterDropdown(false);
+  };
+
+  const handleCreateVehicle = () => {
+    setShowCreateVehicle(true);
+  };
+
+  const handleCreateDriver = () => {
+    setShowCreateDriver(true);
+  };
+
+  const handleCreateTransporter = () => {
+    setShowCreateTransporter(true);
+  };
+
+  const handleVehicleCreated = async (data: CreateVehicleRequest) => {
+    try {
+      const newVehicle = await transportService.createVehicle(data);
+      setVehicles([...vehicles, newVehicle]);
+      handleSelectVehicle(newVehicle);
+      setShowCreateVehicle(false);
+      Alert.alert('Éxito', 'Vehículo creado exitosamente');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo crear el vehículo');
     }
   };
 
-  const handleDriverChange = (driverId: string) => {
-    const driver = drivers.find((d) => d.id === driverId);
-    if (driver) {
-      setSelectedDriver(driver);
+  const handleDriverCreated = async (data: CreateDriverRequest) => {
+    try {
+      const newDriver = await transportService.createDriver(data);
+      setDrivers([...drivers, newDriver]);
+      handleSelectDriver(newDriver);
+      setShowCreateDriver(false);
+      Alert.alert('Éxito', 'Conductor creado exitosamente');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo crear el conductor');
     }
   };
 
-  const handleTransporterChange = (transporterId: string) => {
-    const transporter = transporters.find((t) => t.id === transporterId);
-    if (transporter) {
-      setSelectedTransporter(transporter);
+  const handleTransporterCreated = async (data: CreateTransporterRequest) => {
+    try {
+      const newTransporter = await transportService.createTransporter(data);
+      setTransporters([...transporters, newTransporter]);
+      handleSelectTransporter(newTransporter);
+      setShowCreateTransporter(false);
+      Alert.alert('Éxito', 'Transportista creado exitosamente');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo crear el transportista');
     }
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.modalOverlay}
+    <>
+      <Modal
+        visible={visible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={onClose}
+        statusBarTranslucent
       >
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Seleccionar Transporte</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#6366F1" />
-              <Text style={styles.loadingText}>Cargando datos...</Text>
-            </View>
-          ) : (
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              {/* Public Transport Option */}
-              <TouchableOpacity
-                style={[
-                  styles.publicTransportCard,
-                  isPublicTransport && styles.publicTransportCardActive,
-                ]}
-                onPress={handlePublicTransportToggle}
-                activeOpacity={0.7}
-              >
-                <View style={styles.publicTransportHeader}>
-                  <Ionicons
-                    name={isPublicTransport ? 'checkbox' : 'square-outline'}
-                    size={24}
-                    color={isPublicTransport ? '#10B981' : '#6B7280'}
-                  />
-                  <Text
-                    style={[
-                      styles.publicTransportTitle,
-                      isPublicTransport && styles.publicTransportTitleActive,
-                    ]}
-                  >
-                    🚌 Transporte Público
-                  </Text>
-                </View>
-                <Text style={styles.publicTransportSubtext}>
-                  Seleccionar transportista externo
-                </Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Seleccionar Transporte</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color="#6B7280" />
               </TouchableOpacity>
+            </View>
 
-              {/* Transporter Selection - Only visible when Public Transport is selected */}
-              {isPublicTransport && (
-                <View style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="business" size={24} color="#6366F1" />
-                    <Text style={styles.sectionTitle}>Transportista</Text>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6366F1" />
+                <Text style={styles.loadingText}>Cargando datos...</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                {/* Public Transport Option */}
+                <TouchableOpacity
+                  style={[
+                    styles.publicTransportCard,
+                    isPublicTransport && styles.publicTransportCardActive,
+                  ]}
+                  onPress={handlePublicTransportToggle}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.publicTransportHeader}>
+                    <Ionicons
+                      name={isPublicTransport ? 'checkbox' : 'square-outline'}
+                      size={24}
+                      color={isPublicTransport ? '#10B981' : '#6B7280'}
+                    />
+                    <Text
+                      style={[
+                        styles.publicTransportTitle,
+                        isPublicTransport && styles.publicTransportTitleActive,
+                      ]}
+                    >
+                      🚌 Transporte Público
+                    </Text>
                   </View>
+                  <Text style={styles.publicTransportSubtext}>
+                    Seleccionar transportista externo
+                  </Text>
+                </TouchableOpacity>
 
-                  {transporters.length === 0 ? (
-                    <View style={styles.emptyState}>
-                      <Ionicons name="business-outline" size={48} color="#D1D5DB" />
-                      <Text style={styles.emptyText}>No hay transportistas disponibles</Text>
-                      <Text style={styles.emptySubtext}>
-                        Registra transportistas en Configuración
-                      </Text>
+                {/* Transporter Selection - Only visible when Public Transport is selected */}
+                {isPublicTransport && (
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons name="business" size={24} color="#6366F1" />
+                      <Text style={styles.sectionTitle}>Transportista</Text>
+                      <TouchableOpacity
+                        style={styles.createButton}
+                        onPress={handleCreateTransporter}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="add-circle" size={24} color="#10B981" />
+                        <Text style={styles.createButtonText}>Crear Nuevo</Text>
+                      </TouchableOpacity>
                     </View>
-                  ) : (
-                    <>
-                      <View style={styles.pickerContainer}>
-                        <Picker
-                          selectedValue={selectedTransporter?.id || ''}
-                          onValueChange={handleTransporterChange}
-                          style={styles.picker}
-                        >
-                          {transporters.map((transporter) => (
-                            <Picker.Item
-                              key={transporter.id}
-                              label={`${transporter.razonSocial} - RUC: ${transporter.numeroRuc}`}
-                              value={transporter.id}
-                            />
-                          ))}
-                        </Picker>
-                      </View>
 
-                      {/* Transporter Details */}
-                      {selectedTransporter && (
-                        <View style={styles.detailsCard}>
-                          <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Razón Social:</Text>
-                            <Text style={styles.detailValue}>{selectedTransporter.razonSocial}</Text>
-                          </View>
-                          <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>RUC:</Text>
-                            <Text style={styles.detailValue}>{selectedTransporter.numeroRuc}</Text>
-                          </View>
-                          {selectedTransporter.numeroRegistroMTC && (
-                            <View style={styles.detailRow}>
-                              <Text style={styles.detailLabel}>Registro MTC:</Text>
-                              <Text style={styles.detailValue}>{selectedTransporter.numeroRegistroMTC}</Text>
-                            </View>
-                          )}
-                        </View>
+                    {/* Search Input */}
+                    <View style={styles.searchContainer}>
+                      <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+                      <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar por razón social o RUC..."
+                        value={transporterSearch}
+                        onChangeText={setTransporterSearch}
+                        onFocus={() => setShowTransporterDropdown(true)}
+                      />
+                      {transporterSearch.length > 0 && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setTransporterSearch('');
+                            setSelectedTransporter(null);
+                          }}
+                        >
+                          <Ionicons name="close-circle" size={20} color="#6B7280" />
+                        </TouchableOpacity>
                       )}
-                    </>
-                  )}
-                </View>
-              )}
+                    </View>
+
+                    {/* Dropdown */}
+                    {showTransporterDropdown && filteredTransporters.length > 0 && (
+                      <View style={styles.dropdown}>
+                        <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
+                          {filteredTransporters.map((transporter) => (
+                            <TouchableOpacity
+                              key={transporter.id}
+                              style={styles.dropdownItem}
+                              onPress={() => handleSelectTransporter(transporter)}
+                            >
+                              <Text style={styles.dropdownItemTitle}>
+                                {transporter.razonSocial}
+                              </Text>
+                              <Text style={styles.dropdownItemSubtitle}>
+                                RUC: {transporter.numeroRuc}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+
+                    {/* Transporter Details */}
+                    {selectedTransporter && (
+                      <View style={styles.detailsCard}>
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Razón Social:</Text>
+                          <Text style={styles.detailValue}>{selectedTransporter.razonSocial}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>RUC:</Text>
+                          <Text style={styles.detailValue}>{selectedTransporter.numeroRuc}</Text>
+                        </View>
+                        {selectedTransporter.numeroRegistroMTC && (
+                          <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Registro MTC:</Text>
+                            <Text style={styles.detailValue}>
+                              {selectedTransporter.numeroRegistroMTC}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
 
               {/* Private Transport Option */}
               <TouchableOpacity
@@ -312,51 +433,77 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                 <View style={styles.sectionHeader}>
                   <Ionicons name="car" size={24} color="#6366F1" />
                   <Text style={styles.sectionTitle}>Vehículo</Text>
+                  <TouchableOpacity
+                    style={styles.createButton}
+                    onPress={handleCreateVehicle}
+                    activeOpacity={0.7}
+                    disabled={isPublicTransport}
+                  >
+                    <Ionicons name="add-circle" size={24} color="#10B981" />
+                    <Text style={styles.createButtonText}>Crear Nuevo</Text>
+                  </TouchableOpacity>
                 </View>
 
-                {vehicles.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="car-outline" size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyText}>No hay vehículos disponibles</Text>
-                    <Text style={styles.emptySubtext}>
-                      Registra vehículos en Configuración
-                    </Text>
-                  </View>
-                ) : (
-                  <>
-                    <View style={[styles.pickerContainer, isPublicTransport && styles.pickerDisabled]}>
-                      <Picker
-                        selectedValue={selectedVehicle?.id || ''}
-                        onValueChange={handleVehicleChange}
-                        style={styles.picker}
-                        enabled={!isPublicTransport}
-                      >
-                        {vehicles.map((vehicle) => (
-                          <Picker.Item
-                            key={vehicle.id}
-                            label={`${vehicle.numeroPlaca} - ${vehicle.marca} ${vehicle.modelo}`}
-                            value={vehicle.id}
-                          />
-                        ))}
-                      </Picker>
-                    </View>
+                {/* Search Input */}
+                <View style={styles.searchContainer}>
+                  <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Buscar por placa, marca o modelo..."
+                    value={vehicleSearch}
+                    onChangeText={setVehicleSearch}
+                    onFocus={() => setShowVehicleDropdown(true)}
+                    editable={!isPublicTransport}
+                  />
+                  {vehicleSearch.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setVehicleSearch('');
+                        setSelectedVehicle(null);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={20} color="#6B7280" />
+                    </TouchableOpacity>
+                  )}
+                </View>
 
-                    {/* Vehicle Details */}
-                    {selectedVehicle && (
-                      <View style={styles.detailsCard}>
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>Placa:</Text>
-                          <Text style={styles.detailValue}>{selectedVehicle.numeroPlaca}</Text>
-                        </View>
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>Marca/Modelo:</Text>
-                          <Text style={styles.detailValue}>
-                            {selectedVehicle.marca} {selectedVehicle.modelo}
+                {/* Dropdown */}
+                {showVehicleDropdown && filteredVehicles.length > 0 && !isPublicTransport && (
+                  <View style={styles.dropdown}>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
+                      {filteredVehicles.map((vehicle) => (
+                        <TouchableOpacity
+                          key={vehicle.id}
+                          style={styles.dropdownItem}
+                          onPress={() => handleSelectVehicle(vehicle)}
+                        >
+                          <Text style={styles.dropdownItemTitle}>
+                            {vehicle.numeroPlaca} - {vehicle.marca} {vehicle.modelo}
                           </Text>
-                        </View>
-                      </View>
-                    )}
-                  </>
+                          <Text style={styles.dropdownItemSubtitle}>
+                            {vehicle.color && `Color: ${vehicle.color}`}
+                            {vehicle.anio && ` • Año: ${vehicle.anio}`}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* Vehicle Details */}
+                {selectedVehicle && (
+                  <View style={styles.detailsCard}>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Placa:</Text>
+                      <Text style={styles.detailValue}>{selectedVehicle.numeroPlaca}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Marca/Modelo:</Text>
+                      <Text style={styles.detailValue}>
+                        {selectedVehicle.marca} {selectedVehicle.modelo}
+                      </Text>
+                    </View>
+                  </View>
                 )}
               </View>
 
@@ -365,53 +512,78 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                 <View style={styles.sectionHeader}>
                   <Ionicons name="person" size={24} color="#6366F1" />
                   <Text style={styles.sectionTitle}>Conductor</Text>
+                  <TouchableOpacity
+                    style={styles.createButton}
+                    onPress={handleCreateDriver}
+                    activeOpacity={0.7}
+                    disabled={isPublicTransport}
+                  >
+                    <Ionicons name="add-circle" size={24} color="#10B981" />
+                    <Text style={styles.createButtonText}>Crear Nuevo</Text>
+                  </TouchableOpacity>
                 </View>
 
-                {drivers.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="person-outline" size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyText}>No hay conductores disponibles</Text>
-                    <Text style={styles.emptySubtext}>
-                      Registra conductores en Configuración
-                    </Text>
-                  </View>
-                ) : (
-                  <>
-                    <View style={[styles.pickerContainer, isPublicTransport && styles.pickerDisabled]}>
-                      <Picker
-                        selectedValue={selectedDriver?.id || ''}
-                        onValueChange={handleDriverChange}
-                        style={styles.picker}
-                        enabled={!isPublicTransport}
-                      >
-                        {drivers.map((driver) => (
-                          <Picker.Item
-                            key={driver.id}
-                            label={`${driver.nombre} ${driver.apellido} - Lic: ${driver.numeroLicencia}`}
-                            value={driver.id}
-                          />
-                        ))}
-                      </Picker>
-                    </View>
+                {/* Search Input */}
+                <View style={styles.searchContainer}>
+                  <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Buscar por nombre, documento o licencia..."
+                    value={driverSearch}
+                    onChangeText={setDriverSearch}
+                    onFocus={() => setShowDriverDropdown(true)}
+                    editable={!isPublicTransport}
+                  />
+                  {driverSearch.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setDriverSearch('');
+                        setSelectedDriver(null);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={20} color="#6B7280" />
+                    </TouchableOpacity>
+                  )}
+                </View>
 
-                    {/* Driver Details */}
-                    {selectedDriver && (
-                      <View style={styles.detailsCard}>
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>Nombre:</Text>
-                          <Text style={styles.detailValue}>
-                            {selectedDriver.nombre} {selectedDriver.apellido}
+                {/* Dropdown */}
+                {showDriverDropdown && filteredDrivers.length > 0 && !isPublicTransport && (
+                  <View style={styles.dropdown}>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
+                      {filteredDrivers.map((driver) => (
+                        <TouchableOpacity
+                          key={driver.id}
+                          style={styles.dropdownItem}
+                          onPress={() => handleSelectDriver(driver)}
+                        >
+                          <Text style={styles.dropdownItemTitle}>
+                            {driver.nombre} {driver.apellido}
                           </Text>
-                        </View>
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>Licencia:</Text>
-                          <Text style={styles.detailValue}>
-                            {selectedDriver.numeroLicencia} ({selectedDriver.categoriaLicencia})
+                          <Text style={styles.dropdownItemSubtitle}>
+                            Lic: {driver.numeroLicencia} • Doc: {driver.numeroDocumento}
                           </Text>
-                        </View>
-                      </View>
-                    )}
-                  </>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* Driver Details */}
+                {selectedDriver && (
+                  <View style={styles.detailsCard}>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Nombre:</Text>
+                      <Text style={styles.detailValue}>
+                        {selectedDriver.nombre} {selectedDriver.apellido}
+                      </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Licencia:</Text>
+                      <Text style={styles.detailValue}>
+                        {selectedDriver.numeroLicencia} ({selectedDriver.categoriaLicencia})
+                      </Text>
+                    </View>
+                  </View>
                 )}
               </View>
             </ScrollView>
@@ -431,10 +603,17 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
               style={[
                 styles.button,
                 styles.confirmButton,
-                ((isPublicTransport && !selectedTransporter) || (!isPublicTransport && (!selectedVehicle || !selectedDriver)) || loading) && styles.buttonDisabled,
+                ((isPublicTransport && !selectedTransporter) ||
+                  (!isPublicTransport && (!selectedVehicle || !selectedDriver)) ||
+                  loading) &&
+                  styles.buttonDisabled,
               ]}
               onPress={handleConfirm}
-              disabled={(isPublicTransport && !selectedTransporter) || (!isPublicTransport && (!selectedVehicle || !selectedDriver)) || loading}
+              disabled={
+                (isPublicTransport && !selectedTransporter) ||
+                (!isPublicTransport && (!selectedVehicle || !selectedDriver)) ||
+                loading
+              }
               activeOpacity={0.7}
             >
               <Text style={styles.confirmButtonText}>Confirmar</Text>
@@ -443,6 +622,34 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
         </View>
       </KeyboardAvoidingView>
     </Modal>
+
+    {/* Create Vehicle Modal */}
+    {showCreateVehicle && (
+      <CreateVehicleModal
+        visible={showCreateVehicle}
+        onClose={() => setShowCreateVehicle(false)}
+        onSubmit={handleVehicleCreated}
+      />
+    )}
+
+    {/* Create Driver Modal */}
+    {showCreateDriver && (
+      <CreateDriverModal
+        visible={showCreateDriver}
+        onClose={() => setShowCreateDriver(false)}
+        onSubmit={handleDriverCreated}
+      />
+    )}
+
+    {/* Create Transporter Modal */}
+    {showCreateTransporter && (
+      <CreateTransporterModal
+        visible={showCreateTransporter}
+        onClose={() => setShowCreateTransporter(false)}
+        onSubmit={handleTransporterCreated}
+      />
+    )}
+  </>
   );
 };
 
@@ -458,7 +665,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: '90%',
     maxWidth: 600,
-    height: 600,
+    maxHeight: '90%',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -515,16 +722,76 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
     marginLeft: 8,
+    flex: 1,
   },
-  pickerContainer: {
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 8,
+    gap: 4,
+  },
+  createButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F9FAFB',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    overflow: 'hidden',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
   },
-  picker: {
-    height: 50,
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+    paddingVertical: 4,
+  },
+  dropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    maxHeight: 200,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  dropdownScroll: {
+    maxHeight: 200,
+  },
+  dropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  dropdownItemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  dropdownItemSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   detailsCard: {
     backgroundColor: '#F9FAFB',
@@ -551,21 +818,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
     textAlign: 'right',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  emptyText: {
-    marginTop: 12,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  emptySubtext: {
-    marginTop: 4,
-    fontSize: 14,
-    color: '#9CA3AF',
   },
   footer: {
     flexDirection: 'row',
@@ -636,7 +888,370 @@ const styles = StyleSheet.create({
   sectionDisabled: {
     opacity: 0.4,
   },
-  pickerDisabled: {
-    opacity: 0.5,
-  },
 });
+
+
+// Placeholder components for create modals - these will be simple forms
+const CreateVehicleModal: React.FC<{
+  visible: boolean;
+  onClose: () => void;
+  onSubmit: (data: CreateVehicleRequest) => void;
+}> = ({ visible, onClose, onSubmit }) => {
+  const [formData, setFormData] = useState<CreateVehicleRequest>({
+    numeroPlaca: '',
+    tipoVehiculo: VehicleType.PRINCIPAL,
+    marca: '',
+    modelo: '',
+    status: VehicleStatus.ACTIVE,
+    isActive: true,
+  });
+
+  const handleSubmit = () => {
+    if (!formData.numeroPlaca || !formData.marca || !formData.modelo) {
+      Alert.alert('Error', 'Por favor completa todos los campos requeridos');
+      return;
+    }
+    onSubmit(formData);
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.modalOverlay}
+      >
+        <View style={[styles.modalContent, { height: 'auto', maxHeight: '80%' }]}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Crear Vehículo</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.content}>
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Placa *
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Ej: ABC-123"
+                value={formData.numeroPlaca}
+                onChangeText={(text) => setFormData({ ...formData, numeroPlaca: text.toUpperCase() })}
+                autoCapitalize="characters"
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Marca *
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Ej: Toyota"
+                value={formData.marca}
+                onChangeText={(text) => setFormData({ ...formData, marca: text })}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Modelo *
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Ej: Hilux"
+                value={formData.modelo}
+                onChangeText={(text) => setFormData({ ...formData, modelo: text })}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Año
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Ej: 2023"
+                value={formData.anio?.toString() || ''}
+                onChangeText={(text) => setFormData({ ...formData, anio: parseInt(text) || undefined })}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Color
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Ej: Blanco"
+                value={formData.color || ''}
+                onChangeText={(text) => setFormData({ ...formData, color: text })}
+              />
+            </View>
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, styles.confirmButton]} onPress={handleSubmit}>
+              <Text style={styles.confirmButtonText}>Crear</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
+
+const CreateDriverModal: React.FC<{
+  visible: boolean;
+  onClose: () => void;
+  onSubmit: (data: CreateDriverRequest) => void;
+}> = ({ visible, onClose, onSubmit }) => {
+  const [formData, setFormData] = useState<CreateDriverRequest>({
+    tipoDocumento: DocumentType.DNI,
+    numeroDocumento: '',
+    nombre: '',
+    apellido: '',
+    numeroLicencia: '',
+    categoriaLicencia: '',
+    fechaVencimientoLicencia: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    status: DriverStatus.ACTIVE,
+    isActive: true,
+  });
+
+  const handleSubmit = () => {
+    if (
+      !formData.numeroDocumento ||
+      !formData.nombre ||
+      !formData.apellido ||
+      !formData.numeroLicencia ||
+      !formData.categoriaLicencia
+    ) {
+      Alert.alert('Error', 'Por favor completa todos los campos requeridos');
+      return;
+    }
+    onSubmit(formData);
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.modalOverlay}
+      >
+        <View style={[styles.modalContent, { height: 'auto', maxHeight: '80%' }]}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Crear Conductor</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.content}>
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Nombre *
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Nombre"
+                value={formData.nombre}
+                onChangeText={(text) => setFormData({ ...formData, nombre: text })}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Apellido *
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Apellido"
+                value={formData.apellido}
+                onChangeText={(text) => setFormData({ ...formData, apellido: text })}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Número de Documento *
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="DNI"
+                value={formData.numeroDocumento}
+                onChangeText={(text) => setFormData({ ...formData, numeroDocumento: text })}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Número de Licencia *
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Ej: Q12345678"
+                value={formData.numeroLicencia}
+                onChangeText={(text) => setFormData({ ...formData, numeroLicencia: text.toUpperCase() })}
+                autoCapitalize="characters"
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Categoría de Licencia *
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Ej: A-IIIb"
+                value={formData.categoriaLicencia}
+                onChangeText={(text) => setFormData({ ...formData, categoriaLicencia: text })}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Teléfono
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Ej: 987654321"
+                value={formData.telefono || ''}
+                onChangeText={(text) => setFormData({ ...formData, telefono: text })}
+                keyboardType="phone-pad"
+              />
+            </View>
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, styles.confirmButton]} onPress={handleSubmit}>
+              <Text style={styles.confirmButtonText}>Crear</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
+
+const CreateTransporterModal: React.FC<{
+  visible: boolean;
+  onClose: () => void;
+  onSubmit: (data: CreateTransporterRequest) => void;
+}> = ({ visible, onClose, onSubmit }) => {
+  const [formData, setFormData] = useState<CreateTransporterRequest>({
+    numeroRuc: '',
+    tipoDocumento: TransporterDocumentType.RUC,
+    razonSocial: '',
+    status: TransporterStatus.ACTIVE,
+    isActive: true,
+  });
+
+  const handleSubmit = () => {
+    if (!formData.numeroRuc || !formData.razonSocial) {
+      Alert.alert('Error', 'Por favor completa todos los campos requeridos');
+      return;
+    }
+    onSubmit(formData);
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.modalOverlay}
+      >
+        <View style={[styles.modalContent, { height: 'auto', maxHeight: '80%' }]}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Crear Transportista</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.content}>
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                RUC *
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Ej: 20123456789"
+                value={formData.numeroRuc}
+                onChangeText={(text) => setFormData({ ...formData, numeroRuc: text })}
+                keyboardType="numeric"
+                maxLength={11}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Razón Social *
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Nombre de la empresa"
+                value={formData.razonSocial}
+                onChangeText={(text) => setFormData({ ...formData, razonSocial: text })}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Registro MTC
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Número de registro MTC"
+                value={formData.numeroRegistroMTC || ''}
+                onChangeText={(text) => setFormData({ ...formData, numeroRegistroMTC: text })}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Teléfono
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Ej: 987654321"
+                value={formData.telefono || ''}
+                onChangeText={(text) => setFormData({ ...formData, telefono: text })}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>
+                Dirección
+              </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Dirección de la empresa"
+                value={formData.direccion || ''}
+                onChangeText={(text) => setFormData({ ...formData, direccion: text })}
+              />
+            </View>
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, styles.confirmButton]} onPress={handleSubmit}>
+              <Text style={styles.confirmButtonText}>Crear</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
