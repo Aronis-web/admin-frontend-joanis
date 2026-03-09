@@ -47,7 +47,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [selectedTransporter, setSelectedTransporter] = useState<Transporter | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isPublicTransport, setIsPublicTransport] = useState(false);
+  const [transportType, setTransportType] = useState<'public' | 'private' | null>(null);
 
   // Search states
   const [vehicleSearch, setVehicleSearch] = useState('');
@@ -72,7 +72,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
       setSelectedVehicle(null);
       setSelectedDriver(null);
       setSelectedTransporter(null);
-      setIsPublicTransport(false);
+      setTransportType(null);
       setVehicleSearch('');
       setDriverSearch('');
       setTransporterSearch('');
@@ -151,7 +151,12 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
   }, [transporters, transporterSearch]);
 
   const handleConfirm = () => {
-    if (isPublicTransport) {
+    if (!transportType) {
+      Alert.alert('Error', 'Debes seleccionar un tipo de transporte');
+      return;
+    }
+
+    if (transportType === 'public') {
       // Para transporte público, validar que se haya seleccionado un transportista
       if (!selectedTransporter) {
         Alert.alert('Error', 'Debes seleccionar un transportista para transporte público');
@@ -176,16 +181,17 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
     onConfirm(selectedVehicle, selectedDriver, null);
   };
 
-  const handlePublicTransportToggle = () => {
-    setIsPublicTransport(!isPublicTransport);
-    if (!isPublicTransport) {
-      // Si se activa transporte público, limpiar selecciones de vehículo y conductor
+  const handleSelectTransportType = (type: 'public' | 'private') => {
+    setTransportType(type);
+
+    if (type === 'public') {
+      // Limpiar selecciones de vehículo y conductor
       setSelectedVehicle(null);
       setSelectedDriver(null);
       setVehicleSearch('');
       setDriverSearch('');
     } else {
-      // Si se desactiva transporte público, limpiar transportista
+      // Limpiar transportista
       setSelectedTransporter(null);
       setTransporterSearch('');
     }
@@ -286,37 +292,64 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
               </View>
             ) : (
               <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Public Transport Option */}
-                <TouchableOpacity
-                  style={[
-                    styles.publicTransportCard,
-                    isPublicTransport && styles.publicTransportCardActive,
-                  ]}
-                  onPress={handlePublicTransportToggle}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.publicTransportHeader}>
-                    <Ionicons
-                      name={isPublicTransport ? 'checkbox' : 'square-outline'}
-                      size={24}
-                      color={isPublicTransport ? '#10B981' : '#6B7280'}
-                    />
-                    <Text
+                {/* Transport Type Selection */}
+                <View style={styles.transportTypeContainer}>
+                  <Text style={styles.transportTypeLabel}>Tipo de Transporte *</Text>
+                  <View style={styles.transportTypeButtons}>
+                    {/* Public Transport Option */}
+                    <TouchableOpacity
                       style={[
-                        styles.publicTransportTitle,
-                        isPublicTransport && styles.publicTransportTitleActive,
+                        styles.transportTypeCard,
+                        transportType === 'public' && styles.transportTypeCardActive,
                       ]}
+                      onPress={() => handleSelectTransportType('public')}
+                      activeOpacity={0.7}
                     >
-                      🚌 Transporte Público
-                    </Text>
+                      <Ionicons
+                        name="business"
+                        size={24}
+                        color={transportType === 'public' ? '#10B981' : '#6B7280'}
+                      />
+                      <Text
+                        style={[
+                          styles.transportTypeTitle,
+                          transportType === 'public' && styles.transportTypeTitleActive,
+                        ]}
+                      >
+                        Transporte Público
+                      </Text>
+                      <Text style={styles.transportTypeSubtext}>Transportista externo</Text>
+                    </TouchableOpacity>
+
+                    {/* Private Transport Option */}
+                    <TouchableOpacity
+                      style={[
+                        styles.transportTypeCard,
+                        transportType === 'private' && styles.transportTypeCardActive,
+                      ]}
+                      onPress={() => handleSelectTransportType('private')}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name="car"
+                        size={24}
+                        color={transportType === 'private' ? '#10B981' : '#6B7280'}
+                      />
+                      <Text
+                        style={[
+                          styles.transportTypeTitle,
+                          transportType === 'private' && styles.transportTypeTitleActive,
+                        ]}
+                      >
+                        Transporte Privado
+                      </Text>
+                      <Text style={styles.transportTypeSubtext}>Vehículo y conductor propios</Text>
+                    </TouchableOpacity>
                   </View>
-                  <Text style={styles.publicTransportSubtext}>
-                    Seleccionar transportista externo
-                  </Text>
-                </TouchableOpacity>
+                </View>
 
                 {/* Transporter Selection - Only visible when Public Transport is selected */}
-                {isPublicTransport && (
+                {transportType === 'public' && (
                   <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                       <Ionicons name="business" size={24} color="#6366F1" />
@@ -399,37 +432,9 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                   </View>
                 )}
 
-              {/* Private Transport Option */}
-              <TouchableOpacity
-                style={[
-                  styles.publicTransportCard,
-                  !isPublicTransport && styles.publicTransportCardActive,
-                ]}
-                onPress={handlePublicTransportToggle}
-                activeOpacity={0.7}
-              >
-                <View style={styles.publicTransportHeader}>
-                  <Ionicons
-                    name={!isPublicTransport ? 'checkbox' : 'square-outline'}
-                    size={24}
-                    color={!isPublicTransport ? '#10B981' : '#6B7280'}
-                  />
-                  <Text
-                    style={[
-                      styles.publicTransportTitle,
-                      !isPublicTransport && styles.publicTransportTitleActive,
-                    ]}
-                  >
-                    🚗 Transporte Privado
-                  </Text>
-                </View>
-                <Text style={styles.publicTransportSubtext}>
-                  Asignar conductor y vehículo propios
-                </Text>
-              </TouchableOpacity>
-
-              {/* Vehicle Selection */}
-              <View style={[styles.section, isPublicTransport && styles.sectionDisabled]}>
+              {/* Vehicle Selection - Only visible when Private Transport is selected */}
+              {transportType === 'private' && (
+              <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="car" size={24} color="#6366F1" />
                   <Text style={styles.sectionTitle}>Vehículo</Text>
@@ -437,7 +442,6 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                     style={styles.createButton}
                     onPress={handleCreateVehicle}
                     activeOpacity={0.7}
-                    disabled={isPublicTransport}
                   >
                     <Ionicons name="add-circle" size={24} color="#10B981" />
                     <Text style={styles.createButtonText}>Crear Nuevo</Text>
@@ -453,7 +457,6 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                     value={vehicleSearch}
                     onChangeText={setVehicleSearch}
                     onFocus={() => setShowVehicleDropdown(true)}
-                    editable={!isPublicTransport}
                   />
                   {vehicleSearch.length > 0 && (
                     <TouchableOpacity
@@ -468,7 +471,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                 </View>
 
                 {/* Dropdown */}
-                {showVehicleDropdown && filteredVehicles.length > 0 && !isPublicTransport && (
+                {showVehicleDropdown && filteredVehicles.length > 0 && (
                   <View style={styles.dropdown}>
                     <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
                       {filteredVehicles.map((vehicle) => (
@@ -506,9 +509,11 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                   </View>
                 )}
               </View>
+              )}
 
-              {/* Driver Selection */}
-              <View style={[styles.section, isPublicTransport && styles.sectionDisabled]}>
+              {/* Driver Selection - Only visible when Private Transport is selected */}
+              {transportType === 'private' && (
+              <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="person" size={24} color="#6366F1" />
                   <Text style={styles.sectionTitle}>Conductor</Text>
@@ -516,7 +521,6 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                     style={styles.createButton}
                     onPress={handleCreateDriver}
                     activeOpacity={0.7}
-                    disabled={isPublicTransport}
                   >
                     <Ionicons name="add-circle" size={24} color="#10B981" />
                     <Text style={styles.createButtonText}>Crear Nuevo</Text>
@@ -532,7 +536,6 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                     value={driverSearch}
                     onChangeText={setDriverSearch}
                     onFocus={() => setShowDriverDropdown(true)}
-                    editable={!isPublicTransport}
                   />
                   {driverSearch.length > 0 && (
                     <TouchableOpacity
@@ -547,7 +550,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                 </View>
 
                 {/* Dropdown */}
-                {showDriverDropdown && filteredDrivers.length > 0 && !isPublicTransport && (
+                {showDriverDropdown && filteredDrivers.length > 0 && (
                   <View style={styles.dropdown}>
                     <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
                       {filteredDrivers.map((driver) => (
@@ -586,6 +589,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                   </View>
                 )}
               </View>
+              )}
             </ScrollView>
           )}
 
@@ -603,15 +607,17 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
               style={[
                 styles.button,
                 styles.confirmButton,
-                ((isPublicTransport && !selectedTransporter) ||
-                  (!isPublicTransport && (!selectedVehicle || !selectedDriver)) ||
+                (!transportType ||
+                  (transportType === 'public' && !selectedTransporter) ||
+                  (transportType === 'private' && (!selectedVehicle || !selectedDriver)) ||
                   loading) &&
                   styles.buttonDisabled,
               ]}
               onPress={handleConfirm}
               disabled={
-                (isPublicTransport && !selectedTransporter) ||
-                (!isPublicTransport && (!selectedVehicle || !selectedDriver)) ||
+                !transportType ||
+                (transportType === 'public' && !selectedTransporter) ||
+                (transportType === 'private' && (!selectedVehicle || !selectedDriver)) ||
                 loading
               }
               activeOpacity={0.7}
@@ -888,7 +894,61 @@ const styles = StyleSheet.create({
   sectionDisabled: {
     opacity: 0.4,
   },
+  transportTypeContainer: {
+    marginBottom: 20,
+  },
+  transportTypeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  transportTypeButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  transportTypeCard: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
+  },
+  transportTypeCardActive: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#10B981',
+  },
+  transportTypeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  transportTypeTitleActive: {
+    color: '#10B981',
+  },
+  transportTypeSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+    textAlign: 'center',
+  },
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
