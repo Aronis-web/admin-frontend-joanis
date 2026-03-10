@@ -321,14 +321,14 @@ const styles = StyleSheet.create({
   container: {
     width: '90%',
     maxWidth: 500,
-    maxHeight: '85%',
+    height: '90%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
   },
   containerTablet: {
     maxWidth: 700,
-    maxHeight: '90%',
+    height: '95%',
   },
   header: {
     flexDirection: 'row',
