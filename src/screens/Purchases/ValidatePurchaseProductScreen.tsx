@@ -24,6 +24,10 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { PhotoCapture } from '@/components/Purchases/PhotoCapture';
 import { SignatureCapture } from '@/components/Purchases/SignatureCapture';
+import {
+  RecurrentProductModal,
+  RecurrentProductCandidate,
+} from '@/components/Purchases/RecurrentProductModal';
 
 interface ValidatePurchaseProductScreenProps {
   navigation: any;
@@ -64,6 +68,13 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [showSignatureCapture, setShowSignatureCapture] = useState(false);
   const [showProductPhotoCapture, setShowProductPhotoCapture] = useState(false); // ✅ Modal para foto del producto
+
+  // Recurrence state
+  const [showRecurrenceModal, setShowRecurrenceModal] = useState(false);
+  const [recurrentCandidates, setRecurrentCandidates] = useState<RecurrentProductCandidate[]>([]);
+  const [recurrenceMessage, setRecurrenceMessage] = useState<string>('');
+  const [recurrenceAction, setRecurrenceAction] = useState<'MERGE' | 'CREATE_NEW' | null>(null);
+  const [selectedExistingProductId, setSelectedExistingProductId] = useState<string | null>(null);
 
   // Presentations from product (preliminary presentations)
   interface ValidatedPresentation {
@@ -359,6 +370,44 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     }
   };
 
+  /**
+   * Check for recurrent products before saving validation
+   */
+  const checkRecurrentProducts = async () => {
+    if (!product || !sku.trim()) {
+      return;
+    }
+
+    try {
+      console.log('🔍 Checking for recurrent products...', { sku, barcode });
+      const response = await purchasesService.checkRecurrence(purchaseId, productId, {
+        sku: sku.trim(),
+        barcode: barcode.trim() || undefined,
+      });
+
+      console.log('✅ Recurrence check response:', response);
+
+      if (response.hasRecurrentProducts && response.candidates.length > 0) {
+        // Show modal with candidates
+        setRecurrentCandidates(response.candidates);
+        setRecurrenceMessage(response.message || 'Se encontraron productos similares');
+        setShowRecurrenceModal(true);
+        return true; // Has recurrent products
+      } else {
+        // No recurrent products, proceed with CREATE_NEW
+        setRecurrenceAction('CREATE_NEW');
+        setSelectedExistingProductId(null);
+        return false; // No recurrent products
+      }
+    } catch (error: any) {
+      console.error('❌ Error checking recurrence:', error);
+      // If check fails, continue with normal flow (CREATE_NEW)
+      setRecurrenceAction('CREATE_NEW');
+      setSelectedExistingProductId(null);
+      return false;
+    }
+  };
+
   const handleSaveValidation = async () => {
     if (!product) {
       return;
@@ -426,6 +475,36 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       }
     }
 
+    // ========== NEW: Check for recurrent products ==========
+    setActionLoading(true);
+    try {
+      const hasRecurrent = await checkRecurrentProducts();
+      if (hasRecurrent) {
+        // Modal will be shown, wait for user decision
+        setActionLoading(false);
+        return;
+      }
+      // No recurrent products, continue with save
+    } catch (error: any) {
+      console.error('❌ Error in recurrence check:', error);
+      setActionLoading(false);
+      return;
+    }
+
+    // Continue with save (recurrenceAction is already set to CREATE_NEW)
+    await performSaveValidation();
+  };
+
+  /**
+   * Perform the actual save validation (called after recurrence check)
+   */
+  const performSaveValidation = async () => {
+    if (!product) {
+      return;
+    }
+
+    const costValue = parseFloat(costCents);
+    const looseUnitsValue = parseInt(looseUnits);
     const totalStock = calculateTotalStock();
 
     // Get the quantity of presentations from the selected presentation
@@ -446,8 +525,8 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       const uploadedFiles = await uploadValidationFiles();
       console.log('✅ Files uploaded successfully:', uploadedFiles);
 
-      // Then validate with the uploaded URLs
-      await purchasesService.validateProduct(purchaseId, productId, {
+      // Prepare validation data
+      const validationData = {
         sku: sku.trim(),
         name: name.trim(),
         costCents: Math.round(costValue * 100),
@@ -455,7 +534,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         validatedStock: totalStock,
         validatedLooseUnits: looseUnitsValue,
         validatedPresentationQuantity: validatedPresentationQuantity,
-        warehouseId: selectedWarehouse.id,
+        warehouseId: selectedWarehouse!.id,
         areaId: selectedArea?.id,
         presentations: validatedPresentations.length > 0 ? validatedPresentations.map((p) => ({
           presentationId: p.presentationId,
@@ -466,12 +545,38 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         photoUrl: uploadedFiles.photoUrl,
         signatureUrl: uploadedFiles.signatureUrl,
         validationNotes: validationNotes.trim() || undefined,
-      });
+        // ========== NEW: Recurrence fields ==========
+        recurrenceAction: recurrenceAction || 'CREATE_NEW',
+        existingProductId: selectedExistingProductId || undefined,
+        recurrenceMetadata: recurrentCandidates.length > 0 ? {
+          candidatesReviewed: recurrentCandidates.length,
+          userDecision: recurrenceAction === 'MERGE' ? 'Usuario confirmó producto existente' : 'Usuario creó producto nuevo',
+          matchConfidence: 95,
+        } : undefined,
+      };
 
-      Alert.alert('Éxito', 'Datos de validación guardados');
+      console.log('📝 Validation data:', validationData);
+
+      // Use V2 endpoint with recurrence support
+      const response = await purchasesService.validateProductV2(purchaseId, productId, validationData);
+
+      console.log('✅ Validation response:', response);
+
+      // Show success message based on action
+      const successMessage = response.action === 'MERGED'
+        ? `Stock agregado al producto existente: ${response.product.title}`
+        : 'Datos de validación guardados. Producto nuevo creado.';
+
+      Alert.alert('Éxito', successMessage);
+
+      // Reset recurrence state
+      setRecurrenceAction(null);
+      setSelectedExistingProductId(null);
+      setRecurrentCandidates([]);
+
       await loadData();
     } catch (error: any) {
-      console.error('❌ Error in handleSaveValidation:', error);
+      console.error('❌ Error in performSaveValidation:', error);
       Alert.alert('Error', error.message || 'No se pudo guardar la validación');
     } finally {
       setActionLoading(false);
@@ -574,8 +679,8 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               const uploadedFiles = await uploadValidationFiles();
               console.log('✅ Files uploaded successfully:', uploadedFiles);
 
-              // First save current validation data
-              await purchasesService.validateProduct(purchaseId, productId, {
+              // Prepare validation data
+              const validationData = {
                 sku: sku.trim(),
                 name: name.trim(),
                 costCents: Math.round(costValue * 100),
@@ -594,7 +699,18 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 photoUrl: uploadedFiles.photoUrl,
                 signatureUrl: uploadedFiles.signatureUrl,
                 validationNotes: validationNotes.trim() || undefined,
-              });
+                // ========== NEW: Recurrence fields ==========
+                recurrenceAction: recurrenceAction || 'CREATE_NEW',
+                existingProductId: selectedExistingProductId || undefined,
+                recurrenceMetadata: recurrentCandidates.length > 0 ? {
+                  candidatesReviewed: recurrentCandidates.length,
+                  userDecision: recurrenceAction === 'MERGE' ? 'Usuario confirmó producto existente' : 'Usuario creó producto nuevo',
+                  matchConfidence: 95,
+                } : undefined,
+              };
+
+              // First save current validation data using V2 endpoint
+              await purchasesService.validateProductV2(purchaseId, productId, validationData);
 
               // Then close validation
               await purchasesService.closeValidation(purchaseId, productId);
@@ -635,6 +751,43 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setActionLoading(false);
       setShowRejectDialog(false);
     }
+  };
+
+  /**
+   * Handle recurrence modal - User confirms existing product (MERGE)
+   */
+  const handleRecurrenceConfirm = (productId: string) => {
+    console.log('✅ User confirmed existing product:', productId);
+    setRecurrenceAction('MERGE');
+    setSelectedExistingProductId(productId);
+    setShowRecurrenceModal(false);
+
+    // Continue with save validation
+    performSaveValidation();
+  };
+
+  /**
+   * Handle recurrence modal - User creates new product (CREATE_NEW)
+   */
+  const handleRecurrenceCreateNew = () => {
+    console.log('➕ User chose to create new product');
+    setRecurrenceAction('CREATE_NEW');
+    setSelectedExistingProductId(null);
+    setShowRecurrenceModal(false);
+
+    // Continue with save validation
+    performSaveValidation();
+  };
+
+  /**
+   * Handle recurrence modal - User cancels
+   */
+  const handleRecurrenceCancel = () => {
+    console.log('❌ User cancelled recurrence modal');
+    setShowRecurrenceModal(false);
+    setRecurrentCandidates([]);
+    setRecurrenceMessage('');
+    // Don't reset recurrenceAction here, let user try again
   };
 
   const formatCurrency = (cents: number) => {
@@ -1623,6 +1776,16 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           />
         </Modal>
       )}
+
+      {/* ========== NEW: Recurrent Product Modal ========== */}
+      <RecurrentProductModal
+        visible={showRecurrenceModal}
+        candidates={recurrentCandidates}
+        message={recurrenceMessage}
+        onConfirm={handleRecurrenceConfirm}
+        onCreateNew={handleRecurrenceCreateNew}
+        onCancel={handleRecurrenceCancel}
+      />
     </SafeAreaView>
   );
 };

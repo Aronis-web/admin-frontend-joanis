@@ -361,6 +361,90 @@ export interface ValidateProductRequest {
   photoUrl?: string; // OPCIONAL: URL de la foto de validación
   signatureUrl?: string; // OPCIONAL: URL de la firma de validación
   validationNotes?: string;
+  // ========== Campos nuevos para recurrencia ==========
+  recurrenceAction?: 'MERGE' | 'CREATE_NEW'; // Acción de recurrencia
+  existingProductId?: string; // ID del producto existente (solo si recurrenceAction = 'MERGE')
+  recurrenceMetadata?: {
+    candidatesReviewed?: number;
+    userDecision?: string;
+    matchConfidence?: number;
+  };
+}
+
+/**
+ * Check Recurrence Request
+ */
+export interface CheckRecurrenceRequest {
+  sku: string;
+  barcode?: string;
+}
+
+/**
+ * Recurrent Product Candidate
+ */
+export interface RecurrentProductCandidate {
+  productId: string;
+  correlativeNumber: number;
+  title: string;
+  sku: string;
+  barcode?: string;
+  photos: string[];
+  currentStock: number;
+  stockByWarehouse: Array<{
+    warehouseId: string;
+    warehouseName: string;
+    areaId?: string;
+    areaName?: string;
+    quantity: number;
+  }>;
+  lastPurchaseDate?: string;
+  purchaseCount: number;
+  supplierId: string;
+  supplierName: string;
+  costCents: number;
+}
+
+/**
+ * Check Recurrence Response
+ */
+export interface CheckRecurrenceResponse {
+  hasRecurrentProducts: boolean;
+  candidates: RecurrentProductCandidate[];
+  message?: string;
+  metadata?: {
+    totalCandidates: number;
+    searchCriteria: {
+      supplierId: string;
+      sku: string;
+      barcode?: string;
+    };
+    criteriaUsed: string;
+  };
+}
+
+/**
+ * Validate Product V2 Response
+ */
+export interface ValidateProductV2Response {
+  success: boolean;
+  purchaseProduct: PurchaseProduct;
+  product: any; // Product entity
+  action: 'MERGED' | 'CREATED_NEW';
+  stockMovement?: {
+    productId: string;
+    warehouseId: string;
+    areaId?: string;
+    quantityAdded: number;
+    previousStock: number;
+    newStock: number;
+  };
+  message: string;
+  metadata?: {
+    isRecurrentProduct: boolean;
+    photosAdded?: number;
+    presentationsCreated?: number;
+    validationId?: string;
+  };
 }
 
 /**

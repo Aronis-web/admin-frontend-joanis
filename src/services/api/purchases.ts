@@ -22,6 +22,9 @@ import {
   PurchaseTotalSumResponse,
   PurchaseValidationProgressResponse,
   PurchaseAutocompleteResponse,
+  CheckRecurrenceRequest,
+  CheckRecurrenceResponse,
+  ValidateProductV2Response,
 } from '@/types/purchases';
 
 /**
@@ -174,7 +177,21 @@ class PurchasesService {
   }
 
   /**
-   * Validate product data
+   * Check if product is recurrent (V2 - New Flow)
+   */
+  async checkRecurrence(
+    purchaseId: string,
+    productId: string,
+    data: CheckRecurrenceRequest
+  ): Promise<CheckRecurrenceResponse> {
+    return apiClient.post<CheckRecurrenceResponse>(
+      `${this.basePath}/${purchaseId}/products/${productId}/check-recurrence`,
+      data
+    );
+  }
+
+  /**
+   * Validate product data (Legacy - Original endpoint)
    */
   async validateProduct(
     purchaseId: string,
@@ -183,6 +200,20 @@ class PurchasesService {
   ): Promise<PurchaseProduct> {
     return apiClient.patch<PurchaseProduct>(
       `${this.basePath}/${purchaseId}/products/${productId}/validate`,
+      data
+    );
+  }
+
+  /**
+   * Validate product data V2 (with recurrence support)
+   */
+  async validateProductV2(
+    purchaseId: string,
+    productId: string,
+    data: ValidateProductRequest
+  ): Promise<ValidateProductV2Response> {
+    return apiClient.patch<ValidateProductV2Response>(
+      `${this.basePath}/${purchaseId}/products/${productId}/validate-v2`,
       data
     );
   }
