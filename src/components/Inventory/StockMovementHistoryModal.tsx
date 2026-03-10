@@ -42,10 +42,12 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
       setLoading(true);
       console.log('📜 Loading stock movements for product:', productId);
 
-      const data = await transfersApi.getProductStockMovementsHistory(productId, { limit });
-      console.log('✅ Stock movements loaded:', data);
+      const response = await transfersApi.getProductStockMovementsHistory(productId, { limit });
+      console.log('✅ Stock movements loaded:', response);
 
-      setMovements(data || []);
+      // Extract the data array from the paginated response
+      const movementsData = Array.isArray(response) ? response : (response as any)?.data || [];
+      setMovements(movementsData);
     } catch (error: any) {
       console.error('❌ Error loading stock movements:', error);
       Alert.alert(
