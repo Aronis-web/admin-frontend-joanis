@@ -371,11 +371,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   };
 
   /**
-   * Check for recurrent products before saving validation
+   * Check for recurrent products before closing validation
    */
   const checkRecurrentProducts = async () => {
     if (!product || !sku.trim()) {
-      return;
+      return false;
     }
 
     try {
@@ -405,181 +405,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setRecurrenceAction('CREATE_NEW');
       setSelectedExistingProductId(null);
       return false;
-    }
-  };
-
-  const handleSaveValidation = async () => {
-    if (!product) {
-      return;
-    }
-
-    // Validate SKU
-    if (!sku.trim()) {
-      Alert.alert('Error', 'El SKU es obligatorio');
-      return;
-    }
-
-    // Validate name
-    if (!name.trim()) {
-      Alert.alert('Error', 'El nombre es obligatorio');
-      return;
-    }
-
-    // Validate cost
-    const costValue = parseFloat(costCents);
-    if (isNaN(costValue) || costValue <= 0) {
-      Alert.alert('Error', 'Debe ingresar un costo válido');
-      return;
-    }
-
-    const looseUnitsValue = parseInt(looseUnits);
-    if (isNaN(looseUnitsValue) || looseUnitsValue < 0) {
-      Alert.alert('Error', 'Debe ingresar unidades sueltas válidas');
-      return;
-    }
-
-    if (!selectedWarehouse) {
-      Alert.alert('Error', 'Debe seleccionar un almacén');
-      return;
-    }
-
-    // Validar que todas las fotos sean obligatorias
-    if (!photoUri) {
-      Alert.alert('Error', 'La foto de validación es obligatoria');
-      return;
-    }
-
-    if (!productPhotoUri) {
-      Alert.alert('Error', 'La foto del producto es obligatoria');
-      return;
-    }
-
-    if (!signatureUri) {
-      Alert.alert('Error', 'La firma de validación es obligatoria');
-      return;
-    }
-
-    // Presentaciones ahora son opcionales
-    // if (validatedPresentations.length === 0) {
-    //   Alert.alert('Error', 'Debe tener al menos una presentación validada');
-    //   return;
-    // }
-
-    // Validate all presentations have valid data (only if there are presentations)
-    if (validatedPresentations.length > 0) {
-      for (const pres of validatedPresentations) {
-        if (!pres.presentationId || pres.factorToBase <= 0) {
-          Alert.alert('Error', 'Todas las presentaciones deben tener un factor válido');
-          return;
-        }
-      }
-    }
-
-    // ========== NEW: Check for recurrent products ==========
-    setActionLoading(true);
-    try {
-      const hasRecurrent = await checkRecurrentProducts();
-      if (hasRecurrent) {
-        // Modal will be shown, wait for user decision
-        setActionLoading(false);
-        return;
-      }
-      // No recurrent products, continue with save
-    } catch (error: any) {
-      console.error('❌ Error in recurrence check:', error);
-      setActionLoading(false);
-      return;
-    }
-
-    // Continue with save (recurrenceAction is already set to CREATE_NEW)
-    await performSaveValidation();
-  };
-
-  /**
-   * Perform the actual save validation (called after recurrence check)
-   */
-  const performSaveValidation = async () => {
-    if (!product) {
-      return;
-    }
-
-    const costValue = parseFloat(costCents);
-    const looseUnitsValue = parseInt(looseUnits);
-    const totalStock = calculateTotalStock();
-
-    // Get the quantity of presentations from the selected presentation
-    let validatedPresentationQuantity = 0;
-    if (selectedPresentationForQuantity) {
-      const selectedPres = validatedPresentations.find(
-        (p) => p.presentationId === selectedPresentationForQuantity
-      );
-      if (selectedPres) {
-        validatedPresentationQuantity = selectedPres.quantityOfPresentations;
-      }
-    }
-
-    setActionLoading(true);
-    try {
-      // Upload photos and signature first
-      console.log('📤 Uploading validation files...');
-      const uploadedFiles = await uploadValidationFiles();
-      console.log('✅ Files uploaded successfully:', uploadedFiles);
-
-      // Prepare validation data
-      const validationData = {
-        sku: sku.trim(),
-        name: name.trim(),
-        costCents: Math.round(costValue * 100),
-        preliminaryStock: product.preliminaryStock,
-        validatedStock: totalStock,
-        validatedLooseUnits: looseUnitsValue,
-        validatedPresentationQuantity: validatedPresentationQuantity,
-        warehouseId: selectedWarehouse!.id,
-        areaId: selectedArea?.id,
-        presentations: validatedPresentations.length > 0 ? validatedPresentations.map((p) => ({
-          presentationId: p.presentationId,
-          factorToBase: Number(p.factorToBase),
-          notes: p.notes.trim() || undefined,
-        })) : undefined,
-        barcode: barcode.trim() || undefined,
-        photoUrl: uploadedFiles.photoUrl,
-        signatureUrl: uploadedFiles.signatureUrl,
-        validationNotes: validationNotes.trim() || undefined,
-        // ========== NEW: Recurrence fields ==========
-        recurrenceAction: recurrenceAction || 'CREATE_NEW',
-        existingProductId: selectedExistingProductId || undefined,
-        recurrenceMetadata: recurrentCandidates.length > 0 ? {
-          candidatesReviewed: recurrentCandidates.length,
-          userDecision: recurrenceAction === 'MERGE' ? 'Usuario confirmó producto existente' : 'Usuario creó producto nuevo',
-          matchConfidence: 95,
-        } : undefined,
-      };
-
-      console.log('📝 Validation data:', validationData);
-
-      // Use V2 endpoint with recurrence support
-      const response = await purchasesService.validateProductV2(purchaseId, productId, validationData);
-
-      console.log('✅ Validation response:', response);
-
-      // Show success message based on action
-      const successMessage = response.action === 'MERGED'
-        ? `Stock agregado al producto existente: ${response.product.title}`
-        : 'Datos de validación guardados. Producto nuevo creado.';
-
-      Alert.alert('Éxito', successMessage);
-
-      // Reset recurrence state
-      setRecurrenceAction(null);
-      setSelectedExistingProductId(null);
-      setRecurrentCandidates([]);
-
-      await loadData();
-    } catch (error: any) {
-      console.error('❌ Error in performSaveValidation:', error);
-      Alert.alert('Error', error.message || 'No se pudo guardar la validación');
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -650,6 +475,50 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       }
     }
 
+    // ========== NEW: Check for recurrent products BEFORE closing ==========
+    setActionLoading(true);
+    try {
+      const hasRecurrent = await checkRecurrentProducts();
+      if (hasRecurrent) {
+        // Modal will be shown, wait for user decision
+        setActionLoading(false);
+        return;
+      }
+      // No recurrent products, continue with close validation
+    } catch (error: any) {
+      console.error('❌ Error in recurrence check:', error);
+      setActionLoading(false);
+      return;
+    }
+    setActionLoading(false);
+
+    // Continue with confirmation dialog
+    Alert.alert(
+      'Cerrar Validación',
+      '¿Está seguro de cerrar la validación? El producto se activará y se agregará al inventario. Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar Validación',
+          style: 'destructive',
+          onPress: async () => {
+            await performCloseValidation();
+          },
+        },
+      ]
+    );
+  };
+
+  /**
+   * Perform the actual close validation (called after recurrence check and confirmation)
+   */
+  const performCloseValidation = async () => {
+    if (!product) {
+      return;
+    }
+
+    const costValue = parseFloat(costCents);
+    const looseUnitsValue = parseInt(looseUnits);
     const totalStock = calculateTotalStock();
 
     // Get the quantity of presentations from the selected presentation
@@ -663,71 +532,72 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       }
     }
 
-    Alert.alert(
-      'Cerrar Validación',
-      '¿Está seguro de cerrar la validación? El producto se activará y se agregará al inventario. Esta acción no se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Validación',
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              // Upload photos and signature first
-              console.log('📤 Uploading validation files before closing...');
-              const uploadedFiles = await uploadValidationFiles();
-              console.log('✅ Files uploaded successfully:', uploadedFiles);
+    setActionLoading(true);
+    try {
+      // Upload photos and signature first
+      console.log('📤 Uploading validation files before closing...');
+      const uploadedFiles = await uploadValidationFiles();
+      console.log('✅ Files uploaded successfully:', uploadedFiles);
 
-              // Prepare validation data
-              const validationData = {
-                sku: sku.trim(),
-                name: name.trim(),
-                costCents: Math.round(costValue * 100),
-                preliminaryStock: product.preliminaryStock,
-                validatedStock: totalStock,
-                validatedLooseUnits: looseUnitsValue,
-                validatedPresentationQuantity: validatedPresentationQuantity,
-                warehouseId: selectedWarehouse.id,
-                areaId: selectedArea?.id,
-                presentations: validatedPresentations.length > 0 ? validatedPresentations.map((p) => ({
-                  presentationId: p.presentationId,
-                  factorToBase: Number(p.factorToBase),
-                  notes: p.notes.trim() || undefined,
-                })) : undefined,
-                barcode: barcode.trim() || undefined,
-                photoUrl: uploadedFiles.photoUrl,
-                signatureUrl: uploadedFiles.signatureUrl,
-                validationNotes: validationNotes.trim() || undefined,
-                // ========== NEW: Recurrence fields ==========
-                recurrenceAction: recurrenceAction || 'CREATE_NEW',
-                existingProductId: selectedExistingProductId || undefined,
-                recurrenceMetadata: recurrentCandidates.length > 0 ? {
-                  candidatesReviewed: recurrentCandidates.length,
-                  userDecision: recurrenceAction === 'MERGE' ? 'Usuario confirmó producto existente' : 'Usuario creó producto nuevo',
-                  matchConfidence: 95,
-                } : undefined,
-              };
+      // Prepare validation data
+      const validationData = {
+        sku: sku.trim(),
+        name: name.trim(),
+        costCents: Math.round(costValue * 100),
+        preliminaryStock: product.preliminaryStock,
+        validatedStock: totalStock,
+        validatedLooseUnits: looseUnitsValue,
+        validatedPresentationQuantity: validatedPresentationQuantity,
+        warehouseId: selectedWarehouse.id,
+        areaId: selectedArea?.id,
+        presentations: validatedPresentations.length > 0 ? validatedPresentations.map((p) => ({
+          presentationId: p.presentationId,
+          factorToBase: Number(p.factorToBase),
+          notes: p.notes.trim() || undefined,
+        })) : undefined,
+        barcode: barcode.trim() || undefined,
+        photoUrl: uploadedFiles.photoUrl,
+        signatureUrl: uploadedFiles.signatureUrl,
+        validationNotes: validationNotes.trim() || undefined,
+        // ========== NEW: Recurrence fields ==========
+        recurrenceAction: recurrenceAction || 'CREATE_NEW',
+        existingProductId: selectedExistingProductId || undefined,
+        recurrenceMetadata: recurrentCandidates.length > 0 ? {
+          candidatesReviewed: recurrentCandidates.length,
+          userDecision: recurrenceAction === 'MERGE' ? 'Usuario confirmó producto existente' : 'Usuario creó producto nuevo',
+          matchConfidence: 95,
+        } : undefined,
+      };
 
-              // First save current validation data using V2 endpoint
-              await purchasesService.validateProductV2(purchaseId, productId, validationData);
+      console.log('📝 Validation data:', validationData);
 
-              // Then close validation
-              await purchasesService.closeValidation(purchaseId, productId);
+      // Use V2 endpoint with recurrence support
+      const response = await purchasesService.validateProductV2(purchaseId, productId, validationData);
 
-              Alert.alert('Éxito', 'Validación cerrada. Producto activado y stock agregado.', [
-                { text: 'OK', onPress: () => navigation.goBack() },
-              ]);
-            } catch (error: any) {
-              console.error('❌ Error in handleCloseValidation:', error);
-              Alert.alert('Error', error.message || 'No se pudo cerrar la validación');
-            } finally {
-              setActionLoading(false);
-            }
-          },
-        },
-      ]
-    );
+      console.log('✅ Validation V2 response:', response);
+
+      // Then close validation
+      await purchasesService.closeValidation(purchaseId, productId);
+
+      // Show success message based on action
+      const successMessage = response.action === 'MERGED'
+        ? `Stock agregado al producto existente: ${response.product.title}. Validación cerrada.`
+        : 'Validación cerrada. Producto nuevo creado y activado.';
+
+      Alert.alert('Éxito', successMessage, [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+
+      // Reset recurrence state
+      setRecurrenceAction(null);
+      setSelectedExistingProductId(null);
+      setRecurrentCandidates([]);
+    } catch (error: any) {
+      console.error('❌ Error in performCloseValidation:', error);
+      Alert.alert('Error', error.message || 'No se pudo cerrar la validación');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleReject = async () => {
@@ -762,8 +632,29 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     setSelectedExistingProductId(productId);
     setShowRecurrenceModal(false);
 
-    // Continue with save validation
-    performSaveValidation();
+    // Show confirmation dialog before closing
+    Alert.alert(
+      'Cerrar Validación',
+      '¿Está seguro de cerrar la validación? El stock se sumará al producto existente. Esta acción no se puede deshacer.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+          onPress: () => {
+            // Reset recurrence state if user cancels
+            setRecurrenceAction(null);
+            setSelectedExistingProductId(null);
+          }
+        },
+        {
+          text: 'Cerrar Validación',
+          style: 'destructive',
+          onPress: async () => {
+            await performCloseValidation();
+          },
+        },
+      ]
+    );
   };
 
   /**
@@ -775,8 +666,28 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     setSelectedExistingProductId(null);
     setShowRecurrenceModal(false);
 
-    // Continue with save validation
-    performSaveValidation();
+    // Show confirmation dialog before closing
+    Alert.alert(
+      'Cerrar Validación',
+      '¿Está seguro de cerrar la validación? Se creará un nuevo producto. Esta acción no se puede deshacer.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+          onPress: () => {
+            // Reset recurrence state if user cancels
+            setRecurrenceAction(null);
+          }
+        },
+        {
+          text: 'Cerrar Validación',
+          style: 'destructive',
+          onPress: async () => {
+            await performCloseValidation();
+          },
+        },
+      ]
+    );
   };
 
   /**
@@ -1548,35 +1459,21 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           )}
 
           {canEdit() && product.status === PurchaseProductStatus.IN_VALIDATION && (
-            <>
-              <TouchableOpacity
-                style={[styles.secondaryButton, isTablet && styles.secondaryButtonTablet]}
-                onPress={handleSaveValidation}
-                disabled={actionLoading}
-              >
+            <TouchableOpacity
+              style={[styles.primaryButton, isTablet && styles.primaryButtonTablet]}
+              onPress={handleCloseValidation}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
                 <Text
-                  style={[styles.secondaryButtonText, isTablet && styles.secondaryButtonTextTablet]}
+                  style={[styles.primaryButtonText, isTablet && styles.primaryButtonTextTablet]}
                 >
-                  Guardar
+                  Cerrar Validación
                 </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.primaryButton, isTablet && styles.primaryButtonTablet]}
-                onPress={handleCloseValidation}
-                disabled={actionLoading}
-              >
-                {actionLoading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text
-                    style={[styles.primaryButtonText, isTablet && styles.primaryButtonTextTablet]}
-                  >
-                    Cerrar Validación
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </>
+              )}
+            </TouchableOpacity>
           )}
 
           {canReject() && (
