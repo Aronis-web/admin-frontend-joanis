@@ -388,6 +388,56 @@ class CampaignsService {
   ): Promise<any> {
     return apiClient.post<any>(`${this.basePath}/${campaignId}/custom-distributions`, data);
   }
+
+  // ============================================
+  // Bulk Distribution
+  // ============================================
+
+  /**
+   * Download bulk distribution template Excel
+   */
+  async downloadBulkDistributionTemplate(campaignId: string): Promise<Blob> {
+    return apiClient.get<Blob>(`${this.basePath}/${campaignId}/bulk-distribution-template`, {
+      responseType: 'blob',
+    });
+  }
+
+  /**
+   * Upload bulk distribution Excel and generate repartos
+   */
+  async uploadBulkDistribution(campaignId: string, file: File | Blob): Promise<{
+    success: boolean;
+    repartosCreated: number;
+    totalProducts: number;
+    totalQuantity: number;
+    errors: Array<{
+      row: number;
+      participantName: string;
+      productSku: string;
+      error: string;
+    }>;
+    repartos: Array<{
+      id: string;
+      code: string;
+      name: string;
+      status: string;
+      participantName: string;
+      productsCount: number;
+    }>;
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return apiClient.post<any>(
+      `${this.basePath}/${campaignId}/bulk-distribution-upload`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+  }
 }
 
 // Export service instance

@@ -45,6 +45,7 @@ import { ParticipantTotalsResponse } from '@/types/participant-totals';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
 import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
+import { BulkDistributionModal } from '@/components/Campaigns/BulkDistributionModal';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { PERMISSIONS } from '@/constants/permissions';
@@ -108,6 +109,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const { width, height } = useWindowDimensions();
   const hasLoadedRef = useRef(false);
   const [isBulkUpdateModalVisible, setIsBulkUpdateModalVisible] = useState(false);
+  const [isBulkDistributionModalVisible, setIsBulkDistributionModalVisible] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
 
@@ -2225,14 +2227,24 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </View>
             {(campaign.status === CampaignStatus.DRAFT ||
               campaign.status === CampaignStatus.ACTIVE) && (
-              <TouchableOpacity
-                style={[styles.addButton, isTablet && styles.addButtonTablet]}
-                onPress={() => navigation.navigate('AddCampaignProduct', { campaignId })}
-              >
-                <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
-                  + Agregar
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.headerButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.bulkButton, isTablet && styles.bulkButtonTablet]}
+                  onPress={() => setIsBulkDistributionModalVisible(true)}
+                >
+                  <Text style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}>
+                    📦 Masivo
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.addButton, isTablet && styles.addButtonTablet]}
+                  onPress={() => navigation.navigate('AddCampaignProduct', { campaignId })}
+                >
+                  <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
+                    + Agregar
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
 
@@ -2604,6 +2616,18 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           mode="campaign"
           campaignProducts={campaign?.products}
           productsMap={products}
+        />
+
+        {/* Bulk Distribution Modal */}
+        <BulkDistributionModal
+          visible={isBulkDistributionModalVisible}
+          campaignId={campaignId}
+          campaignCode={campaign?.code || ''}
+          onClose={() => setIsBulkDistributionModalVisible(false)}
+          onSuccess={() => {
+            loadCampaign();
+            setIsBulkDistributionModalVisible(false);
+          }}
         />
 
         {/* Image Preview Modal */}
@@ -2987,6 +3011,28 @@ const styles = StyleSheet.create({
   notesTextTablet: {
     fontSize: 16,
     lineHeight: 24,
+  },
+  headerButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  bulkButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  bulkButtonTablet: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  bulkButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  bulkButtonTextTablet: {
+    fontSize: 14,
   },
   addButton: {
     backgroundColor: '#6366F1',
