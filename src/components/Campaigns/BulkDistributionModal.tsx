@@ -129,31 +129,10 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
       setIsUploading(true);
       setUploadResult(null);
 
-      let fileBlob: Blob;
-
-      if (Platform.OS === 'web') {
-        // Web: file.uri is already a blob URL or we can fetch it
-        const response = await fetch(file.uri);
-        fileBlob = await response.blob();
-      } else {
-        // Mobile: Read file and convert to blob
-        const fileContent = await FileSystem.readAsStringAsync(file.uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-
-        // Convert base64 to blob
-        const byteCharacters = atob(fileContent);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        fileBlob = new Blob([byteArray], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        });
-      }
-
+      // Fetch the file and convert to blob (works on both web and mobile)
       logger.info('📤 Subiendo archivo y generando repartos...');
+      const fetchResponse = await fetch(file.uri);
+      const fileBlob = await fetchResponse.blob();
 
       const response = await campaignsService.uploadBulkDistribution(campaignId, fileBlob);
 
