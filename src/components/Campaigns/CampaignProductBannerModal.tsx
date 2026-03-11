@@ -670,15 +670,18 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     // Cargar stock directamente desde el API de inventario
     logger.debug('📦 [STOCK] Consultando stock directamente del API de inventario...');
     try {
-      const stockData = await inventoryApi.getAllStock({ productId: campaignProduct.productId });
+      const stockResponse: any = await inventoryApi.getAllStock({ productId: campaignProduct.productId });
       logger.debug('✅ [STOCK] Stock obtenido del API:', {
-        stockItemsCount: stockData.length,
-        stockData: stockData,
+        stockResponse: stockResponse,
       });
+
+      // El API devuelve una estructura paginada: { data: [...], total, page, limit }
+      // Pero también puede devolver un array directamente (para compatibilidad)
+      const stockData = Array.isArray(stockResponse) ? stockResponse : (stockResponse?.data || []);
 
       // Guardar en estado local
       if (stockData && stockData.length > 0) {
-        const stockDetails: StockDetailByWarehouse[] = stockData.map((item) => ({
+        const stockDetails: StockDetailByWarehouse[] = stockData.map((item: any) => ({
           warehouse: item.warehouse?.name || 'Almacén desconocido',
           total: item.quantityBase || 0,
           reserved: item.reservedQuantityBase || 0,
