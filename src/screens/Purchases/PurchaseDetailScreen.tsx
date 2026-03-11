@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { purchasesService, suppliersService } from '@/services/api';
+import { purchasesService, suppliersService, productsService } from '@/services/api';
 import {
   Purchase,
   PurchaseProduct,
@@ -63,6 +63,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const [selectedProductForInfo, setSelectedProductForInfo] = useState<PurchaseProduct | null>(
     null
   );
+  const [productPhotos, setProductPhotos] = useState<string[]>([]);
+  const [loadingProductPhotos, setLoadingProductPhotos] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<ExpenseSupplier | null>(null);
@@ -131,14 +133,32 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     setShowOcrModal(true);
   };
 
-  const handleOpenInfoModal = (product: PurchaseProduct) => {
+  const handleOpenInfoModal = async (product: PurchaseProduct) => {
     setSelectedProductForInfo(product);
     setShowInfoModal(true);
+    setProductPhotos([]);
+
+    // Cargar fotos del producto del catálogo si existe productId
+    if (product.productId) {
+      setLoadingProductPhotos(true);
+      try {
+        const productDetail = await productsService.getProduct(product.productId);
+        if (productDetail.photos && productDetail.photos.length > 0) {
+          setProductPhotos(productDetail.photos);
+          console.log('📷 Product photos loaded:', productDetail.photos);
+        }
+      } catch (error) {
+        console.error('Error loading product photos:', error);
+      } finally {
+        setLoadingProductPhotos(false);
+      }
+    }
   };
 
   const handleCloseInfoModal = () => {
     setShowInfoModal(false);
     setSelectedProductForInfo(null);
+    setProductPhotos([]);
   };
 
   const handleOpenEditSupplierModal = () => {
@@ -1357,7 +1377,7 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                 />
 
                 {/* Fotos del Producto del Catálogo */}
-                {product.product?.photos && product.product.photos.length > 0 && (
+                {loadingProductPhotos ? (
                   <View style={modalStyles.photoSection}>
                     <Text
                       style={[
@@ -1365,14 +1385,26 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                         isTablet && modalStyles.photoLabelTablet,
                       ]}
                     >
-                      📷 Fotos del Producto ({product.product.photos.length}):
+                      📷 Cargando fotos del producto...
+                    </Text>
+                    <ActivityIndicator size="small" color="#007AFF" />
+                  </View>
+                ) : productPhotos.length > 0 ? (
+                  <View style={modalStyles.photoSection}>
+                    <Text
+                      style={[
+                        modalStyles.photoLabel,
+                        isTablet && modalStyles.photoLabelTablet,
+                      ]}
+                    >
+                      📷 Fotos del Producto ({productPhotos.length}):
                     </Text>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
                       style={modalStyles.photosScroll}
                     >
-                      {product.product.photos.map((photoUrl, photoIndex) => (
+                      {productPhotos.map((photoUrl, photoIndex) => (
                         <Image
                           key={photoIndex}
                           source={{ uri: photoUrl }}
@@ -1385,7 +1417,7 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                       ))}
                     </ScrollView>
                   </View>
-                )}
+                ) : null}
               </View>
             </View>
 
