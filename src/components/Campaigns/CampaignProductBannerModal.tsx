@@ -68,6 +68,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   const [priceFormData, setPriceFormData] = useState<PriceFormData[]>([]);
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [costValue, setCostValue] = useState<string>('');
+  const [localCostCents, setLocalCostCents] = useState<number | null>(null); // Local state for updated cost
   const [editingCost, setEditingCost] = useState(false);
   const [editingPriceValue, setEditingPriceValue] = useState<string>('');
   const [editingQuantity, setEditingQuantity] = useState(false);
@@ -96,19 +97,33 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       }
       fetchPriceProfiles();
       fetchProductImage(); // Cargar imagen en segundo plano
-      // Initialize cost value
+
+      // Initialize cost value - handle both costCents and costCentsBase (API inconsistency)
+      let costCentsValue = null;
       if (productDetails?.costCents !== undefined && productDetails.costCents !== null) {
-        setCostValue((productDetails.costCents / 100).toFixed(2));
+        costCentsValue = typeof productDetails.costCents === 'string'
+          ? parseFloat(productDetails.costCents)
+          : productDetails.costCents;
+      } else if (productDetails?.costCentsBase !== undefined && productDetails.costCentsBase !== null) {
+        costCentsValue = typeof productDetails.costCentsBase === 'string'
+          ? parseFloat(productDetails.costCentsBase)
+          : productDetails.costCentsBase;
+      }
+
+      if (costCentsValue !== null && !isNaN(costCentsValue)) {
+        setLocalCostCents(costCentsValue);
+        setCostValue((costCentsValue / 100).toFixed(2));
       } else {
-        // If costCents is not available, set to 0
+        setLocalCostCents(null);
         setCostValue('0.00');
       }
+
       // Initialize quantity value
       if (campaignProduct?.totalQuantityBase !== undefined) {
         setQuantityValue(campaignProduct.totalQuantityBase.toString());
       }
     }
-  }, [visible, campaignProduct?.productId, hideStockAndDistribution, productDetails?.costCents]); // Added productDetails?.costCents to update when it changes
+  }, [visible, campaignProduct?.productId, hideStockAndDistribution, productDetails?.costCents, productDetails?.costCentsBase]); // Added both cost fields
 
   // Update form values when productDetails or campaignProduct changes (without fetching)
   useEffect(() => {
@@ -543,19 +558,12 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
       setEditingCost(false);
 
-      // Update local productDetails with new cost
-      if (productDetails) {
-        // Create a new object with updated costCents
-        const updatedDetails = {
-          ...productDetails,
-          costCents: costCents,
-        };
-        // Force re-render by updating the cost value display
-        setCostValue((costCents / 100).toFixed(2));
-      }
+      // Update local state with new cost
+      setLocalCostCents(costCents);
+      setCostValue((costCents / 100).toFixed(2));
 
-      // Get updated product and pass it to parent
-      if (onRefresh && campaignProduct?.campaignId) {
+      // Only refresh if product is in campaign (not from search)
+      if (onRefresh && campaignProduct?.campaignId && !hideStockAndDistribution) {
         try {
           const updatedProduct = await campaignsService.getProduct(
             campaignProduct.campaignId,
@@ -564,7 +572,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
           onRefresh(updatedProduct);
         } catch (error) {
           console.error('Error fetching updated product:', error);
-          onRefresh(); // Fallback to full refresh
+          // Don't call onRefresh() without params as it causes full reload
         }
       }
     } catch (error: any) {
@@ -776,8 +784,30 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   // For backward compatibility, also check campaign product status for stock display
   const isCampaignProductPreliminary = campaignProduct.productStatus === ProductStatus.PRELIMINARY;
 
-  // Use productDetails if available (has costCents), otherwise fallback to 0
-  const costCents = productDetails?.costCents || 0;
+  // Use localCostCents (updated state) if available, otherwise fallback to productDetails or 0
+  const getCostCents = () => {
+    if (localCostCents !== null) {
+      return localCostCents;
+    }
+
+    // Try costCents first
+    if (productDetails?.costCents !== undefined && productDetails.costCents !== null) {
+      return typeof productDetails.costCents === 'string'
+        ? parseFloat(productDetails.costCents)
+        : productDetails.costCents;
+    }
+
+    // Try costCentsBase
+    if (productDetails?.costCentsBase !== undefined && productDetails.costCentsBase !== null) {
+      return typeof productDetails.costCentsBase === 'string'
+        ? parseFloat(productDetails.costCentsBase)
+        : productDetails.costCentsBase;
+    }
+
+    return 0;
+  };
+
+  const costCents = getCostCents();
 
   // Determine which stock to show (based on campaign product status)
   const stockValue = isCampaignProductPreliminary ? stockData.preliminaryStock : stockData.stock;
