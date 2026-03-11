@@ -27,6 +27,7 @@ import {
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { config } from '@/utils/config';
 import { authService } from '@/services/AuthService';
+import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
 
 interface AddProductScreenProps {
   navigation: any;
@@ -69,6 +70,11 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
+
+  // Banner modal states
+  const [showBannerModal, setShowBannerModal] = useState(false);
+  const [selectedProductForBanner, setSelectedProductForBanner] = useState<any>(null);
+  const [productDetailsForBanner, setProductDetailsForBanner] = useState<any>(null);
 
   useEffect(() => {
     loadCampaignProducts();
@@ -504,6 +510,33 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     setSearchTimeout(timeout);
   };
 
+  const handleOpenBanner = async (product: any) => {
+    try {
+      console.log('🎯 Opening banner for product:', product.sku);
+
+      // Fetch full product details to get costCents and other info
+      const fullProductDetails = await productsApi.getProduct(product.id);
+      console.log('📦 Full product details:', fullProductDetails);
+
+      // Create a mock campaign product structure for the banner modal
+      const mockCampaignProduct = {
+        productId: product.id,
+        campaignId: campaignId,
+        totalQuantityBase: 0, // No quantity yet since it's not added to campaign
+        productStatus: product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE,
+        distributionGenerated: false,
+        product: product,
+      };
+
+      setSelectedProductForBanner(mockCampaignProduct);
+      setProductDetailsForBanner(fullProductDetails);
+      setShowBannerModal(true);
+    } catch (error) {
+      console.error('Error loading product details for banner:', error);
+      Alert.alert('Error', 'No se pudieron cargar los detalles del producto');
+    }
+  };
+
   const renderManualForm = () => {
     if (loadingData) {
       return (
@@ -562,81 +595,90 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                   const isPreliminary = (product.status as any) === 'preliminary';
 
                   return (
-                    <TouchableOpacity
-                      key={product.id}
-                      style={[
-                        styles.suggestionItem,
-                        isTablet && styles.suggestionItemTablet,
-                        isPreliminary && styles.suggestionItemPreliminary,
-                        isAlreadyAdded && styles.suggestionItemDisabled,
-                      ]}
-                      onPress={() => {
-                        console.log(
-                          '🖱️ Suggestion clicked:',
-                          product.sku,
-                          'Already added:',
-                          isAlreadyAdded
-                        );
-                        if (!isAlreadyAdded) {
-                          handleSelectProduct(product);
-                        } else {
-                          console.log('⚠️ Product already added, ignoring click');
-                        }
-                      }}
-                      activeOpacity={isAlreadyAdded ? 1 : 0.7}
-                    >
-                      {/* ✅ Product Image - Priorizar photos sobre imageUrl */}
-                      {product.photos && product.photos.length > 0 ? (
-                        <Image
-                          source={{ uri: product.photos[0] }}
-                          style={styles.suggestionImage}
-                          resizeMode="cover"
-                        />
-                      ) : product.imageUrl ? (
-                        <Image
-                          source={{ uri: product.imageUrl }}
-                          style={styles.suggestionImage}
-                          resizeMode="cover"
-                        />
-                      ) : null}
-                      <View style={styles.suggestionContent}>
-                        <Text
-                          style={[
-                            styles.suggestionTitle,
-                            isTablet && styles.suggestionTitleTablet,
-                            isAlreadyAdded && styles.suggestionTitleDisabled,
-                          ]}
-                        >
-                          {product.correlativeNumber && `#${product.correlativeNumber} | `}
-                          {product.sku} - {product.title}
-                          {isAlreadyAdded && ' (Ya agregado)'}
-                        </Text>
-                        {isPreliminary && (
-                          <Text style={[styles.warningText, isTablet && styles.warningTextTablet]}>
-                            ⚠️ Producto por validar Ingreso
-                          </Text>
-                        )}
-                        <View style={styles.suggestionMeta}>
+                    <View key={product.id} style={styles.suggestionItemWrapper}>
+                      <TouchableOpacity
+                        style={[
+                          styles.suggestionItem,
+                          isTablet && styles.suggestionItemTablet,
+                          isPreliminary && styles.suggestionItemPreliminary,
+                          isAlreadyAdded && styles.suggestionItemDisabled,
+                        ]}
+                        onPress={() => {
+                          console.log(
+                            '🖱️ Suggestion clicked:',
+                            product.sku,
+                            'Already added:',
+                            isAlreadyAdded
+                          );
+                          if (!isAlreadyAdded) {
+                            handleSelectProduct(product);
+                          } else {
+                            console.log('⚠️ Product already added, ignoring click');
+                          }
+                        }}
+                        activeOpacity={isAlreadyAdded ? 1 : 0.7}
+                      >
+                        {/* ✅ Product Image - Priorizar photos sobre imageUrl */}
+                        {product.photos && product.photos.length > 0 ? (
+                          <Image
+                            source={{ uri: product.photos[0] }}
+                            style={styles.suggestionImage}
+                            resizeMode="cover"
+                          />
+                        ) : product.imageUrl ? (
+                          <Image
+                            source={{ uri: product.imageUrl }}
+                            style={styles.suggestionImage}
+                            resizeMode="cover"
+                          />
+                        ) : null}
+                        <View style={styles.suggestionContent}>
                           <Text
                             style={[
-                              styles.suggestionStock,
-                              isTablet && styles.suggestionStockTablet,
-                              stock > 0 ? styles.stockAvailable : styles.stockUnavailable,
+                              styles.suggestionTitle,
+                              isTablet && styles.suggestionTitleTablet,
+                              isAlreadyAdded && styles.suggestionTitleDisabled,
                             ]}
                           >
-                            {isPreliminary ? 'Stock Preliminar: ' : 'Stock: '}{stock}
+                            {product.correlativeNumber && `#${product.correlativeNumber} | `}
+                            {product.sku} - {product.title}
+                            {isAlreadyAdded && ' (Ya agregado)'}
                           </Text>
-                          <Text
-                            style={[
-                              styles.suggestionStatus,
-                              isTablet && styles.suggestionStatusTablet,
-                            ]}
-                          >
-                            {product.status === 'active' ? '✓ Activo' : '⚠ Preliminar'}
-                          </Text>
+                          {isPreliminary && (
+                            <Text style={[styles.warningText, isTablet && styles.warningTextTablet]}>
+                              ⚠️ Producto por validar Ingreso
+                            </Text>
+                          )}
+                          <View style={styles.suggestionMeta}>
+                            <Text
+                              style={[
+                                styles.suggestionStock,
+                                isTablet && styles.suggestionStockTablet,
+                                stock > 0 ? styles.stockAvailable : styles.stockUnavailable,
+                              ]}
+                            >
+                              {isPreliminary ? 'Stock Preliminar: ' : 'Stock: '}{stock}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.suggestionStatus,
+                                isTablet && styles.suggestionStatusTablet,
+                              ]}
+                            >
+                              {product.status === 'active' ? '✓ Activo' : '⚠ Preliminar'}
+                            </Text>
+                          </View>
                         </View>
-                      </View>
-                    </TouchableOpacity>
+                      </TouchableOpacity>
+                      {/* Banner Button */}
+                      <TouchableOpacity
+                        style={styles.bannerButton}
+                        onPress={() => handleOpenBanner(product)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.bannerButtonText}>📋 Banner</Text>
+                      </TouchableOpacity>
+                    </View>
                   );
                 })}
               </ScrollView>
@@ -992,6 +1034,25 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             )}
           </TouchableOpacity>
         </View>
+
+        {/* Banner Modal */}
+        {showBannerModal && selectedProductForBanner && (
+          <CampaignProductBannerModal
+            visible={showBannerModal}
+            campaignProduct={selectedProductForBanner}
+            productDetails={productDetailsForBanner}
+            hideStockAndDistribution={true}
+            onClose={() => {
+              setShowBannerModal(false);
+              setSelectedProductForBanner(null);
+              setProductDetailsForBanner(null);
+            }}
+            onRefresh={() => {
+              // No need to refresh anything since product is not in campaign yet
+              console.log('Banner modal closed, no refresh needed');
+            }}
+          />
+        )}
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -1192,11 +1253,16 @@ const styles = StyleSheet.create({
   suggestionsList: {
     maxHeight: 300,
   },
-  suggestionItem: {
-    flexDirection: 'row', // ✅ Para alinear imagen y contenido
-    padding: 12,
+  suggestionItemWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
+  },
+  suggestionItem: {
+    flex: 1,
+    flexDirection: 'row', // ✅ Para alinear imagen y contenido
+    padding: 12,
     alignItems: 'center',
   },
   suggestionItemTablet: {
@@ -1210,6 +1276,21 @@ const styles = StyleSheet.create({
   suggestionItemDisabled: {
     backgroundColor: '#F1F5F9',
     opacity: 0.6,
+  },
+  bannerButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginRight: 8,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   suggestionContent: {
     flex: 1,

@@ -29,6 +29,7 @@ interface CampaignProductBannerModalProps {
   productDetails?: any; // Full product details with costCents, priceCents, etc.
   onClose: () => void;
   onRefresh?: (updatedProduct?: CampaignProduct) => void; // Callback to refresh campaign data after distribution or update specific product
+  hideStockAndDistribution?: boolean; // Hide stock and distribution sections (for search banner)
 }
 
 interface PriceFormData {
@@ -49,6 +50,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   productDetails,
   onClose,
   onRefresh,
+  hideStockAndDistribution = false,
 }) => {
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768;
@@ -87,7 +89,10 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   // Fetch stock data and price profiles when modal opens
   useEffect(() => {
     if (visible && campaignProduct?.productId) {
-      fetchStockData();
+      // Only fetch stock if not hiding stock and distribution
+      if (!hideStockAndDistribution) {
+        fetchStockData();
+      }
       fetchPriceProfiles();
       fetchProductImage(); // Cargar imagen en segundo plano
       // Initialize cost value
@@ -99,7 +104,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
         setQuantityValue(campaignProduct.totalQuantityBase.toString());
       }
     }
-  }, [visible, campaignProduct?.productId]); // Removed productDetails?.costCents and campaignProduct?.totalQuantityBase to prevent infinite loops
+  }, [visible, campaignProduct?.productId, hideStockAndDistribution]); // Removed productDetails?.costCents and campaignProduct?.totalQuantityBase to prevent infinite loops
 
   // Update form values when productDetails or campaignProduct changes (without fetching)
   useEffect(() => {
@@ -804,99 +809,101 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
               </Text>
             </View>
 
-            {/* Quantity in Campaign Banner - Editable */}
-            <View style={styles.bannerSection}>
-              <Text style={styles.bannerLabel}>CANTIDAD EN CAMPAÑA</Text>
-              {editingQuantity ? (
-                <View style={styles.quantityEditContainer}>
-                  <TextInput
-                    style={styles.quantityInput}
-                    value={quantityValue}
-                    onChangeText={handleQuantityChange}
-                    keyboardType="number-pad"
-                    editable={!savingQuantity}
-                    selectTextOnFocus={true}
-                    autoFocus={true}
-                  />
-                  <Text style={styles.stockAvailableText}>
-                    Stock disponible:{' '}
-                    {stockData.stock !== undefined ? stockData.stock : 'Cargando...'}
-                  </Text>
-                  <View style={styles.quantityActionButtons}>
-                    <TouchableOpacity
-                      style={styles.cancelQuantityButton}
-                      onPress={handleCancelQuantityEdit}
-                      disabled={savingQuantity}
-                    >
-                      <Text style={styles.cancelQuantityButtonText}>✕ Cancelar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.saveQuantityButton,
-                        savingQuantity && styles.saveQuantityButtonDisabled,
-                      ]}
-                      onPress={handleSaveQuantity}
-                      disabled={savingQuantity}
-                    >
-                      {savingQuantity ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.saveQuantityButtonText}>✓ Guardar</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.quantityDisplayContainer}>
-                  <Text
-                    style={[
-                      styles.bannerValue,
-                      styles.quantityValue,
-                      isTablet && styles.bannerValueTablet,
-                    ]}
-                  >
-                    {campaignProduct.totalQuantityBase}
-                  </Text>
-                  {!campaignProduct.distributionGenerated && (
-                    <View style={styles.quantityActionsContainer}>
+            {/* Quantity in Campaign Banner - Editable - Only show if not hiding stock and distribution */}
+            {!hideStockAndDistribution && (
+              <View style={styles.bannerSection}>
+                <Text style={styles.bannerLabel}>CANTIDAD EN CAMPAÑA</Text>
+                {editingQuantity ? (
+                  <View style={styles.quantityEditContainer}>
+                    <TextInput
+                      style={styles.quantityInput}
+                      value={quantityValue}
+                      onChangeText={handleQuantityChange}
+                      keyboardType="number-pad"
+                      editable={!savingQuantity}
+                      selectTextOnFocus={true}
+                      autoFocus={true}
+                    />
+                    <Text style={styles.stockAvailableText}>
+                      Stock disponible:{' '}
+                      {stockData.stock !== undefined ? stockData.stock : 'Cargando...'}
+                    </Text>
+                    <View style={styles.quantityActionButtons}>
                       <TouchableOpacity
-                        style={styles.editQuantityButton}
-                        onPress={() => setEditingQuantity(true)}
+                        style={styles.cancelQuantityButton}
+                        onPress={handleCancelQuantityEdit}
+                        disabled={savingQuantity}
                       >
-                        <Text style={styles.editQuantityButtonText}>✏️ Editar</Text>
+                        <Text style={styles.cancelQuantityButtonText}>✕ Cancelar</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[
-                          styles.quickDistributionButton,
-                          isPreliminary && styles.quickDistributionButtonDisabled,
+                          styles.saveQuantityButton,
+                          savingQuantity && styles.saveQuantityButtonDisabled,
                         ]}
-                        onPress={handleOpenDistribution}
-                        disabled={isPreliminary}
+                        onPress={handleSaveQuantity}
+                        disabled={savingQuantity}
                       >
-                        <Text
-                          style={[
-                            styles.quickDistributionButtonText,
-                            isPreliminary && styles.quickDistributionButtonTextDisabled,
-                          ]}
-                        >
-                          ⚡ Generar Reparto
-                        </Text>
+                        {savingQuantity ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <Text style={styles.saveQuantityButtonText}>✓ Guardar</Text>
+                        )}
                       </TouchableOpacity>
                     </View>
-                  )}
-                  {isPreliminary && !campaignProduct.distributionGenerated && (
-                    <Text style={styles.preliminaryWarningNote}>
-                      ⚠️ Producto preliminar - Debe validarse antes de generar reparto
+                  </View>
+                ) : (
+                  <View style={styles.quantityDisplayContainer}>
+                    <Text
+                      style={[
+                        styles.bannerValue,
+                        styles.quantityValue,
+                        isTablet && styles.bannerValueTablet,
+                      ]}
+                    >
+                      {campaignProduct.totalQuantityBase}
                     </Text>
-                  )}
-                  {campaignProduct.distributionGenerated && (
-                    <Text style={styles.distributionGeneratedNote}>
-                      ⚠️ No se puede editar - Reparto generado
-                    </Text>
-                  )}
-                </View>
-              )}
-            </View>
+                    {!campaignProduct.distributionGenerated && (
+                      <View style={styles.quantityActionsContainer}>
+                        <TouchableOpacity
+                          style={styles.editQuantityButton}
+                          onPress={() => setEditingQuantity(true)}
+                        >
+                          <Text style={styles.editQuantityButtonText}>✏️ Editar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.quickDistributionButton,
+                            isPreliminary && styles.quickDistributionButtonDisabled,
+                          ]}
+                          onPress={handleOpenDistribution}
+                          disabled={isPreliminary}
+                        >
+                          <Text
+                            style={[
+                              styles.quickDistributionButtonText,
+                              isPreliminary && styles.quickDistributionButtonTextDisabled,
+                            ]}
+                          >
+                            ⚡ Generar Reparto
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    {isPreliminary && !campaignProduct.distributionGenerated && (
+                      <Text style={styles.preliminaryWarningNote}>
+                        ⚠️ Producto preliminar - Debe validarse antes de generar reparto
+                      </Text>
+                    )}
+                    {campaignProduct.distributionGenerated && (
+                      <Text style={styles.distributionGeneratedNote}>
+                        ⚠️ No se puede editar - Reparto generado
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
 
             {/* Cost Banner - Editable */}
             <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
@@ -1152,44 +1159,46 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
               )}
             </View>
 
-            {/* Stock Banner - Moved to the end */}
-            <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
-              <Text style={styles.bannerLabel}>{stockLabel.toUpperCase()}</Text>
-              {loadingStock ? (
-                <View style={styles.loadingStockContainer}>
-                  <ActivityIndicator size="large" color="#60A5FA" />
-                  <Text style={styles.loadingStockText}>Cargando stock...</Text>
-                </View>
-              ) : (
-                <>
-                  <Text
-                    style={[
-                      styles.bannerValue,
-                      styles.stockValue,
-                      isTablet && styles.bannerValueTablet,
-                    ]}
-                  >
-                    {stockValue !== undefined && stockValue !== null ? stockValue : 'N/A'}
-                  </Text>
-                  {!campaignProduct.distributionGenerated && campaignProduct.productStatus === 'ACTIVE' && (
-                    <TouchableOpacity
-                      style={styles.distributionButton}
-                      onPress={handleOpenDistribution}
+            {/* Stock Banner - Moved to the end - Only show if not hiding stock and distribution */}
+            {!hideStockAndDistribution && (
+              <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
+                <Text style={styles.bannerLabel}>{stockLabel.toUpperCase()}</Text>
+                {loadingStock ? (
+                  <View style={styles.loadingStockContainer}>
+                    <ActivityIndicator size="large" color="#60A5FA" />
+                    <Text style={styles.loadingStockText}>Cargando stock...</Text>
+                  </View>
+                ) : (
+                  <>
+                    <Text
+                      style={[
+                        styles.bannerValue,
+                        styles.stockValue,
+                        isTablet && styles.bannerValueTablet,
+                      ]}
                     >
-                      <Text style={styles.distributionButtonText}>
-                        📊 Generar Distribución
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {campaignProduct.distributionGenerated && (
-                    <Text style={styles.distributionGeneratedNote}>
-                      ✅ Distribución ya generada
+                      {stockValue !== undefined && stockValue !== null ? stockValue : 'N/A'}
                     </Text>
-                  )}
-                </>
-              )}
-              {isPreliminary && <Text style={styles.preliminaryNote}>⚠️ Producto Preliminar</Text>}
-            </View>
+                    {!campaignProduct.distributionGenerated && campaignProduct.productStatus === 'ACTIVE' && (
+                      <TouchableOpacity
+                        style={styles.distributionButton}
+                        onPress={handleOpenDistribution}
+                      >
+                        <Text style={styles.distributionButtonText}>
+                          📊 Generar Distribución
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    {campaignProduct.distributionGenerated && (
+                      <Text style={styles.distributionGeneratedNote}>
+                        ✅ Distribución ya generada
+                      </Text>
+                    )}
+                  </>
+                )}
+                {isPreliminary && <Text style={styles.preliminaryNote}>⚠️ Producto Preliminar</Text>}
+              </View>
+            )}
           </ScrollView>
           </>
         )}
