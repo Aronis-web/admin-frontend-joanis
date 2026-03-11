@@ -141,9 +141,14 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     if (product.productId) {
       setLoadingProductPhotos(true);
       try {
+        // Invalidar caché antes de obtener el producto para asegurar datos frescos
+        await productsApi.invalidateProductsCacheV2();
+
         const response = await productsApi.getProductsByIds([product.productId], true);
+        console.log('📷 Response cached?', response.cached);
         if (response.products && response.products.length > 0) {
           const productDetail = response.products[0];
+          console.log('📷 Product photos:', productDetail.photos);
           if (productDetail.photos && productDetail.photos.length > 0) {
             setProductPhotos(productDetail.photos);
             console.log('📷 Product photos loaded:', productDetail.photos.length, 'photos');
