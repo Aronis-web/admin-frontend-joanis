@@ -90,11 +90,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         supplierName: purchaseData.supplier?.commercialName,
       });
 
-      // Debug: Log para verificar si vienen las validaciones y fotos del producto
+      // Debug: Log para verificar si vienen las validaciones
       if (productsData.length > 0) {
         console.log('🔍 First product validations:', productsData[0].validations);
-        console.log('🔍 First product.product object:', productsData[0].product);
-        console.log('🔍 First product.productPhotos:', productsData[0].productPhotos);
       }
 
       setPurchase(purchaseData);
@@ -144,20 +142,15 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       setLoadingProductPhotos(true);
       try {
         const response = await productsApi.getProductsByIds([product.productId], true);
-        console.log('📷 Full response from getProductsByIds:', JSON.stringify(response, null, 2));
         if (response.products && response.products.length > 0) {
           const productDetail = response.products[0];
-          console.log('📷 Product detail:', JSON.stringify(productDetail, null, 2));
-          console.log('📷 Product photos field:', productDetail.photos);
           if (productDetail.photos && productDetail.photos.length > 0) {
             setProductPhotos(productDetail.photos);
-            console.log('📷 Product photos loaded:', productDetail.photos);
-          } else {
-            console.log('📷 No photos found for product - photos field is:', productDetail.photos);
+            console.log('📷 Product photos loaded:', productDetail.photos.length, 'photos');
           }
         }
       } catch (error) {
-        console.error('Error loading product photos:', error);
+        console.error('❌ Error loading product photos:', error);
       } finally {
         setLoadingProductPhotos(false);
       }
