@@ -16,7 +16,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { purchasesService, suppliersService } from '@/services/api';
-import productsApi from '@/services/api/products';
 import {
   Purchase,
   PurchaseProduct,
@@ -65,7 +64,6 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     null
   );
   const [productPhotos, setProductPhotos] = useState<string[]>([]);
-  const [loadingProductPhotos, setLoadingProductPhotos] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<ExpenseSupplier | null>(null);
@@ -135,30 +133,13 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const handleOpenInfoModal = async (product: PurchaseProduct) => {
     setSelectedProductForInfo(product);
     setShowInfoModal(true);
-    setProductPhotos([]);
 
-    // Cargar fotos del producto del catálogo si existe productId
-    if (product.productId) {
-      setLoadingProductPhotos(true);
-      try {
-        // Invalidar caché antes de obtener el producto para asegurar datos frescos
-        await productsApi.invalidateProductsCacheV2();
-
-        const response = await productsApi.getProductsByIds([product.productId], true);
-        console.log('📷 Response cached?', response.cached);
-        if (response.products && response.products.length > 0) {
-          const productDetail = response.products[0];
-          console.log('📷 Product photos:', productDetail.photos);
-          if (productDetail.photos && productDetail.photos.length > 0) {
-            setProductPhotos(productDetail.photos);
-            console.log('📷 Product photos loaded:', productDetail.photos.length, 'photos');
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error loading product photos:', error);
-      } finally {
-        setLoadingProductPhotos(false);
-      }
+    // Usar las fotos del producto de compra (productPhotos) directamente
+    if (product.productPhotos && product.productPhotos.length > 0) {
+      setProductPhotos(product.productPhotos);
+      console.log('📷 Product photos loaded from purchase:', product.productPhotos.length, 'photos');
+    } else {
+      setProductPhotos([]);
     }
   };
 
@@ -1244,7 +1225,6 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           onClose={handleCloseInfoModal}
           isTablet={isTablet}
           productPhotos={productPhotos}
-          loadingProductPhotos={loadingProductPhotos}
         />
       )}
 
@@ -1269,7 +1249,6 @@ interface ProductInfoModalProps {
   onClose: () => void;
   isTablet: boolean;
   productPhotos: string[];
-  loadingProductPhotos: boolean;
 }
 
 const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
@@ -1278,7 +1257,6 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
   onClose,
   isTablet,
   productPhotos,
-  loadingProductPhotos,
 }) => {
   const formatCurrency = (cents: number) => {
     return `S/ ${(cents / 100).toFixed(2)}`;
@@ -1389,20 +1367,8 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                   isTablet={isTablet}
                 />
 
-                {/* Fotos del Producto del Catálogo */}
-                {loadingProductPhotos ? (
-                  <View style={modalStyles.photoSection}>
-                    <Text
-                      style={[
-                        modalStyles.photoLabel,
-                        isTablet && modalStyles.photoLabelTablet,
-                      ]}
-                    >
-                      📷 Cargando fotos del producto...
-                    </Text>
-                    <ActivityIndicator size="small" color="#007AFF" />
-                  </View>
-                ) : productPhotos.length > 0 ? (
+                {/* Fotos del Producto */}
+                {productPhotos.length > 0 && (
                   <View style={modalStyles.photoSection}>
                     <Text
                       style={[
@@ -1430,7 +1396,7 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                       ))}
                     </ScrollView>
                   </View>
-                ) : null}
+                )}
               </View>
             </View>
 
