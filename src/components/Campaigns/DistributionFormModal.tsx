@@ -87,6 +87,9 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
   // Distribution mode: 'units' or 'presentation'
   const [distributionMode, setDistributionMode] = useState<'units' | 'presentation'>('units');
 
+  // Selected participants for CUSTOM distribution type
+  const [selectedParticipants, setSelectedParticipants] = useState<Set<string>>(new Set());
+
   // Source warehouse and area selection
   const [selectedSourceWarehouseId, setSelectedSourceWarehouseId] = useState<string | null>(null);
   const [selectedSourceAreaId, setSelectedSourceAreaId] = useState<string | null>(null);
@@ -155,6 +158,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       setDistributionMode('units'); // Reset to units by default
       setSelectedSourceWarehouseId(null);
       setSelectedSourceAreaId(null);
+      setSelectedParticipants(new Set());
     }
   }, [visible]);
 
@@ -415,6 +419,28 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       });
 
       setSelectedDistributionType(type);
+
+      // Si es CUSTOM, inicializar con todos los participantes seleccionados
+      if (type === DistributionType.CUSTOM) {
+        const allParticipantIds = adjustedDistribution.preview.map(p => p.participantId);
+        setSelectedParticipants(new Set(allParticipantIds));
+
+        // Usar la distribución original del preview
+        const updatedDistributions: typeof editableDistributions = {};
+        adjustedDistribution.preview.forEach((item) => {
+          updatedDistributions[item.participantId] = {
+            participantId: item.participantId,
+            participantName: item.participantName,
+            quantityBase: item.calculatedQuantity,
+            roundingFactor: item.roundingFactor,
+            presentationId: item.presentationId,
+            quantityPresentation: item.quantityPresentation,
+            percentage: item.percentage,
+          };
+        });
+        setEditableDistributions(updatedDistributions);
+        return;
+      }
 
       // Si es INTERNAL_ONLY o INTERNAL_EQUAL, filtrar localmente y recalcular
       if (type === DistributionType.INTERNAL_ONLY || type === DistributionType.INTERNAL_EQUAL) {
@@ -1059,6 +1085,12 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
   );
 
   const validateDistributions = useCallback((): boolean => {
+    // Validar que haya participantes seleccionados en modo CUSTOM
+    if (selectedDistributionType === DistributionType.CUSTOM && selectedParticipants.size === 0) {
+      Alert.alert('Error de Validación', 'Debes seleccionar al menos un participante para generar el reparto.');
+      return false;
+    }
+
     const totalDistributed = getTotalDistributed();
 
     // Calculate available stock based on selected source area
@@ -1120,7 +1152,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
     }
 
     return true;
-  }, [getTotalDistributed, editableTotalQuantity, adjustedDistribution, localStockData, selectedSourceWarehouseId, selectedSourceAreaId, product]);
+  }, [getTotalDistributed, editableTotalQuantity, adjustedDistribution, localStockData, selectedSourceWarehouseId, selectedSourceAreaId, product, selectedDistributionType, selectedParticipants]);
 
   const handleConfirmGeneration = useCallback(async () => {
     if (!product || !adjustedDistribution) {
@@ -1387,6 +1419,148 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                     </View>
                   )}
                 </View>
+
+                {/* Selector de Participantes para CUSTOM */}
+                {selectedDistributionType === DistributionType.CUSTOM && adjustedDistribution && (
+                  <View style={styles.previewSection}>
+                    <Text style={styles.previewSectionTitle}>👥 Seleccionar Participantes</Text>
+                    <Text style={styles.customParticipantsHint}>
+                      Selecciona las sedes internas y empresas externas que recibirán este producto:
+                    </Text>
+
+                    {/* Sedes Internas */}
+                    {(() => {
+                      const internalSites = adjustedDistribution.preview.filter(
+                        (p) => p.participantType === ParticipantType.INTERNAL_SITE
+                      );
+
+                      if (internalSites.length > 0) {
+                        return (
+                          <View style={styles.participantTypeGroup}>
+                            <Text style={styles.participantTypeGroupTitle}>🏛️ Sedes Internas</Text>
+                            {internalSites.map((participant) => {
+                              const isSelected = selectedParticipants.has(participant.participantId);
+                              return (
+                                <TouchableOpacity
+                                  key={participant.participantId}
+                                  style={[
+                                    styles.participantCheckboxContainer,
+                                    isSelected && styles.participantCheckboxContainerSelected,
+                                  ]}
+                                  onPress={() => {
+                                    const newSelected = new Set(selectedParticipants);
+                                    if (isSelected) {
+                                      newSelected.delete(participant.participantId);
+                                    } else {
+                                      newSelected.add(participant.participantId);
+                                    }
+                                    setSelectedParticipants(newSelected);
+
+                                    // Recalcular distribuciones solo con participantes seleccionados
+                                    const filteredDistributions: typeof editableDistributions = {};
+                                    Object.entries(editableDistributions).forEach(([id, dist]) => {
+                                      if (newSelected.has(id)) {
+                                        filteredDistributions[id] = dist;
+                                      }
+                                    });
+                                    setEditableDistributions(filteredDistributions);
+                                  }}
+                                  activeOpacity={0.7}
+                                >
+                                  <View
+                                    style={[
+                                      styles.participantCheckbox,
+                                      isSelected && styles.participantCheckboxChecked,
+                                    ]}
+                                  >
+                                    {isSelected && <Text style={styles.participantCheckmark}>✓</Text>}
+                                  </View>
+                                  <View style={styles.participantInfo}>
+                                    <Text style={styles.participantName}>{participant.participantName}</Text>
+                                    <Text style={styles.participantDetails}>
+                                      {participant.percentage.toFixed(2)}% • {participant.calculatedQuantity} unidades
+                                    </Text>
+                                  </View>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* Empresas Externas */}
+                    {(() => {
+                      const externalCompanies = adjustedDistribution.preview.filter(
+                        (p) => p.participantType === ParticipantType.EXTERNAL_COMPANY
+                      );
+
+                      if (externalCompanies.length > 0) {
+                        return (
+                          <View style={styles.participantTypeGroup}>
+                            <Text style={styles.participantTypeGroupTitle}>🏢 Empresas Externas</Text>
+                            {externalCompanies.map((participant) => {
+                              const isSelected = selectedParticipants.has(participant.participantId);
+                              return (
+                                <TouchableOpacity
+                                  key={participant.participantId}
+                                  style={[
+                                    styles.participantCheckboxContainer,
+                                    isSelected && styles.participantCheckboxContainerSelected,
+                                  ]}
+                                  onPress={() => {
+                                    const newSelected = new Set(selectedParticipants);
+                                    if (isSelected) {
+                                      newSelected.delete(participant.participantId);
+                                    } else {
+                                      newSelected.add(participant.participantId);
+                                    }
+                                    setSelectedParticipants(newSelected);
+
+                                    // Recalcular distribuciones solo con participantes seleccionados
+                                    const filteredDistributions: typeof editableDistributions = {};
+                                    Object.entries(editableDistributions).forEach(([id, dist]) => {
+                                      if (newSelected.has(id)) {
+                                        filteredDistributions[id] = dist;
+                                      }
+                                    });
+                                    setEditableDistributions(filteredDistributions);
+                                  }}
+                                  activeOpacity={0.7}
+                                >
+                                  <View
+                                    style={[
+                                      styles.participantCheckbox,
+                                      isSelected && styles.participantCheckboxChecked,
+                                    ]}
+                                  >
+                                    {isSelected && <Text style={styles.participantCheckmark}>✓</Text>}
+                                  </View>
+                                  <View style={styles.participantInfo}>
+                                    <Text style={styles.participantName}>{participant.participantName}</Text>
+                                    <Text style={styles.participantDetails}>
+                                      {participant.percentage.toFixed(2)}% • {participant.calculatedQuantity} unidades
+                                    </Text>
+                                  </View>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {selectedParticipants.size === 0 && (
+                      <View style={styles.noParticipantsWarning}>
+                        <Text style={styles.noParticipantsWarningText}>
+                          ⚠️ Debes seleccionar al menos un participante para generar el reparto.
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
 
                 {/* Stock Information */}
                 {(() => {
@@ -1776,7 +1950,16 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                     ✏️ Puedes editar las cantidades manualmente si es necesario
                   </Text>
 
-                  {getSortedDistributions.map((dist: any, index: number) => (
+                  {getSortedDistributions
+                    .filter((dist: any) => {
+                      // Si es CUSTOM, solo mostrar participantes seleccionados
+                      if (selectedDistributionType === DistributionType.CUSTOM) {
+                        return selectedParticipants.has(dist.participantId);
+                      }
+                      // Para otros tipos, mostrar todos
+                      return true;
+                    })
+                    .map((dist: any, index: number) => (
                     <View key={dist.participantId} style={styles.editableItem}>
                       <View style={styles.editableItemHeader}>
                         <Text style={styles.editableParticipantName}>
@@ -2688,5 +2871,82 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#92400E',
     lineHeight: 18,
+  },
+  // Custom Distribution Participant Selection Styles
+  customParticipantsHint: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  participantTypeGroup: {
+    marginBottom: 16,
+  },
+  participantTypeGroupTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  participantCheckboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 8,
+  },
+  participantCheckboxContainerSelected: {
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
+  },
+  participantCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginRight: 12,
+  },
+  participantCheckboxChecked: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  participantCheckmark: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  participantInfo: {
+    flex: 1,
+  },
+  participantName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  participantDetails: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  noParticipantsWarning: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    padding: 12,
+    marginTop: 8,
+  },
+  noParticipantsWarningText: {
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
+    textAlign: 'center',
   },
 });
