@@ -166,6 +166,26 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     }
   };
 
+  const handleDownloadCreditNote = async (creditNote: any) => {
+    if (!creditNote || !creditNote.id) {
+      Alert.alert('Error', 'No se encontró el ID de la nota de crédito');
+      return;
+    }
+
+    logger.info('📥 Descargando nota de crédito:', creditNote);
+    await handleDownloadNoteDocument(creditNote.id, creditNote.documentNumber || 'Nota-Credito');
+  };
+
+  const handleDownloadDebitNote = async (debitNote: any) => {
+    if (!debitNote || !debitNote.id) {
+      Alert.alert('Error', 'No se encontró el ID de la nota de débito');
+      return;
+    }
+
+    logger.info('📥 Descargando nota de débito:', debitNote);
+    await handleDownloadNoteDocument(debitNote.id, debitNote.documentNumber || 'Nota-Debito');
+  };
+
   const handleCreateCreditNote = () => {
     if (!sale?.id) return;
 
@@ -935,29 +955,59 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
             {/* Botones de Notas de Crédito y Débito - Solo para ventas confirmadas con documento tributario */}
             {sale.status === SaleStatus.CONFIRMED && (sale.documentType === DocumentType.BOLETA || sale.documentType === DocumentType.FACTURA) && (
               <>
-                <TouchableOpacity
-                  style={styles.creditNoteButton}
-                  onPress={handleCreateCreditNote}
-                  disabled={loadingDocuments}
-                >
-                  {loadingDocuments ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.creditNoteButtonText}>📝 Crear Nota de Crédito</Text>
-                  )}
-                </TouchableOpacity>
+                {/* Botón de Nota de Crédito - Cambia según si existe o no */}
+                {creditNotes.length > 0 ? (
+                  <TouchableOpacity
+                    style={styles.downloadButton}
+                    onPress={() => handleDownloadCreditNote(creditNotes[0])}
+                    disabled={loadingDocuments}
+                  >
+                    {loadingDocuments ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.downloadButtonText}>📄 Descargar Nota de Crédito</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.creditNoteButton}
+                    onPress={handleCreateCreditNote}
+                    disabled={loadingDocuments}
+                  >
+                    {loadingDocuments ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.creditNoteButtonText}>📝 Crear Nota de Crédito</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
 
-                <TouchableOpacity
-                  style={styles.debitNoteButton}
-                  onPress={handleCreateDebitNote}
-                  disabled={loadingDocuments}
-                >
-                  {loadingDocuments ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.debitNoteButtonText}>📝 Crear Nota de Débito</Text>
-                  )}
-                </TouchableOpacity>
+                {/* Botón de Nota de Débito - Cambia según si existe o no */}
+                {debitNotes.length > 0 ? (
+                  <TouchableOpacity
+                    style={styles.downloadButton}
+                    onPress={() => handleDownloadDebitNote(debitNotes[0])}
+                    disabled={loadingDocuments}
+                  >
+                    {loadingDocuments ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.downloadButtonText}>📄 Descargar Nota de Débito</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.debitNoteButton}
+                    onPress={handleCreateDebitNote}
+                    disabled={loadingDocuments}
+                  >
+                    {loadingDocuments ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.debitNoteButtonText}>📝 Crear Nota de Débito</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
               </>
             )}
 
