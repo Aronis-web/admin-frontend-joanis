@@ -126,6 +126,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [selectedProductForCustomAdd, setSelectedProductForCustomAdd] = useState<any | null>(null);
   const [customQuantity, setCustomQuantity] = useState<string>('');
 
+  // Banner modal states for global search
+  const [showBannerModalFromSearch, setShowBannerModalFromSearch] = useState(false);
+  const [selectedProductForBannerSearch, setSelectedProductForBannerSearch] = useState<any>(null);
+  const [productDetailsForBannerSearch, setProductDetailsForBannerSearch] = useState<any>(null);
+
   // Pagination states
   const [displayedItemsCount, setDisplayedItemsCount] = useState(20);
   const ITEMS_PER_PAGE = 20;
@@ -577,6 +582,34 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     setCustomQuantity(stockInfo.available.toString());
     setShowCustomAddModal(true);
   }, [getProductStock]);
+
+  // Open banner modal from global search
+  const handleOpenBannerFromSearch = useCallback(async (product: any) => {
+    try {
+      console.log('🎯 Opening banner from search for product:', product.sku);
+
+      // Fetch full product details to get costCents and other info
+      const fullProductDetails = await productsApi.getProduct(product.id);
+      console.log('📦 Full product details:', fullProductDetails);
+
+      // Create a mock campaign product structure for the banner modal
+      const mockCampaignProduct = {
+        productId: product.id,
+        campaignId: campaignId,
+        totalQuantityBase: 0, // No quantity yet since it's not added to campaign
+        productStatus: product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE,
+        distributionGenerated: false,
+        product: product,
+      };
+
+      setSelectedProductForBannerSearch(mockCampaignProduct);
+      setProductDetailsForBannerSearch(fullProductDetails);
+      setShowBannerModalFromSearch(true);
+    } catch (error) {
+      console.error('Error loading product details for banner:', error);
+      Alert.alert('Error', 'No se pudieron cargar los detalles del producto');
+    }
+  }, [campaignId]);
 
   // Handle custom add product with specific quantity
   const handleCustomAddProduct = useCallback(async () => {
@@ -2454,24 +2487,34 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               </Text>
                             </View>
                           </View>
-                          {!isAlreadyAdded && stockInfo.available > 0 && (
-                            <View style={styles.globalSearchActions}>
-                              <TouchableOpacity
-                                style={styles.globalSearchActionButton}
-                                onPress={() => handleQuickAddProduct(product)}
-                                disabled={addingQuickProduct}
-                              >
-                                <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                style={styles.globalSearchActionButtonSecondary}
-                                onPress={() => handleOpenCustomAddModal(product)}
-                                disabled={addingQuickProduct}
-                              >
-                                <Text style={styles.globalSearchActionButtonSecondaryText}>⚙️ Personalizado</Text>
-                              </TouchableOpacity>
-                            </View>
-                          )}
+                          <View style={styles.globalSearchActions}>
+                            {!isAlreadyAdded && stockInfo.available > 0 && (
+                              <>
+                                <TouchableOpacity
+                                  style={styles.globalSearchActionButton}
+                                  onPress={() => handleQuickAddProduct(product)}
+                                  disabled={addingQuickProduct}
+                                >
+                                  <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.globalSearchActionButtonSecondary}
+                                  onPress={() => handleOpenCustomAddModal(product)}
+                                  disabled={addingQuickProduct}
+                                >
+                                  <Text style={styles.globalSearchActionButtonSecondaryText}>⚙️ Personalizado</Text>
+                                </TouchableOpacity>
+                              </>
+                            )}
+                            {/* Banner button - Always show, even with 0 stock */}
+                            <TouchableOpacity
+                              style={styles.globalSearchBannerButton}
+                              onPress={() => handleOpenBannerFromSearch(product)}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={styles.globalSearchBannerButtonText}>📋 Banner</Text>
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       );
                     })}
@@ -2629,6 +2672,25 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             setIsBulkDistributionModalVisible(false);
           }}
         />
+
+        {/* Banner Modal from Global Search */}
+        {showBannerModalFromSearch && selectedProductForBannerSearch && (
+          <CampaignProductBannerModal
+            visible={showBannerModalFromSearch}
+            campaignProduct={selectedProductForBannerSearch}
+            productDetails={productDetailsForBannerSearch}
+            hideStockAndDistribution={true}
+            onClose={() => {
+              setShowBannerModalFromSearch(false);
+              setSelectedProductForBannerSearch(null);
+              setProductDetailsForBannerSearch(null);
+            }}
+            onRefresh={() => {
+              // No need to refresh anything since product is not in campaign yet
+              console.log('Banner modal closed from search, no refresh needed');
+            }}
+          />
+        )}
 
         {/* Image Preview Modal */}
         <Modal
@@ -4011,17 +4073,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6366F1',
   },
+  globalSearchBannerButton: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  globalSearchBannerButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   stockAvailable: {
     color: '#10B981',
   },
   stockUnavailable: {
     color: '#EF4444',
-  },
-  priceDetailsContainer: {
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
   },
   editPriceIconButton: {
     backgroundColor: '#EFF6FF',

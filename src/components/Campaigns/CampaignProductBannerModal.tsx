@@ -30,6 +30,7 @@ interface CampaignProductBannerModalProps {
   onClose: () => void;
   onRefresh?: (updatedProduct?: CampaignProduct) => void; // Callback to refresh campaign data after distribution or update specific product
   hideStockAndDistribution?: boolean; // Hide stock and distribution sections (for search banner)
+  onOpenDistribution?: () => void; // Optional callback to open distribution modal from parent
 }
 
 interface PriceFormData {
