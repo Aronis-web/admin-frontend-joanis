@@ -23,7 +23,7 @@ import { Customer, CustomerType } from '@/types/customers';
 import { Product, ProductSalePrice } from '@/services/api/products';
 import { StockItemResponse } from '@/services/api/inventory';
 import { Warehouse } from '@/types/warehouses';
-import { PaymentMethod } from '@/types/companies';
+import { PaymentMethod, Company } from '@/types/companies';
 import { PriceProfile } from '@/types/price-profiles';
 import { SaleType, DocumentType, CreateSaleItemRequest } from '@/types/sales';
 import logger from '@/utils/logger';
@@ -48,6 +48,7 @@ export const CreateSaleScreen: React.FC = () => {
   const [saleType, setSaleType] = useState<SaleType>(SaleType.B2C);
   const [documentType, setDocumentType] = useState<DocumentType>(DocumentType.BOLETA);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [selectedPriceProfile, setSelectedPriceProfile] = useState<PriceProfile | null>(null);
@@ -61,11 +62,13 @@ export const CreateSaleScreen: React.FC = () => {
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
   const [loadingPriceProfiles, setLoadingPriceProfiles] = useState(false);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   // Data
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
 
   // Load warehouses
   useEffect(() => {
@@ -85,6 +88,13 @@ export const CreateSaleScreen: React.FC = () => {
   useEffect(() => {
     loadPriceProfiles();
   }, []);
+
+  // Load companies for B2B
+  useEffect(() => {
+    if (saleType === SaleType.B2B) {
+      loadCompanies();
+    }
+  }, [saleType]);
 
   const loadWarehouses = async () => {
     if (!currentSite?.id) return;
@@ -136,6 +146,19 @@ export const CreateSaleScreen: React.FC = () => {
       // No mostrar alerta, es opcional
     } finally {
       setLoadingPriceProfiles(false);
+    }
+  };
+
+  const loadCompanies = async () => {
+    setLoadingCompanies(true);
+    try {
+      const data = await companiesApi.getActiveCompanies();
+      setCompanies(data);
+    } catch (error) {
+      logger.error('Error cargando empresas:', error);
+      Alert.alert('Error', 'No se pudieron cargar las empresas');
+    } finally {
+      setLoadingCompanies(false);
     }
   };
 
@@ -276,8 +299,13 @@ export const CreateSaleScreen: React.FC = () => {
 
   const handleCreateSale = async () => {
     // Validaciones
-    if (!selectedCustomer) {
+    if (saleType === SaleType.B2C && !selectedCustomer) {
       Alert.alert('Error', 'Debe seleccionar un cliente');
+      return;
+    }
+
+    if (saleType === SaleType.B2B && !selectedCompany) {
+      Alert.alert('Error', 'Debe seleccionar una empresa');
       return;
     }
 
@@ -323,8 +351,8 @@ export const CreateSaleScreen: React.FC = () => {
       const saleData = {
         saleType,
         documentType,
-        customerId: saleType === SaleType.B2C ? selectedCustomer.id : undefined,
-        companyId: saleType === SaleType.B2B ? selectedCustomer.id : undefined,
+        customerId: saleType === SaleType.B2C ? selectedCustomer?.id : undefined,
+        companyId: saleType === SaleType.B2B ? selectedCompany?.id : undefined,
         siteId: currentSite.id,
         warehouseId: warehouseId!, // Usar el almacén deducido de los productos
         items: saleItems,
@@ -383,6 +411,7 @@ export const CreateSaleScreen: React.FC = () => {
               onPress={() => {
                 setSaleType(SaleType.B2C);
                 setSelectedCustomer(null);
+                setSelectedCompany(null);
               }}
             >
               <Text
@@ -402,6 +431,7 @@ export const CreateSaleScreen: React.FC = () => {
               onPress={() => {
                 setSaleType(SaleType.B2B);
                 setSelectedCustomer(null);
+                setSelectedCompany(null);
               }}
             >
               <Text
@@ -498,21 +528,92 @@ export const CreateSaleScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Customer Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {saleType === SaleType.B2C ? 'Cliente' : 'Empresa'}
-          </Text>
-          <CustomerAutocomplete
-            onSelectCustomer={handleSelectCustomer}
-            placeholder={
-              saleType === SaleType.B2C
-                ? 'Buscar cliente por nombre o DNI...'
-                : 'Buscar empresa por razón social o RUC...'
-            }
-            documentTypeFilter={saleType === SaleType.B2C ? 'DNI' : 'RUC'}
-          />
-        </View>
+        {/* Customer/Company Selection */}
+        {saleType === SaleType.B2C && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Cliente</Text>
+            <Text style={styles.sectionHint}>
+              {documentType === DocumentType.BOLETA
+                ? 'Buscar persona natural (DNI, CE, Pasaporte)'
+                : documentType === DocumentType.FACTURA
+                ? 'Buscar empresa (RUC)'
+                : 'Buscar cliente'}
+            </Text>
+            <CustomerAutocomplete
+              onSelectCustomer={handleSelectCustomer}
+              placeholder={
+                documentType === DocumentType.BOLETA
+                  ? 'Buscar cliente por nombre o DNI...'
+                  : documentType === DocumentType.FACTURA
+                  ? 'Buscar empresa por razón social o RUC...'
+                  : 'Buscar cliente...'
+              }
+              documentTypeFilter={
+                documentType === DocumentType.BOLETA
+                  ? 'DNI'
+                  : documentType === DocumentType.FACTURA
+                  ? 'RUC'
+                  : 'ALL'
+              }
+            />
+          </View>
+        )}
+
+        {saleType === SaleType.B2B && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Empresa</Text>
+            <Text style={styles.sectionHint}>
+              Selecciona una empresa configurada en el sistema
+            </Text>
+            {loadingCompanies ? (
+              <ActivityIndicator size="small" color="#007bff" />
+            ) : (
+              <View style={styles.pickerContainer}>
+                {companies.length === 0 ? (
+                  <View style={styles.emptyCompanies}>
+                    <Text style={styles.emptyCompaniesText}>
+                      No hay empresas disponibles
+                    </Text>
+                  </View>
+                ) : (
+                  companies.map((company) => (
+                    <TouchableOpacity
+                      key={company.id}
+                      style={[
+                        styles.pickerItem,
+                        selectedCompany?.id === company.id && styles.pickerItemActive,
+                      ]}
+                      onPress={() => setSelectedCompany(company)}
+                    >
+                      <View style={styles.pickerItemContent}>
+                        <View style={styles.companyItemInfo}>
+                          <Text
+                            style={[
+                              styles.pickerItemText,
+                              selectedCompany?.id === company.id && styles.pickerItemTextActive,
+                            ]}
+                          >
+                            {company.name}
+                          </Text>
+                          {company.ruc && (
+                            <Text
+                              style={[
+                                styles.pickerItemSubtext,
+                                selectedCompany?.id === company.id && styles.pickerItemSubtextActive,
+                              ]}
+                            >
+                              RUC: {company.ruc}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Payment Method Selection */}
         <View style={styles.section}>
@@ -972,6 +1073,23 @@ const styles = StyleSheet.create({
   },
   pickerItemSubtextActive: {
     color: '#007bff',
+  },
+  companyItemInfo: {
+    flex: 1,
+  },
+  emptyCompanies: {
+    padding: 24,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+  },
+  emptyCompaniesText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
   },
   emptyProducts: {
     padding: 40,
