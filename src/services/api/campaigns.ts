@@ -428,14 +428,10 @@ class CampaignsService {
     const formData = new FormData();
     formData.append('file', file);
 
+    // Don't set Content-Type header manually - let the browser/runtime set it with the correct boundary
     return apiClient.post<any>(
       `${this.basePath}/${campaignId}/bulk-distribution-upload`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
+      formData
     );
   }
 }
