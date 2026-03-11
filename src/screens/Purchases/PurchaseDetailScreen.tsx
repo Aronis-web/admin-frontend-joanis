@@ -144,13 +144,16 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       setLoadingProductPhotos(true);
       try {
         const response = await productsApi.getProductsByIds([product.productId], true);
+        console.log('📷 Full response from getProductsByIds:', JSON.stringify(response, null, 2));
         if (response.products && response.products.length > 0) {
           const productDetail = response.products[0];
+          console.log('📷 Product detail:', JSON.stringify(productDetail, null, 2));
+          console.log('📷 Product photos field:', productDetail.photos);
           if (productDetail.photos && productDetail.photos.length > 0) {
             setProductPhotos(productDetail.photos);
             console.log('📷 Product photos loaded:', productDetail.photos);
           } else {
-            console.log('📷 No photos found for product');
+            console.log('📷 No photos found for product - photos field is:', productDetail.photos);
           }
         }
       } catch (error) {
