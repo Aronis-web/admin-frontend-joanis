@@ -289,6 +289,7 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#94A3B8"
+          keyboardType="default"
         />
       </View>
 
@@ -345,6 +346,7 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
                 }
                 placeholder="ALM-01"
                 autoCapitalize="characters"
+                keyboardType="default"
               />
             </View>
 
@@ -355,6 +357,7 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
                 value={warehouseForm.name}
                 onChangeText={(text) => setWarehouseForm({ ...warehouseForm, name: text })}
                 placeholder="Almacén Principal"
+                keyboardType="default"
               />
             </View>
 
@@ -392,6 +395,7 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
                 }
                 placeholder="ALM-01"
                 autoCapitalize="characters"
+                keyboardType="default"
               />
             </View>
 
@@ -402,6 +406,7 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
                 value={warehouseForm.name}
                 onChangeText={(text) => setWarehouseForm({ ...warehouseForm, name: text })}
                 placeholder="Almacén Principal"
+                keyboardType="default"
               />
             </View>
 

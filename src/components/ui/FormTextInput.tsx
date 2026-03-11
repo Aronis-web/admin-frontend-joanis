@@ -53,6 +53,7 @@ export const FormTextInput: React.FC<FormTextInputProps> = ({
         <TextInput
           style={styles.textInput}
           placeholderTextColor={theme.colors.text.hint}
+          keyboardType="default"
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           {...textInputProps}

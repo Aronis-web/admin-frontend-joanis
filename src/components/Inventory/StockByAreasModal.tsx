@@ -8,8 +8,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { inventoryApi, StockItemResponse } from '@/services/api/inventory';
+import { productsApi } from '@/services/api/products';
 
 interface StockByAreasModalProps {
   visible: boolean;
@@ -28,10 +31,14 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [stockItems, setStockItems] = useState<StockItemResponse[]>([]);
+  const [productImages, setProductImages] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [loadingImages, setLoadingImages] = useState(false);
 
   useEffect(() => {
     if (visible && productId) {
       loadStockByAreas();
+      loadProductImages();
     }
   }, [visible, productId]);
 
@@ -61,6 +68,41 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
       Alert.alert('Error', error.response?.data?.message || 'No se pudo cargar el stock por áreas');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadProductImages = async () => {
+    try {
+      setLoadingImages(true);
+      console.log('🖼️ Loading product images for product:', productId);
+
+      const response = await productsApi.getProductImages(productId);
+      console.log('✅ Product images loaded:', response);
+
+      if (response.images && response.images.length > 0) {
+        const imageUrls = response.images.map((img) => img.url);
+        setProductImages(imageUrls);
+        setCurrentImageIndex(0);
+      } else {
+        setProductImages([]);
+      }
+    } catch (error: any) {
+      console.error('❌ Error loading product images:', error);
+      setProductImages([]);
+    } finally {
+      setLoadingImages(false);
+    }
+  };
+
+  const handleNextImage = () => {
+    if (productImages.length > 0) {
+      setCurrentImageIndex((prev) => (prev + 1) % productImages.length);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (productImages.length > 0) {
+      setCurrentImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
     }
   };
 
@@ -126,6 +168,51 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
             showsVerticalScrollIndicator={true}
             nestedScrollEnabled={true}
           >
+            {/* Product Images Slider */}
+            {productImages.length > 0 && (
+              <View style={styles.imageSliderContainer}>
+                <View style={styles.imageSlider}>
+                  <Image
+                    source={{ uri: productImages[currentImageIndex] }}
+                    style={styles.productImage}
+                    resizeMode="contain"
+                  />
+                  {productImages.length > 1 && (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.imageNavButton, styles.imageNavButtonLeft]}
+                        onPress={handlePrevImage}
+                      >
+                        <Text style={styles.imageNavButtonText}>‹</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.imageNavButton, styles.imageNavButtonRight]}
+                        onPress={handleNextImage}
+                      >
+                        <Text style={styles.imageNavButtonText}>›</Text>
+                      </TouchableOpacity>
+                      <View style={styles.imageIndicatorContainer}>
+                        {productImages.map((_, index) => (
+                          <View
+                            key={index}
+                            style={[
+                              styles.imageIndicator,
+                              index === currentImageIndex && styles.imageIndicatorActive,
+                            ]}
+                          />
+                        ))}
+                      </View>
+                      <View style={styles.imageCounter}>
+                        <Text style={styles.imageCounterText}>
+                          {currentImageIndex + 1} / {productImages.length}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </View>
+            )}
+
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#667eea" />
@@ -546,6 +633,88 @@ const styles = StyleSheet.create({
   closeFooterButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  imageSliderContainer: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  imageSlider: {
+    position: 'relative',
+    width: '100%',
+    height: 250,
+    backgroundColor: '#FFFFFF',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageNavButton: {
+    position: 'absolute',
+    top: '50%',
+    transform: [{ translateY: -25 }],
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(102, 126, 234, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  imageNavButtonLeft: {
+    left: 10,
+  },
+  imageNavButtonRight: {
+    right: 10,
+  },
+  imageNavButtonText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    lineHeight: 32,
+  },
+  imageIndicatorContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  imageIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  imageIndicatorActive: {
+    backgroundColor: '#FFFFFF',
+    width: 24,
+  },
+  imageCounter: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  imageCounterText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '600',
   },
 });

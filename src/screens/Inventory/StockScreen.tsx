@@ -118,7 +118,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     limit,
     warehouseId: selectedWarehouseId !== 'all' ? selectedWarehouseId : undefined,
     areaId: selectedAreaId !== 'all' ? selectedAreaId : undefined,
-    sortBy: 'product.correlativo',
+    sortBy: 'createdAt',
     sortOrder: 'DESC',
   });
 
@@ -130,7 +130,8 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   const stockItems = useMemo(() => {
     // ✅ Si hay búsqueda activa, usar resultados V2
     if (isUsingSearch && searchResultsV2) {
-      return searchResultsV2.results.map((item) => ({
+      const searchData = (searchResultsV2 as any).data || (searchResultsV2 as any).results || [];
+      return searchData.map((item: any) => ({
         productId: item.productId,
         warehouseId: item.warehouseId,
         areaId: item.areaId || undefined,
@@ -147,11 +148,11 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     }
 
     // ✅ Si no hay búsqueda, usar listado paginado V2
-    // Backend retorna "data" en lugar de "results"
-    const stockData = stockResponseV2?.results || stockResponseV2?.data;
-    if (!stockData) return [];
+    // Backend retorna "results" después del mapeo en inventory.ts
+    const stockData = (stockResponseV2 as any)?.results || (stockResponseV2 as any)?.data || [];
+    if (!stockData || stockData.length === 0) return [];
 
-    return stockData.map((item) => ({
+    return stockData.map((item: any) => ({
       productId: item.productId,
       warehouseId: item.warehouseId,
       areaId: item.areaId || undefined,
@@ -228,16 +229,15 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
   // Calculate pagination
   const pagination = useMemo(() => {
-    // Backend puede retornar meta o directamente en el objeto
-    const meta = stockResponseV2?.meta || stockResponseV2;
-    if (!meta || !meta.total) {
+    // Backend retorna directamente en el objeto
+    if (!stockResponseV2 || !stockResponseV2.total) {
       return { page: 1, limit: 50, total: 0, totalPages: 0 };
     }
     return {
-      page: meta.page || 1,
-      limit: meta.limit || 50,
-      total: meta.total || 0,
-      totalPages: meta.totalPages || 0,
+      page: stockResponseV2.page || 1,
+      limit: stockResponseV2.limit || 50,
+      total: stockResponseV2.total || 0,
+      totalPages: stockResponseV2.totalPages || 0,
     };
   }, [stockResponseV2]);
 
@@ -1485,6 +1485,29 @@ const styles = StyleSheet.create({
   },
   paginationButtonTextDisabled: {
     color: '#94A3B8',
+  },
+  filterButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  filterButtonText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '500',
+  },
+  filterButtonIcon: {
+    fontSize: 10,
+    color: '#64748B',
+    marginLeft: 8,
   },
 });
 

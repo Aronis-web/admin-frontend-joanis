@@ -602,6 +602,7 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholderTextColor="#94A3B8"
+                  keyboardType="default"
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setSearchQuery('')}>

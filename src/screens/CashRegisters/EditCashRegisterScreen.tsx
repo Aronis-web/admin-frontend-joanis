@@ -277,6 +277,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 placeholder="Ej: CAJA-01"
                 placeholderTextColor="#9CA3AF"
                 autoCapitalize="characters"
+                keyboardType="default"
               />
             </View>
 
@@ -290,6 +291,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 onChangeText={setName}
                 placeholder="Ej: Caja Principal - Tienda Norte"
                 placeholderTextColor="#9CA3AF"
+                keyboardType="default"
               />
             </View>
 
@@ -301,6 +303,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 onChangeText={setLocation}
                 placeholder="Ej: Piso 1, Área de ventas"
                 placeholderTextColor="#9CA3AF"
+                keyboardType="default"
               />
             </View>
           </View>
@@ -328,6 +331,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 onChangeText={setDeviceId}
                 placeholder="Ej: DEVICE-001"
                 placeholderTextColor="#9CA3AF"
+                keyboardType="default"
               />
             </View>
 

@@ -320,6 +320,7 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
             }
           }}
           editable={!disabled && !loadingDetails}
+          keyboardType="default"
           returnKeyType="search"
         />
         {loading && (

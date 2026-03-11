@@ -550,6 +550,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Observaciones sobre la entrega"
+                keyboardType="default"
                 multiline
                 numberOfLines={3}
               />

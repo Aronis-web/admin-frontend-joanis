@@ -1250,9 +1250,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 style={[styles.input, isTablet && styles.inputTablet]}
                 value={barcode}
                 onChangeText={setBarcode}
-                placeholder="Ej: 7750182000123"
+                placeholder="Ej: ABC123XYZ"
                 placeholderTextColor="#94A3B8"
-                keyboardType="number-pad"
+                keyboardType="default"
                 editable={canEdit()}
               />
             </View>

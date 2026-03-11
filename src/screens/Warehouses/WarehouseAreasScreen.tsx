@@ -275,6 +275,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#94A3B8"
+          keyboardType="default"
         />
       </View>
 
@@ -320,6 +321,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
                 onChangeText={(text) => setAreaForm({ ...areaForm, code: text.toUpperCase() })}
                 placeholder="A-01"
                 autoCapitalize="characters"
+                keyboardType="default"
               />
             </View>
 
@@ -330,6 +332,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
                 value={areaForm.name}
                 onChangeText={(text) => setAreaForm({ ...areaForm, name: text })}
                 placeholder="Zona de Refrigerados"
+                keyboardType="default"
               />
             </View>
 
@@ -365,6 +368,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
                 onChangeText={(text) => setAreaForm({ ...areaForm, code: text.toUpperCase() })}
                 placeholder="A-01"
                 autoCapitalize="characters"
+                keyboardType="default"
               />
             </View>
 
@@ -375,6 +379,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
                 value={areaForm.name}
                 onChangeText={(text) => setAreaForm({ ...areaForm, name: text })}
                 placeholder="Zona de Refrigerados"
+                keyboardType="default"
               />
             </View>
 

@@ -108,6 +108,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
                 placeholder="Nombre del puesto"
                 editable={!loading}
+                keyboardType="default"
               />
             </View>
 
@@ -118,6 +119,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                 value={formData.description}
                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                 placeholder="Descripción del puesto"
+                keyboardType="default"
                 multiline
                 numberOfLines={3}
                 editable={!loading}

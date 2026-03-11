@@ -63,6 +63,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
         <TextInput
           style={styles.textInput}
           placeholderTextColor={theme.colors.text.hint}
+          keyboardType="default"
           secureTextEntry={!showPassword}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}

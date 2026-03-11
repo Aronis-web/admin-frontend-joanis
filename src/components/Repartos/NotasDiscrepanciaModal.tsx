@@ -415,6 +415,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
                     onChangeText={setTitle}
                     placeholder="Ej: Productos dañados por lluvia"
                     placeholderTextColor="#94A3B8"
+                    keyboardType="default"
                   />
                 </View>
 
@@ -449,6 +450,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
                 onChangeText={setDescription}
                 placeholder="Describe detalladamente qué sucedió..."
                 placeholderTextColor="#94A3B8"
+                keyboardType="default"
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -467,6 +469,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
                   onChangeText={setActionTaken}
                   placeholder="Describe qué acción se tomó..."
                   placeholderTextColor="#94A3B8"
+                  keyboardType="default"
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"

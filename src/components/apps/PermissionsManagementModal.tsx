@@ -377,6 +377,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholderTextColor="#94A3B8"
+                keyboardType="default"
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -396,6 +397,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
                   onChangeText={setCustomPermission}
                   autoCapitalize="none"
                   placeholderTextColor="#94A3B8"
+                  keyboardType="default"
                 />
                 <TouchableOpacity
                   style={styles.addCustomButton}

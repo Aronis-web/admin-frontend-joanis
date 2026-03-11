@@ -709,6 +709,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 onChangeText={(text) => setFormData({ ...formData, title: text })}
                 placeholder="Nombre del producto"
                 placeholderTextColor="#94A3B8"
+                keyboardType="default"
               />
             </View>
 
@@ -720,6 +721,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                 placeholder="Descripción del producto"
                 placeholderTextColor="#94A3B8"
+                keyboardType="default"
                 multiline
                 numberOfLines={3}
               />
@@ -747,6 +749,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   onChangeText={(text) => setFormData({ ...formData, sku: text })}
                   placeholder="SKU-001"
                   placeholderTextColor="#94A3B8"
+                  keyboardType="default"
                   editable={mode === 'create'}
                 />
                 {mode === 'create' && (
@@ -760,9 +763,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   style={styles.input}
                   value={formData.barcode}
                   onChangeText={(text) => setFormData({ ...formData, barcode: text })}
-                  placeholder="7750182000123"
+                  placeholder="ABC123XYZ"
                   placeholderTextColor="#94A3B8"
-                  keyboardType="numeric"
+                  keyboardType="default"
                 />
               </View>
             </View>

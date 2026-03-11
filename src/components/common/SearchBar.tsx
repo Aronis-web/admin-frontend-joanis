@@ -33,6 +33,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#999"
+        keyboardType="default"
         autoCapitalize="none"
         autoCorrect={false}
         autoFocus={autoFocus}

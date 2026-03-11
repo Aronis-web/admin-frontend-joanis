@@ -135,6 +135,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
                 placeholder="Ej: GERENTE_TIENDA"
                 editable={!loading}
                 autoCapitalize="characters"
+                keyboardType="default"
               />
             </View>
 
@@ -148,6 +149,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
                 placeholder="Ej: Gerente de Tienda"
                 editable={!loading}
+                keyboardType="default"
               />
             </View>
 
@@ -158,6 +160,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
                 value={formData.description}
                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                 placeholder="Descripción del puesto"
+                keyboardType="default"
                 multiline
                 numberOfLines={3}
                 editable={!loading}

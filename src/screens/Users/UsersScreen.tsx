@@ -280,6 +280,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#94A3B8"
+          keyboardType="default"
         />
       </View>
 
