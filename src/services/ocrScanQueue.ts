@@ -104,7 +104,7 @@ class OcrScanQueueService {
 
       try {
         // Intentar procesamiento por lotes primero (más rápido)
-        data = await purchasesService.scanDocuments(files, job.observaciones || undefined);
+        data = await purchasesService.scanDocuments(files, job.observaciones || undefined, job.provider);
       } catch (batchError: any) {
         logger.error('❌ Batch processing failed:', {
           error: batchError.message,
@@ -125,7 +125,8 @@ class OcrScanQueueService {
               store.updateScanJob(job.id, {
                 progress: { current, total, filename },
               });
-            }
+            },
+            job.provider
           );
         } else {
           throw batchError;
@@ -188,9 +189,10 @@ class OcrScanQueueService {
       const processingMethod = usedFallback
         ? 'procesamiento secuencial'
         : 'procesamiento por lotes';
+      const providerName = job.provider === 'gemini' ? 'Gemini' : 'OpenAI';
       Alert.alert(
         '✅ Escaneo Completado',
-        `Compra: ${job.purchaseId}\n\nSe detectaron ${editableProducts.length} productos de ${data.archivos_procesados} archivo(s) usando ${processingMethod}.\n\nTotal estimado: S/ ${data.total_estimado?.toFixed(2) || '0.00'}\n\nLos productos están listos para revisar.`,
+        `Compra: ${job.purchaseId}\n\nSe detectaron ${editableProducts.length} productos de ${data.archivos_procesados} archivo(s) usando ${processingMethod} con ${providerName}.\n\nTotal estimado: S/ ${data.total_estimado?.toFixed(2) || '0.00'}\n\nLos productos están listos para revisar.`,
         [
           {
             text: 'OK',

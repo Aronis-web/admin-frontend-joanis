@@ -11,4 +11,5 @@ export type {
   OcrScanResponse,
   ScanJob,
   ScanJobStatus,
+  OcrProvider,
 } from './ocrScanner';

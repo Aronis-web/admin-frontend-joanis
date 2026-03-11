@@ -14,7 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import logger from '@/utils/logger';
-import { useOcrScannerStore, OcrScannedProduct, ScanJob } from '@/store/ocrScanner';
+import { useOcrScannerStore, OcrScannedProduct, ScanJob, OcrProvider } from '@/store/ocrScanner';
 import { ocrScanQueue } from '@/services/ocrScanQueue';
 import {
   launchImageLibraryAsync,
@@ -182,6 +182,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     removeScannedFile: removeFileFromStore,
     clearScannedFiles: clearFilesFromStore,
     setObservaciones: setObservacionesInStore,
+    setOcrProvider: setOcrProviderInStore,
     updateScannedProduct,
     removeScannedProduct,
     setEditingProductId: setEditingProductIdInStore,
@@ -201,6 +202,10 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
   );
   const observaciones = useMemo(
     () => purchaseFiles[purchaseId]?.observaciones || '',
+    [purchaseFiles, purchaseId]
+  );
+  const ocrProvider = useMemo(
+    () => purchaseFiles[purchaseId]?.provider || 'openai',
     [purchaseFiles, purchaseId]
   );
   const editingProductId = useMemo(
@@ -292,6 +297,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       purchaseId,
       files: scannedFiles,
       observaciones: observaciones || undefined,
+      provider: ocrProvider,
       status: 'pending',
       progress: null,
     };
@@ -301,6 +307,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
       purchaseId,
       filesCount: scannedFiles.length,
       hasObservaciones: !!observaciones,
+      provider: ocrProvider,
     });
 
     // Agregar trabajo a la cola
@@ -311,9 +318,10 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
     setObservacionesInStore(purchaseId, '');
 
     // Mostrar mensaje de confirmación
+    const providerName = ocrProvider === 'gemini' ? 'Gemini' : 'OpenAI';
     Alert.alert(
       '🚀 Escaneo Iniciado',
-      `Se ha iniciado el escaneo de ${scannedFiles.length} archivo(s) para esta compra.\n\nEl proceso continuará en segundo plano. Puedes cerrar este modal y revisar otras compras.\n\nRecibirás una notificación cuando el escaneo termine.`,
+      `Se ha iniciado el escaneo de ${scannedFiles.length} archivo(s) para esta compra usando ${providerName}.\n\nEl proceso continuará en segundo plano. Puedes cerrar este modal y revisar otras compras.\n\nRecibirás una notificación cuando el escaneo termine.`,
       [{ text: 'Entendido' }]
     );
 
@@ -812,6 +820,53 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
               </TouchableOpacity>
             </View>
 
+            {/* OCR Provider Selector */}
+            <View style={{ marginTop: 16 }}>
+              <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>
+                Proveedor de OCR
+              </Text>
+              <View style={styles.providerSelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.providerButton,
+                    ocrProvider === 'openai' && styles.providerButtonActive,
+                    isTablet && styles.providerButtonTablet,
+                  ]}
+                  onPress={() => setOcrProviderInStore(purchaseId, 'openai')}
+                  disabled={isScanning}
+                >
+                  <Text
+                    style={[
+                      styles.providerButtonText,
+                      ocrProvider === 'openai' && styles.providerButtonTextActive,
+                      isTablet && styles.providerButtonTextTablet,
+                    ]}
+                  >
+                    🤖 OpenAI
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.providerButton,
+                    ocrProvider === 'gemini' && styles.providerButtonActive,
+                    isTablet && styles.providerButtonTablet,
+                  ]}
+                  onPress={() => setOcrProviderInStore(purchaseId, 'gemini')}
+                  disabled={isScanning}
+                >
+                  <Text
+                    style={[
+                      styles.providerButtonText,
+                      ocrProvider === 'gemini' && styles.providerButtonTextActive,
+                      isTablet && styles.providerButtonTextTablet,
+                    ]}
+                  >
+                    ✨ Gemini
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Observaciones */}
             <View style={{ marginTop: 16 }}>
               <Text style={[styles.fieldLabel, isTablet && styles.fieldLabelTablet]}>
@@ -1106,6 +1161,42 @@ const styles = StyleSheet.create({
     color: '#6366F1',
   },
   uploadButtonTextTablet: {
+    fontSize: 17,
+  },
+  providerSelector: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  providerButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  providerButtonActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+  },
+  providerButtonTablet: {
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+  },
+  providerButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  providerButtonTextActive: {
+    color: '#6366F1',
+  },
+  providerButtonTextTablet: {
     fontSize: 17,
   },
   scanningSection: {

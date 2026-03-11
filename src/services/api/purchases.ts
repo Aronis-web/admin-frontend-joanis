@@ -290,10 +290,14 @@ class PurchasesService {
    * Scan multiple documents using batch OCR (OPTIMIZED - 60-80% faster)
    * Processes up to 10 files in a single API call
    * React Native compatible - uses fetch internally for proper FormData handling
+   * @param files - Array of files to scan
+   * @param observaciones - Optional observations
+   * @param provider - OCR provider to use ('openai' or 'gemini')
    */
   async scanDocuments(
     files: Array<{ uri: string; filename: string; mimeType: string }>,
-    observaciones?: string
+    observaciones?: string,
+    provider: 'openai' | 'gemini' = 'openai'
   ): Promise<OcrScanResponse> {
     const formData = new FormData();
 
@@ -312,24 +316,39 @@ class PurchasesService {
       formData.append('observaciones', observaciones);
     }
 
+    // Select endpoint based on provider
+    const endpoint = provider === 'gemini'
+      ? `${this.basePath}/ocr/gemini/scan`
+      : `${this.basePath}/ocr/scan`;
+
     // ApiClient will automatically use fetch for FormData
     // DO NOT set Content-Type - fetch will handle it with proper boundary
-    return apiClient.post<OcrScanResponse>(`${this.basePath}/ocr/scan`, formData);
+    return apiClient.post<OcrScanResponse>(endpoint, formData);
   }
 
   /**
    * Scan documents sequentially (fallback for when batch processing times out)
    * Processes files one at a time with progress callback
+   * @param files - Array of files to scan
+   * @param observaciones - Optional observations
+   * @param onProgress - Progress callback
+   * @param provider - OCR provider to use ('openai' or 'gemini')
    */
   async scanDocumentsSequentially(
     files: Array<{ uri: string; filename: string; mimeType: string }>,
     observaciones?: string,
-    onProgress?: (current: number, total: number, filename: string) => void
+    onProgress?: (current: number, total: number, filename: string) => void,
+    provider: 'openai' | 'gemini' = 'openai'
   ): Promise<OcrScanResponse> {
     const allItems: any[] = [];
     let totalEstimado = 0;
     let archivosProcessados = 0;
     const observacionesArray: string[] = [];
+
+    // Select endpoint based on provider
+    const endpoint = provider === 'gemini'
+      ? `${this.basePath}/ocr/gemini/scan`
+      : `${this.basePath}/ocr/scan`;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -353,7 +372,7 @@ class PurchasesService {
         }
 
         const response = await apiClient.post<OcrScanResponse>(
-          `${this.basePath}/ocr/scan`,
+          endpoint,
           formData
         );
 
@@ -388,9 +407,9 @@ class PurchasesService {
    * Scan a single document (for backward compatibility)
    * @deprecated Use scanDocuments instead for better performance
    */
-  async scanDocument(uri: string, filename: string, mimeType: string): Promise<OcrScanResponse> {
+  async scanDocument(uri: string, filename: string, mimeType: string, provider: 'openai' | 'gemini' = 'openai'): Promise<OcrScanResponse> {
     // Use the new batch endpoint with a single file
-    return this.scanDocuments([{ uri, filename, mimeType }]);
+    return this.scanDocuments([{ uri, filename, mimeType }], undefined, provider);
   }
 
   // ============================================

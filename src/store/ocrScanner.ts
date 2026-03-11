@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export type OcrProvider = 'openai' | 'gemini';
+
 export interface OcrScannedFile {
   uri: string;
   name: string;
@@ -42,6 +44,7 @@ export interface ScanJob {
   purchaseId: string;
   files: OcrScannedFile[];
   observaciones?: string;
+  provider: OcrProvider; // OCR provider to use
   status: ScanJobStatus;
   progress: { current: number; total: number; filename: string } | null;
   startedAt?: number;
@@ -55,6 +58,7 @@ interface PurchaseFiles {
   [purchaseId: string]: {
     files: OcrScannedFile[];
     observaciones: string;
+    provider: OcrProvider; // Selected OCR provider
   };
 }
 
@@ -84,8 +88,10 @@ interface OcrScannerState {
   removeScannedFile: (purchaseId: string, index: number) => void;
   clearScannedFiles: (purchaseId: string) => void;
   setObservaciones: (purchaseId: string, observaciones: string) => void;
+  setOcrProvider: (purchaseId: string, provider: OcrProvider) => void;
   getScannedFiles: (purchaseId: string) => OcrScannedFile[];
   getObservaciones: (purchaseId: string) => string;
+  getOcrProvider: (purchaseId: string) => OcrProvider;
 
   // Actions - Manejo de productos escaneados
   addScannedProducts: (products: OcrScannedProduct[], purchaseId?: string) => void;
@@ -150,12 +156,14 @@ export const useOcrScannerStore = create<OcrScannerState>()(
         set((state) => {
           const currentFiles = state.purchaseFiles[purchaseId]?.files || [];
           const currentObs = state.purchaseFiles[purchaseId]?.observaciones || '';
+          const currentProvider = state.purchaseFiles[purchaseId]?.provider || 'openai';
           return {
             purchaseFiles: {
               ...state.purchaseFiles,
               [purchaseId]: {
                 files: [...currentFiles, ...files].slice(0, 10),
                 observaciones: currentObs,
+                provider: currentProvider,
               },
             },
           };
@@ -165,12 +173,14 @@ export const useOcrScannerStore = create<OcrScannerState>()(
         set((state) => {
           const currentFiles = state.purchaseFiles[purchaseId]?.files || [];
           const currentObs = state.purchaseFiles[purchaseId]?.observaciones || '';
+          const currentProvider = state.purchaseFiles[purchaseId]?.provider || 'openai';
           return {
             purchaseFiles: {
               ...state.purchaseFiles,
               [purchaseId]: {
                 files: currentFiles.filter((_, i) => i !== index),
                 observaciones: currentObs,
+                provider: currentProvider,
               },
             },
           };
@@ -179,12 +189,14 @@ export const useOcrScannerStore = create<OcrScannerState>()(
       clearScannedFiles: (purchaseId) =>
         set((state) => {
           const currentObs = state.purchaseFiles[purchaseId]?.observaciones || '';
+          const currentProvider = state.purchaseFiles[purchaseId]?.provider || 'openai';
           return {
             purchaseFiles: {
               ...state.purchaseFiles,
               [purchaseId]: {
                 files: [],
                 observaciones: currentObs,
+                provider: currentProvider,
               },
             },
           };
@@ -193,12 +205,30 @@ export const useOcrScannerStore = create<OcrScannerState>()(
       setObservaciones: (purchaseId, observaciones) =>
         set((state) => {
           const currentFiles = state.purchaseFiles[purchaseId]?.files || [];
+          const currentProvider = state.purchaseFiles[purchaseId]?.provider || 'openai';
           return {
             purchaseFiles: {
               ...state.purchaseFiles,
               [purchaseId]: {
                 files: currentFiles,
                 observaciones,
+                provider: currentProvider,
+              },
+            },
+          };
+        }),
+
+      setOcrProvider: (purchaseId, provider) =>
+        set((state) => {
+          const currentFiles = state.purchaseFiles[purchaseId]?.files || [];
+          const currentObs = state.purchaseFiles[purchaseId]?.observaciones || '';
+          return {
+            purchaseFiles: {
+              ...state.purchaseFiles,
+              [purchaseId]: {
+                files: currentFiles,
+                observaciones: currentObs,
+                provider,
               },
             },
           };
@@ -210,6 +240,10 @@ export const useOcrScannerStore = create<OcrScannerState>()(
 
       getObservaciones: (purchaseId) => {
         return get().purchaseFiles[purchaseId]?.observaciones || '';
+      },
+
+      getOcrProvider: (purchaseId) => {
+        return get().purchaseFiles[purchaseId]?.provider || 'openai';
       },
 
       // Actions - Productos escaneados
