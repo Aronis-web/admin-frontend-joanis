@@ -342,9 +342,22 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   };
 
   const getProductStock = (productId: string): number => {
-    // First, try to get stock from the product object itself (includes preliminaryStock)
-    const product = products.find((p) => p.id === productId);
+    // First, try to get stock from purchase products (when adding from purchase)
+    const purchaseProduct = purchaseProducts.find((p) => p.productId === productId);
+    if (purchaseProduct) {
+      // Purchase products have preliminaryStock or validatedStock
+      if (typeof purchaseProduct.preliminaryStock === 'number') {
+        console.log('✅ Using preliminaryStock from purchase product:', purchaseProduct.preliminaryStock);
+        return purchaseProduct.preliminaryStock;
+      }
+      if (typeof purchaseProduct.validatedStock === 'number') {
+        console.log('✅ Using validatedStock from purchase product:', purchaseProduct.validatedStock);
+        return purchaseProduct.validatedStock;
+      }
+    }
 
+    // Second, try to get stock from the product object itself (when adding from inventory)
+    const product = products.find((p) => p.id === productId);
     if (product) {
       // If product has stock structure from backend (v2 search), use it
       if (product.stock && typeof product.stock === 'object') {
