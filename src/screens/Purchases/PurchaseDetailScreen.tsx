@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { purchasesService, suppliersService, productsService } from '@/services/api';
+import { purchasesService, suppliersService } from '@/services/api';
+import productsApi from '@/services/api/products';
 import {
   Purchase,
   PurchaseProduct,
@@ -142,7 +143,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     if (product.productId) {
       setLoadingProductPhotos(true);
       try {
-        const productDetail = await productsService.getProduct(product.productId);
+        const productDetail = await productsApi.getProduct(product.productId);
         if (productDetail.photos && productDetail.photos.length > 0) {
           setProductPhotos(productDetail.photos);
           console.log('📷 Product photos loaded:', productDetail.photos);
@@ -1236,6 +1237,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           product={selectedProductForInfo}
           onClose={handleCloseInfoModal}
           isTablet={isTablet}
+          productPhotos={productPhotos}
+          loadingProductPhotos={loadingProductPhotos}
         />
       )}
 
@@ -1259,6 +1262,8 @@ interface ProductInfoModalProps {
   product: PurchaseProduct;
   onClose: () => void;
   isTablet: boolean;
+  productPhotos: string[];
+  loadingProductPhotos: boolean;
 }
 
 const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
@@ -1266,6 +1271,8 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
   product,
   onClose,
   isTablet,
+  productPhotos,
+  loadingProductPhotos,
 }) => {
   const formatCurrency = (cents: number) => {
     return `S/ ${(cents / 100).toFixed(2)}`;
