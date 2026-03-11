@@ -97,15 +97,18 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       fetchPriceProfiles();
       fetchProductImage(); // Cargar imagen en segundo plano
       // Initialize cost value
-      if (productDetails?.costCents !== undefined) {
+      if (productDetails?.costCents !== undefined && productDetails.costCents !== null) {
         setCostValue((productDetails.costCents / 100).toFixed(2));
+      } else {
+        // If costCents is not available, set to 0
+        setCostValue('0.00');
       }
       // Initialize quantity value
       if (campaignProduct?.totalQuantityBase !== undefined) {
         setQuantityValue(campaignProduct.totalQuantityBase.toString());
       }
     }
-  }, [visible, campaignProduct?.productId, hideStockAndDistribution]); // Removed productDetails?.costCents and campaignProduct?.totalQuantityBase to prevent infinite loops
+  }, [visible, campaignProduct?.productId, hideStockAndDistribution, productDetails?.costCents]); // Added productDetails?.costCents to update when it changes
 
   // Update form values when productDetails or campaignProduct changes (without fetching)
   useEffect(() => {
@@ -539,6 +542,17 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       }, 3000);
 
       setEditingCost(false);
+
+      // Update local productDetails with new cost
+      if (productDetails) {
+        // Create a new object with updated costCents
+        const updatedDetails = {
+          ...productDetails,
+          costCents: costCents,
+        };
+        // Force re-render by updating the cost value display
+        setCostValue((costCents / 100).toFixed(2));
+      }
 
       // Get updated product and pass it to parent
       if (onRefresh && campaignProduct?.campaignId) {

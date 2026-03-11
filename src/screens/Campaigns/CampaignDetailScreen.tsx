@@ -591,6 +591,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // Fetch full product details to get costCents and other info
       const fullProductDetails = await productsApi.getProduct(product.id);
       console.log('📦 Full product details:', fullProductDetails);
+      console.log('💰 Cost from API:', fullProductDetails.costCents);
 
       // Create a mock campaign product structure for the banner modal
       const mockCampaignProduct = {
@@ -599,7 +600,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         totalQuantityBase: 0, // No quantity yet since it's not added to campaign
         productStatus: product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE,
         distributionGenerated: false,
-        product: product,
+        product: fullProductDetails, // Use fullProductDetails instead of product to ensure we have costCents
       };
 
       setSelectedProductForBannerSearch(mockCampaignProduct);
@@ -2432,6 +2433,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                             isAlreadyAdded && styles.globalSearchItemDisabled,
                           ]}
                         >
+                          {/* Banner button - Left side */}
+                          <TouchableOpacity
+                            style={styles.globalSearchBannerButtonLeft}
+                            onPress={() => handleOpenBannerFromSearch(product)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.globalSearchBannerButtonLeftText}>📋</Text>
+                          </TouchableOpacity>
+
                           {product.photos && product.photos.length > 0 ? (
                             <Image
                               source={{ uri: product.photos[0] }}
@@ -2487,34 +2497,24 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               </Text>
                             </View>
                           </View>
-                          <View style={styles.globalSearchActions}>
-                            {!isAlreadyAdded && stockInfo.available > 0 && (
-                              <>
-                                <TouchableOpacity
-                                  style={styles.globalSearchActionButton}
-                                  onPress={() => handleQuickAddProduct(product)}
-                                  disabled={addingQuickProduct}
-                                >
-                                  <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                  style={styles.globalSearchActionButtonSecondary}
-                                  onPress={() => handleOpenCustomAddModal(product)}
-                                  disabled={addingQuickProduct}
-                                >
-                                  <Text style={styles.globalSearchActionButtonSecondaryText}>⚙️ Personalizado</Text>
-                                </TouchableOpacity>
-                              </>
-                            )}
-                            {/* Banner button - Always show, even with 0 stock */}
-                            <TouchableOpacity
-                              style={styles.globalSearchBannerButton}
-                              onPress={() => handleOpenBannerFromSearch(product)}
-                              activeOpacity={0.7}
-                            >
-                              <Text style={styles.globalSearchBannerButtonText}>📋 Banner</Text>
-                            </TouchableOpacity>
-                          </View>
+                          {!isAlreadyAdded && stockInfo.available > 0 && (
+                            <View style={styles.globalSearchActions}>
+                              <TouchableOpacity
+                                style={styles.globalSearchActionButton}
+                                onPress={() => handleQuickAddProduct(product)}
+                                disabled={addingQuickProduct}
+                              >
+                                <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.globalSearchActionButtonSecondary}
+                                onPress={() => handleOpenCustomAddModal(product)}
+                                disabled={addingQuickProduct}
+                              >
+                                <Text style={styles.globalSearchActionButtonSecondaryText}>⚙️ Personalizado</Text>
+                              </TouchableOpacity>
+                            </View>
+                          )}
                         </View>
                       );
                     })}
@@ -4073,18 +4073,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6366F1',
   },
-  globalSearchBannerButton: {
+  globalSearchBannerButtonLeft: {
     backgroundColor: '#8B5CF6',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 4,
+    justifyContent: 'center',
+    marginRight: 8,
   },
-  globalSearchBannerButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  globalSearchBannerButtonLeftText: {
+    fontSize: 20,
   },
   stockAvailable: {
     color: '#10B981',
