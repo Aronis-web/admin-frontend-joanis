@@ -2236,87 +2236,85 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             )}
           </View>
 
-          {/* Search bar */}
-          {campaign.products && campaign.products.length > 0 && (
-            <>
-              <View style={styles.searchContainer}>
-                <TextInput
-                  style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-                  placeholder="Buscar por nombre, SKU o cantidad..."
-                  value={searchQuery}
-                  onChangeText={handleSearchQueryChange}
-                  placeholderTextColor="#94A3B8"
-                />
-                {searchQuery.length > 0 && (
-                  <TouchableOpacity
-                    style={styles.clearSearchButton}
-                    onPress={() => {
-                      setSearchQuery('');
-                      setGlobalSearchResults([]);
-                      setShowGlobalSearchSuggestions(false);
-                    }}
-                  >
-                    <Text style={styles.clearSearchText}>✕</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+          {/* Search bar - Always visible to provide product recommendations */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+              placeholder="Buscar por nombre, SKU o cantidad..."
+              value={searchQuery}
+              onChangeText={handleSearchQueryChange}
+              placeholderTextColor="#94A3B8"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearSearchButton}
+                onPress={() => {
+                  setSearchQuery('');
+                  setGlobalSearchResults([]);
+                  setShowGlobalSearchSuggestions(false);
+                }}
+              >
+                <Text style={styles.clearSearchText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-              {/* Distribution filter */}
-              <View style={styles.filterContainer}>
-                <Text style={styles.filterLabel}>Reparto:</Text>
-                <View style={styles.filterButtons}>
-                  <TouchableOpacity
+          {/* Distribution filter - Only show when there are products */}
+          {campaign.products && campaign.products.length > 0 && (
+            <View style={styles.filterContainer}>
+              <Text style={styles.filterLabel}>Reparto:</Text>
+              <View style={styles.filterButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    distributionFilter === 'all' && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setDistributionFilter('all')}
+                >
+                  <Text
                     style={[
-                      styles.filterButton,
-                      distributionFilter === 'all' && styles.filterButtonActive,
+                      styles.filterButtonText,
+                      distributionFilter === 'all' && styles.filterButtonTextActive,
                     ]}
-                    onPress={() => setDistributionFilter('all')}
                   >
-                    <Text
-                      style={[
-                        styles.filterButtonText,
-                        distributionFilter === 'all' && styles.filterButtonTextActive,
-                      ]}
-                    >
-                      Todos ({campaign.products.length})
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
+                    Todos ({campaign.products.length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    distributionFilter === 'generated' && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setDistributionFilter('generated')}
+                >
+                  <Text
                     style={[
-                      styles.filterButton,
-                      distributionFilter === 'generated' && styles.filterButtonActive,
+                      styles.filterButtonText,
+                      distributionFilter === 'generated' && styles.filterButtonTextActive,
                     ]}
-                    onPress={() => setDistributionFilter('generated')}
                   >
-                    <Text
-                      style={[
-                        styles.filterButtonText,
-                        distributionFilter === 'generated' && styles.filterButtonTextActive,
-                      ]}
-                    >
-                      ✔ Generado ({campaign.products.filter((p) => p.distributionGenerated).length})
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
+                    ✔ Generado ({campaign.products.filter((p) => p.distributionGenerated).length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    distributionFilter === 'not-generated' && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setDistributionFilter('not-generated')}
+                >
+                  <Text
                     style={[
-                      styles.filterButton,
-                      distributionFilter === 'not-generated' && styles.filterButtonActive,
+                      styles.filterButtonText,
+                      distributionFilter === 'not-generated' && styles.filterButtonTextActive,
                     ]}
-                    onPress={() => setDistributionFilter('not-generated')}
                   >
-                    <Text
-                      style={[
-                        styles.filterButtonText,
-                        distributionFilter === 'not-generated' && styles.filterButtonTextActive,
-                      ]}
-                    >
-                      ✕ Sin generar (
-                      {campaign.products.filter((p) => !p.distributionGenerated).length})
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                    ✕ Sin generar (
+                    {campaign.products.filter((p) => !p.distributionGenerated).length})
+                  </Text>
+                </TouchableOpacity>
               </View>
-            </>
+            </View>
           )}
 
           {!campaign.products || campaign.products.length === 0 ? (
