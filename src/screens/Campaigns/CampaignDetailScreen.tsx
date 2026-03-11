@@ -46,6 +46,7 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
 import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
 import { BulkDistributionModal } from '@/components/Campaigns/BulkDistributionModal';
+import { CopyParticipantsModal } from '@/components/Campaigns/CopyParticipantsModal';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { PERMISSIONS } from '@/constants/permissions';
@@ -110,6 +111,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const hasLoadedRef = useRef(false);
   const [isBulkUpdateModalVisible, setIsBulkUpdateModalVisible] = useState(false);
   const [isBulkDistributionModalVisible, setIsBulkDistributionModalVisible] = useState(false);
+  const [isCopyParticipantsModalVisible, setIsCopyParticipantsModalVisible] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
 
@@ -1168,6 +1170,59 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
   }, [campaignId, handleCopyParticipantsFromCampaign]);
 
+  const handleDeleteAllParticipants = useCallback(async () => {
+    if (!campaign || !campaign.participants || campaign.participants.length === 0) {
+      Alert.alert('Sin participantes', 'No hay participantes para eliminar');
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar Todos los Participantes',
+      `¿Estás seguro de eliminar los ${campaign.participants.length} participante(s)? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar Todos',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setActionLoading(true);
+              logger.info('🗑️ Eliminando todos los participantes...');
+
+              let successCount = 0;
+              let errorCount = 0;
+
+              for (const participant of campaign.participants) {
+                try {
+                  await campaignsService.deleteParticipant(campaignId, participant.id);
+                  successCount++;
+                } catch (error) {
+                  errorCount++;
+                  logger.error('Error deleting participant:', error);
+                }
+              }
+
+              if (successCount > 0) {
+                Alert.alert(
+                  'Éxito',
+                  `Se eliminaron ${successCount} participante(s)${errorCount > 0 ? `. ${errorCount} fallaron.` : ''}`,
+                  [{ text: 'OK', onPress: () => loadCampaign() }]
+                );
+              } else {
+                Alert.alert('Error', 'No se pudo eliminar ningún participante');
+              }
+            } catch (error: any) {
+              logger.error('Error deleting participants:', error);
+              Alert.alert('Error', error.message || 'No se pudieron eliminar los participantes');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [campaign, campaignId, loadCampaign]);
+
   const renderParticipants = () => {
     if (!campaign) {
       return null;
@@ -1190,9 +1245,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             {(campaign.status === CampaignStatus.DRAFT ||
               campaign.status === CampaignStatus.ACTIVE) && (
               <View style={styles.headerButtons}>
+                {campaign.participants && campaign.participants.length > 0 && (
+                  <TouchableOpacity
+                    style={[styles.deleteAllButton, isTablet && styles.deleteAllButtonTablet]}
+                    onPress={handleDeleteAllParticipants}
+                  >
+                    <Text style={[styles.deleteAllButtonText, isTablet && styles.deleteAllButtonTextTablet]}>
+                      ≡ƒòÅ´∏è Eliminar Todos
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={[styles.copyButton, isTablet && styles.copyButtonTablet]}
-                  onPress={handleOpenCopyParticipantsModal}
+                  onPress={() => setIsCopyParticipantsModalVisible(true)}
                 >
                   <Text style={[styles.copyButtonText, isTablet && styles.copyButtonTextTablet]}>
                     ≡ƒôï Copiar
@@ -1323,6 +1388,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               const participantTotal = participantTotals?.participants.find(
                 (p) => p.participantId === participant.id
               );
+
+              // Debug: Log participant data to identify the issue
+              if (participant.participantType === 'EXTERNAL_COMPANY') {
+                logger.debug(`Participant ${participant.id}:`, {
+                  companyId: participant.companyId,
+                  embeddedCompany: participant.company,
+                  mapCompany: companies[participant.companyId!],
+                });
+              } else {
+                logger.debug(`Participant ${participant.id}:`, {
+                  siteId: participant.siteId,
+                  embeddedSite: participant.site,
+                  mapSite: sites[participant.siteId!],
+                });
+              }
 
               return (
                 <View
@@ -2633,22 +2713,6 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           }
           onClose={handleCloseBanner}
           onRefresh={handleRefreshProductFromBanner}
-          onOpenDistribution={
-            selectedProduct
-              ? () => {
-                  // Navigate to product detail and auto-open distribution
-                  handleCloseBanner();
-                  setTimeout(() => {
-                    navigation.navigate('CampaignProductDetail', {
-                      campaignId,
-                      productId: selectedProduct.id,
-                      fromCampaignDetail: true,
-                      openDistributionModal: true,
-                    });
-                  }, 100);
-                }
-              : undefined
-          }
         />
 
         {/* Bulk Update Modal */}
@@ -2670,6 +2734,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           onSuccess={() => {
             loadCampaign();
             setIsBulkDistributionModalVisible(false);
+          }}
+        />
+
+        {/* Copy Participants Modal */}
+        <CopyParticipantsModal
+          visible={isCopyParticipantsModalVisible}
+          currentCampaignId={campaignId}
+          onClose={() => setIsCopyParticipantsModalVisible(false)}
+          onSuccess={() => {
+            loadCampaign();
+            setIsCopyParticipantsModalVisible(false);
           }}
         />
 
@@ -3799,6 +3874,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   copyButtonTextTablet: {
+    fontSize: 14,
+  },
+  deleteAllButton: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  deleteAllButtonTablet: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  deleteAllButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  deleteAllButtonTextTablet: {
     fontSize: 14,
   },
   modalOverlay: {

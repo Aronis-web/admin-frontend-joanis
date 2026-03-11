@@ -1,0 +1,409 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Modal,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { campaignsService } from '@/services/api';
+import { Campaign } from '@/types/campaigns';
+import { logger } from '@/utils/logger';
+
+interface CopyParticipantsModalProps {
+  visible: boolean;
+  currentCampaignId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
+  visible,
+  currentCampaignId,
+  onClose,
+  onSuccess,
+}) => {
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      loadCampaigns();
+    }
+  }, [visible]);
+
+  const loadCampaigns = async () => {
+    try {
+      setLoading(true);
+      logger.info('📥 Cargando últimas campañas...');
+
+      // Get last 8 campaigns excluding the current one
+      const response = await campaignsService.getCampaigns({
+        limit: 9, // Get 9 to ensure we have 8 after filtering current
+        orderBy: 'createdAt',
+        orderDir: 'DESC',
+      });
+
+      // Filter out current campaign
+      const filteredCampaigns = response.data.filter(
+        (campaign) => campaign.id !== currentCampaignId
+      ).slice(0, 8); // Take only 8
+
+      setCampaigns(filteredCampaigns);
+      logger.info(`✅ Cargadas ${filteredCampaigns.length} campañas`);
+    } catch (error: any) {
+      logger.error('❌ Error al cargar campañas:', error);
+      Alert.alert('Error', 'No se pudieron cargar las campañas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyCampaign = async (sourceCampaignId: string) => {
+    try {
+      setCopying(true);
+      setSelectedCampaignId(sourceCampaignId);
+      logger.info('📋 Copiando participantes de campaña:', sourceCampaignId);
+
+      // Load full campaign with participants
+      const sourceCampaign = await campaignsService.getCampaign(sourceCampaignId);
+
+      if (!sourceCampaign.participants || sourceCampaign.participants.length === 0) {
+        Alert.alert('Sin participantes', 'La campaña seleccionada no tiene participantes para copiar');
+        return;
+      }
+
+      logger.info(`📋 Copiando ${sourceCampaign.participants.length} participantes...`);
+
+      // Add each participant to the current campaign
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const participant of sourceCampaign.participants) {
+        try {
+          const data: any = {
+            participantType: participant.participantType,
+            companyId: participant.companyId,
+            siteId: participant.siteId,
+            priceProfileId: participant.priceProfileId,
+            assignedAmountCents: participant.assignedAmountCents,
+          };
+
+          await campaignsService.addParticipant(currentCampaignId, data);
+          successCount++;
+        } catch (error: any) {
+          logger.error('❌ Error al copiar participante:', error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        Alert.alert(
+          'Éxito',
+          `Se copiaron ${successCount} participante(s) exitosamente${errorCount > 0 ? `. ${errorCount} fallaron.` : ''}`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                onSuccess();
+                onClose();
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'No se pudo copiar ningún participante');
+      }
+    } catch (error: any) {
+      logger.error('❌ Error al copiar participantes:', error);
+      Alert.alert('Error', error.message || 'No se pudieron copiar los participantes');
+    } finally {
+      setCopying(false);
+      setSelectedCampaignId(null);
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-PE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'DRAFT':
+        return '#94A3B8';
+      case 'ACTIVE':
+        return '#10B981';
+      case 'CLOSED':
+        return '#6366F1';
+      case 'CANCELLED':
+        return '#EF4444';
+      default:
+        return '#64748B';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'DRAFT':
+        return 'Borrador';
+      case 'ACTIVE':
+        return 'Activa';
+      case 'CLOSED':
+        return 'Cerrada';
+      case 'CANCELLED':
+        return 'Cancelada';
+      default:
+        return status;
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <View style={styles.modalContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>📋 Copiar Participantes</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Description */}
+          <Text style={styles.description}>
+            Selecciona una campaña para copiar sus participantes a la campaña actual.
+          </Text>
+
+          {/* Campaigns List */}
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6366F1" />
+                <Text style={styles.loadingText}>Cargando campañas...</Text>
+              </View>
+            ) : campaigns.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No hay campañas disponibles</Text>
+              </View>
+            ) : (
+              campaigns.map((campaign) => (
+                <TouchableOpacity
+                  key={campaign.id}
+                  style={[
+                    styles.campaignCard,
+                    copying && selectedCampaignId === campaign.id && styles.campaignCardDisabled,
+                  ]}
+                  onPress={() => handleCopyCampaign(campaign.id)}
+                  disabled={copying}
+                >
+                  <View style={styles.campaignHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.campaignCode}>{campaign.code}</Text>
+                      <Text style={styles.campaignName}>{campaign.name}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: getStatusColor(campaign.status) + '20' },
+                        { borderColor: getStatusColor(campaign.status) },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.statusText, { color: getStatusColor(campaign.status) }]}
+                      >
+                        {getStatusLabel(campaign.status)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.campaignInfo}>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Participantes:</Text>
+                      <Text style={styles.infoValue}>
+                        {campaign.participants?.length || 0}
+                      </Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Productos:</Text>
+                      <Text style={styles.infoValue}>{campaign.products?.length || 0}</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Creada:</Text>
+                      <Text style={styles.infoValue}>{formatDate(campaign.createdAt)}</Text>
+                    </View>
+                  </View>
+
+                  {copying && selectedCampaignId === campaign.id && (
+                    <View style={styles.copyingOverlay}>
+                      <ActivityIndicator size="small" color="#6366F1" />
+                      <Text style={styles.copyingText}>Copiando...</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 600,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    padding: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1E293B',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#64748B',
+    fontWeight: 'bold',
+  },
+  description: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748B',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontStyle: 'italic',
+  },
+  campaignCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  campaignCardDisabled: {
+    opacity: 0.6,
+  },
+  campaignHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  campaignCode: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  campaignName: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  campaignInfo: {
+    gap: 6,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  infoValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1E293B',
+  },
+  copyingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  copyingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+});
