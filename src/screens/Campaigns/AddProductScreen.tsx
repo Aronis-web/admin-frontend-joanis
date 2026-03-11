@@ -342,7 +342,24 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   };
 
   const getProductStock = (productId: string): number => {
-    // Filter stock items for this product
+    // First, try to get stock from the product object itself (includes preliminaryStock)
+    const product = products.find((p) => p.id === productId);
+
+    if (product) {
+      // If product has stock structure from backend (v2 search), use it
+      if (product.stock && typeof product.stock === 'object') {
+        console.log('✅ Using stock from product.stock:', product.stock);
+        return product.stock.available || 0;
+      }
+
+      // If product is preliminary, use preliminaryStock
+      if (product.status === 'preliminary' && typeof product.preliminaryStock === 'number') {
+        console.log('✅ Using preliminaryStock for preliminary product:', product.preliminaryStock);
+        return product.preliminaryStock;
+      }
+    }
+
+    // Fallback: Filter stock items for this product
     const productStockItems = stockItems.filter((item) => item.productId === productId);
 
     console.log('🔍 Getting stock for product:', {
@@ -594,7 +611,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                               stock > 0 ? styles.stockAvailable : styles.stockUnavailable,
                             ]}
                           >
-                            Stock: {stock}
+                            {isPreliminary ? 'Stock Preliminar: ' : 'Stock: '}{stock}
                           </Text>
                           <Text
                             style={[
@@ -629,7 +646,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           {selectedProduct && (
             <View style={[styles.stockInfo, isTablet && styles.stockInfoTablet]}>
               <Text style={[styles.stockLabel, isTablet && styles.stockLabelTablet]}>
-                Stock Disponible:
+                {selectedProduct.status === 'preliminary' ? 'Stock Preliminar:' : 'Stock Disponible:'}
               </Text>
               <Text
                 style={[
@@ -848,7 +865,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               )}
               <Text style={styles.productDetails}>
                 {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku}{' '}
-                | Stock Disponible: {getProductStock(product.productId)}
+                | {isPreliminary ? 'Stock Preliminar' : 'Stock Disponible'}: {getProductStock(product.productId)}
                 {product.product?.status === 'preliminary' && ' ⚠ Preliminar'}
               </Text>
             </View>
