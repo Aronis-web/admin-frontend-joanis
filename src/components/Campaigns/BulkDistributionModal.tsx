@@ -129,12 +129,26 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
       setIsUploading(true);
       setUploadResult(null);
 
-      // Fetch the file and convert to blob (works on both web and mobile)
       logger.info('📤 Subiendo archivo y generando repartos...');
-      const fetchResponse = await fetch(file.uri);
-      const fileBlob = await fetchResponse.blob();
 
-      const response = await campaignsService.uploadBulkDistribution(campaignId, fileBlob);
+      let fileToUpload: any;
+
+      if (Platform.OS === 'web') {
+        // Web: Convert to blob
+        const fetchResponse = await fetch(file.uri);
+        fileToUpload = await fetchResponse.blob();
+      } else {
+        // Mobile: Use file metadata object (React Native FormData format)
+        fileToUpload = {
+          uri: file.uri,
+          type: file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          name: file.name,
+        };
+      }
+
+      logger.info('📦 Archivo preparado para upload:', Platform.OS === 'web' ? 'blob' : fileToUpload);
+
+      const response = await campaignsService.uploadBulkDistribution(campaignId, fileToUpload);
 
       logger.info('✅ Respuesta del servidor:', response);
 
