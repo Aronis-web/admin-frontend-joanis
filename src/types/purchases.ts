@@ -170,6 +170,7 @@ export interface PurchaseProduct {
     title: string;
     sku: string;
     status: string;
+    photos?: string[]; // Fotos del producto del catálogo
     salePrices?: Array<{
       productId: string;
       presentationId: string;

@@ -1354,8 +1354,8 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                   isTablet={isTablet}
                 />
 
-                {/* Fotos del Producto */}
-                {product.productPhotos && product.productPhotos.length > 0 && (
+                {/* Fotos del Producto del Catálogo */}
+                {product.product?.photos && product.product.photos.length > 0 && (
                   <View style={modalStyles.photoSection}>
                     <Text
                       style={[
@@ -1363,14 +1363,14 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                         isTablet && modalStyles.photoLabelTablet,
                       ]}
                     >
-                      📷 Fotos del Producto ({product.productPhotos.length}):
+                      📷 Fotos del Producto ({product.product.photos.length}):
                     </Text>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
                       style={modalStyles.photosScroll}
                     >
-                      {product.productPhotos.map((photoUrl, photoIndex) => (
+                      {product.product.photos.map((photoUrl, photoIndex) => (
                         <Image
                           key={photoIndex}
                           source={{ uri: photoUrl }}
