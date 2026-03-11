@@ -1390,18 +1390,30 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               );
 
               // Debug: Log participant data to identify the issue
-              if (participant.participantType === 'EXTERNAL_COMPANY') {
-                logger.debug(`Participant ${participant.id}:`, {
-                  companyId: participant.companyId,
-                  embeddedCompany: participant.company,
-                  mapCompany: companies[participant.companyId!],
-                });
-              } else {
-                logger.debug(`Participant ${participant.id}:`, {
-                  siteId: participant.siteId,
-                  embeddedSite: participant.site,
-                  mapSite: sites[participant.siteId!],
-                });
+              logger.debug(`🔍 Participant ${participant.id}:`, {
+                participantId: participant.id,
+                participantType: participant.participantType,
+                companyId: participant.companyId,
+                siteId: participant.siteId,
+                embeddedCompany: participant.company,
+                embeddedSite: participant.site,
+                foundTotal: !!participantTotal,
+                totalData: participantTotal ? {
+                  participantId: participantTotal.participantId,
+                  totalPurchaseCents: participantTotal.totalPurchaseCents,
+                  totalSaleCents: participantTotal.totalSaleCents,
+                } : null,
+              });
+
+              // Debug: Log all available participant totals
+              if (participantTotals?.participants) {
+                logger.debug(`📊 Available participant totals (${participantTotals.participants.length}):`,
+                  participantTotals.participants.map(pt => ({
+                    participantId: pt.participantId,
+                    participantName: pt.participantName,
+                    totalPurchaseCents: pt.totalPurchaseCents,
+                  }))
+                );
               }
 
               return (
