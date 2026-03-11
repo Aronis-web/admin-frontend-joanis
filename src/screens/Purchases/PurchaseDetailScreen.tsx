@@ -87,9 +87,11 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         supplierName: purchaseData.supplier?.commercialName,
       });
 
-      // Debug: Log para verificar si vienen las validaciones
+      // Debug: Log para verificar si vienen las validaciones y fotos del producto
       if (productsData.length > 0) {
         console.log('🔍 First product validations:', productsData[0].validations);
+        console.log('🔍 First product.product object:', productsData[0].product);
+        console.log('🔍 First product.productPhotos:', productsData[0].productPhotos);
       }
 
       setPurchase(purchaseData);
