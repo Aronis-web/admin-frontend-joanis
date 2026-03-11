@@ -687,6 +687,38 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
         setLocalStockData(stockDetails);
         logger.debug('✅ [STOCK] Stock guardado en estado local:', stockDetails);
+      } else {
+        // Si no hay stock en inventario, intentar obtener stock preliminar de compras
+        logger.debug('⚠️ [STOCK] No hay stock en inventario, buscando stock preliminar...');
+
+        if (campaignProduct.sourceType === 'PURCHASE' && campaignProduct.purchaseId) {
+          try {
+            const purchaseProducts = await purchasesService.getPurchaseProducts(
+              campaignProduct.purchaseId,
+              { includeProductStatus: 'active,preliminary' }
+            );
+
+            const purchaseProduct = purchaseProducts.find(
+              (p) => p.productId === campaignProduct.productId
+            );
+
+            if (purchaseProduct && purchaseProduct.preliminaryStock) {
+              logger.debug('✅ [STOCK] Stock preliminar encontrado en compra:', purchaseProduct.preliminaryStock);
+
+              // Crear stockDetails con el stock preliminar
+              const stockDetails: StockDetailByWarehouse[] = [{
+                warehouse: purchaseProduct.warehouse?.name || 'Almacén de compra',
+                total: purchaseProduct.preliminaryStock,
+                reserved: 0,
+                available: purchaseProduct.preliminaryStock,
+              }];
+
+              setLocalStockData(stockDetails);
+            }
+          } catch (error) {
+            logger.error('❌ [STOCK] Error obteniendo stock preliminar de compra:', error);
+          }
+        }
       }
     } catch (error: any) {
       logger.error('❌ [STOCK] Error obteniendo stock del API:', error);
