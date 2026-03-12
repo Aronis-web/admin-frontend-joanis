@@ -28,6 +28,33 @@ import { PriceProfile } from '@/types/price-profiles';
 import { SaleType, DocumentType, CreateSaleItemRequest } from '@/types/sales';
 import logger from '@/utils/logger';
 
+// Catálogo 07 - Tipo de Afectación del IGV
+const CODIGO_AFECTACION_IGV = {
+  GRAVADO_ONEROSA: '10', // Gravado - Operación Onerosa (con IGV)
+  GRAVADO_RETIRO_PREMIO: '11', // Gravado - Retiro por premio
+  GRAVADO_RETIRO_DONACION: '12', // Gravado - Retiro por donación
+  GRAVADO_RETIRO: '13', // Gravado - Retiro
+  GRAVADO_RETIRO_PUBLICIDAD: '14', // Gravado - Retiro por publicidad
+  GRAVADO_BONIFICACIONES: '15', // Gravado - Bonificaciones
+  GRAVADO_RETIRO_TRABAJADORES: '16', // Gravado - Retiro por entrega a trabajadores
+  GRAVADO_IVAP: '17', // Gravado - IVAP
+  EXONERADO_ONEROSA: '20', // Exonerado - Operación Onerosa (sin IGV - exonerado)
+  EXONERADO_TRANSFERENCIA_GRATUITA: '21', // Exonerado - Transferencia gratuita
+};
+
+const AFECTACION_IGV_OPTIONS = [
+  { value: '10', label: 'Gravado - Operación Onerosa (con IGV)', shortLabel: 'Gravado (IGV)' },
+  { value: '20', label: 'Exonerado - Operación Onerosa (sin IGV)', shortLabel: 'Exonerado' },
+  { value: '15', label: 'Gravado - Bonificaciones', shortLabel: 'Bonificación' },
+  { value: '21', label: 'Exonerado - Transferencia gratuita', shortLabel: 'Gratuito' },
+  { value: '11', label: 'Gravado - Retiro por premio', shortLabel: 'Premio' },
+  { value: '12', label: 'Gravado - Retiro por donación', shortLabel: 'Donación' },
+  { value: '13', label: 'Gravado - Retiro', shortLabel: 'Retiro' },
+  { value: '14', label: 'Gravado - Retiro por publicidad', shortLabel: 'Publicidad' },
+  { value: '16', label: 'Gravado - Retiro por entrega a trabajadores', shortLabel: 'Trabajadores' },
+  { value: '17', label: 'Gravado - IVAP', shortLabel: 'IVAP' },
+];
+
 interface SaleItem {
   product: Product;
   quantity: number;
@@ -38,6 +65,8 @@ interface SaleItem {
   warehouseId?: string;
   warehouseName?: string;
   selectedPresentationId?: string;
+  codigoAfectacionIgv: string; // Catálogo 07 - Tipo de Afectación del IGV
+  notes?: string;
 }
 
 export const CreateSaleScreen: React.FC = () => {
@@ -237,6 +266,8 @@ export const CreateSaleScreen: React.FC = () => {
         availableStock: totalStock,
         warehouseId: warehouseWithMostStock.warehouseId,
         warehouseName: warehouseWithMostStock.warehouse?.name || 'Almacén',
+        codigoAfectacionIgv: CODIGO_AFECTACION_IGV.GRAVADO_ONEROSA, // Por defecto: Gravado - Operación Onerosa
+        notes: '',
       };
 
       setItems([...items, newItem]);
@@ -271,6 +302,18 @@ export const CreateSaleScreen: React.FC = () => {
   const handleUpdateDiscount = (index: number, discountCents: number) => {
     const newItems = [...items];
     newItems[index].discountCents = discountCents;
+    setItems(newItems);
+  };
+
+  const handleUpdateCodigoAfectacionIgv = (index: number, codigo: string) => {
+    const newItems = [...items];
+    newItems[index].codigoAfectacionIgv = codigo;
+    setItems(newItems);
+  };
+
+  const handleUpdateItemNotes = (index: number, notes: string) => {
+    const newItems = [...items];
+    newItems[index].notes = notes;
     setItems(newItems);
   };
 
@@ -346,6 +389,8 @@ export const CreateSaleScreen: React.FC = () => {
         quantity: item.quantity,
         unitPriceCents: item.unitPriceCents,
         discountCents: item.discountCents,
+        codigoAfectacionIgv: item.codigoAfectacionIgv,
+        notes: item.notes || undefined,
       }));
 
       const saleData = {
@@ -820,6 +865,48 @@ export const CreateSaleScreen: React.FC = () => {
                     </View>
                   </View>
 
+                  {/* Tipo de Afectación IGV */}
+                  <View style={styles.afectacionIgvSection}>
+                    <Text style={styles.afectacionIgvLabel}>Tipo de Operación (IGV):</Text>
+                    <View style={styles.afectacionIgvButtons}>
+                      {AFECTACION_IGV_OPTIONS.map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            styles.afectacionIgvButton,
+                            item.codigoAfectacionIgv === option.value && styles.afectacionIgvButtonActive,
+                          ]}
+                          onPress={() => handleUpdateCodigoAfectacionIgv(index, option.value)}
+                        >
+                          <Text
+                            style={[
+                              styles.afectacionIgvButtonText,
+                              item.codigoAfectacionIgv === option.value && styles.afectacionIgvButtonTextActive,
+                            ]}
+                          >
+                            {option.shortLabel}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <Text style={styles.afectacionIgvHint}>
+                      {AFECTACION_IGV_OPTIONS.find(o => o.value === item.codigoAfectacionIgv)?.label || 'Selecciona el tipo de operación'}
+                    </Text>
+                  </View>
+
+                  {/* Notas del producto */}
+                  <View style={styles.itemNotesSection}>
+                    <Text style={styles.inputLabel}>Notas del producto (Opcional)</Text>
+                    <TextInput
+                      style={styles.itemNotesInput}
+                      value={item.notes || ''}
+                      onChangeText={(text) => handleUpdateItemNotes(index, text)}
+                      placeholder="Ej: Gravado - Operación Onerosa"
+                      placeholderTextColor="#999"
+                      multiline
+                    />
+                  </View>
+
                   <View style={styles.productTotal}>
                     <Text style={styles.productTotalLabel}>Subtotal:</Text>
                     <Text style={styles.productTotalValue}>
@@ -1204,6 +1291,63 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
+  },
+  afectacionIgvSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  afectacionIgvLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  afectacionIgvButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  afectacionIgvButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+  },
+  afectacionIgvButtonActive: {
+    borderColor: '#10B981',
+    backgroundColor: '#ECFDF5',
+  },
+  afectacionIgvButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#666',
+  },
+  afectacionIgvButtonTextActive: {
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  afectacionIgvHint: {
+    fontSize: 11,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  itemNotesSection: {
+    marginTop: 12,
+  },
+  itemNotesInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 13,
+    backgroundColor: '#fff',
+    minHeight: 40,
+    textAlignVertical: 'top',
   },
   notesInput: {
     borderWidth: 1,

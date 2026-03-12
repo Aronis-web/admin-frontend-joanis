@@ -255,6 +255,8 @@ export interface CreateSaleItemRequest {
   quantity: number;
   unitPriceCents: number;
   discountCents?: number;
+  codigoAfectacionIgv?: string; // Catálogo 07 - Tipo de Afectación del IGV
+  notes?: string;
 }
 
 /**
