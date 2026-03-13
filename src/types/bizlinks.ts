@@ -13,6 +13,7 @@ export enum BizlinksDocumentType {
   GUIA_REMISION_TRANSPORTISTA = '31',
   RETENCION = '20',
   PERCEPCION = '40',
+  REVERSION_RETENCION = 'RR', // Reversión de Retención
 }
 
 export enum BizlinksStatusWs {
@@ -335,6 +336,136 @@ export interface DownloadArtifactsDto {
   downloadPdf?: boolean;
   downloadXml?: boolean;
   downloadCdr?: boolean;
+}
+
+// ==================== RETENCIONES ====================
+
+export interface ProveedorRetencionDto {
+  tipoDocumentoProveedor: '1' | '6'; // 1=DNI, 6=RUC
+  numeroDocumentoProveedor: string;
+  razonSocialProveedor: string;
+  nombreComercialProveedor?: string;
+  ubigeoProveedor?: string;
+  direccionProveedor?: string;
+  provinciaProveedor?: string;
+  departamentoProveedor?: string;
+  distritoProveedor?: string;
+  codigoPaisProveedor?: string;
+}
+
+export interface RetencionItemDto {
+  numeroOrdenItem: number;
+  tipoDocumentoRelacionado: '01' | '03' | '07' | '08';
+  numeroDocumentoRelacionado: string;
+  fechaEmisionDocumentoRelacionado: string;
+  importeTotalDocumentoRelacionado?: number;
+  tipoMonedaDocumentoRelacionado?: 'PEN' | 'USD';
+  fechaPago: string;
+  numeroPago: number;
+  importePagoSinRetencion?: number;
+  monedaPago?: 'PEN' | 'USD';
+  importeRetenido?: number;
+  monedaImporteRetenido?: 'PEN' | 'USD';
+  fechaRetencion: string;
+  importeTotalPagarNeto?: number;
+  monedaMontoNetoPagado?: 'PEN' | 'USD';
+  // Opcionales (solo si hay conversión de moneda)
+  monedaReferenciaTipoCambio?: 'PEN' | 'USD';
+  monedaObjetivoTasaCambio?: 'PEN' | 'USD';
+  factorTipoCambioMoneda?: number;
+  fechaCambio?: string;
+}
+
+export interface CreateRetencionDto {
+  serieNumero: string;
+  fechaEmision: string;
+  rucEmisor: string;
+  razonSocialEmisor: string;
+  nombreComercialEmisor?: string;
+  ubigeoEmisor: string;
+  direccionEmisor: string;
+  provinciaEmisor: string;
+  departamentoEmisor: string;
+  distritoEmisor: string;
+  codigoPaisEmisor: string;
+  correoEmisor: string;
+  correoAdquiriente?: string;
+  proveedor: ProveedorRetencionDto;
+  regimenRetencion: '01' | '02' | '03'; // Catálogo 23
+  tasaRetencion: number;
+  observaciones?: string;
+  importeTotalRetenido: number;
+  tipoMonedaTotalRetenido: 'PEN' | 'USD';
+  importeTotalPagado: number;
+  tipoMonedaTotalPagado: 'PEN' | 'USD';
+  items: RetencionItemDto[];
+}
+
+export interface Retencion {
+  id: string;
+  companyId: string;
+  siteId: string;
+  rucEmisor: string;
+  documentType: '20';
+  serie: string;
+  numero: string;
+  serieNumero: string;
+  fechaEmision: string;
+  proveedor?: ProveedorRetencionDto;
+  // Campos alternativos cuando proveedor no viene como objeto
+  numeroDocumentoProveedor?: string;
+  tipoDocumentoProveedor?: string;
+  razonSocialProveedor?: string;
+  nombreComercialProveedor?: string;
+  direccionProveedor?: string;
+  ubigeoProveedor?: string;
+  departamentoProveedor?: string;
+  provinciaProveedor?: string;
+  distritoProveedor?: string;
+  codigoPaisProveedor?: string;
+  regimenRetencion?: string;
+  tasaRetencion?: number;
+  importeTotalRetenido?: number;
+  importeTotalPagado?: number;
+  tipoMoneda?: 'PEN' | 'USD';
+  items?: RetencionItemDto[];
+  status: 'QUEUED' | 'SENDING' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'ERROR' | 'COMPLETED' | 'DOWNLOAD_FAILED';
+  statusWs?: BizlinksStatusWs;
+  statusSunat?: BizlinksStatusSunat;
+  messageSunat?: BizlinksSunatMessage;
+  hashCode?: string;
+  pdfUrl?: string;
+  xmlSignUrl?: string;
+  xmlSunatUrl?: string;
+  observaciones?: string;
+  payloadXml?: string;
+  // Campos de reversión
+  isReversed?: boolean;
+  reversedByDocumentId?: string;
+  reversedBySerieNumero?: string;
+  reversedAt?: string;
+  reversedByUserId?: string;
+  reversalReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetRetencionesParams {
+  page?: number;
+  limit?: number;
+  companyId?: string;
+  siteId?: string;
+  status?: string;
+  statusWs?: string;
+  serie?: string;
+  fechaDesde?: string;
+  fechaHasta?: string;
+  numeroDocumentoProveedor?: string;
+}
+
+export interface RevertirRetencionDto {
+  motivoReversion: string;
+  serieReversion?: string;
 }
 
 // ==================== RESPONSE INTERFACES ====================

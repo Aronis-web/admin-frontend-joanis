@@ -283,20 +283,28 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
-  // Generar Documentos (Bizlinks)
+  // Contaduría
   {
-    id: 'generate-documents',
-    title: 'Generar Documentos',
-    icon: '📝',
-    color: '#10B981',
+    id: 'accounting',
+    title: 'Contaduría',
+    icon: '📊',
+    color: '#8B5CF6',
     items: [
       {
-        id: 'bizlinks-generate',
+        id: 'generate-documents-accounting',
         icon: '📝',
         label: 'Generar Documentos',
         route: MAIN_ROUTES.BIZLINKS_DOCUMENTS,
         color: '#10B981',
-        requiredPermissions: ['bizlinks.documents.send'],
+        requiredPermissions: ['bizlinks.documents.view', 'bizlinks.documents.send'],
+      },
+      {
+        id: 'retenciones',
+        icon: '📋',
+        label: 'Retenciones',
+        route: MAIN_ROUTES.RETENCIONES,
+        color: '#8B5CF6',
+        requiredPermissions: ['bizlinks.documents.view', 'bizlinks.documents.send'],
       },
     ],
   },

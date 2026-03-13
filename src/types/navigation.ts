@@ -294,6 +294,13 @@ export type MainStackParamList = {
     documentType?: string;
   };
 
+  // Retenciones
+  Retenciones: undefined;
+  RetencionDetail: {
+    retencionId: string;
+  };
+  CreateRetencion: undefined;
+
   // Transport
   Vehicles: undefined;
   VehicleDetail: {

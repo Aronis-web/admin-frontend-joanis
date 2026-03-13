@@ -175,6 +175,11 @@ const BizlinksDocumentDetailScreen = lazyLoad(() => import('@/screens/Bizlinks')
 const BizlinksSelectSeriesScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksSelectSeriesScreen })), 'Cargando series...');
 const BizlinksEmitirFacturaScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksEmitirFacturaScreen })), 'Cargando formulario...');
 
+// Retenciones Screens - Lazy Loaded
+const RetencionesScreen = lazyLoad(() => import('@/screens/Retenciones').then(m => ({ default: m.RetencionesScreen })), 'Cargando retenciones...');
+const RetencionDetailScreen = lazyLoad(() => import('@/screens/Retenciones').then(m => ({ default: m.RetencionDetailScreen })), 'Cargando detalle...');
+const CreateRetencionScreen = lazyLoad(() => import('@/screens/Retenciones').then(m => ({ default: m.CreateRetencionScreen })), 'Cargando formulario...');
+
 // Transport Screens - Lazy Loaded
 const VehiclesScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.VehiclesScreen })), 'Cargando vehículos...');
 const DriversScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.DriversScreen })), 'Cargando conductores...');
@@ -1471,6 +1476,50 @@ const MainStack = React.memo(() => {
             requiredPermissions={['bizlinks.documents.send']}
           >
             <BizlinksEmitirFacturaScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Retenciones Screens */}
+      <MainStackNavigator.Screen
+        name="Retenciones"
+        options={{
+          title: 'Retenciones',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.retenciones.read']}
+          >
+            <RetencionesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="RetencionDetail"
+        options={{
+          title: 'Detalle de Retención',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.retenciones.read']}
+          >
+            <RetencionDetailScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="CreateRetencion"
+        options={{
+          title: 'Nueva Retención',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['bizlinks.retenciones.create']}
+          >
+            <CreateRetencionScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

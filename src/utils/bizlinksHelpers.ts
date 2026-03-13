@@ -84,6 +84,7 @@ export const getDocumentTypeLabel = (type: BizlinksDocumentType): string => {
     [BizlinksDocumentType.GUIA_REMISION_TRANSPORTISTA]: 'Guía de Remisión Transportista',
     [BizlinksDocumentType.RETENCION]: 'Retención',
     [BizlinksDocumentType.PERCEPCION]: 'Percepción',
+    [BizlinksDocumentType.REVERSION_RETENCION]: 'Reversión de Retención',
   };
 
   return labels[type] || type;
@@ -99,6 +100,7 @@ export const getDocumentTypeShortLabel = (type: BizlinksDocumentType): string =>
     [BizlinksDocumentType.GUIA_REMISION_TRANSPORTISTA]: 'G. Transportista',
     [BizlinksDocumentType.RETENCION]: 'Retención',
     [BizlinksDocumentType.PERCEPCION]: 'Percepción',
+    [BizlinksDocumentType.REVERSION_RETENCION]: 'Rev. Retención',
   };
 
   return labels[type] || type;
@@ -220,6 +222,7 @@ export const validateSerieFormat = (serie: string, documentType: BizlinksDocumen
     [BizlinksDocumentType.GUIA_REMISION_TRANSPORTISTA]: ['T'],
     [BizlinksDocumentType.RETENCION]: ['R'],
     [BizlinksDocumentType.PERCEPCION]: ['P'],
+    [BizlinksDocumentType.REVERSION_RETENCION]: ['RR'],
   };
 
   const validPrefixes = prefixes[documentType] || [];

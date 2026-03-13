@@ -27,26 +27,42 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  console.log('🎯 CopyParticipantsModal render - visible:', visible, 'currentCampaignId:', currentCampaignId);
+
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignTotals, setCampaignTotals] = useState<Record<string, ParticipantTotalsResponse>>({});
   const [loading, setLoading] = useState(false);
   const [copying, setCopying] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
+  console.log('📊 State - campaigns:', campaigns.length, 'loading:', loading, 'campaignTotals:', Object.keys(campaignTotals).length);
+
   useEffect(() => {
+    logger.info(`🔔 Modal visibility changed: ${visible}, currentCampaignId: ${currentCampaignId}`);
     if (visible) {
+      logger.info('🚀 Modal opened, loading campaigns...');
+      // Load campaigns without resetting state first
       loadCampaigns();
+    } else {
+      logger.info('🚪 Modal closed, resetting state...');
+      setCampaigns([]);
+      setCampaignTotals({});
+      setSelectedCampaignId(null);
     }
-  }, [visible]);
+  }, [visible, currentCampaignId]);
 
   const loadCampaigns = async () => {
     try {
+      // Reset state at the beginning of load
+      setCampaigns([]);
+      setCampaignTotals({});
+      setSelectedCampaignId(null);
       setLoading(true);
       logger.info('📥 Cargando últimas campañas...');
 
-      // Get last 8 campaigns excluding the current one
+      // Get last 10 campaigns excluding the current one
       const response = await campaignsService.getCampaigns({
-        limit: 9, // Get 9 to ensure we have 8 after filtering current
+        limit: 10, // Get 10 to ensure we have 5 after filtering current
         orderBy: 'createdAt',
         orderDir: 'DESC',
       });
@@ -54,24 +70,26 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
       // Filter out current campaign
       const filteredCampaigns = response.data.filter(
         (campaign) => campaign.id !== currentCampaignId
-      ).slice(0, 8); // Take only 8
+      ).slice(0, 5); // Take only 5
 
-      setCampaigns(filteredCampaigns);
       logger.info(`✅ Cargadas ${filteredCampaigns.length} campañas`);
+      logger.info(`📋 Campañas para mostrar:`, filteredCampaigns.map(c => ({ id: c.id, name: c.name, code: c.code })));
 
       // Load participant totals for each campaign
       const totalsMap: Record<string, ParticipantTotalsResponse> = {};
       for (const campaign of filteredCampaigns) {
-        if (campaign.participants && campaign.participants.length > 0) {
-          try {
-            const totals = await campaignsService.getParticipantTotals(campaign.id);
-            totalsMap[campaign.id] = totals;
-          } catch (error) {
-            logger.warn(`⚠️ No se pudieron cargar totales para campaña ${campaign.code}`);
-          }
+        try {
+          const totals = await campaignsService.getParticipantTotals(campaign.id);
+          totalsMap[campaign.id] = totals;
+        } catch (error) {
+          logger.warn(`⚠️ No se pudieron cargar totales para campaña ${campaign.code}`);
         }
       }
+
+      // Set both campaigns and totals together to ensure they render at the same time
+      setCampaigns(filteredCampaigns);
       setCampaignTotals(totalsMap);
+      logger.info(`✅ Estado actualizado con ${filteredCampaigns.length} campañas y ${Object.keys(totalsMap).length} totales`);
     } catch (error: any) {
       logger.error('❌ Error al cargar campañas:', error);
       Alert.alert('Error', 'No se pudieron cargar las campañas');
@@ -102,14 +120,19 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
 
       for (const participant of sourceCampaign.participants) {
         try {
+          // Convert assignedAmountCents to assignedAmount (cents to normal units)
+          const assignedAmount = participant.assignedAmountCents / 100;
+
           const data: any = {
             participantType: participant.participantType,
             companyId: participant.companyId,
             siteId: participant.siteId,
             priceProfileId: participant.priceProfileId,
-            assignedAmountCents: participant.assignedAmountCents,
+            assignedAmount: assignedAmount,
+            currency: participant.currency || 'PEN',
           };
 
+          logger.info(`📋 Copiando participante: ${participant.site?.name || participant.company?.name || 'N/A'} - Monto: ${assignedAmount}`);
           await campaignsService.addParticipant(currentCampaignId, data);
           successCount++;
         } catch (error: any) {
@@ -206,18 +229,36 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
           </Text>
 
           {/* Campaigns List */}
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6366F1" />
-                <Text style={styles.loadingText}>Cargando campañas...</Text>
-              </View>
-            ) : campaigns.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No hay campañas disponibles</Text>
-              </View>
-            ) : (
-              campaigns.map((campaign) => {
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollViewContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {(() => {
+              console.log('🔍 Render condition - loading:', loading, 'campaigns.length:', campaigns.length);
+              if (loading) {
+                console.log('📊 Rendering loading state');
+                return (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#6366F1" />
+                    <Text style={styles.loadingText}>Cargando campañas...</Text>
+                  </View>
+                );
+              } else if (campaigns.length === 0) {
+                console.log('📊 Rendering empty state');
+                return (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>📭 No hay campañas disponibles para copiar</Text>
+                  </View>
+                );
+              } else {
+                console.log('📊 Rendering campaigns list with', campaigns.length, 'campaigns');
+                return (
+                  <>
+                    <Text style={{ padding: 10, fontSize: 12, color: '#666' }}>
+                      Mostrando {campaigns.length} campañas
+                    </Text>
+                    {campaigns.map((campaign) => {
                 const totals = campaignTotals[campaign.id];
 
                 return (
@@ -252,14 +293,12 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
 
                     <View style={styles.campaignInfo}>
                       <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Participantes:</Text>
-                        <Text style={styles.infoValue}>
-                          {campaign.participants?.length || 0}
-                        </Text>
+                        <Text style={styles.infoLabel}>Inicio:</Text>
+                        <Text style={styles.infoValue}>{formatDate(campaign.startDate)}</Text>
                       </View>
                       <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Productos:</Text>
-                        <Text style={styles.infoValue}>{campaign.products?.length || 0}</Text>
+                        <Text style={styles.infoLabel}>Fin:</Text>
+                        <Text style={styles.infoValue}>{formatDate(campaign.endDate)}</Text>
                       </View>
                       <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Creada:</Text>
@@ -308,8 +347,11 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
                     )}
                   </TouchableOpacity>
                 );
-              })
-            )}
+              })}
+                  </>
+                );
+              }
+            })()}
           </ScrollView>
         </View>
       </View>
@@ -336,13 +378,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    padding: 20,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   title: {
     fontSize: 24,
@@ -367,9 +411,14 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginBottom: 16,
     lineHeight: 20,
+    paddingHorizontal: 20,
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   loadingContainer: {
     padding: 40,

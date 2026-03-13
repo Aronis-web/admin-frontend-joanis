@@ -10,6 +10,10 @@ import {
   GetBizlinksDocumentsParams,
   DownloadArtifactsDto,
   BizlinksTestConnectionResponse,
+  CreateRetencionDto,
+  Retencion,
+  GetRetencionesParams,
+  RevertirRetencionDto,
 } from '../../types/bizlinks';
 
 // ============================================
@@ -197,5 +201,57 @@ export const bizlinksApi = {
     distrito: string;
   }> => {
     return apiClient.get(`/bizlinks/utils/ubigeo/${code}`);
+  },
+
+  // ==================== RETENCIONES ====================
+
+  // Get all retenciones - GET /bizlinks/retenciones
+  getRetenciones: async (params?: GetRetencionesParams): Promise<Retencion[]> => {
+    return apiClient.get<Retencion[]>('/bizlinks/retenciones', { params });
+  },
+
+  // Get retencion by ID - GET /bizlinks/retenciones/:id
+  getRetencionById: async (id: string): Promise<Retencion> => {
+    return apiClient.get<Retencion>(`/bizlinks/retenciones/${id}`);
+  },
+
+  // Create retencion - POST /bizlinks/retenciones
+  createRetencion: async (data: CreateRetencionDto): Promise<Retencion> => {
+    return apiClient.post<Retencion>('/bizlinks/retenciones', data, {
+      timeout: 60000, // 60 segundos para emisión de retenciones
+    });
+  },
+
+  // Refresh retencion status - POST /bizlinks/retenciones/:id/refresh
+  refreshRetencionStatus: async (id: string): Promise<Retencion> => {
+    return apiClient.post<Retencion>(`/bizlinks/retenciones/${id}/refresh`);
+  },
+
+  // Download retencion PDF - GET /bizlinks/retenciones/:id/pdf
+  downloadRetencionPDF: async (id: string): Promise<Blob> => {
+    return apiClient.get<Blob>(`/bizlinks/retenciones/${id}/pdf`, {
+      responseType: 'blob',
+    });
+  },
+
+  // Download retencion XML - GET /bizlinks/retenciones/:id/xml
+  downloadRetencionXML: async (id: string): Promise<Blob> => {
+    return apiClient.get<Blob>(`/bizlinks/retenciones/${id}/xml`, {
+      responseType: 'blob',
+    });
+  },
+
+  // Download retencion CDR - GET /bizlinks/retenciones/:id/cdr
+  downloadRetencionCDR: async (id: string): Promise<Blob> => {
+    return apiClient.get<Blob>(`/bizlinks/retenciones/${id}/cdr`, {
+      responseType: 'blob',
+    });
+  },
+
+  // Revertir (anular) retención - PATCH /bizlinks/retenciones/:id/revertir
+  revertirRetencion: async (id: string, data: RevertirRetencionDto): Promise<Retencion> => {
+    return apiClient.patch<Retencion>(`/bizlinks/retenciones/${id}/revertir`, data, {
+      timeout: 60000, // 60 segundos para reversión
+    });
   },
 };

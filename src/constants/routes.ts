@@ -136,6 +136,12 @@ export const MAIN_ROUTES = {
   BIZLINKS_DOCUMENTS: 'BizlinksDocuments',
   BIZLINKS_DOCUMENT_DETAIL: 'BizlinksDocumentDetail',
   BIZLINKS_EMITIR_FACTURA: 'BizlinksEmitirFactura',
+  BIZLINKS_SELECT_SERIES: 'BizlinksSelectSeries',
+
+  // Retenciones
+  RETENCIONES: 'Retenciones',
+  CREATE_RETENCION: 'CreateRetencion',
+  RETENCION_DETAIL: 'RetencionDetail',
 
   // Balances
   BALANCES: 'Balances',
@@ -326,6 +332,12 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   BIZLINKS_DOCUMENTS: 'bizlinks.documents.view',
   BIZLINKS_DOCUMENT_DETAIL: 'bizlinks.documents.view',
   BIZLINKS_EMITIR_FACTURA: 'bizlinks.documents.send',
+  BIZLINKS_SELECT_SERIES: 'bizlinks.documents.view',
+
+  // Retenciones
+  RETENCIONES: 'bizlinks.retenciones.read',
+  CREATE_RETENCION: 'bizlinks.retenciones.create',
+  RETENCION_DETAIL: 'bizlinks.retenciones.read',
 
   // Balances
   BALANCES: 'balances.read',
