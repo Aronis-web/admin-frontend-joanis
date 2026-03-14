@@ -113,10 +113,14 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
           console.log(`📸 Total productos en respuesta: ${batchResponse.products?.length || 0}`);
           const photosMap: Record<string, string[]> = {};
           batchResponse.products.forEach((product: Product) => {
-            console.log(`📸 Procesando producto ${product.id}: ${product.photos?.length || 0} fotos`);
-            if (product.photos && product.photos.length > 0) {
-              photosMap[product.id] = product.photos;
-              console.log(`📸 Fotos guardadas para ${product.id}:`, product.photos);
+            // ✅ El backend puede devolver 'photos' o 'photoUrls'
+            const productPhotos = (product as any).photos || (product as any).photoUrls || [];
+            console.log(`📸 Procesando producto ${product.id}: ${productPhotos.length} fotos`);
+            console.log(`📸   - product.photos:`, (product as any).photos);
+            console.log(`📸   - product.photoUrls:`, (product as any).photoUrls);
+            if (productPhotos.length > 0) {
+              photosMap[product.id] = productPhotos;
+              console.log(`📸 Fotos guardadas para ${product.id}:`, productPhotos);
             }
           });
           console.log(`✅ PhotosMap final:`, photosMap);

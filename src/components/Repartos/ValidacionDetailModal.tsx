@@ -102,12 +102,21 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
             console.log(`📸 Cargando fotos del producto ${data.repartoProducto.productId}...`);
             const batchResponse = await productsApi.getProductsByIds([data.repartoProducto.productId], true);
             console.log(`📸 Batch response:`, batchResponse);
-            if (batchResponse.products.length > 0 && batchResponse.products[0].photos) {
-              console.log(`📸 Fotos encontradas:`, batchResponse.products[0].photos);
-              setProductPhotos(batchResponse.products[0].photos);
-              console.log(`✅ Fotos del producto cargadas: ${batchResponse.products[0].photos.length}`);
+            if (batchResponse.products.length > 0) {
+              const product = batchResponse.products[0];
+              // ✅ El backend puede devolver 'photos' o 'photoUrls'
+              const productPhotos = (product as any).photos || (product as any).photoUrls || [];
+              console.log(`📸   - product.photos:`, (product as any).photos);
+              console.log(`📸   - product.photoUrls:`, (product as any).photoUrls);
+              console.log(`📸 Fotos encontradas:`, productPhotos);
+              if (productPhotos.length > 0) {
+                setProductPhotos(productPhotos);
+                console.log(`✅ Fotos del producto cargadas: ${productPhotos.length}`);
+              } else {
+                console.log('⚠️ No se encontraron fotos para el producto');
+              }
             } else {
-              console.log('⚠️ No se encontraron fotos para el producto');
+              console.log('⚠️ No se encontró el producto en la respuesta');
             }
           } catch (photoError: any) {
             console.error('❌ Error cargando fotos del producto:', photoError);
