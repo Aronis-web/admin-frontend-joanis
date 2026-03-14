@@ -412,93 +412,62 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             </View>
 
-            {/* Cuadre Section */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>📊 Análisis de Cuadre</Text>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Diferencia Efectivo:</Text>
-                <Text
-                  style={[
-                    styles.cardValue,
-                    cuadreData.cuadre.diferencia_efectivo !== 0 && styles.warningValue,
-                  ]}
-                >
-                  {formatCurrency(cuadreData.cuadre.diferencia_efectivo)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>% Diferencia Efectivo:</Text>
-                <Text
-                  style={[
-                    styles.cardValue,
-                    cuadreData.cuadre.porcentaje_diferencia_efectivo > 1 &&
-                      styles.warningValue,
-                  ]}
-                >
-                  {cuadreData.cuadre.porcentaje_diferencia_efectivo.toFixed(2)}%
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Diferencia Tarjeta:</Text>
-                <Text
-                  style={[
-                    styles.cardValue,
-                    cuadreData.cuadre.diferencia_tarjeta_bruto !== 0 && styles.warningValue,
-                  ]}
-                >
-                  {formatCurrency(cuadreData.cuadre.diferencia_tarjeta_bruto)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>% Diferencia Tarjeta:</Text>
-                <Text
-                  style={[
-                    styles.cardValue,
-                    cuadreData.cuadre.porcentaje_diferencia_tarjeta > 1 &&
-                      styles.warningValue,
-                  ]}
-                >
-                  {cuadreData.cuadre.porcentaje_diferencia_tarjeta.toFixed(2)}%
-                </Text>
-              </View>
-            </View>
-
             {/* Totales Section */}
             <View style={[styles.card, styles.totalesCard]}>
-              <Text style={styles.cardTitle}>💵 Totales</Text>
+              <Text style={styles.cardTitle}>💵 Resumen de Totales</Text>
+
               <View style={styles.cardRow}>
                 <Text style={styles.cardLabel}>Total Ventas:</Text>
                 <Text style={styles.cardValue}>
-                  {formatCurrency(cuadreData.totales.total_ventas)}
+                  {formatCurrency(cuadreData.ventas.total)}
+                </Text>
+              </View>
+              <View style={styles.cardRow}>
+                <Text style={styles.cardLabel}>Total Notas de Crédito:</Text>
+                <Text style={[styles.cardValue, styles.negativeValue]}>
+                  {formatCurrency(cuadreData.notas_credito.total)}
+                </Text>
+              </View>
+              <View style={styles.cardRow}>
+                <Text style={styles.cardLabel}>Total Izipay (Bruto):</Text>
+                <Text style={styles.cardValue}>
+                  {formatCurrency(cuadreData.izipay.bruto)}
                 </Text>
               </View>
               <View style={styles.cardRow}>
                 <Text style={styles.cardLabel}>Total Comisiones:</Text>
                 <Text style={[styles.cardValue, styles.negativeValue]}>
-                  -{formatCurrency(cuadreData.totales.total_comisiones)}
-                </Text>
-              </View>
-              <View style={[styles.cardRow, styles.cardRowTotal]}>
-                <Text style={styles.cardLabelBold}>Total a Pagar:</Text>
-                <Text style={styles.cardValueBold}>
-                  {formatCurrency(cuadreData.totales.total_a_pagar)}
+                  -{formatCurrency(cuadreData.izipay.comisiones)}
                 </Text>
               </View>
               <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Ingresos Neto:</Text>
+                <Text style={styles.cardLabel}>Total Prosegur:</Text>
                 <Text style={styles.cardValue}>
-                  {formatCurrency(cuadreData.totales.total_ingresos_neto)}
+                  {formatCurrency(cuadreData.prosegur.depositos)}
                 </Text>
               </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Diferencia Total:</Text>
+
+              <View style={[styles.cardRow, styles.cardRowTotal]}>
+                <Text style={styles.cardLabel}>Diferencia:</Text>
                 <Text
                   style={[
                     styles.cardValue,
-                    cuadreData.totales.diferencia_total !== 0 && styles.warningValue,
+                    (cuadreData.prosegur.depositos + cuadreData.izipay.bruto - cuadreData.ventas.total + cuadreData.notas_credito.total) !== 0 && styles.warningValue,
                   ]}
                 >
-                  {formatCurrency(cuadreData.totales.diferencia_total)}
+                  {formatCurrency(
+                    cuadreData.prosegur.depositos +
+                    cuadreData.izipay.bruto -
+                    cuadreData.ventas.total +
+                    cuadreData.notas_credito.total
+                  )}
+                </Text>
+              </View>
+
+              <View style={[styles.cardRow, styles.cardRowTotal]}>
+                <Text style={styles.cardLabelBold}>Total a Ingresar:</Text>
+                <Text style={styles.cardValueBold}>
+                  {formatCurrency(cuadreData.prosegur.depositos + cuadreData.izipay.neto)}
                 </Text>
               </View>
             </View>
