@@ -15,6 +15,7 @@ import { ValidacionSalida } from '@/types/repartos';
 import { repartosService, productsApi } from '@/services/api';
 import { Product } from '@/services/api/products';
 import logger from '@/utils/logger';
+import { ImageViewerModal } from '@/components/Expenses/ImageViewerModal';
 
 interface ValidacionDetailModalProps {
   visible: boolean;
@@ -34,6 +35,8 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
   const [validacion, setValidacion] = useState<ValidacionSalida | null>(validacionProp || null);
   const [loading, setLoading] = useState(false);
   const [productPhotos, setProductPhotos] = useState<string[]>([]);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   // Fetch validation data when modal opens with repartoProductoId
   useEffect(() => {
@@ -304,7 +307,14 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                     <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
                       Foto del Producto
                     </Text>
-                    <View style={styles.imageContainer}>
+                    <TouchableOpacity
+                      style={styles.imageContainer}
+                      onPress={() => {
+                        setSelectedImageUrl(productPhotos[0]);
+                        setImageViewerVisible(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
                       <Image
                         source={{ uri: productPhotos[0] }}
                         style={styles.image}
@@ -313,7 +323,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                         onLoad={() => console.log('📸 Product photo loaded successfully')}
                         onError={(error) => console.error('📸 Product photo load error:', error.nativeEvent)}
                       />
-                    </View>
+                    </TouchableOpacity>
                   </View>
                 )}
 
@@ -323,7 +333,14 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                     <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
                       Foto de Validación
                     </Text>
-                    <View style={styles.imageContainer}>
+                    <TouchableOpacity
+                      style={styles.imageContainer}
+                      onPress={() => {
+                        setSelectedImageUrl(validacion.photoUrl!);
+                        setImageViewerVisible(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
                       <Image
                         source={{ uri: validacion.photoUrl }}
                         style={styles.image}
@@ -332,7 +349,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                         onLoad={() => console.log('📸 Photo loaded successfully')}
                         onError={(error) => console.error('📸 Photo load error:', error.nativeEvent)}
                       />
-                    </View>
+                    </TouchableOpacity>
                   </View>
                 )}
 
@@ -342,7 +359,14 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                     <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
                       Firma de Validación
                     </Text>
-                    <View style={styles.imageContainer}>
+                    <TouchableOpacity
+                      style={styles.imageContainer}
+                      onPress={() => {
+                        setSelectedImageUrl(validacion.signatureUrl!);
+                        setImageViewerVisible(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
                       <Image
                         source={{ uri: validacion.signatureUrl }}
                         style={styles.signatureImage}
@@ -351,7 +375,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                         onLoad={() => console.log('✍️ Signature loaded successfully')}
                         onError={(error) => console.error('✍️ Signature load error:', error.nativeEvent)}
                       />
-                    </View>
+                    </TouchableOpacity>
                   </View>
                 )}
               </ScrollView>
@@ -376,6 +400,16 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
           ) : null}
         </View>
       </View>
+
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        visible={imageViewerVisible}
+        imageUrl={selectedImageUrl}
+        onClose={() => {
+          setImageViewerVisible(false);
+          setSelectedImageUrl(null);
+        }}
+      />
     </Modal>
   );
 };

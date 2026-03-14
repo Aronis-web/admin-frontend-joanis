@@ -15,6 +15,7 @@ import { PhotoCapture } from './PhotoCapture';
 import { SignatureCapture } from './SignatureCapture';
 import { filesApi } from '@/services/api/files';
 import logger from '@/utils/logger';
+import { ImageViewerModal } from '@/components/Expenses/ImageViewerModal';
 
 interface PresentationInfo {
   hasPresentations: boolean;
@@ -96,6 +97,10 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
   const [usePresentation, setUsePresentation] = useState(false);
   const [selectedPresentationId, setSelectedPresentationId] = useState<string | null>(null);
   const [selectedPresentation, setSelectedPresentation] = useState<any | null>(null);
+
+  // Image viewer states
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   const hasPresentations =
     producto?.product?.presentations && producto.product.presentations.length > 0;
@@ -390,13 +395,22 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
             {producto.product?.photos && producto.product.photos.length > 0 && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Foto del Producto</Text>
-                <View style={styles.productPhotoContainer}>
+                <TouchableOpacity
+                  style={styles.productPhotoContainer}
+                  onPress={() => {
+                    if (producto.product?.photos?.[0]) {
+                      setSelectedImageUrl(producto.product.photos[0]);
+                      setImageViewerVisible(true);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
                   <Image
                     source={{ uri: producto.product.photos[0] }}
                     style={styles.productPhoto}
                     resizeMode="contain"
                   />
-                </View>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -597,6 +611,16 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
           </ScrollView>
         </View>
       </View>
+
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        visible={imageViewerVisible}
+        imageUrl={selectedImageUrl}
+        onClose={() => {
+          setImageViewerVisible(false);
+          setSelectedImageUrl(null);
+        }}
+      />
     </Modal>
   );
 };
