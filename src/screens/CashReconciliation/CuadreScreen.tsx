@@ -565,13 +565,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Cuadre de Caja</Text>
-        {cuadreData ? (
-          <TouchableOpacity onPress={generatePDF} style={styles.pdfButton}>
-            <Text style={styles.pdfButtonText}>📄 PDF</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.placeholder} />
-        )}
+        <View style={styles.placeholder} />
       </View>
 
       <ScrollView
@@ -908,6 +902,12 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
               )}
             </View>
+
+            {/* PDF Download Button */}
+            <TouchableOpacity onPress={generatePDF} style={styles.pdfDownloadButton}>
+              <Text style={styles.pdfDownloadButtonIcon}>📄</Text>
+              <Text style={styles.pdfDownloadButtonText}>Descargar PDF</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -982,18 +982,28 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  pdfButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  pdfDownloadButton: {
     backgroundColor: '#4F46E5',
-    borderRadius: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  pdfButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+  pdfDownloadButtonIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  pdfDownloadButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   content: {
