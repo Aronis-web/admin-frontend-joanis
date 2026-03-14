@@ -322,25 +322,31 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       // ✅ Cargar fotos de productos usando batch endpoint
       try {
         const productIds = [...new Set(productosAsignados.map(p => p.productId))];
+        console.log(`📸 Total productos únicos: ${productIds.length}`);
+        console.log(`📸 Product IDs:`, productIds);
         if (productIds.length > 0) {
-          logger.info(`📸 Cargando fotos para ${productIds.length} productos...`);
-          logger.info(`📸 Product IDs: ${JSON.stringify(productIds)}`);
+          console.log(`📸 Llamando a batch endpoint con includePhotos=true...`);
           const batchResponse = await productsApi.getProductsByIds(productIds, true);
-          logger.info(`📸 Batch response: ${JSON.stringify(batchResponse)}`);
+          console.log(`📸 Batch response recibido:`, batchResponse);
+          console.log(`📸 Total productos en respuesta: ${batchResponse.products?.length || 0}`);
           const photosMap: Record<string, string[]> = {};
           batchResponse.products.forEach((product: Product) => {
-            logger.info(`📸 Producto ${product.id}: ${product.photos?.length || 0} fotos`);
+            console.log(`📸 Procesando producto ${product.id}: ${product.photos?.length || 0} fotos`);
             if (product.photos && product.photos.length > 0) {
               photosMap[product.id] = product.photos;
-              logger.info(`📸 Fotos del producto ${product.id}: ${JSON.stringify(product.photos)}`);
+              console.log(`📸 Fotos guardadas para ${product.id}:`, product.photos);
             }
           });
+          console.log(`✅ PhotosMap final:`, photosMap);
+          console.log(`✅ Total productos con fotos: ${Object.keys(photosMap).length}`);
           setProductPhotos(photosMap);
-          logger.info(`✅ Fotos cargadas para ${Object.keys(photosMap).length} productos`);
-          logger.info(`✅ PhotosMap completo: ${JSON.stringify(photosMap)}`);
+          console.log(`✅ Estado productPhotos actualizado`);
+        } else {
+          console.log('⚠️ No hay productos para cargar fotos');
         }
       } catch (error: any) {
-        logger.error('❌ Error cargando fotos de productos:', error);
+        console.error('❌ Error cargando fotos de productos:', error);
+        console.error('❌ Error stack:', error.stack);
         // No bloquear la carga si falla la obtención de fotos
       }
 

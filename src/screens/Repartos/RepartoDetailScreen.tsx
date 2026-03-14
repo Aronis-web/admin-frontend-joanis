@@ -102,20 +102,31 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
           });
         });
 
+        console.log(`📸 Total productos únicos: ${productIds.size}`);
+        console.log(`📸 Product IDs:`, Array.from(productIds));
         if (productIds.size > 0) {
-          logger.info(`📸 Cargando fotos para ${productIds.size} productos...`);
+          console.log(`📸 Llamando a batch endpoint con includePhotos=true...`);
           const batchResponse = await productsApi.getProductsByIds(Array.from(productIds), true);
+          console.log(`📸 Batch response recibido:`, batchResponse);
+          console.log(`📸 Total productos en respuesta: ${batchResponse.products?.length || 0}`);
           const photosMap: Record<string, string[]> = {};
           batchResponse.products.forEach((product: Product) => {
+            console.log(`📸 Procesando producto ${product.id}: ${product.photos?.length || 0} fotos`);
             if (product.photos && product.photos.length > 0) {
               photosMap[product.id] = product.photos;
+              console.log(`📸 Fotos guardadas para ${product.id}:`, product.photos);
             }
           });
+          console.log(`✅ PhotosMap final:`, photosMap);
+          console.log(`✅ Total productos con fotos: ${Object.keys(photosMap).length}`);
           setProductPhotos(photosMap);
-          logger.info(`✅ Fotos cargadas para ${Object.keys(photosMap).length} productos`);
+          console.log(`✅ Estado productPhotos actualizado`);
+        } else {
+          console.log('⚠️ No hay productos para cargar fotos');
         }
       } catch (error: any) {
-        logger.error('❌ Error cargando fotos de productos:', error);
+        console.error('❌ Error cargando fotos de productos:', error);
+        console.error('❌ Error stack:', error.stack);
         // No bloquear la carga si falla la obtención de fotos
       }
     } catch (error: any) {
