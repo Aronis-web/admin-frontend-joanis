@@ -842,6 +842,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                           source={{ uri: productPhotos[producto.productId][0] }}
                                           style={styles.productThumbnail}
                                           resizeMode="cover"
+                                          // Optimizaciones de rendimiento
+                                          fadeDuration={0}
+                                          progressiveRenderingEnabled={true}
                                         />
                                       </TouchableOpacity>
                                     )}
@@ -1389,9 +1392,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   productThumbnail: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     backgroundColor: '#F8FAFC',
