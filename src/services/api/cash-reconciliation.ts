@@ -31,6 +31,13 @@ export interface CuadreProsegur {
   cantidad_recogidas: number;
 }
 
+export interface CuadreNotasCredito {
+  efectivo: number;
+  tarjeta: number;
+  total: number;
+  cantidad: number;
+}
+
 export interface CuadreInfo {
   diferencia_efectivo: number;
   diferencia_tarjeta_bruto: number;
@@ -67,6 +74,7 @@ export interface CuadreCajaResponse {
   fecha_fin: string;
   sedes: SedeInfo[];
   ventas: CuadreVentas;
+  notas_credito: CuadreNotasCredito;
   izipay: CuadreIzipay;
   prosegur: CuadreProsegur;
   cuadre: CuadreInfo;
@@ -78,6 +86,7 @@ export interface CuadreCajaResponse {
 export interface CuadrePorSede {
   sede: SedeInfo;
   ventas: CuadreVentas;
+  notas_credito: CuadreNotasCredito;
   izipay: CuadreIzipay;
   prosegur: CuadreProsegur;
   cuadre: CuadreInfo;
@@ -90,6 +99,7 @@ export interface CuadreAgrupadoResponse {
   fecha_fin: string;
   totales_consolidados: {
     ventas: CuadreVentas;
+    notas_credito: CuadreNotasCredito;
     izipay: CuadreIzipay;
     prosegur: CuadreProsegur;
     cuadre: CuadreInfo;

@@ -307,6 +307,35 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             </View>
 
+            {/* Notas de Crédito Section */}
+            <View style={[styles.card, styles.notasCreditoCard]}>
+              <Text style={styles.cardTitle}>📝 Notas de Crédito (Anulaciones)</Text>
+              <View style={styles.cardRow}>
+                <Text style={styles.cardLabel}>Efectivo:</Text>
+                <Text style={[styles.cardValue, styles.negativeValue]}>
+                  {formatCurrency(cuadreData.notas_credito.efectivo)}
+                </Text>
+              </View>
+              <View style={styles.cardRow}>
+                <Text style={styles.cardLabel}>Tarjeta:</Text>
+                <Text style={[styles.cardValue, styles.negativeValue]}>
+                  {formatCurrency(cuadreData.notas_credito.tarjeta)}
+                </Text>
+              </View>
+              <View style={[styles.cardRow, styles.cardRowTotal]}>
+                <Text style={styles.cardLabelBold}>Total:</Text>
+                <Text style={[styles.cardValueBold, styles.negativeValue]}>
+                  {formatCurrency(cuadreData.notas_credito.total)}
+                </Text>
+              </View>
+              <View style={styles.cardRow}>
+                <Text style={styles.cardLabel}>Cantidad:</Text>
+                <Text style={styles.cardValue}>
+                  {cuadreData.notas_credito.cantidad}
+                </Text>
+              </View>
+            </View>
+
             {/* Izipay Section */}
             <View style={styles.card}>
               <Text style={styles.cardTitle}>💳 Izipay</Text>
@@ -699,6 +728,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
     borderWidth: 2,
     borderColor: '#10B981',
+  },
+  notasCreditoCard: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   cardTitle: {
     fontSize: 16,
