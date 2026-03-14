@@ -146,7 +146,9 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      const diferencia = cuadreData.prosegur.depositos + cuadreData.izipay.bruto - cuadreData.ventas.total + cuadreData.notas_credito.total;
+      // Fórmula: Izipay Bruto + Prosegur + Notas de Crédito - Total Ventas
+      // Notas de crédito vienen negativas, por eso se multiplican por -1
+      const diferencia = cuadreData.izipay.bruto + cuadreData.prosegur.depositos + (cuadreData.notas_credito.total * -1) - cuadreData.ventas.total;
       const totalIngresar = cuadreData.prosegur.depositos + cuadreData.izipay.neto;
 
       const html = `
@@ -563,7 +565,13 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Cuadre de Caja</Text>
-        <View style={styles.placeholder} />
+        {cuadreData ? (
+          <TouchableOpacity onPress={generatePDF} style={styles.pdfButton}>
+            <Text style={styles.pdfButtonText}>📄 PDF</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.placeholder} />
+        )}
       </View>
 
       <ScrollView
@@ -836,14 +844,14 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 <Text
                   style={[
                     styles.cardValue,
-                    (cuadreData.prosegur.depositos + cuadreData.izipay.bruto - cuadreData.ventas.total + cuadreData.notas_credito.total) !== 0 && styles.warningValue,
+                    (cuadreData.izipay.bruto + cuadreData.prosegur.depositos + (cuadreData.notas_credito.total * -1) - cuadreData.ventas.total) !== 0 && styles.warningValue,
                   ]}
                 >
                   {formatCurrency(
+                    cuadreData.izipay.bruto +
                     cuadreData.prosegur.depositos +
-                    cuadreData.izipay.bruto -
-                    cuadreData.ventas.total +
-                    cuadreData.notas_credito.total
+                    (cuadreData.notas_credito.total * -1) -
+                    cuadreData.ventas.total
                   )}
                 </Text>
               </View>
@@ -900,12 +908,6 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
               )}
             </View>
-
-            {/* PDF Download Button */}
-            <TouchableOpacity onPress={generatePDF} style={styles.pdfDownloadButton}>
-              <Text style={styles.pdfDownloadButtonIcon}>📄</Text>
-              <Text style={styles.pdfDownloadButtonText}>Descargar PDF</Text>
-            </TouchableOpacity>
           </View>
         )}
 
@@ -980,28 +982,18 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  pdfDownloadButton: {
+  pdfButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     backgroundColor: '#4F46E5',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  pdfDownloadButtonIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  pdfDownloadButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
+  pdfButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
   content: {
