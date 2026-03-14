@@ -1030,7 +1030,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                 <View style={styles.detailSection}>
                   <Text style={styles.sectionTitle}>Productos</Text>
                   {selectedTransfer.items && selectedTransfer.items.length > 0 && (
-                    <TransferItemsList items={selectedTransfer.items} />
+                    <TransferItemsList items={selectedTransfer.items} transfer={selectedTransfer} />
                   )}
                 </View>
 

@@ -210,7 +210,7 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📦 Productos ({transfer.items?.length || 0})</Text>
           {transfer.items && transfer.items.length > 0 && (
-            <TransferItemsList items={transfer.items} />
+            <TransferItemsList items={transfer.items} transfer={transfer} />
           )}
         </View>
 

@@ -913,7 +913,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
               <View style={styles.detailSection}>
                 <Text style={styles.detailLabel}>Items</Text>
                 {selectedTransfer.items && selectedTransfer.items.length > 0 && (
-                  <TransferItemsList items={selectedTransfer.items} />
+                  <TransferItemsList items={selectedTransfer.items} transfer={selectedTransfer} />
                 )}
               </View>
 

@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
-import { TransferItem } from '@/types/transfers';
+import { TransferItem, Transfer } from '@/types/transfers';
 
 interface TransferItemsListProps {
   items: TransferItem[];
   showShipped?: boolean;
   showReceived?: boolean;
   showDifference?: boolean;
+  transfer?: Transfer; // Agregamos el transfer completo para acceder a las áreas
 }
 
 export const TransferItemsList: React.FC<TransferItemsListProps> = ({
@@ -14,6 +15,7 @@ export const TransferItemsList: React.FC<TransferItemsListProps> = ({
   showShipped = false,
   showReceived = false,
   showDifference = false,
+  transfer,
 }) => {
   const renderItem = ({ item }: { item: TransferItem }) => {
     const hasDifference = showDifference && item.quantityDifference !== 0;
@@ -33,6 +35,31 @@ export const TransferItemsList: React.FC<TransferItemsListProps> = ({
             </View>
           </View>
         </View>
+
+        {/* Información de Áreas de Origen y Destino */}
+        {transfer && (
+          <View style={styles.areasContainer}>
+            <View style={styles.areaInfo}>
+              <Text style={styles.areaLabel}>📤 Área de Origen:</Text>
+              <Text style={styles.areaValue}>
+                {transfer.originArea?.name || 'Sin área asignada'}
+              </Text>
+              <Text style={styles.warehouseValue}>
+                {transfer.originWarehouse?.name || 'Sin almacén'}
+              </Text>
+            </View>
+            <View style={styles.areaSeparator} />
+            <View style={styles.areaInfo}>
+              <Text style={styles.areaLabel}>📥 Área de Destino:</Text>
+              <Text style={styles.areaValue}>
+                {transfer.destinationArea?.name || 'Sin área asignada'}
+              </Text>
+              <Text style={styles.warehouseValue}>
+                {transfer.destinationWarehouse?.name || 'Sin almacén'}
+              </Text>
+            </View>
+          </View>
+        )}
 
         <View style={styles.quantitiesContainer}>
           <View style={styles.quantityItem}>
@@ -209,6 +236,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#94A3B8',
     fontStyle: 'italic',
+  },
+  areasContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  areaInfo: {
+    flex: 1,
+  },
+  areaSeparator: {
+    width: 1,
+    backgroundColor: '#CBD5E1',
+    marginHorizontal: 12,
+  },
+  areaLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  areaValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  warehouseValue: {
+    fontSize: 11,
+    color: '#64748B',
   },
 });
 
