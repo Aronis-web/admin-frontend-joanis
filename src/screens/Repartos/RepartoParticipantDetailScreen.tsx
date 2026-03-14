@@ -319,6 +319,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         setRepartoId(firstRepartoId);
       }
 
+      console.log('🚀 INICIANDO CARGA DE FOTOS DE PRODUCTOS...');
+      console.log('🚀 productosAsignados.length:', productosAsignados.length);
+
       // ✅ Cargar fotos de productos usando batch endpoint
       try {
         const productIds = [...new Set(productosAsignados.map(p => p.productId))];
@@ -339,8 +342,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           });
           console.log(`✅ PhotosMap final:`, photosMap);
           console.log(`✅ Total productos con fotos: ${Object.keys(photosMap).length}`);
+          console.log(`✅ Llamando a setProductPhotos con:`, photosMap);
           setProductPhotos(photosMap);
-          console.log(`✅ Estado productPhotos actualizado`);
+          console.log(`✅ setProductPhotos llamado (el estado se actualizará en el próximo render)`);
         } else {
           console.log('⚠️ No hay productos para cargar fotos');
         }
@@ -392,11 +396,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         // En caso de error, asumir que no existe
         setRemissionGuideInfo(null);
       }
+
+      console.log('✅ LOADDATA COMPLETADO EXITOSAMENTE');
     } catch (error: any) {
+      console.error('❌ ERROR EN LOADDATA:', error);
       console.error('Error loading participant data:', error);
       Alert.alert('Error', 'No se pudo cargar la información del participante');
       navigation.goBack();
     } finally {
+      console.log('🏁 FINALLY BLOCK - Finalizando loadData');
       setLoading(false);
       setRefreshing(false);
     }
@@ -407,6 +415,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       loadData();
     }, [loadData])
   );
+
+  // 🔍 Monitor productPhotos state changes
+  React.useEffect(() => {
+    console.log('🔄 productPhotos state cambió:', {
+      totalProductos: Object.keys(productPhotos).length,
+      productIds: Object.keys(productPhotos),
+      photosMap: productPhotos
+    });
+  }, [productPhotos]);
 
   const handleRefresh = () => {
     setRefreshing(true);

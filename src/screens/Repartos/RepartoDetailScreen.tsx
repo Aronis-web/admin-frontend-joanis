@@ -91,6 +91,8 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
       }
       setReparto(data);
 
+      console.log('🚀 INICIANDO CARGA DE FOTOS DE PRODUCTOS (RepartoDetailScreen)...');
+
       // ✅ Cargar fotos de productos usando batch endpoint
       try {
         const productIds = new Set<string>();
@@ -119,8 +121,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
           });
           console.log(`✅ PhotosMap final:`, photosMap);
           console.log(`✅ Total productos con fotos: ${Object.keys(photosMap).length}`);
+          console.log(`✅ Llamando a setProductPhotos con:`, photosMap);
           setProductPhotos(photosMap);
-          console.log(`✅ Estado productPhotos actualizado`);
+          console.log(`✅ setProductPhotos llamado (el estado se actualizará en el próximo render)`);
         } else {
           console.log('⚠️ No hay productos para cargar fotos');
         }
@@ -129,11 +132,15 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
         console.error('❌ Error stack:', error.stack);
         // No bloquear la carga si falla la obtención de fotos
       }
+
+      console.log('✅ LOADREPARTO COMPLETADO EXITOSAMENTE');
     } catch (error: any) {
+      console.error('❌ ERROR EN LOADREPARTO:', error);
       console.error('Error loading reparto:', error);
       Alert.alert('Error', 'No se pudo cargar el reparto');
       navigation.goBack();
     } finally {
+      console.log('🏁 FINALLY BLOCK - Finalizando loadReparto');
       setLoading(false);
       setRefreshing(false);
     }
@@ -144,6 +151,15 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
       loadReparto();
     }, [loadReparto])
   );
+
+  // 🔍 Monitor productPhotos state changes
+  React.useEffect(() => {
+    console.log('🔄 productPhotos state cambió (RepartoDetailScreen):', {
+      totalProductos: Object.keys(productPhotos).length,
+      productIds: Object.keys(productPhotos),
+      photosMap: productPhotos
+    });
+  }, [productPhotos]);
 
   const handleRefresh = () => {
     setRefreshing(true);
