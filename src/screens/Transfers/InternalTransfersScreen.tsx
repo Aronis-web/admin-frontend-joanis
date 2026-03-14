@@ -140,6 +140,21 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
         page: 1,
         limit: 100,
       });
+
+      // Debug: Log first transfer to see structure
+      if (response.data && response.data.length > 0) {
+        console.log('🔍 InternalTransfers - First transfer data:', {
+          id: response.data[0].id,
+          transferNumber: response.data[0].transferNumber,
+          hasOriginArea: !!response.data[0].originArea,
+          hasDestinationArea: !!response.data[0].destinationArea,
+          originAreaId: response.data[0].originAreaId,
+          destinationAreaId: response.data[0].destinationAreaId,
+          originArea: response.data[0].originArea,
+          destinationArea: response.data[0].destinationArea,
+        });
+      }
+
       setTransfers(response.data || []);
     } catch (error: any) {
       console.error('Error loading internal transfers:', error);

@@ -155,6 +155,21 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         params.status = selectedStatus;
       }
       const response = await transfersApi.getTransfers(params);
+
+      // Debug: Log first transfer to see structure
+      if (response.data && response.data.length > 0) {
+        console.log('🔍 ExternalTransfers - First transfer data:', {
+          id: response.data[0].id,
+          transferNumber: response.data[0].transferNumber,
+          hasOriginArea: !!response.data[0].originArea,
+          hasDestinationArea: !!response.data[0].destinationArea,
+          originAreaId: response.data[0].originAreaId,
+          destinationAreaId: response.data[0].destinationAreaId,
+          originArea: response.data[0].originArea,
+          destinationArea: response.data[0].destinationArea,
+        });
+      }
+
       setTransfers(response.data || []);
     } catch (error: any) {
       console.error('Error loading external transfers:', error);

@@ -43,6 +43,19 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
         transfersApi.getTransferById(transferId),
         transfersApi.getTransferHistory(transferId),
       ]);
+
+      // Debug: Log transfer detail data
+      console.log('🔍 TransferDetail - Transfer data:', {
+        id: transferData.id,
+        transferNumber: transferData.transferNumber,
+        hasOriginArea: !!transferData.originArea,
+        hasDestinationArea: !!transferData.destinationArea,
+        originAreaId: transferData.originAreaId,
+        destinationAreaId: transferData.destinationAreaId,
+        originArea: transferData.originArea,
+        destinationArea: transferData.destinationArea,
+      });
+
       setTransfer(transferData);
       setHistory(historyData || []);
     } catch (error: any) {

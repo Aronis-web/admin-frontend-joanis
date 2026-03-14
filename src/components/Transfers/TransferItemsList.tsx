@@ -17,6 +17,24 @@ export const TransferItemsList: React.FC<TransferItemsListProps> = ({
   showDifference = false,
   transfer,
 }) => {
+  // Debug: Log transfer data
+  React.useEffect(() => {
+    if (transfer) {
+      console.log('🔍 TransferItemsList - Transfer data:', {
+        id: transfer.id,
+        transferNumber: transfer.transferNumber,
+        hasOriginArea: !!transfer.originArea,
+        hasDestinationArea: !!transfer.destinationArea,
+        originArea: transfer.originArea,
+        destinationArea: transfer.destinationArea,
+        originWarehouse: transfer.originWarehouse,
+        destinationWarehouse: transfer.destinationWarehouse,
+      });
+    } else {
+      console.log('⚠️ TransferItemsList - No transfer data provided');
+    }
+  }, [transfer]);
+
   const renderItem = ({ item }: { item: TransferItem }) => {
     const hasDifference = showDifference && item.quantityDifference !== 0;
 
