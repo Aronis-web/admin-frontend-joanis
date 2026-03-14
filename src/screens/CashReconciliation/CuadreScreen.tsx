@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +17,8 @@ import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { sitesApi } from '@/services/api/sites';
 import { cashReconciliationApi, CuadreCajaResponse } from '@/services/api/cash-reconciliation';
 import { Site } from '@/types/sites';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 type Props = NativeStackScreenProps<any, 'Cuadre'>;
 
@@ -135,6 +138,387 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     })}`;
   };
 
+  // Generate PDF
+  const generatePDF = async () => {
+    if (!cuadreData) {
+      Alert.alert('Error', 'No hay datos para generar el PDF');
+      return;
+    }
+
+    try {
+      const diferencia = cuadreData.prosegur.depositos + cuadreData.izipay.bruto - cuadreData.ventas.total + cuadreData.notas_credito.total;
+      const totalIngresar = cuadreData.prosegur.depositos + cuadreData.izipay.neto;
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+
+            body {
+              font-family: 'Helvetica Neue', Arial, sans-serif;
+              color: #1F2937;
+              padding: 40px;
+              background: #ffffff;
+            }
+
+            .header {
+              text-align: center;
+              margin-bottom: 40px;
+              padding-bottom: 20px;
+              border-bottom: 3px solid #4F46E5;
+            }
+
+            .header h1 {
+              font-size: 28px;
+              color: #1F2937;
+              margin-bottom: 8px;
+              font-weight: 700;
+            }
+
+            .header .subtitle {
+              font-size: 14px;
+              color: #6B7280;
+              margin-bottom: 16px;
+            }
+
+            .header .period {
+              font-size: 16px;
+              color: #4F46E5;
+              font-weight: 600;
+            }
+
+            .severity-badge {
+              display: inline-block;
+              padding: 8px 20px;
+              border-radius: 20px;
+              font-weight: 700;
+              font-size: 14px;
+              margin: 20px 0;
+              color: white;
+              background-color: ${getSeverityColor(cuadreData.cuadre.severidad)};
+            }
+
+            .section {
+              margin-bottom: 30px;
+              page-break-inside: avoid;
+            }
+
+            .section-title {
+              font-size: 18px;
+              font-weight: 700;
+              color: #1F2937;
+              margin-bottom: 16px;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #E5E7EB;
+            }
+
+            .card {
+              background: #F9FAFB;
+              border: 1px solid #E5E7EB;
+              border-radius: 8px;
+              padding: 20px;
+              margin-bottom: 20px;
+            }
+
+            .card.highlight {
+              background: #F0FDF4;
+              border: 2px solid #10B981;
+            }
+
+            .card.warning {
+              background: #FEF2F2;
+              border: 1px solid #FECACA;
+            }
+
+            .row {
+              display: flex;
+              justify-content: space-between;
+              padding: 10px 0;
+              border-bottom: 1px solid #E5E7EB;
+            }
+
+            .row:last-child {
+              border-bottom: none;
+            }
+
+            .row.total {
+              border-top: 2px solid #1F2937;
+              margin-top: 8px;
+              padding-top: 12px;
+              font-weight: 700;
+            }
+
+            .label {
+              font-size: 14px;
+              color: #6B7280;
+            }
+
+            .value {
+              font-size: 14px;
+              font-weight: 600;
+              color: #1F2937;
+              text-align: right;
+            }
+
+            .value.negative {
+              color: #EF4444;
+            }
+
+            .value.warning {
+              color: #F59E0B;
+              font-weight: 700;
+            }
+
+            .value.success {
+              color: #10B981;
+              font-weight: 700;
+            }
+
+            .total .label,
+            .total .value {
+              font-size: 16px;
+              font-weight: 700;
+              color: #1F2937;
+            }
+
+            .metadata {
+              margin-top: 40px;
+              padding: 20px;
+              background: #F9FAFB;
+              border-radius: 8px;
+              font-size: 12px;
+              color: #6B7280;
+              text-align: center;
+            }
+
+            .grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+            }
+
+            @media print {
+              body {
+                padding: 20px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>📊 Cuadre de Caja</h1>
+            <div class="subtitle">Reporte de Conciliación de Efectivo</div>
+            <div class="period">Período: ${cuadreData.fecha_inicio} al ${cuadreData.fecha_fin}</div>
+            <div class="severity-badge">${getSeverityLabel(cuadreData.cuadre.severidad)}</div>
+          </div>
+
+          <div class="grid">
+            <!-- Ventas -->
+            <div class="section">
+              <div class="section-title">💰 Ventas</div>
+              <div class="card">
+                <div class="row">
+                  <span class="label">Efectivo:</span>
+                  <span class="value">${formatCurrency(cuadreData.ventas.efectivo)}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Tarjeta:</span>
+                  <span class="value">${formatCurrency(cuadreData.ventas.tarjeta)}</span>
+                </div>
+                <div class="row total">
+                  <span class="label">Total:</span>
+                  <span class="value">${formatCurrency(cuadreData.ventas.total)}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Operaciones:</span>
+                  <span class="value">${cuadreData.ventas.cantidad_operaciones}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notas de Crédito -->
+            <div class="section">
+              <div class="section-title">📝 Notas de Crédito</div>
+              <div class="card warning">
+                <div class="row">
+                  <span class="label">Efectivo:</span>
+                  <span class="value negative">${formatCurrency(cuadreData.notas_credito.efectivo)}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Tarjeta:</span>
+                  <span class="value negative">${formatCurrency(cuadreData.notas_credito.tarjeta)}</span>
+                </div>
+                <div class="row total">
+                  <span class="label">Total:</span>
+                  <span class="value negative">${formatCurrency(cuadreData.notas_credito.total)}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Cantidad:</span>
+                  <span class="value">${cuadreData.notas_credito.cantidad}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Izipay -->
+            <div class="section">
+              <div class="section-title">💳 Izipay</div>
+              <div class="card">
+                <div class="row">
+                  <span class="label">Bruto:</span>
+                  <span class="value">${formatCurrency(cuadreData.izipay.bruto)}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Comisiones:</span>
+                  <span class="value negative">-${formatCurrency(cuadreData.izipay.comisiones)}</span>
+                </div>
+                <div class="row total">
+                  <span class="label">Neto:</span>
+                  <span class="value">${formatCurrency(cuadreData.izipay.neto)}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Operaciones:</span>
+                  <span class="value">${cuadreData.izipay.cantidad_operaciones}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Matcheadas:</span>
+                  <span class="value">${cuadreData.izipay.transacciones_matcheadas}</span>
+                </div>
+                <div class="row">
+                  <span class="label">% Comisión Promedio:</span>
+                  <span class="value">${cuadreData.izipay.porcentaje_comision_promedio.toFixed(2)}%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Prosegur -->
+            <div class="section">
+              <div class="section-title">🏦 Prosegur</div>
+              <div class="card">
+                <div class="row">
+                  <span class="label">Depósitos:</span>
+                  <span class="value">${formatCurrency(cuadreData.prosegur.depositos)}</span>
+                </div>
+                <div class="row total">
+                  <span class="label">Balance:</span>
+                  <span class="value">${formatCurrency(cuadreData.prosegur.balances)}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Operaciones:</span>
+                  <span class="value">${cuadreData.prosegur.cantidad_operaciones}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Depósitos:</span>
+                  <span class="value">${cuadreData.prosegur.cantidad_depositos}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Recogidas:</span>
+                  <span class="value">${cuadreData.prosegur.cantidad_recogidas}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen de Totales -->
+          <div class="section">
+            <div class="section-title">💵 Resumen de Totales</div>
+            <div class="card highlight">
+              <div class="row">
+                <span class="label">Total Ventas:</span>
+                <span class="value">${formatCurrency(cuadreData.ventas.total)}</span>
+              </div>
+              <div class="row">
+                <span class="label">Total Notas de Crédito:</span>
+                <span class="value negative">${formatCurrency(cuadreData.notas_credito.total)}</span>
+              </div>
+              <div class="row">
+                <span class="label">Total Izipay (Bruto):</span>
+                <span class="value">${formatCurrency(cuadreData.izipay.bruto)}</span>
+              </div>
+              <div class="row">
+                <span class="label">Total Comisiones:</span>
+                <span class="value negative">-${formatCurrency(cuadreData.izipay.comisiones)}</span>
+              </div>
+              <div class="row">
+                <span class="label">Total Prosegur:</span>
+                <span class="value">${formatCurrency(cuadreData.prosegur.depositos)}</span>
+              </div>
+              <div class="row total">
+                <span class="label">Diferencia:</span>
+                <span class="value ${diferencia !== 0 ? 'warning' : ''}">${formatCurrency(diferencia)}</span>
+              </div>
+              <div class="row total">
+                <span class="label">Total a Ingresar:</span>
+                <span class="value success">${formatCurrency(totalIngresar)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Operaciones -->
+          <div class="section">
+            <div class="section-title">🔢 Operaciones</div>
+            <div class="card">
+              <div class="row">
+                <span class="label">Ventas:</span>
+                <span class="value">${cuadreData.operaciones.ventas}</span>
+              </div>
+              <div class="row">
+                <span class="label">Izipay:</span>
+                <span class="value">${cuadreData.operaciones.izipay}</span>
+              </div>
+              <div class="row">
+                <span class="label">Prosegur:</span>
+                <span class="value">${cuadreData.operaciones.prosegur}</span>
+              </div>
+              <div class="row">
+                <span class="label">Coinciden:</span>
+                <span class="value ${cuadreData.operaciones.coinciden ? 'success' : 'warning'}">
+                  ${cuadreData.operaciones.coinciden ? '✓ Sí' : '✗ No'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="metadata">
+            <div>Generado: ${new Date(cuadreData.generado_en).toLocaleString('es-PE')}</div>
+            ${cuadreData.sedes.length > 0 ? `<div>Sedes: ${cuadreData.sedes.map((s) => s.code).join(', ')}</div>` : ''}
+            <div style="margin-top: 8px; font-style: italic;">Sistema de Gestión Administrativa</div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({ html });
+
+      if (Platform.OS === 'web') {
+        // En web, abrir en nueva pestaña
+        const link = document.createElement('a');
+        link.href = uri;
+        link.download = `cuadre-caja-${cuadreData.fecha_inicio}-${cuadreData.fecha_fin}.pdf`;
+        link.click();
+      } else {
+        // En móvil, compartir el archivo
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Cuadre de Caja',
+          UTI: 'com.adobe.pdf',
+        });
+      }
+
+      Alert.alert('Éxito', 'PDF generado correctamente');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      Alert.alert('Error', 'No se pudo generar el PDF');
+    }
+  };
+
   // Get severity color
   const getSeverityColor = (severidad: string): string => {
     switch (severidad) {
@@ -179,7 +563,13 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Cuadre de Caja</Text>
-        <View style={styles.placeholder} />
+        {cuadreData ? (
+          <TouchableOpacity onPress={generatePDF} style={styles.pdfButton}>
+            <Text style={styles.pdfButtonText}>📄 PDF</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.placeholder} />
+        )}
       </View>
 
       <ScrollView
@@ -589,6 +979,20 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 40,
+  },
+  pdfButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#4F46E5',
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pdfButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   content: {
     flex: 1,
