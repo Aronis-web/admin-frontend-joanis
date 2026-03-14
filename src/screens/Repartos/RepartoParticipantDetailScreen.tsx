@@ -1417,15 +1417,40 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         </View>
 
         {/* Products List */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        >
-          <View style={styles.headerSection}>
-            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-              Productos de Reparto
-            </Text>
+        {productos.length === 0 ? (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          >
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+                No hay productos asignados
+              </Text>
+              <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
+                Este participante aún no tiene productos en repartos
+              </Text>
+            </View>
+          </ScrollView>
+        ) : (
+          <FlatList
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            data={filteredProductos}
+            renderItem={({ item }) => renderProductCard(item)}
+            keyExtractor={(item) => item.id}
+            // Optimizaciones de rendimiento
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            updateCellsBatchingPeriod={50}
+            initialNumToRender={10}
+            windowSize={5}
+            ListHeaderComponent={
+              <View style={styles.headerSection}>
+                <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                  Productos de Reparto
+                </Text>
 
             {/* Filtro de validación */}
             {productos.length > 0 && (
@@ -1520,45 +1545,20 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   : `Mostrando ${filteredCount} de ${totalProductos} producto${totalProductos !== 1 ? 's' : ''}`}
               </Text>
             )}
-          </View>
-
-          {productos.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                No hay productos asignados
-              </Text>
-              <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-                Este participante aún no tiene productos en repartos
-              </Text>
-            </View>
-          ) : filteredProductos.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                No se encontraron productos
-              </Text>
-              <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-                Intenta con otros términos de búsqueda
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={filteredProductos}
-              renderItem={({ item }) => renderProductCard(item)}
-              keyExtractor={(item) => item.id}
-              // Optimizaciones de rendimiento
-              removeClippedSubviews={true}
-              maxToRenderPerBatch={10}
-              updateCellsBatchingPeriod={50}
-              initialNumToRender={10}
-              windowSize={5}
-              getItemLayout={(data, index) => ({
-                length: isTablet ? 220 : 200,
-                offset: (isTablet ? 220 : 200) * index,
-                index,
-              })}
-            />
-          )}
-        </ScrollView>
+              </View>
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+                  No se encontraron productos
+                </Text>
+                <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
+                  Intenta con otros términos de búsqueda
+                </Text>
+              </View>
+            }
+          />
+        )}
 
         {/* Validation Modal */}
         {selectedProducto &&
