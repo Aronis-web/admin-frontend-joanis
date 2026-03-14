@@ -12,7 +12,9 @@ import {
   Alert,
 } from 'react-native';
 import { ValidacionSalida } from '@/types/repartos';
-import { repartosService } from '@/services/api';
+import { repartosService, productsApi } from '@/services/api';
+import { Product } from '@/services/api/products';
+import logger from '@/utils/logger';
 
 interface ValidacionDetailModalProps {
   visible: boolean;
@@ -31,6 +33,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
   const isTablet = width >= 768 || height >= 768;
   const [validacion, setValidacion] = useState<ValidacionSalida | null>(validacionProp || null);
   const [loading, setLoading] = useState(false);
+  const [productPhotos, setProductPhotos] = useState<string[]>([]);
 
   // Fetch validation data when modal opens with repartoProductoId
   useEffect(() => {
@@ -92,6 +95,21 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
           signatureUrl: normalizedData.signatureUrl,
         });
         setValidacion(normalizedData);
+
+        // ✅ Cargar fotos del producto
+        if (data.repartoProducto?.productId) {
+          try {
+            logger.info(`📸 Cargando fotos del producto ${data.repartoProducto.productId}...`);
+            const batchResponse = await productsApi.getProductsByIds([data.repartoProducto.productId], true);
+            if (batchResponse.products.length > 0 && batchResponse.products[0].photos) {
+              setProductPhotos(batchResponse.products[0].photos);
+              logger.info(`✅ Fotos del producto cargadas: ${batchResponse.products[0].photos.length}`);
+            }
+          } catch (photoError: any) {
+            logger.error('❌ Error cargando fotos del producto:', photoError);
+            // No bloquear si falla la carga de fotos
+          }
+        }
       } else {
         Alert.alert('Error', 'No se encontró información de validación');
         onClose();
@@ -265,6 +283,25 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                     </View>
                   )}
                 </View>
+
+                {/* Product Photo */}
+                {productPhotos.length > 0 && (
+                  <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                      Foto del Producto
+                    </Text>
+                    <View style={styles.imageContainer}>
+                      <Image
+                        source={{ uri: productPhotos[0] }}
+                        style={styles.image}
+                        resizeMode="contain"
+                        onLoadStart={() => console.log('📸 Product photo loading started')}
+                        onLoad={() => console.log('📸 Product photo loaded successfully')}
+                        onError={(error) => console.error('📸 Product photo load error:', error.nativeEvent)}
+                      />
+                    </View>
+                  </View>
+                )}
 
                 {/* Photo */}
                 {validacion.photoUrl && (

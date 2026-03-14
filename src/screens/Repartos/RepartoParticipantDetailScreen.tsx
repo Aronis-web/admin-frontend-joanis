@@ -17,9 +17,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { campaignsService, repartosService } from '@/services/api';
+import { campaignsService, repartosService, productsApi } from '@/services/api';
 import { CampaignParticipant, ParticipantType } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { Product } from '@/services/api/products';
 import {
   ValidacionSalidaModal,
   ValidacionDetailModal,
@@ -132,6 +133,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const [validationModalVisible, setValidationModalVisible] = useState(false);
   const [validationDetailModalVisible, setValidationDetailModalVisible] = useState(false);
   const [selectedProducto, setSelectedProducto] = useState<ProductoReparto | null>(null);
+  const [productPhotos, setProductPhotos] = useState<Record<string, string[]>>({});
   const [actionLoading, setActionLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [validationFilter, setValidationFilter] = useState<'all' | 'validated' | 'pending'>('all');
@@ -315,6 +317,26 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       // Guardar el repartoId para usar en el reporte
       if (firstRepartoId) {
         setRepartoId(firstRepartoId);
+      }
+
+      // ✅ Cargar fotos de productos usando batch endpoint
+      try {
+        const productIds = [...new Set(productosAsignados.map(p => p.productId))];
+        if (productIds.length > 0) {
+          logger.info(`📸 Cargando fotos para ${productIds.length} productos...`);
+          const batchResponse = await productsApi.getProductsByIds(productIds, true);
+          const photosMap: Record<string, string[]> = {};
+          batchResponse.products.forEach((product: Product) => {
+            if (product.photos && product.photos.length > 0) {
+              photosMap[product.id] = product.photos;
+            }
+          });
+          setProductPhotos(photosMap);
+          logger.info(`✅ Fotos cargadas para ${Object.keys(photosMap).length} productos`);
+        }
+      } catch (error: any) {
+        logger.error('❌ Error cargando fotos de productos:', error);
+        // No bloquear la carga si falla la obtención de fotos
       }
 
       // Verificar si ya existe un traslado consolidado
@@ -1488,6 +1510,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                         'Producto',
                       sku: `${selectedProducto.product?.correlativeNumber ? `#${selectedProducto.product.correlativeNumber} | ` : ''}${selectedProducto.product?.sku || 'N/A'}`,
                       presentations: selectedProducto.product?.presentations,
+                      photos: productPhotos[selectedProducto.productId] || [],
                     },
                     quantityBase:
                       selectedProducto.quantityBase || String(selectedProducto.quantityAssigned || 0),

@@ -115,7 +115,13 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       setLoading(true);
-      console.log('🔄 Loading retenciones...');
+      console.log('🔄 [RETENCIONES] Loading retenciones...', {
+        timestamp: new Date().toISOString(),
+        currentCompany: currentCompany.id,
+        currentSite: currentSite.id,
+        selectedStatus,
+        debouncedSearchTerm,
+      });
       const params: GetRetencionesParams = {
         companyId: currentCompany.id,
         siteId: currentSite.id,
@@ -161,15 +167,26 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
   // Cargar al montar y al hacer focus
   useFocusEffect(
     useCallback(() => {
+      console.log('👁️ [RETENCIONES] Screen focused - loading retenciones');
       loadRetenciones();
     }, [loadRetenciones])
   );
 
-  // Recargar cuando cambie el término de búsqueda
+  // Recargar cuando cambie el término de búsqueda o el estado seleccionado
+  // NOTA: Solo recargar si la pantalla ya está cargada (no en el primer render)
   useEffect(() => {
-    if (!loading) {
-      loadRetenciones();
+    // Skip en el primer render (loading será true)
+    if (loading) {
+      console.log('⏭️ [RETENCIONES] Skipping reload - still loading');
+      return;
     }
+
+    console.log('🔄 [RETENCIONES] Filter changed - reloading', {
+      debouncedSearchTerm,
+      selectedStatus,
+    });
+    loadRetenciones();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, selectedStatus]);
 
   const handleRefresh = () => {

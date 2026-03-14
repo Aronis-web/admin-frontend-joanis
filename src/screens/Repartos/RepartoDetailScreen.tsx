@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { repartosService } from '@/services/api';
+import { repartosService, productsApi } from '@/services/api';
+import { Product } from '@/services/api/products';
 import logger from '@/utils/logger';
 import {
   Reparto,
@@ -62,6 +63,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
     id: string;
     name: string;
   } | null>(null);
+  const [productPhotos, setProductPhotos] = useState<Record<string, string[]>>({});
   const { width, height } = useWindowDimensions();
   const { user } = useAuthStore();
 
@@ -88,6 +90,34 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
         }
       }
       setReparto(data);
+
+      // ✅ Cargar fotos de productos usando batch endpoint
+      try {
+        const productIds = new Set<string>();
+        data.participantes?.forEach((participante) => {
+          participante.productos?.forEach((producto) => {
+            if (producto.productId) {
+              productIds.add(producto.productId);
+            }
+          });
+        });
+
+        if (productIds.size > 0) {
+          logger.info(`📸 Cargando fotos para ${productIds.size} productos...`);
+          const batchResponse = await productsApi.getProductsByIds(Array.from(productIds), true);
+          const photosMap: Record<string, string[]> = {};
+          batchResponse.products.forEach((product: Product) => {
+            if (product.photos && product.photos.length > 0) {
+              photosMap[product.id] = product.photos;
+            }
+          });
+          setProductPhotos(photosMap);
+          logger.info(`✅ Fotos cargadas para ${Object.keys(photosMap).length} productos`);
+        }
+      } catch (error: any) {
+        logger.error('❌ Error cargando fotos de productos:', error);
+        // No bloquear la carga si falla la obtención de fotos
+      }
     } catch (error: any) {
       console.error('Error loading reparto:', error);
       Alert.alert('Error', 'No se pudo cargar el reparto');
@@ -143,12 +173,28 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   };
 
   const handleValidateProduct = (producto: any) => {
-    setSelectedProducto(producto);
+    // ✅ Agregar fotos del producto al objeto
+    const productoWithPhotos = {
+      ...producto,
+      product: {
+        ...producto.product,
+        photos: productPhotos[producto.productId] || [],
+      },
+    };
+    setSelectedProducto(productoWithPhotos);
     setValidationModalVisible(true);
   };
 
   const handleViewValidation = (producto: any) => {
-    setSelectedProducto(producto);
+    // ✅ Agregar fotos del producto al objeto
+    const productoWithPhotos = {
+      ...producto,
+      product: {
+        ...producto.product,
+        photos: productPhotos[producto.productId] || [],
+      },
+    };
+    setSelectedProducto(productoWithPhotos);
     setValidationDetailModalVisible(true);
   };
 

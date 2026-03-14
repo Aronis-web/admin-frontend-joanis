@@ -42,6 +42,7 @@ interface ValidacionSalidaModalProps {
       id: string; // ✅ ID del producto para subir foto al catálogo
       title: string;
       sku: string;
+      photos?: string[]; // ✅ NUEVO: Fotos del producto
       presentations?: Array<{
         id: string;
         presentationId: string;
@@ -384,6 +385,20 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                 Cantidad asignada: {producto.quantityAssigned || producto.quantityBase} unidades
               </Text>
             </View>
+
+            {/* Product Photo */}
+            {producto.product?.photos && producto.product.photos.length > 0 && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Foto del Producto</Text>
+                <View style={styles.productPhotoContainer}>
+                  <Image
+                    source={{ uri: producto.product.photos[0] }}
+                    style={styles.productPhoto}
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+            )}
 
             {/* Presentation Toggle */}
             {hasPresentations && (
@@ -805,5 +820,19 @@ const styles = StyleSheet.create({
     color: '#6366F1',
     marginTop: 4,
     fontWeight: '500',
+  },
+  // Product Photo Styles
+  productPhotoContainer: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  productPhoto: {
+    width: '100%',
+    height: 150,
   },
 });
