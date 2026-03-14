@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   TextInput,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -28,6 +29,7 @@ import {
   DiscrepanciasModal,
   NotasDiscrepanciaModal,
 } from '@/components/Repartos';
+import { ImageViewerModal } from '@/components/Expenses/ImageViewerModal';
 import { TransportSelectionModal } from '@/components/Transport';
 import { TransferReportDiscrepancy } from '@/types/consolidated-reports';
 import { useAuthStore } from '@/store/auth';
@@ -135,6 +137,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const [selectedProducto, setSelectedProducto] = useState<ProductoReparto | null>(null);
   const [productPhotos, setProductPhotos] = useState<Record<string, string[]>>({});
   const [actionLoading, setActionLoading] = useState(false);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [validationFilter, setValidationFilter] = useState<'all' | 'validated' | 'pending'>('all');
   const [downloadingReport, setDownloadingReport] = useState(false);
@@ -972,9 +976,27 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     return (
       <View key={producto.id} style={[styles.card, isTablet && styles.cardTablet]}>
         <View style={styles.cardHeader}>
-          <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
-            {producto.product?.title || producto.product?.name || 'Producto'}
-          </Text>
+          <View style={styles.cardHeaderLeft}>
+            {/* Product Thumbnail */}
+            {productPhotos[producto.productId]?.[0] && (
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedImageUrl(productPhotos[producto.productId][0]);
+                  setImageViewerVisible(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <Image
+                  source={{ uri: productPhotos[producto.productId][0] }}
+                  style={styles.productThumbnail}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )}
+            <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
+              {producto.product?.title || producto.product?.name || 'Producto'}
+            </Text>
+          </View>
           <View
             style={[
               styles.statusBadge,
@@ -1603,6 +1625,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           onClose={() => setTransportModalVisible(false)}
           onConfirm={handleTransportConfirm}
         />
+
+        {/* Image Viewer Modal */}
+        <ImageViewerModal
+          visible={imageViewerVisible}
+          imageUrl={selectedImageUrl}
+          onClose={() => {
+            setImageViewerVisible(false);
+            setSelectedImageUrl(null);
+          }}
+        />
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -1956,12 +1988,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+    gap: 12,
+  },
+  productThumbnail: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
   productName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1E293B',
     flex: 1,
-    marginRight: 12,
   },
   productNameTablet: {
     fontSize: 20,
