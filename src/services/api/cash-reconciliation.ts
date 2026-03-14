@@ -116,6 +116,10 @@ export interface DetalleDiario {
   ventas_efectivo: number;
   ventas_tarjeta: number;
   ventas_cantidad: number;
+  notas_credito_total: number;
+  notas_credito_efectivo: number;
+  notas_credito_tarjeta: number;
+  notas_credito_cantidad: number;
   izipay_bruto: number;
   izipay_comisiones: number;
   izipay_neto: number;
@@ -131,6 +135,10 @@ export interface TotalesPeriodo {
   ventas_efectivo: number;
   ventas_tarjeta: number;
   ventas_cantidad: number;
+  notas_credito_total: number;
+  notas_credito_efectivo: number;
+  notas_credito_tarjeta: number;
+  notas_credito_cantidad: number;
   izipay_bruto: number;
   izipay_comisiones: number;
   izipay_neto: number;

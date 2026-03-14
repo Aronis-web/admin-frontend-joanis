@@ -815,6 +815,18 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     </Text>
                   </View>
 
+                  {/* Notas de Crédito */}
+                  <View style={[styles.statCard, styles.statCardDanger]}>
+                    <Text style={styles.statIcon}>📝</Text>
+                    <Text style={styles.statLabel}>Notas de Crédito</Text>
+                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                      {formatCurrency(salesSummary.totales_periodo.notas_credito_total)}
+                    </Text>
+                    <Text style={styles.statSubtext}>
+                      {salesSummary.totales_periodo.notas_credito_cantidad} anulaciones
+                    </Text>
+                  </View>
+
                   {/* Total Prosegur */}
                   <View style={[styles.statCard, styles.statCardInfo]}>
                     <Text style={styles.statIcon}>🏦</Text>
@@ -1406,6 +1418,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFBEB',
     borderWidth: 1,
     borderColor: '#FDE68A',
+  },
+  statCardDanger: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   suppliersSection: {
     backgroundColor: '#FFFFFF',
