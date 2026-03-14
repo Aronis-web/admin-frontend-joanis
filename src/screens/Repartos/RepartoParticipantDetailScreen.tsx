@@ -12,6 +12,7 @@ import {
   TextInput,
   Platform,
   Image,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -944,7 +945,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     }
   };
 
-  const renderProductCard = (producto: ProductoReparto) => {
+  const renderProductCard = useCallback((producto: ProductoReparto) => {
     // Determinar la cantidad a mostrar (priorizar quantityBase, luego quantityAssigned)
     const quantity = producto.quantityBase
       ? parseInt(producto.quantityBase)
@@ -1120,7 +1121,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         </View>
       </View>
     );
-  };
+  }, [isTablet, productPhotos, actionLoading, handleValidateProduct, handleViewValidation]);
 
   if (loading) {
     return (
@@ -1540,7 +1541,22 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               </Text>
             </View>
           ) : (
-            filteredProductos.map((producto) => renderProductCard(producto))
+            <FlatList
+              data={filteredProductos}
+              renderItem={({ item }) => renderProductCard(item)}
+              keyExtractor={(item) => item.id}
+              // Optimizaciones de rendimiento
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              updateCellsBatchingPeriod={50}
+              initialNumToRender={10}
+              windowSize={5}
+              getItemLayout={(data, index) => ({
+                length: isTablet ? 220 : 200,
+                offset: (isTablet ? 220 : 200) * index,
+                index,
+              })}
+            />
           )}
         </ScrollView>
 
