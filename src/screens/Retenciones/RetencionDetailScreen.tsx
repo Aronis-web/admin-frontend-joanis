@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { bizlinksApi } from '@/services/api/bizlinks';
@@ -110,15 +111,12 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
     return retencion;
   };
 
-  useEffect(() => {
-    loadRetencion();
-  }, [retencionId]);
-
-  const loadRetencion = async () => {
+  const loadRetencion = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('🔄 [RETENCION DETAIL] Loading retencion:', retencionId);
       const data = await bizlinksApi.getRetencionById(retencionId);
-      console.log('📦 Retencion data received:', {
+      console.log('📦 [RETENCION DETAIL] Retencion data received:', {
         id: data.id,
         serieNumero: data.serieNumero,
         hasPdfUrl: !!data.pdfUrl,
@@ -128,7 +126,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
         hasPayloadXml: !!data.payloadXml,
       });
       const enrichedData = enrichRetencionData(data);
-      console.log('✨ Enriched data:', {
+      console.log('✨ [RETENCION DETAIL] Enriched data:', {
         razonSocialProveedor: enrichedData.razonSocialProveedor,
         numeroDocumentoProveedor: enrichedData.numeroDocumentoProveedor,
         tasaRetencion: enrichedData.tasaRetencion,
@@ -138,14 +136,22 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       });
       setRetencion(enrichedData);
     } catch (error: any) {
-      console.error('Error loading retencion:', error);
+      console.error('❌ [RETENCION DETAIL] Error loading retencion:', error);
       Alert.alert('Error', error.message || 'Error al cargar retención');
       navigation.goBack();
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [retencionId]);
+
+  // Cargar solo cuando la pantalla recibe el foco
+  useFocusEffect(
+    useCallback(() => {
+      console.log('👁️ [RETENCION DETAIL] Screen focused - loading retencion');
+      loadRetencion();
+    }, [loadRetencion])
+  );
 
   const handleRefresh = async () => {
     try {

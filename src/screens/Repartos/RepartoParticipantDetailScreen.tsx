@@ -324,15 +324,20 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         const productIds = [...new Set(productosAsignados.map(p => p.productId))];
         if (productIds.length > 0) {
           logger.info(`📸 Cargando fotos para ${productIds.length} productos...`);
+          logger.info(`📸 Product IDs: ${JSON.stringify(productIds)}`);
           const batchResponse = await productsApi.getProductsByIds(productIds, true);
+          logger.info(`📸 Batch response: ${JSON.stringify(batchResponse)}`);
           const photosMap: Record<string, string[]> = {};
           batchResponse.products.forEach((product: Product) => {
+            logger.info(`📸 Producto ${product.id}: ${product.photos?.length || 0} fotos`);
             if (product.photos && product.photos.length > 0) {
               photosMap[product.id] = product.photos;
+              logger.info(`📸 Fotos del producto ${product.id}: ${JSON.stringify(product.photos)}`);
             }
           });
           setProductPhotos(photosMap);
           logger.info(`✅ Fotos cargadas para ${Object.keys(photosMap).length} productos`);
+          logger.info(`✅ PhotosMap completo: ${JSON.stringify(photosMap)}`);
         }
       } catch (error: any) {
         logger.error('❌ Error cargando fotos de productos:', error);
@@ -1495,6 +1500,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               selectedProducto.product?.presentations
             );
             console.log('🔍 selectedProducto completo:', JSON.stringify(selectedProducto, null, 2));
+            console.log('🔍 productPhotos state:', JSON.stringify(productPhotos));
+            console.log('🔍 selectedProducto.productId:', selectedProducto.productId);
+            console.log('🔍 Fotos para este producto:', productPhotos[selectedProducto.productId]);
             return (
               <ValidacionSalidaModal
                 visible={validationModalVisible}
