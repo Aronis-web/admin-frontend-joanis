@@ -35,56 +35,74 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
 
   useEffect(() => {
     logger.info(`🔔 Modal visibility changed: ${visible}, currentCampaignId: ${currentCampaignId}`);
-    if (visible) {
+    if (visible && currentCampaignId) {
       logger.info('🚀 Modal opened, loading campaigns...');
-      // Load campaigns without resetting state first
+      // Reset state first
+      setCampaigns([]);
+      setCampaignTotals({});
+      setSelectedCampaignId(null);
+      // Load campaigns
       loadCampaigns();
-    } else {
+    } else if (!visible) {
       logger.info('🚪 Modal closed, resetting state...');
       setCampaigns([]);
       setCampaignTotals({});
       setSelectedCampaignId(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, currentCampaignId]);
 
   const loadCampaigns = async () => {
     try {
+      logger.info('📥 [START] Iniciando carga de campañas...');
       setLoading(true);
-      logger.info('📥 Cargando últimas campañas...');
+      logger.info('📥 [LOADING] Estado de loading establecido a true');
 
       // Get last 10 campaigns excluding the current one
+      logger.info('📥 [API] Llamando a getCampaigns...');
       const response = await campaignsService.getCampaigns({
         limit: 10, // Get 10 to ensure we have 5 after filtering current
         orderBy: 'createdAt',
         orderDir: 'DESC',
       });
 
+      logger.info(`📥 [API] Respuesta recibida: ${response.data.length} campañas totales`);
+
       // Filter out current campaign
       const filteredCampaigns = response.data.filter(
         (campaign) => campaign.id !== currentCampaignId
       ).slice(0, 5); // Take only 5
 
-      logger.info(`✅ Cargadas ${filteredCampaigns.length} campañas`);
+      logger.info(`✅ [FILTER] Campañas filtradas: ${filteredCampaigns.length}`);
+      logger.info(`📋 [FILTER] IDs: ${filteredCampaigns.map(c => c.id).join(', ')}`);
 
       // Load participant totals for each campaign
       const totalsMap: Record<string, ParticipantTotalsResponse> = {};
+      logger.info(`📊 [TOTALS] Cargando totales para ${filteredCampaigns.length} campañas...`);
+
       for (const campaign of filteredCampaigns) {
         try {
+          logger.info(`📊 [TOTALS] Cargando totales para campaña ${campaign.code}...`);
           const totals = await campaignsService.getParticipantTotals(campaign.id);
           totalsMap[campaign.id] = totals;
+          logger.info(`📊 [TOTALS] ✅ Totales cargados para ${campaign.code}`);
         } catch (error) {
-          logger.warn(`⚠️ No se pudieron cargar totales para campaña ${campaign.code}`);
+          logger.warn(`⚠️ [TOTALS] No se pudieron cargar totales para campaña ${campaign.code}`, error);
         }
       }
 
+      logger.info(`📊 [TOTALS] Totales cargados: ${Object.keys(totalsMap).length}`);
+
       // Set both campaigns and totals together to ensure they render at the same time
+      logger.info(`🔄 [STATE] Actualizando estado con ${filteredCampaigns.length} campañas...`);
       setCampaigns(filteredCampaigns);
       setCampaignTotals(totalsMap);
-      logger.info(`✅ Estado actualizado con ${filteredCampaigns.length} campañas y ${Object.keys(totalsMap).length} totales`);
+      logger.info(`✅ [STATE] Estado actualizado exitosamente`);
     } catch (error: any) {
-      logger.error('❌ Error al cargar campañas:', error);
+      logger.error('❌ [ERROR] Error al cargar campañas:', error);
       Alert.alert('Error', 'No se pudieron cargar las campañas');
     } finally {
+      logger.info('🏁 [FINALLY] Estableciendo loading a false');
       setLoading(false);
     }
   };
@@ -202,6 +220,9 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
     }
   };
 
+  // Log render state
+  logger.info(`🎨 [RENDER] Modal rendering - visible: ${visible}, loading: ${loading}, campaigns: ${campaigns.length}`);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -225,16 +246,30 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
             contentContainerStyle={styles.scrollViewContent}
             showsVerticalScrollIndicator={false}
           >
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6366F1" />
-                <Text style={styles.loadingText}>Cargando campañas...</Text>
-              </View>
-            ) : campaigns.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>📭 No hay campañas disponibles para copiar</Text>
-              </View>
-            ) : (
+            {(() => {
+              logger.info(`🎨 [RENDER-CONDITION] Evaluando: loading=${loading}, campaigns.length=${campaigns.length}`);
+
+              if (loading) {
+                logger.info('🎨 [RENDER-CONDITION] Mostrando loading...');
+                return (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#6366F1" />
+                    <Text style={styles.loadingText}>Cargando campañas...</Text>
+                  </View>
+                );
+              }
+
+              if (campaigns.length === 0) {
+                logger.info('🎨 [RENDER-CONDITION] Mostrando empty state...');
+                return (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>📭 No hay campañas disponibles para copiar</Text>
+                  </View>
+                );
+              }
+
+              logger.info(`🎨 [RENDER-CONDITION] Mostrando ${campaigns.length} campañas...`);
+              return (
               <>
                 <Text style={styles.campaignsCount}>
                   Mostrando {campaigns.length} campañas
@@ -330,7 +365,8 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
                   );
                 })}
               </>
-            )}
+              );
+            })()}
           </ScrollView>
         </View>
       </View>
