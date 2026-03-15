@@ -24,6 +24,7 @@ import { RepartoProducto } from '@/types/repartos';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProductSelectionModal, CircularProgress } from '@/components/Repartos';
 import { usePermissions } from '@/hooks/usePermissions';
+import * as downloadTracker from '@/utils/downloadTracker';
 
 interface RepartoCampaignDetailScreenProps {
   navigation: any;
@@ -145,8 +146,21 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       // Convert map to array
       const uniqueProducts = Array.from(productMap.values());
 
+      // Cargar información de descargas desde el almacenamiento local
+      const downloadInfo = await downloadTracker.getCampaignDownloads(campaignId);
+
+      // Combinar productos con información de descargas
+      const productsWithDownloadInfo = uniqueProducts.map((producto) => {
+        const downloadRecord = downloadInfo.get(producto.productId);
+        return {
+          ...producto,
+          downloadCount: downloadRecord?.downloadCount || 0,
+          lastDownloadedAt: downloadRecord?.lastDownloadedAt,
+        };
+      });
+
       // Sort products by area name (ascending)
-      const sortedProducts = uniqueProducts.sort((a, b) => {
+      const sortedProducts = productsWithDownloadInfo.sort((a, b) => {
         const areaA = a.area?.name || a.areaId || '';
         const areaB = b.area?.name || b.areaId || '';
         return areaA.localeCompare(areaB, 'es', { sensitivity: 'base' });
@@ -197,13 +211,10 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         uti = 'org.openxmlformats.spreadsheetml.sheet';
       }
 
-      // Register download for tracking purposes
+      // Register download for tracking purposes (local storage)
       try {
-        await repartosService.registerDistributionSheetDownload(
-          campaignId,
-          selectedProductsForExport
-        );
-        logger.info('✅ Descarga registrada para seguimiento');
+        await downloadTracker.registerDownloads(campaignId, selectedProductsForExport);
+        logger.info('✅ Descarga registrada localmente para seguimiento');
       } catch (error) {
         logger.warn('⚠️ No se pudo registrar la descarga:', error);
         // Don't fail the download if tracking fails
