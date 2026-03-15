@@ -393,7 +393,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
   },
   header: {
     flexDirection: 'row',
@@ -430,10 +431,12 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    maxHeight: 500,
   },
   scrollViewContent: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+    flexGrow: 1,
   },
   loadingContainer: {
     padding: 40,
