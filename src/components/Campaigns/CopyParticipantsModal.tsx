@@ -241,11 +241,13 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
           </Text>
 
           {/* Campaigns List */}
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollViewContent}
-            showsVerticalScrollIndicator={false}
-          >
+          <View style={styles.scrollViewContainer}>
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollViewContent}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+            >
             {(() => {
               logger.info(`🎨 [RENDER-CONDITION] Evaluando: loading=${loading}, campaigns.length=${campaigns.length}`);
 
@@ -367,7 +369,8 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
               </>
               );
             })()}
-          </ScrollView>
+            </ScrollView>
+          </View>
         </View>
       </View>
     </Modal>
@@ -429,14 +432,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     paddingHorizontal: 20,
   },
+  scrollViewContainer: {
+    flex: 1,
+    minHeight: 200,
+  },
   scrollView: {
     flex: 1,
-    maxHeight: 500,
   },
   scrollViewContent: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    flexGrow: 1,
   },
   loadingContainer: {
     padding: 40,
