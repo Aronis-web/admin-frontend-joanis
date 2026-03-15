@@ -27,15 +27,11 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  console.log('🎯 CopyParticipantsModal render - visible:', visible, 'currentCampaignId:', currentCampaignId);
-
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignTotals, setCampaignTotals] = useState<Record<string, ParticipantTotalsResponse>>({});
   const [loading, setLoading] = useState(false);
   const [copying, setCopying] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
-
-  console.log('📊 State - campaigns:', campaigns.length, 'loading:', loading, 'campaignTotals:', Object.keys(campaignTotals).length);
 
   useEffect(() => {
     logger.info(`🔔 Modal visibility changed: ${visible}, currentCampaignId: ${currentCampaignId}`);
@@ -53,10 +49,6 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
 
   const loadCampaigns = async () => {
     try {
-      // Reset state at the beginning of load
-      setCampaigns([]);
-      setCampaignTotals({});
-      setSelectedCampaignId(null);
       setLoading(true);
       logger.info('📥 Cargando últimas campañas...');
 
@@ -73,7 +65,6 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
       ).slice(0, 5); // Take only 5
 
       logger.info(`✅ Cargadas ${filteredCampaigns.length} campañas`);
-      logger.info(`📋 Campañas para mostrar:`, filteredCampaigns.map(c => ({ id: c.id, name: c.name, code: c.code })));
 
       // Load participant totals for each campaign
       const totalsMap: Record<string, ParticipantTotalsResponse> = {};
@@ -234,124 +225,112 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
             contentContainerStyle={styles.scrollViewContent}
             showsVerticalScrollIndicator={false}
           >
-            {(() => {
-              console.log('🔍 Render condition - loading:', loading, 'campaigns.length:', campaigns.length);
-              if (loading) {
-                console.log('📊 Rendering loading state');
-                return (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#6366F1" />
-                    <Text style={styles.loadingText}>Cargando campañas...</Text>
-                  </View>
-                );
-              } else if (campaigns.length === 0) {
-                console.log('📊 Rendering empty state');
-                return (
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>📭 No hay campañas disponibles para copiar</Text>
-                  </View>
-                );
-              } else {
-                console.log('📊 Rendering campaigns list with', campaigns.length, 'campaigns');
-                return (
-                  <>
-                    <Text style={{ padding: 10, fontSize: 12, color: '#666' }}>
-                      Mostrando {campaigns.length} campañas
-                    </Text>
-                    {campaigns.map((campaign) => {
-                const totals = campaignTotals[campaign.id];
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6366F1" />
+                <Text style={styles.loadingText}>Cargando campañas...</Text>
+              </View>
+            ) : campaigns.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>📭 No hay campañas disponibles para copiar</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.campaignsCount}>
+                  Mostrando {campaigns.length} campañas
+                </Text>
+                {campaigns.map((campaign) => {
+                  const totals = campaignTotals[campaign.id];
 
-                return (
-                  <TouchableOpacity
-                    key={campaign.id}
-                    style={[
-                      styles.campaignCard,
-                      copying && selectedCampaignId === campaign.id && styles.campaignCardDisabled,
-                    ]}
-                    onPress={() => handleCopyCampaign(campaign.id)}
-                    disabled={copying}
-                  >
-                    <View style={styles.campaignHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.campaignCode}>{campaign.code}</Text>
-                        <Text style={styles.campaignName}>{campaign.name}</Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          { backgroundColor: getStatusColor(campaign.status) + '20' },
-                          { borderColor: getStatusColor(campaign.status) },
-                        ]}
-                      >
-                        <Text
-                          style={[styles.statusText, { color: getStatusColor(campaign.status) }]}
+                  return (
+                    <TouchableOpacity
+                      key={campaign.id}
+                      style={[
+                        styles.campaignCard,
+                        copying && selectedCampaignId === campaign.id && styles.campaignCardDisabled,
+                      ]}
+                      onPress={() => handleCopyCampaign(campaign.id)}
+                      disabled={copying}
+                    >
+                      <View style={styles.campaignHeader}>
+                        <View style={styles.campaignHeaderLeft}>
+                          <Text style={styles.campaignCode}>{campaign.code}</Text>
+                          <Text style={styles.campaignName}>{campaign.name}</Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.statusBadge,
+                            { backgroundColor: getStatusColor(campaign.status) + '20' },
+                            { borderColor: getStatusColor(campaign.status) },
+                          ]}
                         >
-                          {getStatusLabel(campaign.status)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.campaignInfo}>
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Inicio:</Text>
-                        <Text style={styles.infoValue}>{formatDate(campaign.startDate)}</Text>
-                      </View>
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Fin:</Text>
-                        <Text style={styles.infoValue}>{formatDate(campaign.endDate)}</Text>
-                      </View>
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Creada:</Text>
-                        <Text style={styles.infoValue}>{formatDate(campaign.createdAt)}</Text>
-                      </View>
-                    </View>
-
-                    {/* Totals Section */}
-                    {totals && (
-                      <View style={styles.totalsSection}>
-                        <Text style={styles.totalsSectionTitle}>💰 Totales de la Campaña</Text>
-                        <View style={styles.totalsGrid}>
-                          <View style={styles.totalItem}>
-                            <Text style={styles.totalLabel}>Compra:</Text>
-                            <Text style={styles.totalValuePurchase}>
-                              {formatCurrency(totals.totalPurchaseCents)}
-                            </Text>
-                          </View>
-                          <View style={styles.totalItem}>
-                            <Text style={styles.totalLabel}>Venta:</Text>
-                            <Text style={styles.totalValueSale}>
-                              {formatCurrency(totals.totalSaleCents)}
-                            </Text>
-                          </View>
-                          <View style={styles.totalItem}>
-                            <Text style={styles.totalLabel}>Margen:</Text>
-                            <Text style={styles.totalValueMargin}>
-                              {formatCurrency(totals.totalMarginCents)}
-                            </Text>
-                          </View>
-                          <View style={styles.totalItem}>
-                            <Text style={styles.totalLabel}>% Margen:</Text>
-                            <Text style={styles.totalValueMargin}>
-                              {totals.totalMarginPercentage.toFixed(2)}%
-                            </Text>
-                          </View>
+                          <Text
+                            style={[styles.statusText, { color: getStatusColor(campaign.status) }]}
+                          >
+                            {getStatusLabel(campaign.status)}
+                          </Text>
                         </View>
                       </View>
-                    )}
 
-                    {copying && selectedCampaignId === campaign.id && (
-                      <View style={styles.copyingOverlay}>
-                        <ActivityIndicator size="small" color="#6366F1" />
-                        <Text style={styles.copyingText}>Copiando...</Text>
+                      <View style={styles.campaignInfo}>
+                        <View style={styles.infoRow}>
+                          <Text style={styles.infoLabel}>Inicio:</Text>
+                          <Text style={styles.infoValue}>{formatDate(campaign.startDate)}</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                          <Text style={styles.infoLabel}>Fin:</Text>
+                          <Text style={styles.infoValue}>{formatDate(campaign.endDate)}</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                          <Text style={styles.infoLabel}>Creada:</Text>
+                          <Text style={styles.infoValue}>{formatDate(campaign.createdAt)}</Text>
+                        </View>
                       </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-                  </>
-                );
-              }
-            })()}
+
+                      {/* Totals Section */}
+                      {totals && (
+                        <View style={styles.totalsSection}>
+                          <Text style={styles.totalsSectionTitle}>💰 Totales de la Campaña</Text>
+                          <View style={styles.totalsGrid}>
+                            <View style={styles.totalItem}>
+                              <Text style={styles.totalLabel}>Compra:</Text>
+                              <Text style={styles.totalValuePurchase}>
+                                {formatCurrency(totals.totalPurchaseCents)}
+                              </Text>
+                            </View>
+                            <View style={styles.totalItem}>
+                              <Text style={styles.totalLabel}>Venta:</Text>
+                              <Text style={styles.totalValueSale}>
+                                {formatCurrency(totals.totalSaleCents)}
+                              </Text>
+                            </View>
+                            <View style={styles.totalItem}>
+                              <Text style={styles.totalLabel}>Margen:</Text>
+                              <Text style={styles.totalValueMargin}>
+                                {formatCurrency(totals.totalMarginCents)}
+                              </Text>
+                            </View>
+                            <View style={styles.totalItem}>
+                              <Text style={styles.totalLabel}>% Margen:</Text>
+                              <Text style={styles.totalValueMargin}>
+                                {totals.totalMarginPercentage.toFixed(2)}%
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {copying && selectedCampaignId === campaign.id && (
+                        <View style={styles.copyingOverlay}>
+                          <ActivityIndicator size="small" color="#6366F1" />
+                          <Text style={styles.copyingText}>Copiando...</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </>
+            )}
           </ScrollView>
         </View>
       </View>
@@ -457,6 +436,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
+  campaignHeaderLeft: {
+    flex: 1,
+  },
   campaignCode: {
     fontSize: 16,
     fontWeight: '600',
@@ -466,6 +448,11 @@ const styles = StyleSheet.create({
   campaignName: {
     fontSize: 14,
     color: '#64748B',
+  },
+  campaignsCount: {
+    padding: 10,
+    fontSize: 12,
+    color: '#666',
   },
   statusBadge: {
     paddingHorizontal: 10,
