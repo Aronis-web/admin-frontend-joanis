@@ -25,6 +25,8 @@ import { StockByAreasModal } from '@/components/Inventory/StockByAreasModal';
 import { StockMovementHistoryModal } from '@/components/Inventory/StockMovementHistoryModal';
 import { BulkUploadModal } from '@/components/Inventory/BulkUploadModal';
 import { StockExportModal } from '@/components/Inventory/StockExportModal';
+import { ProductBulkUploadV2Modal } from '@/components/Inventory/ProductBulkUploadV2Modal';
+import { StockFAB } from '@/components/Inventory/StockFAB';
 import { inventoryApi, StockItem } from '@/services/api/inventory';
 import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
@@ -49,6 +51,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
   const [isBulkUploadModalVisible, setIsBulkUploadModalVisible] = useState(false);
   const [isExportModalVisible, setIsExportModalVisible] = useState(false);
+  const [isProductBulkUploadV2ModalVisible, setIsProductBulkUploadV2ModalVisible] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [selectedProductTitle, setSelectedProductTitle] = useState<string>('');
   const [selectedProductSku, setSelectedProductSku] = useState<string>('');
@@ -344,6 +347,10 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   };
 
   const handleBulkUploadSuccess = useCallback(() => {
+    refetchStock();
+  }, [refetchStock]);
+
+  const handleProductBulkUploadV2Success = useCallback(() => {
     refetchStock();
   }, [refetchStock]);
 
@@ -906,26 +913,12 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
         )}
       </View>
 
-      {/* Floating Action Buttons - Above drawer menu */}
-      <View style={styles.floatingButtonsContainer} pointerEvents="box-none">
-        {/* Export Button */}
-        <TouchableOpacity
-          style={styles.exportButton}
-          onPress={() => setIsExportModalVisible(true)}
-          activeOpacity={0.9}
-        >
-          <Ionicons name="download-outline" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-
-        {/* Bulk Upload Button */}
-        <TouchableOpacity
-          style={styles.bulkUploadButton}
-          onPress={() => setIsBulkUploadModalVisible(true)}
-          activeOpacity={0.9}
-        >
-          <Ionicons name="cloud-upload" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+      {/* Floating Action Button with animations */}
+      <StockFAB
+        onDownloadTemplate={() => setIsProductBulkUploadV2ModalVisible(true)}
+        onUploadFile={() => setIsBulkUploadModalVisible(true)}
+        onExportStock={() => setIsExportModalVisible(true)}
+      />
 
       {/* Stock Adjustment Modal */}
       <StockAdjustmentModal
@@ -971,6 +964,13 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
           siteName={effectiveSite.name}
         />
       )}
+
+      {/* Product Bulk Upload V2 Modal */}
+      <ProductBulkUploadV2Modal
+        visible={isProductBulkUploadV2ModalVisible}
+        onClose={() => setIsProductBulkUploadV2ModalVisible(false)}
+        onSuccess={handleProductBulkUploadV2Success}
+      />
     </SafeAreaView>
   );
 };
@@ -1394,53 +1394,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
-  },
-  floatingButtonsContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    left: 0,
-    top: 0,
-    zIndex: 999,
-    elevation: 999,
-  },
-  exportButton: {
-    position: 'absolute',
-    bottom: 160,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 999,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    zIndex: 999,
-  },
-  bulkUploadButton: {
-    position: 'absolute',
-    bottom: 90,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 999,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    zIndex: 999,
   },
   paginationContainer: {
     backgroundColor: '#FFFFFF',
