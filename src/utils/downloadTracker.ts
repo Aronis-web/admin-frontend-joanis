@@ -68,7 +68,9 @@ export const registerDownloads = async (
   campaignId: string,
   productIds: string[]
 ): Promise<void> => {
+  console.log(`[DownloadTracker] Registrando ${productIds.length} productos para campaña ${campaignId}`);
   const storage = await loadStorage();
+  console.log(`[DownloadTracker] Storage actual tiene ${Object.keys(storage).length} registros`);
   const now = new Date().toISOString();
 
   productIds.forEach((productId) => {
@@ -76,12 +78,14 @@ export const registerDownloads = async (
     const existing = storage[key];
 
     if (existing) {
+      console.log(`[DownloadTracker] Incrementando contador para ${productId}: ${existing.downloadCount} -> ${existing.downloadCount + 1}`);
       storage[key] = {
         ...existing,
         downloadCount: existing.downloadCount + 1,
         lastDownloadedAt: now,
       };
     } else {
+      console.log(`[DownloadTracker] Nuevo registro para ${productId}`);
       storage[key] = {
         productId,
         campaignId,
@@ -92,6 +96,7 @@ export const registerDownloads = async (
   });
 
   await saveStorage(storage);
+  console.log(`[DownloadTracker] Storage guardado con ${Object.keys(storage).length} registros totales`);
 };
 
 /**
@@ -112,15 +117,19 @@ export const getDownloadInfo = async (
 export const getCampaignDownloads = async (
   campaignId: string
 ): Promise<Map<string, DownloadRecord>> => {
+  console.log(`[DownloadTracker] Cargando descargas para campaña ${campaignId}`);
   const storage = await loadStorage();
+  console.log(`[DownloadTracker] Storage tiene ${Object.keys(storage).length} registros totales`);
   const result = new Map<string, DownloadRecord>();
 
   Object.entries(storage).forEach(([key, record]) => {
     if (record.campaignId === campaignId) {
+      console.log(`[DownloadTracker] Encontrado: ${record.productId} con ${record.downloadCount} descargas`);
       result.set(record.productId, record);
     }
   });
 
+  console.log(`[DownloadTracker] Retornando ${result.size} productos con historial para campaña ${campaignId}`);
   return result;
 };
 

@@ -148,16 +148,22 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
 
       // Cargar información de descargas desde el almacenamiento local
       const downloadInfo = await downloadTracker.getCampaignDownloads(campaignId);
+      logger.info(`📊 Información de descargas cargada: ${downloadInfo.size} productos con historial`);
 
       // Combinar productos con información de descargas
       const productsWithDownloadInfo = uniqueProducts.map((producto) => {
         const downloadRecord = downloadInfo.get(producto.productId);
+        if (downloadRecord) {
+          logger.info(`✅ Producto ${producto.product?.title || producto.productId}: ${downloadRecord.downloadCount} descargas`);
+        }
         return {
           ...producto,
           downloadCount: downloadRecord?.downloadCount || 0,
           lastDownloadedAt: downloadRecord?.lastDownloadedAt,
         };
       });
+
+      logger.info(`📦 Total productos con info de descarga: ${productsWithDownloadInfo.length}`);
 
       // Sort products by area name (ascending)
       const sortedProducts = productsWithDownloadInfo.sort((a, b) => {
@@ -213,8 +219,14 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
 
       // Register download for tracking purposes (local storage)
       try {
+        logger.info(`📝 Registrando descarga de ${selectedProductsForExport.length} productos para campaña ${campaignId}`);
+        logger.info(`📋 Productos: ${selectedProductsForExport.join(', ')}`);
         await downloadTracker.registerDownloads(campaignId, selectedProductsForExport);
         logger.info('✅ Descarga registrada localmente para seguimiento');
+
+        // Verificar que se guardó correctamente
+        const downloadInfo = await downloadTracker.getCampaignDownloads(campaignId);
+        logger.info(`🔍 Verificación: ${downloadInfo.size} productos con historial después del registro`);
       } catch (error) {
         logger.warn('⚠️ No se pudo registrar la descarga:', error);
         // Don't fail the download if tracking fails
