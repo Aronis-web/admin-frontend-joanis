@@ -817,6 +817,50 @@ class RepartosService {
       `/admin/campaigns/reports/${reportId}/discrepancies/${discrepancyId}/notes/${noteId}`
     );
   }
+
+  // ============================================
+  // Download Tracking
+  // ============================================
+
+  /**
+   * Register download of distribution sheets for specific products
+   * This increments the download counter for tracking purposes
+   * @param campaignId - ID of the campaign
+   * @param productIds - Array of product IDs that were downloaded
+   */
+  async registerDistributionSheetDownload(
+    campaignId: string,
+    productIds: string[]
+  ): Promise<{ success: boolean; updatedCount: number }> {
+    return apiClient.post<{ success: boolean; updatedCount: number }>(
+      `${this.basePath}/campaigns/${campaignId}/register-download`,
+      { productIds }
+    );
+  }
+
+  /**
+   * Get download statistics for products in a campaign
+   * @param campaignId - ID of the campaign
+   */
+  async getDownloadStatistics(campaignId: string): Promise<{
+    products: Array<{
+      productId: string;
+      productName: string;
+      downloadCount: number;
+      lastDownloadedAt: string | null;
+      totalAssigned: number;
+    }>;
+  }> {
+    return apiClient.get<{
+      products: Array<{
+        productId: string;
+        productName: string;
+        downloadCount: number;
+        lastDownloadedAt: string | null;
+        totalAssigned: number;
+      }>;
+    }>(`${this.basePath}/campaigns/${campaignId}/download-statistics`);
+  }
 }
 
 // Export service instance

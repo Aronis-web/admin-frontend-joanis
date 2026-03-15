@@ -197,6 +197,18 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         uti = 'org.openxmlformats.spreadsheetml.sheet';
       }
 
+      // Register download for tracking purposes
+      try {
+        await repartosService.registerDistributionSheetDownload(
+          campaignId,
+          selectedProductsForExport
+        );
+        logger.info('✅ Descarga registrada para seguimiento');
+      } catch (error) {
+        logger.warn('⚠️ No se pudo registrar la descarga:', error);
+        // Don't fail the download if tracking fails
+      }
+
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
         const blobUrl = URL.createObjectURL(blob);

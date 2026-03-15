@@ -138,6 +138,8 @@ export interface RepartoProducto {
   validationStatus: RepartoProductoValidationStatus;
   notes?: string;
   includeInSheet?: boolean; // Controls if product appears in PDF
+  downloadCount?: number; // Number of times this product has been downloaded in distribution sheets
+  lastDownloadedAt?: string; // Last time this product was downloaded
   createdAt: string;
   updatedAt: string;
   // Presentation info (if distributed by presentation)

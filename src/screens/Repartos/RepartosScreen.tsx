@@ -244,6 +244,18 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         uti = 'org.openxmlformats.spreadsheetml.sheet';
       }
 
+      // Register download for tracking purposes
+      try {
+        await repartosService.registerDistributionSheetDownload(
+          selectedCampaign.id,
+          selectedProductsForExport
+        );
+        console.log('✅ Descarga registrada para seguimiento');
+      } catch (error) {
+        console.warn('⚠️ No se pudo registrar la descarga:', error);
+        // Don't fail the download if tracking fails
+      }
+
       const endTime = new Date().getTime();
       console.log(`✅ ${format.toUpperCase()} descargado del servidor`);
       console.log(`📦 Tamaño del archivo:`, blob.size, 'bytes');

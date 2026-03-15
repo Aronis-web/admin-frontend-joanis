@@ -27,6 +27,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
   loading = false,
 }) => {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [showOnlyNotDownloaded, setShowOnlyNotDownloaded] = useState(false);
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
 
@@ -37,6 +38,15 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
       setSelectedProducts(allProductIds);
     }
   }, [visible, products]);
+
+  // Filter products based on download status
+  const filteredProducts = showOnlyNotDownloaded
+    ? products.filter((p) => !p.downloadCount || p.downloadCount === 0)
+    : products;
+
+  // Count products by download status
+  const notDownloadedCount = products.filter((p) => !p.downloadCount || p.downloadCount === 0).length;
+  const downloadedCount = products.length - notDownloadedCount;
 
   const toggleProduct = (productId: string) => {
     setSelectedProducts((prev) => {
@@ -51,13 +61,23 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
   };
 
   const toggleAll = () => {
-    if (selectedProducts.size === products.length) {
-      // Deselect all
-      setSelectedProducts(new Set());
+    const visibleProductIds = filteredProducts.map((p) => p.productId).filter(Boolean);
+    const allVisibleSelected = visibleProductIds.every((id) => selectedProducts.has(id));
+
+    if (allVisibleSelected) {
+      // Deselect all visible products
+      setSelectedProducts((prev) => {
+        const newSet = new Set(prev);
+        visibleProductIds.forEach((id) => newSet.delete(id));
+        return newSet;
+      });
     } else {
-      // Select all
-      const allProductIds = new Set(products.map((p) => p.productId).filter(Boolean));
-      setSelectedProducts(allProductIds);
+      // Select all visible products
+      setSelectedProducts((prev) => {
+        const newSet = new Set(prev);
+        visibleProductIds.forEach((id) => newSet.add(id));
+        return newSet;
+      });
     }
   };
 
@@ -74,8 +94,9 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
     return `${correlative ? `#${correlative} | ` : ''}${product.product?.sku || 'N/A'}`;
   };
 
-  const allSelected = selectedProducts.size === products.length;
-  const someSelected = selectedProducts.size > 0 && selectedProducts.size < products.length;
+  const visibleProductIds = filteredProducts.map((p) => p.productId).filter(Boolean);
+  const allSelected = visibleProductIds.length > 0 && visibleProductIds.every((id) => selectedProducts.has(id));
+  const someSelected = selectedProducts.size > 0 && !allSelected;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -90,6 +111,43 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
               Selecciona los productos que deseas incluir en el PDF
             </Text>
           </View>
+
+          {/* Download Statistics */}
+          {(downloadedCount > 0 || notDownloadedCount > 0) && (
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statIcon}>📥</Text>
+                <Text style={styles.statLabel}>Descargados:</Text>
+                <Text style={styles.statValue}>{downloadedCount}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statIcon}>⏳</Text>
+                <Text style={styles.statLabel}>Pendientes:</Text>
+                <Text style={styles.statValue}>{notDownloadedCount}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Filter Toggle */}
+          {notDownloadedCount > 0 && (
+            <View style={styles.filterContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.filterButton,
+                  showOnlyNotDownloaded && styles.filterButtonActive,
+                ]}
+                onPress={() => setShowOnlyNotDownloaded(!showOnlyNotDownloaded)}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.filterButtonText,
+                  showOnlyNotDownloaded && styles.filterButtonTextActive,
+                ]}>
+                  {showOnlyNotDownloaded ? '✓ ' : ''}Mostrar solo pendientes de descarga
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Select All Toggle */}
           <View style={styles.selectAllContainer}>
@@ -120,15 +178,25 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
 
           {/* Products List */}
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-            {products
-              .slice()
-              .sort((a, b) => {
-                // Ordenar por correlativo
-                const correlativeA = (a.product as any)?.correlativeNumber || 0;
-                const correlativeB = (b.product as any)?.correlativeNumber || 0;
-                return correlativeA - correlativeB;
-              })
-              .map((product) => {
+            {filteredProducts.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateIcon}>📦</Text>
+                <Text style={styles.emptyStateText}>
+                  {showOnlyNotDownloaded
+                    ? 'Todos los productos ya han sido descargados'
+                    : 'No hay productos disponibles'}
+                </Text>
+              </View>
+            ) : (
+              filteredProducts
+                .slice()
+                .sort((a, b) => {
+                  // Ordenar por correlativo
+                  const correlativeA = (a.product as any)?.correlativeNumber || 0;
+                  const correlativeB = (b.product as any)?.correlativeNumber || 0;
+                  return correlativeA - correlativeB;
+                })
+                .map((product) => {
                 const productKey = product.productId;
                 if (!productKey) {
                   return null;
@@ -137,6 +205,8 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
                 const isSelected = selectedProducts.has(productKey);
                 const productName = getProductName(product);
                 const productSKU = getProductSKU(product);
+                const downloadCount = product.downloadCount || 0;
+                const lastDownloadedAt = product.lastDownloadedAt;
 
                 return (
                   <TouchableOpacity
@@ -159,9 +229,18 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
                       {isSelected && <Text style={styles.checkmark}>✓</Text>}
                     </View>
                     <View style={styles.productInfo}>
-                      <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
-                        {productName}
-                      </Text>
+                      <View style={styles.productHeader}>
+                        <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
+                          {productName}
+                        </Text>
+                        {downloadCount > 0 && (
+                          <View style={styles.downloadBadge}>
+                            <Text style={styles.downloadBadgeText}>
+                              📥 {downloadCount}x
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <View style={styles.productDetails}>
                         <Text style={[styles.productSKU, isTablet && styles.productSKUTablet]}>
                           SKU: {productSKU}
@@ -172,10 +251,22 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
                           Cantidad: {product.quantityAssigned || product.quantityBase || 0}
                         </Text>
                       </View>
+                      {lastDownloadedAt && (
+                        <Text style={styles.lastDownloadText}>
+                          Última descarga: {new Date(lastDownloadedAt).toLocaleString('es-PE', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </Text>
+                      )}
                     </View>
                   </TouchableOpacity>
                 );
-              })}
+              })
+            )}
           </ScrollView>
 
           {/* Footer Actions */}
@@ -261,6 +352,59 @@ const styles = StyleSheet.create({
   subtitleTablet: {
     fontSize: 18,
   },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 16,
+    backgroundColor: '#F0F9FF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#BFDBFE',
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statIcon: {
+    fontSize: 16,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  statValue: {
+    fontSize: 15,
+    color: '#1E293B',
+    fontWeight: '700',
+  },
+  filterContainer: {
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  filterButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  filterButtonActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+  },
+  filterButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  filterButtonTextActive: {
+    color: '#6366F1',
+  },
   selectAllContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -296,6 +440,20 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 24,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
   },
   productItem: {
     flexDirection: 'row',
@@ -346,21 +504,46 @@ const styles = StyleSheet.create({
   productInfo: {
     flex: 1,
   },
+  productHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+    gap: 8,
+  },
   productName: {
     fontSize: 15,
     fontWeight: '600',
     color: '#1E293B',
-    marginBottom: 6,
     lineHeight: 20,
+    flex: 1,
   },
   productNameTablet: {
     fontSize: 18,
     lineHeight: 24,
   },
+  downloadBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    flexShrink: 0,
+  },
+  downloadBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   productDetails: {
     flexDirection: 'row',
     gap: 16,
     flexWrap: 'wrap',
+  },
+  lastDownloadText: {
+    fontSize: 11,
+    color: '#10B981',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   productSKU: {
     fontSize: 13,
