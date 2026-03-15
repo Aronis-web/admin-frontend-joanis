@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     width: '100%',
     maxWidth: 600,
-    maxHeight: '80%',
+    height: '80%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContainer: {
     flex: 1,
-    minHeight: 200,
+    overflow: 'hidden',
   },
   scrollView: {
     flex: 1,
@@ -442,6 +442,7 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+    paddingTop: 10,
   },
   loadingContainer: {
     padding: 40,
