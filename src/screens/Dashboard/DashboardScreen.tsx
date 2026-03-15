@@ -585,15 +585,18 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     const graphHeight = chartHeight - padding.top - padding.bottom;
 
     const data = salesSummary.detalle_diario;
-    const maxValue = Math.max(...data.map(d => d.total_a_recibir), 1);
+    // Calcular ventas netas (ventas - notas de crédito) para cada día
+    const ventasNetas = data.map(d => d.ventas_total - d.notas_credito_total);
+    const maxValue = Math.max(...ventasNetas, 1);
     const pointSpacing = Math.max(graphWidth / (data.length - 1 || 1), 40);
     const totalWidth = Math.max(chartWidth, (data.length - 1) * pointSpacing + padding.left + padding.right);
 
-    // Generar puntos para la línea
+    // Generar puntos para la línea (usando ventas netas)
     const points = data.map((item, index) => {
+      const ventaNeta = item.ventas_total - item.notas_credito_total;
       const x = padding.left + index * pointSpacing;
-      const y = padding.top + graphHeight - (item.total_a_recibir / maxValue) * graphHeight;
-      return { x, y, item };
+      const y = padding.top + graphHeight - (ventaNeta / maxValue) * graphHeight;
+      return { x, y, item, ventaNeta };
     });
 
     // Crear path para la línea
@@ -610,7 +613,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     return (
       <View style={styles.chartContainer}>
         <Text style={[styles.chartTitle, isTablet && styles.chartTitleTablet]}>
-          📈 Ventas en el Período
+          📈 Ventas Netas en el Período (Ventas - Notas de Crédito)
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <Svg width={totalWidth} height={chartHeight}>
@@ -803,10 +806,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               <>
                 {/* Stats Grid */}
                 <View style={[styles.statsGrid, isTablet && styles.statsGridTablet]}>
-                  {/* Total Ventas */}
-                  <View style={[styles.statCard, styles.statCardSuccess]}>
+                  {/* Total Ventas Brutas */}
+                  <View style={[styles.statCard, styles.statCardInfo]}>
                     <Text style={styles.statIcon}>💵</Text>
-                    <Text style={styles.statLabel}>Total Ventas</Text>
+                    <Text style={styles.statLabel}>Ventas Brutas</Text>
                     <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
                       {formatCurrency(salesSummary.totales_periodo.ventas_total)}
                     </Text>
@@ -824,6 +827,18 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     </Text>
                     <Text style={styles.statSubtext}>
                       {salesSummary.totales_periodo.notas_credito_cantidad} anulaciones
+                    </Text>
+                  </View>
+
+                  {/* Ventas Netas (Ventas - Notas de Crédito) */}
+                  <View style={[styles.statCard, styles.statCardSuccess]}>
+                    <Text style={styles.statIcon}>✅</Text>
+                    <Text style={styles.statLabel}>Ventas Netas</Text>
+                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
+                      {formatCurrency(salesSummary.totales_periodo.ventas_total - salesSummary.totales_periodo.notas_credito_total)}
+                    </Text>
+                    <Text style={styles.statSubtext}>
+                      Ventas - Notas de Crédito
                     </Text>
                   </View>
 
