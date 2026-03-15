@@ -208,6 +208,11 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
                 const downloadCount = product.downloadCount || 0;
                 const lastDownloadedAt = product.lastDownloadedAt;
 
+                // Debug log
+                if (downloadCount > 0) {
+                  console.log(`🔍 [Modal] Producto ${productName}: downloadCount=${downloadCount}`);
+                }
+
                 return (
                   <TouchableOpacity
                     key={productKey}
@@ -525,14 +530,16 @@ const styles = StyleSheet.create({
   downloadBadge: {
     backgroundColor: '#10B981',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 12,
     flexShrink: 0,
+    marginLeft: 8,
   },
   downloadBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
+    lineHeight: 16,
   },
   productDetails: {
     flexDirection: 'row',
