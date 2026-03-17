@@ -224,9 +224,9 @@ export const getDateRangeByFilter = (filter: QuickDateFilter): DateRange | null 
 export const AVAILABLE_QUICK_FILTERS: Array<{ key: QuickDateFilter; label: string; icon: string }> = [
   { key: QUICK_DATE_FILTERS.YESTERDAY, label: 'Ayer', icon: '📅' },
   { key: QUICK_DATE_FILTERS.TODAY, label: 'Hoy', icon: '📆' },
-  { key: QUICK_DATE_FILTERS.LAST_7_DAYS, label: 'Últimos 7 días', icon: '📊' },
-  { key: QUICK_DATE_FILTERS.LAST_15_DAYS, label: 'Últimos 15 días', icon: '📈' },
-  { key: QUICK_DATE_FILTERS.LAST_30_DAYS, label: 'Últimos 30 días', icon: '📉' },
+  { key: QUICK_DATE_FILTERS.LAST_7_DAYS, label: '7 días', icon: '📊' },
+  { key: QUICK_DATE_FILTERS.LAST_15_DAYS, label: '15 días', icon: '📈' },
+  { key: QUICK_DATE_FILTERS.LAST_30_DAYS, label: '30 días', icon: '📉' },
   { key: QUICK_DATE_FILTERS.THIS_MONTH, label: 'Este mes', icon: '🗓️' },
-  { key: QUICK_DATE_FILTERS.LAST_MONTH, label: 'Mes anterior', icon: '📋' },
+  { key: QUICK_DATE_FILTERS.LAST_MONTH, label: 'Mes ant.', icon: '📋' },
 ];
