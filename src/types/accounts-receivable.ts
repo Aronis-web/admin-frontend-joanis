@@ -286,6 +286,8 @@ export interface QueryAccountsReceivableParams {
   dueDateTo?: string; // YYYY-MM-DD
   issueDateFrom?: string; // YYYY-MM-DD
   issueDateTo?: string; // YYYY-MM-DD
+  fromDate?: string; // YYYY-MM-DD - Alias for issue date range (required for partitioned tables)
+  toDate?: string; // YYYY-MM-DD - Alias for issue date range (required for partitioned tables)
 
   // Amount filters (in cents)
   amountFrom?: number;

@@ -96,3 +96,12 @@ class AccountsReceivableService {
 
 // Export service instance
 export const accountsReceivableService = new AccountsReceivableService();
+
+// Re-export types for convenience
+export type {
+  AccountReceivable,
+  AccountsReceivableResponse,
+  QueryAccountsReceivableParams,
+  CreateAccountReceivableRequest,
+  UpdateAccountReceivableRequest,
+} from '@/types/accounts-receivable';

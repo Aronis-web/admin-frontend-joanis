@@ -8,6 +8,7 @@ export * from './performance';
 
 // Date helpers
 export * from './dateHelpers';
+export * from './dateFilters';
 
 // Existing utilities
 export { logger } from './logger';

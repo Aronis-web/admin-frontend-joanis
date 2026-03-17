@@ -17,6 +17,13 @@ import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
 import { sitesApi } from '@/services/api/sites';
 import { Site } from '@/types/sites';
+import {
+  QUICK_DATE_FILTERS,
+  QuickDateFilter,
+  getDateRangeByFilter,
+  AVAILABLE_QUICK_FILTERS,
+  validateDateRange,
+} from '@/utils/dateFilters';
 
 type Props = NativeStackScreenProps<any, 'ReviewSales'>;
 
@@ -74,6 +81,7 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedSede, setSelectedSede] = useState<string>('');
   const [selectedTipoPago, setSelectedTipoPago] = useState<string>('');
   const [selectedTipoDocumento, setSelectedTipoDocumento] = useState<string>('');
+  const [selectedQuickFilter, setSelectedQuickFilter] = useState<QuickDateFilter>(QUICK_DATE_FILTERS.YESTERDAY);
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -81,6 +89,15 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
   // Sedes
   const [sedes, setSedes] = useState<Site[]>([]);
   const [isLoadingSedes, setIsLoadingSedes] = useState(false);
+
+  // Initialize with yesterday's date
+  useEffect(() => {
+    const yesterdayRange = getDateRangeByFilter(QUICK_DATE_FILTERS.YESTERDAY);
+    if (yesterdayRange) {
+      setFechaInicio(yesterdayRange.fromDate);
+      setFechaFin(yesterdayRange.toDate);
+    }
+  }, []);
 
   // Load sedes
   useEffect(() => {
@@ -103,6 +120,22 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
   const loadSales = useCallback(
     async (page: number = 1, isRefresh: boolean = false) => {
       try {
+        // ⚠️ VALIDACIÓN: Fechas obligatorias para evitar escaneo de particiones
+        if (!fechaInicio || !fechaFin) {
+          Alert.alert(
+            'Fechas Requeridas',
+            'Debe seleccionar un rango de fechas para consultar las ventas. Por defecto se usa "Ayer".'
+          );
+          return;
+        }
+
+        // ⚠️ VALIDACIÓN: Rango máximo de 90 días
+        const validation = validateDateRange(fechaInicio, fechaFin, 90);
+        if (!validation.valid) {
+          Alert.alert('Rango de Fechas Inválido', validation.message || 'El rango de fechas no es válido');
+          return;
+        }
+
         if (isRefresh) {
           setIsRefreshing(true);
         } else {
@@ -113,12 +146,14 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
         params.append('page', page.toString());
         params.append('limit', pagination.limit.toString());
 
+        // ⚠️ CRÍTICO: Fechas SIEMPRE presentes
+        params.append('fecha_inicio', fechaInicio);
+        params.append('fecha_fin', fechaFin);
+
         if (searchQuery) params.append('search', searchQuery);
         if (selectedSede) params.append('sede_id', selectedSede);
         if (selectedTipoPago) params.append('tipo_pago', selectedTipoPago);
         if (selectedTipoDocumento) params.append('tipo_documento', selectedTipoDocumento);
-        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-        if (fechaFin) params.append('fecha_fin', fechaFin);
 
         const response = await fetch(
           `${config.API_URL}/cash-reconciliation/sales?${params.toString()}`,
@@ -150,10 +185,22 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
     [token, searchQuery, selectedSede, selectedTipoPago, selectedTipoDocumento, fechaInicio, fechaFin, pagination.limit]
   );
 
-  // Initial load
+  // Initial load - wait for dates to be set
   useEffect(() => {
-    loadSales(1);
-  }, []);
+    if (fechaInicio && fechaFin) {
+      loadSales(1);
+    }
+  }, [fechaInicio, fechaFin]);
+
+  // Handle quick filter selection
+  const handleQuickFilterSelect = (filter: QuickDateFilter) => {
+    setSelectedQuickFilter(filter);
+    const range = getDateRangeByFilter(filter);
+    if (range) {
+      setFechaInicio(range.fromDate);
+      setFechaFin(range.toDate);
+    }
+  };
 
   // Apply filters
   const handleApplyFilters = () => {
@@ -167,9 +214,13 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
     setSelectedSede('');
     setSelectedTipoPago('');
     setSelectedTipoDocumento('');
-    setFechaInicio('');
-    setFechaFin('');
-    loadSales(1);
+    // Reset to yesterday
+    setSelectedQuickFilter(QUICK_DATE_FILTERS.YESTERDAY);
+    const yesterdayRange = getDateRangeByFilter(QUICK_DATE_FILTERS.YESTERDAY);
+    if (yesterdayRange) {
+      setFechaInicio(yesterdayRange.fromDate);
+      setFechaFin(yesterdayRange.toDate);
+    }
   };
 
   // Pagination
@@ -254,6 +305,35 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.filterButtonText}>⚙️</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Quick Date Filters */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.quickFiltersContainer}
+        contentContainerStyle={styles.quickFiltersContent}
+      >
+        {AVAILABLE_QUICK_FILTERS.map((filter) => (
+          <TouchableOpacity
+            key={filter.key}
+            style={[
+              styles.quickFilterChip,
+              selectedQuickFilter === filter.key && styles.quickFilterChipActive,
+            ]}
+            onPress={() => handleQuickFilterSelect(filter.key)}
+          >
+            <Text style={styles.quickFilterIcon}>{filter.icon}</Text>
+            <Text
+              style={[
+                styles.quickFilterText,
+                selectedQuickFilter === filter.key && styles.quickFilterTextActive,
+              ]}
+            >
+              {filter.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {/* Stats Bar */}
       <View style={styles.statsBar}>
@@ -346,24 +426,33 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Fecha Inicio */}
           <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Fecha Inicio (YYYY-MM-DD)</Text>
+            <Text style={styles.filterLabel}>Fecha Inicio (YYYY-MM-DD) *</Text>
             <TextInput
               style={styles.input}
               placeholder="2026-01-01"
               value={fechaInicio}
-              onChangeText={setFechaInicio}
+              onChangeText={(text) => {
+                setFechaInicio(text);
+                setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+              }}
             />
           </View>
 
           {/* Fecha Fin */}
           <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Fecha Fin (YYYY-MM-DD)</Text>
+            <Text style={styles.filterLabel}>Fecha Fin (YYYY-MM-DD) *</Text>
             <TextInput
               style={styles.input}
               placeholder="2026-01-31"
               value={fechaFin}
-              onChangeText={setFechaFin}
+              onChangeText={(text) => {
+                setFechaFin(text);
+                setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+              }}
             />
+            <Text style={styles.filterHint}>
+              ⚠️ Obligatorio. Máximo 90 días de rango.
+            </Text>
           </View>
 
           {/* Filter Actions */}
@@ -699,5 +788,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     fontWeight: '600',
+  },
+  quickFiltersContainer: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  quickFiltersContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  quickFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    gap: 6,
+  },
+  quickFilterChipActive: {
+    backgroundColor: '#DBEAFE',
+    borderColor: '#10B981',
+  },
+  quickFilterIcon: {
+    fontSize: 16,
+  },
+  quickFilterText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  quickFilterTextActive: {
+    color: '#10B981',
+  },
+  filterHint: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 });

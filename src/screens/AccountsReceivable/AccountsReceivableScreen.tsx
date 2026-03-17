@@ -33,6 +33,13 @@ import {
   DEBTOR_TYPE_ICONS,
   CURRENCY_SYMBOLS,
 } from '@/constants/accountsReceivable';
+import {
+  QUICK_DATE_FILTERS,
+  QuickDateFilter,
+  getDateRangeByFilter,
+  AVAILABLE_QUICK_FILTERS,
+  validateDateRange,
+} from '@/utils/dateFilters';
 
 interface AccountsReceivableScreenProps {
   navigation: any;
@@ -67,6 +74,9 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
   const [sortBy, setSortBy] = useState<string>('dueDate');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
   const [page, setPage] = useState(1);
+  const [selectedQuickFilter, setSelectedQuickFilter] = useState<QuickDateFilter>(QUICK_DATE_FILTERS.YESTERDAY);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -79,6 +89,15 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
+
+  // Initialize with yesterday's date
+  useEffect(() => {
+    const yesterdayRange = getDateRangeByFilter(QUICK_DATE_FILTERS.YESTERDAY);
+    if (yesterdayRange) {
+      setFromDate(yesterdayRange.fromDate);
+      setToDate(yesterdayRange.toDate);
+    }
+  }, []);
 
   // Debounce search query
   useEffect(() => {
@@ -102,8 +121,10 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
 
   // Load accounts receivable when filters change
   useEffect(() => {
-    loadAccountsReceivable();
-  }, [page, debouncedSearchQuery, selectedStatuses, selectedCurrencies, selectedDebtorType, showOverdueOnly, sortBy, sortOrder]);
+    if (fromDate && toDate) {
+      loadAccountsReceivable();
+    }
+  }, [page, debouncedSearchQuery, selectedStatuses, selectedCurrencies, selectedDebtorType, showOverdueOnly, sortBy, sortOrder, fromDate, toDate]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -112,6 +133,22 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
 
   const loadAccountsReceivable = async () => {
     try {
+      // ⚠️ VALIDACIÓN: Fechas obligatorias para evitar escaneo de particiones
+      if (!fromDate || !toDate) {
+        Alert.alert(
+          'Fechas Requeridas',
+          'Debe seleccionar un rango de fechas para consultar las cuentas por cobrar. Por defecto se usa "Ayer".'
+        );
+        return;
+      }
+
+      // ⚠️ VALIDACIÓN: Rango máximo de 90 días
+      const validation = validateDateRange(fromDate, toDate, 90);
+      if (!validation.valid) {
+        Alert.alert('Rango de Fechas Inválido', validation.message || 'El rango de fechas no es válido');
+        return;
+      }
+
       setLoading(true);
 
       // Build query params
@@ -120,6 +157,8 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
         limit: 20,
         sortBy,
         sortOrder,
+        fromDate,
+        toDate,
       };
 
       // Add search query
@@ -212,6 +251,15 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
     );
   };
 
+  const handleQuickFilterSelect = (filter: QuickDateFilter) => {
+    setSelectedQuickFilter(filter);
+    const range = getDateRangeByFilter(filter);
+    if (range) {
+      setFromDate(range.fromDate);
+      setToDate(range.toDate);
+    }
+  };
+
   const clearFilters = () => {
     setSelectedStatuses([]);
     setSelectedCurrencies([]);
@@ -220,6 +268,13 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
     setSearchQuery('');
     setSortBy('dueDate');
     setSortOrder('ASC');
+    // Reset to yesterday
+    setSelectedQuickFilter(QUICK_DATE_FILTERS.YESTERDAY);
+    const yesterdayRange = getDateRangeByFilter(QUICK_DATE_FILTERS.YESTERDAY);
+    if (yesterdayRange) {
+      setFromDate(yesterdayRange.fromDate);
+      setToDate(yesterdayRange.toDate);
+    }
   };
 
   const formatCurrency = (cents: number, currency: string = 'PEN') => {
@@ -465,6 +520,40 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
               </View>
             </View>
 
+            {/* Date Range Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Rango de Fechas *</Text>
+              <View style={styles.dateInputsContainer}>
+                <View style={styles.dateInputGroup}>
+                  <Text style={styles.dateInputLabel}>Desde:</Text>
+                  <TextInput
+                    style={styles.dateInput}
+                    placeholder="YYYY-MM-DD"
+                    value={fromDate}
+                    onChangeText={(text) => {
+                      setFromDate(text);
+                      setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+                    }}
+                  />
+                </View>
+                <View style={styles.dateInputGroup}>
+                  <Text style={styles.dateInputLabel}>Hasta:</Text>
+                  <TextInput
+                    style={styles.dateInput}
+                    placeholder="YYYY-MM-DD"
+                    value={toDate}
+                    onChangeText={(text) => {
+                      setToDate(text);
+                      setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+                    }}
+                  />
+                </View>
+              </View>
+              <Text style={styles.dateRangeHint}>
+                ⚠️ Obligatorio. Máximo 90 días de rango.
+              </Text>
+            </View>
+
             {/* Overdue Filter */}
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>Vencimiento</Text>
@@ -607,6 +696,35 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
           <ActivityIndicator size="small" color="#667eea" style={styles.searchLoader} />
         )}
       </View>
+
+      {/* Quick Date Filters */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.quickDateFiltersContainer}
+        contentContainerStyle={styles.quickDateFiltersContent}
+      >
+        {AVAILABLE_QUICK_FILTERS.map((filter) => (
+          <TouchableOpacity
+            key={filter.key}
+            style={[
+              styles.quickDateFilterChip,
+              selectedQuickFilter === filter.key && styles.quickDateFilterChipActive,
+            ]}
+            onPress={() => handleQuickFilterSelect(filter.key)}
+          >
+            <Text style={styles.quickDateFilterIcon}>{filter.icon}</Text>
+            <Text
+              style={[
+                styles.quickDateFilterText,
+                selectedQuickFilter === filter.key && styles.quickDateFilterTextActive,
+              ]}
+            >
+              {filter.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {/* Quick Filters & Filter Button */}
       <View style={styles.quickFiltersContainer}>
@@ -1527,5 +1645,70 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     textAlign: 'center',
+  },
+  quickDateFiltersContainer: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  quickDateFiltersContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  quickDateFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    gap: 6,
+  },
+  quickDateFilterChipActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#667eea',
+  },
+  quickDateFilterIcon: {
+    fontSize: 16,
+  },
+  quickDateFilterText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  quickDateFilterTextActive: {
+    color: '#667eea',
+  },
+  dateInputsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dateInputGroup: {
+    flex: 1,
+  },
+  dateInputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  dateInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#1E293B',
+  },
+  dateRangeHint: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });
