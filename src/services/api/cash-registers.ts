@@ -10,6 +10,7 @@ export interface CashRegister {
   id: string;
   companyId: string;
   siteId: string;
+  warehouseId?: string; // ID del almacén vinculado (para descuento automático de stock)
   code: string;
   name: string;
   emissionPointId?: string;
@@ -29,11 +30,18 @@ export interface CashRegister {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+  warehouse?: {
+    id: string;
+    code: string;
+    name: string;
+    warehouseType?: string;
+  };
 }
 
 export interface CreateCashRegisterDto {
   companyId: string;
   siteId: string;
+  warehouseId?: string; // ID del almacén vinculado (para descuento automático de stock)
   code: string;
   name: string;
   emissionPointId?: string;
@@ -46,6 +54,7 @@ export interface CreateCashRegisterDto {
 export interface UpdateCashRegisterDto {
   companyId?: string;
   siteId?: string;
+  warehouseId?: string; // ID del almacén vinculado (para descuento automático de stock)
   code?: string;
   name?: string;
   emissionPointId?: string;
@@ -59,6 +68,7 @@ export interface UpdateCashRegisterDto {
 export interface GetCashRegistersParams {
   companyId?: string;
   siteId?: string;
+  warehouseId?: string; // Filter by warehouse
   status?: CashRegisterStatus;
   isOpen?: boolean;
 }

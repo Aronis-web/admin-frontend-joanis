@@ -10,9 +10,11 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { sitesApi } from '@/services/api';
 import { CreateSiteRequest } from '@/types/sites';
+import { SiteType, SiteTypeLabels, SiteTypeDescriptions } from '@/types/enums';
 
 import { LocationSearchInput, LocationData } from '@/components/common/LocationSearchInput';
 
@@ -34,6 +36,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
     code: '',
     name: '',
     isActive: true,
+    siteTypes: [], // Array de tipos de sede
     phone: '',
     addressLine1: '',
     addressLine2: '',
@@ -119,6 +122,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
         code: formData.code.trim().toUpperCase(),
         name: formData.name.trim(),
         isActive: formData.isActive,
+        siteTypes: formData.siteTypes && formData.siteTypes.length > 0 ? formData.siteTypes : undefined,
       };
 
       if (formData.phone?.trim()) {
@@ -203,6 +207,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
       code: '',
       name: '',
       isActive: true,
+      siteTypes: [], // Reset tipos de sede
       phone: '',
       addressLine1: '',
       addressLine2: '',
@@ -218,6 +223,27 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
     });
     setErrors({});
     onClose();
+  };
+
+  const toggleSiteType = (type: SiteType) => {
+    setFormData((prev: any) => {
+      const currentTypes = prev.siteTypes || [];
+      const hasType = currentTypes.includes(type);
+
+      if (hasType) {
+        // Remove type
+        return {
+          ...prev,
+          siteTypes: currentTypes.filter((t: SiteType) => t !== type),
+        };
+      } else {
+        // Add type
+        return {
+          ...prev,
+          siteTypes: [...currentTypes, type],
+        };
+      }
+    });
   };
 
   const updateField = (
@@ -312,6 +338,35 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
                 trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
                 thumbColor={formData.isActive ? '#FFFFFF' : '#94A3B8'}
               />
+            </View>
+
+            <Text style={styles.sectionTitle}>Tipos de Sede</Text>
+            <Text style={styles.sectionDescription}>
+              Selecciona uno o más tipos. Una sede puede ser Tienda, Almacén y/o Administrativo simultáneamente.
+            </Text>
+
+            <View style={styles.checkboxGroup}>
+              {Object.values(SiteType).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={styles.checkboxItem}
+                  onPress={() => toggleSiteType(type)}
+                  disabled={loading}
+                >
+                  <View style={[
+                    styles.checkbox,
+                    formData.siteTypes?.includes(type) && styles.checkboxChecked
+                  ]}>
+                    {formData.siteTypes?.includes(type) && (
+                      <Text style={styles.checkboxIcon}>✓</Text>
+                    )}
+                  </View>
+                  <View style={styles.checkboxTextContainer}>
+                    <Text style={styles.checkboxLabel}>{SiteTypeLabels[type]}</Text>
+                    <Text style={styles.checkboxDescription}>{SiteTypeDescriptions[type]}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
 
             <Text style={styles.sectionTitle}>Dirección</Text>
@@ -514,6 +569,57 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginTop: 16,
     marginBottom: 12,
+  },
+  sectionDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  checkboxGroup: {
+    marginBottom: 16,
+  },
+  checkboxItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  checkboxIcon: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  checkboxTextContainer: {
+    flex: 1,
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  checkboxDescription: {
+    fontSize: 12,
+    color: '#64748B',
   },
   switchContainer: {
     flexDirection: 'row',

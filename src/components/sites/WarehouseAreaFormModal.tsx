@@ -9,7 +9,9 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
+import { WarehouseAreaType, WarehouseAreaTypeLabels, WarehouseAreaTypeDescriptions } from '@/types/enums';
 import { warehouseAreasApi } from '@/services/api';
 
 interface WarehouseAreaFormModalProps {
@@ -31,6 +33,7 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
 }) => {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+  const [areaType, setAreaType] = useState<WarehouseAreaType>(WarehouseAreaType.GENERAL);
   const [loading, setLoading] = useState(false);
 
   const isEditMode = !!area;
@@ -41,10 +44,12 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
         // Edit mode
         setCode(area.code);
         setName(area.name || '');
+        setAreaType(area.areaType || WarehouseAreaType.GENERAL);
       } else {
         // Create mode
         setCode('');
         setName('');
+        setAreaType(WarehouseAreaType.GENERAL);
       }
     }
   }, [visible, area]);
@@ -68,6 +73,7 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
         await warehouseAreasApi.updateWarehouseArea(area.id, {
           code: code.trim(),
           name: name.trim() || undefined,
+          areaType: areaType,
         });
         Alert.alert('Éxito', 'Área actualizada correctamente');
         if (onAreaUpdated) {
@@ -78,6 +84,7 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
         await warehouseAreasApi.createWarehouseArea(warehouse.id, {
           code: code.trim(),
           name: name.trim() || undefined,
+          areaType: areaType,
         });
         Alert.alert('Éxito', 'Área creada correctamente');
         if (onAreaCreated) {
@@ -99,6 +106,7 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
   const handleClose = () => {
     setCode('');
     setName('');
+    setAreaType(WarehouseAreaType.GENERAL);
     onClose();
   };
 
@@ -149,6 +157,31 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
                 editable={!loading}
               />
               <Text style={styles.hint}>Máximo 200 caracteres</Text>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>
+                Tipo de Área <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={areaType}
+                  onValueChange={(value) => setAreaType(value as WarehouseAreaType)}
+                  enabled={!loading}
+                  style={styles.picker}
+                >
+                  {Object.values(WarehouseAreaType).map((type) => (
+                    <Picker.Item
+                      key={type}
+                      label={WarehouseAreaTypeLabels[type]}
+                      value={type}
+                    />
+                  ))}
+                </Picker>
+              </View>
+              <Text style={styles.hint}>
+                {WarehouseAreaTypeDescriptions[areaType]}
+              </Text>
             </View>
 
             {warehouse && (
@@ -285,6 +318,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     marginTop: 4,
+  },
+  pickerContainer: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
   },
   infoBox: {
     backgroundColor: '#EEF2FF',

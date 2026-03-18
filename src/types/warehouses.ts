@@ -1,4 +1,5 @@
 // Warehouse Types and Interfaces
+import { WarehouseType, WarehouseAreaType } from './enums';
 
 export interface WarehouseArea {
   id: string;
@@ -7,6 +8,7 @@ export interface WarehouseArea {
   warehouseId: string;
   code: string; // Unique per company/site/warehouse
   name?: string;
+  areaType?: WarehouseAreaType; // Tipo de área (GENERAL, SHELF, SECTION, ZONE)
   warehouse?: {
     id: string;
     siteCode: string;
@@ -21,6 +23,7 @@ export interface Warehouse {
   code: string; // Unique per company/site
   siteCode: string; // Legacy field, kept for compatibility
   name: string;
+  warehouseType?: WarehouseType; // Tipo de almacén (GENERAL, STORE_WAREHOUSE, PHYSICAL_STORE)
   isActive?: boolean; // Optional flag to filter active warehouses
   createdAt: string;
   areas?: WarehouseArea[];
@@ -37,12 +40,14 @@ export interface CreateWarehouseRequest {
   code: string; // Unique code per company/site
   siteCode: string; // Legacy field, kept for compatibility
   name: string;
+  warehouseType?: WarehouseType; // Tipo de almacén (GENERAL, STORE_WAREHOUSE, PHYSICAL_STORE)
 }
 
 export interface UpdateWarehouseRequest {
   code?: string;
   siteCode?: string; // Legacy field, kept for compatibility
   name?: string;
+  warehouseType?: WarehouseType; // Tipo de almacén (GENERAL, STORE_WAREHOUSE, PHYSICAL_STORE)
 }
 
 export interface CreateWarehouseAreaRequest {
@@ -51,11 +56,13 @@ export interface CreateWarehouseAreaRequest {
   warehouseId: string; // Required for multi-tenancy
   code: string; // Unique code per company/site/warehouse
   name?: string;
+  areaType?: WarehouseAreaType; // Tipo de área (GENERAL, SHELF, SECTION, ZONE)
 }
 
 export interface UpdateWarehouseAreaRequest {
   code?: string;
   name?: string;
+  areaType?: WarehouseAreaType; // Tipo de área (GENERAL, SHELF, SECTION, ZONE)
 }
 
 export interface WarehousesResponse {

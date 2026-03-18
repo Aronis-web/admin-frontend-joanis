@@ -1,4 +1,5 @@
 // Site Types and Interfaces
+import { SiteType } from './enums';
 
 export interface Site {
   id: string;
@@ -6,6 +7,7 @@ export interface Site {
   code: string; // Unique per company
   name: string;
   isActive: boolean;
+  siteTypes?: SiteType[]; // Array de tipos de sede (STORE, WAREHOUSE, ADMINISTRATIVE)
   phone?: string;
   addressLine1?: string;
   addressLine2?: string;
@@ -48,6 +50,7 @@ export interface CreateSiteRequest {
   code: string;
   name: string;
   isActive?: boolean;
+  siteTypes?: SiteType[]; // Array de tipos de sede (STORE, WAREHOUSE, ADMINISTRATIVE)
   phone?: string;
   addressLine1?: string;
   addressLine2?: string;
@@ -67,6 +70,7 @@ export interface UpdateSiteRequest {
   code?: string;
   name?: string;
   isActive?: boolean;
+  siteTypes?: SiteType[]; // Array de tipos de sede (STORE, WAREHOUSE, ADMINISTRATIVE)
   phone?: string;
   addressLine1?: string;
   addressLine2?: string;
@@ -86,6 +90,7 @@ export interface GetSitesParams {
   userId?: string; // Filter sites of a specific user
   q?: string; // Search in name and fullAddress
   isActive?: boolean;
+  siteType?: SiteType; // Filter by site type
   district?: string;
   province?: string;
   department?: string;

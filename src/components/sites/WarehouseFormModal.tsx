@@ -9,8 +9,10 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { Site } from '@/types/sites';
 import { Warehouse } from '@/types/warehouses';
+import { WarehouseType, WarehouseTypeLabels, WarehouseTypeDescriptions } from '@/types/enums';
 import { warehousesApi } from '@/services/api';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
@@ -37,6 +39,7 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
 
   const [name, setName] = useState('');
   const [siteCode, setSiteCode] = useState('');
+  const [warehouseType, setWarehouseType] = useState<WarehouseType>(WarehouseType.GENERAL);
   const [loading, setLoading] = useState(false);
 
   const isEditMode = !!warehouse;
@@ -50,10 +53,12 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
         // Edit mode
         setName(warehouse.name);
         setSiteCode(warehouse.siteCode);
+        setWarehouseType(warehouse.warehouseType || WarehouseType.GENERAL);
       } else if (site) {
         // Create mode
         setName('');
         setSiteCode(site.code);
+        setWarehouseType(WarehouseType.GENERAL);
       }
     }
   }, [visible, warehouse, site]);
@@ -77,6 +82,7 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
         await warehousesApi.updateWarehouse(warehouse.id, {
           name: name.trim(),
           siteCode: siteCode.trim().toUpperCase(),
+          warehouseType: warehouseType,
         });
         Alert.alert('Éxito', 'Almacén actualizado correctamente');
         if (onWarehouseUpdated) {
@@ -99,12 +105,14 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
           code: siteCode.trim().toUpperCase(),
           siteCode: siteCode.trim().toUpperCase(),
           name: name.trim(),
+          warehouseType: warehouseType,
         });
         Alert.alert('Éxito', 'Almacén creado correctamente');
 
         // Reset form
         setName('');
         setSiteCode('');
+        setWarehouseType(WarehouseType.GENERAL);
 
         if (onWarehouseCreated) {
           onWarehouseCreated();
@@ -127,6 +135,7 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
     if (!loading) {
       setName('');
       setSiteCode('');
+      setWarehouseType(WarehouseType.GENERAL);
       onClose();
     }
   };
@@ -182,6 +191,31 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
               />
               <Text style={styles.hint}>
                 Máximo 50 caracteres. Se convertirá a mayúsculas automáticamente.
+              </Text>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>
+                Tipo de Almacén <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={warehouseType}
+                  onValueChange={(value) => setWarehouseType(value as WarehouseType)}
+                  enabled={!loading}
+                  style={styles.picker}
+                >
+                  {Object.values(WarehouseType).map((type) => (
+                    <Picker.Item
+                      key={type}
+                      label={WarehouseTypeLabels[type]}
+                      value={type}
+                    />
+                  ))}
+                </Picker>
+              </View>
+              <Text style={styles.hint}>
+                {WarehouseTypeDescriptions[warehouseType]}
               </Text>
             </View>
 
@@ -308,6 +342,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     marginTop: 4,
+  },
+  pickerContainer: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
   },
   infoBox: {
     backgroundColor: '#EEF2FF',

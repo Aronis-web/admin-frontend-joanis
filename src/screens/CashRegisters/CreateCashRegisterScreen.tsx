@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,13 @@ import {
   Switch,
   useWindowDimensions,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { cashRegistersApi } from '@/services/api/cash-registers';
+import { warehousesApi } from '@/services/api';
+import { Warehouse } from '@/types/warehouses';
 import logger from '@/utils/logger';
 
 interface CreateCashRegisterScreenProps {
@@ -39,6 +42,9 @@ export const CreateCashRegisterScreen: React.FC<CreateCashRegisterScreenProps> =
 
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+  const [warehouseId, setWarehouseId] = useState<string>('');
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
   const [location, setLocation] = useState('');
   const [ipAddress, setIpAddress] = useState('');
   const [deviceId, setDeviceId] = useState('');
@@ -46,6 +52,29 @@ export const CreateCashRegisterScreen: React.FC<CreateCashRegisterScreenProps> =
   const [allowNegativeBalance, setAllowNegativeBalance] = useState(false);
   const [requiresManagerApproval, setRequiresManagerApproval] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Load warehouses for the current site
+  useEffect(() => {
+    const loadWarehouses = async () => {
+      if (!currentSite?.id || !currentCompany?.id) return;
+
+      try {
+        setLoadingWarehouses(true);
+        const response = await warehousesApi.getWarehouses(
+          currentCompany.id,
+          currentSite.id
+        );
+        setWarehouses(response || []);
+      } catch (error) {
+        logger.error('Error loading warehouses:', error);
+        Alert.alert('Error', 'No se pudieron cargar los almacenes');
+      } finally {
+        setLoadingWarehouses(false);
+      }
+    };
+
+    loadWarehouses();
+  }, [currentSite?.id, currentCompany?.id]);
 
   const handleCreate = async () => {
     if (!code.trim()) {
@@ -78,6 +107,7 @@ export const CreateCashRegisterScreen: React.FC<CreateCashRegisterScreenProps> =
       await cashRegistersApi.createCashRegister({
         companyId: currentCompany.id,
         siteId: currentSite.id,
+        warehouseId: warehouseId || undefined,
         code: code.trim(),
         name: name.trim(),
         emissionPointId,
@@ -149,6 +179,34 @@ export const CreateCashRegisterScreen: React.FC<CreateCashRegisterScreenProps> =
                 placeholderTextColor="#9CA3AF"
                 keyboardType="default"
               />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Almacén Vinculado</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={warehouseId}
+                  onValueChange={(value) => setWarehouseId(value)}
+                  enabled={!loadingWarehouses && warehouses.length > 0}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="-- Sin almacén --" value="" />
+                  {warehouses.map((warehouse) => (
+                    <Picker.Item
+                      key={warehouse.id}
+                      label={`${warehouse.code} - ${warehouse.name}`}
+                      value={warehouse.id}
+                    />
+                  ))}
+                </Picker>
+              </View>
+              <Text style={styles.helpText}>
+                {loadingWarehouses
+                  ? 'Cargando almacenes...'
+                  : warehouses.length === 0
+                  ? 'No hay almacenes disponibles en esta sede'
+                  : 'Las ventas descontarán automáticamente del stock de este almacén'}
+              </Text>
             </View>
 
             <View style={styles.formGroup}>
@@ -346,6 +404,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginTop: 4,
+  },
+  pickerContainer: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
   },
   switchGroup: {
     flexDirection: 'row',
