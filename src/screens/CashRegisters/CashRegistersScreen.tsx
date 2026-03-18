@@ -182,6 +182,22 @@ export const CashRegistersScreen: React.FC<CashRegistersScreenProps> = ({ naviga
       </View>
 
       <View style={styles.infoContainer}>
+        {register.warehouse && (
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>📦 Almacén:</Text>
+            <Text style={styles.infoValue}>
+              {register.warehouse.name} ({register.warehouse.code})
+            </Text>
+          </View>
+        )}
+        {register.priceProfile && (
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>💰 Perfil de Precio:</Text>
+            <Text style={styles.infoValue}>
+              {register.priceProfile.name} ({register.priceProfile.code})
+            </Text>
+          </View>
+        )}
         {register.metadata?.location && (
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>📍 Ubicación:</Text>
@@ -204,6 +220,18 @@ export const CashRegistersScreen: React.FC<CashRegistersScreenProps> = ({ naviga
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>👔 Aprobación:</Text>
             <Text style={styles.infoValue}>Requiere aprobación de gerente</Text>
+          </View>
+        )}
+        {!register.warehouse && (
+          <View style={styles.infoRow}>
+            <Text style={styles.warningLabel}>⚠️ Sin almacén:</Text>
+            <Text style={styles.warningValue}>Las ventas no descontarán stock</Text>
+          </View>
+        )}
+        {!register.priceProfile && (
+          <View style={styles.infoRow}>
+            <Text style={styles.warningLabel}>⚠️ Sin perfil:</Text>
+            <Text style={styles.warningValue}>Se usarán precios por defecto</Text>
           </View>
         )}
       </View>
@@ -450,6 +478,16 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 13,
     color: '#111827',
+    flex: 1,
+  },
+  warningLabel: {
+    fontSize: 13,
+    color: '#F59E0B',
+    fontWeight: '500',
+  },
+  warningValue: {
+    fontSize: 13,
+    color: '#F59E0B',
     flex: 1,
   },
   cardActions: {

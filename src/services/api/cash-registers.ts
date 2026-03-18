@@ -11,6 +11,7 @@ export interface CashRegister {
   companyId: string;
   siteId: string;
   warehouseId?: string; // ID del almacén vinculado (para descuento automático de stock)
+  priceProfileId?: string; // ID del perfil de precio (para aplicar precios específicos)
   code: string;
   name: string;
   emissionPointId?: string;
@@ -36,12 +37,25 @@ export interface CashRegister {
     name: string;
     warehouseType?: string;
   };
+  priceProfile?: {
+    id: string;
+    code: string;
+    name: string;
+    factorToCost: number | string;
+  };
+  site?: {
+    id: string;
+    code: string;
+    name: string;
+    siteTypes?: string[];
+  };
 }
 
 export interface CreateCashRegisterDto {
   companyId: string;
   siteId: string;
   warehouseId?: string; // ID del almacén vinculado (para descuento automático de stock)
+  priceProfileId?: string; // ID del perfil de precio (para aplicar precios específicos)
   code: string;
   name: string;
   emissionPointId?: string;
@@ -55,6 +69,7 @@ export interface UpdateCashRegisterDto {
   companyId?: string;
   siteId?: string;
   warehouseId?: string; // ID del almacén vinculado (para descuento automático de stock)
+  priceProfileId?: string; // ID del perfil de precio (para aplicar precios específicos)
   code?: string;
   name?: string;
   emissionPointId?: string;

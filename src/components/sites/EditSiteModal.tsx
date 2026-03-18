@@ -13,6 +13,7 @@ import {
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { sitesApi } from '@/services/api';
 import { Site, UpdateSiteRequest } from '@/types/sites';
+import { SiteType, SiteTypeLabels, SiteTypeDescriptions } from '@/types/enums';
 
 import { LocationSearchInput, LocationData } from '@/components/common/LocationSearchInput';
 
@@ -33,6 +34,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
     code: '',
     name: '',
     isActive: true,
+    siteTypes: [],
     phone: '',
     addressLine1: '',
     addressLine2: '',
@@ -58,6 +60,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
         code: site.code || '',
         name: site.name || '',
         isActive: site.isActive,
+        siteTypes: site.siteTypes || [],
         phone: site.phone || '',
         addressLine1: site.addressLine1 || '',
         addressLine2: site.addressLine2 || '',
@@ -139,6 +142,11 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
       // Always send isActive
       siteData.isActive = formData.isActive;
 
+      // Send siteTypes if it has values
+      if (formData.siteTypes && formData.siteTypes.length > 0) {
+        siteData.siteTypes = formData.siteTypes;
+      }
+
       if (formData.phone?.trim()) {
         siteData.phone = formData.phone.trim();
       }
@@ -181,16 +189,14 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
 
       if (
         formData.latitude !== undefined &&
-        formData.latitude !== null &&
-        formData.latitude !== ''
+        formData.latitude !== null
       ) {
         siteData.latitude = Number(formData.latitude);
       }
 
       if (
         formData.longitude !== undefined &&
-        formData.longitude !== null &&
-        formData.longitude !== ''
+        formData.longitude !== null
       ) {
         siteData.longitude = Number(formData.longitude);
       }
@@ -243,6 +249,27 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
       postalCode: locationData.postalCode || prev.postalCode,
       ubigeo: locationData.ubigeo || prev.ubigeo,
     }));
+  };
+
+  const toggleSiteType = (type: SiteType) => {
+    setFormData((prev: any) => {
+      const currentTypes = prev.siteTypes || [];
+      const hasType = currentTypes.includes(type);
+
+      if (hasType) {
+        // Remove type
+        return {
+          ...prev,
+          siteTypes: currentTypes.filter((t: SiteType) => t !== type),
+        };
+      } else {
+        // Add type
+        return {
+          ...prev,
+          siteTypes: [...currentTypes, type],
+        };
+      }
+    });
   };
 
   if (!site) {
@@ -311,6 +338,35 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
                 trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
                 thumbColor={formData.isActive ? '#FFFFFF' : '#94A3B8'}
               />
+            </View>
+
+            <Text style={styles.sectionTitle}>Tipos de Sede</Text>
+            <Text style={styles.sectionDescription}>
+              Selecciona uno o más tipos. Una sede puede ser Tienda, Almacén y/o Administrativo simultáneamente.
+            </Text>
+
+            <View style={styles.checkboxGroup}>
+              {Object.values(SiteType).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={styles.checkboxItem}
+                  onPress={() => toggleSiteType(type)}
+                  disabled={loading}
+                >
+                  <View style={[
+                    styles.checkbox,
+                    formData.siteTypes?.includes(type) && styles.checkboxChecked
+                  ]}>
+                    {formData.siteTypes?.includes(type) && (
+                      <Text style={styles.checkboxIcon}>✓</Text>
+                    )}
+                  </View>
+                  <View style={styles.checkboxTextContainer}>
+                    <Text style={styles.checkboxLabel}>{SiteTypeLabels[type]}</Text>
+                    <Text style={styles.checkboxDescription}>{SiteTypeDescriptions[type]}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
 
             <Text style={styles.sectionTitle}>Dirección</Text>
@@ -511,6 +567,57 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginTop: 16,
     marginBottom: 12,
+  },
+  sectionDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  checkboxGroup: {
+    marginBottom: 16,
+  },
+  checkboxItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  checkboxIcon: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  checkboxTextContainer: {
+    flex: 1,
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  checkboxDescription: {
+    fontSize: 12,
+    color: '#64748B',
   },
   switchContainer: {
     flexDirection: 'row',

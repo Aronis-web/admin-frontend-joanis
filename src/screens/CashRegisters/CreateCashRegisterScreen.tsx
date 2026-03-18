@@ -16,8 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { cashRegistersApi } from '@/services/api/cash-registers';
-import { warehousesApi } from '@/services/api';
+import { warehousesApi, priceProfilesApi } from '@/services/api';
 import { Warehouse } from '@/types/warehouses';
+import { PriceProfile } from '@/types/price-profiles';
 import logger from '@/utils/logger';
 
 interface CreateCashRegisterScreenProps {
@@ -45,6 +46,9 @@ export const CreateCashRegisterScreen: React.FC<CreateCashRegisterScreenProps> =
   const [warehouseId, setWarehouseId] = useState<string>('');
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+  const [priceProfileId, setPriceProfileId] = useState<string>('');
+  const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
+  const [loadingPriceProfiles, setLoadingPriceProfiles] = useState(false);
   const [location, setLocation] = useState('');
   const [ipAddress, setIpAddress] = useState('');
   const [deviceId, setDeviceId] = useState('');
@@ -75,6 +79,24 @@ export const CreateCashRegisterScreen: React.FC<CreateCashRegisterScreenProps> =
 
     loadWarehouses();
   }, [currentSite?.id, currentCompany?.id]);
+
+  // Load price profiles
+  useEffect(() => {
+    const loadPriceProfiles = async () => {
+      try {
+        setLoadingPriceProfiles(true);
+        const profiles = await priceProfilesApi.getActivePriceProfiles();
+        setPriceProfiles(profiles || []);
+      } catch (error) {
+        logger.error('Error loading price profiles:', error);
+        Alert.alert('Error', 'No se pudieron cargar los perfiles de precio');
+      } finally {
+        setLoadingPriceProfiles(false);
+      }
+    };
+
+    loadPriceProfiles();
+  }, []);
 
   const handleCreate = async () => {
     if (!code.trim()) {
@@ -108,6 +130,7 @@ export const CreateCashRegisterScreen: React.FC<CreateCashRegisterScreenProps> =
         companyId: currentCompany.id,
         siteId: currentSite.id,
         warehouseId: warehouseId || undefined,
+        priceProfileId: priceProfileId || undefined,
         code: code.trim(),
         name: name.trim(),
         emissionPointId,
@@ -182,7 +205,7 @@ export const CreateCashRegisterScreen: React.FC<CreateCashRegisterScreenProps> =
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Almacén Vinculado</Text>
+              <Text style={styles.label}>Almacén Vinculado (Opcional)</Text>
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={warehouseId}
@@ -205,8 +228,50 @@ export const CreateCashRegisterScreen: React.FC<CreateCashRegisterScreenProps> =
                   ? 'Cargando almacenes...'
                   : warehouses.length === 0
                   ? 'No hay almacenes disponibles en esta sede'
-                  : 'Las ventas descontarán automáticamente del stock de este almacén'}
+                  : 'Recomendado para tiendas físicas. Las ventas descontarán automáticamente del stock'}
               </Text>
+              {!warehouseId && (
+                <Text style={styles.warningText}>
+                  ⚠️ Sin almacén asignado, las ventas no descontarán stock automáticamente
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Perfil de Precio (Opcional)</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={priceProfileId}
+                  onValueChange={(value) => setPriceProfileId(value)}
+                  enabled={!loadingPriceProfiles && priceProfiles.length > 0}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="-- Sin perfil específico --" value="" />
+                  {priceProfiles.map((profile) => (
+                    <Picker.Item
+                      key={profile.id}
+                      label={`${profile.name} (${profile.code}) - Factor: ${
+                        typeof profile.factorToCost === 'string'
+                          ? profile.factorToCost
+                          : profile.factorToCost.toFixed(2)
+                      }x`}
+                      value={profile.id}
+                    />
+                  ))}
+                </Picker>
+              </View>
+              <Text style={styles.helpText}>
+                {loadingPriceProfiles
+                  ? 'Cargando perfiles de precio...'
+                  : priceProfiles.length === 0
+                  ? 'No hay perfiles de precio disponibles'
+                  : 'Define qué precios se aplicarán en esta caja'}
+              </Text>
+              {!priceProfileId && (
+                <Text style={styles.warningText}>
+                  ⚠️ Sin perfil de precio, se usarán los precios por defecto
+                </Text>
+              )}
             </View>
 
             <View style={styles.formGroup}>
@@ -404,6 +469,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginTop: 4,
+  },
+  warningText: {
+    fontSize: 12,
+    color: '#F59E0B',
+    marginTop: 4,
+    fontWeight: '500',
   },
   pickerContainer: {
     backgroundColor: '#F9FAFB',

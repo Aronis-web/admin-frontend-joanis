@@ -11,9 +11,14 @@ import {
   Switch,
   useWindowDimensions,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { cashRegistersApi, CashRegister, CashRegisterStatus } from '@/services/api/cash-registers';
+import { warehousesApi, priceProfilesApi } from '@/services/api';
+import { useAuthStore } from '@/store/auth';
+import { Warehouse } from '@/types/warehouses';
+import { PriceProfile } from '@/types/price-profiles';
 import logger from '@/utils/logger';
 
 interface EditCashRegisterScreenProps {
@@ -33,12 +38,19 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
   route,
 }) => {
   const { cashRegisterId, emissionPointName, emissionPointCode } = route.params;
+  const { currentSite, currentCompany } = useAuthStore();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
 
   const [cashRegister, setCashRegister] = useState<CashRegister | null>(null);
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+  const [warehouseId, setWarehouseId] = useState<string>('');
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+  const [priceProfileId, setPriceProfileId] = useState<string>('');
+  const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
+  const [loadingPriceProfiles, setLoadingPriceProfiles] = useState(false);
   const [location, setLocation] = useState('');
   const [ipAddress, setIpAddress] = useState('');
   const [deviceId, setDeviceId] = useState('');
@@ -51,6 +63,8 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
 
   useEffect(() => {
     loadCashRegister();
+    loadWarehouses();
+    loadPriceProfiles();
   }, [cashRegisterId]);
 
   const loadCashRegister = async () => {
@@ -60,6 +74,8 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
       setCashRegister(data);
       setCode(data.code);
       setName(data.name);
+      setWarehouseId(data.warehouseId || '');
+      setPriceProfileId(data.priceProfileId || '');
       setLocation(data.metadata?.location || '');
       setIpAddress(data.metadata?.ipAddress || '');
       setDeviceId(data.metadata?.deviceId || '');
@@ -76,6 +92,35 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadWarehouses = async () => {
+    if (!currentSite?.id || !currentCompany?.id) return;
+
+    try {
+      setLoadingWarehouses(true);
+      const response = await warehousesApi.getWarehouses(
+        currentCompany.id,
+        currentSite.id
+      );
+      setWarehouses(response || []);
+    } catch (error) {
+      logger.error('Error loading warehouses:', error);
+    } finally {
+      setLoadingWarehouses(false);
+    }
+  };
+
+  const loadPriceProfiles = async () => {
+    try {
+      setLoadingPriceProfiles(true);
+      const profiles = await priceProfilesApi.getActivePriceProfiles();
+      setPriceProfiles(profiles || []);
+    } catch (error) {
+      logger.error('Error loading price profiles:', error);
+    } finally {
+      setLoadingPriceProfiles(false);
     }
   };
 
@@ -105,6 +150,8 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
       await cashRegistersApi.updateCashRegister(cashRegisterId, {
         code: code.trim(),
         name: name.trim(),
+        warehouseId: warehouseId || undefined,
+        priceProfileId: priceProfileId || undefined,
         allowNegativeBalance,
         requiresManagerApproval,
         maxCashAmountCents,
@@ -256,7 +303,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
 
             {cashRegister?.isOpen && (
               <View style={styles.warningBox}>
-                <Text style={styles.warningText}>
+                <Text style={styles.warningBoxText}>
                   ⚠️ Esta caja tiene una sesión abierta actualmente
                 </Text>
               </View>
@@ -293,6 +340,86 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 placeholderTextColor="#9CA3AF"
                 keyboardType="default"
               />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Almacén Vinculado (Opcional)</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={warehouseId}
+                  onValueChange={(value) => setWarehouseId(value)}
+                  enabled={!loadingWarehouses && warehouses.length > 0}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="-- Sin almacén --" value="" />
+                  {warehouses.map((warehouse) => (
+                    <Picker.Item
+                      key={warehouse.id}
+                      label={`${warehouse.code} - ${warehouse.name}`}
+                      value={warehouse.id}
+                    />
+                  ))}
+                </Picker>
+              </View>
+              <Text style={styles.helpText}>
+                {loadingWarehouses
+                  ? 'Cargando almacenes...'
+                  : warehouses.length === 0
+                  ? 'No hay almacenes disponibles en esta sede'
+                  : 'Recomendado para tiendas físicas. Las ventas descontarán automáticamente del stock'}
+              </Text>
+              {!warehouseId && (
+                <Text style={styles.warningText}>
+                  ⚠️ Sin almacén asignado, las ventas no descontarán stock automáticamente
+                </Text>
+              )}
+              {cashRegister?.isOpen && warehouseId !== cashRegister.warehouseId && (
+                <Text style={styles.warningText}>
+                  ⚠️ No se puede cambiar el almacén mientras la caja está abierta
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Perfil de Precio (Opcional)</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={priceProfileId}
+                  onValueChange={(value) => setPriceProfileId(value)}
+                  enabled={!loadingPriceProfiles && priceProfiles.length > 0}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="-- Sin perfil específico --" value="" />
+                  {priceProfiles.map((profile) => (
+                    <Picker.Item
+                      key={profile.id}
+                      label={`${profile.name} (${profile.code}) - Factor: ${
+                        typeof profile.factorToCost === 'string'
+                          ? profile.factorToCost
+                          : profile.factorToCost.toFixed(2)
+                      }x`}
+                      value={profile.id}
+                    />
+                  ))}
+                </Picker>
+              </View>
+              <Text style={styles.helpText}>
+                {loadingPriceProfiles
+                  ? 'Cargando perfiles de precio...'
+                  : priceProfiles.length === 0
+                  ? 'No hay perfiles de precio disponibles'
+                  : 'Define qué precios se aplicarán en esta caja'}
+              </Text>
+              {!priceProfileId && (
+                <Text style={styles.warningText}>
+                  ⚠️ Sin perfil de precio, se usarán los precios por defecto
+                </Text>
+              )}
+              {priceProfileId !== cashRegister?.priceProfileId && (
+                <Text style={styles.infoText}>
+                  ℹ️ Los nuevos precios se aplicarán en las próximas ventas
+                </Text>
+              )}
             </View>
 
             <View style={styles.formGroup}>
@@ -529,11 +656,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 12,
   },
-  warningText: {
-    fontSize: 13,
-    color: '#92400E',
-    fontWeight: '500',
-  },
   formGroup: {
     marginBottom: 16,
   },
@@ -560,6 +682,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginTop: 4,
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#92400E',
+    fontWeight: '500',
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#3B82F6',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  pickerContainer: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
   },
   switchGroup: {
     flexDirection: 'row',
