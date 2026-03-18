@@ -25,7 +25,7 @@ import {
 } from '@/types/purchases';
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
 import { SearchBarWithAutocomplete } from '@/components/common/SearchBarWithAutocomplete';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
@@ -753,7 +753,12 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
         )}
 
         {/* Add Button */}
-        <AddButton onPress={handleCreatePurchase} icon="+" />
+        <ProtectedFAB
+          icon="+"
+          onPress={handleCreatePurchase}
+          requiredPermissions={['purchases.create']}
+          hideIfNoPermission={true}
+        />
 
         {/* Date Pickers */}
         <DatePicker

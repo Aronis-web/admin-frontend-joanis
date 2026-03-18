@@ -21,7 +21,7 @@ import { ProductFormModal } from '@/components/Inventory/ProductFormModal';
 import { ProductPhotosModal } from '@/components/Photos';
 import { ProductPriceProfilesModal } from '@/components/Inventory/ProductPriceProfilesModal';
 import { productsApi, Product } from '@/services/api/products';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useProducts } from '@/hooks/api/useProducts';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 import { PERMISSIONS } from '@/constants/permissions';
@@ -752,13 +752,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         </TouchableOpacity>
       </ProtectedElement>
 
-      <ProtectedElement
+      <ProtectedFAB
+        icon="+"
+        onPress={handleCreateProduct}
         requiredPermissions={[PERMISSIONS.PRODUCTS.CREATE]}
-        requireAll={false}
-        fallback={null}
-      >
-        <AddButton onPress={handleCreateProduct} />
-      </ProtectedElement>
+        hideIfNoPermission={true}
+      />
 
       {/* Product Form Modal */}
       <ProductFormModal

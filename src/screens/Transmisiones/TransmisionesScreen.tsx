@@ -21,7 +21,7 @@ import {
 } from '@/types/transmisiones';
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 
 interface TransmisionesScreenProps {
   navigation: any;
@@ -341,7 +341,12 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
         )}
 
         {/* Add Button */}
-        <AddButton onPress={handleCreateTransmision} icon="+" />
+        <ProtectedFAB
+          icon="+"
+          onPress={handleCreateTransmision}
+          requiredPermissions={['transmisiones.create']}
+          hideIfNoPermission={true}
+        />
       </SafeAreaView>
     </ScreenLayout>
   );

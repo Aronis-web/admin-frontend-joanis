@@ -23,7 +23,7 @@ import {
   CreatePresentationDto,
   UpdatePresentationDto,
 } from '@/services/api';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 import { PERMISSIONS } from '@/constants/permissions';
 
@@ -306,7 +306,12 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
         requireAll={false}
         fallback={null}
       >
-        <AddButton onPress={handleCreatePresentation} icon="📋" />
+        <ProtectedFAB
+          icon="📋"
+          onPress={handleCreatePresentation}
+          requiredPermissions={['presentations.create']}
+          hideIfNoPermission={true}
+        />
       </ProtectedElement>
 
       {/* Presentations List */}

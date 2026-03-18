@@ -17,7 +17,7 @@ import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { customersService } from '@/services/api/customers';
 import { Customer, CustomerType } from '@/types/customers';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 
 interface CustomersScreenProps {
   navigation: any;
@@ -335,9 +335,12 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
       )}
 
       {/* Add Button */}
-      <ProtectedElement requiredPermissions={['customers.create']} fallback={null}>
-        <AddButton onPress={handleAddCustomer} icon="👥" />
-      </ProtectedElement>
+      <ProtectedFAB
+        icon="👥"
+        onPress={handleAddCustomer}
+        requiredPermissions={['customers.create']}
+        hideIfNoPermission={true}
+      />
     </SafeAreaView>
   );
 };

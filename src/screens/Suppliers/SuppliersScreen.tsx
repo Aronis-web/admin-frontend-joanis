@@ -18,7 +18,7 @@ import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { suppliersService } from '@/services/api/suppliers';
 import { Supplier, SupplierType } from '@/types/suppliers';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { SUPPLIER_TYPE_LABELS, SUPPLIER_TYPE_ICONS, SUPPLIER_TYPE_COLORS } from '@/constants/supplierTypes';
 
 interface SuppliersScreenProps {
@@ -589,9 +589,12 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
       )}
 
       {/* Create Button */}
-      <ProtectedElement requiredPermissions={['suppliers.create']} fallback={null}>
-        <AddButton onPress={handleCreateSupplier} icon="🏢" />
-      </ProtectedElement>
+      <ProtectedFAB
+        icon="🏢"
+        onPress={handleCreateSupplier}
+        requiredPermissions={['suppliers.create']}
+        hideIfNoPermission={true}
+      />
     </SafeAreaView>
   );
 };

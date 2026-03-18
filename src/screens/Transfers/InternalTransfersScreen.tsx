@@ -28,7 +28,7 @@ import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
 import { productsApi } from '@/services/api/products';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { Product } from '@/services/api/products';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import {
   Transfer,
   TransferType,
@@ -632,7 +632,12 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
       {renderContent()}
 
       {/* Create Button */}
-      <AddButton onPress={openCreateModal} icon="🔄" />
+      <ProtectedFAB
+        icon="🔄"
+        onPress={openCreateModal}
+        requiredPermissions={['transfers.create']}
+        hideIfNoPermission={true}
+      />
 
       {/* Create Transfer Modal */}
       <Modal

@@ -35,6 +35,7 @@ import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput'
 import { usePermissions } from '@/hooks/usePermissions';
 import { ScreenProps } from '@/types/navigation';
 import { MAIN_ROUTES } from '@/constants/routes';
+import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 
 type PurchaseDetailScreenProps = ScreenProps<'PurchaseDetail'>;
 
@@ -1105,17 +1106,17 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
               ]}
             >
               <View style={styles.headerActions}>
-                {hasPermission('purchases.ocr.scan') && (
-                  <TouchableOpacity
-                    style={[styles.ocrButton, isTablet && styles.ocrButtonTablet]}
-                    onPress={handleOpenOcrScanner}
-                    disabled={actionLoading}
-                  >
-                    <Text style={[styles.ocrButtonText, isTablet && styles.ocrButtonTextTablet]}>
-                      📷 Escáner OCR
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                <ProtectedTouchableOpacity
+                  style={[styles.ocrButton, isTablet && styles.ocrButtonTablet]}
+                  onPress={handleOpenOcrScanner}
+                  disabled={actionLoading}
+                  requiredPermissions={['purchases.ocr.scan']}
+                  hideIfNoPermission={true}
+                >
+                  <Text style={[styles.ocrButtonText, isTablet && styles.ocrButtonTextTablet]}>
+                    📷 Escáner OCR
+                  </Text>
+                </ProtectedTouchableOpacity>
                 <TouchableOpacity
                   style={[styles.addButton, isTablet && styles.addButtonTablet]}
                   onPress={handleAddProduct}

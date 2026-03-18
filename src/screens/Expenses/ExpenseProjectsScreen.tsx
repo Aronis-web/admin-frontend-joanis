@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { expensesService } from '@/services/api';
 import { ExpenseProject, ProjectStatus, ProjectStatusLabels } from '@/types/expenses';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { ProjectCard } from '@/components/Expenses/ProjectCard';
 import { MAIN_ROUTES } from '@/constants/routes';
 
@@ -159,7 +159,12 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ na
       <View style={styles.container}>
         {renderStatusFilter()}
         {renderContent()}
-        <AddButton onPress={handleCreateProject} />
+        <ProtectedFAB
+          icon="+"
+          onPress={handleCreateProject}
+          requiredPermissions={['expenses.projects.create']}
+          hideIfNoPermission={true}
+        />
       </View>
     </SafeAreaView>
   );

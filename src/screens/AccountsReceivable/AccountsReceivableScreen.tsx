@@ -13,10 +13,12 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '@/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/constants/permissions';
 import { accountsReceivableService } from '@/services/api/accounts-receivable';
+import { sitesApi } from '@/services/api/sites';
 import {
   AccountReceivable,
   AccountReceivableStatus,
@@ -77,6 +79,13 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
   const [selectedQuickFilter, setSelectedQuickFilter] = useState<QuickDateFilter>(QUICK_DATE_FILTERS.YESTERDAY);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [sites, setSites] = useState<any[]>([]);
+  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
+  const [showFromDatePicker, setShowFromDatePicker] = useState(false);
+  const [showToDatePicker, setShowToDatePicker] = useState(false);
+  const [tempFromDate, setTempFromDate] = useState(new Date());
+  const [tempToDate, setTempToDate] = useState(new Date());
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -90,14 +99,24 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  // Initialize with yesterday's date
+  // Initialize with yesterday's date and load sites
   useEffect(() => {
     const yesterdayRange = getDateRangeByFilter(QUICK_DATE_FILTERS.YESTERDAY);
     if (yesterdayRange) {
       setFromDate(yesterdayRange.fromDate);
       setToDate(yesterdayRange.toDate);
     }
+    loadSites();
   }, []);
+
+  const loadSites = async () => {
+    try {
+      const response = await sitesApi.getSites({ isActive: true, limit: 100 });
+      setSites(response.data);
+    } catch (error) {
+      console.error('Error loading sites:', error);
+    }
+  };
 
   // Debounce search query
   useEffect(() => {
@@ -186,6 +205,11 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
         params.overdue = true;
       }
 
+      // Add site filter
+      if (selectedSiteId) {
+        params.siteId = selectedSiteId;
+      }
+
       console.log('🔍 Loading accounts receivable with params:', params);
 
       // Use standard endpoint for better performance (no details needed for list)
@@ -268,6 +292,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
     setSearchQuery('');
     setSortBy('dueDate');
     setSortOrder('ASC');
+    setSelectedSiteId(null);
     // Reset to yesterday
     setSelectedQuickFilter(QUICK_DATE_FILTERS.YESTERDAY);
     const yesterdayRange = getDateRangeByFilter(QUICK_DATE_FILTERS.YESTERDAY);
@@ -323,7 +348,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
           <Text style={styles.cardCurrency}>{item.currency}</Text>
         </View>
 
-        {/* Debtor */}
+        {/* Debtor & Site */}
         <View style={styles.debtorSection}>
           <Text style={styles.debtorIcon}>{DEBTOR_TYPE_ICONS[item.debtorType]}</Text>
           <View style={styles.debtorInfo}>
@@ -332,6 +357,14 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
             </Text>
             {item.debtorTaxId && (
               <Text style={styles.debtorTaxId}>RUC/DNI: {item.debtorTaxId}</Text>
+            )}
+            {item.site && (
+              <View style={styles.siteInfo}>
+                <Text style={styles.siteIcon}>🏢</Text>
+                <Text style={styles.siteName} numberOfLines={1}>
+                  {item.site.name}
+                </Text>
+              </View>
             )}
           </View>
         </View>
@@ -554,6 +587,35 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
               </Text>
             </View>
 
+            {/* Site Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Sede</Text>
+              <View style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedSiteId === null && styles.filterChipActive,
+                  ]}
+                  onPress={() => setSelectedSiteId(null)}
+                >
+                  <Text style={styles.filterChipText}>Todas</Text>
+                </TouchableOpacity>
+                {sites.map((site) => (
+                  <TouchableOpacity
+                    key={site.id}
+                    style={[
+                      styles.filterChip,
+                      selectedSiteId === site.id && styles.filterChipActive,
+                    ]}
+                    onPress={() => setSelectedSiteId(site.id)}
+                  >
+                    <Text style={styles.filterChipIcon}>🏢</Text>
+                    <Text style={styles.filterChipText}>{site.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
             {/* Overdue Filter */}
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>Vencimiento</Text>
@@ -656,7 +718,8 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
     selectedStatuses.length +
     selectedCurrencies.length +
     (selectedDebtorType ? 1 : 0) +
-    (showOverdueOnly ? 1 : 0);
+    (showOverdueOnly ? 1 : 0) +
+    (selectedSiteId ? 1 : 0);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -724,6 +787,24 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
             </Text>
           </TouchableOpacity>
         ))}
+        {/* Custom Date Button */}
+        <TouchableOpacity
+          style={[
+            styles.quickDateFilterChip,
+            selectedQuickFilter === QUICK_DATE_FILTERS.CUSTOM && styles.quickDateFilterChipActive,
+          ]}
+          onPress={() => setShowCustomDateModal(true)}
+        >
+          <Text style={styles.quickDateFilterIcon}>📅</Text>
+          <Text
+            style={[
+              styles.quickDateFilterText,
+              selectedQuickFilter === QUICK_DATE_FILTERS.CUSTOM && styles.quickDateFilterTextActive,
+            ]}
+          >
+            Personalizar
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Quick Filters & Filter Button */}
@@ -943,6 +1024,126 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
 
       {/* Filters Modal */}
       {renderFiltersModal()}
+
+      {/* Custom Date Modal */}
+      <Modal
+        visible={showCustomDateModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCustomDateModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>📅 Fecha Personalizada</Text>
+              <TouchableOpacity onPress={() => setShowCustomDateModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Rango de Fechas *</Text>
+                <View style={styles.dateInputsRow}>
+                  <View style={styles.dateInputContainer}>
+                    <Text style={styles.dateInputLabel}>Desde</Text>
+                    <TouchableOpacity
+                      style={styles.dateInput}
+                      onPress={() => {
+                        if (fromDate) {
+                          const [year, month, day] = fromDate.split('-');
+                          setTempFromDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
+                        }
+                        setShowFromDatePicker(true);
+                      }}
+                    >
+                      <Text style={styles.dateInputText}>
+                        {fromDate || 'Seleccionar fecha'}
+                      </Text>
+                      <Text style={styles.dateInputIcon}>📅</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.dateInputContainer}>
+                    <Text style={styles.dateInputLabel}>Hasta</Text>
+                    <TouchableOpacity
+                      style={styles.dateInput}
+                      onPress={() => {
+                        if (toDate) {
+                          const [year, month, day] = toDate.split('-');
+                          setTempToDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
+                        }
+                        setShowToDatePicker(true);
+                      }}
+                    >
+                      <Text style={styles.dateInputText}>
+                        {toDate || 'Seleccionar fecha'}
+                      </Text>
+                      <Text style={styles.dateInputIcon}>📅</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* DatePickers */}
+                {showFromDatePicker && (
+                  <DateTimePicker
+                    value={tempFromDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowFromDatePicker(false);
+                      if (event.type === 'set' && selectedDate) {
+                        const year = selectedDate.getFullYear();
+                        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(selectedDate.getDate()).padStart(2, '0');
+                        setFromDate(`${year}-${month}-${day}`);
+                        setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+                      }
+                    }}
+                  />
+                )}
+                {showToDatePicker && (
+                  <DateTimePicker
+                    value={tempToDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowToDatePicker(false);
+                      if (event.type === 'set' && selectedDate) {
+                        const year = selectedDate.getFullYear();
+                        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(selectedDate.getDate()).padStart(2, '0');
+                        setToDate(`${year}-${month}-${day}`);
+                        setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+                      }
+                    }}
+                  />
+                )}
+                <Text style={styles.dateHint}>
+                  💡 Máximo 90 días de diferencia
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => setShowCustomDateModal(false)}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={() => {
+                  setShowCustomDateModal(false);
+                  setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+                }}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Aplicar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1057,9 +1258,9 @@ const styles = StyleSheet.create({
   quickFilterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
     backgroundColor: '#F1F5F9',
     marginRight: 8,
     gap: 4,
@@ -1283,6 +1484,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
   },
+  siteInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+  siteIcon: {
+    fontSize: 12,
+  },
+  siteName: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+  },
   amountsSection: {
     backgroundColor: '#F8FAFC',
     borderRadius: 12,
@@ -1447,6 +1662,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '80%',
+    minHeight: 350,
   },
   modalContentTablet: {
     maxHeight: '70%',
@@ -1471,7 +1687,6 @@ const styles = StyleSheet.create({
     fontWeight: '300',
   },
   modalBody: {
-    flex: 1,
     paddingHorizontal: 24,
     paddingVertical: 20,
   },
@@ -1650,32 +1865,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+    maxHeight: 32,
   },
   quickDateFiltersContent: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 8,
+    paddingVertical: 1,
+    gap: 4,
   },
   quickDateFilterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 12,
     backgroundColor: '#F1F5F9',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: 'transparent',
-    gap: 4,
+    gap: 2,
   },
   quickDateFilterChipActive: {
     backgroundColor: '#EEF2FF',
     borderColor: '#667eea',
   },
   quickDateFilterIcon: {
-    fontSize: 14,
+    fontSize: 11,
   },
   quickDateFilterText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
     color: '#475569',
   },
@@ -1701,9 +1917,20 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    paddingVertical: 14,
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateInputText: {
+    fontSize: 16,
     color: '#1E293B',
+    flex: 1,
+  },
+  dateInputIcon: {
+    fontSize: 20,
+    marginLeft: 8,
   },
   dateRangeHint: {
     fontSize: 12,

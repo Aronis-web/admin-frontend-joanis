@@ -26,7 +26,7 @@ import {
 } from '@/types/balances';
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { BalanceOperationsModal } from '@/components/Balances/BalanceOperationsModal';
 
@@ -357,7 +357,12 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
         </ScrollView>
 
         {/* Add Button */}
-        <AddButton onPress={handleCreateBalance} icon="+" />
+        <ProtectedFAB
+          icon="+"
+          onPress={handleCreateBalance}
+          requiredPermissions={['balances.create']}
+          hideIfNoPermission={true}
+        />
 
         {/* Operations Modal */}
         <BalanceOperationsModal

@@ -19,7 +19,7 @@ import { UserDetailModal } from '@/components/users/UserDetailModal';
 import { EditUserModal } from '@/components/users/EditUserModal';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 
 interface UsersScreenProps {
   navigation: any;
@@ -332,9 +332,12 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
       />
 
       {/* Add Button */}
-      <ProtectedElement requiredPermissions={['users.create']} fallback={null}>
-        <AddButton onPress={handleCreateUser} icon="👥" />
-      </ProtectedElement>
+      <ProtectedFAB
+        icon="👥"
+        onPress={handleCreateUser}
+        requiredPermissions={['users.create']}
+        hideIfNoPermission={true}
+      />
     </SafeAreaView>
   );
 };

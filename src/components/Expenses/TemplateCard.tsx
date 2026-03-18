@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ExpenseTemplate, TemplateFrequencyLabels } from '@/types/expenses';
 import { CategoryBadge } from './CategoryBadge';
+import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 
 interface TemplateCardProps {
   template: ExpenseTemplate;
@@ -143,28 +144,32 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         {(onEdit || onDelete) && (
           <View style={styles.actionButtons}>
             {onEdit && (
-              <TouchableOpacity
+              <ProtectedTouchableOpacity
                 style={styles.actionButton}
                 onPress={(e) => {
                   e.stopPropagation();
                   onEdit(template);
                 }}
+                requiredPermissions={['expenses.templates.update']}
+                hideIfNoPermission={true}
               >
                 <Ionicons name="create-outline" size={18} color="#6366F1" />
                 <Text style={styles.actionButtonText}>Editar</Text>
-              </TouchableOpacity>
+              </ProtectedTouchableOpacity>
             )}
             {onDelete && (
-              <TouchableOpacity
+              <ProtectedTouchableOpacity
                 style={[styles.actionButton, styles.deleteButton]}
                 onPress={(e) => {
                   e.stopPropagation();
                   onDelete(template);
                 }}
+                requiredPermissions={['expenses.templates.delete']}
+                hideIfNoPermission={true}
               >
                 <Ionicons name="trash-outline" size={18} color="#EF4444" />
                 <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Eliminar</Text>
-              </TouchableOpacity>
+              </ProtectedTouchableOpacity>
             )}
           </View>
         )}

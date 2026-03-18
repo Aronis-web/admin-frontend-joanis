@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Expense } from '@/types/expenses';
 import { ExpenseStatusBadge } from './ExpenseStatusBadge';
 import { CategoryBadge } from './CategoryBadge';
+import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 
 interface ExpenseCardProps {
   expense: Expense;
@@ -283,69 +284,79 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
         {(onEdit || onDelete || onAddPayment || onReconcileAmount || onViewPayments) && (
           <View style={styles.actionButtons}>
             {onAddPayment && remainingAmount > 0 && (
-              <TouchableOpacity
+              <ProtectedTouchableOpacity
                 style={styles.actionButton}
                 onPress={(e) => {
                   e.stopPropagation();
                   onAddPayment(expense);
                 }}
+                requiredPermissions={['expenses.payments.create']}
+                hideIfNoPermission={true}
               >
                 <Ionicons name="cash-outline" size={16} color="#10B981" />
                 <Text style={[styles.actionButtonText, { color: '#10B981' }]}>Pagar</Text>
-              </TouchableOpacity>
+              </ProtectedTouchableOpacity>
             )}
             {onViewPayments &&
               ((expense.paymentsCount && expense.paymentsCount > 0) ||
                 (expense.totalPaidCents && expense.totalPaidCents > 0) ||
                 expense.status === 'PAID') && (
-                <TouchableOpacity
+                <ProtectedTouchableOpacity
                   style={[styles.actionButton, styles.viewPaymentsButton]}
                   onPress={(e) => {
                     e.stopPropagation();
                     onViewPayments(expense);
                   }}
+                  requiredPermissions={['expenses.payments.read']}
+                  hideIfNoPermission={true}
                 >
                   <Ionicons name="list-outline" size={16} color="#6366F1" />
                   <Text style={[styles.actionButtonText, { color: '#6366F1' }]}>
                     Ver Pagos {expense.paymentsCount ? `(${expense.paymentsCount})` : ''}
                   </Text>
-                </TouchableOpacity>
+                </ProtectedTouchableOpacity>
               )}
             {onReconcileAmount && !expense.actualAmountCents && (
-              <TouchableOpacity
+              <ProtectedTouchableOpacity
                 style={styles.actionButton}
                 onPress={(e) => {
                   e.stopPropagation();
                   onReconcileAmount(expense);
                 }}
+                requiredPermissions={['expenses.update']}
+                hideIfNoPermission={true}
               >
                 <Ionicons name="receipt-outline" size={16} color="#6366F1" />
                 <Text style={[styles.actionButtonText, { color: '#6366F1' }]}>Monto Real</Text>
-              </TouchableOpacity>
+              </ProtectedTouchableOpacity>
             )}
             {onEdit && (
-              <TouchableOpacity
+              <ProtectedTouchableOpacity
                 style={styles.actionButton}
                 onPress={(e) => {
                   e.stopPropagation();
                   onEdit(expense);
                 }}
+                requiredPermissions={['expenses.update']}
+                hideIfNoPermission={true}
               >
                 <Ionicons name="create-outline" size={16} color="#6366F1" />
                 <Text style={styles.actionButtonText}>Editar</Text>
-              </TouchableOpacity>
+              </ProtectedTouchableOpacity>
             )}
             {onDelete && (
-              <TouchableOpacity
+              <ProtectedTouchableOpacity
                 style={[styles.actionButton, styles.deleteButton]}
                 onPress={(e) => {
                   e.stopPropagation();
                   onDelete(expense);
                 }}
+                requiredPermissions={['expenses.delete']}
+                hideIfNoPermission={true}
               >
                 <Ionicons name="trash-outline" size={16} color="#EF4444" />
                 <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Eliminar</Text>
-              </TouchableOpacity>
+              </ProtectedTouchableOpacity>
             )}
           </View>
         )}

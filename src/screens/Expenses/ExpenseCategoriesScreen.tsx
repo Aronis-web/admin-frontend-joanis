@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { expensesService } from '@/services/api';
 import { ExpenseCategory } from '@/types/expenses';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { CategoryCard } from '@/components/Expenses/CategoryCard';
 
 interface ExpenseCategoriesScreenProps {
@@ -132,7 +132,12 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
       </View>
       <View style={styles.container}>
         {renderContent()}
-        <AddButton onPress={handleCreateCategory} />
+        <ProtectedFAB
+          icon="+"
+          onPress={handleCreateCategory}
+          requiredPermissions={['expenses.categories.create']}
+          hideIfNoPermission={true}
+        />
       </View>
     </SafeAreaView>
   );

@@ -24,7 +24,7 @@ import {
   PaymentStatusLabels,
 } from '@/types/sales';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import logger from '@/utils/logger';
 
 interface SalesScreenProps {
@@ -457,7 +457,12 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
         )}
 
         {/* Add Button */}
-        <AddButton onPress={handleCreateSale} icon="+" />
+        <ProtectedFAB
+          icon="+"
+          onPress={handleCreateSale}
+          requiredPermissions={['sales.create']}
+          hideIfNoPermission={true}
+        />
       </SafeAreaView>
     </ScreenLayout>
   );

@@ -22,7 +22,7 @@ import {
 } from '@/types/campaigns';
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { AddButton } from '@/components/Navigation/AddButton';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import logger from '@/utils/logger';
 import { useCampaigns } from '@/hooks/api/useCampaigns';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
@@ -412,7 +412,12 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
           </View>
         )}
       </SafeAreaView>
-      <AddButton onPress={handleCreateCampaign} />
+      <ProtectedFAB
+        icon="+"
+        onPress={handleCreateCampaign}
+        requiredPermissions={['campaigns.create']}
+        hideIfNoPermission={true}
+      />
     </ScreenLayout>
   );
 };

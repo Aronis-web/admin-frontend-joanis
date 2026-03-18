@@ -1,4 +1,4 @@
-# ✅ Resumen: Filtros de Fecha Obligatorios Implementados
+# ✅ Resumen: Filtros de Fecha Obligatorios Implementados (Actualizado)
 
 ## 🎯 Tarea Completada
 
@@ -175,6 +175,43 @@ Para más detalles, consultar:
 - [ ] Testing en producción
 - [ ] Monitoreo de rendimiento
 
+## 🔄 Actualizaciones Recientes
+
+### Optimización de Altura de Filtros (2025-02-05)
+**Problema:** Los filtros rápidos ocupaban demasiado espacio vertical (1/3 de pantalla)
+
+**Solución Aplicada:**
+- ✅ Reducido `paddingVertical` del contenedor: 6px → 3px
+- ✅ Reducido `paddingVertical` de chips: 4px → 2px
+- ✅ Reducido `paddingHorizontal` de chips: 10px → 8px
+- ✅ Reducido tamaño de iconos: 14px → 12px
+- ✅ Reducido tamaño de texto: 12px → 11px
+- ✅ Reducido `borderRadius`: 16px → 14px
+- ✅ Reducido `gap` entre elementos: 4px → 3px
+
+**Resultado:** Los filtros ahora ocupan ~60% menos espacio vertical
+
+### Mejoras en Cuentas por Cobrar (2025-02-05)
+**Nuevas Funcionalidades:**
+- ✅ **Mostrar Sede:** Ahora se muestra el nombre de la sede en cada tarjeta de cuenta por cobrar
+- ✅ **Filtro por Sede:** Agregado filtro en modal de filtros avanzados para filtrar por sede
+- ✅ **Carga de Sedes:** Se cargan automáticamente las sedes activas al iniciar la pantalla
+- ✅ **Icono de Sede:** 🏢 para identificar visualmente la sede
+
+**Archivos Modificados:**
+- `src/screens/AccountsReceivable/AccountsReceivableScreen.tsx`
+  - Agregado estado `selectedSiteId` y `sites`
+  - Agregada función `loadSites()` para cargar sedes
+  - Agregado filtro por sede en modal
+  - Agregada visualización de sede en tarjetas
+  - Agregados estilos `siteInfo`, `siteIcon`, `siteName`
+
+**Pantallas Optimizadas:**
+- ✅ `src/screens/AccountsReceivable/AccountsReceivableScreen.tsx`
+- ✅ `src/screens/CashReconciliation/ReviewSalesScreen.tsx`
+- ✅ `src/screens/CashReconciliation/ReviewIzipayScreen.tsx`
+- ✅ `src/screens/CashReconciliation/ReviewProsegurScreen.tsx`
+
 ## 🎉 Conclusión
 
 La implementación de filtros rápidos de fecha con "Ayer" como valor por defecto está **100% completa** y lista para usar. Todos los módulos que consultan tablas particionadas ahora:
@@ -185,10 +222,13 @@ La implementación de filtros rápidos de fecha con "Ayer" como valor por defect
 4. ✅ Limitan el rango a máximo 90 días
 5. ✅ Previenen el error "out of shared memory"
 6. ✅ Mejoran el rendimiento 100x
+7. ✅ **NUEVO:** Filtros compactos que ocupan mínimo espacio
+8. ✅ **NUEVO:** Cuentas por cobrar muestra sede y permite filtrar por sede
 
 ---
 
 **Fecha de Implementación:** 2025-02-05
-**Versión:** 1.0.0
-**Estado:** ✅ Completado y Pushed
-**Commit:** f92afd0
+**Última Actualización:** 2025-02-05
+**Versión:** 1.1.0
+**Estado:** ✅ Completado y Optimizado
+**Commits:** f92afd0, 89ad8f9, 7abf3d0

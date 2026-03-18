@@ -9,6 +9,8 @@ import {
   RefreshControl,
   useWindowDimensions,
   Modal,
+  Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
@@ -21,6 +23,11 @@ import { cashReconciliationApi, ResumenDiarioResponse } from '@/services/api/cas
 import { companiesApi } from '@/services/api/companies';
 import { Site } from '@/types/sites';
 import { useAuthStore } from '@/store/auth';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import { config } from '@/utils/config';
+import { authService } from '@/services/AuthService';
 
 interface PurchasesSummary {
   startDate: string;
@@ -95,6 +102,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const [selectedSedeId, setSelectedSedeId] = useState<string>('');
   const [loadingSedes, setLoadingSedes] = useState(false);
   const [showSedeModal, setShowSedeModal] = useState(false);
+
+  // Reports states
+  const [showReportsModal, setShowReportsModal] = useState(false);
+  const [reportDate, setReportDate] = useState<Date>(new Date());
+  const [showReportDatePicker, setShowReportDatePicker] = useState(false);
+  const [reportSedeId, setReportSedeId] = useState<string>('');
+  const [reportTipoOrigen, setReportTipoOrigen] = useState<string>('');
+  const [reportEstado, setReportEstado] = useState<string>('');
+  const [reportIncluirDetalle, setReportIncluirDetalle] = useState<boolean>(true);
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   const canViewPurchases = hasPermission(PERMISSIONS.DASHBOARD.PURCHASES);
   const canViewSales = hasPermission(PERMISSIONS.DASHBOARD.PURCHASES); // Usar el mismo permiso por ahora
@@ -353,6 +370,99 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const handleCustomDateApply = () => {
     setShowCustomDateModal(false);
     setSelectedFilter('custom');
+  };
+
+  const downloadAccountsReceivableReport = async () => {
+    try {
+      setDownloadingReport(true);
+
+      // Obtener token de autenticación
+      const token = authService.getAccessToken();
+      if (!token) {
+        Alert.alert('Error', 'No hay sesión activa');
+        return;
+      }
+
+      // Formatear fecha
+      const formatDate = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      // Construir parámetros de query
+      const params = new URLSearchParams({
+        fecha: formatDate(reportDate),
+      });
+
+      if (reportSedeId) {
+        params.append('sede_id', reportSedeId);
+      }
+
+      if (reportTipoOrigen) {
+        params.append('tipo_origen', reportTipoOrigen);
+      }
+
+      if (reportEstado) {
+        params.append('estado', reportEstado);
+      }
+
+      params.append('incluir_detalle', reportIncluirDetalle.toString());
+
+      const url = `${config.API_URL}/accounts-receivable/reports/daily/pdf?${params.toString()}`;
+
+      if (Platform.OS === 'web') {
+        // En web, usar fetch y crear un blob URL
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'X-App-Id': config.APP_ID,
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        Alert.alert('Éxito', 'Reporte descargado correctamente');
+      } else {
+        // En móvil, descargar y compartir el archivo
+        const timestamp = Date.now();
+        const fileName = `cuentas-por-cobrar-${formatDate(reportDate)}-${timestamp}.pdf`;
+        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+
+        const downloadResult = await FileSystem.downloadAsync(url, fileUri, {
+          headers: {
+            'X-App-Id': config.APP_ID,
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (downloadResult.status === 200) {
+          // Compartir el archivo descargado
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: 'Cuentas por Cobrar',
+            UTI: 'com.adobe.pdf',
+          });
+          Alert.alert('Éxito', 'Reporte descargado correctamente');
+        } else {
+          throw new Error('Error al descargar el reporte');
+        }
+      }
+
+      setShowReportsModal(false);
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      Alert.alert('Error', 'No se pudo descargar el reporte');
+    } finally {
+      setDownloadingReport(false);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -1037,6 +1147,34 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             </Text>
           </View>
         )}
+
+        {/* Reports Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+              📊 Reportes
+            </Text>
+          </View>
+
+          <View style={styles.reportsGrid}>
+            {/* Cuentas por Cobrar Report */}
+            <TouchableOpacity
+              style={styles.reportCard}
+              onPress={() => setShowReportsModal(true)}
+            >
+              <View style={styles.reportIconContainer}>
+                <Text style={styles.reportIcon}>💰</Text>
+              </View>
+              <View style={styles.reportInfo}>
+                <Text style={styles.reportTitle}>Cuentas por Cobrar</Text>
+                <Text style={styles.reportDescription}>
+                  Reporte diario con detalle por sede, deudor y tipo
+                </Text>
+              </View>
+              <Text style={styles.reportArrow}>→</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
 
       {/* Custom Date Range Modal */}
@@ -1057,16 +1195,34 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
             <View style={styles.modalBody}>
               <Text style={styles.dateLabel}>Fecha de Inicio</Text>
-              <DatePickerButton
-                date={customStartDate}
+              <TouchableOpacity
+                style={styles.reportDateInput}
                 onPress={() => setShowStartDatePicker(true)}
-              />
+              >
+                <Text style={styles.reportDateInputText}>
+                  {customStartDate.toLocaleDateString('es-PE', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </Text>
+                <Text style={styles.reportDateInputIcon}>📅</Text>
+              </TouchableOpacity>
 
               <Text style={[styles.dateLabel, { marginTop: 16 }]}>Fecha de Fin</Text>
-              <DatePickerButton
-                date={customEndDate}
+              <TouchableOpacity
+                style={styles.reportDateInput}
                 onPress={() => setShowEndDatePicker(true)}
-              />
+              >
+                <Text style={styles.reportDateInputText}>
+                  {customEndDate.toLocaleDateString('es-PE', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </Text>
+                <Text style={styles.reportDateInputIcon}>📅</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.modalFooter}>
@@ -1181,6 +1337,252 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           </View>
         </View>
       </Modal>
+
+      {/* Reports Configuration Modal */}
+      <Modal
+        visible={showReportsModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowReportsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.reportsModalContent]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>💰 Cuentas por Cobrar</Text>
+              <TouchableOpacity onPress={() => setShowReportsModal(false)}>
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {/* Fecha */}
+              <View style={styles.reportParamSection}>
+                <Text style={styles.reportParamLabel}>📅 Fecha del Reporte</Text>
+                <TouchableOpacity
+                  style={styles.reportDateInput}
+                  onPress={() => setShowReportDatePicker(true)}
+                >
+                  <Text style={styles.reportDateInputText}>
+                    {reportDate.toLocaleDateString('es-PE', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </Text>
+                  <Text style={styles.reportDateInputIcon}>📅</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Sede */}
+              <View style={styles.reportParamSection}>
+                <Text style={styles.reportParamLabel}>🏪 Sede (Opcional)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.reportChipsContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.reportChip,
+                        !reportSedeId && styles.reportChipActive,
+                      ]}
+                      onPress={() => setReportSedeId('')}
+                    >
+                      <Text
+                        style={[
+                          styles.reportChipText,
+                          !reportSedeId && styles.reportChipTextActive,
+                        ]}
+                      >
+                        Todas
+                      </Text>
+                    </TouchableOpacity>
+                    {sedes.map((sede) => (
+                      <TouchableOpacity
+                        key={sede.id}
+                        style={[
+                          styles.reportChip,
+                          reportSedeId === sede.id && styles.reportChipActive,
+                        ]}
+                        onPress={() => setReportSedeId(sede.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.reportChipText,
+                            reportSedeId === sede.id && styles.reportChipTextActive,
+                          ]}
+                        >
+                          {sede.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Tipo de Origen */}
+              <View style={styles.reportParamSection}>
+                <Text style={styles.reportParamLabel}>📦 Tipo de Origen (Opcional)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.reportChipsContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.reportChip,
+                        !reportTipoOrigen && styles.reportChipActive,
+                      ]}
+                      onPress={() => setReportTipoOrigen('')}
+                    >
+                      <Text
+                        style={[
+                          styles.reportChipText,
+                          !reportTipoOrigen && styles.reportChipTextActive,
+                        ]}
+                      >
+                        Todos
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.reportChip,
+                        reportTipoOrigen === 'SALE' && styles.reportChipActive,
+                      ]}
+                      onPress={() => setReportTipoOrigen('SALE')}
+                    >
+                      <Text
+                        style={[
+                          styles.reportChipText,
+                          reportTipoOrigen === 'SALE' && styles.reportChipTextActive,
+                        ]}
+                      >
+                        Ventas
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.reportChip,
+                        reportTipoOrigen === 'CAMPAIGN_DELIVERY' && styles.reportChipActive,
+                      ]}
+                      onPress={() => setReportTipoOrigen('CAMPAIGN_DELIVERY')}
+                    >
+                      <Text
+                        style={[
+                          styles.reportChipText,
+                          reportTipoOrigen === 'CAMPAIGN_DELIVERY' && styles.reportChipTextActive,
+                        ]}
+                      >
+                        Campañas
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Estado */}
+              <View style={styles.reportParamSection}>
+                <Text style={styles.reportParamLabel}>📊 Estado (Opcional)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.reportChipsContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.reportChip,
+                        !reportEstado && styles.reportChipActive,
+                      ]}
+                      onPress={() => setReportEstado('')}
+                    >
+                      <Text
+                        style={[
+                          styles.reportChipText,
+                          !reportEstado && styles.reportChipTextActive,
+                        ]}
+                      >
+                        Todos
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.reportChip,
+                        reportEstado === 'PENDING' && styles.reportChipActive,
+                      ]}
+                      onPress={() => setReportEstado('PENDING')}
+                    >
+                      <Text
+                        style={[
+                          styles.reportChipText,
+                          reportEstado === 'PENDING' && styles.reportChipTextActive,
+                        ]}
+                      >
+                        Pendiente
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.reportChip,
+                        reportEstado === 'OVERDUE' && styles.reportChipActive,
+                      ]}
+                      onPress={() => setReportEstado('OVERDUE')}
+                    >
+                      <Text
+                        style={[
+                          styles.reportChipText,
+                          reportEstado === 'OVERDUE' && styles.reportChipTextActive,
+                        ]}
+                      >
+                        Vencida
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Incluir Detalle */}
+              <View style={styles.reportParamSection}>
+                <TouchableOpacity
+                  style={styles.reportCheckboxContainer}
+                  onPress={() => setReportIncluirDetalle(!reportIncluirDetalle)}
+                >
+                  <View style={[styles.reportCheckbox, reportIncluirDetalle && styles.reportCheckboxChecked]}>
+                    {reportIncluirDetalle && <Text style={styles.reportCheckboxCheck}>✓</Text>}
+                  </View>
+                  <Text style={styles.reportCheckboxLabel}>Incluir detalle completo</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowReportsModal(false)}
+                disabled={downloadingReport}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalApplyButton, downloadingReport && styles.modalApplyButtonDisabled]}
+                onPress={downloadAccountsReceivableReport}
+                disabled={downloadingReport}
+              >
+                {downloadingReport ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalApplyButtonText}>📄 Descargar PDF</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Report Date Picker */}
+      {showReportDatePicker && (
+        <DateTimePicker
+          value={reportDate}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowReportDatePicker(false);
+            if (selectedDate) {
+              setReportDate(selectedDate);
+            }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -1694,6 +2096,140 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#3B82F6',
     fontWeight: '700',
+  },
+  // Reports styles
+  reportsGrid: {
+    gap: 12,
+  },
+  reportCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  reportIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  reportIcon: {
+    fontSize: 28,
+  },
+  reportInfo: {
+    flex: 1,
+  },
+  reportTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  reportDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
+  },
+  reportArrow: {
+    fontSize: 24,
+    color: '#CBD5E1',
+    marginLeft: 8,
+  },
+  reportsModalContent: {
+    maxHeight: '90%',
+  },
+  reportParamSection: {
+    marginBottom: 20,
+  },
+  reportParamLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 8,
+  },
+  reportDateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  reportDateInputText: {
+    fontSize: 15,
+    color: '#1E293B',
+    fontWeight: '500',
+  },
+  reportDateInputIcon: {
+    fontSize: 20,
+  },
+  reportChipsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  reportChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  reportChipActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  reportChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  reportChipTextActive: {
+    color: '#FFFFFF',
+  },
+  reportCheckboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reportCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  reportCheckboxChecked: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  reportCheckboxCheck: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  reportCheckboxLabel: {
+    fontSize: 14,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  modalApplyButtonDisabled: {
+    opacity: 0.6,
   },
 });
 

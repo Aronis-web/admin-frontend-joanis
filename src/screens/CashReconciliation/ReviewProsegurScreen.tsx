@@ -9,9 +9,11 @@ import {
   TextInput,
   Alert,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
@@ -91,6 +93,11 @@ export const ReviewProsegurScreen: React.FC<Props> = ({ navigation }) => {
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
+  const [showFromDatePicker, setShowFromDatePicker] = useState(false);
+  const [showToDatePicker, setShowToDatePicker] = useState(false);
+  const [tempFromDate, setTempFromDate] = useState(new Date());
+  const [tempToDate, setTempToDate] = useState(new Date());
 
   // Sedes
   const [sedes, setSedes] = useState<Site[]>([]);
@@ -372,6 +379,24 @@ export const ReviewProsegurScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         ))}
+        {/* Custom Date Button */}
+        <TouchableOpacity
+          style={[
+            styles.quickFilterChip,
+            selectedQuickFilter === QUICK_DATE_FILTERS.CUSTOM && styles.quickFilterChipActive,
+          ]}
+          onPress={() => setShowCustomDateModal(true)}
+        >
+          <Text style={styles.quickFilterIcon}>📅</Text>
+          <Text
+            style={[
+              styles.quickFilterText,
+              selectedQuickFilter === QUICK_DATE_FILTERS.CUSTOM && styles.quickFilterTextActive,
+            ]}
+          >
+            Personalizar
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Stats Bar */}
@@ -542,6 +567,126 @@ export const ReviewProsegurScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Custom Date Modal */}
+      <Modal
+        visible={showCustomDateModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCustomDateModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>📅 Fecha Personalizada</Text>
+              <TouchableOpacity onPress={() => setShowCustomDateModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Rango de Fechas *</Text>
+                <View style={styles.dateInputsRow}>
+                  <View style={styles.dateInputContainer}>
+                    <Text style={styles.dateInputLabel}>Desde</Text>
+                    <TouchableOpacity
+                      style={styles.dateInput}
+                      onPress={() => {
+                        if (fechaInicio) {
+                          const [year, month, day] = fechaInicio.split('-');
+                          setTempFromDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
+                        }
+                        setShowFromDatePicker(true);
+                      }}
+                    >
+                      <Text style={styles.dateInputText}>
+                        {fechaInicio || 'Seleccionar fecha'}
+                      </Text>
+                      <Text style={styles.dateInputIcon}>📅</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.dateInputContainer}>
+                    <Text style={styles.dateInputLabel}>Hasta</Text>
+                    <TouchableOpacity
+                      style={styles.dateInput}
+                      onPress={() => {
+                        if (fechaFin) {
+                          const [year, month, day] = fechaFin.split('-');
+                          setTempToDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
+                        }
+                        setShowToDatePicker(true);
+                      }}
+                    >
+                      <Text style={styles.dateInputText}>
+                        {fechaFin || 'Seleccionar fecha'}
+                      </Text>
+                      <Text style={styles.dateInputIcon}>📅</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* DatePickers */}
+                {showFromDatePicker && (
+                  <DateTimePicker
+                    value={tempFromDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowFromDatePicker(false);
+                      if (event.type === 'set' && selectedDate) {
+                        const year = selectedDate.getFullYear();
+                        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(selectedDate.getDate()).padStart(2, '0');
+                        setFechaInicio(`${year}-${month}-${day}`);
+                        setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+                      }
+                    }}
+                  />
+                )}
+                {showToDatePicker && (
+                  <DateTimePicker
+                    value={tempToDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowToDatePicker(false);
+                      if (event.type === 'set' && selectedDate) {
+                        const year = selectedDate.getFullYear();
+                        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(selectedDate.getDate()).padStart(2, '0');
+                        setFechaFin(`${year}-${month}-${day}`);
+                        setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+                      }
+                    }}
+                  />
+                )}
+                <Text style={styles.dateHint}>
+                  💡 Máximo 90 días de diferencia
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => setShowCustomDateModal(false)}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={() => {
+                  setShowCustomDateModal(false);
+                  setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+                }}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Aplicar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -860,32 +1005,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    maxHeight: 32,
   },
   quickFiltersContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingVertical: 1,
+    gap: 4,
   },
   quickFilterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 12,
     backgroundColor: '#F3F4F6',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: 'transparent',
-    gap: 4,
+    gap: 2,
   },
   quickFilterChipActive: {
     backgroundColor: '#DBEAFE',
     borderColor: '#8B5CF6',
   },
   quickFilterIcon: {
-    fontSize: 14,
+    fontSize: 11,
   },
   quickFilterText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
     color: '#6B7280',
   },
@@ -897,5 +1043,118 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     marginTop: 4,
     fontStyle: 'italic',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '90%',
+    maxWidth: 500,
+    minHeight: 350,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  modalClose: {
+    fontSize: 24,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  filterSection: {
+    marginBottom: 16,
+  },
+  filterSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  dateInputsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dateInputContainer: {
+    flex: 1,
+  },
+  dateInputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  dateInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    padding: 14,
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+  },
+  dateInputText: {
+    fontSize: 16,
+    color: '#1F2937',
+    flex: 1,
+  },
+  dateInputIcon: {
+    fontSize: 20,
+    marginLeft: 8,
+  },
+  dateHint: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  modalButtonSecondary: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  modalButtonSecondaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  modalButtonPrimary: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#8B5CF6',
+  },
+  modalButtonPrimaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

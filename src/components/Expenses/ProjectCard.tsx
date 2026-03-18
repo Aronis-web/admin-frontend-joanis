@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ExpenseProject, ProjectStatusLabels, ProjectStatusColors } from '@/types/expenses';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
+import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 
 interface ProjectCardProps {
   project: ExpenseProject;
@@ -122,28 +123,32 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         {/* Quick Actions */}
         <View style={styles.actions}>
           {onViewExpenses && (
-            <TouchableOpacity
+            <ProtectedTouchableOpacity
               style={styles.actionButton}
               onPress={(e) => {
                 e.stopPropagation();
                 onViewExpenses(project);
               }}
+              requiredPermissions={['expenses.read']}
+              hideIfNoPermission={true}
             >
               <Ionicons name="receipt-outline" size={18} color="#6366F1" />
               <Text style={styles.actionButtonText}>Gastos</Text>
-            </TouchableOpacity>
+            </ProtectedTouchableOpacity>
           )}
           {onAddExpense && (
-            <TouchableOpacity
+            <ProtectedTouchableOpacity
               style={[styles.actionButton, styles.actionButtonPrimary]}
               onPress={(e) => {
                 e.stopPropagation();
                 onAddExpense(project);
               }}
+              requiredPermissions={['expenses.create']}
+              hideIfNoPermission={true}
             >
               <Ionicons name="add-circle" size={18} color="#FFFFFF" />
               <Text style={styles.actionButtonTextPrimary}>Agregar Gasto</Text>
-            </TouchableOpacity>
+            </ProtectedTouchableOpacity>
           )}
         </View>
       </View>
