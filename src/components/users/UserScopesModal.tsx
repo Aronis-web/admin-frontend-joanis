@@ -184,7 +184,7 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
 
     setLoadingScopes(true);
     try {
-      const response = await scopesApi.getUserScopes(userId, selectedAppId);
+      const response = await scopesApi.getUserScopes(userId, selectedAppId, { limit: 100 });
       setUserScopes(response.items);
       console.log('🎯 User scopes loaded:', response.items);
     } catch (error) {
@@ -287,20 +287,22 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
   };
 
   const getScopeLabel = (scope: UserScope): string => {
-    const company = companies.find((c) => c.id === scope.companyId);
-    const site = sites.find((s) => s.id === scope.siteId);
-    const warehouse = warehouses.find((w) => w.id === scope.warehouseId);
-    const area = areas.find((a) => a.id === scope.areaId);
+    // Usar los datos que vienen del API (scope.company, scope.site, etc.)
+    // Si no están disponibles, buscar en los arrays locales como fallback
+    const company = scope.company || companies.find((c) => c.id === scope.companyId);
+    const site = scope.site || sites.find((s) => s.id === scope.siteId);
+    const warehouse = scope.warehouse || warehouses.find((w) => w.id === scope.warehouseId);
+    const area = scope.area || areas.find((a) => a.id === scope.areaId);
 
     switch (scope.level) {
       case 'AREA':
-        return `📦 Área: ${area?.name || scope.areaId} - ${warehouse?.name || scope.warehouseId}`;
+        return `📦 Área: ${area?.name || scope.areaId || 'Sin nombre'} - ${warehouse?.name || scope.warehouseId || 'Sin almacén'}`;
       case 'WAREHOUSE':
-        return `🏢 Almacén: ${warehouse?.name || scope.warehouseId} - ${site?.name || scope.siteId}`;
+        return `🏢 Almacén: ${warehouse?.name || scope.warehouseId || 'Sin nombre'} - ${site?.name || scope.siteId || 'Sin sede'}`;
       case 'SITE':
-        return `📍 Sede: ${site?.name || scope.siteId} - ${company?.name || scope.companyId}`;
+        return `📍 Sede: ${site?.name || scope.siteId || 'Sin nombre'} - ${company?.name || scope.companyId || 'Sin compañía'}`;
       case 'COMPANY':
-        return `🏢 Compañía: ${company?.name || scope.companyId}`;
+        return `🏢 Compañía: ${company?.name || scope.companyId || 'Sin nombre'}`;
       default:
         return '🌍 Global';
     }

@@ -103,7 +103,7 @@ export const accessApi = {
    * ```
    */
   async getUserScopes(userId: string, appId: string): Promise<UserScopesResponse> {
-    const resolvedScopes = await scopesApi.getUserResolvedScopes(userId, appId);
+    const resolvedScopes = await scopesApi.getUserResolvedScopes(userId, appId, { limit: 100 });
 
     // Convertir ResolvedScope a UserAccessibleScope
     const scopes: UserAccessibleScope[] = resolvedScopes.map((scope) => ({

@@ -197,8 +197,30 @@ export interface UserScope {
   level: ScopeLevel;
   canRead: boolean;
   canWrite: boolean;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  // Relaciones pobladas por el backend
+  company?: {
+    id: string;
+    name: string;
+    alias?: string;
+    ruc?: string;
+    companyType?: string;
+  };
+  site?: {
+    id: string;
+    name: string;
+    code?: string;
+  };
+  warehouse?: {
+    id: string;
+    name: string;
+  };
+  area?: {
+    id: string;
+    name: string;
+  };
 }
 
 /**
@@ -349,10 +371,28 @@ export const scopesApi = {
    *
    * @param userId - ID del usuario
    * @param appId - ID de la aplicación
+   * @param params - Parámetros opcionales de paginación
    * @returns Lista de scopes resueltos con información jerárquica
    */
-  async getUserResolvedScopes(userId: string, appId: string): Promise<ResolvedScope[]> {
-    return apiClient.get<ResolvedScope[]>(`/scopes/users/${userId}/apps/${appId}/resolved`);
+  async getUserResolvedScopes(
+    userId: string,
+    appId: string,
+    params?: { page?: number; limit?: number }
+  ): Promise<ResolvedScope[]> {
+    const queryParams = new URLSearchParams();
+
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, String(value));
+        }
+      });
+    }
+
+    const queryString = queryParams.toString();
+    const url = `/scopes/users/${userId}/apps/${appId}/resolved${queryString ? `?${queryString}` : ''}`;
+
+    return apiClient.get<ResolvedScope[]>(url);
   },
 
   // ==================== ESTADÍSTICAS ====================
@@ -498,7 +538,7 @@ export const scopesApi = {
    */
   async getHighestAccessLevel(userId: string, appId: string): Promise<ResolvedScope | null> {
     try {
-      const scopes = await this.getUserResolvedScopes(userId, appId);
+      const scopes = await this.getUserResolvedScopes(userId, appId, { limit: 100 });
 
       if (scopes.length === 0) {
         return null;

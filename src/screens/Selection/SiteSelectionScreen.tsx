@@ -92,7 +92,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       console.log('🔍 AppId:', appId);
 
       // Get user scopes from the scopes API instead of user_company_site
-      const userScopes = await scopesApi.getUserResolvedScopes(user.id, appId);
+      const userScopes = await scopesApi.getUserResolvedScopes(user.id, appId, { limit: 100 });
 
       console.log('📦 Respuesta de scopes (tipo):', typeof userScopes);
       console.log('📦 Respuesta de scopes (es array):', Array.isArray(userScopes));
@@ -119,8 +119,8 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
         companyId: scope.companyId || companyId,
         site: {
           id: scope.siteId!,
-          name: scope.site_name || scope.site?.name || 'Sede sin nombre',
-          code: (scope.site as any)?.code || '',
+          name: scope.site?.name || (scope as any).site_name || 'Sede sin nombre',
+          code: scope.site?.code || (scope as any).code || '',
         },
         canSelect: true, // If user has scope, they can select it
         createdAt: new Date().toISOString(),
