@@ -716,7 +716,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                           const availableStock = stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
                           const parsedStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
                           const totalStock = typeof stockItem.quantityBase === 'number' ? stockItem.quantityBase : parseFloat(stockItem.quantityBase) || 0;
-                          const reservedStock = typeof stockItem.reservedQuantityBase === 'number' ? stockItem.reservedQuantityBase : parseFloat(stockItem.reservedQuantityBase) || 0;
+                          const reservedStock = typeof stockItem.reservedQuantityBase === 'number' ? stockItem.reservedQuantityBase : parseFloat(stockItem.reservedQuantityBase || '0') || 0;
 
                           return (
                             <TouchableOpacity

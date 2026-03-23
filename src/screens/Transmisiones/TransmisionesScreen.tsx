@@ -62,7 +62,7 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
         }
 
         const response = await transmisionesApi.getTransmisiones(params);
-        setTransmisiones(response.items);
+        setTransmisiones(response.data);
 
         setPagination({
           page: response.page,

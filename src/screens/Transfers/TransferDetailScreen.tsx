@@ -108,11 +108,11 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
               <View style={styles.timelineContent}>
                 <View style={styles.timelineHeader}>
                   <TransferStatusBadge status={item.toStatus} size="small" />
-                  <Text style={styles.timelineDate}>{formatDate(item.changedAt)}</Text>
+                  <Text style={styles.timelineDate}>{formatDate(item.createdAt)}</Text>
                 </View>
-                {item.changedBy && (
+                {item.changedByUser && (
                   <Text style={styles.timelineUser}>
-                    Por: {item.changedBy.name || item.changedBy.email}
+                    Por: {item.changedByUser.name || item.changedByUser.email}
                   </Text>
                 )}
                 {item.notes && <Text style={styles.timelineNotes}>{item.notes}</Text>}
@@ -178,11 +178,11 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
               <Text style={styles.infoLabel}>Solicitado:</Text>
               <Text style={styles.infoValue}>{formatDate(transfer.requestedAt)}</Text>
             </View>
-            {transfer.requestedBy && (
+            {transfer.requestedByUser && (
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Solicitado por:</Text>
                 <Text style={styles.infoValue}>
-                  {transfer.requestedBy.name || transfer.requestedBy.email}
+                  {transfer.requestedByUser.name || transfer.requestedByUser.email}
                 </Text>
               </View>
             )}
@@ -249,10 +249,12 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
                 <Text style={styles.infoLabel}>Número:</Text>
                 <Text style={styles.infoValue}>{transfer.reception.receptionNumber}</Text>
               </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Recibido:</Text>
-                <Text style={styles.infoValue}>{formatDate(transfer.reception.receivedAt)}</Text>
-              </View>
+              {transfer.reception.receivedAt && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Recibido:</Text>
+                  <Text style={styles.infoValue}>{formatDate(transfer.reception.receivedAt)}</Text>
+                </View>
+              )}
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Estado:</Text>
                 <Text style={styles.infoValue}>{transfer.reception.status}</Text>

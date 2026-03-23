@@ -359,7 +359,11 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
         <AddProductModal
           visible={addProductModalVisible}
           transmisionId={transmisionId}
-          priceProfile={transmision?.priceProfile}
+          priceProfile={transmision?.priceProfile ? {
+            ...transmision.priceProfile,
+            createdAt: '',
+            updatedAt: '',
+          } : null}
           onClose={() => setAddProductModalVisible(false)}
           onProductAdded={handleProductAdded}
         />
