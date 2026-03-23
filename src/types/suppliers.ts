@@ -373,6 +373,12 @@ export interface Supplier {
   bankAccounts?: SupplierBankAccount[];
   companyDebts?: SupplierCompanyDebt[];
   unassignedBalance?: SupplierUnassignedBalance;
+
+  // ============================================
+  // Campos de conveniencia (de la entidad legal primaria)
+  // ============================================
+  legalName?: string;
+  ruc?: string;
 }
 
 // ============================================
@@ -523,6 +529,7 @@ export interface SuppliersResponse {
   total: number;
   page: number;
   limit: number;
+  totalPages: number;
 }
 
 /**

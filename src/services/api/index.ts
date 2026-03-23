@@ -3,7 +3,9 @@
 
 export { default as apiClient } from './client';
 export { companiesApi } from './companies';
+export type { Company, UserCompanySite } from '@/types/companies';
 export { sitesApi, sitesService } from './sites';
+export type { Site, GetSitesParams } from '@/types/sites';
 export { inventoryApi } from './inventory';
 export { warehousesApi, warehouseAreasApi } from './warehouses';
 export { expensesService } from './expenses';
@@ -50,6 +52,7 @@ export type {
 
 // Export scopes API (avoid conflicts with apps)
 export { scopesApi } from './scopes';
+export type { ResolvedScope } from './scopes';
 
 export * from './price-profiles';
 
