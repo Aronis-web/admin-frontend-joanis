@@ -657,6 +657,7 @@ const styles = StyleSheet.create({
   picker: {
     width: '100%',
     height: 50,
+    color: '#1F2937',
   },
   typeGrid: {
     flexDirection: 'row',

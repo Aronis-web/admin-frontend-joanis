@@ -709,6 +709,7 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+    color: '#1F2937',
   },
   addButton: {
     backgroundColor: '#3B82F6',

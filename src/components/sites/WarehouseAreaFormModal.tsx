@@ -328,6 +328,7 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+    color: '#1F2937',
   },
   infoBox: {
     backgroundColor: '#EEF2FF',

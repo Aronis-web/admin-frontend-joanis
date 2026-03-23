@@ -713,6 +713,7 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 40,
+    color: '#1F2937',
   },
   revertedToggle: {
     flexDirection: 'row',

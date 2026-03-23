@@ -791,6 +791,7 @@ const styles = StyleSheet.create({
   },
   picker: {
     marginBottom: 16,
+    color: '#1F2937',
   },
   row: {
     flexDirection: 'row',

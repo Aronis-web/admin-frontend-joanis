@@ -626,6 +626,7 @@ const styles = StyleSheet.create({
   picker: {
     paddingHorizontal: 12,
     paddingVertical: 10,
+    color: '#1F2937',
   },
   pickerText: {
     fontSize: 15,

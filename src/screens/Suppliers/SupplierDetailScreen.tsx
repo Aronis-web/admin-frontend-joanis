@@ -1787,6 +1787,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
+    color: '#1F2937',
   },
   tagsList: {
     flexDirection: 'row',
