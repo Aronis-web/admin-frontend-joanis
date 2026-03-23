@@ -21,10 +21,7 @@ export const AuthErrorHandler: React.FC<AuthErrorHandlerProps> = ({
     if (error) {
       // Call custom error handler if provided
       if (onError) {
-        const authError: AuthError = {
-          code: 'SERVER_ERROR',
-          message: error,
-        };
+        const authError = new AuthError('SERVER_ERROR', error);
         onError(authError);
       }
 

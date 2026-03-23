@@ -54,9 +54,12 @@ export const priceProfilesApi = {
       console.log('✅ Response is array, wrapping in pagination format');
       return {
         data: response,
-        total: response.length,
-        page: page,
-        limit: limit,
+        meta: {
+          total: response.length,
+          page: page,
+          limit: limit,
+          totalPages: Math.ceil(response.length / limit),
+        },
       };
     }
 

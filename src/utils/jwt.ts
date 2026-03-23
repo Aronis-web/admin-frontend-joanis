@@ -85,7 +85,8 @@ export const extractUserFromToken = (token: string): UserFromToken => {
       avatar: decodedPayload.avatar || undefined,
     };
   } catch (error) {
-    throw new Error(`Failed to extract user from JWT: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to extract user from JWT: ${errorMessage}`);
   }
 };
 

@@ -3,21 +3,13 @@
  * Proporciona rangos predefinidos para evitar consultas sin filtro de fecha
  */
 
+import { formatDateToString } from './dateHelpers';
+
 export interface DateRange {
   fromDate: string;
   toDate: string;
   label: string;
 }
-
-/**
- * Formatea una fecha a string YYYY-MM-DD
- */
-export const formatDateToString = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
 
 /**
  * Obtiene la fecha de ayer

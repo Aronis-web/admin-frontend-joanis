@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { suppliersService } from '@/services/api';
-import { Supplier as FullSupplier } from '@/types/suppliers';
+import { Supplier as FullSupplier, SupplierType } from '@/types/suppliers';
 import { Supplier } from '@/types/expenses';
 
 interface SupplierSearchInputProps {
@@ -23,7 +23,7 @@ interface SupplierSearchInputProps {
   error?: string;
   disabled?: boolean;
   required?: boolean;
-  filterByType?: 'MERCHANDISE' | 'UTILITIES' | 'SERVICES' | 'MAINTENANCE' | 'TECHNOLOGY' | 'MARKETING' | 'LOGISTICS' | 'PROFESSIONAL' | 'GOVERNMENT' | 'FINANCIAL' | 'RENT' | 'PAYROLL' | 'TAXES' | 'LOANS' | 'INSURANCE' | 'TRANSPORT' | 'OTHER'; // Filter suppliers by primary type
+  filterByType?: SupplierType; // Filter suppliers by primary type
 }
 
 export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({

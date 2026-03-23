@@ -11,7 +11,7 @@ import {
 import { theme } from '@/theme';
 
 interface FormTextInputProps extends TextInputProps {
-  label: string;
+  label?: string;
   error?: string;
   focused?: boolean;
 }
@@ -48,7 +48,7 @@ export const FormTextInput: React.FC<FormTextInputProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      {label && <Text style={styles.label}>{label}</Text>}
       <Animated.View style={[styles.inputContainer, inputStyle, style]}>
         <TextInput
           style={styles.textInput}

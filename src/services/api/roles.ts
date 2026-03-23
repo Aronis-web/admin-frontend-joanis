@@ -493,7 +493,7 @@ export const userPermissionsApi = {
       }
 
       // Validate all items are strings
-      const validPermissions = response.data.filter((perm) => typeof perm === 'string');
+      const validPermissions = response.data.filter((perm: unknown) => typeof perm === 'string');
 
       return validPermissions;
     } catch (error: any) {

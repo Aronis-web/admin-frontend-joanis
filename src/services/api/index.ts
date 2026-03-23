@@ -59,8 +59,17 @@ export type { PresentationsResponse, CreatePresentationDto, UpdatePresentationDt
 
 export * from './billing';
 export * from './bizlinks';
-export * from './emission-points';
 export * from './cash-registers';
+
+// Export emission-points API (avoid conflicts with billing)
+export { emissionPointsApi } from './emission-points';
+export type {
+  EmissionPoint,
+  EmissionType,
+  CreateEmissionPointDto,
+  UpdateEmissionPointDto,
+  GetEmissionPointsParams,
+} from './emission-points';
 
 export { locationsApi } from './locations';
 export type {
@@ -84,7 +93,7 @@ export type {
   QueryAccountsPayableParams,
   CreateAccountPayableRequest,
   UpdateAccountPayableRequest,
-} from './accounts-payable';
+} from '@/types/accounts-payable';
 
 export { accountsReceivableService } from './accounts-receivable';
 export type {
@@ -93,7 +102,7 @@ export type {
   QueryAccountsReceivableParams,
   CreateAccountReceivableRequest,
   UpdateAccountReceivableRequest,
-} from './accounts-receivable';
+} from '@/types/accounts-receivable';
 
 export { siteContactsApi } from './site-contacts';
 export type {
