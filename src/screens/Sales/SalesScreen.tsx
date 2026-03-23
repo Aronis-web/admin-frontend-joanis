@@ -48,6 +48,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
   const [filterStatus, setFilterStatus] = useState<SaleStatus | 'ALL'>('ALL');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<PaymentStatus | 'ALL'>('ALL');
   const [filterSaleType, setFilterSaleType] = useState<SaleType | 'ALL'>('ALL');
+  const [filterSaleOrigin, setFilterSaleOrigin] = useState<'ALL' | 'INDEPENDENT' | 'CASH_REGISTER'>('ALL');
 
   // Load sales
   const loadSales = async (pageNum: number = 1, isRefresh: boolean = false) => {
@@ -62,6 +63,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
         page: pageNum,
         limit: 20,
         includeItems: true,
+        // No necesitamos includeDocuments, la info de NC ya viene en la respuesta
       };
 
       if (searchText.trim()) {
@@ -80,13 +82,28 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
         params.saleType = filterSaleType;
       }
 
+      if (filterSaleOrigin === 'INDEPENDENT') {
+        params.isIndependent = true;
+      } else if (filterSaleOrigin === 'CASH_REGISTER') {
+        params.isIndependent = false;
+      }
+
       const response = await salesApi.getSales(params);
 
-      if (isRefresh || pageNum === 1) {
-        setSales(response.data);
-      } else {
-        setSales([...sales, ...response.data]);
+      logger.info('📊 Ventas cargadas:', response.data.length);
+      if (response.data.length > 0) {
+        logger.info('📊 Primera venta:', response.data[0]);
+        logger.info('📝 Info NC primera venta:', {
+          hasCreditNote: response.data[0].hasCreditNote,
+          creditNoteType: response.data[0].creditNoteType,
+          creditNotesCount: response.data[0].creditNotesCount,
+          creditNotes: response.data[0].creditNotes,
+        });
       }
+
+      // Siempre reemplazar las ventas cuando se cambia de página
+      // Solo acumular cuando se usa scroll infinito (handleLoadMore)
+      setSales(response.data);
 
       setPage(response.page);
       setTotalPages(response.totalPages);
@@ -103,13 +120,25 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
   // Initial load
   useEffect(() => {
     loadSales(1);
-  }, [searchText, filterStatus, filterPaymentStatus, filterSaleType]);
+  }, [searchText, filterStatus, filterPaymentStatus, filterSaleType, filterSaleOrigin]);
 
-  // Refresh on focus
+  // Load sales when page changes
+  useEffect(() => {
+    if (page > 1) {
+      loadSales(page);
+    }
+  }, [page]);
+
+  // Refresh on focus - mantener la página actual
   useFocusEffect(
     useCallback(() => {
-      loadSales(1, true);
-    }, [])
+      // Solo recargar si estamos en la página 1, sino mantener la página actual
+      if (page === 1) {
+        loadSales(1, true);
+      } else {
+        loadSales(page, true);
+      }
+    }, [page])
   );
 
   const handleRefresh = () => {
@@ -160,9 +189,30 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
     }
   };
 
-  const renderSaleCard = useCallback((sale: Sale) => {
-    const customerName = sale.customerSnapshot?.fullName || sale.companySnapshot?.razonSocial || 'Sin cliente';
-    const documentNumber = sale.customerSnapshot?.documentNumber || sale.companySnapshot?.ruc || '';
+  const renderSaleCard = useCallback((sale: any) => {
+    // Usar la nueva estructura de la API
+    const customerName = sale.customerName || sale.customerSnapshot?.fullName || sale.companySnapshot?.razonSocial || 'Sin cliente';
+    const isIndependent = sale.source === 'INDEPENDIENTE' || !sale.cashRegisterId;
+
+    // Obtener métodos de pago de la nueva estructura
+    const paymentMethodsText = sale.paymentMethods && sale.paymentMethods.length > 0
+      ? sale.paymentMethods.map((pm: any) => pm.methodName).join(', ')
+      : 'Sin pagos';
+
+    // Obtener nombre del vendedor/cajero
+    const sellerName = sale.cashierSnapshot?.name || sale.sellerSnapshot?.name || null;
+
+    // Obtener nombre de la caja
+    const cashRegisterName = sale.cashRegisterSnapshot?.name || null;
+
+    // Helper para obtener labels de forma segura
+    const getSaleStatusLabel = (status: string) => {
+      return SaleStatusLabels[status as SaleStatus] || status;
+    };
+
+    const getPaymentStatusLabel = (status: string) => {
+      return PaymentStatusLabels[status as PaymentStatus] || status;
+    };
 
     return (
       <TouchableOpacity
@@ -175,16 +225,26 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
           <View style={styles.cardHeaderLeft}>
             <Text style={[styles.cardCode, isTablet && styles.cardCodeTablet]}>{sale.code}</Text>
             <View style={styles.badges}>
+              {/* Origen de venta */}
+              <View style={[styles.statusBadge, { backgroundColor: isIndependent ? '#8B5CF620' : '#10B98120', borderColor: isIndependent ? '#8B5CF6' : '#10B981', borderWidth: 1 }]}>
+                <Text style={[styles.statusText, { color: isIndependent ? '#8B5CF6' : '#10B981' }]}>
+                  {isIndependent ? '🔓 Independiente' : '💰 Caja'}
+                </Text>
+              </View>
+              {/* Estado */}
               <View style={[styles.statusBadge, { backgroundColor: getStatusColor(sale.status) + '20', borderColor: getStatusColor(sale.status), borderWidth: 1 }]}>
                 <Text style={[styles.statusText, { color: getStatusColor(sale.status) }]}>
-                  {SaleStatusLabels[sale.status]}
+                  {getSaleStatusLabel(sale.status)}
                 </Text>
               </View>
-              <View style={[styles.statusBadge, { backgroundColor: sale.saleType === SaleType.B2C ? '#F59E0B20' : '#3B82F620', borderColor: sale.saleType === SaleType.B2C ? '#F59E0B' : '#3B82F6', borderWidth: 1 }]}>
-                <Text style={[styles.statusText, { color: sale.saleType === SaleType.B2C ? '#F59E0B' : '#3B82F6' }]}>
-                  {SaleTypeLabels[sale.saleType]}
-                </Text>
-              </View>
+              {/* Nota de Crédito */}
+              {sale.hasCreditNote && (
+                <View style={[styles.statusBadge, { backgroundColor: '#F59E0B20', borderColor: '#F59E0B', borderWidth: 1 }]}>
+                  <Text style={[styles.statusText, { color: '#F59E0B' }]}>
+                    📝 NC {sale.creditNoteType === 'TOTAL' ? 'Total' : 'Parcial'}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
           <Text style={[styles.cardDate, isTablet && styles.cardDateTablet]}>
@@ -204,43 +264,85 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
             </Text>
           </View>
 
-          {documentNumber && (
+          {sale.customerDocument && (
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Documento:</Text>
-              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>{documentNumber}</Text>
+              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]} numberOfLines={1}>
+                {sale.customerDocument}
+              </Text>
+            </View>
+          )}
+
+          {/* Mostrar vendedor/cajero si está disponible */}
+          {sellerName && (
+            <View style={styles.infoRow}>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                {isIndependent ? 'Vendedor:' : 'Cajero:'}
+              </Text>
+              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]} numberOfLines={1}>
+                {sellerName}
+              </Text>
+            </View>
+          )}
+
+          {/* Mostrar caja si no es independiente */}
+          {!isIndependent && cashRegisterName && (
+            <View style={styles.infoRow}>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Caja:</Text>
+              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]} numberOfLines={1}>
+                {cashRegisterName}
+              </Text>
             </View>
           )}
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Productos:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Items:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {sale.itemCount} items ({sale.totalQuantity} unidades)
+              {sale.itemCount} ({sale.totalQuantity} unidades)
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Estado de Pago:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Pago:</Text>
             <View style={[styles.paymentBadge, { backgroundColor: getPaymentStatusColor(sale.paymentStatus) + '20', borderColor: getPaymentStatusColor(sale.paymentStatus), borderWidth: 1 }]}>
               <Text style={[styles.paymentBadgeText, { color: getPaymentStatusColor(sale.paymentStatus) }]}>
-                {PaymentStatusLabels[sale.paymentStatus]}
+                {getPaymentStatusLabel(sale.paymentStatus)}
               </Text>
             </View>
           </View>
 
-          {sale.paymentStatus !== PaymentStatus.PAID && (
+          {/* Métodos de pago */}
+          {sale.paymentMethods && sale.paymentMethods.length > 0 && (
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Saldo:</Text>
-              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet, styles.balanceText]}>
-                S/ {(sale.balanceCents / 100).toFixed(2)}
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Método:</Text>
+              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet, styles.paymentMethodText]} numberOfLines={1}>
+                {paymentMethodsText}
+              </Text>
+            </View>
+          )}
+
+          {/* Mostrar información de Nota de Crédito si existe */}
+          {sale.hasCreditNote && sale.creditNotesCount > 0 && (
+            <View style={styles.infoRow}>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>NC Monto:</Text>
+              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet, { color: '#F59E0B' }]}>
+                S/ {sale.creditedAmount?.toFixed(2) || '0.00'} ({sale.creditNotesCount} NC)
               </Text>
             </View>
           )}
         </View>
 
         <View style={styles.cardFooter}>
-          <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
-            Total: S/ {(sale.totalCents / 100).toFixed(2)}
-          </Text>
+          <View>
+            <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
+              S/ {sale.total?.toFixed(2) || (sale.totalCents / 100).toFixed(2)}
+            </Text>
+            {sale.balanceCents > 0 && (
+              <Text style={[styles.balanceText, { fontSize: 12, marginTop: 2 }]}>
+                Saldo: S/ {sale.balance?.toFixed(2) || (sale.balanceCents / 100).toFixed(2)}
+              </Text>
+            )}
+          </View>
           <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
         </View>
       </TouchableOpacity>
@@ -286,8 +388,45 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
 
         {/* Filters */}
         <View style={styles.filtersContainer}>
+          {/* Filtro de Origen */}
           <View style={styles.filtersSection}>
-            <Text style={[styles.filterTitle, isTablet && styles.filterTitleTablet]}>Estado de Venta</Text>
+            <Text style={[styles.filterTitle, isTablet && styles.filterTitleTablet]}>Origen de Venta</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              <View style={styles.filterButtons}>
+                <TouchableOpacity
+                  style={[styles.filterButton, filterSaleOrigin === 'ALL' && styles.filterButtonActive]}
+                  onPress={() => setFilterSaleOrigin('ALL')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.filterButtonText, filterSaleOrigin === 'ALL' && styles.filterButtonTextActive]}>
+                    Todas
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterButton, filterSaleOrigin === 'INDEPENDENT' && styles.filterButtonActive]}
+                  onPress={() => setFilterSaleOrigin('INDEPENDENT')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.filterButtonText, filterSaleOrigin === 'INDEPENDENT' && styles.filterButtonTextActive]}>
+                    🔓 Independientes
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterButton, filterSaleOrigin === 'CASH_REGISTER' && styles.filterButtonActive]}
+                  onPress={() => setFilterSaleOrigin('CASH_REGISTER')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.filterButtonText, filterSaleOrigin === 'CASH_REGISTER' && styles.filterButtonTextActive]}>
+                    💰 De Caja
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Filtro de Estado */}
+          <View style={styles.filtersSection}>
+            <Text style={[styles.filterTitle, isTablet && styles.filterTitleTablet]}>Estado</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
               <View style={styles.filterButtons}>
                 <TouchableOpacity
@@ -315,8 +454,9 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
             </ScrollView>
           </View>
 
+          {/* Filtro de Pago */}
           <View style={styles.filtersSection}>
-            <Text style={[styles.filterTitle, isTablet && styles.filterTitleTablet]}>Estado de Pago</Text>
+            <Text style={[styles.filterTitle, isTablet && styles.filterTitleTablet]}>Pago</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
               <View style={styles.filterButtons}>
                 <TouchableOpacity
@@ -337,35 +477,6 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
                   >
                     <Text style={[styles.filterButtonText, filterPaymentStatus === status && styles.filterButtonTextActive]}>
                       {PaymentStatusLabels[status]}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-
-          <View style={styles.filtersSection}>
-            <Text style={[styles.filterTitle, isTablet && styles.filterTitleTablet]}>Tipo de Venta</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-              <View style={styles.filterButtons}>
-                <TouchableOpacity
-                  style={[styles.filterButton, filterSaleType === 'ALL' && styles.filterButtonActive]}
-                  onPress={() => setFilterSaleType('ALL')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.filterButtonText, filterSaleType === 'ALL' && styles.filterButtonTextActive]}>
-                    Todos
-                  </Text>
-                </TouchableOpacity>
-                {Object.values(SaleType).map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[styles.filterButton, filterSaleType === type && styles.filterButtonActive]}
-                    onPress={() => setFilterSaleType(type)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.filterButtonText, filterSaleType === type && styles.filterButtonTextActive]}>
-                      {SaleTypeLabels[type]}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -686,6 +797,10 @@ const styles = StyleSheet.create({
   paymentBadgeText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  paymentMethodText: {
+    color: '#3B82F6',
+    fontStyle: 'italic',
   },
   cardFooter: {
     flexDirection: 'row',

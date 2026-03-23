@@ -71,8 +71,36 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       });
 
       setSale(data);
+      logger.info('📊 Venta cargada:', data);
+      logger.info('📄 Documentos en venta:', data.documents);
 
-      // Load documents - siempre intentar cargar documentos
+      // Extraer notas de crédito y débito de los documentos
+      if (data.documents && Array.isArray(data.documents)) {
+        const creditNotesList = data.documents.filter((doc: any) =>
+          doc.documentType?.code === '07' || doc.documentType?.name?.toLowerCase().includes('crédito')
+        );
+        const debitNotesList = data.documents.filter((doc: any) =>
+          doc.documentType?.code === '08' || doc.documentType?.name?.toLowerCase().includes('débito')
+        );
+
+        setCreditNotes(creditNotesList);
+        setDebitNotes(debitNotesList);
+
+        logger.info('📝 Notas de crédito encontradas:', creditNotesList.length);
+        logger.info('📝 Notas de débito encontradas:', debitNotesList.length);
+
+        // Guardar documentos para el botón de descarga
+        setSaleDocuments({
+          documents: data.documents,
+          allDocuments: data.documents,
+        });
+      } else {
+        setCreditNotes([]);
+        setDebitNotes([]);
+        logger.info('📝 No hay documentos en la venta');
+      }
+
+      // También intentar cargar documentos del endpoint separado (por compatibilidad)
       loadSaleDocuments();
     } catch (error) {
       logger.error('Error cargando venta:', error);
@@ -84,40 +112,50 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     }
   };
 
-  // Load sale documents
+  // Load sale documents (endpoint separado - por compatibilidad)
   const loadSaleDocuments = async () => {
     setLoadingDocuments(true);
     try {
       const docs = await salesApi.getSaleDocuments(saleId);
-      logger.info('📄 Documentos cargados:', docs);
+      logger.info('📄 Documentos del endpoint separado:', docs);
 
       // El backend devuelve allDocuments en lugar de documents
       const allDocs = docs?.allDocuments || docs?.documents || [];
-      logger.info('📄 Tiene documentos:', allDocs.length > 0);
+      logger.info('📄 Documentos adicionales encontrados:', allDocs.length);
+
+      // Solo actualizar si hay documentos adicionales que no estaban en la venta
       if (allDocs.length > 0) {
-        logger.info('📄 Primer documento:', allDocs[0]);
-      }
+        // Actualizar documentos
+        setSaleDocuments((prev: any) => ({
+          ...prev,
+          ...docs,
+          documents: allDocs,
+          allDocuments: allDocs,
+        }));
 
-      // Crear objeto compatible con el formato esperado
-      const formattedDocs = {
-        ...docs,
-        documents: allDocs,
-      };
-      setSaleDocuments(formattedDocs);
+        // Solo actualizar notas si vienen en el endpoint separado y no las teníamos
+        if (docs?.creditNotes && Array.isArray(docs.creditNotes) && docs.creditNotes.length > 0) {
+          setCreditNotes((prev) => {
+            if (prev.length === 0) {
+              logger.info('📝 Actualizando notas de crédito desde endpoint separado:', docs.creditNotes.length);
+              return docs.creditNotes;
+            }
+            return prev;
+          });
+        }
 
-      // Separar notas de crédito y débito
-      if (docs?.creditNotes) {
-        setCreditNotes(docs.creditNotes);
-        logger.info('📝 Notas de crédito encontradas:', docs.creditNotes.length);
-      }
-      if (docs?.debitNotes) {
-        setDebitNotes(docs.debitNotes);
-        logger.info('📝 Notas de débito encontradas:', docs.debitNotes.length);
+        if (docs?.debitNotes && Array.isArray(docs.debitNotes) && docs.debitNotes.length > 0) {
+          setDebitNotes((prev) => {
+            if (prev.length === 0) {
+              logger.info('📝 Actualizando notas de débito desde endpoint separado:', docs.debitNotes.length);
+              return docs.debitNotes;
+            }
+            return prev;
+          });
+        }
       }
     } catch (error: any) {
-      logger.error('❌ Error cargando documentos:', error);
-      logger.error('❌ Error message:', error?.message);
-      logger.error('❌ Error response:', error?.response?.data);
+      logger.error('❌ Error cargando documentos del endpoint separado:', error);
       // No mostrar error al usuario, solo loggearlo
       // Esto permite que la app continúe funcionando aunque no haya documentos
     } finally {

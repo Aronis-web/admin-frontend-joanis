@@ -152,6 +152,29 @@ export interface SalePayment {
 }
 
 /**
+ * Sale Payment Method Summary (for list view)
+ */
+export interface SalePaymentMethodSummary {
+  paymentId: string;
+  paymentDate: string;
+  amount: number;
+  amountCents: number;
+  status: string;
+
+  // Método de pago (submétodo)
+  methodId: string;
+  methodCode: string;
+  methodName: string;
+
+  // Método padre
+  parentMethodId?: string;
+  parentMethodCode?: string;
+  parentMethodName?: string;
+
+  isSubMethod: boolean;
+}
+
+/**
  * Stock Reservation Interface
  */
 export interface StockReservation {
@@ -207,6 +230,22 @@ export interface Sale {
   siteId: string;
   warehouseId: string;
 
+  // Cash register info (if sale is from a cash register)
+  cashRegisterId?: string;
+  cashRegisterSnapshot?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+
+  // Cashier info (if sale is from a cash register)
+  cashierId?: string;
+  cashierSnapshot?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+
   // Sale details
   saleDate: string;
   itemCount: number;
@@ -220,6 +259,10 @@ export interface Sale {
   paymentStatus: PaymentStatus;
   paidAmountCents: number;
   balanceCents: number;
+
+  // Payment methods summary (for list view)
+  paymentMethods?: SalePaymentMethodSummary[];
+  paymentsCount?: number;
 
   // Processing flags
   isStockValidated: boolean;
@@ -328,6 +371,9 @@ export interface QuerySalesParams {
   companyId?: string;
   siteId?: string;
   warehouseId?: string;
+  cashRegisterId?: string;
+  cashierId?: string;
+  isIndependent?: boolean; // true = venta independiente, false = venta de caja
   startDate?: string;
   endDate?: string;
   includeItems?: boolean;

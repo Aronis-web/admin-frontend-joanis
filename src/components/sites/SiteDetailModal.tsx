@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView} from 'reac
 import { Site } from '@/types/sites';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
-import { sitesApi } from '@/services/api';
+import { sitesApi, warehousesApi } from '@/services/api';
 import { ManageAdminsModal } from './ManageAdminsModal';
 import { WarehousesModal } from './WarehousesModal';
 import { WarehouseFormModal } from './WarehouseFormModal';
@@ -346,8 +346,17 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
         setShowWarehouseFormModal(false);
         setShowWarehousesModal(true);
       }}
-      onWarehouseUpdated={() => {
+      onWarehouseUpdated={async () => {
         setShowWarehouseFormModal(false);
+        // Reload the warehouse to get updated data
+        if (selectedWarehouse) {
+          try {
+            const updatedWarehouse = await warehousesApi.getWarehouseById(selectedWarehouse.id);
+            setSelectedWarehouse(updatedWarehouse);
+          } catch (error) {
+            console.error('Error reloading warehouse:', error);
+          }
+        }
         setShowWarehouseDetailModal(true);
       }}
     />

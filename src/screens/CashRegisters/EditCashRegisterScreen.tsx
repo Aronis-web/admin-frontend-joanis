@@ -683,9 +683,15 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 4,
   },
-  warningText: {
+  warningBoxText: {
     fontSize: 13,
     color: '#92400E',
+    fontWeight: '500',
+  },
+  warningText: {
+    fontSize: 12,
+    color: '#F59E0B',
+    marginTop: 4,
     fontWeight: '500',
   },
   infoText: {
