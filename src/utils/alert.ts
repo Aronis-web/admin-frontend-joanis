@@ -13,9 +13,11 @@ import { isElectron } from './platform';
 
 interface AlertButton {
   text?: string;
-  onPress?: () => void;
+  onPress?: (value?: string) => void;
   style?: 'default' | 'cancel' | 'destructive';
 }
+
+type AlertType = 'default' | 'plain-text' | 'secure-text' | 'login-password';
 
 class CustomAlert {
   /**
@@ -43,6 +45,35 @@ class CustomAlert {
 
     // Fallback to native Alert for any other platform
     RNAlert.alert(title, message, buttons, options);
+  }
+
+  /**
+   * Show a prompt dialog with text input
+   * - On Android/iOS: Uses native Alert.prompt (works correctly)
+   * - On Web/Electron: Uses custom async implementation with window.prompt
+   */
+  static prompt(
+    title: string,
+    message?: string,
+    callbackOrButtons?: ((text: string) => void) | AlertButton[],
+    type?: AlertType,
+    defaultValue?: string,
+    keyboardType?: string
+  ): void {
+    // On mobile (iOS/Android), ALWAYS use native Alert.prompt - it works correctly
+    if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      RNAlert.prompt(title, message, callbackOrButtons as any, type, defaultValue, keyboardType);
+      return;
+    }
+
+    // On Web/Electron ONLY, use custom async implementation
+    if (Platform.OS === 'web') {
+      this.showWebPrompt(title, message, callbackOrButtons, defaultValue);
+      return;
+    }
+
+    // Fallback to native Alert.prompt for any other platform
+    RNAlert.prompt(title, message, callbackOrButtons as any, type, defaultValue, keyboardType);
   }
 
   /**
@@ -104,6 +135,51 @@ class CustomAlert {
       setTimeout(() => {
         if (buttons[0]?.onPress) {
           buttons[0].onPress();
+        }
+      }, 100);
+    }, 0);
+  }
+
+  /**
+   * Custom prompt implementation for Web/Electron
+   */
+  private static showWebPrompt(
+    title: string,
+    message?: string,
+    callbackOrButtons?: ((text: string) => void) | AlertButton[],
+    defaultValue?: string
+  ): void {
+    const fullMessage = message ? `${title}\n\n${message}` : title;
+
+    setTimeout(() => {
+      const result = window.prompt(fullMessage, defaultValue || '');
+
+      setTimeout(() => {
+        // If callback is a function (simple callback)
+        if (typeof callbackOrButtons === 'function') {
+          if (result !== null) {
+            callbackOrButtons(result);
+          }
+          return;
+        }
+
+        // If callback is an array of buttons
+        if (Array.isArray(callbackOrButtons)) {
+          const buttons = callbackOrButtons;
+
+          if (result !== null) {
+            // User clicked OK - find the confirm button (non-cancel)
+            const confirmButton = buttons.find(b => b.style !== 'cancel') || buttons[buttons.length - 1];
+            if (confirmButton?.onPress) {
+              confirmButton.onPress(result);
+            }
+          } else {
+            // User clicked Cancel - find the cancel button
+            const cancelButton = buttons.find(b => b.style === 'cancel');
+            if (cancelButton?.onPress) {
+              cancelButton.onPress();
+            }
+          }
         }
       }, 100);
     }, 0);
