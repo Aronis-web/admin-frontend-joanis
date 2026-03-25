@@ -1,5 +1,5 @@
 se <resources>
-  <string name="app_name">ERP-aio</string>
+  <string name="app_name">PanelAdminGrit</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
 </resources>
