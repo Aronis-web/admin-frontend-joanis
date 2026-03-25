@@ -323,6 +323,10 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
         onConfirm={(date) => {
           setStartDate(date);
           setShowStartDatePicker(false);
+          // Si la fecha de inicio es mayor que la fecha de fin, ajustar la fecha de fin
+          if (endDate && date > endDate) {
+            setEndDate(date);
+          }
         }}
         onCancel={() => setShowStartDatePicker(false)}
         title="Fecha de Inicio"
@@ -334,9 +338,12 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
         onConfirm={(date) => {
           setEndDate(date);
           setShowEndDatePicker(false);
+          // Si la fecha de fin es menor que la fecha de inicio, ajustar la fecha de inicio
+          if (startDate && date < startDate) {
+            setStartDate(date);
+          }
         }}
         onCancel={() => setShowEndDatePicker(false)}
-        minimumDate={startDate}
         title="Fecha de Fin"
       />
     </ScreenLayout>

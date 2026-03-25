@@ -569,7 +569,6 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
         onConfirm={handleEndDateConfirm}
         onCancel={() => setShowEndDatePicker(false)}
         title="Seleccionar Fecha Fin"
-        minimumDate={startDate ? new Date(startDate) : undefined}
       />
     </>
   );

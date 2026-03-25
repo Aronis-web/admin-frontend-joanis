@@ -735,6 +735,11 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
             setStartDateObj(date);
             setStartDate(formatDateToString(date));
             setShowStartDatePicker(false);
+            // Si la fecha de inicio es mayor que la fecha de fin, ajustar la fecha de fin
+            if (date > endDateObj) {
+              setEndDateObj(date);
+              setEndDate(formatDateToString(date));
+            }
           }}
           onCancel={() => setShowStartDatePicker(false)}
           title="Fecha de Inicio"
@@ -747,9 +752,13 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
             setEndDateObj(date);
             setEndDate(formatDateToString(date));
             setShowEndDatePicker(false);
+            // Si la fecha de fin es menor que la fecha de inicio, ajustar la fecha de inicio
+            if (date < startDateObj) {
+              setStartDateObj(date);
+              setStartDate(formatDateToString(date));
+            }
           }}
           onCancel={() => setShowEndDatePicker(false)}
-          minimumDate={startDateObj}
           title="Fecha de Fin"
         />
       </SafeAreaView>

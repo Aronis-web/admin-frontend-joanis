@@ -359,10 +359,14 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
           const isoDate = date.toISOString().split('T')[0];
           setStartDate(isoDate);
           setShowStartDatePicker(false);
+          // Si la fecha de inicio es mayor que la fecha de fin, ajustar la fecha de fin
+          if (endDate && date > parseDate(endDate)) {
+            setEndDate(isoDate);
+          }
         }}
         onCancel={() => setShowStartDatePicker(false)}
         title="Fecha de Inicio"
-        maximumDate={endDate ? parseDate(endDate) : new Date()}
+        maximumDate={new Date()}
       />
 
       <DatePicker
@@ -372,10 +376,13 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
           const isoDate = date.toISOString().split('T')[0];
           setEndDate(isoDate);
           setShowEndDatePicker(false);
+          // Si la fecha de fin es menor que la fecha de inicio, ajustar la fecha de inicio
+          if (startDate && date < parseDate(startDate)) {
+            setStartDate(isoDate);
+          }
         }}
         onCancel={() => setShowEndDatePicker(false)}
         title="Fecha de Fin"
-        minimumDate={startDate ? parseDate(startDate) : undefined}
         maximumDate={new Date()}
       />
     </>
