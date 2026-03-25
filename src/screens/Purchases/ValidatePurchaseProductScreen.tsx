@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   Image,
   Modal,
+  Platform,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,6 +40,38 @@ interface ValidatePurchaseProductScreenProps {
     };
   };
 }
+
+// Helper function to copy text to clipboard
+const copyToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    if (Platform.OS === 'web') {
+      // Use native browser API for web
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return successful;
+      }
+    } else {
+      // Use expo-clipboard for mobile
+      await Clipboard.setStringAsync(text);
+      return true;
+    }
+  } catch (error) {
+    console.error('Error copying to clipboard:', error);
+    return false;
+  }
+};
 
 export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScreenProps> = ({
   navigation,
@@ -1261,8 +1294,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                   onPress={async () => {
                     const skuValue = sku.trim();
                     if (skuValue) {
-                      await Clipboard.setStringAsync(skuValue);
-                      Alert.alert('Copiado', 'SKU copiado al portapapeles');
+                      const success = await copyToClipboard(skuValue);
+                      if (success) {
+                        Alert.alert('Copiado', 'SKU copiado al portapapeles');
+                      } else {
+                        Alert.alert('Error', 'No se pudo copiar el SKU');
+                      }
                     } else {
                       Alert.alert('Error', 'No hay SKU para copiar');
                     }
