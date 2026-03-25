@@ -23,14 +23,21 @@
 **Desarrollo:**
 ```bash
 cd C:/Users/aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis
-# Opción 1: Usando el script npm (puede tener problemas de timeout)
+
+# Opción 1: Método recomendado (2 pasos)
+# Paso 1: Ejecutar en una terminal
 npm run electron:run
 
-# Opción 2: Ejecutar manualmente (recomendado)
+# Paso 2: Abrir Electron en otra terminal (después de que el servidor esté corriendo)
+npx electron electron/main.js
+
+# Opción 2: Método automático (PowerShell)
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "npx serve web-build -p 8081" -WindowStyle Minimized
 Start-Sleep -Seconds 5
 npx electron electron/main.js
 ```
+
+**Nota:** El comando `npm run electron:run` tiene un problema con `concurrently` que no ejecuta Electron automáticamente. Por eso se recomienda abrir Electron manualmente en una segunda terminal.
 
 **Generar .exe para Windows:**
 ```bash
