@@ -92,7 +92,11 @@ export const App = () => {
     <GlobalErrorBoundary>
       <QueryProvider>
         <SafeAreaProvider>
-          <StatusBar barStyle="dark-content" />
+          <StatusBar
+            barStyle="dark-content"
+            translucent={true}
+            backgroundColor="transparent"
+          />
           <Navigation />
         </SafeAreaProvider>
       </QueryProvider>

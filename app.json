@@ -46,7 +46,11 @@
         }
       },
       "softwareKeyboardLayoutMode": "pan",
-      "userInterfaceStyle": "automatic"
+      "userInterfaceStyle": "automatic",
+      "statusBar": {
+        "translucent": true,
+        "backgroundColor": "#00000000"
+      }
     },
     "extra": {
       "apiUrl": "@env:API_URL",
