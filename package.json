@@ -1,7 +1,7 @@
 {
   "name": "ERP-aio",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.2",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
