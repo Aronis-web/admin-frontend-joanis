@@ -80,9 +80,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     // Obtener el día de la semana del primer día del mes (0 = Domingo, 1 = Lunes, etc.)
     const firstDayOfMonth = new Date(year, month, 1).getDay();
 
-    // Ajustar para que Lunes sea 0 (en lugar de Domingo)
-    // Si es Domingo (0), debe ser 6, si es Lunes (1) debe ser 0, etc.
-    const firstDayAdjusted = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+    // Las cabeceras son: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa']
+    // Domingo = 0, Lunes = 1, etc.
+    // No necesitamos ajustar, usamos el valor directamente
+    const firstDayAdjusted = firstDayOfMonth;
 
     // Agregar días vacíos al inicio para alinear con el día de la semana correcto
     for (let i = 0; i < firstDayAdjusted; i++) {
