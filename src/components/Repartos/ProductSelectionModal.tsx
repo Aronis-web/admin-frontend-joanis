@@ -36,8 +36,26 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
     if (visible && products.length > 0) {
       const allProductIds = new Set(products.map((p) => p.productId).filter(Boolean));
       setSelectedProducts(allProductIds);
+      // Reset filter when modal opens
+      setShowOnlyNotDownloaded(false);
     }
   }, [visible, products]);
+
+  // When filter changes, adjust selection to only include visible products
+  useEffect(() => {
+    if (showOnlyNotDownloaded) {
+      // Remove downloaded products from selection when filter is activated
+      setSelectedProducts((prev) => {
+        const newSet = new Set(prev);
+        products.forEach((p) => {
+          if (p.downloadCount && p.downloadCount > 0 && p.productId) {
+            newSet.delete(p.productId);
+          }
+        });
+        return newSet;
+      });
+    }
+  }, [showOnlyNotDownloaded, products]);
 
   // Filter products based on download status
   const filteredProducts = showOnlyNotDownloaded
