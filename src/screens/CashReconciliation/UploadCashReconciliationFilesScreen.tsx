@@ -195,6 +195,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         headers: {
           Authorization: `Bearer ${token}`,
           'X-App-Id': config.APP_ID,
+          'X-App-Version': config.APP_VERSION,
         },
         body: formData,
         // No se establece signal para evitar timeout - el procesamiento puede tardar varios minutos

@@ -171,6 +171,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
 
       // Download the Excel file
       const startTime = Date.now();
+      headers['X-App-Version'] = config.APP_VERSION;
       const response = await fetch(`${config.API_URL}${url}`, {
         method: 'GET',
         headers,

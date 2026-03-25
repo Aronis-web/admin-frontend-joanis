@@ -169,6 +169,7 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
               'X-App-Id': config.APP_ID,
+              'X-App-Version': config.APP_VERSION,
             },
           }
         );

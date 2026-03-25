@@ -87,6 +87,7 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
       }
 
       // Download the template from the API
+      headers['X-App-Version'] = config.APP_VERSION;
       const response = await fetch(`${config.API_URL}/admin/products/bulk/template-v2`, {
         method: 'GET',
         headers,
@@ -267,6 +268,7 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
       }
 
       // Upload file
+      headers['X-App-Version'] = config.APP_VERSION;
       const response = await fetch(`${config.API_URL}/admin/products/bulk/upload-v2`, {
         method: 'POST',
         headers,

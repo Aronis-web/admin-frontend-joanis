@@ -418,6 +418,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           method: 'GET',
           headers: {
             'X-App-Id': config.APP_ID,
+            'X-App-Version': config.APP_VERSION,
             'Authorization': `Bearer ${token}`,
           },
         });

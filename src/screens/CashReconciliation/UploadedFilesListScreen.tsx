@@ -98,6 +98,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
           headers: {
             Authorization: `Bearer ${token}`,
             'X-App-Id': config.APP_ID,
+            'X-App-Version': config.APP_VERSION,
           },
         }
       );
@@ -162,6 +163,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
           headers: {
             Authorization: `Bearer ${token}`,
             'X-App-Id': config.APP_ID,
+            'X-App-Version': config.APP_VERSION,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ razon: revertReason.trim() }),
@@ -204,6 +206,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
         headers: {
           Authorization: `Bearer ${token}`,
           'X-App-Id': config.APP_ID,
+          'X-App-Version': config.APP_VERSION,
         },
       });
 

@@ -74,6 +74,7 @@ export const SeriesConfigScreen: React.FC<Props> = ({ navigation }) => {
           headers: {
             Authorization: `Bearer ${token}`,
             'X-App-Id': config.APP_ID,
+            'X-App-Version': config.APP_VERSION,
           },
         }
       );
@@ -113,6 +114,7 @@ export const SeriesConfigScreen: React.FC<Props> = ({ navigation }) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
           'X-App-Id': config.APP_ID,
+          'X-App-Version': config.APP_VERSION,
         },
         body: JSON.stringify({
           sedeId: selectedSite.id,
@@ -152,6 +154,7 @@ export const SeriesConfigScreen: React.FC<Props> = ({ navigation }) => {
           headers: {
             Authorization: `Bearer ${token}`,
             'X-App-Id': config.APP_ID,
+            'X-App-Version': config.APP_VERSION,
           },
         }
       );
@@ -185,6 +188,7 @@ export const SeriesConfigScreen: React.FC<Props> = ({ navigation }) => {
                   headers: {
                     Authorization: `Bearer ${token}`,
                     'X-App-Id': config.APP_ID,
+                    'X-App-Version': config.APP_VERSION,
                   },
                 }
               );

@@ -90,6 +90,8 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
         console.log('🔑 Adding Authorization header with JWT token');
       }
 
+      headers['X-App-Version'] = config.APP_VERSION;
+
       const response = await fetch(url, {
         method: 'GET',
         headers,
