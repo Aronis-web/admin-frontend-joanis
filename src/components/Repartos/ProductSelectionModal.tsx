@@ -168,7 +168,9 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
                 {someSelected && <Text style={styles.checkmark}>−</Text>}
               </View>
               <Text style={[styles.selectAllText, isTablet && styles.selectAllTextTablet]}>
-                {allSelected ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                {showOnlyNotDownloaded
+                  ? (allSelected ? 'Deseleccionar pendientes' : 'Seleccionar pendientes')
+                  : (allSelected ? 'Deseleccionar todos' : 'Seleccionar todos')}
               </Text>
             </TouchableOpacity>
             <Text style={[styles.countText, isTablet && styles.countTextTablet]}>

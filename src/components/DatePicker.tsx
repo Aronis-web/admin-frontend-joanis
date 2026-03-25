@@ -69,6 +69,25 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const daysInMonth = getDaysInMonth(year, month);
     const days = [];
 
+    // Obtener el día de la semana del primer día del mes (0 = Domingo, 1 = Lunes, etc.)
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+
+    // Ajustar para que Lunes sea 0 (en lugar de Domingo)
+    // Si es Domingo (0), debe ser 6, si es Lunes (1) debe ser 0, etc.
+    const firstDayAdjusted = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
+    // Agregar días vacíos al inicio para alinear con el día de la semana correcto
+    for (let i = 0; i < firstDayAdjusted; i++) {
+      days.push({
+        day: null,
+        date: null,
+        isDisabled: true,
+        isSelected: false,
+        isEmpty: true,
+      });
+    }
+
+    // Agregar los días del mes
     for (let i = 1; i <= daysInMonth; i++) {
       const currentDate = new Date(year, month, i);
       const isDisabled =
@@ -79,6 +98,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         date: currentDate,
         isDisabled,
         isSelected: i === selectedDate.getDate(),
+        isEmpty: false,
       });
     }
 
@@ -243,21 +263,22 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                     contentContainerStyle={styles.daysScrollContent}
                   >
                     <View style={styles.daysGrid}>
-                      {generateDays().map(({ day, date, isDisabled, isSelected }) => (
+                      {generateDays().map(({ day, date, isDisabled, isSelected, isEmpty }, index) => (
                         <TouchableOpacity
-                          key={day}
+                          key={`day-${index}`}
                           style={[
                             styles.dayButton,
                             isSelected && styles.dayButtonSelected,
                             isDisabled && styles.dayButtonDisabled,
+                            isEmpty && styles.dayButtonEmpty,
                           ]}
                           onPress={() => {
-                            console.log('📅 Day button pressed:', { day, isDisabled });
-                            if (!isDisabled) {
+                            console.log('📅 Day button pressed:', { day, isDisabled, isEmpty });
+                            if (!isDisabled && !isEmpty && day !== null) {
                               handleDaySelect(day);
                             }
                           }}
-                          disabled={isDisabled}
+                          disabled={isDisabled || isEmpty}
                           hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                           activeOpacity={0.7}
                         >
@@ -266,9 +287,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                               styles.dayButtonText,
                               isSelected && styles.dayButtonTextSelected,
                               isDisabled && styles.dayButtonTextDisabled,
+                              isEmpty && styles.dayButtonTextEmpty,
                             ]}
                           >
-                            {day}
+                            {isEmpty ? '' : day}
                           </Text>
                         </TouchableOpacity>
                       ))}
@@ -524,6 +546,9 @@ const styles = StyleSheet.create({
   dayButtonDisabled: {
     opacity: 0.3,
   },
+  dayButtonEmpty: {
+    opacity: 0,
+  },
   dayButtonText: {
     fontSize: 14,
     fontWeight: '600',
@@ -534,6 +559,9 @@ const styles = StyleSheet.create({
   },
   dayButtonTextDisabled: {
     color: '#94A3B8',
+  },
+  dayButtonTextEmpty: {
+    color: 'transparent',
   },
   monthsContainer: {
     flex: 1,

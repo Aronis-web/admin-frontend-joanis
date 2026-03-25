@@ -1251,9 +1251,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         onConfirm={(date) => {
           setCustomStartDate(date);
           setShowStartDatePicker(false);
+          // Si la fecha de inicio es mayor que la fecha de fin, ajustar la fecha de fin
+          if (date > customEndDate) {
+            setCustomEndDate(date);
+          }
         }}
         onCancel={() => setShowStartDatePicker(false)}
-        maximumDate={customEndDate}
         title="Fecha de Inicio"
       />
 
@@ -1263,9 +1266,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         onConfirm={(date) => {
           setCustomEndDate(date);
           setShowEndDatePicker(false);
+          // Si la fecha de fin es menor que la fecha de inicio, ajustar la fecha de inicio
+          if (date < customStartDate) {
+            setCustomStartDate(date);
+          }
         }}
         onCancel={() => setShowEndDatePicker(false)}
-        minimumDate={customStartDate}
         title="Fecha de Fin"
       />
 
