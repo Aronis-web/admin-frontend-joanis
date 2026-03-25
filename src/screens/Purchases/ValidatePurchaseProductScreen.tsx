@@ -1257,16 +1257,18 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                   Código de Barras <Text style={styles.required}>*</Text>
                 </Text>
                 <TouchableOpacity
-                  style={styles.copyButton}
+                  style={[styles.copyButton, !sku.trim() && styles.copyButtonDisabled]}
                   onPress={async () => {
-                    if (sku.trim()) {
-                      await Clipboard.setStringAsync(sku);
+                    const skuValue = sku.trim();
+                    if (skuValue) {
+                      await Clipboard.setStringAsync(skuValue);
                       Alert.alert('Copiado', 'SKU copiado al portapapeles');
+                    } else {
+                      Alert.alert('Error', 'No hay SKU para copiar');
                     }
                   }}
-                  disabled={!sku.trim()}
                 >
-                  <Text style={styles.copyButtonText}>📋 Copiar SKU</Text>
+                  <Text style={[styles.copyButtonText, !sku.trim() && styles.copyButtonTextDisabled]}>📋 Copiar SKU</Text>
                 </TouchableOpacity>
               </View>
               <TextInput
@@ -1854,10 +1856,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
   },
+  copyButtonDisabled: {
+    backgroundColor: '#CBD5E1',
+    opacity: 0.6,
+  },
   copyButtonText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
+  },
+  copyButtonTextDisabled: {
+    color: '#94A3B8',
   },
   input: {
     backgroundColor: '#FFFFFF',
