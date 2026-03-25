@@ -29,6 +29,15 @@ import HomeScreen from '@/screens/Home/HomeScreen';
 // Dashboard Screen (eager loaded for quick access)
 import DashboardScreen from '@/screens/Dashboard/DashboardScreen';
 
+// Purchases Screens (eager loaded to avoid module resolution issues)
+import { PurchasesScreen } from '@/screens/Purchases/PurchasesScreen';
+import { CreatePurchaseScreen } from '@/screens/Purchases/CreatePurchaseScreen';
+import { PurchaseDetailScreen } from '@/screens/Purchases/PurchaseDetailScreen';
+import { AddPurchaseProductScreen } from '@/screens/Purchases/AddPurchaseProductScreen';
+import { EditPurchaseProductScreen } from '@/screens/Purchases/EditPurchaseProductScreen';
+import { ValidatePurchaseProductScreen } from '@/screens/Purchases/ValidatePurchaseProductScreen';
+import { AssignDebtScreen } from '@/screens/Purchases/AssignDebtScreen';
+
 // ============================================
 // LAZY LOADED - Heavy screens (loaded on demand)
 // ============================================
@@ -78,14 +87,7 @@ const CreateSaleScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ d
 const SaleDetailScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SaleDetailScreen })));
 const RegisterSalePaymentScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.RegisterSalePaymentScreen })));
 
-// Purchases Screens - Lazy Loaded
-const PurchasesScreen = lazyLoad(() => import('@/screens/Purchases/PurchasesScreen').then(m => ({ default: m.PurchasesScreen })), 'Cargando compras...');
-const CreatePurchaseScreen = lazyLoad(() => import('@/screens/Purchases/CreatePurchaseScreen').then(m => ({ default: m.CreatePurchaseScreen })));
-const PurchaseDetailScreen = lazyLoad(() => import('@/screens/Purchases/PurchaseDetailScreen').then(m => ({ default: m.PurchaseDetailScreen })));
-const AddPurchaseProductScreen = lazyLoad(() => import('@/screens/Purchases/AddPurchaseProductScreen').then(m => ({ default: m.AddPurchaseProductScreen })));
-const EditPurchaseProductScreen = lazyLoad(() => import('@/screens/Purchases/EditPurchaseProductScreen').then(m => ({ default: m.EditPurchaseProductScreen })));
-const ValidatePurchaseProductScreen = lazyLoad(() => import('@/screens/Purchases/ValidatePurchaseProductScreen').then(m => ({ default: m.ValidatePurchaseProductScreen })));
-const AssignDebtScreen = lazyLoad(() => import('@/screens/Purchases/AssignDebtScreen').then(m => ({ default: m.AssignDebtScreen })));
+// Purchases Screens - Now eager loaded (see imports above)
 
 // Expenses Screens - Lazy Loaded
 const ExpensesScreen = lazyLoad(() => import('@/screens/Expenses/ExpensesScreen').then(m => ({ default: m.ExpensesScreen })), 'Cargando gastos...');
