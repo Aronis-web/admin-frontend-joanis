@@ -35,19 +35,46 @@ class CampaignsService {
    * Get all campaigns with optional filters
    */
   async getCampaigns(params?: QueryCampaignsParams): Promise<CampaignsResponse> {
-    const response = await apiClient.get<Campaign[] | CampaignsResponse>(this.basePath, { params });
+    // ✅ Agregar paginación por defecto: 10 items por página
+    const paginatedParams = {
+      page: 1,
+      limit: 10,
+      ...params,
+    };
 
-    // Handle both array response and paginated response
+    const response = await apiClient.get<any>(this.basePath, {
+      params: paginatedParams
+    });
+
+    // Handle different response formats
     if (Array.isArray(response)) {
+      // Old format: direct array
       return {
         data: response,
         total: response.length,
-        page: 1,
-        limit: response.length,
+        page: paginatedParams.page,
+        limit: paginatedParams.limit,
       };
+    } else if (response.items) {
+      // New backend format: { items, total, page, limit, totalPages }
+      return {
+        data: response.items,
+        total: response.total,
+        page: response.page,
+        limit: response.limit,
+      };
+    } else if (response.data) {
+      // Current format: { data, total, page, limit }
+      return response;
     }
 
-    return response;
+    // Fallback
+    return {
+      data: [],
+      total: 0,
+      page: paginatedParams.page,
+      limit: paginatedParams.limit,
+    };
   }
 
   /**

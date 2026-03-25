@@ -126,6 +126,9 @@ export const useSearchExpensesV2 = (
       }),
     enabled: (options?.enabled !== false) && query.length >= 2,
     staleTime: 5 * 60 * 1000, // 5 minutos (cacheado en Redis)
+    gcTime: 10 * 60 * 1000, // 10 minutos (antes cacheTime en v4, ahora gcTime en v5)
+    refetchOnWindowFocus: false, // No refetch al cambiar de ventana
+    refetchOnMount: false, // No refetch al montar si hay datos en caché
   });
 };
 
@@ -145,6 +148,9 @@ export const useExpensesV2 = (params?: {
     queryKey: ['expenses', 'v2', 'list', params],
     queryFn: () => expensesService.getExpensesV2(params),
     staleTime: 5 * 60 * 1000, // 5 minutos (cacheado en Redis)
+    gcTime: 10 * 60 * 1000, // 10 minutos (antes cacheTime en v4, ahora gcTime en v5)
+    refetchOnWindowFocus: false, // No refetch al cambiar de ventana
+    refetchOnMount: false, // No refetch al montar si hay datos en caché
   });
 };
 
@@ -152,6 +158,9 @@ export const useCategories = () => {
   return useQuery({
     queryKey: categoryKeys.lists(),
     queryFn: () => expensesService.getCategories(),
+    staleTime: 10 * 60 * 1000, // 10 minutos (categorías cambian poco)
+    gcTime: 30 * 60 * 1000, // 30 minutos
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -159,6 +168,9 @@ export const useActiveCategories = () => {
   return useQuery({
     queryKey: categoryKeys.active(),
     queryFn: () => expensesService.getActiveCategories(),
+    staleTime: 10 * 60 * 1000, // 10 minutos (categorías cambian poco)
+    gcTime: 30 * 60 * 1000, // 30 minutos
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -213,6 +225,9 @@ export const useExpenses = (params?: QueryExpensesParams) => {
   return useQuery({
     queryKey: expenseKeys.list(params),
     queryFn: () => expensesService.getExpenses(params),
+    staleTime: 3 * 60 * 1000, // 3 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -221,6 +236,9 @@ export const useExpense = (id: string) => {
     queryKey: expenseKeys.detail(id),
     queryFn: () => expensesService.getExpense(id),
     enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 15 * 60 * 1000, // 15 minutos
+    refetchOnWindowFocus: false,
   });
 };
 

@@ -35,6 +35,7 @@ import {
   TransferStatus,
   CreateInternalTransferDto,
 } from '@/types/transfers';
+import { logger } from '@/utils/logger';
 
 interface InternalTransfersScreenProps {
   navigation: any;
@@ -101,7 +102,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
   // Auto-reload transfers when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('📱 InternalTransfersScreen focused - reloading transfers...');
+      logger.debug('📱 InternalTransfersScreen focused - reloading transfers...');
       loadTransfers();
     }, [effectiveSite?.id, effectiveCompany?.id])
   );
@@ -143,7 +144,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
 
       // Debug: Log first transfer to see structure
       if (response.data && response.data.length > 0) {
-        console.log('🔍 InternalTransfers - First transfer data:', {
+        logger.debug('🔍 InternalTransfers - First transfer data:', {
           id: response.data[0].id,
           transferNumber: response.data[0].transferNumber,
           hasOriginArea: !!response.data[0].originArea,
@@ -157,7 +158,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
 
       setTransfers(response.data || []);
     } catch (error: any) {
-      console.error('Error loading internal transfers:', error);
+      logger.error('Error loading internal transfers:', error);
       Alert.alert('Error', error.message || 'No se pudieron cargar los traslados internos');
     } finally {
       setLoading(false);
@@ -208,11 +209,11 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
 
       // Si hay más productos, cargar páginas adicionales
       if (response.hasMore) {
-        console.log('⚠️ Hay más productos disponibles. Total:', response.total);
+        logger.warn('⚠️ Hay más productos disponibles. Total:', response.total);
         // TODO: Implementar carga paginada si es necesario
       }
     } catch (error: any) {
-      console.error('Error loading products:', error);
+      logger.error('Error loading products:', error);
       Alert.alert('Error', 'No se pudieron cargar los productos');
     } finally {
       setLoadingProducts(false);
@@ -225,7 +226,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
       const areas = await warehouseAreasApi.getWarehouseAreas(warehouseId);
       setOriginAreas(Array.isArray(areas) ? areas : []);
     } catch (error: any) {
-      console.error('Error loading origin areas:', error);
+      logger.error('Error loading origin areas:', error);
       Alert.alert('Error', 'No se pudieron cargar las áreas del almacén de origen');
       setOriginAreas([]);
     } finally {
@@ -239,7 +240,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
       const areas = await warehouseAreasApi.getWarehouseAreas(warehouseId);
       setDestinationAreas(Array.isArray(areas) ? areas : []);
     } catch (error: any) {
-      console.error('Error loading destination areas:', error);
+      logger.error('Error loading destination areas:', error);
       Alert.alert('Error', 'No se pudieron cargar las áreas del almacén de destino');
       setDestinationAreas([]);
     } finally {
@@ -293,9 +294,9 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
   };
 
   const updateTransferItemProduct = (index: number, product: Product) => {
-    console.log('📦 Producto seleccionado:', product.title);
-    console.log('📍 Stock items:', product.stockItems);
-    console.log('🔢 Cantidad de ubicaciones:', product.stockItems?.length || 0);
+    logger.debug('📦 Producto seleccionado:', product.title);
+    logger.debug('📍 Stock items:', product.stockItems);
+    logger.debug('🔢 Cantidad de ubicaciones:', product.stockItems?.length || 0);
 
     const newItems = [...transferItems];
     newItems[index] = {
@@ -480,7 +481,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
         );
       }
     } catch (error: any) {
-      console.error('Error creating transfer:', error);
+      logger.error('Error creating transfer:', error);
       Alert.alert('Error', error.message || 'No se pudo crear el traslado');
     } finally {
       setCreating(false);
@@ -491,10 +492,10 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
     try {
       setCreating(true);
       const userId = user?.id;
-      console.log('🔄 Executing transfer...');
-      console.log('📋 Transfer ID:', transferId);
-      console.log('👤 User object:', user);
-      console.log('👤 User ID:', userId);
+      logger.info('🔄 Executing transfer...');
+      logger.debug('📋 Transfer ID:', transferId);
+      logger.debug('👤 User object:', user);
+      logger.debug('👤 User ID:', userId);
 
       if (!userId) {
         Alert.alert(
@@ -509,8 +510,8 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
       closeCreateModal();
       loadTransfers();
     } catch (error: any) {
-      console.error('❌ Error executing transfer:', error);
-      console.error('❌ Error details:', error.response?.data);
+      logger.error('❌ Error executing transfer:', error);
+      logger.error('❌ Error details:', error.response?.data);
       Alert.alert(
         'Error',
         error.response?.data?.message || error.message || 'No se pudo ejecutar el traslado'
@@ -537,9 +538,9 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
             onPress: async () => {
               try {
                 const userId = user?.id;
-                console.log('🔄 Executing transfer from detail...');
-                console.log('📋 Transfer ID:', selectedTransfer.id);
-                console.log('👤 User ID:', userId);
+                logger.info('🔄 Executing transfer from detail...');
+                logger.debug('📋 Transfer ID:', selectedTransfer.id);
+                logger.debug('👤 User ID:', userId);
 
                 if (!userId) {
                   Alert.alert(
@@ -554,8 +555,8 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
                 setIsDetailModalVisible(false);
                 loadTransfers();
               } catch (error: any) {
-                console.error('❌ Error executing transfer:', error);
-                console.error('❌ Error details:', error.response?.data);
+                logger.error('❌ Error executing transfer:', error);
+                logger.error('❌ Error details:', error.response?.data);
                 Alert.alert(
                   'Error',
                   error.response?.data?.message ||

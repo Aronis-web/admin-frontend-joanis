@@ -42,6 +42,7 @@ export const useProducts = (filters?: ProductFilters) => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
     gcTime: 10 * 60 * 1000, // 10 minutos
+    refetchOnWindowFocus: false, // ✅ No refetch automático al cambiar de ventana
   });
 };
 

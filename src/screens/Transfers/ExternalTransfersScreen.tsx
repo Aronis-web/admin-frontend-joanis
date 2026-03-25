@@ -36,6 +36,7 @@ import {
   CreateExternalTransferDto,
   ShipTransferDto,
 } from '@/types/transfers';
+import { logger } from '@/utils/logger';
 
 interface ExternalTransfersScreenProps {
   navigation: any;
@@ -112,7 +113,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   // Auto-reload transfers when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('📱 ExternalTransfersScreen focused - reloading transfers...');
+      logger.debug('📱 ExternalTransfersScreen focused - reloading transfers...');
       loadTransfers();
     }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id])
   );
@@ -158,7 +159,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
 
       // Debug: Log first transfer to see structure
       if (response.data && response.data.length > 0) {
-        console.log('🔍 ExternalTransfers - First transfer data:', {
+        logger.debug('🔍 ExternalTransfers - First transfer data:', {
           id: response.data[0].id,
           transferNumber: response.data[0].transferNumber,
           hasOriginArea: !!response.data[0].originArea,
@@ -172,7 +173,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
 
       setTransfers(response.data || []);
     } catch (error: any) {
-      console.error('Error loading external transfers:', error);
+      logger.error('Error loading external transfers:', error);
       Alert.alert('Error', error.message || 'No se pudieron cargar los traslados externos');
     } finally {
       setLoading(false);
@@ -219,11 +220,11 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       setProducts(productsData.products || []);
 
       if (productsData.hasMore) {
-        console.log('⚠️ Hay más productos disponibles. Total:', productsData.total);
+        logger.warn('⚠️ Hay más productos disponibles. Total:', productsData.total);
         // TODO: Implementar carga paginada si es necesario
       }
     } catch (error) {
-      console.error('Error loading modal data:', error);
+      logger.error('Error loading modal data:', error);
     }
   };
 
@@ -260,24 +261,24 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   };
 
   const updateTransferItemProduct = (index: number, product: Product) => {
-    console.log('═══════════════════════════════════════════════════');
-    console.log('📦 PRODUCTO SELECCIONADO:', product.title);
-    console.log('🆔 Product ID:', product.id);
-    console.log('📍 Stock items (RAW):', JSON.stringify(product.stockItems, null, 2));
-    console.log('🔢 Cantidad de ubicaciones (total):', product.stockItems?.length || 0);
+    logger.debug('📦 PRODUCTO SELECCIONADO:', product.title);
+    logger.debug('🆔 Product ID:', product.id);
+    logger.debug('📍 Stock items (RAW):', JSON.stringify(product.stockItems, null, 2));
+    logger.debug('🔢 Cantidad de ubicaciones (total):', product.stockItems?.length || 0);
 
     // Mostrar detalle de cada ubicación
     if (product.stockItems && product.stockItems.length > 0) {
       product.stockItems.forEach((item, idx) => {
-        console.log(`\n  Ubicación ${idx + 1}:`);
-        console.log(`    - Warehouse ID: ${item.warehouseId}`);
-        console.log(`    - Warehouse Name: ${(item.warehouse as any)?.name}`);
-        console.log(`    - Warehouse SiteId: ${(item.warehouse as any)?.siteId}`);
-        console.log(`    - Area ID: ${item.areaId}`);
-        console.log(`    - Area Name: ${(item.area as any)?.name}`);
-        console.log(`    - Stock Disponible: ${item.availableQuantityBase}`);
-        console.log(`    - Stock Total: ${item.quantityBase}`);
-        console.log(`    - Stock Reservado: ${item.reservedQuantityBase}`);
+        logger.debug(`Ubicación ${idx + 1}:`, {
+          warehouseId: item.warehouseId,
+          warehouseName: (item.warehouse as any)?.name,
+          warehouseSiteId: (item.warehouse as any)?.siteId,
+          areaId: item.areaId,
+          areaName: (item.area as any)?.name,
+          stockDisponible: item.availableQuantityBase,
+          stockTotal: item.quantityBase,
+          stockReservado: item.reservedQuantityBase,
+        });
       });
     }
 
@@ -285,10 +286,9 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     const currentSiteStockItems = product.stockItems?.filter(
       (stockItem) => (stockItem.warehouse as any)?.siteId === effectiveSite?.id
     ) || [];
-    console.log('\n🏢 Sede actual ID:', effectiveSite?.id);
-    console.log('🏢 Ubicaciones en sede actual (filtradas):', currentSiteStockItems.length);
-    console.log('📋 Detalle ubicaciones filtradas:', JSON.stringify(currentSiteStockItems, null, 2));
-    console.log('═══════════════════════════════════════════════════\n');
+    logger.debug('🏢 Sede actual ID:', effectiveSite?.id);
+    logger.debug('🏢 Ubicaciones en sede actual (filtradas):', currentSiteStockItems.length);
+    logger.debug('📋 Detalle ubicaciones filtradas:', JSON.stringify(currentSiteStockItems, null, 2));
 
     const newItems = [...transferItems];
     newItems[index].productId = product.id;
@@ -320,7 +320,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         const areas = await warehouseAreasApi.getWarehouseAreas(warehouseId);
         setOriginAreas(areas || []);
       } catch (error) {
-        console.error('Error loading origin areas:', error);
+        logger.error('Error loading origin areas:', error);
         setOriginAreas([]);
       }
     } else {
@@ -351,7 +351,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         const areas = await warehouseAreasApi.getWarehouseAreas(warehouseId);
         setDestinationAreas(areas || []);
       } catch (error) {
-        console.error('Error loading destination areas:', error);
+        logger.error('Error loading destination areas:', error);
         setDestinationAreas([]);
       }
     } else {
@@ -513,7 +513,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         );
       }
     } catch (error: any) {
-      console.error('Error creating external transfer:', error);
+      logger.error('Error creating external transfer:', error);
       Alert.alert('Error', error.message || 'No se pudo crear el traslado externo');
     }
   };
@@ -526,9 +526,9 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         onPress: async () => {
           try {
             const userId = user?.id;
-            console.log('🔄 Approving transfer...');
-            console.log('📋 Transfer ID:', transferId);
-            console.log('👤 User ID:', userId);
+            logger.info('🔄 Approving transfer...');
+            logger.debug('📋 Transfer ID:', transferId);
+            logger.debug('👤 User ID:', userId);
 
             if (!userId) {
               Alert.alert(
@@ -546,7 +546,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
               setSelectedTransfer(updated);
             }
           } catch (error: any) {
-            console.error('Error approving transfer:', error);
+            logger.error('Error approving transfer:', error);
             Alert.alert('Error', error.message || 'No se pudo aprobar el traslado');
           }
         },
@@ -593,7 +593,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         shippingNotes: shippingNotes || undefined,
       };
 
-      console.log('🚚 Shipping transfer with data:', JSON.stringify(shipDto, null, 2));
+      logger.info('🚚 Shipping transfer with data:', JSON.stringify(shipDto, null, 2));
 
       await transfersApi.shipTransfer(selectedTransfer.id, shipDto);
       Alert.alert(
@@ -604,7 +604,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       setShowDetailModal(false);
       loadTransfers();
     } catch (error: any) {
-      console.error('Error shipping transfer:', error);
+      logger.error('Error shipping transfer:', error);
       Alert.alert('Error', error.message || 'No se pudo despachar el traslado');
     }
   };
@@ -625,7 +625,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
               setShowDetailModal(false);
               loadTransfers();
             } catch (error: any) {
-              console.error('Error canceling transfer:', error);
+              logger.error('Error canceling transfer:', error);
               Alert.alert('Error', error.message || 'No se pudo cancelar el traslado');
             }
           },
@@ -661,15 +661,18 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     }
 
     return (
-      <ScrollView
+      <FlatList
+        data={filteredTransfers}
+        renderItem={({ item }) => <TransferCard transfer={item} onPress={handleTransferPress} />}
+        keyExtractor={(item) => item.id}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-      >
-        {filteredTransfers.map((transfer) => (
-          <TransferCard key={transfer.id} transfer={transfer} onPress={handleTransferPress} />
-        ))}
-      </ScrollView>
+        windowSize={5}
+        maxToRenderPerBatch={10}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+      />
     );
   };
 

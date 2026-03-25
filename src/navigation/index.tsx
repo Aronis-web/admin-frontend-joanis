@@ -28,6 +28,7 @@ import HomeScreen from '@/screens/Home/HomeScreen';
 
 // Dashboard Screen (eager loaded for quick access)
 import DashboardScreen from '@/screens/Dashboard/DashboardScreen';
+import { DashboardWidget } from '@/screens/Dashboard/DashboardWidget';
 
 // Purchases Screens (eager loaded to avoid module resolution issues)
 import { PurchasesScreen } from '@/screens/Purchases/PurchasesScreen';
@@ -242,6 +243,7 @@ const MainStack = React.memo(() => {
   return (
     <MainStackNavigator.Navigator screenOptions={{ headerShown: false }}>
       <MainStackNavigator.Screen name={MAIN_ROUTES.DASHBOARD} component={DashboardScreen} />
+      <MainStackNavigator.Screen name={MAIN_ROUTES.DASHBOARD_WIDGET} component={DashboardWidget} />
       <MainStackNavigator.Screen name={MAIN_ROUTES.HOME} component={HomeScreen} />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.COMPANIES}

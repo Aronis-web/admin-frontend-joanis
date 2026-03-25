@@ -3,13 +3,14 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
   TextInput,
   Alert,
   useWindowDimensions,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -93,12 +94,6 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
       logger.info('📊 Ventas cargadas:', response.data.length);
       if (response.data.length > 0) {
         logger.info('📊 Primera venta:', response.data[0]);
-        logger.info('📝 Info NC primera venta:', {
-          hasCreditNote: response.data[0].hasCreditNote,
-          creditNoteType: response.data[0].creditNoteType,
-          creditNotesCount: response.data[0].creditNotesCount,
-          creditNotes: response.data[0].creditNotes,
-        });
       }
 
       // Siempre reemplazar las ventas cuando se cambia de página
@@ -117,25 +112,23 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
     }
   };
 
-  // Initial load
+  // ✅ OPTIMIZACIÓN: Consolidar useEffects para evitar requests duplicados
   useEffect(() => {
-    loadSales(1);
-  }, [searchText, filterStatus, filterPaymentStatus, filterSaleType, filterSaleOrigin]);
+    // Cargar ventas cuando cambian filtros o página
+    loadSales(page);
+  }, [page, searchText, filterStatus, filterPaymentStatus, filterSaleType, filterSaleOrigin]);
 
-  // Load sales when page changes
-  useEffect(() => {
-    if (page > 1) {
-      loadSales(page);
-    }
-  }, [page]);
+  // ✅ OPTIMIZACIÓN: Refresh on focus solo si los datos están stale (>5 min)
+  const lastFetchRef = React.useRef<number>(0);
 
-  // Refresh on focus - mantener la página actual
   useFocusEffect(
     useCallback(() => {
-      // Solo recargar si estamos en la página 1, sino mantener la página actual
-      if (page === 1) {
-        loadSales(1, true);
-      } else {
+      const now = Date.now();
+      const isStale = now - lastFetchRef.current > 5 * 60 * 1000; // 5 minutos
+
+      // Solo recargar si los datos están stale
+      if (isStale) {
+        lastFetchRef.current = now;
         loadSales(page, true);
       }
     }, [page])
@@ -486,15 +479,17 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
         </View>
 
         {/* Sales List */}
-        <ScrollView
+        <FlatList
+          data={sales}
+          renderItem={({ item }) => renderSaleCard(item)}
+          keyExtractor={(item) => item.id}
           style={styles.content}
           contentContainerStyle={[
             styles.contentContainer,
             isTablet && styles.contentContainerTablet,
           ]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        >
-          {sales.length === 0 ? (
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>💰</Text>
               <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
@@ -504,18 +499,27 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
                 Crea una nueva venta para comenzar
               </Text>
             </View>
-          ) : (
-            sales.map(renderSaleCard)
-          )}
-
-          {loading && page > 1 && (
-            <View style={styles.loadingMore}>
-              <ActivityIndicator size="small" color="#6366F1" />
-            </View>
-          )}
-
-          <View style={styles.bottomSpacer} />
-        </ScrollView>
+          }
+          ListFooterComponent={
+            <>
+              {loading && page > 1 && (
+                <View style={styles.loadingMore}>
+                  <ActivityIndicator size="small" color="#6366F1" />
+                </View>
+              )}
+              <View style={styles.bottomSpacer} />
+            </>
+          }
+          windowSize={5}
+          maxToRenderPerBatch={10}
+          initialNumToRender={10}
+          removeClippedSubviews={true}
+          getItemLayout={(data, index) => ({
+            length: 220,
+            offset: 220 * index,
+            index,
+          })}
+        />
 
         {/* Pagination Controls */}
         {total > 0 && (

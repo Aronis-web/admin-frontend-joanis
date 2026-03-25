@@ -21,6 +21,7 @@ export const AUTH_ROUTES = {
 export const MAIN_ROUTES = {
   // Dashboard
   DASHBOARD: 'Dashboard',
+  DASHBOARD_WIDGET: 'DashboardWidget',
   HOME: 'Home',
 
   // Products & Inventory
@@ -227,6 +228,7 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
 export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>> = {
   // Dashboard
   DASHBOARD: 'dashboard.read',
+  DASHBOARD_WIDGET: 'dashboard.read',
 
   // Products & Inventory
   PRODUCTS: 'products.read',

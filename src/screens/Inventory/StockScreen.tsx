@@ -31,6 +31,7 @@ import { inventoryApi, StockItem } from '@/services/api/inventory';
 import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { useStock, useWarehouses, useWarehouseAreas, useSearchStockV2, useStockV2 } from '@/hooks/api/useStock';
+import { logger } from '@/utils/logger';
 
 interface StockScreenProps {
   navigation: any;
@@ -88,11 +89,11 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     isLoading: loadingAreas,
   } = useWarehouseAreas(selectedWarehouseId, selectedWarehouseId !== 'all');
 
-  // ✅ Debounce search query (800ms)
+  // ✅ Debounce search query (300ms - optimizado)
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 800);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -174,7 +175,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   // Auto-reload stock when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('📱 StockScreen focused - refetching stock and warehouses...');
+      logger.debug('📱 StockScreen focused - refetching stock and warehouses...');
       refetchWarehouses();
       if (isUsingSearch) {
         refetchSearchV2();
@@ -301,7 +302,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('🗑️ Deleting stock:', {
+              logger.info('🗑️ Deleting stock:', {
                 productId: item.productId,
                 warehouseId: item.warehouseId,
                 areaId: item.areaId,
@@ -309,13 +310,13 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
               await inventoryApi.deleteStock(item.productId, item.warehouseId, item.areaId);
 
-              console.log('✅ Stock deleted successfully');
+              logger.info('✅ Stock deleted successfully');
               Alert.alert('Éxito', 'Stock eliminado correctamente');
 
               // Reload stock list
               refetchStock();
             } catch (error: any) {
-              console.error('❌ Error deleting stock:', error);
+              logger.error('❌ Error deleting stock:', error);
               Alert.alert(
                 'Error',
                 error.response?.data?.message ||

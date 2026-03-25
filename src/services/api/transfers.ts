@@ -57,7 +57,14 @@ export const transfersApi = {
    * GET /api/transfers
    */
   getTransfers: async (filters?: TransferFilters): Promise<TransferListResponse> => {
-    return apiClient.get<TransferListResponse>('/transfers', { params: filters });
+    // ✅ Agregar paginación por defecto: 10 items por página
+    const paginatedFilters = {
+      page: 1,
+      limit: 10,
+      ...filters,
+    };
+
+    return apiClient.get<TransferListResponse>('/transfers', { params: paginatedFilters });
   },
 
   /**

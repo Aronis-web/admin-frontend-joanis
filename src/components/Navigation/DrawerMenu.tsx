@@ -37,7 +37,7 @@ interface MenuCategory {
 }
 
 const menuCategories: MenuCategory[] = [
-  // Dashboard - Sin submenú
+  // Dashboard - Con submenú
   {
     id: 'dashboard',
     title: 'Dashboard',
@@ -49,6 +49,14 @@ const menuCategories: MenuCategory[] = [
         icon: '📊',
         label: 'Dashboard',
         route: MAIN_ROUTES.DASHBOARD,
+        color: '#6366F1',
+        requiredPermissions: ['dashboard.read'],
+      },
+      {
+        id: 'dashboard-widget',
+        icon: '📈',
+        label: 'Dashboard Widget',
+        route: MAIN_ROUTES.DASHBOARD_WIDGET,
         color: '#6366F1',
         requiredPermissions: ['dashboard.read'],
       },

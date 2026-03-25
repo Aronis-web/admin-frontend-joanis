@@ -1,8 +1,9 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
@@ -29,6 +30,7 @@ import { RepartoProducto, RepartoProductoValidationStatus } from '@/types/repart
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProductSelectionModal, CircularProgress } from '@/components/Repartos';
 import * as downloadTracker from '@/utils/downloadTracker';
+import { logger } from '@/utils/logger';
 
 interface RepartosScreenProps {
   navigation: any;
@@ -48,18 +50,24 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   const [campaignProgress, setCampaignProgress] = useState<Map<string, { validated: number; total: number; percentage: number }>>(new Map());
   const [distributionFormatModalVisible, setDistributionFormatModalVisible] = useState(false);
   const [selectedProductsForExport, setSelectedProductsForExport] = useState<string[]>([]);
+  // ✅ Estado de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
 
-  // Build query params
+  // Build query params con paginación
   const queryParams = useMemo(() => {
-    const params: any = {};
+    const params: any = {
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+    };
     if (selectedStatus !== 'ALL' && selectedStatus !== 'NOT_CANCELLED_DRAFT') {
       params.status = selectedStatus;
     }
     return params;
-  }, [selectedStatus]);
+  }, [selectedStatus, currentPage]);
 
   // React Query hook
   const { data, isLoading, isRefetching, refetch } = useCampaigns(queryParams);
@@ -95,47 +103,70 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     return allCampaigns;
   }, [data, selectedStatus]);
 
-  // Cargar progreso de campañas
+  // ✅ Cargar progreso de campañas con límite de concurrencia (batches de 3)
   const loadCampaignProgress = useCallback(async (campaignIds: string[]) => {
     const progressMap = new Map<string, { validated: number; total: number; percentage: number }>();
+    const BATCH_SIZE = 3; // Limitar a 3 requests simultáneos
 
-    await Promise.all(
-      campaignIds.map(async (campaignId) => {
-        try {
-          const progressData = await repartosService.getCampaignProgress(campaignId);
-          progressMap.set(campaignId, {
-            validated: progressData.overallProgress.productsValidated,
-            total: progressData.overallProgress.productsAssigned,
-            percentage: progressData.overallProgress.productsPercentage,
-          });
-        } catch (error) {
-          // Si falla, usar valores por defecto
-          progressMap.set(campaignId, {
-            validated: 0,
-            total: 0,
-            percentage: 0,
-          });
-        }
-      })
-    );
+    for (let i = 0; i < campaignIds.length; i += BATCH_SIZE) {
+      const batch = campaignIds.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map(async (campaignId) => {
+          try {
+            const progressData = await repartosService.getCampaignProgress(campaignId);
+            return {
+              campaignId,
+              progressData: {
+                validated: progressData.overallProgress.productsValidated,
+                total: progressData.overallProgress.productsAssigned,
+                percentage: progressData.overallProgress.productsPercentage,
+              },
+            };
+          } catch (error) {
+            // Si falla, usar valores por defecto
+            return {
+              campaignId,
+              progressData: {
+                validated: 0,
+                total: 0,
+                percentage: 0,
+              },
+            };
+          }
+        })
+      );
+
+      results.forEach(({ campaignId, progressData }) => {
+        progressMap.set(campaignId, progressData);
+      });
+    }
 
     setCampaignProgress(progressMap);
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-    }, [refetch])
-  );
+  // ✅ Combinar useEffects con stale time check
+  const lastFetchRef = useRef<number>(0);
 
-  // Cargar progreso cuando cambien las campañas
+  // ✅ Resetear página cuando cambia el filtro de estado
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStatus]);
+
   useFocusEffect(
     useCallback(() => {
+      const now = Date.now();
+      const STALE_TIME = 5 * 60 * 1000; // 5 minutos
+
+      if (now - lastFetchRef.current > STALE_TIME) {
+        refetch();
+        lastFetchRef.current = now;
+      }
+
       if (campaigns.length > 0) {
         const campaignIds = campaigns.map((c) => c.id);
         loadCampaignProgress(campaignIds);
       }
-    }, [campaigns, loadCampaignProgress])
+    }, [campaigns, loadCampaignProgress, refetch])
   );
 
   const handleRefresh = useCallback(() => {
@@ -205,7 +236,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       setAllProducts(sortedProducts);
       setShowProductSelectionModal(true);
     } catch (error: any) {
-      console.error('Error loading products:', error);
+      logger.error('Error loading products:', error);
       Alert.alert('No se pudieron cargar los productos de la campaña');
     }
   }, []);
@@ -230,7 +261,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       setExportingCampaignId(selectedCampaign.id);
       setDistributionFormatModalVisible(false);
 
-      console.log(`🔄 Iniciando descarga de ${format.toUpperCase()} para campaña:`, selectedCampaign.id);
+      logger.info(`🔄 Iniciando descarga de ${format.toUpperCase()} para campaña:`, selectedCampaign.id);
       const startTime = new Date().getTime();
 
       let blob: Blob;
@@ -261,17 +292,17 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       // Register download for tracking purposes (local storage)
       try {
         await downloadTracker.registerDownloads(selectedCampaign.id, selectedProductsForExport);
-        console.log('✅ Descarga registrada localmente para seguimiento');
+        logger.debug('✅ Descarga registrada localmente para seguimiento');
       } catch (error) {
-        console.warn('⚠️ No se pudo registrar la descarga:', error);
+        logger.warn('⚠️ No se pudo registrar la descarga:', error);
         // Don't fail the download if tracking fails
       }
 
       const endTime = new Date().getTime();
-      console.log(`✅ ${format.toUpperCase()} descargado del servidor`);
-      console.log(`📦 Tamaño del archivo:`, blob.size, 'bytes');
-      console.log('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
-      console.log('🕐 Timestamp actual:', new Date().toISOString());
+      logger.info(`✅ ${format.toUpperCase()} descargado del servidor`);
+      logger.debug(`📦 Tamaño del archivo:`, blob.size, 'bytes');
+      logger.debug('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
+      logger.debug('🕐 Timestamp actual:', new Date().toISOString());
 
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
@@ -324,7 +355,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         }
       }
     } catch (error: any) {
-      console.error('Error exporting distribution sheets:', error);
+      logger.error('Error exporting distribution sheets:', error);
       Alert.alert('Error', error.message || 'No se pudieron exportar las hojas de reparto');
     } finally {
       setExportingCampaignId(null);
@@ -581,13 +612,15 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         {/* Status Filter */}
         {renderStatusFilter}
 
-        {/* Campaigns List */}
-        <ScrollView
+        {/* Campaigns List - ✅ Migrado a FlatList para virtualización */}
+        <FlatList
+          data={campaigns}
+          renderItem={({ item }) => renderCampaignCard(item)}
+          keyExtractor={(item) => item.id}
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
-        >
-          {campaigns.length === 0 ? (
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
                 No hay campañas disponibles
@@ -596,10 +629,60 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                 Las campañas con repartos aparecerán aquí
               </Text>
             </View>
-          ) : (
-            campaigns.map((campaign) => renderCampaignCard(campaign))
-          )}
-        </ScrollView>
+          }
+          ListFooterComponent={
+            data && data.total > 0 ? (
+              <View style={styles.paginationContainer}>
+                <View style={styles.paginationInfo}>
+                  <Text style={styles.paginationText}>
+                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, data.total)} de {data.total} campañas
+                  </Text>
+                </View>
+                <View style={styles.paginationButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.paginationButton,
+                      currentPage === 1 && styles.paginationButtonDisabled
+                    ]}
+                    onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1 || isLoading}
+                  >
+                    <Text style={[
+                      styles.paginationButtonText,
+                      currentPage === 1 && styles.paginationButtonTextDisabled
+                    ]}>
+                      ← Anterior
+                    </Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.paginationPageText}>
+                    Página {currentPage} de {Math.ceil(data.total / ITEMS_PER_PAGE)}
+                  </Text>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.paginationButton,
+                      currentPage >= Math.ceil(data.total / ITEMS_PER_PAGE) && styles.paginationButtonDisabled
+                    ]}
+                    onPress={() => setCurrentPage(prev => prev + 1)}
+                    disabled={currentPage >= Math.ceil(data.total / ITEMS_PER_PAGE) || isLoading}
+                  >
+                    <Text style={[
+                      styles.paginationButtonText,
+                      currentPage >= Math.ceil(data.total / ITEMS_PER_PAGE) && styles.paginationButtonTextDisabled
+                    ]}>
+                      Siguiente →
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null
+          }
+          windowSize={5}
+          maxToRenderPerBatch={10}
+          removeClippedSubviews={true}
+          initialNumToRender={10}
+        />
 
         {/* Product Selection Modal */}
         <ProductSelectionModal
@@ -1040,5 +1123,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#64748B',
+  },
+  // ✅ Estilos de paginación
+  paginationContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  paginationInfo: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  paginationText: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  paginationButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  paginationButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
+  paginationButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  paginationButtonTextDisabled: {
+    color: '#94A3B8',
+  },
+  paginationPageText: {
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '600',
   },
 });

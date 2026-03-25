@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
@@ -26,6 +27,7 @@ import { useProducts } from '@/hooks/api/useProducts';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 import { PERMISSIONS } from '@/constants/permissions';
 import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
+import { logger } from '@/utils/logger';
 
 interface ProductsScreenProps {
   navigation: any;
@@ -66,7 +68,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       if (searchQuery !== debouncedSearchQuery) {
         setPage(1);
       }
-    }, 800); // 800ms de delay (aumentado para permitir escribir)
+    }, 300); // ✅ 300ms de delay (optimizado para mejor UX)
 
     return () => {
       if (debounceTimerRef.current) {
@@ -122,7 +124,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   // Auto-reload products when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('📱 ProductsScreen focused - refetching products...');
+      logger.debug('📱 ProductsScreen focused - refetching products...');
       refetch();
     }, [refetch])
   );
@@ -231,7 +233,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           };
         }
       } catch (error) {
-        console.log(`⚠️ No images found for product ${product.id}`);
+        logger.debug(`⚠️ No images found for product ${product.id}`);
       }
     }
     setViewProduct(productWithImages);
@@ -241,9 +243,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const handleEditProduct = async (product: Product) => {
     try {
       // Fetch full product details including presentations
-      console.log('📦 Fetching full product details for edit:', product.id);
+      logger.debug('📦 Fetching full product details for edit:', product.id);
       const fullProduct = await productsApi.getProductById(product.id);
-      console.log('📦 Full product loaded:', {
+      logger.debug('📦 Full product loaded:', {
         id: fullProduct.id,
         title: fullProduct.title,
         presentations: fullProduct.presentations
@@ -252,7 +254,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       setModalMode('edit');
       setIsProductModalVisible(true);
     } catch (error: any) {
-      console.error('❌ Error loading product details:', error);
+      logger.error('❌ Error loading product details:', error);
       Alert.alert('Error', 'No se pudo cargar los detalles del producto');
     }
   };
@@ -279,7 +281,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             Alert.alert('Éxito', 'Producto eliminado correctamente');
             refetch();
           } catch (error: any) {
-            console.error('Error deleting product:', error);
+            logger.error('Error deleting product:', error);
             Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
           }
         },
@@ -489,24 +491,10 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         </View>
       </View>
 
-      {/* Products List */}
-      <ScrollView
-        style={[styles.content, isLandscape && styles.contentLandscape]}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
-      >
-        {filteredProducts.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyTitle}>No hay productos</Text>
-            <Text style={styles.emptyText}>
-              {debouncedSearchQuery
-                ? 'No se encontraron productos con ese criterio de búsqueda'
-                : 'Comienza creando tu primer producto'}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.productsList}>
-            {filteredProducts.map((product, index) => (
+      {/* Products List - ✅ Migrado a FlatList para virtualización */}
+      <FlatList
+        data={filteredProducts}
+        renderItem={({ item: product, index }) => (
               <View key={product.id || index} style={styles.productCard}>
                 <TouchableOpacity
                   onPress={() => handleEditProduct(product)}
@@ -523,7 +511,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                       const imageUri =
                         product.photos?.[0] || product.imageUrl || product.imageUrls?.[0];
                       if (index === 0) {
-                        console.log('🖼️ Product image check:', {
+                        logger.debug('🖼️ Product image check:', {
                           title: product.title,
                           hasImage,
                           photos: product.photos,
@@ -538,9 +526,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                           style={styles.productThumbnail}
                           resizeMode="cover"
                           onError={(e) =>
-                            console.log('❌ Image load error:', imageUri, e.nativeEvent.error)
+                            logger.debug('❌ Image load error:', imageUri, e.nativeEvent.error)
                           }
-                          onLoad={() => index === 0 && console.log('✅ Image loaded:', imageUri)}
+                          onLoad={() => index === 0 && logger.debug('✅ Image loaded:', imageUri)}
                         />
                       ) : (
                         <View style={styles.productThumbnailPlaceholder}>
@@ -681,10 +669,26 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                   </ProtectedTouchableOpacity>
                 </View>
               </View>
-            ))}
-          </View>
         )}
-      </ScrollView>
+        keyExtractor={(item, index) => item.id || index.toString()}
+        style={[styles.content, isLandscape && styles.contentLandscape]}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📦</Text>
+            <Text style={styles.emptyTitle}>No hay productos</Text>
+            <Text style={styles.emptyText}>
+              {debouncedSearchQuery
+                ? 'No se encontraron productos con ese criterio de búsqueda'
+                : 'Comienza creando tu primer producto'}
+            </Text>
+          </View>
+        }
+        windowSize={5}
+        maxToRenderPerBatch={10}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+      />
 
       {/* Pagination Controls */}
       {!isLoading && pagination.total > 0 && (
@@ -807,7 +811,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 const hasImages =
                   viewProduct.imageUrl ||
                   (viewProduct.imageUrls && viewProduct.imageUrls.length > 0);
-                console.log('🖼️ View Product images:', {
+                logger.debug('🖼️ View Product images:', {
                   title: viewProduct.title,
                   hasImages,
                   imageUrl: viewProduct.imageUrl,
@@ -825,14 +829,14 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                               style={styles.productImage}
                               resizeMode="cover"
                               onError={(e) =>
-                                console.log(
+                                logger.debug(
                                   '❌ View image load error:',
                                   viewProduct.imageUrl,
                                   e.nativeEvent.error
                                 )
                               }
                               onLoad={() =>
-                                console.log('✅ View image loaded:', viewProduct.imageUrl)
+                                logger.debug('✅ View image loaded:', viewProduct.imageUrl)
                               }
                             />
                           )}
@@ -844,9 +848,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                                 style={styles.productImage}
                                 resizeMode="cover"
                                 onError={(e) =>
-                                  console.log('❌ View image load error:', url, e.nativeEvent.error)
+                                  logger.debug('❌ View image load error:', url, e.nativeEvent.error)
                                 }
-                                onLoad={() => console.log('✅ View image loaded:', url)}
+                                onLoad={() => logger.debug('✅ View image loaded:', url)}
                               />
                             ))}
                         </View>

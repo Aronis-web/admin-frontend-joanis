@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   RefreshControl,
   Alert,
@@ -58,11 +58,11 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  // ✅ Debounce search query (800ms)
+  // ✅ Debounce search query (300ms - optimizado)
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 800);
+    }, 300); // Reducido de 800ms a 300ms para mejor UX
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -318,15 +318,11 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
 
     return (
       <>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
-        >
-          {expenses.map((expense: Expense) => (
+        <FlatList
+          data={expenses}
+          renderItem={({ item }) => (
             <ExpenseCard
-              key={expense.id}
-              expense={expense}
+              expense={item}
               onPress={handleExpensePress}
               onEdit={canUpdate ? handleEditExpense : undefined}
               onDelete={canDelete ? handleDeleteExpense : undefined}
@@ -334,8 +330,20 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
               onReconcileAmount={canUpdate ? handleReconcileAmount : undefined}
               onViewPayments={handleViewPayments}
             />
-          ))}
-        </ScrollView>
+          )}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
+          windowSize={5}
+          maxToRenderPerBatch={10}
+          initialNumToRender={10}
+          removeClippedSubviews={true}
+          getItemLayout={(data, index) => ({
+            length: 180,
+            offset: 180 * index,
+            index,
+          })}
+        />
         {/* ✅ Solo mostrar paginación si NO hay búsqueda activa */}
         {!isUsingSearch && pagination.total > 0 && (
           <View style={styles.paginationContainer}>
@@ -570,9 +578,6 @@ const styles = StyleSheet.create({
     color: '#4F46E5',
     fontWeight: '600',
     textAlign: 'center',
-  },
-  scrollView: {
-    flex: 1,
   },
   scrollContent: {
     padding: 16,

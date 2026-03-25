@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { authService } from '@/services/AuthService';
 import { TenantContext } from '@/types/companies';
+import logger from '@/utils/logger';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -87,10 +88,10 @@ class ApiClient {
             }
           });
 
-          console.log(
+          logger.debug(
             '📦 FormData detected - removing Content-Type to let React Native handle boundary'
           );
-          console.log('📋 Headers after cleanup:', Object.keys(requestConfig.headers));
+          logger.debug('📋 Headers after cleanup:', Object.keys(requestConfig.headers));
         }
 
         // Add Authorization header if token is available
@@ -98,14 +99,14 @@ class ApiClient {
         const currentToken = authService.getAccessToken() || token;
         if (currentToken) {
           requestConfig.headers.Authorization = `Bearer ${currentToken}`;
-          console.log('✅ Authorization header set with token length:', currentToken.length);
+          logger.debug('✅ Authorization header set with token length:', currentToken.length);
         } else {
-          console.warn('⚠️ No token available - user may not be authenticated');
+          logger.warn('⚠️ No token available - user may not be authenticated');
         }
 
         // Special logging for /transfers endpoint to debug auth issues
         if (requestConfig.url?.includes('/transfers')) {
-          console.log('🔍 /transfers Request Details:', {
+          logger.debug('🔍 /transfers Request Details:', {
             url: requestConfig.url,
             method: requestConfig.method,
             hasToken: !!currentToken,
@@ -120,15 +121,15 @@ class ApiClient {
         // Add X-App-Id header to all requests (required by API)
         const appId = config.APP_ID;
         if (!appId) {
-          console.error('❌ CRITICAL: X-App-Id is undefined! This will cause 400 errors.');
+          logger.error('❌ CRITICAL: X-App-Id is undefined! This will cause 400 errors.');
         }
-        console.log('🔑 Setting X-App-Id header:', appId);
+        logger.debug('🔑 Setting X-App-Id header:', appId);
         requestConfig.headers['X-App-Id'] = appId;
         requestConfig.headers['x-app-id'] = appId; // Also set lowercase for compatibility
 
         // Add X-App-Version header to all requests (for version control)
         const appVersion = config.APP_VERSION;
-        console.log('📱 Setting X-App-Version header:', appVersion);
+        logger.debug('📱 Setting X-App-Version header:', appVersion);
         requestConfig.headers['X-App-Version'] = appVersion;
 
         // Auto-sync tenant context from stores (prefer tenant store, fallback to auth store)
@@ -153,22 +154,17 @@ class ApiClient {
         }
 
         // Debug logging to verify headers
-        console.log('API Request:', {
-          url: requestConfig.url,
-          method: requestConfig.method,
-          params: requestConfig.params,
-          isFormData,
-          headers: {
-            ...requestConfig.headers,
-            Authorization: requestConfig.headers.Authorization ? 'Bearer [REDACTED]' : 'None',
-          },
-          'X-App-Id': requestConfig.headers['X-App-Id'],
-          'x-app-id': requestConfig.headers['x-app-id'],
-          'X-App-Version': requestConfig.headers['X-App-Version'],
-          'X-Company-Id': requestConfig.headers['X-Company-Id'] || 'None',
-          'X-Site-Id': requestConfig.headers['X-Site-Id'] || 'None',
-          'X-Warehouse-Id': requestConfig.headers['X-Warehouse-Id'] || 'None',
-        });
+        logger.api(
+          requestConfig.method?.toUpperCase() || 'GET',
+          requestConfig.url || '',
+          {
+            params: requestConfig.params,
+            isFormData,
+            hasAuth: !!requestConfig.headers.Authorization,
+            companyId: requestConfig.headers['X-Company-Id'] || 'None',
+            siteId: requestConfig.headers['X-Site-Id'] || 'None',
+          }
+        );
 
         return requestConfig;
       },
@@ -183,52 +179,43 @@ class ApiClient {
         // Reset refresh counter on successful response
         this.refreshAttempts = 0;
 
-        console.log('API Response:', {
-          url: response.config.url,
-          status: response.status,
-          method: response.config.method,
-          data: response.data,
-        });
+        logger.apiResponse(
+          response.config.method?.toUpperCase() || 'GET',
+          response.config.url || '',
+          response.status,
+          __DEV__ ? response.data : undefined // Only log data in dev
+        );
         return response;
       },
       async (error) => {
-        console.log('API Error:', {
-          url: error.config?.url,
-          status: error.response?.status,
-          message: error.response?.data?.message || error.message,
-          method: error.config?.method,
-          headers: error.config?.headers,
-          authorization: error.config?.headers?.Authorization ? 'Present' : 'Missing',
-        });
+        logger.apiError(
+          error.config?.method?.toUpperCase() || 'UNKNOWN',
+          error.config?.url || '',
+          {
+            status: error.response?.status,
+            message: error.response?.data?.message || error.message,
+            hasAuth: !!error.config?.headers?.Authorization,
+          }
+        );
 
         // Enhanced debugging for 403 errors on /transfers endpoint
         if (error.response?.status === 403 && error.config?.url?.includes('/transfers')) {
           const authStore = useAuthStore.getState();
-          console.error('❌ 403 Forbidden on /transfers - Detailed Debug:', {
+          logger.error('❌ 403 Forbidden on /transfers - Detailed Debug:', {
             url: error.config?.url,
             fullUrl: `${config.API_URL}${error.config?.url}`,
             errorMessage: error.response?.data?.message,
             hasToken: !!error.config?.headers?.Authorization,
-            authServiceToken: !!authService.getAccessToken(),
-            storeToken: !!authStore.token,
             userId: authStore.user?.id,
-            isAuthenticated: authStore.isAuthenticated,
-            currentCompanyId: authStore.currentCompany?.id,
-            currentSiteId: authStore.currentSite?.id,
-            requestHeaders: {
-              Authorization: error.config?.headers?.Authorization ? 'Bearer [REDACTED]' : 'Missing',
-              'X-App-Id': error.config?.headers?.['X-App-Id'],
-              'X-Company-Id': error.config?.headers?.['X-Company-Id'],
-              'X-Site-Id': error.config?.headers?.['X-Site-Id'],
-              'X-User-Id': error.config?.headers?.['X-User-Id'],
-            },
+            companyId: authStore.currentCompany?.id,
+            siteId: authStore.currentSite?.id,
           });
         }
 
         // Simplified debugging for 401 errors
         if (error.response?.status === 401) {
           const token = useAuthStore.getState().token;
-          console.log('401 Error - Token present:', !!token);
+          logger.debug('401 Error - Token present:', !!token);
         }
 
         if (error.code === 'ECONNREFUSED') {
@@ -245,7 +232,7 @@ class ApiClient {
 
           // Prevent infinite refresh loops
           if (this.refreshAttempts >= this.maxRefreshAttempts) {
-            console.error(
+            logger.error(
               `Max refresh attempts (${this.maxRefreshAttempts}) reached, logging out...`
             );
             this.refreshAttempts = 0;
@@ -256,7 +243,7 @@ class ApiClient {
           this.refreshAttempts++;
 
           try {
-            console.log(
+            logger.info(
               `Attempting token refresh (${this.refreshAttempts}/${this.maxRefreshAttempts}) for 401 error...`
             );
 
@@ -266,16 +253,16 @@ class ApiClient {
 
             if (newToken) {
               originalRequest.headers.Authorization = `Bearer ${newToken}`;
-              console.log('Token refreshed, retrying request...');
+              logger.info('Token refreshed, retrying request...');
               this.refreshAttempts = 0; // Reset counter on successful refresh
               return this.client(originalRequest);
             } else {
-              console.log('No new token after refresh, logging out...');
+              logger.warn('No new token after refresh, logging out...');
               this.refreshAttempts = 0;
               await useAuthStore.getState().logout();
             }
           } catch (refreshError) {
-            console.error('Token refresh failed:', refreshError);
+            logger.error('Token refresh failed:', refreshError);
             this.refreshAttempts = 0;
             await useAuthStore.getState().logout();
           }
@@ -293,7 +280,7 @@ class ApiClient {
             ? requiredPermissionsMatch[1].split(',').map((p: string) => p.trim())
             : [];
 
-          console.log('403 Forbidden - Permission denied:', {
+          logger.warn('403 Forbidden - Permission denied:', {
             message: errorMessage,
             requiredPermissions,
             url: error.config?.url,
@@ -322,13 +309,11 @@ class ApiClient {
 
     const response: AxiosResponse<T> = await this.client.get(url, cacheBustingConfig);
 
-    console.log('📥 GET Response:', {
+    logger.debug('📥 GET Response:', {
       url,
       status: response.status,
       dataType: typeof response.data,
       hasData: !!response.data,
-      dataKeys: response.data ? Object.keys(response.data) : [],
-      fullData: response.data,
     });
 
     return response.data;
@@ -336,18 +321,16 @@ class ApiClient {
 
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const isFormData = data instanceof FormData;
-    console.log('📤 POST Request:', {
+    logger.debug('📤 POST Request:', {
       url,
-      data,
       hasData: !!data,
-      dataKeys: data && !isFormData ? Object.keys(data) : [],
       isFormData,
       dataType: data?.constructor?.name,
     });
 
     // For FormData in React Native, use fetch directly to avoid axios Content-Type issues
     if (isFormData) {
-      console.log('📦 Using fetch for FormData upload to bypass axios Content-Type issues');
+      logger.debug('📦 Using fetch for FormData upload to bypass axios Content-Type issues');
       // Check if this is an OCR request to use unlimited timeout
       const isOcrRequest = url.includes('/ocr/scan');
       return this.postFormDataWithFetch<T>(url, data, config, isOcrRequest);
@@ -367,38 +350,18 @@ class ApiClient {
     requestConfig?: AxiosRequestConfig,
     isOcrRequest: boolean = false
   ): Promise<T> {
-    console.log('🔍 [FETCH] postFormDataWithFetch called');
-    console.log('🔍 [FETCH] URL:', url);
-    console.log('🔍 [FETCH] FormData received:', formData);
-    console.log('🔍 [FETCH] isOcrRequest:', isOcrRequest);
+    logger.debug('🔍 [FETCH] postFormDataWithFetch called');
+    logger.debug('🔍 [FETCH] URL:', url);
+    logger.debug('🔍 [FETCH] isOcrRequest:', isOcrRequest);
 
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
     const { user, currentCompany, currentSite } = authStore;
     const { selectedCompany, selectedSite, selectedWarehouse } = tenantStore;
 
-    console.log('🔍 [FETCH] Auth context:', {
-      hasUser: !!user,
-      userId: user?.id,
-      hasCurrentCompany: !!currentCompany,
-      currentCompanyId: currentCompany?.id,
-      hasCurrentSite: !!currentSite,
-      currentSiteId: currentSite?.id,
-    });
-
-    console.log('🔍 [FETCH] Tenant context:', {
-      hasSelectedCompany: !!selectedCompany,
-      selectedCompanyId: selectedCompany?.id,
-      hasSelectedSite: !!selectedSite,
-      selectedSiteId: selectedSite?.id,
-      hasSelectedWarehouse: !!selectedWarehouse,
-      selectedWarehouseId: selectedWarehouse?.id,
-    });
-
     // Get the current token
     const currentToken = authService.getAccessToken() || authStore.token;
-    console.log('🔍 [FETCH] Token available:', !!currentToken);
-    console.log('🔍 [FETCH] Token length:', currentToken?.length || 0);
+    logger.debug('🔍 [FETCH] Token available:', !!currentToken);
 
     // Build headers
     const headers: Record<string, string> = {
@@ -451,15 +414,11 @@ class ApiClient {
     }
 
     // DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
-    console.log('🌐 [FETCH] Request headers prepared:', Object.keys(headers));
-    console.log('🌐 [FETCH] Full headers:', headers);
-
     const fullUrl = `${this.client.defaults.baseURL}${url}`;
-    console.log('🌐 [FETCH] Full URL:', fullUrl);
-    console.log('🌐 [FETCH] Base URL:', this.client.defaults.baseURL);
+    logger.debug('🌐 [FETCH] Full URL:', fullUrl);
 
     if (isOcrRequest) {
-      console.log('⏱️ [FETCH] OCR Request detected - Using unlimited timeout for document scanning');
+      logger.info('⏱️ [FETCH] OCR Request detected - Using unlimited timeout for document scanning');
     }
 
     try {
@@ -471,36 +430,19 @@ class ApiClient {
         body: formData,
       };
 
-      console.log('🚀 [FETCH] Sending fetch request...');
-      console.log('🚀 [FETCH] Fetch options:', {
-        method: fetchOptions.method,
-        headersKeys: Object.keys(headers),
-        hasBody: !!fetchOptions.body,
-      });
+      logger.debug('🚀 [FETCH] Sending fetch request...');
 
       // Note: fetch in React Native doesn't have a built-in timeout option
       // The timeout is controlled by the underlying network stack
       // Setting signal to undefined ensures no AbortController timeout is applied
       const response = await fetch(fullUrl, fetchOptions);
 
-      console.log('✅ [FETCH] Response received');
-      console.log('🌐 [FETCH] Response status:', response.status);
-      console.log('🌐 [FETCH] Response statusText:', response.statusText);
-      console.log('🌐 [FETCH] Response ok:', response.ok);
-      console.log('🌐 [FETCH] Response headers:', response.headers);
+      logger.debug('✅ [FETCH] Response received - Status:', response.status);
 
       if (!response.ok) {
-        console.error('❌ [FETCH] Response not OK, reading error text...');
+        logger.error('❌ [FETCH] Response not OK, reading error text...');
         const errorText = await response.text();
-        console.error('❌ [FETCH] Error response text:', errorText);
-
-        // Try to parse as JSON for better error details
-        try {
-          const errorJson = JSON.parse(errorText);
-          console.error('❌ [FETCH] Error response JSON:', errorJson);
-        } catch (e) {
-          console.error('❌ [FETCH] Error response is not JSON');
-        }
+        logger.error('❌ [FETCH] Error response:', errorText.substring(0, 200));
 
         // Enhanced error for 524 timeout
         if (response.status === 524) {
@@ -515,24 +457,20 @@ class ApiClient {
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
-      console.log('✅ [FETCH] Response OK, parsing JSON...');
+      logger.debug('✅ [FETCH] Response OK, parsing JSON...');
       const result = await response.json();
-      console.log('✅ [FETCH] JSON parsed successfully');
-      console.log('🌐 [FETCH] Success result:', JSON.stringify(result, null, 2));
+      logger.debug('✅ [FETCH] JSON parsed successfully');
       return result;
     } catch (error: any) {
-      console.error('❌ [FETCH] Fetch error caught:', error);
-      console.error('❌ [FETCH] Error type:', error.constructor.name);
-      console.error('❌ [FETCH] Error message:', error.message);
-      console.error('❌ [FETCH] Error stack:', error.stack);
+      logger.error('❌ [FETCH] Fetch error:', {
+        type: error.constructor.name,
+        message: error.message,
+        url: fullUrl,
+      });
 
       // Log network-specific errors
       if (error.name === 'TypeError' && error.message.includes('Network request failed')) {
-        console.error('❌ [FETCH] Network request failed - possible causes:');
-        console.error('  - Backend server is not running');
-        console.error('  - Network connectivity issues');
-        console.error('  - CORS issues (web only)');
-        console.error('  - Invalid URL:', fullUrl);
+        logger.error('❌ [FETCH] Network request failed - Check backend server and connectivity');
       }
 
       throw error;
@@ -545,19 +483,9 @@ class ApiClient {
   }
 
   async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    console.log('📤 PATCH Request:', {
-      url,
-      data,
-      hasData: !!data,
-      dataKeys: data ? Object.keys(data) : [],
-      dataValues: data ? Object.values(data) : [],
-    });
+    logger.debug('📤 PATCH Request:', { url, hasData: !!data });
     const response: AxiosResponse<T> = await this.client.patch(url, data, config);
-    console.log('📥 PATCH Response:', {
-      url,
-      status: response.status,
-      data: response.data,
-    });
+    logger.debug('📥 PATCH Response:', { url, status: response.status });
     return response.data;
   }
 
