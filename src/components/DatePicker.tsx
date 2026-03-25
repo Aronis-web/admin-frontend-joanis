@@ -509,8 +509,9 @@ const styles = StyleSheet.create({
   },
   weekDays: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexWrap: 'wrap',
     paddingVertical: 8,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
@@ -519,7 +520,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748B',
     width: 40,
+    height: 40,
     textAlign: 'center',
+    textAlignVertical: 'center',
+    lineHeight: 40,
+    margin: 4,
   },
   daysContainer: {
     flex: 1,
