@@ -824,23 +824,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           <>
             {/* SKU */}
             <View style={styles.section}>
-              <View style={styles.labelWithButton}>
-                <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                  SKU <Text style={styles.required}>*</Text>
-                </Text>
-                <TouchableOpacity
-                  style={styles.copyButton}
-                  onPress={async () => {
-                    if (sku.trim()) {
-                      await Clipboard.setStringAsync(sku);
-                      Alert.alert('Copiado', 'SKU copiado al portapapeles');
-                    }
-                  }}
-                  disabled={!sku.trim()}
-                >
-                  <Text style={styles.copyButtonText}>📋 Copiar</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                SKU <Text style={styles.required}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, isTablet && styles.inputTablet]}
                 value={sku}
@@ -1266,9 +1252,23 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
             {/* Barcode */}
             <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Código de Barras <Text style={styles.required}>*</Text>
-              </Text>
+              <View style={styles.labelWithButton}>
+                <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                  Código de Barras <Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={styles.copyButton}
+                  onPress={async () => {
+                    if (sku.trim()) {
+                      await Clipboard.setStringAsync(sku);
+                      Alert.alert('Copiado', 'SKU copiado al portapapeles');
+                    }
+                  }}
+                  disabled={!sku.trim()}
+                >
+                  <Text style={styles.copyButtonText}>📋 Copiar SKU</Text>
+                </TouchableOpacity>
+              </View>
               <TextInput
                 style={[styles.input, isTablet && styles.inputTablet]}
                 value={barcode}
