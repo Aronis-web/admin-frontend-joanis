@@ -1,3 +1,6 @@
+// @ts-ignore
+import { version } from '../../package.json';
+
 export const config = {
   API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080',
   API_TIMEOUT: 30000,
@@ -11,7 +14,7 @@ export const config = {
   SENTRY_DSN: process.env.EXPO_PUBLIC_SENTRY_DSN || '',
   SENTRY_ENABLED: process.env.EXPO_PUBLIC_SENTRY_ENABLED === 'true',
   ENVIRONMENT: process.env.EXPO_PUBLIC_ENVIRONMENT || 'production',
-  APP_VERSION: process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0',
+  APP_VERSION: process.env.EXPO_PUBLIC_APP_VERSION || version || '1.0.0',
   BUILD_NUMBER: process.env.EXPO_PUBLIC_BUILD_NUMBER || '1',
 
   STORAGE_KEYS: {

@@ -126,6 +126,11 @@ class ApiClient {
         requestConfig.headers['X-App-Id'] = appId;
         requestConfig.headers['x-app-id'] = appId; // Also set lowercase for compatibility
 
+        // Add X-App-Version header to all requests (for version control)
+        const appVersion = config.APP_VERSION;
+        console.log('📱 Setting X-App-Version header:', appVersion);
+        requestConfig.headers['X-App-Version'] = appVersion;
+
         // Auto-sync tenant context from stores (prefer tenant store, fallback to auth store)
         const effectiveCompanyId =
           selectedCompany?.id || currentCompany?.id || this.tenantContext.companyId;
@@ -159,6 +164,7 @@ class ApiClient {
           },
           'X-App-Id': requestConfig.headers['X-App-Id'],
           'x-app-id': requestConfig.headers['x-app-id'],
+          'X-App-Version': requestConfig.headers['X-App-Version'],
           'X-Company-Id': requestConfig.headers['X-Company-Id'] || 'None',
           'X-Site-Id': requestConfig.headers['X-Site-Id'] || 'None',
           'X-Warehouse-Id': requestConfig.headers['X-Warehouse-Id'] || 'None',
@@ -420,6 +426,10 @@ class ApiClient {
     const appId = config.APP_ID;
     headers['X-App-Id'] = appId;
     headers['x-app-id'] = appId;
+
+    // Add version header
+    const appVersion = config.APP_VERSION;
+    headers['X-App-Version'] = appVersion;
 
     const effectiveCompanyId =
       selectedCompany?.id || currentCompany?.id || this.tenantContext.companyId;

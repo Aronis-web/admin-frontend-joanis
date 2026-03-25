@@ -16,6 +16,7 @@ import {
  */
 class AuthService {
   private readonly appId = config.APP_ID;
+  private readonly appVersion = config.APP_VERSION;
   private readonly baseUrl = config.API_URL;
   private accessToken: string | null = null;
   private refreshTokenValue: string | null = null;
@@ -37,6 +38,7 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
           'X-App-Id': this.appId,
+          'X-App-Version': this.appVersion,
         },
         body: JSON.stringify({ email, password }),
       });
@@ -59,6 +61,7 @@ class AuthService {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${data.accessToken}`,
                 'X-App-Id': this.appId,
+                'X-App-Version': this.appVersion,
               },
             }
           );
@@ -126,6 +129,7 @@ class AuthService {
 
       const headers: Record<string, string> = {
         'X-App-Id': this.appId,
+        'X-App-Version': this.appVersion,
       };
 
       // For mobile, send refresh token in body
@@ -177,6 +181,7 @@ class AuthService {
         method: 'POST',
         headers: {
           'X-App-Id': this.appId,
+          'X-App-Version': this.appVersion,
         },
       });
     } catch (error) {
@@ -199,6 +204,7 @@ class AuthService {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.accessToken}`,
           'X-App-Id': this.appId,
+          'X-App-Version': this.appVersion,
           ...options.headers,
         },
       });
@@ -214,6 +220,7 @@ class AuthService {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${this.accessToken}`,
               'X-App-Id': this.appId,
+              'X-App-Version': this.appVersion,
               ...options.headers,
             },
           });
