@@ -11,8 +11,8 @@ import {
   useWindowDimensions,
   Image,
   Modal,
-  Clipboard,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { purchasesService } from '@/services/api';
 import { inventoryApi } from '@/services/api/inventory';
@@ -830,9 +830,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 </Text>
                 <TouchableOpacity
                   style={styles.copyButton}
-                  onPress={() => {
+                  onPress={async () => {
                     if (sku.trim()) {
-                      Clipboard.setString(sku);
+                      await Clipboard.setStringAsync(sku);
                       Alert.alert('Copiado', 'SKU copiado al portapapeles');
                     }
                   }}

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import Alert from '@/utils/alert';
-import { View, Text, StyleSheet, TouchableOpacity, PanResponder} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, PanResponder, Platform} from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import ViewShot from 'react-native-view-shot';
 
@@ -43,6 +43,50 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
     setCurrentPath('');
   };
 
+  const captureSignatureAsDataURL = (): string => {
+    // Crear un canvas temporal para convertir el SVG a imagen
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error('No se pudo obtener el contexto del canvas');
+    }
+
+    // Fondo blanco
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Dibujar los paths
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const allPaths = currentPath ? [...paths, currentPath] : paths;
+
+    allPaths.forEach((pathData) => {
+      const commands = pathData.split(/(?=[ML])/);
+      ctx.beginPath();
+
+      commands.forEach((cmd) => {
+        const type = cmd[0];
+        const coords = cmd.slice(1).split(',').map(Number);
+
+        if (type === 'M') {
+          ctx.moveTo(coords[0], coords[1]);
+        } else if (type === 'L') {
+          ctx.lineTo(coords[0], coords[1]);
+        }
+      });
+
+      ctx.stroke();
+    });
+
+    return canvas.toDataURL('image/png');
+  };
+
   const handleConfirm = async () => {
     // Verificar si hay firma (paths guardados o trazo actual)
     const hasSignatureData = paths.length > 0 || currentPath.length > 0;
@@ -61,6 +105,13 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
     }
 
     try {
+      if (Platform.OS === 'web') {
+        // En web, convertir el SVG a data URL
+        const dataURL = captureSignatureAsDataURL();
+        onSignatureCapture(dataURL);
+        return;
+      }
+
       if (viewShotRef.current && viewShotRef.current.capture) {
         const uri = await viewShotRef.current.capture();
         onSignatureCapture(uri);
