@@ -54,7 +54,7 @@ export const googleLensApi = {
   searchByUpload: async (fileUri: string, fileName: string): Promise<GoogleLensSearchResponse> => {
     const formData = new FormData();
 
-    // Create a blob from the file URI
+    // Create a blob from the file URI (local file, no auth needed)
     const response = await fetch(fileUri);
     const blob = await response.blob();
 

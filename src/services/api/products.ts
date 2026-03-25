@@ -665,7 +665,7 @@ export const exampleUsage = {
 
     const headers: Record<string, string> = {
       'X-App-Id': config.APP_ID,
-      'x-app-id': config.APP_ID,
+      'X-App-Version': config.APP_VERSION,
     };
 
     const response = await fetch(`${config.API_URL}/catalog/products?${queryParams}`, {
@@ -683,7 +683,7 @@ export const exampleUsage = {
   async getProduct(id: string): Promise<ProductDetail> {
     const headers: Record<string, string> = {
       'X-App-Id': config.APP_ID,
-      'x-app-id': config.APP_ID,
+      'X-App-Version': config.APP_VERSION,
     };
 
     const response = await fetch(`${config.API_URL}/catalog/products/${id}`, {

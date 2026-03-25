@@ -223,6 +223,7 @@ class RepartosService {
 
     const headers: Record<string, string> = {
       'X-App-Id': config.APP_ID,
+      'X-App-Version': config.APP_VERSION,
       Authorization: `Bearer ${token}`,
     };
 
@@ -235,10 +236,6 @@ class RepartosService {
     if (siteId) {
       headers['X-Site-Id'] = siteId;
     }
-
-    // Add X-App-Id header
-    headers['X-App-Id'] = config.APP_ID;
-    headers['x-app-id'] = config.APP_ID;
 
     // Add timestamp to prevent caching
     const timestamp = new Date().getTime();
@@ -293,6 +290,7 @@ class RepartosService {
 
     const headers: Record<string, string> = {
       'X-App-Id': config.APP_ID,
+      'X-App-Version': config.APP_VERSION,
       Authorization: `Bearer ${token}`,
     };
 
@@ -361,6 +359,7 @@ class RepartosService {
 
     const headers: Record<string, string> = {
       'X-App-Id': config.APP_ID,
+      'X-App-Version': config.APP_VERSION,
       Authorization: `Bearer ${token}`,
     };
 

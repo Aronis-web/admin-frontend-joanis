@@ -287,6 +287,7 @@ export const inventoryApi = {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-App-Id': config.APP_ID,
+      'X-App-Version': config.APP_VERSION,
     };
 
     if (token) {
@@ -311,10 +312,6 @@ export const inventoryApi = {
     if (effectiveWarehouseId) {
       headers['X-Warehouse-Id'] = effectiveWarehouseId;
     }
-
-    // Add X-App-Id header
-    headers['X-App-Id'] = config.APP_ID;
-    headers['x-app-id'] = config.APP_ID;
 
     const response = await fetch(`${baseURL}/admin/inventory/export`, {
       method: 'POST',
@@ -361,6 +358,7 @@ export const inventoryApi = {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-App-Id': config.APP_ID,
+      'X-App-Version': config.APP_VERSION,
     };
 
     if (token) {
@@ -385,10 +383,6 @@ export const inventoryApi = {
     if (effectiveWarehouseId) {
       headers['X-Warehouse-Id'] = effectiveWarehouseId;
     }
-
-    // Add X-App-Id header
-    headers['X-App-Id'] = config.APP_ID;
-    headers['x-app-id'] = config.APP_ID;
 
     const response = await fetch(`${baseURL}/admin/inventory/stock/download-format`, {
       method: 'POST',
