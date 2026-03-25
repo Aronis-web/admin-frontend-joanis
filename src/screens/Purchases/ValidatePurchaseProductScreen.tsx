@@ -1310,15 +1310,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 </Text>
                 <TouchableOpacity
                   style={[styles.copyButton, !sku.trim() && styles.copyButtonDisabled]}
-                  onPress={async () => {
+                  onPress={() => {
                     const skuValue = sku.trim();
                     if (skuValue) {
-                      const success = await copyToClipboard(skuValue);
-                      if (success) {
-                        Alert.alert('Copiado', 'SKU copiado al portapapeles');
-                      } else {
-                        Alert.alert('Error', 'No se pudo copiar el SKU');
-                      }
+                      // Copiar SKU al campo de código de barras
+                      setBarcode(skuValue);
+                      Alert.alert('Copiado', 'SKU copiado al campo de código de barras');
                     } else {
                       Alert.alert('Error', 'No hay SKU para copiar');
                     }
