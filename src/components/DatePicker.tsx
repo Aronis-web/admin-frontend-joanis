@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +31,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   maximumDate,
   title = 'Seleccionar Fecha',
 }) => {
+  const { width } = useWindowDimensions();
+
+  // Calcular el ancho de cada celda para que quepan exactamente 7 columnas
+  // Ancho disponible = ancho de pantalla - padding horizontal (8px * 2)
+  const availableWidth = width - 16;
+  const cellWidth = Math.floor(availableWidth / 7);
+
   // Helper function to safely create a Date from a string or use existing Date
   const safeDate = (d: Date | string): Date => {
     if (typeof d === 'string') {
@@ -253,9 +261,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 <>
                   <View style={styles.weekDays}>
                     {dayNames.map((day) => (
-                      <Text key={day} style={styles.weekDayText}>
-                        {day}
-                      </Text>
+                      <View key={day} style={{ width: cellWidth, alignItems: 'center' }}>
+                        <Text style={styles.weekDayText}>
+                          {day}
+                        </Text>
+                      </View>
                     ))}
                   </View>
                   <ScrollView
@@ -268,6 +278,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                           key={`day-${index}`}
                           style={[
                             styles.dayButton,
+                            { width: cellWidth },
                             isSelected && styles.dayButtonSelected,
                             isDisabled && styles.dayButtonDisabled,
                             isEmpty && styles.dayButtonEmpty,
@@ -509,9 +520,7 @@ const styles = StyleSheet.create({
   },
   weekDays: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     paddingVertical: 8,
-    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
@@ -519,12 +528,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#64748B',
-    width: 40,
-    height: 40,
     textAlign: 'center',
-    textAlignVertical: 'center',
-    lineHeight: 40,
-    margin: 4,
   },
   daysContainer: {
     flex: 1,
@@ -535,15 +539,11 @@ const styles = StyleSheet.create({
   daysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 8,
   },
   dayButton: {
-    width: 40,
-    height: 40,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
-    margin: 4,
   },
   dayButtonSelected: {
     backgroundColor: '#6366F1',
