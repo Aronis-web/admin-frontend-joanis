@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   Image,
   Modal,
+  Clipboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { purchasesService } from '@/services/api';
@@ -425,6 +426,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       return;
     }
 
+    // Validate barcode
+    if (!barcode.trim()) {
+      Alert.alert('Error', 'El código de barras es obligatorio');
+      return;
+    }
+
     // Validate cost
     const costValue = parseFloat(costCents);
     if (isNaN(costValue) || costValue <= 0) {
@@ -817,9 +824,23 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           <>
             {/* SKU */}
             <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                SKU <Text style={styles.required}>*</Text>
-              </Text>
+              <View style={styles.labelWithButton}>
+                <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                  SKU <Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={styles.copyButton}
+                  onPress={() => {
+                    if (sku.trim()) {
+                      Clipboard.setString(sku);
+                      Alert.alert('Copiado', 'SKU copiado al portapapeles');
+                    }
+                  }}
+                  disabled={!sku.trim()}
+                >
+                  <Text style={styles.copyButtonText}>📋 Copiar</Text>
+                </TouchableOpacity>
+              </View>
               <TextInput
                 style={[styles.input, isTablet && styles.inputTablet]}
                 value={sku}
@@ -1245,7 +1266,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
             {/* Barcode */}
             <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>Código de Barras</Text>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                Código de Barras <Text style={styles.required}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, isTablet && styles.inputTablet]}
                 value={barcode}
@@ -1818,6 +1841,23 @@ const styles = StyleSheet.create({
   },
   required: {
     color: '#EF4444',
+  },
+  labelWithButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  copyButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  copyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   input: {
     backgroundColor: '#FFFFFF',
