@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { AUTH_ROUTES } from '@/constants/routes';
+// @ts-ignore
+import { version } from '../../../package.json';
 
 interface LoginScreenProps {
   navigation: any;
@@ -247,6 +249,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
               © 2024 Panel Admin Grit
             </Text>
+            <Text style={[styles.versionText, isTablet && styles.versionTextTablet]}>
+              Versión {version}
+            </Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -408,6 +413,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94A3B8',
     fontWeight: '500',
+  },
+  versionText: {
+    fontSize: 11,
+    color: '#CBD5E1',
+    fontWeight: '400',
+    marginTop: 4,
+  },
+  versionTextTablet: {
+    fontSize: 13,
   },
   // Tablet-specific styles
   contentTablet: {

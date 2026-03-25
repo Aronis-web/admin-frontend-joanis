@@ -3,7 +3,7 @@
     "name": "PanelAdminGrit",
     "slug": "panel-admin-grit",
     "scheme": "panel-admin-grit",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/icon.png",
