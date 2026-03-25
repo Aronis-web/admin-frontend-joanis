@@ -247,7 +247,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
           <View style={styles.footer}>
             <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
-              © 2024 Panel Admin Grit
+              © 2024 ERP-aio
             </Text>
             <Text style={[styles.versionText, isTablet && styles.versionTextTablet]}>
               Versión {version}

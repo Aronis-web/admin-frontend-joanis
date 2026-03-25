@@ -143,9 +143,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ text = 'Iniciando ap
 
         {/* App name */}
         <View style={styles.appNameContainer}>
-          <Text style={styles.appName}>PANEL ADMIN</Text>
+          <Text style={styles.appName}>ERP</Text>
           <View style={styles.divider} />
-          <Text style={styles.appNameHighlight}>GRIT</Text>
+          <Text style={styles.appNameHighlight}>AIO</Text>
         </View>
 
         {/* Loading dots */}

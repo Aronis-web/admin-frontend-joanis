@@ -1,6 +1,6 @@
 {
-  "appId": "com.paneladmin.grit",
-  "productName": "Panel Admin Grit",
+  "appId": "com.erpaio.app",
+  "productName": "ERP-aio",
   "forceCodeSigning": false,
   "directories": {
     "buildResources": "electron/build",

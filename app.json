@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "PanelAdminGrit",
-    "slug": "panel-admin-grit",
-    "scheme": "panel-admin-grit",
+    "name": "ERP-aio",
+    "slug": "erp-aio",
+    "scheme": "erp-aio",
     "version": "1.0.2",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
@@ -20,13 +20,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.paneladmin.grit",
+      "bundleIdentifier": "com.erpaio.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Esta app necesita acceso a tu ubicación para seleccionar la sede en el mapa."
       }
     },
     "android": {
-      "package": "com.paneladmin.grit",
+      "package": "com.erpaio.app",
       "icon": "./assets/logo.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",

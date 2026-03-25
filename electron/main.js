@@ -69,7 +69,7 @@ function createWindow() {
       // preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, 'build/icon.png'),
-    title: 'Panel Admin Grit',
+    title: 'ERP-aio',
     backgroundColor: '#ffffff',
     show: false // Don't show until ready
   });
