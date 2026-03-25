@@ -43,32 +43,51 @@ interface ValidatePurchaseProductScreenProps {
 
 // Helper function to copy text to clipboard
 const copyToClipboard = async (text: string): Promise<boolean> => {
+  console.log('🔍 Attempting to copy text:', text);
+  console.log('🔍 Platform:', Platform.OS);
+
   try {
     if (Platform.OS === 'web') {
+      console.log('🌐 Using web clipboard API');
+
       // Use native browser API for web
       if (navigator.clipboard && navigator.clipboard.writeText) {
+        console.log('✅ navigator.clipboard available');
         await navigator.clipboard.writeText(text);
+        console.log('✅ Text copied successfully via navigator.clipboard');
         return true;
       } else {
+        console.log('⚠️ navigator.clipboard not available, using fallback');
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
         textArea.value = text;
         textArea.style.position = 'fixed';
         textArea.style.left = '-999999px';
+        textArea.style.top = '0';
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        const successful = document.execCommand('copy');
-        document.body.removeChild(textArea);
-        return successful;
+
+        try {
+          const successful = document.execCommand('copy');
+          console.log('📋 execCommand result:', successful);
+          document.body.removeChild(textArea);
+          return successful;
+        } catch (err) {
+          console.error('❌ execCommand failed:', err);
+          document.body.removeChild(textArea);
+          return false;
+        }
       }
     } else {
+      console.log('📱 Using expo-clipboard for mobile');
       // Use expo-clipboard for mobile
       await Clipboard.setStringAsync(text);
+      console.log('✅ Text copied successfully via expo-clipboard');
       return true;
     }
   } catch (error) {
-    console.error('Error copying to clipboard:', error);
+    console.error('❌ Error copying to clipboard:', error);
     return false;
   }
 };
