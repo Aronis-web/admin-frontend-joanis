@@ -41,6 +41,10 @@
     <receiver android:name=".DashboardWidgetProvider" android:exported="true">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+        <action android:name="com.paneladmin.grit.FILTER_TODAY"/>
+        <action android:name="com.paneladmin.grit.FILTER_YESTERDAY"/>
+        <action android:name="com.paneladmin.grit.FILTER_WEEK"/>
+        <action android:name="com.paneladmin.grit.FILTER_MONTH"/>
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/dashboard_widget_info"/>
     </receiver>

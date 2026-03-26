@@ -6,11 +6,13 @@ Widget nativo de Android que muestra el resumen de ventas y compras del día ant
 
 ## ✨ Características
 
-- 📊 Muestra ventas y compras del día anterior
+- 📊 **Métricas completas**: Ventas Brutas, Notas de Crédito, Ventas Netas, Compras, Prosegur, Izipay y Top Proveedor
+- 🔘 **Filtros interactivos**: Hoy, Ayer, Esta Semana, Este Mes
 - 🔄 Se actualiza automáticamente cada 30 minutos
 - 📅 Fecha por defecto: Ayer
 - 🎨 Diseño moderno con colores del dashboard
-- 👆 Al tocar el widget, abre la aplicación
+- 👆 Al tocar el título, abre la aplicación
+- 💾 Guarda el filtro seleccionado entre actualizaciones
 
 ## 🚀 Instalación
 
@@ -51,29 +53,30 @@ adb install android/app/build/outputs/apk/release/app-release.apk
 El widget muestra:
 
 ```
-┌─────────────────────────┐
-│ 📊 Dashboard            │
-│ Ayer - 20/12/2024       │
-│                         │
-│ ┌─────────────────────┐ │
-│ │ 💰 Ventas           │ │
-│ │ S/ 0.00             │ │
-│ └─────────────────────┘ │
-│                         │
-│ ┌─────────────────────┐ │
-│ │ 🛒 Compras          │ │
-│ │ S/ 0.00             │ │
-│ └─────────────────────┘ │
-│                         │
-│ Toca para abrir la app  │
-└─────────────────────────┘
+┌─────────────────────────────────┐
+│ 📊 ERP-aio      Ayer - 20/12/24 │
+├─────────────────────────────────┤
+│ [Hoy] [Ayer] [Semana] [Mes]    │ ← Filtros interactivos
+├─────────────────────────────────┤
+│ 💵 Ventas Brutas │ 📝 N. Crédito│
+│ S/ 15,234.50     │ S/ 1,200.00  │
+├─────────────────────────────────┤
+│ ✅ Ventas Netas  │ 🛒 Compras   │
+│ S/ 14,034.50     │ S/ 8,450.00  │
+├─────────────────────────────────┤
+│ 🏦 Prosegur      │ 💳 Izipay    │
+│ S/ 12,034.50     │ S/ 3,200.00  │
+├─────────────────────────────────┤
+│ 🏆 Top Proveedor                │
+│ Proveedor ABC - S/ 2,500.00     │
+└─────────────────────────────────┘
 ```
 
 ## 🔧 Configuración
 
 ### Tamaño mínimo del widget
-- **Ancho**: 250dp (aproximadamente 4 columnas)
-- **Alto**: 180dp (aproximadamente 2 filas)
+- **Ancho**: 320dp (aproximadamente 4 columnas)
+- **Alto**: 380dp (aproximadamente 5 filas)
 
 ### Frecuencia de actualización
 - **Automática**: Cada 30 minutos (1800000 ms)
