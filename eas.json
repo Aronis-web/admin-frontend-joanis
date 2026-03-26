@@ -31,13 +31,17 @@
     "production": {
       "autoIncrement": true,
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:clean :app:assembleRelease"
       },
       "env": {
         "EXPO_PUBLIC_ENV": "production",
         "EAS_BUILD_DISABLE_NPM_CACHE": "1",
         "EAS_NO_FROZEN_LOCKFILE": "1",
         "NPM_CONFIG_REGISTRY": "https://registry.npmjs.org/"
+      },
+      "cache": {
+        "disabled": true
       }
     }
   },
