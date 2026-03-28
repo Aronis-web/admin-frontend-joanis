@@ -1,11 +1,13 @@
+/**
+ * ValidacionSalidaModal - Modal de validación de salida
+ * Migrado al Design System unificado
+ */
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   Alert,
   Image,
@@ -16,6 +18,19 @@ import { SignatureCapture } from './SignatureCapture';
 import { filesApi } from '@/services/api/files';
 import logger from '@/utils/logger';
 import { ImageViewerModal } from '@/components/Expenses/ImageViewerModal';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  Title,
+  Body,
+  Label,
+  Caption,
+  Button,
+  Input,
+  Card,
+} from '@/design-system';
 
 interface PresentationInfo {
   hasPresentations: boolean;
@@ -380,21 +395,25 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.modalTitle}>Validar Salida de Producto</Text>
+            <Title style={styles.modalTitle}>Validar Salida de Producto</Title>
 
             {/* Product Info */}
             <View style={styles.productInfo}>
-              <Text style={styles.productName}>{producto.product?.title}</Text>
-              <Text style={styles.productSku}>{producto.product?.sku}</Text>
-              <Text style={styles.productQuantity}>
+              <Body weight="semibold" style={{ marginBottom: spacing[1] }}>
+                {producto.product?.title}
+              </Body>
+              <Caption color="secondary" style={{ marginBottom: spacing[1] }}>
+                {producto.product?.sku}
+              </Caption>
+              <Body color="secondary" size="sm">
                 Cantidad asignada: {producto.quantityAssigned || producto.quantityBase} unidades
-              </Text>
+              </Body>
             </View>
 
             {/* Product Photo */}
             {producto.product?.photos && producto.product.photos.length > 0 && (
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Foto del Producto</Text>
+                <Label style={{ marginBottom: spacing[2] }}>Foto del Producto</Label>
                 <TouchableOpacity
                   style={styles.productPhotoContainer}
                   onPress={() => {
@@ -417,7 +436,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
             {/* Presentation Toggle */}
             {hasPresentations && (
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Modo de Validación</Text>
+                <Label style={{ marginBottom: spacing[2] }}>Modo de Validación</Label>
                 <View style={styles.presentationToggle}>
                   <TouchableOpacity
                     style={[styles.toggleOption, !usePresentation && styles.toggleOptionActive]}
@@ -428,9 +447,13 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                       setValidatedQuantity(assignedQty.toString());
                     }}
                   >
-                    <Text style={[styles.toggleText, !usePresentation && styles.toggleTextActive]}>
+                    <Body
+                      size="sm"
+                      weight={!usePresentation ? 'semibold' : 'medium'}
+                      style={{ color: !usePresentation ? colors.primary.main : colors.text.secondary }}
+                    >
                       Por Unidad
-                    </Text>
+                    </Body>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.toggleOption, usePresentation && styles.toggleOptionActive]}
@@ -444,9 +467,13 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                       }
                     }}
                   >
-                    <Text style={[styles.toggleText, usePresentation && styles.toggleTextActive]}>
+                    <Body
+                      size="sm"
+                      weight={usePresentation ? 'semibold' : 'medium'}
+                      style={{ color: usePresentation ? colors.primary.main : colors.text.secondary }}
+                    >
                       Por Presentación
-                    </Text>
+                    </Body>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -455,7 +482,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
             {/* Presentation Selector */}
             {hasPresentations && usePresentation && (
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Selecciona Presentación *</Text>
+                <Label style={{ marginBottom: spacing[2] }}>Selecciona Presentación *</Label>
                 <View style={styles.presentationOptions}>
                   {producto.product!.presentations!.map((pres) => (
                     <TouchableOpacity
@@ -468,18 +495,20 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                       onPress={() => handlePresentationChange(pres.presentationId)}
                     >
                       <View style={styles.presentationOptionContent}>
-                        <Text
-                          style={[
-                            styles.presentationOptionLabel,
-                            selectedPresentationId === pres.presentationId &&
-                              styles.presentationOptionLabelSelected,
-                          ]}
+                        <Body
+                          size="sm"
+                          weight="semibold"
+                          style={{
+                            color: selectedPresentationId === pres.presentationId
+                              ? colors.primary.main
+                              : colors.text.secondary
+                          }}
                         >
                           {pres.presentation.code} - {pres.presentation.name}
-                        </Text>
-                        <Text style={styles.presentationOptionFactor}>
+                        </Body>
+                        <Caption color="tertiary">
                           1 {pres.presentation.name} = {pres.factorToBase} unidades
-                        </Text>
+                        </Caption>
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -489,33 +518,32 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
             {/* Validated Quantity */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>
+              <Label style={{ marginBottom: spacing[2] }}>
                 Cantidad Validada{' '}
                 {usePresentation && selectedPresentation
                   ? `(en ${selectedPresentation.presentation.name})`
                   : '(en unidades)'}{' '}
                 *
-              </Text>
-              <TextInput
-                style={styles.input}
+              </Label>
+              <Input
                 value={validatedQuantity}
                 onChangeText={handleQuantityChange}
                 keyboardType="numeric"
                 placeholder="Cantidad entregada"
               />
               {usePresentation && selectedPresentation && validatedQuantity && (
-                <Text style={styles.conversionHint}>
+                <Caption style={{ color: colors.primary.main, marginTop: spacing[1] }}>
                   ≈ {getQuantityInBase().toFixed(2)} unidades base
-                </Text>
+                </Caption>
               )}
-              <Text style={styles.inputHint}>
+              <Caption color="tertiary" style={{ marginTop: spacing[1] }}>
                 Ingresa la cantidad real entregada
-              </Text>
+              </Caption>
             </View>
 
             {/* Photo */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Foto de Validación *</Text>
+              <Label style={{ marginBottom: spacing[2] }}>Foto de Validación *</Label>
               {photoUri ? (
                 <View style={styles.capturedContainer}>
                   <Image
@@ -528,7 +556,9 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                     console.log('🔄 Retaking photo...');
                     setStep('photo');
                   }}>
-                    <Text style={styles.recaptureButtonText}>📷 Cambiar Foto</Text>
+                    <Body size="sm" weight="semibold" style={{ color: colors.text.inverse }}>
+                      📷 Cambiar Foto
+                    </Body>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -536,15 +566,17 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                   console.log('📸 Opening photo capture...');
                   setStep('photo');
                 }}>
-                  <Text style={styles.captureButtonIcon}>📷</Text>
-                  <Text style={styles.captureButtonText}>Tomar Foto de Validación</Text>
+                  <Body style={styles.captureButtonIcon}>📷</Body>
+                  <Body size="sm" weight="semibold" style={{ color: colors.primary.main }}>
+                    Tomar Foto de Validación
+                  </Body>
                 </TouchableOpacity>
               )}
               {/* Debug info */}
               {__DEV__ && (
-                <Text style={{ fontSize: 10, color: '#999', marginTop: 4 }}>
+                <Caption color="tertiary" style={{ marginTop: spacing[1] }}>
                   Photo URI: {photoUri ? 'Set ✓' : 'Not set ✗'}
-                </Text>
+                </Caption>
               )}
             </View>
 
@@ -552,7 +584,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
             {/* Signature */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Firma del Supervisor *</Text>
+              <Label style={{ marginBottom: spacing[2] }}>Firma del Supervisor *</Label>
               {signatureUri ? (
                 <View style={styles.capturedContainer}>
                   <Image source={{ uri: signatureUri }} style={styles.capturedSignature} />
@@ -560,53 +592,51 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                     style={styles.recaptureButton}
                     onPress={() => setStep('signature')}
                   >
-                    <Text style={styles.recaptureButtonText}>✍️ Cambiar Firma</Text>
+                    <Body size="sm" weight="semibold" style={{ color: colors.text.inverse }}>
+                      ✍️ Cambiar Firma
+                    </Body>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity style={styles.captureButton} onPress={() => setStep('signature')}>
-                  <Text style={styles.captureButtonIcon}>✍️</Text>
-                  <Text style={styles.captureButtonText}>Capturar Firma</Text>
+                  <Body style={styles.captureButtonIcon}>✍️</Body>
+                  <Body size="sm" weight="semibold" style={{ color: colors.primary.main }}>
+                    Capturar Firma
+                  </Body>
                 </TouchableOpacity>
               )}
             </View>
 
             {/* Notes */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Notas (opcional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
+              <Label style={{ marginBottom: spacing[2] }}>Notas (opcional)</Label>
+              <Input
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Observaciones sobre la entrega"
-                keyboardType="default"
                 multiline
                 numberOfLines={3}
+                style={styles.textArea}
               />
             </View>
 
             {/* Actions */}
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonCancel]}
+              <Button
+                title="Cancelar"
+                variant="outline"
                 onPress={onClose}
                 disabled={loading}
-              >
-                <Text style={styles.modalButtonTextCancel}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  styles.modalButtonConfirm,
-                  loading && styles.buttonDisabled,
-                ]}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title={loading ? 'Validando...' : 'Validar Salida'}
+                variant="primary"
                 onPress={handleValidate}
                 disabled={loading}
-              >
-                <Text style={styles.modalButtonTextConfirm}>
-                  {loading ? 'Validando...' : 'Validar Salida'}
-                </Text>
-              </TouchableOpacity>
+                loading={loading}
+                style={{ flex: 1 }}
+              />
             </View>
           </ScrollView>
         </View>
@@ -631,66 +661,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[6],
     width: '100%',
     maxWidth: 600,
     maxHeight: '90%',
   },
   modalContentTablet: {
-    padding: 32,
+    padding: spacing[8],
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: 20,
+    marginBottom: spacing[5],
     textAlign: 'center',
   },
   productInfo: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 20,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  productSku: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  productQuantity: {
-    fontSize: 14,
-    color: '#475569',
-    fontWeight: '500',
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    marginBottom: spacing[5],
   },
   inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
+    marginBottom: spacing[5],
   },
   textArea: {
     minHeight: 80,
@@ -698,33 +693,33 @@ const styles = StyleSheet.create({
   },
   inputHint: {
     fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 4,
+    color: colors.text.tertiary,
+    marginTop: spacing[1],
   },
   captureButton: {
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.light,
     borderStyle: 'dashed',
-    borderRadius: 8,
-    paddingVertical: 32,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing[8],
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   captureButtonIcon: {
     fontSize: 48,
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   captureButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366F1',
+    color: colors.primary.main,
   },
   capturedContainer: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   capturedPhoto: {
     width: '100%',
@@ -735,44 +730,44 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 150,
     resizeMode: 'contain',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.primary,
   },
   recaptureButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
+    backgroundColor: colors.primary.main,
+    paddingVertical: spacing[3],
     alignItems: 'center',
   },
   recaptureButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text.inverse,
   },
   modalActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    gap: spacing[3],
+    marginTop: spacing[2],
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: spacing[3.5],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   modalButtonCancel: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.background.secondary,
   },
   modalButtonConfirm: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.primary.main,
   },
   modalButtonTextCancel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.text.secondary,
   },
   modalButtonTextConfirm: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text.inverse,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -780,78 +775,74 @@ const styles = StyleSheet.create({
   // Presentation Toggle Styles
   presentationToggle: {
     flexDirection: 'row',
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    padding: 4,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background.secondary,
+    padding: spacing[1],
   },
   toggleOption: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.md,
     alignItems: 'center',
   },
   toggleOptionActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: colors.background.primary,
+    ...shadows.sm,
   },
   toggleText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#64748B',
+    color: colors.text.secondary,
   },
   toggleTextActive: {
-    color: '#6366F1',
+    color: colors.primary.main,
     fontWeight: '600',
   },
   // Presentation Options Styles
   presentationOptions: {
-    gap: 8,
+    gap: spacing[2],
   },
   presentationOption: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    backgroundColor: colors.background.primary,
   },
   presentationOptionSelected: {
-    borderColor: '#6366F1',
+    borderColor: colors.primary.main,
     borderWidth: 2,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.primary.lighter,
   },
   presentationOptionContent: {
-    gap: 4,
+    gap: spacing[1],
   },
   presentationOptionLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.text.secondary,
   },
   presentationOptionLabelSelected: {
-    color: '#6366F1',
+    color: colors.primary.main,
   },
   presentationOptionFactor: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.text.tertiary,
   },
   conversionHint: {
     fontSize: 13,
-    color: '#6366F1',
-    marginTop: 4,
+    color: colors.primary.main,
+    marginTop: spacing[1],
     fontWeight: '500',
   },
   // Product Photo Styles
   productPhotoContainer: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   ScrollView,
@@ -15,6 +14,25 @@ import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Label,
+  Button,
+  Card,
+  IconButton,
+  Badge,
+} from '@/design-system/components';
 
 interface StockAdjustmentModalProps {
   visible: boolean;
@@ -230,244 +248,243 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Ajustar Stock</Text>
-          <View style={styles.closeButton} />
+          <IconButton
+            icon="close"
+            onPress={onClose}
+            variant="ghost"
+            size="medium"
+          />
+          <Title size="medium">Ajustar Stock</Title>
+          <View style={{ width: 44 }} />
         </View>
 
-        <ScrollView style={styles.content}>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Product Info */}
           {productTitle && (
             <View style={styles.productInfo}>
-              <Text style={styles.productTitle}>{productTitle}</Text>
-              {productSku && <Text style={styles.productSku}>SKU: {productSku}</Text>}
+              <Title size="small">{productTitle}</Title>
+              {productSku && <Caption color="secondary">SKU: {productSku}</Caption>}
             </View>
           )}
 
           {/* Form */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Información del Ajuste</Text>
+          <Card variant="outlined" padding="medium" style={styles.section}>
+            <Title size="small" style={styles.sectionTitle}>Información del Ajuste</Title>
 
             {!productId && (
               <View style={styles.formGroup}>
-                <Text style={styles.label}>
-                  ID del Producto <Text style={styles.required}>*</Text>
-                </Text>
+                <Label size="medium" color="secondary">
+                  ID del Producto <Text variant="labelMedium" color={colors.danger[500]}>*</Text>
+                </Label>
                 <TextInput
                   style={styles.input}
                   value={formData.productId}
                   onChangeText={(text) => setFormData({ ...formData, productId: text })}
                   placeholder="UUID del producto"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.text.placeholder}
                 />
               </View>
             )}
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>
-                Almacén <Text style={styles.required}>*</Text>
-              </Text>
+              <Label size="medium" color="secondary">
+                Almacén <Text variant="labelMedium" color={colors.danger[500]}>*</Text>
+              </Label>
               {loadingWarehouses ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#3B82F6" />
-                  <Text style={styles.loadingText}>Cargando almacenes...</Text>
+                  <ActivityIndicator size="small" color={colors.primary[900]} />
+                  <Body size="small" color="secondary">Cargando almacenes...</Body>
                 </View>
               ) : (
                 <>
-                  <View style={styles.pickerContainer}>
-                    <TouchableOpacity
-                      style={styles.picker}
-                      onPress={() => {
-                        if (warehouses.length === 0) {
-                          Alert.alert(
-                            'Sin almacenes',
-                            'No hay almacenes disponibles. Por favor, crea uno primero.'
-                          );
-                          return;
-                        }
+                  <TouchableOpacity
+                    style={styles.picker}
+                    onPress={() => {
+                      if (warehouses.length === 0) {
+                        Alert.alert(
+                          'Sin almacenes',
+                          'No hay almacenes disponibles. Por favor, crea uno primero.'
+                        );
+                        return;
+                      }
 
-                        const options = warehouses.map((w) => ({
-                          text: `${w.name} (${w.code})`,
-                          onPress: () =>
-                            setFormData({ ...formData, warehouseId: w.id, areaId: '' }),
-                        }));
+                      const options = warehouses.map((w) => ({
+                        text: `${w.name} (${w.code})`,
+                        onPress: () =>
+                          setFormData({ ...formData, warehouseId: w.id, areaId: '' }),
+                      }));
 
-                        Alert.alert('Seleccionar Almacén', '', [
-                          ...options,
-                          { text: 'Cancelar', style: 'cancel' },
-                        ]);
-                      }}
-                    >
-                      <Text style={styles.pickerText}>
-                        {formData.warehouseId
-                          ? (() => {
-                              const selected = warehouses.find(
-                                (w) => w.id === formData.warehouseId
-                              );
-                              return selected
-                                ? `${selected.name} (${selected.code})`
-                                : 'Seleccionar almacén...';
-                            })()
-                          : 'Seleccionar almacén...'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.helpText}>
+                      Alert.alert('Seleccionar Almacén', '', [
+                        ...options,
+                        { text: 'Cancelar', style: 'cancel' },
+                      ]);
+                    }}
+                  >
+                    <Body size="medium" color={formData.warehouseId ? 'primary' : 'tertiary'}>
+                      {formData.warehouseId
+                        ? (() => {
+                            const selected = warehouses.find(
+                              (w) => w.id === formData.warehouseId
+                            );
+                            return selected
+                              ? `${selected.name} (${selected.code})`
+                              : 'Seleccionar almacén...';
+                          })()
+                        : 'Seleccionar almacén...'}
+                    </Body>
+                  </TouchableOpacity>
+                  <Caption color="tertiary" style={styles.helpText}>
                     {warehouses.length > 0
                       ? `${warehouses.length} almacén(es) disponible(s)`
                       : 'No hay almacenes disponibles'}
-                  </Text>
+                  </Caption>
                 </>
               )}
             </View>
 
             {formData.warehouseId && (
               <View style={styles.formGroup}>
-                <Text style={styles.label}>
-                  Área <Text style={styles.required}>*</Text>
-                </Text>
+                <Label size="medium" color="secondary">
+                  Área <Text variant="labelMedium" color={colors.danger[500]}>*</Text>
+                </Label>
                 {loadingAreas ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#3B82F6" />
-                    <Text style={styles.loadingText}>Cargando áreas...</Text>
+                    <ActivityIndicator size="small" color={colors.primary[900]} />
+                    <Body size="small" color="secondary">Cargando áreas...</Body>
                   </View>
                 ) : (
                   <>
-                    <View style={styles.pickerContainer}>
-                      <TouchableOpacity
-                        style={styles.picker}
-                        onPress={() => {
-                          if (availableAreas.length === 0) {
-                            Alert.alert('Sin áreas', 'Este almacén no tiene áreas configuradas.');
-                            return;
-                          }
+                    <TouchableOpacity
+                      style={styles.picker}
+                      onPress={() => {
+                        if (availableAreas.length === 0) {
+                          Alert.alert('Sin áreas', 'Este almacén no tiene áreas configuradas.');
+                          return;
+                        }
 
-                          const options = availableAreas.map((a) => ({
-                            text: a.name || a.code || `Área ${a.id.substring(0, 8)}`,
-                            onPress: () => setFormData({ ...formData, areaId: a.id }),
-                          }));
+                        const options = availableAreas.map((a) => ({
+                          text: a.name || a.code || `Área ${a.id.substring(0, 8)}`,
+                          onPress: () => setFormData({ ...formData, areaId: a.id }),
+                        }));
 
-                          Alert.alert('Seleccionar Área', '', [
-                            ...options,
-                            { text: 'Cancelar', style: 'cancel' },
-                          ]);
-                        }}
-                      >
-                        <Text style={styles.pickerText}>
-                          {formData.areaId
-                            ? (() => {
-                                const selected = availableAreas.find(
-                                  (a) => a.id === formData.areaId
-                                );
-                                return selected
-                                  ? selected.name ||
-                                      selected.code ||
-                                      `Área ${selected.id.substring(0, 8)}`
-                                  : 'Seleccionar área...';
-                              })()
-                            : 'Seleccionar área...'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    <Text style={styles.helpText}>
+                        Alert.alert('Seleccionar Área', '', [
+                          ...options,
+                          { text: 'Cancelar', style: 'cancel' },
+                        ]);
+                      }}
+                    >
+                      <Body size="medium" color={formData.areaId ? 'primary' : 'tertiary'}>
+                        {formData.areaId
+                          ? (() => {
+                              const selected = availableAreas.find(
+                                (a) => a.id === formData.areaId
+                              );
+                              return selected
+                                ? selected.name ||
+                                    selected.code ||
+                                    `Área ${selected.id.substring(0, 8)}`
+                                : 'Seleccionar área...';
+                            })()
+                          : 'Seleccionar área...'}
+                      </Body>
+                    </TouchableOpacity>
+                    <Caption color="tertiary" style={styles.helpText}>
                       {availableAreas.length > 0
                         ? `${availableAreas.length} área(s) disponible(s)`
                         : 'Este almacén no tiene áreas'}
-                    </Text>
+                    </Caption>
                   </>
                 )}
               </View>
             )}
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>
-                Cantidad (Unidades Base) <Text style={styles.required}>*</Text>
-              </Text>
+              <Label size="medium" color="secondary">
+                Cantidad (Unidades Base) <Text variant="labelMedium" color={colors.danger[500]}>*</Text>
+              </Label>
               <TextInput
                 style={styles.input}
                 value={formData.deltaBase}
                 onChangeText={(text) => setFormData({ ...formData, deltaBase: text })}
                 placeholder="Ej: 100 (positivo) o -50 (negativo)"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.text.placeholder}
                 keyboardType="numeric"
               />
-              <Text style={styles.helpText}>
+              <Caption color="tertiary" style={styles.helpText}>
                 Usa números positivos para aumentar stock y negativos para disminuir
-              </Text>
+              </Caption>
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>
-                Razón del Ajuste <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={styles.pickerContainer}>
-                <TouchableOpacity
-                  style={styles.picker}
-                  onPress={() => {
-                    const reasons: StockAdjustmentReason[] = [
-                      'PURCHASE',
-                      'SALE',
-                      'ADJUST',
-                      'TRANSFER',
-                    ];
+              <Label size="medium" color="secondary">
+                Razón del Ajuste <Text variant="labelMedium" color={colors.danger[500]}>*</Text>
+              </Label>
+              <TouchableOpacity
+                style={styles.picker}
+                onPress={() => {
+                  const reasons: StockAdjustmentReason[] = [
+                    'PURCHASE',
+                    'SALE',
+                    'ADJUST',
+                    'TRANSFER',
+                  ];
 
-                    const options = reasons.map((reason) => ({
-                      text: getReasonLabel(reason),
-                      onPress: () => setFormData({ ...formData, reason }),
-                    }));
+                  const options = reasons.map((reason) => ({
+                    text: getReasonLabel(reason),
+                    onPress: () => setFormData({ ...formData, reason }),
+                  }));
 
-                    Alert.alert('Seleccionar Razón', '', [
-                      ...options,
-                      { text: 'Cancelar', style: 'cancel' },
-                    ]);
-                  }}
-                >
-                  <Text style={styles.pickerText}>{getReasonLabel(formData.reason)}</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.helpText}>
+                  Alert.alert('Seleccionar Razón', '', [
+                    ...options,
+                    { text: 'Cancelar', style: 'cancel' },
+                  ]);
+                }}
+              >
+                <Body size="medium" color="primary">{getReasonLabel(formData.reason)}</Body>
+              </TouchableOpacity>
+              <Caption color="tertiary" style={styles.helpText}>
                 {formData.reason === 'PURCHASE' && 'Entrada de mercadería por compra'}
                 {formData.reason === 'SALE' && 'Salida de mercadería por venta'}
                 {formData.reason === 'ADJUST' && 'Ajuste manual o inventario físico'}
                 {formData.reason === 'TRANSFER' && 'Transferencia entre bodegas'}
-              </Text>
+              </Caption>
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>ID de Operación (Opcional)</Text>
+              <Label size="medium" color="secondary">ID de Operación (Opcional)</Label>
               <TextInput
                 style={styles.input}
                 value={formData.clientOperationId}
                 onChangeText={(text) => setFormData({ ...formData, clientOperationId: text })}
                 placeholder="COMPRA-2024-001"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.text.placeholder}
               />
-              <Text style={styles.helpText}>Para idempotencia y trazabilidad de la operación</Text>
+              <Caption color="tertiary" style={styles.helpText}>
+                Para idempotencia y trazabilidad de la operación
+              </Caption>
             </View>
-          </View>
+          </Card>
 
           {/* Summary */}
-          <View style={styles.summarySection}>
-            <Text style={styles.sectionTitle}>Resumen</Text>
+          <Card variant="filled" padding="medium" style={styles.summarySection}>
+            <Title size="small" style={styles.sectionTitle}>Resumen</Title>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Producto:</Text>
-              <Text style={styles.summaryValue}>
+              <Body size="small" color="secondary">Producto:</Body>
+              <Body size="small" color="primary" style={styles.summaryValue}>
                 {productTitle || formData.productId || 'No especificado'}
-              </Text>
+              </Body>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Almacén:</Text>
-              <Text style={styles.summaryValue}>
+              <Body size="small" color="secondary">Almacén:</Body>
+              <Body size="small" color="primary" style={styles.summaryValue}>
                 {formData.warehouseId
                   ? warehouses.find((w) => w.id === formData.warehouseId)?.name || 'Seleccionado'
                   : 'No seleccionado'}
-              </Text>
+              </Body>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Área:</Text>
-              <Text style={styles.summaryValue}>
+              <Body size="small" color="secondary">Área:</Body>
+              <Body size="small" color="primary" style={styles.summaryValue}>
                 {formData.areaId
                   ? (() => {
                       const selected = availableAreas.find((a) => a.id === formData.areaId);
@@ -476,18 +493,14 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                         : 'Seleccionada';
                     })()
                   : 'No seleccionada'}
-              </Text>
+              </Body>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Ajuste:</Text>
+              <Body size="small" color="secondary">Ajuste:</Body>
               <Text
-                style={[
-                  styles.summaryValue,
-                  styles.summaryAdjustment,
-                  parseFloat(formData.deltaBase) > 0
-                    ? styles.summaryPositive
-                    : styles.summaryNegative,
-                ]}
+                variant="titleSmall"
+                color={parseFloat(formData.deltaBase) > 0 ? colors.success[600] : colors.danger[600]}
+                style={styles.summaryValue}
               >
                 {formData.deltaBase
                   ? `${parseFloat(formData.deltaBase) > 0 ? '+' : ''}${formData.deltaBase} unidades`
@@ -495,34 +508,34 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
               </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Razón:</Text>
-              <Text style={styles.summaryValue}>{getReasonLabel(formData.reason)}</Text>
+              <Body size="small" color="secondary">Razón:</Body>
+              <Body size="small" color="primary" style={styles.summaryValue}>
+                {getReasonLabel(formData.reason)}
+              </Body>
             </View>
-          </View>
+          </Card>
         </ScrollView>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.button, styles.cancelButton]}
+          <Button
+            title="Cancelar"
+            variant="secondary"
             onPress={() => {
               onClose();
               resetForm();
             }}
             disabled={loading}
-          >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.submitButton, loading && styles.buttonDisabled]}
+            style={{ flex: 1 }}
+          />
+          <Button
+            title={loading ? 'Ajustando...' : 'Ajustar Stock'}
+            variant="success"
             onPress={handleSubmit}
             disabled={loading}
-          >
-            <Text style={styles.submitButtonText}>
-              {loading ? 'Ajustando...' : 'Ajustar Stock'}
-            </Text>
-          </TouchableOpacity>
+            loading={loading}
+            style={{ flex: 1 }}
+          />
         </View>
       </View>
     </Modal>
@@ -532,189 +545,94 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#1E293B',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
+    borderBottomColor: colors.border.light,
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: spacing[4],
   },
   productInfo: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.accent[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  productTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  productSku: {
-    fontSize: 13,
-    color: '#64748B',
+    borderColor: colors.accent[200],
   },
   section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#475569',
-    marginBottom: 8,
-  },
-  required: {
-    color: '#EF4444',
+    marginBottom: spacing[4],
   },
   input: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: colors.surface.secondary,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2.5],
     fontSize: 15,
-    color: '#1E293B',
-  },
-  pickerContainer: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    color: colors.text.primary,
+    marginTop: spacing[2],
   },
   picker: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: '#1F2937',
-  },
-  pickerText: {
-    fontSize: 15,
-    color: '#1E293B',
+    backgroundColor: colors.surface.secondary,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[3],
+    marginTop: spacing[2],
   },
   helpText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
+    marginTop: spacing[1],
   },
   summarySection: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    marginBottom: spacing[4],
+    backgroundColor: colors.success[50],
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: colors.success[200],
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
+    alignItems: 'center',
+    marginBottom: spacing[2],
   },
   summaryValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
     flex: 1,
     textAlign: 'right',
   },
-  summaryAdjustment: {
-    fontSize: 16,
-  },
-  summaryPositive: {
-    color: '#10B981',
-  },
-  summaryNegative: {
-    color: '#EF4444',
-  },
   footer: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    gap: spacing[3],
+    padding: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#F1F5F9',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  submitButton: {
-    backgroundColor: '#10B981',
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
+    borderTopColor: colors.border.light,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#64748B',
+    padding: spacing[3],
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.md,
+    gap: spacing[2],
+    marginTop: spacing[2],
   },
 });
 

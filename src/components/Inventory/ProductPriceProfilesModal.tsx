@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   ScrollView,
@@ -13,6 +12,24 @@ import {
 import { priceProfilesApi } from '@/services/api/price-profiles';
 import { ProductSalePrice, PriceProfile } from '@/types/price-profiles';
 import { Product } from '@/services/api/products';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Label,
+  Button,
+  IconButton,
+  EmptyState,
+} from '@/design-system/components';
 
 interface ProductPriceProfilesModalProps {
   visible: boolean;
@@ -247,52 +264,63 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
           {/* Header */}
           <View style={styles.modalHeader}>
             <View style={styles.headerContent}>
-              <Text style={styles.modalTitle}>Perfiles de Precio</Text>
-              <Text style={styles.modalSubtitle}>{product.title}</Text>
-              <Text style={styles.productCost}>
+              <Title size="large">Perfiles de Precio</Title>
+              <Body size="medium" color="secondary" style={styles.modalSubtitle}>
+                {product.title}
+              </Body>
+              <Text variant="labelLarge" color={colors.accent[600]}>
                 Costo: {formatCurrency(product.costCents || 0, product.currency)}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
+            <IconButton
+              icon="close"
+              onPress={onClose}
+              variant="ghost"
+              size="medium"
+            />
           </View>
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#3B82F6" />
-              <Text style={styles.loadingText}>Cargando perfiles...</Text>
+              <ActivityIndicator size="large" color={colors.primary[900]} />
+              <Body color="secondary" style={styles.loadingText}>Cargando perfiles...</Body>
             </View>
           ) : (
             <>
               {/* Content */}
               <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
                 {priceFormData.length === 0 ? (
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>No hay perfiles de precio activos</Text>
-                  </View>
+                  <EmptyState
+                    icon="pricetag-outline"
+                    title="Sin perfiles de precio"
+                    description="No hay perfiles de precio activos"
+                  />
                 ) : (
                   priceFormData.map((priceData) => (
                     <View key={priceData.profileId} style={styles.priceCard}>
                       {/* Profile Header */}
                       <View style={styles.profileHeader}>
                         <View style={styles.profileInfo}>
-                          <Text style={styles.profileName}>{priceData.profileName}</Text>
-                          <Text style={styles.profileCode}>{priceData.profileCode}</Text>
+                          <Title size="small">{priceData.profileName}</Title>
+                          <Caption color="tertiary" style={styles.profileCode}>
+                            {priceData.profileCode}
+                          </Caption>
                         </View>
                         <View style={styles.factorBadge}>
-                          <Text style={styles.factorText}>
+                          <Label size="medium" color={colors.accent[700]}>
                             Factor: {priceData.factorToCost.toFixed(2)}x
-                          </Text>
+                          </Label>
                         </View>
                       </View>
 
                       {/* Price Input */}
                       <View style={styles.priceInputContainer}>
                         <View style={styles.inputWrapper}>
-                          <Text style={styles.inputLabel}>Precio de Venta</Text>
+                          <Label size="medium" color="secondary" style={styles.inputLabel}>
+                            Precio de Venta
+                          </Label>
                           <View style={styles.inputRow}>
-                            <Text style={styles.currencySymbol}>
+                            <Text variant="titleMedium" color="primary" style={styles.currencySymbol}>
                               {product.currency === 'PEN' ? 'S/' : '$'}
                             </Text>
                             <TextInput
@@ -314,50 +342,44 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
                         {/* Action Buttons */}
                         <View style={styles.actionButtons}>
                           {priceData.isOverridden && (
-                            <TouchableOpacity
-                              style={styles.resetButton}
+                            <Button
+                              title="↻ Restaurar"
+                              variant="secondary"
+                              size="small"
                               onPress={() => handleResetPrice(priceData.profileId)}
                               disabled={saving}
-                            >
-                              <Text style={styles.resetButtonText}>↻ Restaurar</Text>
-                            </TouchableOpacity>
+                              style={{ flex: 1 }}
+                            />
                           )}
-                          <TouchableOpacity
-                            style={[
-                              styles.saveButton,
-                              saving &&
-                                editingPriceId === priceData.profileId &&
-                                styles.saveButtonDisabled,
-                            ]}
+                          <Button
+                            title="💾 Guardar"
+                            variant="primary"
+                            size="small"
                             onPress={() => handleSavePrice(priceData)}
                             disabled={saving}
-                          >
-                            {saving && editingPriceId === priceData.profileId ? (
-                              <ActivityIndicator size="small" color="#FFFFFF" />
-                            ) : (
-                              <Text style={styles.saveButtonText}>💾 Guardar</Text>
-                            )}
-                          </TouchableOpacity>
+                            loading={saving && editingPriceId === priceData.profileId}
+                            style={{ flex: 1 }}
+                          />
                         </View>
                       </View>
 
                       {/* Price Info */}
                       <View style={styles.priceInfo}>
                         <View style={styles.infoRow}>
-                          <Text style={styles.infoLabel}>Precio Calculado:</Text>
-                          <Text style={styles.infoValue}>
+                          <Body size="small" color="secondary">Precio Calculado:</Body>
+                          <Text variant="labelLarge" color="primary">
                             {formatCurrency(priceData.calculatedPriceCents, product.currency)}
                           </Text>
                         </View>
                         <View style={styles.infoRow}>
-                          <Text style={styles.infoLabel}>Margen:</Text>
-                          <Text style={[styles.infoValue, styles.marginValue]}>
+                          <Body size="small" color="secondary">Margen:</Body>
+                          <Text variant="labelLarge" color={colors.success[600]}>
                             {calculateMargin(product.costCents || 0, priceData.priceCents)}
                           </Text>
                         </View>
                         {priceData.isOverridden && (
                           <View style={styles.overriddenBadge}>
-                            <Text style={styles.overriddenText}>✏️ Modificado manualmente</Text>
+                            <Caption color={colors.warning[800]}>✏️ Modificado manualmente</Caption>
                           </View>
                         )}
                       </View>
@@ -368,20 +390,20 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
 
               {/* Footer Actions */}
               <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={styles.recalculateButton}
+                <Button
+                  title="🔄 Recalcular Todos"
+                  variant="outline"
                   onPress={handleRecalculateAll}
                   disabled={saving}
-                >
-                  <Text style={styles.recalculateButtonText}>🔄 Recalcular Todos</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.closeFooterButton}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  title="Cerrar"
+                  variant="primary"
                   onPress={onClose}
                   disabled={saving}
-                >
-                  <Text style={styles.closeFooterButtonText}>Cerrar</Text>
-                </TouchableOpacity>
+                  style={{ flex: 1 }}
+                />
               </View>
             </>
           )}
@@ -394,262 +416,133 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingTop: 20,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
+    backgroundColor: colors.background.secondary,
+    paddingTop: spacing[5],
+    paddingBottom: spacing[5],
+    paddingHorizontal: spacing[4],
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    ...shadows.xl,
     overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 24,
+    padding: spacing[6],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border.light,
   },
   headerContent: {
     flex: 1,
   },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 6,
-  },
   modalSubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 6,
-  },
-  productCost: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3B82F6',
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 12,
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#6B7280',
-    fontWeight: '600',
+    marginTop: spacing[1],
+    marginBottom: spacing[1],
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: spacing[10],
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#6B7280',
+    marginTop: spacing[3],
   },
   modalContent: {
     flex: 1,
-    padding: 24,
-  },
-  emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
+    padding: spacing[6],
   },
   priceCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[5],
+    marginBottom: spacing[5],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border.light,
   },
   profileHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   profileInfo: {
     flex: 1,
   },
-  profileName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
   profileCode: {
-    fontSize: 14,
-    color: '#6B7280',
     fontFamily: 'monospace',
+    marginTop: spacing[1],
   },
   factorBadge: {
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  factorText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E40AF',
+    backgroundColor: colors.accent[100],
+    paddingHorizontal: spacing[3.5],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
   },
   priceInputContainer: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   inputWrapper: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   currencySymbol: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginRight: 10,
+    marginRight: spacing[2.5],
   },
   priceInput: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.primary,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 14,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.md,
+    padding: spacing[3.5],
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: colors.text.primary,
   },
   priceInputOverridden: {
-    borderColor: '#F59E0B',
+    borderColor: colors.warning[500],
     borderWidth: 2,
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  resetButton: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  resetButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: '#3B82F6',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#93C5FD',
-  },
-  saveButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    gap: spacing[2],
   },
   priceInfo: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: spacing[3],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.border.light,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
-  },
-  infoLabel: {
-    fontSize: 15,
-    color: '#6B7280',
-  },
-  infoValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  marginValue: {
-    color: '#10B981',
+    marginBottom: spacing[1.5],
   },
   overriddenBadge: {
-    marginTop: 8,
-    backgroundColor: '#FEF3C7',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    marginTop: spacing[2],
+    backgroundColor: colors.warning[50],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
     alignSelf: 'flex-start',
-  },
-  overriddenText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#92400E',
   },
   modalFooter: {
     flexDirection: 'row',
-    padding: 24,
+    padding: spacing[6],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    gap: 16,
-  },
-  recalculateButton: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  recalculateButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  closeFooterButton: {
-    flex: 1,
-    backgroundColor: '#3B82F6',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  closeFooterButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    borderTopColor: colors.border.light,
+    gap: spacing[4],
   },
 });

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
@@ -9,10 +8,29 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Dimensions,
 } from 'react-native';
 import { inventoryApi, StockItemResponse } from '@/services/api/inventory';
 import { productsApi } from '@/services/api/products';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Label,
+  Numeric,
+  Button,
+  Card,
+  IconButton,
+  EmptyState,
+} from '@/design-system/components';
 
 interface StockByAreasModalProps {
   visible: boolean;
@@ -152,13 +170,16 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>Stock por Áreas</Text>
-              {productTitle && <Text style={styles.headerSubtitle}>{productTitle}</Text>}
-              {productSku && <Text style={styles.headerSku}>SKU: {productSku}</Text>}
+              <Title size="large">Stock por Áreas</Title>
+              {productTitle && <Body size="medium" color="secondary" style={styles.headerSubtitle}>{productTitle}</Body>}
+              {productSku && <Caption color="tertiary">SKU: {productSku}</Caption>}
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
+            <IconButton
+              icon="close"
+              onPress={onClose}
+              variant="ghost"
+              size="medium"
+            />
           </View>
 
           {/* Content */}
@@ -215,24 +236,22 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#667eea" />
-                <Text style={styles.loadingText}>Cargando stock...</Text>
+                <ActivityIndicator size="large" color={colors.primary[900]} />
+                <Body color="secondary" style={styles.loadingText}>Cargando stock...</Body>
               </View>
             ) : stockItems.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>📦</Text>
-                <Text style={styles.emptyTitle}>Sin Stock</Text>
-                <Text style={styles.emptyText}>
-                  Este producto no tiene stock en ningún almacén o área
-                </Text>
-              </View>
+              <EmptyState
+                icon="cube-outline"
+                title="Sin Stock"
+                description="Este producto no tiene stock en ningún almacén o área"
+              />
             ) : (
               <>
                 {/* Total Stock Summary */}
-                <View style={[styles.summaryCard, { marginHorizontal: 20, marginBottom: 16 }]}>
-                  <Text style={styles.summaryLabel}>Stock Disponible</Text>
-                  <Text style={styles.summaryValue}>{getTotalStock().toFixed(2)} unidades</Text>
-                  <Text style={styles.summarySubtext}>En {stockItems.length} ubicación(es)</Text>
+                <View style={styles.summaryCard}>
+                  <Label size="medium" color={colors.neutral[0]} style={styles.summaryLabel}>Stock Disponible</Label>
+                  <Numeric size="large" color={colors.neutral[0]}>{getTotalStock().toFixed(2)} unidades</Numeric>
+                  <Caption color={colors.neutral[200]}>En {stockItems.length} ubicación(es)</Caption>
                 </View>
 
                 {/* Warehouse Sections */}
@@ -240,7 +259,6 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                   const warehouseName = items[0].warehouse?.name || 'Almacén desconocido';
                   const warehouseCode = items[0].warehouse?.code || 'N/A';
                   const warehouseTotal = items.reduce((sum, item) => {
-                    // Use availableQuantityBase (stock disponible)
                     const quantity =
                       typeof item.availableQuantityBase === 'number'
                         ? item.availableQuantityBase
@@ -250,39 +268,27 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                     return sum + quantity;
                   }, 0);
 
-                  console.log(
-                    '🎨 Rendering warehouse section:',
-                    warehouseName,
-                    'with',
-                    items.length,
-                    'areas'
-                  );
-
                   return (
-                    <View
-                      key={warehouseId}
-                      style={[styles.warehouseSection, { marginBottom: 16, marginHorizontal: 20 }]}
-                    >
+                    <Card key={warehouseId} variant="outlined" padding="none" style={styles.warehouseSection}>
                       {/* Warehouse Header */}
                       <View style={styles.warehouseHeader}>
                         <View style={styles.warehouseHeaderLeft}>
-                          <Text style={styles.warehouseIcon}>🏢</Text>
+                          <Text variant="headingSmall">🏢</Text>
                           <View style={styles.warehouseHeaderInfo}>
-                            <Text style={styles.warehouseHeaderName}>{warehouseName}</Text>
-                            <Text style={styles.warehouseHeaderCode}>Código: {warehouseCode}</Text>
+                            <Title size="small">{warehouseName}</Title>
+                            <Caption color={colors.accent[600]}>Código: {warehouseCode}</Caption>
                           </View>
                         </View>
                         <View style={styles.warehouseTotalBadge}>
-                          <Text style={styles.warehouseTotalValue}>
+                          <Numeric size="medium" color={colors.neutral[0]}>
                             {warehouseTotal.toFixed(2)}
-                          </Text>
-                          <Text style={styles.warehouseTotalLabel}>unidades</Text>
+                          </Numeric>
+                          <Caption color={colors.neutral[200]}>unidades</Caption>
                         </View>
                       </View>
 
                       {/* Areas within this warehouse */}
                       {items.map((item, index) => {
-                        // Use availableQuantityBase (stock disponible)
                         const quantity =
                           typeof item.availableQuantityBase === 'number'
                             ? item.availableQuantityBase
@@ -290,37 +296,28 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                               ? parseFloat(item.quantityBase)
                               : item.quantityBase || 0;
 
-                        console.log(
-                          '🎨 Rendering area:',
-                          item.area?.code || 'unknown',
-                          'quantity:',
-                          quantity
-                        );
-
                         return (
                           <View key={index} style={styles.areaCard}>
                             <View style={styles.areaCardContent}>
                               <View style={styles.areaCardLeft}>
-                                <Text style={styles.areaCardIcon}>📍</Text>
+                                <Text variant="bodyLarge">📍</Text>
                                 <View style={styles.areaCardInfo}>
-                                  <Text style={styles.areaCardName}>
+                                  <Body size="medium" color="primary">
                                     {item.area
                                       ? item.area.name || `Área ${item.area.code}` || 'Sin nombre'
                                       : 'Sin área específica'}
-                                  </Text>
+                                  </Body>
                                   {item.area?.code && item.area?.name && (
-                                    <Text style={styles.areaCardCode}>
-                                      Código: {item.area.code}
-                                    </Text>
+                                    <Caption color="tertiary">Código: {item.area.code}</Caption>
                                   )}
                                 </View>
                               </View>
                               <View style={styles.areaQuantityBadge}>
-                                <Text style={styles.areaQuantityValue}>{quantity.toFixed(2)}</Text>
+                                <Numeric size="small" color={colors.neutral[0]}>{quantity.toFixed(2)}</Numeric>
                               </View>
                             </View>
                             <View style={styles.areaCardFooter}>
-                              <Text style={styles.areaUpdatedText}>
+                              <Caption color="tertiary">
                                 Actualizado:{' '}
                                 {new Date(item.updatedAt).toLocaleDateString('es-ES', {
                                   year: 'numeric',
@@ -329,12 +326,12 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                                   hour: '2-digit',
                                   minute: '2-digit',
                                 })}
-                              </Text>
+                              </Caption>
                             </View>
                           </View>
                         );
                       })}
-                    </View>
+                    </Card>
                   );
                 })}
               </>
@@ -343,9 +340,12 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.closeFooterButton} onPress={onClose}>
-              <Text style={styles.closeFooterButtonText}>Cerrar</Text>
-            </TouchableOpacity>
+            <Button
+              title="Cerrar"
+              variant="primary"
+              onPress={onClose}
+              fullWidth
+            />
           </View>
         </View>
       </View>
@@ -356,99 +356,51 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
     width: '90%',
     maxWidth: 600,
     height: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    display: 'flex',
+    ...shadows.xl,
     flexDirection: 'column',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderBottomWidth: 0,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+    backgroundColor: colors.surface.primary,
   },
   headerContent: {
     flex: 1,
-    marginRight: 12,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
+    marginRight: spacing[3],
   },
   headerSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 2,
-  },
-  headerSku: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#64748B',
-    fontWeight: '300',
+    marginTop: spacing[1],
+    marginBottom: spacing[0.5],
   },
   summaryCard: {
-    backgroundColor: '#667eea',
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 8,
-    padding: 24,
-    borderRadius: 16,
+    backgroundColor: colors.primary[900],
+    marginHorizontal: spacing[5],
+    marginTop: spacing[4],
+    marginBottom: spacing[4],
+    padding: spacing[6],
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    ...shadows.lg,
   },
   summaryLabel: {
-    fontSize: 13,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: spacing[2],
     textTransform: 'uppercase',
     letterSpacing: 1,
-    opacity: 0.9,
-  },
-  summaryValue: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  summarySubtext: {
-    fontSize: 13,
-    color: '#FFFFFF',
-    opacity: 0.85,
   },
   content: {
     flex: 1,
@@ -457,199 +409,97 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: spacing[16],
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#64748B',
+    marginTop: spacing[3],
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-
   warehouseSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E0E7FF',
-    overflow: 'hidden',
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 3,
+    marginBottom: spacing[4],
+    marginHorizontal: spacing[5],
   },
   warehouseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 18,
-    backgroundColor: '#F5F7FF',
-    borderBottomWidth: 2,
-    borderBottomColor: '#E0E7FF',
+    padding: spacing[4],
+    backgroundColor: colors.accent[50],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.accent[200],
   },
   warehouseHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 12,
-  },
-  warehouseIcon: {
-    fontSize: 24,
-    marginRight: 12,
+    marginRight: spacing[3],
+    gap: spacing[3],
   },
   warehouseHeaderInfo: {
     flex: 1,
   },
-  warehouseHeaderName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  warehouseHeaderCode: {
-    fontSize: 12,
-    color: '#667eea',
-    fontWeight: '600',
-  },
   warehouseTotalBadge: {
-    backgroundColor: '#667eea',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
+    backgroundColor: colors.primary[900],
+    paddingHorizontal: spacing[3.5],
+    paddingVertical: spacing[2.5],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
     minWidth: 90,
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  warehouseTotalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  warehouseTotalLabel: {
-    fontSize: 10,
-    color: '#FFFFFF',
-    opacity: 0.9,
   },
   areaCard: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: colors.border.light,
+    backgroundColor: colors.surface.primary,
   },
   areaCardContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 18,
-    paddingLeft: 28,
+    padding: spacing[4],
+    paddingLeft: spacing[6],
   },
   areaCardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 12,
-  },
-  areaCardIcon: {
-    fontSize: 20,
-    marginRight: 12,
+    marginRight: spacing[3],
+    gap: spacing[3],
   },
   areaCardInfo: {
     flex: 1,
   },
-  areaCardName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  areaCardCode: {
-    fontSize: 12,
-    color: '#64748B',
-  },
   areaQuantityBadge: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
+    backgroundColor: colors.success[600],
+    paddingHorizontal: spacing[3.5],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.md,
     minWidth: 80,
     alignItems: 'center',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  areaQuantityValue: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#FFFFFF',
   },
   areaCardFooter: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    paddingLeft: 56,
-  },
-  areaUpdatedText: {
-    fontSize: 11,
-    color: '#94A3B8',
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[3],
+    paddingLeft: spacing[14],
   },
   footer: {
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    padding: 16,
-  },
-  closeFooterButton: {
-    backgroundColor: '#667eea',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  closeFooterButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    borderTopColor: colors.border.light,
+    padding: spacing[4],
   },
   imageSliderContainer: {
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 8,
-    borderRadius: 16,
+    marginHorizontal: spacing[5],
+    marginTop: spacing[4],
+    marginBottom: spacing[2],
+    borderRadius: borderRadius.xl,
     overflow: 'hidden',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surface.secondary,
     borderWidth: 1,
-    borderColor: '#E0E7FF',
+    borderColor: colors.accent[200],
   },
   imageSlider: {
     position: 'relative',
     width: '100%',
     height: 250,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.primary,
   },
   productImage: {
     width: '100%',
@@ -662,14 +512,10 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(102, 126, 234, 0.9)',
+    backgroundColor: colors.primary[800],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    ...shadows.md,
   },
   imageNavButtonLeft: {
     left: 10,
@@ -680,7 +526,7 @@ const styles = StyleSheet.create({
   imageNavButtonText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.text.inverse,
     lineHeight: 32,
   },
   imageIndicatorContainer: {
@@ -691,7 +537,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing[1.5],
   },
   imageIndicator: {
     width: 8,
@@ -700,20 +546,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   imageIndicatorActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
     width: 24,
   },
   imageCounter: {
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: colors.overlay.medium,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.lg,
   },
   imageCounterText: {
-    color: '#FFFFFF',
+    color: colors.text.inverse,
     fontSize: 12,
     fontWeight: '600',
   },

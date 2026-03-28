@@ -1,10 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Text as RNText } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Expense } from '@/types/expenses';
 import { ExpenseStatusBadge } from './ExpenseStatusBadge';
 import { CategoryBadge } from './CategoryBadge';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  iconSizes,
+} from '@/design-system/tokens';
+import {
+  Title,
+  Body,
+  Caption,
+  Label,
+  Numeric,
+  Card,
+} from '@/design-system/components';
 
 interface ExpenseCardProps {
   expense: Expense;
@@ -91,16 +108,14 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
   const paidAmount = expense.totalPaidCents || 0;
 
   return (
-    <TouchableOpacity style={styles.card} onPress={() => onPress(expense)} activeOpacity={0.7}>
+    <Card variant="elevated" padding="medium" onPress={() => onPress(expense)} style={styles.card}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.expenseName} numberOfLines={1}>
-            {expense.name}
-          </Text>
+          <Title size="small" numberOfLines={1}>{expense.name}</Title>
           {expense.template && (
             <View style={styles.templateBadge}>
-              <Ionicons name="repeat-outline" size={12} color="#6366F1" />
-              <Text style={styles.templateBadgeText}>Plantilla</Text>
+              <Ionicons name="repeat-outline" size={12} color={colors.accent[600]} />
+              <Caption color={colors.accent[600]}>Plantilla</Caption>
             </View>
           )}
         </View>
@@ -115,13 +130,13 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
         {targetAmount > 0 && (
           <View style={styles.paymentProgressContainer}>
             <View style={styles.paymentInfoRow}>
-              <Text style={styles.paymentLabel}>Pagado:</Text>
-              <Text style={styles.paymentValue}>{formatAmount(paidAmount)}</Text>
+              <Caption color="secondary">Pagado:</Caption>
+              <Label size="medium" color={colors.success[600]}>{formatAmount(paidAmount)}</Label>
             </View>
             {remainingAmount > 0 && (
               <View style={styles.paymentInfoRow}>
-                <Text style={styles.paymentLabel}>Pendiente:</Text>
-                <Text style={styles.paymentValuePending}>{formatAmount(remainingAmount)}</Text>
+                <Caption color="secondary">Pendiente:</Caption>
+                <Label size="medium" color={colors.warning[600]}>{formatAmount(remainingAmount)}</Label>
               </View>
             )}
             <View style={styles.progressBar}>
@@ -129,35 +144,35 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 style={[styles.progressFill, { width: `${Math.min(paymentProgress, 100)}%` }]}
               />
             </View>
-            <Text style={styles.paymentPercentage}>{paymentProgress.toFixed(1)}% completado</Text>
+            <Caption color="tertiary" style={styles.paymentPercentage}>{paymentProgress.toFixed(1)}% completado</Caption>
           </View>
         )}
 
         <View style={styles.amountContainer}>
           <View style={styles.amountRow}>
-            <Text style={styles.amountLabel}>
+            <Label size="medium" color="secondary">
               {expense.actualAmountCents ? 'Monto Real:' : 'Monto:'}
-            </Text>
-            <Text style={styles.amountValue}>
+            </Label>
+            <Numeric size="medium" color="primary">
               {formatAmount(expense.actualAmountCents || expense.amountCents, expense.currency)}
-            </Text>
+            </Numeric>
           </View>
-          <Text style={styles.currencyText}>{expense.currency || 'PEN'}</Text>
+          <Caption color="tertiary">{expense.currency || 'PEN'}</Caption>
         </View>
 
         {/* Show estimated amount if actual amount exists */}
         {expense.actualAmountCents && expense.estimatedAmountCents && (
           <View style={styles.estimatedAmountContainer}>
-            <Text style={styles.estimatedAmountLabel}>Monto Estimado:</Text>
-            <Text style={styles.estimatedAmountValue}>
+            <Caption color={colors.warning[800]}>Monto Estimado:</Caption>
+            <Label size="medium" color={colors.warning[800]}>
               {formatAmount(expense.estimatedAmountCents, expense.currency)}
-            </Text>
+            </Label>
           </View>
         )}
 
         <View style={styles.row}>
           <View style={styles.infoItem}>
-            <Text style={styles.label}>Categoría</Text>
+            <Label size="small" color="tertiary" style={styles.label}>Categoría</Label>
             {expense.category && expense.subcategory ? (
               <CategoryBadge
                 category={{
@@ -174,100 +189,93 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 showCode={false}
               />
             ) : (
-              <Text style={styles.value} numberOfLines={1}>
+              <Body size="small" color="primary" numberOfLines={1}>
                 {expense.category?.name || 'Sin categoría'}
-              </Text>
+              </Body>
             )}
           </View>
           <View style={styles.infoItem}>
-            <Text style={styles.label}>Fecha</Text>
-            <Text style={styles.value}>{formatDate(expense.dueDate || expense.expenseDate)}</Text>
+            <Label size="small" color="tertiary" style={styles.label}>Fecha</Label>
+            <Body size="small" color="primary">{formatDate(expense.dueDate || expense.expenseDate)}</Body>
           </View>
         </View>
 
         {/* Site and Project Info */}
         <View style={styles.metaInfoContainer}>
           <View style={styles.metaInfoItem}>
-            <Ionicons name="business" size={12} color={expense.site ? '#6366F1' : '#94A3B8'} />
-            <Text
+            <Ionicons name="business" size={12} color={expense.site ? colors.accent[600] : colors.icon.disabled} />
+            <RNText
               style={[styles.metaInfoText, !expense.site && styles.metaInfoTextMuted]}
               numberOfLines={1}
             >
               {expense.site ? expense.site.name : 'Sin sede asignada'}
-            </Text>
+            </RNText>
           </View>
           {expense.project && (
             <View style={styles.metaInfoItem}>
-              <Ionicons name="folder-open" size={12} color="#10B981" />
-              <Text style={styles.metaInfoText} numberOfLines={1}>
+              <Ionicons name="folder-open" size={12} color={colors.success[500]} />
+              <RNText style={styles.metaInfoText} numberOfLines={1}>
                 {expense.project.name}
-              </Text>
+              </RNText>
             </View>
           )}
 
-          {/* ============================================ */}
-          {/* NUEVO: Información del Proveedor */}
-          {/* ============================================ */}
           {expense.supplier && (
             <View style={styles.metaInfoItem}>
-              <Ionicons name="person-outline" size={12} color="#10B981" />
-              <Text style={styles.metaInfoText} numberOfLines={1}>
+              <Ionicons name="person-outline" size={12} color={colors.success[500]} />
+              <RNText style={styles.metaInfoText} numberOfLines={1}>
                 {expense.supplier.commercialName}
-              </Text>
+              </RNText>
             </View>
           )}
 
-          {/* NUEVO: RUC del Proveedor */}
           {expense.supplierLegalEntity && (
             <View style={styles.metaInfoItem}>
-              <Ionicons name="card-outline" size={12} color="#64748B" />
-              <Text style={styles.metaInfoText} numberOfLines={1}>
+              <Ionicons name="card-outline" size={12} color={colors.icon.secondary} />
+              <RNText style={styles.metaInfoText} numberOfLines={1}>
                 RUC: {expense.supplierLegalEntity.ruc}
-              </Text>
+              </RNText>
             </View>
           )}
         </View>
 
         {expense.purchase && (
           <View style={styles.purchaseContainer}>
-            <Ionicons name="cart-outline" size={14} color="#64748B" />
-            <Text style={styles.purchaseText} numberOfLines={1}>
+            <Ionicons name="cart-outline" size={14} color={colors.icon.secondary} />
+            <RNText style={styles.purchaseText} numberOfLines={1}>
               Compra: {expense.purchase.code}
-            </Text>
+            </RNText>
           </View>
         )}
 
-        {/* ============================================ */}
-        {/* NUEVO: Cuenta por Pagar */}
-        {/* ============================================ */}
         {expense.accountPayable && (
           <View style={styles.accountPayableContainer}>
             <View style={styles.accountPayableHeader}>
-              <Ionicons name="document-text" size={14} color="#F59E0B" />
-              <Text style={styles.accountPayableCode}>{expense.accountPayable.code}</Text>
+              <Ionicons name="document-text" size={14} color={colors.warning[500]} />
+              <RNText style={styles.accountPayableCode}>{expense.accountPayable.code}</RNText>
               <View
                 style={[
                   styles.accountPayableStatusBadge,
                   getAccountPayableStatusStyle(expense.accountPayable.status),
                 ]}
               >
-                <Text style={styles.accountPayableStatusText}>
+                <RNText style={styles.accountPayableStatusText}>
                   {getAccountPayableStatusLabel(expense.accountPayable.status)}
-                </Text>
+                </RNText>
               </View>
             </View>
             <View style={styles.accountPayableDetails}>
-              <Text style={styles.accountPayableLabel}>Saldo:</Text>
-              <Text style={styles.accountPayableBalance}>
+              <RNText style={styles.accountPayableLabel}>Saldo:</RNText>
+              <RNText style={styles.accountPayableBalance}>
                 {formatAmount(expense.accountPayable.balanceCents, expense.currency)}
-              </Text>
+              </RNText>
             </View>
             {expense.accountPayable.overdueDays && expense.accountPayable.overdueDays > 0 && (
               <View style={styles.overdueWarning}>
-                <Ionicons name="warning" size={12} color="#EF4444" />
-                <Text style={styles.overdueText}>
+                <Ionicons name="warning" size={12} color={colors.danger[500]} />
+                <RNText style={styles.overdueText}>
                   Vencido hace {expense.accountPayable.overdueDays} días
-                </Text>
+                </RNText>
               </View>
             )}
           </View>
@@ -275,9 +283,9 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
 
         {expense.notes && (
           <View style={styles.notesContainer}>
-            <Text style={styles.notesText} numberOfLines={2}>
+            <RNText style={styles.notesText} numberOfLines={2}>
               {expense.notes}
-            </Text>
+            </RNText>
           </View>
         )}
 
@@ -293,8 +301,8 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 requiredPermissions={['expenses.payments.create']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="cash-outline" size={16} color="#10B981" />
-                <Text style={[styles.actionButtonText, { color: '#10B981' }]}>Pagar</Text>
+                <Ionicons name="cash-outline" size={16} color={colors.success[500]} />
+                <RNText style={[styles.actionButtonText, { color: colors.success[500] }]}>Pagar</RNText>
               </ProtectedTouchableOpacity>
             )}
             {onViewPayments &&
@@ -310,10 +318,10 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                   requiredPermissions={['expenses.payments.read']}
                   hideIfNoPermission={true}
                 >
-                  <Ionicons name="list-outline" size={16} color="#6366F1" />
-                  <Text style={[styles.actionButtonText, { color: '#6366F1' }]}>
+                  <Ionicons name="list-outline" size={16} color={colors.accent[600]} />
+                  <RNText style={[styles.actionButtonText, { color: colors.accent[600] }]}>
                     Ver Pagos {expense.paymentsCount ? `(${expense.paymentsCount})` : ''}
-                  </Text>
+                  </RNText>
                 </ProtectedTouchableOpacity>
               )}
             {onReconcileAmount && !expense.actualAmountCents && (
@@ -326,8 +334,8 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 requiredPermissions={['expenses.update']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="receipt-outline" size={16} color="#6366F1" />
-                <Text style={[styles.actionButtonText, { color: '#6366F1' }]}>Monto Real</Text>
+                <Ionicons name="receipt-outline" size={16} color={colors.accent[600]} />
+                <RNText style={[styles.actionButtonText, { color: colors.accent[600] }]}>Monto Real</RNText>
               </ProtectedTouchableOpacity>
             )}
             {onEdit && (
@@ -340,8 +348,8 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 requiredPermissions={['expenses.update']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="create-outline" size={16} color="#6366F1" />
-                <Text style={styles.actionButtonText}>Editar</Text>
+                <Ionicons name="create-outline" size={16} color={colors.accent[600]} />
+                <RNText style={styles.actionButtonText}>Editar</RNText>
               </ProtectedTouchableOpacity>
             )}
             {onDelete && (
@@ -354,286 +362,214 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 requiredPermissions={['expenses.delete']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Eliminar</Text>
+                <Ionicons name="trash-outline" size={16} color={colors.danger[500]} />
+                <RNText style={[styles.actionButtonText, styles.deleteButtonText]}>Eliminar</RNText>
               </ProtectedTouchableOpacity>
             )}
           </View>
         )}
       </View>
-    </TouchableOpacity>
+    </Card>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    marginBottom: spacing[3],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   headerLeft: {
     flex: 1,
-  },
-  expenseName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
   },
   templateBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    gap: 4,
-  },
-  templateBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#6366F1',
+    backgroundColor: colors.accent[50],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
+    gap: spacing[1],
+    marginTop: spacing[1],
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
-    marginBottom: 12,
+    backgroundColor: colors.border.light,
+    marginBottom: spacing[3],
   },
   content: {
-    gap: 12,
+    gap: spacing[3],
   },
   paymentProgressContainer: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: colors.success[50],
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    marginBottom: spacing[3],
   },
   paymentInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
-  },
-  paymentLabel: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  paymentValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#10B981',
-  },
-  paymentValuePending: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#F59E0B',
+    marginBottom: spacing[1],
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 3,
+    backgroundColor: colors.border.light,
+    borderRadius: borderRadius.full,
     overflow: 'hidden',
-    marginTop: 8,
-    marginBottom: 4,
+    marginTop: spacing[2],
+    marginBottom: spacing[1],
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 3,
+    backgroundColor: colors.success[500],
+    borderRadius: borderRadius.full,
   },
   paymentPercentage: {
-    fontSize: 11,
-    color: '#64748B',
     textAlign: 'right',
   },
   amountContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
   },
   amountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  amountLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  amountValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  currencyText: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-  },
   estimatedAmountContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 8,
-  },
-  estimatedAmountLabel: {
-    fontSize: 12,
-    color: '#92400E',
-    fontWeight: '500',
-  },
-  estimatedAmountValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#92400E',
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.md,
+    padding: spacing[2],
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   infoItem: {
     flex: 1,
   },
   label: {
-    fontSize: 10,
-    color: '#94A3B8',
-    fontWeight: '600',
     textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
+    marginBottom: spacing[1],
   },
   purchaseContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    gap: 6,
+    backgroundColor: colors.success[50],
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.sm,
+    gap: spacing[1.5],
   },
   purchaseText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#166534',
+    color: colors.success[800],
     flex: 1,
   },
   notesContainer: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.md,
+    padding: spacing[2.5],
     borderLeftWidth: 3,
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: colors.warning[500],
   },
   notesText: {
     fontSize: 12,
-    color: '#78350F',
+    color: colors.warning[900],
     lineHeight: 16,
   },
   metaInfoContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing[2],
   },
   metaInfoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
+    backgroundColor: colors.surface.secondary,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
+    gap: spacing[1],
   },
   metaInfoText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.text.secondary,
     maxWidth: 150,
   },
   metaInfoTextMuted: {
-    color: '#94A3B8',
+    color: colors.text.disabled,
     fontStyle: 'italic',
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
+    gap: spacing[2],
+    marginTop: spacing[1],
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    gap: 4,
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[2],
+    gap: spacing[1],
   },
   actionButtonText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#6366F1',
+    color: colors.accent[600],
   },
   deleteButton: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.danger[50],
   },
   deleteButtonText: {
-    color: '#EF4444',
+    color: colors.danger[600],
   },
   viewPaymentsButton: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.accent[50],
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: colors.accent[200],
   },
-  // ============================================
-  // NUEVOS ESTILOS: Cuenta por Pagar
-  // ============================================
   accountPayableContainer: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: colors.warning[50],
     borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 8,
+    borderColor: colors.warning[200],
+    borderRadius: borderRadius.md,
+    padding: spacing[2.5],
+    marginTop: spacing[2],
   },
   accountPayableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: spacing[1.5],
   },
   accountPayableCode: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#92400E',
-    marginLeft: 6,
+    color: colors.warning[800],
+    marginLeft: spacing[1.5],
     flex: 1,
   },
   accountPayableStatusBadge: {
-    borderRadius: 4,
+    borderRadius: borderRadius.xs,
     borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: spacing[1.5],
+    paddingVertical: spacing[0.5],
   },
   accountPayableStatusText: {
     fontSize: 10,
@@ -646,26 +582,26 @@ const styles = StyleSheet.create({
   },
   accountPayableLabel: {
     fontSize: 11,
-    color: '#78716C',
+    color: colors.text.tertiary,
   },
   accountPayableBalance: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#F59E0B',
+    color: colors.warning[600],
   },
   overdueWarning: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
-    paddingTop: 6,
+    marginTop: spacing[1.5],
+    paddingTop: spacing[1.5],
     borderTopWidth: 1,
-    borderTopColor: '#FDE68A',
+    borderTopColor: colors.warning[200],
   },
   overdueText: {
     fontSize: 11,
-    color: '#EF4444',
+    color: colors.danger[600],
     fontWeight: '600',
-    marginLeft: 4,
+    marginLeft: spacing[1],
   },
 });
 

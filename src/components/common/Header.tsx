@@ -1,7 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '@/theme';
+
+// Design System
+import {
+  colors,
+  spacing,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Title,
+  Caption,
+} from '@/design-system/components';
 
 interface HeaderProps {
   title: string;
@@ -24,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.surface.primary} />
       <SafeAreaView style={[styles.safeArea, transparent && styles.transparent]}>
         <View style={styles.container}>
           <View style={styles.leftContainer}>
@@ -38,13 +48,11 @@ export const Header: React.FC<HeaderProps> = ({
           </View>
 
           <View style={styles.centerContainer}>
-            <Text style={styles.title} numberOfLines={1}>
-              {title}
-            </Text>
+            <Title size="medium" numberOfLines={1}>{title}</Title>
             {subtitle && (
-              <Text style={styles.subtitle} numberOfLines={1}>
+              <Caption color="secondary" numberOfLines={1} style={styles.subtitle}>
                 {subtitle}
-              </Text>
+              </Caption>
             )}
           </View>
 
@@ -65,8 +73,8 @@ export const Header: React.FC<HeaderProps> = ({
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: theme.colors.background,
-    ...theme.shadows.sm,
+    backgroundColor: colors.surface.primary,
+    ...shadows.xs,
   },
   transparent: {
     backgroundColor: 'transparent',
@@ -77,8 +85,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     minHeight: 56,
   },
   leftContainer: {
@@ -89,28 +97,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: spacing[2],
   },
   rightContainer: {
     width: 40,
     alignItems: 'flex-end',
   },
   iconButton: {
-    padding: theme.spacing.xs,
+    padding: spacing[1],
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconPlaceholder: {
     width: 40,
   },
-  title: {
-    fontSize: theme.fontSize.lg,
-    fontWeight: '700',
-    color: theme.colors.text.primary,
-  },
   subtitle: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.text.secondary,
     marginTop: 2,
   },
 });

@@ -1,16 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { transfersApi } from '@/services/api/transfers';
 import { StockMovement } from '@/types/transfers';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Label,
+  Numeric,
+  Button,
+  Card,
+  IconButton,
+  EmptyState,
+} from '@/design-system/components';
 
 interface StockMovementHistoryModalProps {
   visible: boolean;
@@ -130,38 +148,39 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>Historial de Movimientos</Text>
-              {productTitle && <Text style={styles.headerSubtitle}>{productTitle}</Text>}
-              {productSku && <Text style={styles.headerSku}>SKU: {productSku}</Text>}
+              <Title size="large">Historial de Movimientos</Title>
+              {productTitle && <Body size="medium" color="secondary" style={styles.headerSubtitle}>{productTitle}</Body>}
+              {productSku && <Caption color="tertiary">SKU: {productSku}</Caption>}
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
+            <IconButton
+              icon="close"
+              onPress={onClose}
+              variant="ghost"
+              size="medium"
+            />
           </View>
 
           {/* Content */}
-          <ScrollView style={styles.content}>
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Summary */}
             {!loading && movements.length > 0 && (
               <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>TOTAL DE MOVIMIENTOS</Text>
-                <Text style={styles.summaryValue}>{movements.length}</Text>
-                <Text style={styles.summarySubtext}>Mostrando últimos {limit} registros</Text>
+                <Label size="medium" color={colors.neutral[0]} style={styles.summaryLabel}>TOTAL DE MOVIMIENTOS</Label>
+                <Numeric size="large" color={colors.neutral[0]}>{movements.length}</Numeric>
+                <Caption color={colors.neutral[200]}>Mostrando últimos {limit} registros</Caption>
               </View>
             )}
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#667eea" />
-                <Text style={styles.loadingText}>Cargando historial...</Text>
+                <ActivityIndicator size="large" color={colors.primary[900]} />
+                <Body color="secondary" style={styles.loadingText}>Cargando historial...</Body>
               </View>
             ) : movements.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>📜</Text>
-                <Text style={styles.emptyTitle}>Sin Movimientos</Text>
-                <Text style={styles.emptyText}>
-                  No hay movimientos registrados para este producto
-                </Text>
-              </View>
+              <EmptyState
+                icon="document-text-outline"
+                title="Sin Movimientos"
+                description="No hay movimientos registrados para este producto"
+              />
             ) : (
               <View style={styles.movementsList}>
                 {movements.map((movement, index) => {
@@ -169,91 +188,82 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
                   const isPositive = movement.quantity > 0;
 
                   return (
-                    <View key={movement.id || index} style={styles.movementCard}>
+                    <Card key={movement.id || index} variant="outlined" padding="none" style={styles.movementCard}>
                       {/* Movement Header */}
                       <View style={styles.movementHeader}>
                         <View style={styles.movementTypeContainer}>
-                          <Text style={styles.movementIcon}>{typeInfo.icon}</Text>
+                          <Text variant="headingSmall">{typeInfo.icon}</Text>
                           <View style={styles.movementTypeInfo}>
-                            <Text style={styles.movementType}>{typeInfo.label}</Text>
-                            <Text style={styles.movementDate}>
-                              {formatDate(movement.createdAt)}
-                            </Text>
+                            <Body size="medium" color="primary">{typeInfo.label}</Body>
+                            <Caption color="tertiary">{formatDate(movement.createdAt)}</Caption>
                           </View>
                         </View>
                         <View
                           style={[
                             styles.quantityBadge,
-                            {
-                              backgroundColor: isPositive ? '#10B981' : '#EF4444',
-                            },
+                            { backgroundColor: isPositive ? colors.success[600] : colors.danger[600] },
                           ]}
                         >
-                          <Text style={styles.quantityText}>
-                            {isPositive ? '+' : ''}
-                            {movement.quantity}
-                          </Text>
+                          <Numeric size="small" color={colors.neutral[0]}>
+                            {isPositive ? '+' : ''}{movement.quantity}
+                          </Numeric>
                         </View>
                       </View>
 
                       {/* Movement Details */}
                       <View style={styles.movementDetails}>
                         <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>Stock antes:</Text>
-                          <Text style={styles.detailValue}>{movement.stockBefore} unidades</Text>
+                          <Caption color="secondary">Stock antes:</Caption>
+                          <Body size="small" color="primary">{movement.stockBefore} unidades</Body>
                         </View>
                         <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>Stock después:</Text>
-                          <Text style={[styles.detailValue, styles.detailValueHighlight]}>
-                            {movement.stockAfter} unidades
-                          </Text>
+                          <Caption color="secondary">Stock después:</Caption>
+                          <Text variant="labelLarge" color={colors.accent[600]}>{movement.stockAfter} unidades</Text>
                         </View>
 
                         {movement.warehouse && (
                           <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>🏢 Almacén:</Text>
-                            <Text style={styles.detailValue}>{movement.warehouse.name}</Text>
+                            <Caption color="secondary">🏢 Almacén:</Caption>
+                            <Body size="small" color="primary">{movement.warehouse.name}</Body>
                           </View>
                         )}
 
                         {movement.area && (
                           <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>📍 Área:</Text>
-                            <Text style={styles.detailValue}>
-                              {movement.area.name || movement.area.code}
-                            </Text>
+                            <Caption color="secondary">📍 Área:</Caption>
+                            <Body size="small" color="primary">{movement.area.name || movement.area.code}</Body>
                           </View>
                         )}
 
                         {movement.relatedWarehouse && (
                           <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>🔗 Relacionado:</Text>
-                            <Text style={styles.detailValue}>{movement.relatedWarehouse.name}</Text>
+                            <Caption color="secondary">🔗 Relacionado:</Caption>
+                            <Body size="small" color="primary">{movement.relatedWarehouse.name}</Body>
                           </View>
                         )}
 
                         {movement.referenceType && (
                           <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>📄 Referencia:</Text>
-                            <Text style={styles.detailValue}>{movement.referenceType}</Text>
+                            <Caption color="secondary">📄 Referencia:</Caption>
+                            <Body size="small" color="primary">{movement.referenceType}</Body>
                           </View>
                         )}
 
                         {movement.performedByUser && (
                           <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>👤 Realizado por:</Text>
-                            <Text style={styles.detailValue}>{movement.performedByUser.name}</Text>
+                            <Caption color="secondary">👤 Realizado por:</Caption>
+                            <Body size="small" color="primary">{movement.performedByUser.name}</Body>
                           </View>
                         )}
 
                         {movement.notes && (
                           <View style={styles.notesContainer}>
-                            <Text style={styles.notesLabel}>📝 Notas:</Text>
-                            <Text style={styles.notesText}>{movement.notes}</Text>
+                            <Label size="small" color={colors.warning[800]}>📝 Notas:</Label>
+                            <Body size="small" color={colors.warning[900]}>{movement.notes}</Body>
                           </View>
                         )}
                       </View>
-                    </View>
+                    </Card>
                   );
                 })}
               </View>
@@ -262,9 +272,12 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.closeFooterButton} onPress={onClose}>
-              <Text style={styles.closeFooterButtonText}>Cerrar</Text>
-            </TouchableOpacity>
+            <Button
+              title="Cerrar"
+              variant="primary"
+              onPress={onClose}
+              fullWidth
+            />
           </View>
         </View>
       </View>
@@ -275,97 +288,49 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
     width: '90%',
     maxWidth: 600,
     height: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
+    ...shadows.xl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E7FF',
-    backgroundColor: '#FAFBFF',
+    borderBottomColor: colors.border.light,
+    backgroundColor: colors.surface.primary,
   },
   headerContent: {
     flex: 1,
-    marginRight: 12,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#667eea',
-    marginBottom: 4,
+    marginRight: spacing[3],
   },
   headerSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 2,
-  },
-  headerSku: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#E0E7FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 22,
-    color: '#667eea',
-    fontWeight: '600',
+    marginTop: spacing[1],
+    marginBottom: spacing[0.5],
   },
   summaryCard: {
-    backgroundColor: '#667eea',
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 16,
-    padding: 20,
-    borderRadius: 16,
+    backgroundColor: colors.primary[900],
+    marginHorizontal: spacing[5],
+    marginTop: spacing[4],
+    marginBottom: spacing[4],
+    padding: spacing[5],
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    ...shadows.lg,
   },
   summaryLabel: {
-    fontSize: 13,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: spacing[2],
     letterSpacing: 1,
-    opacity: 0.9,
-  },
-  summaryValue: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
-  },
-  summarySubtext: {
-    fontSize: 13,
-    color: '#FFFFFF',
-    opacity: 0.85,
   },
   content: {
     flex: 1,
@@ -374,166 +339,65 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: spacing[16],
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#64748B',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 20,
+    marginTop: spacing[3],
   },
   movementsList: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: spacing[5],
+    paddingBottom: spacing[5],
   },
   movementCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E0E7FF',
-    overflow: 'hidden',
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   movementHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F5F7FF',
+    padding: spacing[4],
+    backgroundColor: colors.accent[50],
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E7FF',
+    borderBottomColor: colors.accent[200],
   },
   movementTypeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  movementIcon: {
-    fontSize: 24,
-    marginRight: 12,
+    gap: spacing[3],
   },
   movementTypeInfo: {
     flex: 1,
   },
-  movementType: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  movementDate: {
-    fontSize: 12,
-    color: '#64748B',
-  },
   quantityBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
+    paddingHorizontal: spacing[3.5],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.md,
     minWidth: 80,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  quantityText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
   movementDetails: {
-    padding: 16,
-    gap: 10,
+    padding: spacing[4],
+    gap: spacing[2.5],
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  detailLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    flex: 1,
-  },
-  detailValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B',
-    textAlign: 'right',
-  },
-  detailValueHighlight: {
-    color: '#667eea',
-    fontSize: 14,
-  },
   notesContainer: {
-    marginTop: 8,
-    padding: 14,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
+    marginTop: spacing[2],
+    padding: spacing[3.5],
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  notesLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#92400E',
-    marginBottom: 4,
-  },
-  notesText: {
-    fontSize: 13,
-    color: '#78350F',
-    lineHeight: 18,
+    borderColor: colors.warning[200],
   },
   footer: {
     borderTopWidth: 1,
-    borderTopColor: '#E0E7FF',
-    padding: 20,
-    backgroundColor: '#FAFBFF',
-  },
-  closeFooterButton: {
-    backgroundColor: '#667eea',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  closeFooterButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    borderTopColor: colors.border.light,
+    padding: spacing[5],
+    backgroundColor: colors.surface.primary,
   },
 });
 

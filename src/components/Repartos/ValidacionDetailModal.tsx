@@ -1,21 +1,37 @@
+/**
+ * ValidacionDetailModal - Modal de detalles de validación
+ * Migrado al Design System unificado
+ */
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
   Image,
   useWindowDimensions,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { ValidacionSalida } from '@/types/repartos';
 import { repartosService, productsApi } from '@/services/api';
 import { Product } from '@/services/api/products';
 import logger from '@/utils/logger';
 import { ImageViewerModal } from '@/components/Expenses/ImageViewerModal';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  Title,
+  Body,
+  Label,
+  Caption,
+  Card,
+  Button,
+  IconButton,
+} from '@/design-system';
 
 interface ValidacionDetailModalProps {
   visible: boolean;
@@ -164,19 +180,22 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
         <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
           {/* Header */}
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, isTablet && styles.modalTitleTablet]}>
-              Detalles de Validación
-            </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
+            <Title>Detalles de Validación</Title>
+            <IconButton
+              icon="close"
+              variant="ghost"
+              size="small"
+              onPress={onClose}
+            />
           </View>
 
           {/* Loading State */}
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#6366F1" />
-              <Text style={styles.loadingText}>Cargando validación...</Text>
+              <ActivityIndicator size="large" color={colors.accent[500]} />
+              <Body color="secondary" style={{ marginTop: spacing[3] }}>
+                Cargando validación...
+              </Body>
             </View>
           ) : validacion ? (
             <>
@@ -184,66 +203,54 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
               <ScrollView style={styles.modalBody}>
                 {/* Validation Info */}
                 <View style={styles.section}>
-                  <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                  <Label style={{ marginBottom: spacing[3] }}>
                     Información de Validación
-                  </Text>
+                  </Label>
 
                   {/* Si fue validado por presentación, mostrar presentaciones primero */}
                   {validacion.validatedPresentationQuantity !== undefined &&
                    validacion.validatedPresentationQuantity > 0 && (
                     <>
                       <View style={styles.infoRow}>
-                        <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                        <Caption style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
                           Cantidad en Presentación:
-                        </Text>
-                        <Text
-                          style={[
-                            styles.infoValue,
-                            styles.highlightValue,
-                            isTablet && styles.infoValueTablet,
-                          ]}
-                        >
+                        </Caption>
+                        <Body style={{ flex: 1, color: colors.success[600] }}>
                           {validacion.validatedPresentationQuantity}{' '}
                           {validacion.presentationInfo?.largestPresentation?.name || 'presentaciones'}
-                        </Text>
+                        </Body>
                       </View>
 
                       {validacion.validatedLooseUnits !== undefined &&
                        validacion.validatedLooseUnits > 0 && (
                         <View style={styles.infoRow}>
-                          <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                          <Caption style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
                             Unidades Sueltas:
-                          </Text>
-                          <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                          </Caption>
+                          <Body style={{ flex: 1 }}>
                             {validacion.validatedLooseUnits} unidades
-                          </Text>
+                          </Body>
                         </View>
                       )}
 
                       <View style={styles.infoRow}>
-                        <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                        <Caption style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
                           Total en Unidades:
-                        </Text>
-                        <Text
-                          style={[
-                            styles.infoValue,
-                            styles.secondaryValue,
-                            isTablet && styles.infoValueTablet,
-                          ]}
-                        >
+                        </Caption>
+                        <Body color="secondary" style={{ flex: 1 }}>
                           {validacion.validatedQuantity || validacion.validatedQuantityBase} unidades
-                        </Text>
+                        </Body>
                       </View>
 
                       {validacion.presentationInfo?.largestPresentation && (
                         <View style={styles.infoRow}>
-                          <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                          <Caption style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
                             Factor de Conversión:
-                          </Text>
-                          <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                          </Caption>
+                          <Body style={{ flex: 1 }}>
                             1 {validacion.presentationInfo.largestPresentation.name} ={' '}
                             {validacion.presentationInfo.largestPresentation.factorToBase} unidades
-                          </Text>
+                          </Body>
                         </View>
                       )}
                     </>
@@ -253,50 +260,44 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                   {(!validacion.validatedPresentationQuantity ||
                     validacion.validatedPresentationQuantity === 0) && (
                     <View style={styles.infoRow}>
-                      <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                      <Caption style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
                         Cantidad Validada:
-                      </Text>
-                      <Text
-                        style={[
-                          styles.infoValue,
-                          styles.highlightValue,
-                          isTablet && styles.infoValueTablet,
-                        ]}
-                      >
+                      </Caption>
+                      <Body style={{ flex: 1, color: colors.success[600] }}>
                         {validacion.validatedQuantity || validacion.validatedQuantityBase} unidades
-                      </Text>
+                      </Body>
                     </View>
                   )}
 
                   <View style={styles.infoRow}>
-                    <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                    <Caption style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
                       Validado por:
-                    </Text>
-                    <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                    </Caption>
+                    <Body style={{ flex: 1 }}>
                       {validacion.validator?.name ||
                         validacion.validatedByName ||
                         validacion.validator?.email ||
                         'N/A'}
-                    </Text>
+                    </Body>
                   </View>
 
                   <View style={styles.infoRow}>
-                    <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                    <Caption style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
                       Fecha de Validación:
-                    </Text>
-                    <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                    </Caption>
+                    <Body style={{ flex: 1 }}>
                       {formatDate(validacion.validatedAt)}
-                    </Text>
+                    </Body>
                   </View>
 
                   {validacion.notes && (
                     <View style={styles.infoRow}>
-                      <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                      <Caption style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
                         Notas:
-                      </Text>
-                      <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                      </Caption>
+                      <Body style={{ flex: 1 }}>
                         {validacion.notes}
-                      </Text>
+                      </Body>
                     </View>
                   )}
                 </View>
@@ -304,9 +305,9 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                 {/* Product Photo */}
                 {productPhotos.length > 0 && (
                   <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                    <Label style={{ marginBottom: spacing[3] }}>
                       Foto del Producto
-                    </Text>
+                    </Label>
                     <TouchableOpacity
                       style={styles.imageContainer}
                       onPress={() => {
@@ -330,9 +331,9 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                 {/* Photo */}
                 {validacion.photoUrl && (
                   <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                    <Label style={{ marginBottom: spacing[3] }}>
                       Foto de Validación
-                    </Text>
+                    </Label>
                     <TouchableOpacity
                       style={styles.imageContainer}
                       onPress={() => {
@@ -356,9 +357,9 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                 {/* Signature */}
                 {validacion.signatureUrl && (
                   <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                    <Label style={{ marginBottom: spacing[3] }}>
                       Firma de Validación
-                    </Text>
+                    </Label>
                     <TouchableOpacity
                       style={styles.imageContainer}
                       onPress={() => {
@@ -382,19 +383,12 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
 
               {/* Footer */}
               <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={[styles.closeFooterButton, isTablet && styles.closeFooterButtonTablet]}
+                <Button
+                  title="Cerrar"
+                  variant="primary"
                   onPress={onClose}
-                >
-                  <Text
-                    style={[
-                      styles.closeFooterButtonText,
-                      isTablet && styles.closeFooterButtonTextTablet,
-                    ]}
-                  >
-                    Cerrar
-                  </Text>
-                </TouchableOpacity>
+                  fullWidth
+                />
               </View>
             </>
           ) : null}
@@ -425,23 +419,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: spacing[10],
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 16,
-    color: '#64748B',
+    color: colors.text.secondary,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.xl,
     width: '90%',
     maxHeight: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...shadows.lg,
   },
   modalContentTablet: {
     width: '70%',
@@ -451,116 +441,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  modalTitleTablet: {
-    fontSize: 24,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#64748B',
-    fontWeight: '600',
+    borderBottomColor: colors.border.light,
   },
   modalBody: {
-    padding: 20,
+    padding: spacing[5],
   },
   section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 12,
-  },
-  sectionTitleTablet: {
-    fontSize: 18,
+    marginBottom: spacing[6],
   },
   infoRow: {
     flexDirection: 'row',
-    paddingVertical: 10,
+    paddingVertical: spacing[2.5],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.background.secondary,
   },
   infoLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
     width: 150,
   },
   infoLabelTablet: {
-    fontSize: 16,
     width: 180,
   },
-  infoValue: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1E293B',
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  highlightValue: {
-    color: '#10B981',
-    fontWeight: '600',
-  },
-  secondaryValue: {
-    color: '#64748B',
-    fontWeight: '500',
-  },
   imageContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.light,
   },
   image: {
     width: '100%',
     height: 300,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
   },
   signatureImage: {
     width: '100%',
     height: 200,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
   },
   modalFooter: {
-    padding: 20,
+    padding: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  closeFooterButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  closeFooterButtonTablet: {
-    paddingVertical: 16,
-  },
-  closeFooterButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  closeFooterButtonTextTablet: {
-    fontSize: 18,
+    borderTopColor: colors.border.light,
   },
 });

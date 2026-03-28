@@ -1,13 +1,23 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  iconSizes,
+  touchTargets,
+} from '@/design-system/tokens';
+import { textVariants } from '@/design-system/tokens/typography';
 
 interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
   onClear?: () => void;
-  style?: any;
+  style?: ViewStyle;
   autoFocus?: boolean;
 }
 
@@ -26,13 +36,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   return (
     <View style={[styles.container, style]}>
-      <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+      <Ionicons name="search" size={iconSizes.md} color={colors.icon.tertiary} style={styles.searchIcon} />
       <TextInput
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.text.placeholder}
         keyboardType="default"
         autoCapitalize="none"
         autoCorrect={false}
@@ -40,7 +50,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       />
       {value.length > 0 && (
         <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-          <Ionicons name="close-circle" size={20} color="#999" />
+          <Ionicons name="close-circle" size={iconSizes.md} color={colors.icon.tertiary} />
         </TouchableOpacity>
       )}
     </View>
@@ -51,22 +61,24 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 44,
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    height: touchTargets.medium,
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: '#333',
+    ...textVariants.bodyMedium,
+    color: colors.text.primary,
     paddingVertical: 0,
   },
   clearButton: {
-    padding: 4,
-    marginLeft: 8,
+    padding: spacing[1],
+    marginLeft: spacing[2],
   },
 });

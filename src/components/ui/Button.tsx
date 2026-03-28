@@ -7,7 +7,15 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { theme } from '@/theme';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  touchTargets,
+} from '@/design-system/tokens';
+import { textVariants } from '@/design-system/tokens/typography';
 
 interface ButtonProps {
   title: string;
@@ -53,13 +61,12 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const getTextStyle = (): TextStyle => {
-    const baseTextStyle = {
-      ...styles.text,
+    const baseTextStyle: TextStyle = {
+      ...styles.textBase,
       ...styles[`text_${variant}`],
       ...styles[`text_${size}`],
     };
 
-    // Si se especifica textStyle, darle máxima prioridad
     if (textStyle) {
       return {
         ...baseTextStyle,
@@ -70,6 +77,20 @@ export const Button: React.FC<ButtonProps> = ({
     return baseTextStyle;
   };
 
+  const getLoaderColor = (): string => {
+    switch (variant) {
+      case 'primary':
+        return colors.text.inverse;
+      case 'secondary':
+        return colors.text.primary;
+      case 'outline':
+      case 'text':
+        return colors.primary[900];
+      default:
+        return colors.text.inverse;
+    }
+  };
+
   return (
     <TouchableOpacity
       style={[getButtonStyle(), style]}
@@ -78,19 +99,9 @@ export const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator
-          color={variant === 'primary' ? theme.colors.text.white : theme.colors.primary}
-        />
+        <ActivityIndicator color={getLoaderColor()} size="small" />
       ) : (
-        <Text
-          style={[
-            getTextStyle(),
-            textStyle,
-            { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
-          ]}
-        >
-          {title}
-        </Text>
+        <Text style={getTextStyle()}>{title}</Text>
       )}
     </TouchableOpacity>
   );
@@ -100,62 +111,65 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: borderRadius.md,
     flexDirection: 'row',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
   primary: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
   },
   secondary: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: colors.neutral[100],
+    borderColor: colors.neutral[200],
   },
   outline: {
     backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary[900],
   },
   text: {
     backgroundColor: 'transparent',
+    borderColor: 'transparent',
   },
   size_small: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    minHeight: 36,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    minHeight: touchTargets.small,
   },
   size_medium: {
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
-    minHeight: 44,
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[4],
+    minHeight: touchTargets.medium,
   },
   size_large: {
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.xl,
-    minHeight: 52,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[6],
+    minHeight: touchTargets.large,
+  },
+  textBase: {
+    ...textVariants.buttonMedium,
   },
   text_primary: {
-    color: '#FFFFFF', // Blanco forzado
-    fontFamily: theme.fonts.semibold,
+    color: colors.text.inverse,
   },
   text_secondary: {
-    color: theme.colors.text.white,
-    fontFamily: theme.fonts.semibold,
+    color: colors.text.primary,
   },
   text_outline: {
-    color: theme.colors.primary,
-    fontFamily: theme.fonts.semibold,
+    color: colors.primary[900],
   },
   text_text: {
-    color: theme.colors.primary,
-    fontFamily: theme.fonts.semibold,
+    color: colors.primary[900],
   },
   text_small: {
-    fontSize: theme.fontSize.sm,
+    ...textVariants.buttonSmall,
   },
   text_medium: {
-    fontSize: theme.fontSize.md,
+    ...textVariants.buttonMedium,
   },
   text_large: {
-    fontSize: theme.fontSize.lg,
+    ...textVariants.buttonLarge,
   },
 });
 

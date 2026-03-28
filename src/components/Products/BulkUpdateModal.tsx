@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
@@ -16,6 +15,23 @@ import * as Sharing from 'expo-sharing';
 import { productsApi } from '@/services/api/products';
 import logger from '@/utils/logger';
 import { getDocumentAsync } from '@/utils/filePicker';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Label,
+  Button,
+  IconButton,
+} from '@/design-system/components';
 
 interface BulkUpdateModalProps {
   visible: boolean;
@@ -277,125 +293,130 @@ Total procesado: ${result.totalRows}
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title}>
+              <Title size="medium" style={{ flex: 1 }}>
                 {mode === 'products' ? 'Actualización Masiva de Productos' : 'Actualización de Productos de Campaña'}
-              </Text>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
+              </Title>
+              <IconButton
+                icon="close"
+                onPress={handleClose}
+                variant="ghost"
+                size="small"
+              />
             </View>
 
             {/* Instructions */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📋 Instrucciones</Text>
-              <Text style={styles.instructionText}>
+              <Label size="large" style={styles.sectionTitle}>📋 Instrucciones</Label>
+              <Body size="small" color="secondary">
                 1. Descarga el formato Excel con los productos{'\n'}
                 2. Modifica SKU, Nombre, Costo y/o Precios{'\n'}
                 3. NO modifiques la columna "Correlativo"{'\n'}
                 4. Sube el archivo modificado para actualizar
-              </Text>
+              </Body>
             </View>
 
             {/* Download Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📥 Paso 1: Descargar Formato</Text>
+              <Label size="large" style={styles.sectionTitle}>📥 Paso 1: Descargar Formato</Label>
 
               {mode === 'products' && (
                 <View style={styles.filterContainer}>
-                  <Text style={styles.filterLabel}>Filtrar por fechas (opcional):</Text>
+                  <Label size="medium" color="secondary" style={styles.filterLabel}>
+                    Filtrar por fechas (opcional):
+                  </Label>
                   <View style={styles.dateInputContainer}>
                     <View style={styles.dateInput}>
-                      <Text style={styles.dateLabel}>Desde:</Text>
+                      <Caption color="tertiary" style={styles.dateLabel}>Desde:</Caption>
                       <TextInput
                         style={styles.input}
                         placeholder="YYYY-MM-DD"
+                        placeholderTextColor={colors.text.placeholder}
                         value={fromDate}
                         onChangeText={setFromDate}
                         editable={!loading}
                       />
                     </View>
                     <View style={styles.dateInput}>
-                      <Text style={styles.dateLabel}>Hasta:</Text>
+                      <Caption color="tertiary" style={styles.dateLabel}>Hasta:</Caption>
                       <TextInput
                         style={styles.input}
                         placeholder="YYYY-MM-DD"
+                        placeholderTextColor={colors.text.placeholder}
                         value={toDate}
                         onChangeText={setToDate}
                         editable={!loading}
                       />
                     </View>
                   </View>
-                  <Text style={styles.helperText}>
+                  <Caption color="tertiary" style={styles.helperText}>
                     Deja vacío para descargar todos los productos
-                  </Text>
+                  </Caption>
                 </View>
               )}
 
               {mode === 'campaign' && (
-                <Text style={styles.campaignInfo}>
+                <Body size="small" color="secondary" style={styles.campaignInfo}>
                   Se descargarán los productos de esta campaña
-                </Text>
+                </Body>
               )}
 
-              <TouchableOpacity
-                style={[styles.button, styles.downloadButton, loading && styles.buttonDisabled]}
+              <Button
+                title="📥 Descargar Formato Excel"
+                variant="primary"
                 onPress={handleDownloadFormat}
                 disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.buttonText}>📥 Descargar Formato Excel</Text>
-                )}
-              </TouchableOpacity>
+                loading={loading}
+                fullWidth
+                style={styles.actionButton}
+              />
             </View>
 
             {/* Upload Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📤 Paso 2: Subir Archivo Modificado</Text>
+              <Label size="large" style={styles.sectionTitle}>📤 Paso 2: Subir Archivo Modificado</Label>
 
               {selectedFile && (
                 <View style={styles.fileInfo}>
-                  <Text style={styles.fileName}>📄 {selectedFile.name}</Text>
-                  <TouchableOpacity onPress={() => setSelectedFile(null)}>
-                    <Text style={styles.removeFile}>✕</Text>
-                  </TouchableOpacity>
+                  <Body size="small" color="primary" style={{ flex: 1 }}>📄 {selectedFile.name}</Body>
+                  <IconButton
+                    icon="close-circle"
+                    onPress={() => setSelectedFile(null)}
+                    variant="ghost"
+                    size="small"
+                  />
                 </View>
               )}
 
-              <TouchableOpacity
-                style={[styles.button, styles.selectButton, loading && styles.buttonDisabled]}
+              <Button
+                title={selectedFile ? '📄 Cambiar Archivo' : '📄 Seleccionar Archivo'}
+                variant="secondary"
                 onPress={handleSelectFile}
                 disabled={loading}
-              >
-                <Text style={styles.buttonText}>
-                  {selectedFile ? '📄 Cambiar Archivo' : '📄 Seleccionar Archivo'}
-                </Text>
-              </TouchableOpacity>
+                fullWidth
+                style={styles.actionButton}
+              />
 
               {selectedFile && (
-                <TouchableOpacity
-                  style={[styles.button, styles.uploadButton, loading && styles.buttonDisabled]}
+                <Button
+                  title="🚀 Actualizar Productos"
+                  variant="success"
                   onPress={handleUploadFile}
                   disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.buttonText}>🚀 Actualizar Productos</Text>
-                  )}
-                </TouchableOpacity>
+                  loading={loading}
+                  fullWidth
+                  style={styles.actionButton}
+                />
               )}
             </View>
 
             {/* Warning */}
             <View style={styles.warningContainer}>
-              <Text style={styles.warningText}>
+              <Caption color={colors.warning[800]}>
                 ⚠️ Los precios están en SOLES y se convierten automáticamente a céntimos
-              </Text>
-              <Text style={styles.warningText}>
+              </Caption>
+              <Caption color={colors.warning[800]} style={{ marginTop: spacing[1] }}>
                 ⚠️ Si modificas el costo, los precios NO se recalculan automáticamente
-              </Text>
+              </Caption>
             </View>
           </ScrollView>
         </View>
@@ -407,162 +428,84 @@ Total procesado: ${result.totalRows}
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
     width: '100%',
     maxWidth: 600,
     maxHeight: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...shadows.xl,
   },
   scrollView: {
-    padding: 24,
+    padding: spacing[6],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-    flex: 1,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#6B7280',
-    fontWeight: '600',
+    marginBottom: spacing[5],
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 12,
-  },
-  instructionText: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 22,
+    marginBottom: spacing[3],
   },
   filterContainer: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   filterLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   dateInputContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   dateInput: {
     flex: 1,
   },
   dateLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   input: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 10,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.md,
+    padding: spacing[2.5],
     fontSize: 14,
-    color: '#1F2937',
-    backgroundColor: '#FFFFFF',
+    color: colors.text.primary,
+    backgroundColor: colors.surface.primary,
   },
   helperText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 6,
+    marginTop: spacing[1.5],
     fontStyle: 'italic',
   },
   campaignInfo: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 12,
+    marginBottom: spacing[3],
     fontStyle: 'italic',
   },
-  button: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-  downloadButton: {
-    backgroundColor: '#3B82F6',
-  },
-  selectButton: {
-    backgroundColor: '#8B5CF6',
-  },
-  uploadButton: {
-    backgroundColor: '#10B981',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
+  actionButton: {
+    marginTop: spacing[3],
   },
   fileInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F3F4F6',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  fileName: {
-    fontSize: 14,
-    color: '#374151',
-    flex: 1,
-  },
-  removeFile: {
-    fontSize: 18,
-    color: '#EF4444',
-    fontWeight: '600',
-    paddingHorizontal: 8,
+    backgroundColor: colors.surface.secondary,
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[2],
   },
   warningContainer: {
-    backgroundColor: '#FEF3C7',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: colors.warning[50],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
     borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  warningText: {
-    fontSize: 13,
-    color: '#92400E',
-    marginBottom: 4,
+    borderLeftColor: colors.warning[500],
   },
 });

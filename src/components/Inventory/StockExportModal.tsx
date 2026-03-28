@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
@@ -15,6 +14,25 @@ import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { inventoryApi, ExportFormat } from '@/services/api/inventory';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  iconSizes,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Label,
+  Button,
+  Card,
+  IconButton,
+} from '@/design-system/components';
 
 interface StockExportModalProps {
   visible: boolean;
@@ -190,24 +208,28 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerTitleContainer}>
-                <Ionicons name="download-outline" size={24} color="#6366F1" />
-                <Text style={styles.headerTitle}>Exportar Reporte de Stock</Text>
+                <Ionicons name="download-outline" size={iconSizes.lg} color={colors.accent[600]} />
+                <Title size="medium">Exportar Reporte de Stock</Title>
               </View>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton} disabled={loading}>
-                <Ionicons name="close" size={24} color="#64748B" />
-              </TouchableOpacity>
+              <IconButton
+                icon="close"
+                onPress={handleClose}
+                variant="ghost"
+                size="medium"
+                disabled={loading}
+              />
             </View>
 
             <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
               {/* Site Info */}
               <View style={styles.siteInfo}>
-                <Ionicons name="business-outline" size={20} color="#6366F1" />
-                <Text style={styles.siteInfoText}>Sede: {siteName}</Text>
+                <Ionicons name="business-outline" size={iconSizes.md} color={colors.accent[600]} />
+                <Label size="medium" color={colors.accent[700]}>Sede: {siteName}</Label>
               </View>
 
               {/* Format Selection */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Formato de Exportación</Text>
+                <Title size="small" style={styles.sectionTitle}>Formato de Exportación</Title>
                 <View style={styles.formatContainer}>
                   <TouchableOpacity
                     style={[styles.formatButton, format === 'excel' && styles.formatButtonSelected]}
@@ -216,17 +238,12 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                   >
                     <Ionicons
                       name="document-text-outline"
-                      size={24}
-                      color={format === 'excel' ? '#FFFFFF' : '#64748B'}
+                      size={iconSizes.lg}
+                      color={format === 'excel' ? colors.text.inverse : colors.text.tertiary}
                     />
-                    <Text
-                      style={[
-                        styles.formatButtonText,
-                        format === 'excel' && styles.formatButtonTextSelected,
-                      ]}
-                    >
+                    <Label size="large" color={format === 'excel' ? colors.text.inverse : colors.text.secondary}>
                       Excel
-                    </Text>
+                    </Label>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -236,27 +253,22 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                   >
                     <Ionicons
                       name="document-outline"
-                      size={24}
-                      color={format === 'pdf' ? '#FFFFFF' : '#64748B'}
+                      size={iconSizes.lg}
+                      color={format === 'pdf' ? colors.text.inverse : colors.text.tertiary}
                     />
-                    <Text
-                      style={[
-                        styles.formatButtonText,
-                        format === 'pdf' && styles.formatButtonTextSelected,
-                      ]}
-                    >
+                    <Label size="large" color={format === 'pdf' ? colors.text.inverse : colors.text.secondary}>
                       PDF
-                    </Text>
+                    </Label>
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* Date Range */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Rango de Fechas (Opcional)</Text>
-                <Text style={styles.sectionDescription}>
+                <Title size="small" style={styles.sectionTitle}>Rango de Fechas (Opcional)</Title>
+                <Caption color="secondary" style={styles.sectionDescription}>
                   Filtra productos por fecha de creación
-                </Text>
+                </Caption>
 
                 <DatePickerButton
                   label="Fecha de Inicio"
@@ -283,69 +295,60 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                     }}
                     disabled={loading}
                   >
-                    <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
-                    <Text style={styles.clearDatesText}>Limpiar fechas</Text>
+                    <Ionicons name="close-circle-outline" size={18} color={colors.danger[500]} />
+                    <Label size="medium" color={colors.danger[500]}>Limpiar fechas</Label>
                   </TouchableOpacity>
                 )}
               </View>
 
               {/* Include Prices Option */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Opciones Adicionales</Text>
+                <Title size="small" style={styles.sectionTitle}>Opciones Adicionales</Title>
                 <TouchableOpacity
                   style={styles.checkboxContainer}
                   onPress={() => setIncludePrices(!includePrices)}
                   disabled={loading}
                 >
                   <View style={[styles.checkbox, includePrices && styles.checkboxChecked]}>
-                    {includePrices && <Ionicons name="checkmark" size={18} color="#FFFFFF" />}
+                    {includePrices && <Ionicons name="checkmark" size={18} color={colors.text.inverse} />}
                   </View>
                   <View style={styles.checkboxLabelContainer}>
-                    <Text style={styles.checkboxLabel}>Incluir Precios y Valorización</Text>
-                    <Text style={styles.checkboxDescription}>
+                    <Label size="large" color="primary">Incluir Precios y Valorización</Label>
+                    <Caption color="secondary">
                       Muestra costos unitarios y valor total del inventario
-                    </Text>
+                    </Caption>
                   </View>
                 </TouchableOpacity>
               </View>
 
               {/* Info Box */}
               <View style={styles.infoBox}>
-                <Ionicons name="information-circle-outline" size={20} color="#3B82F6" />
-                <Text style={styles.infoText}>
+                <Ionicons name="information-circle-outline" size={iconSizes.md} color={colors.info[600]} />
+                <Body size="small" color={colors.info[800]} style={styles.infoText}>
                   El reporte incluirá todos los productos con stock en la sede seleccionada
                   {startDate || endDate ? ' dentro del rango de fechas especificado' : ''}.
-                </Text>
+                </Body>
               </View>
             </ScrollView>
 
             {/* Footer Actions */}
             <View style={styles.footer}>
-              <TouchableOpacity
-                style={styles.cancelButton}
+              <Button
+                title="Cancelar"
+                variant="secondary"
                 onPress={handleClose}
                 disabled={loading}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.exportButton, loading && styles.exportButtonDisabled]}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title={loading ? 'Exportando...' : 'Exportar'}
+                variant="primary"
                 onPress={handleExport}
                 disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <Text style={styles.exportButtonText}>Exportando...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons name="download-outline" size={20} color="#FFFFFF" />
-                    <Text style={styles.exportButtonText}>Exportar</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+                loading={loading}
+                leftIcon="download-outline"
+                style={{ flex: 1 }}
+              />
             </View>
           </View>
         </View>
@@ -392,214 +395,134 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.surface.primary,
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     height: '85%',
-    paddingBottom: 20,
+    paddingBottom: spacing[5],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.light,
   },
   headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
+    gap: spacing[3],
   },
   scrollContent: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing[5],
   },
   siteInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  siteInfoText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4338CA',
+    gap: spacing[2],
+    backgroundColor: colors.accent[50],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[4],
+    marginBottom: spacing[2],
   },
   section: {
-    marginTop: 20,
+    marginTop: spacing[5],
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   sectionDescription: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   formatContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   formatButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    gap: spacing[2],
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.lg,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border.light,
+    backgroundColor: colors.surface.secondary,
   },
   formatButtonSelected: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  formatButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  formatButtonTextSelected: {
-    color: '#FFFFFF',
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
   },
   clearDatesButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing[1.5],
     alignSelf: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginTop: 8,
-  },
-  clearDatesText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#EF4444',
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    marginTop: spacing[2],
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    gap: spacing[3],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.light,
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: borderRadius.sm,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
   },
   checkboxLabelContainer: {
     flex: 1,
   },
-  checkboxLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  checkboxDescription: {
-    fontSize: 13,
-    color: '#64748B',
-  },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 20,
-    marginBottom: 20,
+    gap: spacing[3],
+    backgroundColor: colors.info[50],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[5],
+    marginBottom: spacing[5],
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    color: '#1E40AF',
     lineHeight: 18,
   },
   footer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    gap: 12,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    gap: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  exportButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
-  },
-  exportButtonDisabled: {
-    opacity: 0.6,
-  },
-  exportButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    borderTopColor: colors.border.light,
   },
 });

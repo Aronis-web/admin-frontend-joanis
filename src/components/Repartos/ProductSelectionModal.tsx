@@ -296,7 +296,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
             <Button
               title="Cancelar"
               onPress={onClose}
-              variant="secondary"
+              variant="outline"
               style={styles.footerButton}
             />
             <Button

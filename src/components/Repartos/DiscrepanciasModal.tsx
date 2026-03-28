@@ -1,11 +1,13 @@
+/**
+ * DiscrepanciasModal - Modal de reporte de discrepancias
+ * Migrado al Design System unificado
+ */
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   useWindowDimensions,
@@ -19,6 +21,21 @@ import {
   DiscrepancyStatusColors,
 } from '@/types/consolidated-reports';
 import logger from '@/utils/logger';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  Title,
+  Body,
+  Label,
+  Caption,
+  Card,
+  Button,
+  IconButton,
+  Badge,
+  EmptyState,
+} from '@/design-system';
 
 interface DiscrepanciasModalProps {
   visible: boolean;
@@ -72,91 +89,67 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
     const isNegative = discrepancy.quantityDifference < 0;
 
     return (
-      <View key={discrepancy.id} style={[styles.card, isTablet && styles.cardTablet]}>
+      <View key={discrepancy.id} style={[styles.card, isTablet ? styles.cardTablet : undefined]}>
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
+            <Title size="small" style={{ marginBottom: spacing[1] }}>
               {discrepancy.productName}
-            </Text>
-            <Text style={[styles.productSku, isTablet && styles.productSkuTablet]}>
+            </Title>
+            <Caption color="secondary">
               SKU: {discrepancy.productSku}
-            </Text>
+            </Caption>
           </View>
           <View
             style={[
               styles.statusBadge,
-              isTablet && styles.statusBadgeTablet,
+              isTablet ? styles.statusBadgeTablet : undefined,
               {
                 backgroundColor: DiscrepancyStatusColors[discrepancy.status] + '20',
                 borderColor: DiscrepancyStatusColors[discrepancy.status],
               },
             ]}
           >
-            <Text
-              style={[
-                styles.statusText,
-                isTablet && styles.statusTextTablet,
-                { color: DiscrepancyStatusColors[discrepancy.status] },
-              ]}
-            >
+            <Caption style={{ fontWeight: '600', color: DiscrepancyStatusColors[discrepancy.status] }}>
               {DiscrepancyStatusLabels[discrepancy.status]}
-            </Text>
+            </Caption>
           </View>
         </View>
 
         {/* Reparto Info */}
         <View style={styles.repartoInfo}>
-          <Text style={[styles.repartoLabel, isTablet && styles.repartoLabelTablet]}>
+          <Caption color="secondary" style={{ marginBottom: spacing[1] }}>
             Reparto:
-          </Text>
-          <Text style={[styles.repartoValue, isTablet && styles.repartoValueTablet]}>
+          </Caption>
+          <Body style={{ fontWeight: '600' }}>
             {discrepancy.repartoCode} - {discrepancy.repartoName}
-          </Text>
+          </Body>
         </View>
 
         {/* Quantities */}
         <View style={styles.quantitiesContainer}>
           <View style={styles.quantityRow}>
-            <Text style={[styles.quantityLabel, isTablet && styles.quantityLabelTablet]}>
-              Asignado:
-            </Text>
-            <Text style={[styles.quantityValue, isTablet && styles.quantityValueTablet]}>
-              {discrepancy.quantityAssigned} unidades
-            </Text>
+            <Caption color="secondary">Asignado:</Caption>
+            <Body style={{ fontWeight: '600' }}>{discrepancy.quantityAssigned} unidades</Body>
           </View>
           <View style={styles.quantityRow}>
-            <Text style={[styles.quantityLabel, isTablet && styles.quantityLabelTablet]}>
-              Validado:
-            </Text>
-            <Text
-              style={[
-                styles.quantityValue,
-                isTablet && styles.quantityValueTablet,
-                { color: '#10B981' },
-              ]}
-            >
+            <Caption color="secondary">Validado:</Caption>
+            <Body style={{ fontWeight: '600', color: colors.success[600] }}>
               {discrepancy.quantityValidated} unidades
-            </Text>
+            </Body>
           </View>
           {hasDifference && (
             <View style={styles.quantityRow}>
-              <Text style={[styles.quantityLabel, isTablet && styles.quantityLabelTablet]}>
-                Diferencia:
-              </Text>
-              <Text
-                style={[
-                  styles.quantityValue,
-                  isTablet && styles.quantityValueTablet,
-                  {
-                    color: isNegative ? '#EF4444' : '#F59E0B',
-                    fontWeight: '700',
-                  },
-                ]}
+              <Caption color="secondary">Diferencia:</Caption>
+              <Body
+                style={{
+                  fontWeight: '700',
+                  color: isNegative ? colors.danger[600] : colors.warning[600],
+                }}
               >
                 {isNegative ? '' : '+'}
                 {discrepancy.quantityDifference} unidades
-              </Text>
+              </Body>
             </View>
           )}
         </View>
@@ -164,13 +157,13 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
         {/* Validation Info */}
         {discrepancy.validatedByName && (
           <View style={styles.validationInfo}>
-            <Text style={[styles.validationLabel, isTablet && styles.validationLabelTablet]}>
+            <Caption style={{ color: colors.accent[600], marginBottom: spacing[1] }}>
               Validado por: {discrepancy.validatedByName}
-            </Text>
+            </Caption>
             {discrepancy.validationNotes && (
-              <Text style={[styles.validationNotes, isTablet && styles.validationNotesTablet]}>
+              <Caption color="secondary" style={{ fontStyle: 'italic' }}>
                 Nota: {discrepancy.validationNotes}
-              </Text>
+              </Caption>
             )}
           </View>
         )}
@@ -178,24 +171,22 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
         {/* Notes Count */}
         {discrepancy.notesCount !== undefined && discrepancy.notesCount > 0 && (
           <View style={styles.notesCountContainer}>
-            <Text style={[styles.notesCountText, isTablet && styles.notesCountTextTablet]}>
+            <Caption style={{ fontWeight: '600', color: colors.warning[700] }}>
               📝 {discrepancy.notesCount} nota{discrepancy.notesCount !== 1 ? 's' : ''} explicativa
               {discrepancy.notesCount !== 1 ? 's' : ''}
-            </Text>
+            </Caption>
           </View>
         )}
 
         {/* Action Button */}
-        <TouchableOpacity
-          style={[styles.manageButton, isTablet && styles.manageButtonTablet]}
+        <Button
+          title={discrepancy.notesCount && discrepancy.notesCount > 0
+            ? '📝 Ver/Editar Notas'
+            : '➕ Agregar Nota Explicativa'}
+          variant="primary"
           onPress={() => handleManageNotes(discrepancy)}
-        >
-          <Text style={[styles.manageButtonText, isTablet && styles.manageButtonTextTablet]}>
-            {discrepancy.notesCount && discrepancy.notesCount > 0
-              ? '📝 Ver/Editar Notas'
-              : '➕ Agregar Nota Explicativa'}
-          </Text>
-        </TouchableOpacity>
+          fullWidth
+        />
       </View>
     );
   };
@@ -204,97 +195,72 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Reporte de Discrepancias
-          </Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={[styles.closeButtonText, isTablet && styles.closeButtonTextTablet]}>
-              ✕
-            </Text>
-          </TouchableOpacity>
+        <View style={[styles.header, isTablet ? styles.headerTablet : undefined]}>
+          <Title>Reporte de Discrepancias</Title>
+          <IconButton
+            icon="close"
+            variant="ghost"
+            size="small"
+            onPress={onClose}
+          />
         </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366F1" />
-            <Text style={[styles.loadingText, isTablet && styles.loadingTextTablet]}>
+            <ActivityIndicator size="large" color={colors.accent[500]} />
+            <Body color="secondary" style={{ marginTop: spacing[3] }}>
               Cargando reporte...
-            </Text>
+            </Body>
           </View>
         ) : report ? (
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
             {/* Summary */}
-            <View style={[styles.summaryCard, isTablet && styles.summaryCardTablet]}>
-              <Text style={[styles.summaryTitle, isTablet && styles.summaryTitleTablet]}>
+            <View style={[styles.summaryCard, isTablet ? styles.summaryCardTablet : undefined]}>
+              <Label style={{ marginBottom: spacing[3] }}>
                 Resumen del Reporte
-              </Text>
+              </Label>
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
-                  Productos con discrepancias:
-                </Text>
-                <Text style={[styles.summaryValue, isTablet && styles.summaryValueTablet]}>
-                  {report.totalProductsWithDiscrepancies}
-                </Text>
+                <Caption color="secondary">Productos con discrepancias:</Caption>
+                <Body style={{ fontWeight: '600' }}>{report.totalProductsWithDiscrepancies}</Body>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
-                  Total asignado:
-                </Text>
-                <Text style={[styles.summaryValue, isTablet && styles.summaryValueTablet]}>
-                  {report.totalQuantityAssigned} unidades
-                </Text>
+                <Caption color="secondary">Total asignado:</Caption>
+                <Body style={{ fontWeight: '600' }}>{report.totalQuantityAssigned} unidades</Body>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
-                  Total validado:
-                </Text>
-                <Text
-                  style={[
-                    styles.summaryValue,
-                    isTablet && styles.summaryValueTablet,
-                    { color: '#10B981' },
-                  ]}
-                >
+                <Caption color="secondary">Total validado:</Caption>
+                <Body style={{ fontWeight: '600', color: colors.success[600] }}>
                   {report.totalQuantityValidated} unidades
-                </Text>
+                </Body>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
-                  Diferencia total:
-                </Text>
-                <Text
-                  style={[
-                    styles.summaryValue,
-                    isTablet && styles.summaryValueTablet,
-                    { color: '#EF4444', fontWeight: '700' },
-                  ]}
-                >
+                <Caption color="secondary">Diferencia total:</Caption>
+                <Body style={{ fontWeight: '700', color: colors.danger[600] }}>
                   {report.totalQuantityDifference} unidades
-                </Text>
+                </Body>
               </View>
             </View>
 
             {/* Discrepancies List */}
-            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+            <Label style={{ marginBottom: spacing[4] }}>
               Discrepancias por Producto
-            </Text>
+            </Label>
             {report.discrepancies && report.discrepancies.length > 0 ? (
               report.discrepancies.map((discrepancy) => renderDiscrepancyCard(discrepancy))
             ) : (
-              <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                  No hay discrepancias registradas
-                </Text>
-              </View>
+              <EmptyState
+                icon="clipboard-outline"
+                title="Sin discrepancias"
+                description="No hay discrepancias registradas"
+              />
             )}
           </ScrollView>
         ) : (
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-              No se pudo cargar el reporte
-            </Text>
-          </View>
+          <EmptyState
+            icon="alert-circle-outline"
+            title="Error"
+            description="No se pudo cargar el reporte"
+          />
         )}
       </SafeAreaView>
     </Modal>
@@ -304,283 +270,110 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.background.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.light,
   },
   headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 26,
-  },
-  closeButton: {
-    padding: 8,
-  },
-  closeButtonText: {
-    fontSize: 24,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  closeButtonTextTablet: {
-    fontSize: 28,
+    paddingHorizontal: spacing[8],
+    paddingVertical: spacing[6],
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#64748B',
-  },
-  loadingTextTablet: {
-    fontSize: 18,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing[4],
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[6],
+    ...shadows.md,
   },
   summaryCardTablet: {
-    padding: 24,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 12,
-  },
-  summaryTitleTablet: {
-    fontSize: 22,
+    padding: spacing[6],
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  summaryLabelTablet: {
-    fontSize: 16,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  summaryValueTablet: {
-    fontSize: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 16,
-  },
-  sectionTitleTablet: {
-    fontSize: 22,
+    paddingVertical: spacing[2],
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
+    ...shadows.md,
   },
   cardTablet: {
-    padding: 24,
-    marginBottom: 16,
+    padding: spacing[6],
+    marginBottom: spacing[4],
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
-    paddingBottom: 12,
+    marginBottom: spacing[3],
+    paddingBottom: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  productNameTablet: {
-    fontSize: 20,
-  },
-  productSku: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  productSkuTablet: {
-    fontSize: 15,
+    borderBottomColor: colors.border.light,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
     borderWidth: 1,
   },
   statusBadgeTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 14,
+    paddingHorizontal: spacing[3.5],
+    paddingVertical: spacing[1.5],
   },
   repartoInfo: {
-    marginBottom: 12,
-  },
-  repartoLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  repartoLabelTablet: {
-    fontSize: 15,
-  },
-  repartoValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  repartoValueTablet: {
-    fontSize: 16,
+    marginBottom: spacing[3],
   },
   quantitiesContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginBottom: spacing[3],
   },
   quantityRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
-  },
-  quantityLabel: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  quantityLabelTablet: {
-    fontSize: 16,
-  },
-  quantityValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  quantityValueTablet: {
-    fontSize: 16,
+    paddingVertical: spacing[1],
   },
   validationInfo: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  validationLabel: {
-    fontSize: 13,
-    color: '#4F46E5',
-    marginBottom: 4,
-  },
-  validationLabelTablet: {
-    fontSize: 15,
-  },
-  validationNotes: {
-    fontSize: 13,
-    color: '#64748B',
-    fontStyle: 'italic',
-  },
-  validationNotesTablet: {
-    fontSize: 15,
+    backgroundColor: colors.accent[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginBottom: spacing[3],
   },
   notesCountContainer: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 12,
-  },
-  notesCountText: {
-    fontSize: 13,
-    color: '#92400E',
-    fontWeight: '600',
-  },
-  notesCountTextTablet: {
-    fontSize: 15,
-  },
-  manageButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  manageButtonTablet: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-  },
-  manageButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  manageButtonTextTablet: {
-    fontSize: 16,
+    backgroundColor: colors.warning[100],
+    borderRadius: borderRadius.lg,
+    padding: spacing[2],
+    marginBottom: spacing[3],
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 48,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  emptyTextTablet: {
-    fontSize: 18,
+    paddingVertical: spacing[12],
   },
 });

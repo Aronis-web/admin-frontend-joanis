@@ -1,7 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SupplierDebtSummaryResponse } from '@/types/suppliers';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  iconSizes,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Label,
+  Numeric,
+  Card,
+  EmptyState,
+  Divider,
+} from '@/design-system/components';
 
 interface DebtSummaryCardProps {
   summary: SupplierDebtSummaryResponse;
@@ -10,98 +30,104 @@ interface DebtSummaryCardProps {
 
 export const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ summary, formatCurrency }) => {
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Total Summary */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Resumen General</Text>
+      <Card variant="elevated" padding="medium" style={styles.card}>
+        <Title size="small" style={styles.cardTitle}>Resumen General</Title>
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Deuda Asignada</Text>
-            <Text style={[styles.summaryValue, styles.debtValue]}>
+            <Label size="medium" color="secondary">Total Deuda Asignada</Label>
+            <Numeric size="large" color={colors.danger[600]}>
               {formatCurrency(summary.totalDebtAllCompaniesCents)}
-            </Text>
+            </Numeric>
           </View>
         </View>
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Balance Sin Asignar</Text>
-            <Text style={[styles.summaryValue, styles.unassignedValue]}>
+            <Label size="medium" color="secondary">Balance Sin Asignar</Label>
+            <Numeric size="large" color={colors.warning[600]}>
               {formatCurrency(summary.unassignedBalanceCents)}
-            </Text>
+            </Numeric>
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <Divider />
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total General</Text>
-            <Text style={[styles.summaryValue, styles.totalValue]}>
+            <Label size="medium" color="secondary">Total General</Label>
+            <Numeric size="large" color="primary">
               {formatCurrency(summary.totalBalanceCents)}
-            </Text>
+            </Numeric>
           </View>
         </View>
-      </View>
+      </Card>
 
       {/* Debt by Company */}
       {summary.debtByCompany && summary.debtByCompany.length > 0 && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Deuda por Empresa</Text>
+        <Card variant="elevated" padding="medium" style={styles.card}>
+          <Title size="small" style={styles.cardTitle}>Deuda por Empresa</Title>
 
           {summary.debtByCompany.map((debt, index) => (
             <View key={debt.companyId} style={styles.companyItem}>
               <View style={styles.companyHeader}>
                 <View style={styles.companyInfo}>
-                  <Ionicons name="business" size={20} color="#3498db" />
+                  <Ionicons name="business" size={iconSizes.md} color={colors.accent[500]} />
                   <View style={styles.companyTexts}>
-                    <Text style={styles.companyName}>{debt.companyName}</Text>
+                    <Title size="small">{debt.companyName}</Title>
                     {debt.legalEntity && (
-                      <Text style={styles.companyRuc}>
+                      <Caption color="secondary">
                         {debt.legalEntity.legalName} - RUC: {debt.legalEntity.ruc}
-                      </Text>
+                      </Caption>
                     )}
                   </View>
                 </View>
-                <Text style={[styles.companyDebt, debt.totalDebtCents > 0 ? styles.debtValue : styles.creditValue]}>
+                <Numeric
+                  size="medium"
+                  color={debt.totalDebtCents > 0 ? colors.danger[600] : colors.success[600]}
+                >
                   {formatCurrency(debt.totalDebtCents)}
-                </Text>
+                </Numeric>
               </View>
 
               {(debt.lastPurchaseDate || debt.lastPaymentDate) && (
                 <View style={styles.companyDates}>
                   {debt.lastPurchaseDate && (
                     <View style={styles.dateRow}>
-                      <Ionicons name="cart-outline" size={14} color="#7f8c8d" />
-                      <Text style={styles.dateText}>
+                      <Ionicons name="cart-outline" size={iconSizes.sm} color={colors.icon.tertiary} />
+                      <Caption color="tertiary">
                         Última compra: {new Date(debt.lastPurchaseDate).toLocaleDateString('es-PE')}
-                      </Text>
+                      </Caption>
                     </View>
                   )}
                   {debt.lastPaymentDate && (
                     <View style={styles.dateRow}>
-                      <Ionicons name="cash-outline" size={14} color="#7f8c8d" />
-                      <Text style={styles.dateText}>
+                      <Ionicons name="cash-outline" size={iconSizes.sm} color={colors.icon.tertiary} />
+                      <Caption color="tertiary">
                         Último pago: {new Date(debt.lastPaymentDate).toLocaleDateString('es-PE')}
-                      </Text>
+                      </Caption>
                     </View>
                   )}
                 </View>
               )}
 
-              {index < summary.debtByCompany.length - 1 && <View style={styles.divider} />}
+              {index < summary.debtByCompany.length - 1 && <Divider />}
             </View>
           ))}
-        </View>
+        </Card>
       )}
 
       {/* Empty State */}
       {(!summary.debtByCompany || summary.debtByCompany.length === 0) && (
-        <View style={styles.emptyCard}>
-          <Ionicons name="business-outline" size={48} color="#bdc3c7" />
-          <Text style={styles.emptyText}>No hay deudas asignadas a empresas</Text>
-        </View>
+        <Card variant="elevated" padding="large" style={styles.card}>
+          <EmptyState
+            icon="business-outline"
+            title="Sin deudas asignadas"
+            description="No hay deudas asignadas a empresas"
+          />
+        </Card>
       )}
     </ScrollView>
   );
@@ -112,119 +138,44 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginHorizontal: spacing[4],
+    marginVertical: spacing[2],
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   summaryRow: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   summaryItem: {
-    gap: 4,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    fontWeight: '500',
-  },
-  summaryValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  debtValue: {
-    color: '#e74c3c',
-  },
-  creditValue: {
-    color: '#27ae60',
-  },
-  unassignedValue: {
-    color: '#f39c12',
-  },
-  totalValue: {
-    color: '#2c3e50',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#ecf0f1',
-    marginVertical: 12,
+    gap: spacing[1],
   },
   companyItem: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   companyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   companyInfo: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     flex: 1,
-    gap: 12,
+    gap: spacing[3],
   },
   companyTexts: {
     flex: 1,
   },
-  companyName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-  },
-  companyRuc: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    marginTop: 2,
-  },
-  companyDebt: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
   companyDates: {
-    gap: 4,
-    marginLeft: 32,
+    gap: spacing[1],
+    marginLeft: spacing[8],
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  dateText: {
-    fontSize: 12,
-    color: '#7f8c8d',
-  },
-  emptyCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    borderRadius: 12,
-    padding: 32,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  emptyText: {
-    marginTop: 16,
-    fontSize: 14,
-    color: '#95a5a6',
-    textAlign: 'center',
+    gap: spacing[1.5],
   },
 });
 

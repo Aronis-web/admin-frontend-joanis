@@ -1,14 +1,16 @@
+/**
+ * NotasDiscrepanciaModal - Modal de notas de discrepancia
+ * Migrado al Design System unificado
+ */
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  TextInput,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,6 +28,21 @@ import {
 } from '@/types/consolidated-reports';
 import { useAuthStore } from '@/store/auth';
 import logger from '@/utils/logger';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  Title,
+  Body,
+  Label,
+  Caption,
+  Card,
+  Button,
+  Input,
+  IconButton,
+  EmptyState,
+} from '@/design-system';
 
 interface NotasDiscrepanciaModalProps {
   visible: boolean;
@@ -239,13 +256,13 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
     const isOpen = note.status === NoteStatus.OPEN;
 
     return (
-      <View key={note.id} style={[styles.noteCard, isTablet && styles.noteCardTablet]}>
+      <View key={note.id} style={isTablet ? { ...styles.noteCard, ...styles.noteCardTablet } : styles.noteCard}>
         {/* Header */}
         <View style={styles.noteHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.noteTitle, isTablet && styles.noteTitleTablet]}>
+            <Title size="small" style={{ marginBottom: spacing[2] }}>
               {note.title}
-            </Text>
+            </Title>
             <View style={styles.noteMetaRow}>
               <View
                 style={[
@@ -253,14 +270,9 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
                   { backgroundColor: NoteSeverityColors[note.severity] + '20' },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.typeBadgeText,
-                    { color: NoteSeverityColors[note.severity] },
-                  ]}
-                >
+                <Caption style={{ fontWeight: '600', color: NoteSeverityColors[note.severity] }}>
                   {NoteTypeLabels[note.noteType]}
-                </Text>
+                </Caption>
               </View>
               <View
                 style={[
@@ -268,18 +280,13 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
                   { backgroundColor: NoteSeverityColors[note.severity] + '20' },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.severityBadgeText,
-                    { color: NoteSeverityColors[note.severity] },
-                  ]}
-                >
+                <Caption style={{ fontWeight: '600', color: NoteSeverityColors[note.severity] }}>
                   {NoteSeverityLabels[note.severity]}
-                </Text>
+                </Caption>
               </View>
               {!isOpen && (
                 <View style={styles.closedBadge}>
-                  <Text style={styles.closedBadgeText}>Cerrada</Text>
+                  <Caption color="secondary" style={{ fontWeight: '600' }}>Cerrada</Caption>
                 </View>
               )}
             </View>
@@ -287,37 +294,39 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
         </View>
 
         {/* Description */}
-        <Text style={[styles.noteDescription, isTablet && styles.noteDescriptionTablet]}>
+        <Body style={{ marginBottom: spacing[3] }}>
           {note.description}
-        </Text>
+        </Body>
 
         {/* Action Taken */}
         {note.actionTaken && (
           <View style={styles.actionTakenContainer}>
-            <Text style={[styles.actionTakenLabel, isTablet && styles.actionTakenLabelTablet]}>
+            <Label style={{ color: colors.success[700], marginBottom: spacing[1] }}>
               Acción tomada:
-            </Text>
-            <Text style={[styles.actionTakenText, isTablet && styles.actionTakenTextTablet]}>
+            </Label>
+            <Caption style={{ color: colors.success[700] }}>
               {note.actionTaken}
-            </Text>
+            </Caption>
           </View>
         )}
 
         {/* Requires Action */}
         {note.requiresAction && (
           <View style={styles.requiresActionContainer}>
-            <Text style={styles.requiresActionText}>⚠️ Requiere acción</Text>
+            <Caption style={{ fontWeight: '600', color: colors.warning[700] }}>
+              ⚠️ Requiere acción
+            </Caption>
           </View>
         )}
 
         {/* Footer */}
         <View style={styles.noteFooter}>
-          <Text style={[styles.noteAuthor, isTablet && styles.noteAuthorTablet]}>
+          <Caption color="secondary">
             Por: {note.createdByName}
-          </Text>
-          <Text style={[styles.noteDate, isTablet && styles.noteDateTablet]}>
+          </Caption>
+          <Caption color="tertiary">
             {new Date(note.createdAt).toLocaleDateString('es-PE')}
-          </Text>
+          </Caption>
         </View>
 
         {/* Actions */}
@@ -327,19 +336,19 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
               style={[styles.actionButton, styles.editButton]}
               onPress={() => handleEditNote(note)}
             >
-              <Text style={styles.actionButtonText}>✏️ Editar</Text>
+              <Caption style={{ fontWeight: '600' }}>✏️ Editar</Caption>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.closeNoteButton]}
               onPress={() => handleCloseNote(note)}
             >
-              <Text style={styles.actionButtonText}>✓ Cerrar</Text>
+              <Caption style={{ fontWeight: '600' }}>✓ Cerrar</Caption>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.deleteButton]}
               onPress={() => handleDeleteNote(note)}
             >
-              <Text style={styles.actionButtonText}>🗑️ Eliminar</Text>
+              <Caption style={{ fontWeight: '600' }}>🗑️ Eliminar</Caption>
             </TouchableOpacity>
           </View>
         )}
@@ -351,44 +360,43 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
+        <View style={[styles.header, isTablet ? styles.headerTablet : undefined]}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>
-              Notas de Discrepancia
-            </Text>
+            <Title>Notas de Discrepancia</Title>
             {discrepancy && (
-              <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
+              <Caption color="secondary" style={{ marginTop: spacing[1] }}>
                 {discrepancy.productName}
-              </Text>
+              </Caption>
             )}
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={[styles.closeButtonText, isTablet && styles.closeButtonTextTablet]}>
-              ✕
-            </Text>
-          </TouchableOpacity>
+          <IconButton
+            icon="close"
+            variant="ghost"
+            size="small"
+            onPress={onClose}
+          />
         </View>
 
         {loading && !showCreateForm ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366F1" />
-            <Text style={[styles.loadingText, isTablet && styles.loadingTextTablet]}>
+            <ActivityIndicator size="large" color={colors.accent[500]} />
+            <Body color="secondary" style={{ marginTop: spacing[3] }}>
               Cargando notas...
-            </Text>
+            </Body>
           </View>
         ) : showCreateForm ? (
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-            <Text style={[styles.formTitle, isTablet && styles.formTitleTablet]}>
+            <Label style={{ marginBottom: spacing[5] }}>
               {editingNote ? 'Editar Nota' : 'Nueva Nota Explicativa'}
-            </Text>
+            </Label>
 
             {!editingNote && (
               <>
                 {/* Note Type */}
                 <View style={styles.formGroup}>
-                  <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                  <Label style={{ marginBottom: spacing[2] }}>
                     Tipo de Nota *
-                  </Text>
+                  </Label>
                   <View style={styles.pickerContainer}>
                     <Picker
                       selectedValue={noteType}
@@ -408,20 +416,17 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
 
                 {/* Title */}
                 <View style={styles.formGroup}>
-                  <Text style={[styles.label, isTablet && styles.labelTablet]}>Título *</Text>
-                  <TextInput
-                    style={[styles.input, isTablet && styles.inputTablet]}
+                  <Label style={{ marginBottom: spacing[2] }}>Título *</Label>
+                  <Input
                     value={title}
                     onChangeText={setTitle}
                     placeholder="Ej: Productos dañados por lluvia"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="default"
                   />
                 </View>
 
                 {/* Severity */}
                 <View style={styles.formGroup}>
-                  <Text style={[styles.label, isTablet && styles.labelTablet]}>Severidad *</Text>
+                  <Label style={{ marginBottom: spacing[2] }}>Severidad *</Label>
                   <View style={styles.pickerContainer}>
                     <Picker
                       selectedValue={severity}
@@ -443,36 +448,28 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
 
             {/* Description */}
             <View style={styles.formGroup}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>Descripción *</Text>
-              <TextInput
-                style={[styles.textArea, isTablet && styles.textAreaTablet]}
+              <Label style={{ marginBottom: spacing[2] }}>Descripción *</Label>
+              <Input
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Describe detalladamente qué sucedió..."
-                placeholderTextColor="#94A3B8"
-                keyboardType="default"
                 multiline
                 numberOfLines={4}
-                textAlignVertical="top"
               />
             </View>
 
             {/* Action Taken (only for editing) */}
             {editingNote && (
               <View style={styles.formGroup}>
-                <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                <Label style={{ marginBottom: spacing[2] }}>
                   Acción Tomada
-                </Text>
-                <TextInput
-                  style={[styles.textArea, isTablet && styles.textAreaTablet]}
+                </Label>
+                <Input
                   value={actionTaken}
                   onChangeText={setActionTaken}
                   placeholder="Describe qué acción se tomó..."
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="default"
                   multiline
                   numberOfLines={3}
-                  textAlignVertical="top"
                 />
               </View>
             )}
@@ -482,34 +479,31 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
               style={styles.checkboxContainer}
               onPress={() => setRequiresAction(!requiresAction)}
             >
-              <View style={[styles.checkbox, requiresAction && styles.checkboxChecked]}>
-                {requiresAction && <Text style={styles.checkboxCheck}>✓</Text>}
+              <View style={[styles.checkbox, requiresAction ? styles.checkboxChecked : undefined]}>
+                {requiresAction && <Body style={styles.checkboxCheck}>✓</Body>}
               </View>
-              <Text style={[styles.checkboxLabel, isTablet && styles.checkboxLabelTablet]}>
-                Requiere acción
-              </Text>
+              <Body>Requiere acción</Body>
             </TouchableOpacity>
 
             {/* Buttons */}
             <View style={styles.formButtons}>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
+              <Button
+                title="Cancelar"
+                variant="outline"
                 onPress={() => {
                   resetForm();
                   setShowCreateForm(false);
                 }}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.saveButton]}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title={loading ? 'Guardando...' : editingNote ? 'Actualizar' : 'Crear Nota'}
+                variant="primary"
                 onPress={editingNote ? handleUpdateNote : handleCreateNote}
                 disabled={loading}
-              >
-                <Text style={styles.saveButtonText}>
-                  {loading ? 'Guardando...' : editingNote ? 'Actualizar' : 'Crear Nota'}
-                </Text>
-              </TouchableOpacity>
+                loading={loading}
+                style={{ flex: 1 }}
+              />
             </View>
           </ScrollView>
         ) : (
@@ -518,27 +512,22 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
               {notes.length > 0 ? (
                 notes.map((note) => renderNoteCard(note))
               ) : (
-                <View style={styles.emptyContainer}>
-                  <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                    No hay notas explicativas
-                  </Text>
-                  <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-                    Agrega una nota para explicar esta discrepancia
-                  </Text>
-                </View>
+                <EmptyState
+                  icon="document-text-outline"
+                  title="No hay notas explicativas"
+                  description="Agrega una nota para explicar esta discrepancia"
+                />
               )}
             </ScrollView>
 
             {/* Add Note Button */}
             <View style={styles.addButtonContainer}>
-              <TouchableOpacity
-                style={[styles.addButton, isTablet && styles.addButtonTablet]}
+              <Button
+                title="➕ Agregar Nota Explicativa"
+                variant="primary"
                 onPress={() => setShowCreateForm(true)}
-              >
-                <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
-                  ➕ Agregar Nota Explicativa
-                </Text>
-              </TouchableOpacity>
+                fullWidth
+              />
             </View>
           </>
         )}
@@ -550,389 +539,162 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.background.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.light,
   },
   headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 26,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    marginTop: 4,
-  },
-  subtitleTablet: {
-    fontSize: 16,
-  },
-  closeButton: {
-    padding: 8,
-  },
-  closeButtonText: {
-    fontSize: 24,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  closeButtonTextTablet: {
-    fontSize: 28,
+    paddingHorizontal: spacing[8],
+    paddingVertical: spacing[6],
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#64748B',
-  },
-  loadingTextTablet: {
-    fontSize: 18,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing[4],
   },
   noteCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
+    ...shadows.md,
   },
   noteCardTablet: {
-    padding: 24,
-    marginBottom: 16,
+    padding: spacing[6],
+    marginBottom: spacing[4],
   },
   noteHeader: {
-    marginBottom: 12,
-  },
-  noteTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  noteTitleTablet: {
-    fontSize: 20,
+    marginBottom: spacing[3],
   },
   noteMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing[2],
   },
   typeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  typeBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.lg,
   },
   severityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  severityBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.lg,
   },
   closedBadge: {
-    backgroundColor: '#E2E8F0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  closedBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  noteDescription: {
-    fontSize: 14,
-    color: '#1E293B',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  noteDescriptionTablet: {
-    fontSize: 16,
-    lineHeight: 24,
+    backgroundColor: colors.border.light,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.lg,
   },
   actionTakenContainer: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  actionTakenLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#065F46',
-    marginBottom: 4,
-  },
-  actionTakenLabelTablet: {
-    fontSize: 15,
-  },
-  actionTakenText: {
-    fontSize: 13,
-    color: '#064E3B',
-  },
-  actionTakenTextTablet: {
-    fontSize: 15,
+    backgroundColor: colors.status.active + '15',
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginBottom: spacing[3],
   },
   requiresActionContainer: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 12,
-  },
-  requiresActionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#92400E',
+    backgroundColor: colors.status.pending + '20',
+    borderRadius: borderRadius.lg,
+    padding: spacing[2],
+    marginBottom: spacing[3],
   },
   noteFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  noteAuthor: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  noteAuthorTablet: {
-    fontSize: 15,
-  },
-  noteDate: {
-    fontSize: 13,
-    color: '#94A3B8',
-  },
-  noteDateTablet: {
-    fontSize: 15,
+    borderTopColor: colors.border.light,
   },
   noteActions: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
+    gap: spacing[2],
+    marginTop: spacing[3],
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   editButton: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.primary.lighter,
   },
   closeNoteButton: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: colors.status.active + '20',
   },
   deleteButton: {
-    backgroundColor: '#FEE2E2',
-  },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 48,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#64748B',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  emptyTextTablet: {
-    fontSize: 18,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
-  },
-  emptySubtextTablet: {
-    fontSize: 16,
+    backgroundColor: colors.status.cancelled + '20',
   },
   addButtonContainer: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    padding: spacing[4],
+    backgroundColor: colors.background.primary,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  addButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  addButtonTablet: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  addButtonTextTablet: {
-    fontSize: 17,
-  },
-  formTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 20,
-  },
-  formTitleTablet: {
-    fontSize: 22,
+    borderTopColor: colors.border.light,
   },
   formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1E293B',
-  },
-  inputTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    marginBottom: spacing[4],
   },
   textArea: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1E293B',
     minHeight: 100,
   },
   textAreaTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
     minHeight: 120,
   },
   pickerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.primary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: colors.text.primary,
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   checkbox: {
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    borderRadius: 6,
-    marginRight: 12,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    marginRight: spacing[3],
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.primary.main,
+    borderColor: colors.primary.main,
   },
   checkboxCheck: {
-    color: '#FFFFFF',
+    color: colors.text.inverse,
     fontSize: 16,
     fontWeight: 'bold',
   },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#1E293B',
-  },
-  checkboxLabelTablet: {
-    fontSize: 16,
-  },
   formButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#F1F5F9',
-  },
-  cancelButtonText: {
-    color: '#64748B',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  saveButton: {
-    backgroundColor: '#6366F1',
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
+    gap: spacing[3],
+    marginTop: spacing[2],
   },
 });

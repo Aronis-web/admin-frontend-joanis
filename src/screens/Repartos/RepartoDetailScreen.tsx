@@ -1,3 +1,7 @@
+/**
+ * RepartoDetailScreen - Detalle de un reparto
+ * Migrado al Design System unificado
+ */
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -37,6 +41,18 @@ import {
   CircularProgress,
 } from '@/components/Repartos';
 import { useAuthStore } from '@/store/auth';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  Title,
+  Body,
+  Label,
+  Caption,
+  Button,
+  IconButton,
+} from '@/design-system';
 
 interface RepartoDetailScreenProps {
   navigation: any;
@@ -1082,7 +1098,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   loadingContainer: {
     flex: 1,
@@ -1090,124 +1106,120 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 16,
-    color: '#64748B',
+    color: colors.text.secondary,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.background.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.default,
   },
   headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
+    paddingHorizontal: spacing[8],
+    paddingVertical: spacing[6],
   },
   backButton: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   backButtonText: {
     fontSize: 16,
-    color: '#6366F1',
+    color: colors.primary[500],
     fontWeight: '500',
   },
   headerInfo: {
-    gap: 4,
+    gap: spacing[1],
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: colors.text.primary,
   },
   titleTablet: {
     fontSize: 32,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.text.secondary,
   },
   subtitleTablet: {
     fontSize: 18,
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.default,
   },
   tab: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: spacing[4],
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   tabTablet: {
-    paddingVertical: 20,
+    paddingVertical: spacing[5],
   },
   tabActive: {
-    borderBottomColor: '#6366F1',
+    borderBottomColor: colors.primary[500],
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#64748B',
+    color: colors.text.secondary,
   },
   tabTextTablet: {
     fontSize: 16,
   },
   tabTextActive: {
-    color: '#6366F1',
+    color: colors.primary[500],
     fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing[4],
   },
   scrollContentTablet: {
-    padding: 32,
+    padding: spacing[8],
   },
   overviewContainer: {
-    gap: 16,
+    gap: spacing[4],
   },
   tabContent: {
-    gap: 16,
+    gap: spacing[4],
   },
   section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    ...shadows.sm,
   },
   sectionTablet: {
-    padding: 24,
+    padding: spacing[6],
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 16,
+    color: colors.text.primary,
+    marginBottom: spacing[4],
   },
   sectionTitleTablet: {
     fontSize: 22,
   },
   infoRow: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    paddingVertical: spacing[2],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.neutral[100],
   },
   infoLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.text.secondary,
     fontWeight: '500',
     width: 140,
   },
@@ -1218,21 +1230,21 @@ const styles = StyleSheet.create({
   infoValue: {
     flex: 1,
     fontSize: 14,
-    color: '#1E293B',
+    color: colors.text.primary,
   },
   infoValueTablet: {
     fontSize: 16,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     alignSelf: 'flex-start',
   },
   statusBadgeTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: spacing[3.5],
+    paddingVertical: spacing[1.5],
   },
   statusText: {
     fontSize: 12,
@@ -1244,31 +1256,31 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: spacing[3],
   },
   statCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 16,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing[4],
     alignItems: 'center',
   },
   statCardTablet: {
-    padding: 20,
+    padding: spacing[5],
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#6366F1',
-    marginBottom: 4,
+    color: colors.primary[500],
+    marginBottom: spacing[1],
   },
   statValueTablet: {
     fontSize: 28,
   },
   statLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.text.secondary,
     textAlign: 'center',
   },
   statLabelTablet: {
@@ -1276,7 +1288,7 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.text.secondary,
     lineHeight: 20,
   },
   notesTextTablet: {
@@ -1284,120 +1296,120 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   cancelButton: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 8,
-    paddingVertical: 14,
+    backgroundColor: colors.danger[50],
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing[3.5],
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: colors.danger[200],
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#DC2626',
+    color: colors.danger[600],
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   downloadReportButton: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#C7D2FE',
-    marginTop: 12,
+    borderColor: colors.primary[200],
+    marginTop: spacing[3],
   },
   downloadReportButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6366F1',
+    color: colors.primary[500],
   },
   participantCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing[4],
+    marginBottom: spacing[3],
   },
   participantCardTablet: {
-    padding: 20,
+    padding: spacing[5],
   },
   participantHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   participantInfo: {
     flex: 1,
   },
   participantProgress: {
-    marginLeft: 16,
+    marginLeft: spacing[4],
   },
   participantName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing[1],
   },
   participantNameTablet: {
     fontSize: 18,
   },
   participantType: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.text.secondary,
   },
   participantTypeTablet: {
     fontSize: 15,
   },
   participantStats: {
     fontSize: 13,
-    color: '#10B981',
+    color: colors.success[600],
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: spacing[1],
   },
   participantStatsTablet: {
     fontSize: 15,
   },
   productsList: {
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   productsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
+    color: colors.text.tertiary,
+    marginBottom: spacing[2],
   },
   productsTitleTablet: {
     fontSize: 16,
   },
   productItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    marginBottom: spacing[2],
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
   productInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   productHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 8,
+    gap: spacing[3],
+    marginBottom: spacing[2],
   },
   productThumbnail: {
     width: 40,
     height: 40,
-    borderRadius: 6,
+    borderRadius: borderRadius.sm,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border.default,
+    backgroundColor: colors.background.secondary,
   },
   productTextInfo: {
     flex: 1,
@@ -1405,31 +1417,31 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing[1],
   },
   productNameTablet: {
     fontSize: 16,
   },
   productSku: {
     fontSize: 12,
-    color: '#64748B',
-    marginBottom: 2,
+    color: colors.text.secondary,
+    marginBottom: spacing[0.5],
   },
   productSkuTablet: {
     fontSize: 14,
   },
   productQuantity: {
     fontSize: 13,
-    color: '#475569',
-    marginBottom: 2,
+    color: colors.text.tertiary,
+    marginBottom: spacing[0.5],
   },
   productQuantityTablet: {
     fontSize: 15,
   },
   validatedQuantity: {
     fontSize: 13,
-    color: '#10B981',
+    color: colors.success[600],
     fontWeight: '500',
   },
   validatedQuantityTablet: {
@@ -1437,12 +1449,12 @@ const styles = StyleSheet.create({
   },
   productActions: {
     alignItems: 'flex-end',
-    gap: 8,
+    gap: spacing[2],
   },
   productStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
     borderWidth: 1,
   },
   productStatusText: {
@@ -1450,75 +1462,75 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   validateButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: colors.primary[500],
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
   },
   validateButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text.inverse,
   },
   viewValidationButton: {
-    backgroundColor: '#10B981',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: colors.success[500],
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
   },
   viewValidationButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text.inverse,
   },
   emptyText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: colors.text.tertiary,
     textAlign: 'center',
-    paddingVertical: 20,
+    paddingVertical: spacing[5],
   },
   emptyTextTablet: {
     fontSize: 16,
   },
   filterContainer: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-    marginBottom: 8,
+    gap: spacing[2],
+    marginTop: spacing[2],
+    marginBottom: spacing[2],
   },
   filterContainerTablet: {
-    gap: 12,
-    marginTop: 12,
-    marginBottom: 12,
+    gap: spacing[3],
+    marginTop: spacing[3],
+    marginBottom: spacing[3],
   },
   filterButton: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[2.5],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
     alignItems: 'center',
   },
   filterButtonTablet: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[3.5],
   },
   filterButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
   },
   filterButtonText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.text.secondary,
   },
   filterButtonTextTablet: {
     fontSize: 13,
   },
   filterButtonTextActive: {
-    color: '#FFFFFF',
+    color: colors.text.inverse,
   },
   // Format Modal Styles
   modalOverlay: {
@@ -1528,26 +1540,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   formatModalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[6],
     width: '90%',
     maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...shadows.lg,
   },
   formatModalContainerTablet: {
-    padding: 32,
+    padding: spacing[8],
     maxWidth: 500,
   },
   formatModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.text.primary,
+    marginBottom: spacing[2],
     textAlign: 'center',
   },
   formatModalTitleTablet: {
@@ -1555,8 +1563,8 @@ const styles = StyleSheet.create({
   },
   formatModalSubtitle: {
     fontSize: 14,
-    color: '#64748B',
-    marginBottom: 24,
+    color: colors.text.secondary,
+    marginBottom: spacing[6],
     textAlign: 'center',
   },
   formatModalSubtitleTablet: {
@@ -1564,46 +1572,46 @@ const styles = StyleSheet.create({
   },
   formatButtonsContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: spacing[3],
+    marginBottom: spacing[4],
   },
   formatButton: {
     flex: 1,
-    padding: 20,
-    borderRadius: 12,
+    padding: spacing[5],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
     borderWidth: 2,
   },
   pdfButton: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
+    backgroundColor: colors.danger[50],
+    borderColor: colors.danger[300],
   },
   excelButton: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#86EFAC',
+    backgroundColor: colors.success[50],
+    borderColor: colors.success[300],
   },
   formatButtonIcon: {
     fontSize: 32,
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   formatButtonTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing[1],
   },
   formatButtonDescription: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.text.secondary,
     textAlign: 'center',
   },
   formatCancelButton: {
-    paddingVertical: 12,
+    paddingVertical: spacing[3],
     alignItems: 'center',
   },
   formatCancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.text.secondary,
   },
 });

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   ScrollView,
@@ -12,6 +11,25 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { productsApi, CreateProductDto, UpdateProductDto, Product } from '@/services/api/products';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Label,
+  Button,
+  Card,
+  IconButton,
+  Divider,
+} from '@/design-system/components';
 import { presentationsApi, Presentation } from '@/services/api/presentations';
 import { inventoryApi } from '@/services/api/inventory';
 import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
@@ -685,13 +703,16 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
+          <IconButton
+            icon="close"
+            onPress={onClose}
+            variant="ghost"
+            size="medium"
+          />
+          <Title size="medium">
             {mode === 'create' ? 'Nuevo Producto' : 'Editar Producto'}
-          </Text>
-          <View style={styles.closeButton} />
+          </Title>
+          <View style={{ width: 44 }} />
         </View>
 
         <ScrollView style={styles.content}>
@@ -1044,10 +1065,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {/* Presentations */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Presentaciones</Text>
-              <TouchableOpacity onPress={addPresentation} style={styles.addButton}>
-                <Text style={styles.addButtonText}>+ Agregar</Text>
-              </TouchableOpacity>
+              <Title size="small">Presentaciones</Title>
+              <Button
+                title="+ Agregar"
+                variant="primary"
+                size="small"
+                onPress={addPresentation}
+              />
             </View>
 
             <Text style={styles.infoText}>
@@ -1238,23 +1262,21 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
         {/* Footer */}
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.button, styles.cancelButton]}
+          <Button
+            title="Cancelar"
+            variant="outline"
             onPress={onClose}
             disabled={loading}
-          >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.submitButton, loading && styles.buttonDisabled]}
+            style={{ flex: 1 }}
+          />
+          <Button
+            title={loading ? 'Guardando...' : mode === 'create' ? 'Crear Producto' : 'Actualizar'}
+            variant="primary"
             onPress={handleSubmit}
             disabled={loading}
-          >
-            <Text style={styles.submitButtonText}>
-              {loading ? 'Guardando...' : mode === 'create' ? 'Crear' : 'Actualizar'}
-            </Text>
-          </TouchableOpacity>
+            loading={loading}
+            style={{ flex: 1 }}
+          />
         </View>
       </View>
     </Modal>
@@ -1264,153 +1286,136 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#1E293B',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
+    borderBottomColor: colors.border.light,
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: spacing[4],
   },
   section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
+    ...shadows.sm,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 16,
+    color: colors.text.primary,
+    marginBottom: spacing[4],
   },
   infoSection: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: colors.warning[300],
   },
   infoTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#92400E',
-    marginBottom: 8,
+    color: colors.warning[800],
+    marginBottom: spacing[2],
   },
   infoText: {
     fontSize: 13,
-    color: '#78350F',
+    color: colors.warning[700],
     lineHeight: 20,
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   formGroupHalf: {
     flex: 1,
   },
   formRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#475569',
-    marginBottom: 8,
+    color: colors.text.secondary,
+    marginBottom: spacing[2],
   },
   required: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surface.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2.5],
     fontSize: 15,
-    color: '#1E293B',
+    color: colors.text.primary,
   },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
   },
   pickerContainer: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surface.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
   },
   picker: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: '#1F2937',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2.5],
   },
   pickerText: {
     fontSize: 15,
-    color: '#1E293B',
+    color: colors.text.primary,
   },
   helpText: {
     fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
+    color: colors.text.tertiary,
+    marginTop: spacing[1],
   },
   hint: {
     fontSize: 11,
-    color: '#6366F1',
-    marginTop: 4,
+    color: colors.accent[600],
+    marginTop: spacing[1],
     fontStyle: 'italic',
   },
   correlativeDisplay: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.accent[50],
     borderWidth: 1,
-    borderColor: '#C7D2FE',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: colors.accent[200],
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2.5],
   },
   correlativeText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#6366F1',
+    color: colors.accent[600],
     fontFamily: 'monospace',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   correlativeHint: {
     fontSize: 11,
-    color: '#6366F1',
+    color: colors.accent[600],
     fontStyle: 'italic',
   },
   switchContainer: {
@@ -1418,148 +1423,112 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  addButton: {
-    backgroundColor: '#667eea',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
   presentationCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.light,
   },
   presentationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   presentationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.text.primary,
   },
   removeButton: {
     fontSize: 18,
-    color: '#EF4444',
-    paddingHorizontal: 8,
+    color: colors.danger[500],
+    paddingHorizontal: spacing[2],
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    gap: 8,
+    padding: spacing[3],
+    backgroundColor: colors.surface.tertiary,
+    borderRadius: borderRadius.md,
+    gap: spacing[2],
   },
   loadingText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.text.tertiary,
   },
   inputDisabled: {
-    backgroundColor: '#F1F5F9',
-    color: '#94A3B8',
+    backgroundColor: colors.surface.tertiary,
+    color: colors.text.disabled,
   },
   calculationText: {
     fontSize: 12,
-    color: '#10B981',
+    color: colors.success[600],
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: spacing[1],
   },
   footer: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    gap: spacing[3],
+    padding: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#F1F5F9',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  submitButton: {
-    backgroundColor: '#667eea',
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
+    borderTopColor: colors.border.light,
   },
   pricePreviewCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.light,
   },
   pricePreviewTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.text.primary,
+    marginBottom: spacing[2],
   },
   pricePreviewItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    marginBottom: 4,
+    paddingVertical: spacing[1.5],
+    paddingHorizontal: spacing[2],
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing[1],
   },
   pricePreviewLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.text.tertiary,
   },
   pricePreviewValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#10B981',
+    color: colors.success[600],
   },
   warningBox: {
     flexDirection: 'row',
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    marginBottom: 12,
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginTop: spacing[3],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: colors.warning[300],
     alignItems: 'center',
   },
   warningIcon: {
     fontSize: 18,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   warningText: {
     flex: 1,
     fontSize: 13,
-    color: '#78350F',
+    color: colors.warning[700],
     lineHeight: 18,
   },
 });
