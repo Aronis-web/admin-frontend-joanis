@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface FloatingButtonProps {
   onPress: () => void;
@@ -83,28 +84,28 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({ onPress, isVisib
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    right: 20,
+    right: spacing[5],
     top: 60,
     zIndex: 999,
   },
   button: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#4F46E5',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[600],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#4F46E5',
+    shadowColor: colors.primary[600],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.neutral[0],
   },
   buttonText: {
     fontSize: 24,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 28,

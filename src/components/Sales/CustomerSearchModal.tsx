@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { customersService } from '@/services/api/customers';
 import { Customer, CustomerType } from '@/types/customers';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -175,52 +176,52 @@ export const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.surface.primary,
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     maxHeight: '90%',
-    paddingBottom: 20,
+    paddingBottom: spacing[5],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.neutral[100],
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.neutral[800],
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#666',
+    color: colors.neutral[500],
   },
   searchContainer: {
-    padding: 16,
+    padding: spacing[4],
     position: 'relative',
   },
   searchInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.primary,
   },
   loader: {
     position: 'absolute',
@@ -231,69 +232,69 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing[4],
   },
   customerItem: {
-    padding: 16,
+    padding: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#fff',
+    borderBottomColor: colors.neutral[100],
+    backgroundColor: colors.surface.primary,
   },
   customerInfo: {
-    gap: 6,
+    gap: spacing[1.5],
   },
   customerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   customerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.neutral[800],
     flex: 1,
   },
   companyBadge: {
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 8,
+    backgroundColor: colors.info[100],
+    paddingHorizontal: spacing[2],
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: borderRadius.xs,
   },
   companyBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: colors.info[800],
   },
   personBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
+    backgroundColor: colors.warning[50],
+    paddingHorizontal: spacing[2],
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: borderRadius.xs,
   },
   personBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#92400E',
+    color: colors.warning[800],
   },
   customerDocument: {
     fontSize: 14,
-    color: '#666',
+    color: colors.neutral[500],
   },
   customerEmail: {
     fontSize: 13,
-    color: '#999',
+    color: colors.neutral[400],
   },
   customerPhone: {
     fontSize: 13,
-    color: '#999',
+    color: colors.neutral[400],
   },
   emptyContainer: {
-    padding: 40,
+    padding: spacing[10],
     alignItems: 'center',
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: colors.neutral[400],
     textAlign: 'center',
   },
 });

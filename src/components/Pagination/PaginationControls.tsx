@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface PaginationControlsProps {
   currentPage: number;
@@ -71,11 +72,11 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
 
 const styles = StyleSheet.create({
   paginationContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.primary,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderTopColor: colors.border.default,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -87,34 +88,34 @@ const styles = StyleSheet.create({
   paginationText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
   paginationSubtext: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     marginTop: 2,
   },
   paginationButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing[2],
   },
   paginationButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    backgroundColor: '#6366F1',
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary[500],
     minWidth: 80,
     alignItems: 'center',
   },
   paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.border.default,
   },
   paginationButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   paginationButtonTextDisabled: {
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
 });
