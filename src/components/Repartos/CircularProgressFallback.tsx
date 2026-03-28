@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { colors } from '@/design-system/tokens';
 
 interface CircularProgressFallbackProps {
   size?: number;
@@ -22,8 +23,8 @@ export const CircularProgressFallback: React.FC<CircularProgressFallbackProps> =
   validated,
   showLabel = true,
   color,
-  backgroundColor = '#E2E8F0',
-  textColor = '#1E293B',
+  backgroundColor = colors.border.default,
+  textColor = colors.neutral[800],
   fontSize = 16,
 }) => {
   // Determinar color basado en el progreso
@@ -32,18 +33,18 @@ export const CircularProgressFallback: React.FC<CircularProgressFallbackProps> =
       return color;
     }
     if (progress === 100) {
-      return '#10B981';
+      return colors.success[500];
     } // Verde - Completado
     if (progress >= 75) {
-      return '#3B82F6';
+      return colors.primary[500];
     } // Azul - Casi completo
     if (progress >= 50) {
-      return '#F59E0B';
+      return colors.warning[500];
     } // Naranja - En progreso
     if (progress >= 25) {
-      return '#EF4444';
+      return colors.danger[500];
     } // Rojo - Poco progreso
-    return '#94A3B8'; // Gris - Muy poco progreso
+    return colors.neutral[400]; // Gris - Muy poco progreso
   };
 
   const progressColor = getProgressColor();

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle, G, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { colors } from '@/design-system/tokens';
 
 interface CircularProgressProps {
   size?: number;
@@ -23,7 +24,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   validated,
   showLabel = true,
   color,
-  backgroundColor = '#E2E8F0',
+  backgroundColor = colors.border.default,
   textColor,
   fontSize = 16,
 }) => {
@@ -34,40 +35,40 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   // Determinar color y gradiente basado en el progreso
   const getProgressColors = () => {
     if (color) {
-      return { color, gradient: null, textColor: textColor || '#1E293B' };
+      return { color, gradient: null, textColor: textColor || colors.neutral[800] };
     }
     if (progress === 100) {
       return {
         color: 'url(#gradient-green)',
-        gradient: { start: '#10B981', end: '#059669' },
-        textColor: textColor || '#059669'
+        gradient: { start: colors.success[500], end: colors.success[600] },
+        textColor: textColor || colors.success[600]
       }; // Verde brillante
     }
     if (progress >= 75) {
       return {
         color: 'url(#gradient-blue)',
-        gradient: { start: '#3B82F6', end: '#2563EB' },
-        textColor: textColor || '#2563EB'
+        gradient: { start: colors.primary[500], end: colors.primary[600] },
+        textColor: textColor || colors.primary[600]
       }; // Azul vibrante
     }
     if (progress >= 50) {
       return {
         color: 'url(#gradient-yellow)',
-        gradient: { start: '#FBBF24', end: '#F59E0B' },
-        textColor: textColor || '#D97706'
+        gradient: { start: colors.warning[400], end: colors.warning[500] },
+        textColor: textColor || colors.warning[600]
       }; // Amarillo/Naranja
     }
     if (progress >= 25) {
       return {
         color: 'url(#gradient-orange)',
-        gradient: { start: '#FB923C', end: '#F97316' },
-        textColor: textColor || '#EA580C'
+        gradient: { start: colors.warning[400], end: colors.warning[500] },
+        textColor: textColor || colors.warning[600]
       }; // Naranja
     }
     return {
       color: 'url(#gradient-red)',
-      gradient: { start: '#F87171', end: '#EF4444' },
-      textColor: textColor || '#DC2626'
+      gradient: { start: colors.danger[400], end: colors.danger[500] },
+      textColor: textColor || colors.danger[600]
     }; // Rojo
   };
 

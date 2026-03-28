@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import Alert from '@/utils/alert';
 import { View, Text, StyleSheet, TouchableOpacity, PanResponder} from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import ViewShot from 'react-native-view-shot';
 
 interface SignatureCaptureProps {
@@ -85,7 +86,7 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
               <Path
                 key={index}
                 d={path}
-                stroke="#000000"
+                stroke={colors.neutral[900]}
                 strokeWidth={3}
                 fill="none"
                 strokeLinecap="round"
@@ -95,7 +96,7 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
             {currentPath && (
               <Path
                 d={currentPath}
-                stroke="#000000"
+                stroke={colors.neutral[900]}
                 strokeWidth={3}
                 fill="none"
                 strokeLinecap="round"
@@ -133,34 +134,34 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#FFFFFF',
+    padding: spacing[5],
+    backgroundColor: colors.neutral[0],
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748B',
-    marginBottom: 20,
+    color: colors.neutral[500],
+    marginBottom: spacing[5],
     textAlign: 'center',
   },
   signatureContainer: {
     flex: 1,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 20,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.neutral[0],
+    marginBottom: spacing[5],
     overflow: 'hidden',
   },
   canvas: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
   },
   placeholder: {
     position: 'absolute',
@@ -174,50 +175,50 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: 18,
-    color: '#CBD5E1',
+    color: colors.neutral[300],
     fontStyle: 'italic',
   },
   actions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   clearButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    paddingVertical: spacing[3.5],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.neutral[100],
     alignItems: 'center',
   },
   clearButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: '#FEE2E2',
+    paddingVertical: spacing[3.5],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.danger[100],
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#DC2626',
+    color: colors.danger[600],
   },
   confirmButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: '#6366F1',
+    paddingVertical: spacing[3.5],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.accent[500],
     alignItems: 'center',
   },
   confirmButtonDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.border.default,
   },
   confirmButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
