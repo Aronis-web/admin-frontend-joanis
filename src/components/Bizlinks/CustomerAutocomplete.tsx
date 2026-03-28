@@ -10,6 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import { customersService } from '@/services/api/customers';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { Customer } from '@/types/customers';
 import { useDebounce } from '@/hooks/useDebounce';
 
@@ -197,7 +198,7 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
     zIndex: 1000,
   },
   inputContainer: {
@@ -205,15 +206,15 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.primary,
   },
   inputSelected: {
-    borderColor: '#10B981',
-    backgroundColor: '#F0FDF4',
+    borderColor: colors.success[500],
+    backgroundColor: colors.success[50],
   },
   loader: {
     position: 'absolute',
@@ -226,25 +227,25 @@ const styles = StyleSheet.create({
     top: 12,
     width: 24,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: '#EF4444',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.danger[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
   clearButtonText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 14,
     fontWeight: 'bold',
   },
   selectedBadge: {
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: '#D1FAE5',
-    borderRadius: 6,
+    marginTop: spacing[2],
+    padding: spacing[2],
+    backgroundColor: colors.success[100],
+    borderRadius: borderRadius.md,
     alignItems: 'center',
   },
   selectedBadgeText: {
-    color: '#059669',
+    color: colors.success[600],
     fontSize: 13,
     fontWeight: '600',
   },
@@ -253,12 +254,12 @@ const styles = StyleSheet.create({
     top: 50,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.primary,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.lg,
     maxHeight: 250,
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -269,57 +270,57 @@ const styles = StyleSheet.create({
     maxHeight: 250,
   },
   dropdownItem: {
-    padding: 12,
+    padding: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.neutral[100],
   },
   customerInfo: {
-    gap: 4,
+    gap: spacing[1],
   },
   customerNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   customerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.neutral[700],
     flex: 1,
   },
   companyBadge: {
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: colors.primary[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.sm,
   },
   companyBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: colors.primary[700],
   },
   personBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: colors.warning[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.sm,
   },
   personBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#92400E',
+    color: colors.warning[700],
   },
   customerDocument: {
     fontSize: 14,
-    color: '#666',
+    color: colors.neutral[500],
   },
   customerEmail: {
     fontSize: 12,
-    color: '#999',
+    color: colors.neutral[400],
   },
   emptyText: {
-    padding: 16,
+    padding: spacing[4],
     textAlign: 'center',
-    color: '#999',
+    color: colors.neutral[400],
   },
 });

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BizlinksDocumentType } from '@/types/bizlinks';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface BizlinksDocumentsFABProps {
   onDocumentTypeSelect: (documentType: BizlinksDocumentType) => void;
@@ -269,7 +270,7 @@ export const BizlinksDocumentsFAB: React.FC<BizlinksDocumentsFABProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
+    backgroundColor: colors.neutral[950],
     zIndex: 10000,
   },
   fabContainer: {
@@ -285,17 +286,17 @@ const styles = StyleSheet.create({
   mainFab: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#6366F1',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.accent[500],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6366F1',
+    shadowColor: colors.accent[500],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 12,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: colors.neutral[0],
   },
   mainFabTablet: {
     width: 64,
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
   },
   mainFabIcon: {
     fontSize: 28,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '700',
   },
   mainFabIconTablet: {
@@ -319,21 +320,21 @@ const styles = StyleSheet.create({
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
   },
   optionButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.neutral[0],
   },
   optionButtonTablet: {
     width: 56,
@@ -347,11 +348,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   labelContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.xl,
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
@@ -361,7 +362,7 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     textAlign: 'center',
   },
   optionLabelTablet: {

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { productsApi, Product } from '@/services/api/products';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface ProductAutocompleteProps {
@@ -152,7 +153,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
     zIndex: 1000,
   },
   inputContainer: {
@@ -160,11 +161,11 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.primary,
   },
   loader: {
     position: 'absolute',
@@ -176,12 +177,12 @@ const styles = StyleSheet.create({
     top: 50,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.primary,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.lg,
     maxHeight: 300,
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -192,12 +193,12 @@ const styles = StyleSheet.create({
     maxHeight: 300,
   },
   dropdownItem: {
-    padding: 12,
+    padding: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.neutral[100],
   },
   productInfo: {
-    gap: 6,
+    gap: spacing[1.5],
   },
   productHeader: {
     flexDirection: 'row',
@@ -207,50 +208,50 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.neutral[700],
     flex: 1,
   },
   productCode: {
     fontSize: 12,
-    color: '#666',
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 8,
+    color: colors.neutral[500],
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.sm,
+    marginLeft: spacing[2],
   },
   productDetails: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   productBrand: {
     fontSize: 13,
-    color: '#666',
+    color: colors.neutral[500],
   },
   productCategory: {
     fontSize: 13,
-    color: '#999',
+    color: colors.neutral[400],
   },
   presentationsContainer: {
-    marginTop: 4,
-    paddingTop: 6,
+    marginTop: spacing[1],
+    paddingTop: spacing[1.5],
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: colors.neutral[100],
   },
   presentationsLabel: {
     fontSize: 12,
-    color: '#666',
+    color: colors.neutral[500],
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: spacing[0.5],
   },
   presentationItem: {
     fontSize: 12,
-    color: '#666',
-    marginLeft: 8,
+    color: colors.neutral[500],
+    marginLeft: spacing[2],
   },
   emptyText: {
-    padding: 16,
+    padding: spacing[4],
     textAlign: 'center',
-    color: '#999',
+    color: colors.neutral[400],
   },
 });
