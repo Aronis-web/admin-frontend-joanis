@@ -628,7 +628,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#3B82F6" />
+                <ActivityIndicator size="large" color={colors.accent[500]} />
                 <Text style={styles.loadingText}>Cargando imágenes...</Text>
               </View>
             ) : productImages.length === 0 ? (
@@ -752,7 +752,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                     placeholder="URL de imagen (opcional)"
                     value={lensImageUrl}
                     onChangeText={setLensImageUrl}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.neutral[400]}
                   />
                   <TouchableOpacity
                     onPress={handleLensSearchByUrl}
@@ -781,7 +781,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
               {lensSearching && (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#3B82F6" />
+                  <ActivityIndicator size="large" color={colors.accent[500]} />
                   <Text style={styles.loadingText}>Buscando con Google Lens...</Text>
                 </View>
               )}
@@ -1164,7 +1164,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                 disabled={generatingPromo}
               >
                 {generatingPromo ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.neutral[0]} />
                 ) : (
                   <Text style={styles.promoSaveButtonText}>💾 Guardar en Galería</Text>
                 )}
@@ -1532,7 +1532,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 30,
     height: 30,
-    borderColor: '#8B5CF6',
+    borderColor: colors.accent[500],
     borderWidth: 3,
   },
   cropCornerTopLeft: {
@@ -1578,12 +1578,12 @@ const styles = StyleSheet.create({
   promoProductTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     marginBottom: 2,
   },
   promoProductSku: {
     fontSize: 12,
-    color: '#E9D5FF',
+    color: colors.accent[200],
   },
   promoPricesContainer: {
     flexDirection: 'row',
@@ -1593,7 +1593,7 @@ const styles = StyleSheet.create({
   promoPricesTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FCD34D',
+    color: colors.warning[300],
     marginBottom: 6,
     width: '100%',
   },
@@ -1609,12 +1609,12 @@ const styles = StyleSheet.create({
   promoPriceLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   promoPriceValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   promoBrandingTop: {
     position: 'absolute',
@@ -1634,7 +1634,7 @@ const styles = StyleSheet.create({
   promoBrandingText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#78350F',
+    color: colors.warning[900],
     textAlign: 'center',
   },
   imageControls: {
