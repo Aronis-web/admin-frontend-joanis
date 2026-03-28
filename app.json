@@ -6,9 +6,9 @@
     "version": "1.0.2",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/logo.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -27,9 +27,9 @@
     },
     "android": {
       "package": "com.paneladmin.grit",
-      "icon": "./assets/logo.png",
+      "icon": "./assets/icon.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
