@@ -16,6 +16,7 @@ import { expensesService } from '@/services/api/expenses';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { getDocumentAsync } from '@/utils/filePicker';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface ExpenseTemplateBulkUploadModalProps {
   visible: boolean;
@@ -297,7 +298,7 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
               disabled={downloadingTemplate || loading}
             >
               {downloadingTemplate ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.neutral[0]} />
               ) : (
                 <>
                   <Text style={styles.primaryButtonIcon}>📥</Text>
@@ -313,7 +314,7 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
               disabled={loading || downloadingTemplate}
             >
               {loading ? (
-                <ActivityIndicator color="#DC2626" />
+                <ActivityIndicator color={colors.danger[600]} />
               ) : (
                 <>
                   <Text style={styles.secondaryButtonIcon}>📤</Text>

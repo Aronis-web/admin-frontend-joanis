@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ExpenseProject, ProjectStatusLabels, ProjectStatusColors } from '@/types/expenses';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface ProjectCardProps {
   project: ExpenseProject;
@@ -104,7 +105,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <View style={styles.footer}>
           {project.site && (
             <View style={styles.footerItem}>
-              <Ionicons name="business" size={12} color="#6366F1" />
+              <Ionicons name="business" size={12} color={colors.primary[500]} />
               <Text style={styles.footerValue}>{project.site.name}</Text>
             </View>
           )}
@@ -132,7 +133,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               requiredPermissions={['expenses.read']}
               hideIfNoPermission={true}
             >
-              <Ionicons name="receipt-outline" size={18} color="#6366F1" />
+              <Ionicons name="receipt-outline" size={18} color={colors.primary[500]} />
               <Text style={styles.actionButtonText}>Gastos</Text>
             </ProtectedTouchableOpacity>
           )}
@@ -146,7 +147,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               requiredPermissions={['expenses.create']}
               hideIfNoPermission={true}
             >
-              <Ionicons name="add-circle" size={18} color="#FFFFFF" />
+              <Ionicons name="add-circle" size={18} color={colors.neutral[0]} />
               <Text style={styles.actionButtonTextPrimary}>Agregar Gasto</Text>
             </ProtectedTouchableOpacity>
           )}
@@ -158,23 +159,23 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   headerLeft: {
     flex: 1,
@@ -182,32 +183,32 @@ const styles = StyleSheet.create({
   projectCode: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6366F1',
-    marginBottom: 2,
+    color: colors.primary[500],
+    marginBottom: spacing[0.5],
   },
   projectName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
-    marginBottom: 12,
+    backgroundColor: colors.border.default,
+    marginBottom: spacing[3],
   },
   content: {
-    gap: 12,
+    gap: spacing[3],
   },
   description: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
     lineHeight: 18,
   },
   budgetContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
-    gap: 6,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    gap: spacing[1.5],
   },
   budgetRow: {
     flexDirection: 'row',
@@ -217,103 +218,103 @@ const styles = StyleSheet.create({
   budgetLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
   budgetValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   budgetLabelSecondary: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   budgetValueSecondary: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
   underBudget: {
-    color: '#10B981',
+    color: colors.success[500],
   },
   overBudget: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 4,
+    backgroundColor: colors.border.default,
+    borderRadius: borderRadius.sm,
     overflow: 'hidden',
-    marginTop: 4,
+    marginTop: spacing[1],
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#6366F1',
-    borderRadius: 4,
+    backgroundColor: colors.primary[500],
+    borderRadius: borderRadius.sm,
   },
   progressOverBudget: {
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.danger[500],
   },
   progressText: {
     fontSize: 10,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: spacing[0.5],
   },
   footer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    paddingTop: 8,
+    gap: spacing[2],
+    paddingTop: spacing[2],
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.neutral[100],
   },
   footerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing[1],
   },
   footerLabel: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   footerValue: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
   actions: {
     flexDirection: 'row',
-    gap: 8,
-    paddingTop: 12,
+    gap: spacing[2],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.neutral[100],
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    gap: spacing[1.5],
+    paddingVertical: spacing[2.5],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   actionButtonPrimary: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
   },
   actionButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
   actionButtonTextPrimary: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
 

@@ -4,6 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { ExpenseCategory } from '@/types/expenses';
 import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
 
+// Design System
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+
 interface CategoryCardProps {
   category: ExpenseCategory;
   onPress: (category: ExpenseCategory) => void;
@@ -150,29 +153,25 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    ...shadows.sm,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.light,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
   },
   subcategoryCard: {
-    marginLeft: 24,
-    marginTop: 8,
-    backgroundColor: '#F8FAFC',
+    marginLeft: spacing[6],
+    marginTop: spacing[2],
+    backgroundColor: colors.surface.secondary,
     borderLeftWidth: 3,
-    borderLeftColor: '#6366F1',
+    borderLeftColor: colors.accent[500],
     elevation: 1,
   },
   subcategoryIndicator: {
@@ -181,7 +180,7 @@ const styles = StyleSheet.create({
     top: '50%',
     width: 20,
     height: 2,
-    backgroundColor: '#CBD5E1',
+    backgroundColor: colors.border.default,
   },
   iconContainer: {
     width: 56,
@@ -195,19 +194,19 @@ const styles = StyleSheet.create({
   iconPlaceholder: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconPlaceholderSmall: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: borderRadius.full,
   },
   iconPlaceholderText: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   iconPlaceholderTextSmall: {
     fontSize: 18,
@@ -218,8 +217,8 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 2,
+    color: colors.text.primary,
+    marginBottom: spacing[0.5],
   },
   subcategoryName: {
     fontSize: 14,
@@ -228,60 +227,60 @@ const styles = StyleSheet.create({
   categoryCode: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6366F1',
-    marginBottom: 4,
+    color: colors.accent[500],
+    marginBottom: spacing[1],
   },
   categoryDescription: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.text.secondary,
     lineHeight: 16,
   },
   badges: {
-    gap: 4,
+    gap: spacing[1],
     alignItems: 'flex-end',
   },
   inactiveBadge: {
-    backgroundColor: '#94A3B8',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: colors.neutral[400],
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
   },
   inactiveBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   subcategoryCountBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    gap: 4,
+    backgroundColor: colors.accent[50],
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    gap: spacing[1],
   },
   subcategoryCountText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#6366F1',
+    color: colors.accent[500],
   },
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginLeft: 8,
+    gap: spacing[2],
+    marginLeft: spacing[2],
   },
   addButton: {
-    padding: 4,
+    padding: spacing[1],
   },
   editButton: {
-    padding: 4,
+    padding: spacing[1],
   },
   expandIcon: {
-    marginLeft: 4,
+    marginLeft: spacing[1],
   },
   subcategoriesContainer: {
-    marginTop: 4,
+    marginTop: spacing[1],
   },
 });
 

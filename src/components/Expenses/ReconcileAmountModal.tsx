@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { expensesService } from '@/services/api';
 import { ReconcileAmountRequest } from '@/types/expenses';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface ReconcileAmountModalProps {
   visible: boolean;
@@ -84,7 +85,7 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.title}>Actualizar Monto Real</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#64748B" />
+              <Ionicons name="close" size={24} color={colors.neutral[500]} />
             </TouchableOpacity>
           </View>
 
@@ -164,7 +165,7 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={colors.neutral[0]} />
               ) : (
                 <Text style={styles.confirmButtonText}>Conciliar</Text>
               )}
@@ -179,14 +180,14 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
     width: '100%',
     maxWidth: 500,
     maxHeight: '90%',
@@ -195,32 +196,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.default,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   closeButton: {
-    padding: 4,
+    padding: spacing[1],
   },
   content: {
-    padding: 20,
+    padding: spacing[5],
   },
   expenseInfo: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[5],
   },
   expenseName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   amountRow: {
     flexDirection: 'row',
@@ -229,52 +230,52 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   estimatedAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#6366F1',
+    color: colors.accent[500],
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
+    color: colors.neutral[600],
+    marginBottom: spacing[2],
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
+    borderColor: colors.border.default,
+    paddingHorizontal: spacing[3],
   },
   currencySymbol: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
-    marginRight: 8,
+    color: colors.neutral[500],
+    marginRight: spacing[2],
   },
   input: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: spacing[3],
     fontSize: 16,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   notesInput: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderColor: colors.border.default,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[3],
     fontSize: 14,
-    color: '#1E293B',
+    color: colors.neutral[800],
     minHeight: 80,
     textAlignVertical: 'top',
   },
@@ -282,62 +283,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginTop: spacing[2],
   },
   differenceLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   differenceValue: {
     fontSize: 16,
     fontWeight: '700',
   },
   differencePositive: {
-    color: '#10B981',
+    color: colors.success[500],
   },
   differenceNegative: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   differenceZero: {
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   footer: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 20,
+    gap: spacing[3],
+    padding: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.border.default,
   },
   button: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: spacing[3.5],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   cancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   confirmButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.accent[500],
   },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
 

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { expensesService, filesApi } from '@/services/api';
 import { PaymentCard } from './PaymentCard';
 import { ImageViewerModal } from './ImageViewerModal';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface PaymentsModalProps {
   visible: boolean;
@@ -184,7 +185,7 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
                 {expenseCode && <Text style={styles.headerSubtitle}>{expenseCode}</Text>}
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={28} color="#1E293B" />
+                <Ionicons name="close" size={28} color={colors.neutral[800]} />
               </TouchableOpacity>
             </View>
 
@@ -212,7 +213,7 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
             >
               {loading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#6366F1" />
+                  <ActivityIndicator size="large" color={colors.accent[500]} />
                   <Text style={styles.loadingText}>Cargando pagos...</Text>
                 </View>
               ) : payments.length > 0 ? (
@@ -233,7 +234,7 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
                 </>
               ) : (
                 <View style={styles.emptyContainer}>
-                  <Ionicons name="receipt-outline" size={64} color="#CBD5E1" />
+                  <Ionicons name="receipt-outline" size={64} color={colors.neutral[300]} />
                   <Text style={styles.emptyText}>No hay pagos registrados</Text>
                   <Text style={styles.debugText}>Payments array length: {payments.length}</Text>
                 </View>
@@ -267,24 +268,24 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.surface.primary,
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     height: '90%',
-    paddingTop: 20,
+    paddingTop: spacing[5],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingHorizontal: spacing[5],
+    paddingBottom: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.default,
   },
   headerLeft: {
     flex: 1,
@@ -292,28 +293,28 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6366F1',
+    color: colors.accent[500],
     fontWeight: '600',
   },
   closeButton: {
-    padding: 4,
-    marginLeft: 12,
+    padding: spacing[1],
+    marginLeft: spacing[3],
   },
   summary: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    marginHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 8,
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: colors.background.secondary,
+    marginHorizontal: spacing[5],
+    marginTop: spacing[3],
+    marginBottom: spacing[2],
+    borderRadius: borderRadius.xl,
+    padding: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   summaryItem: {
     flex: 1,
@@ -321,76 +322,76 @@ const styles = StyleSheet.create({
   },
   summaryDivider: {
     width: 1,
-    backgroundColor: '#CBD5E1',
-    marginHorizontal: 16,
+    backgroundColor: colors.neutral[300],
+    marginHorizontal: spacing[4],
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#64748B',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
   },
   summaryValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   summaryValueAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#10B981',
+    color: colors.success[500],
   },
   scrollView: {
     flex: 1,
     minHeight: 200,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 20,
+    padding: spacing[4],
+    paddingBottom: spacing[5],
     flexGrow: 1,
   },
   loadingContainer: {
-    paddingVertical: 60,
+    paddingVertical: spacing[16],
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   emptyContainer: {
-    paddingVertical: 60,
+    paddingVertical: spacing[16],
     alignItems: 'center',
   },
   emptyText: {
-    marginTop: 16,
+    marginTop: spacing[4],
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   debugText: {
     fontSize: 12,
-    color: '#94A3B8',
-    marginBottom: 8,
+    color: colors.neutral[400],
+    marginBottom: spacing[2],
     textAlign: 'center',
   },
   footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[3],
+    paddingBottom: Platform.OS === 'ios' ? spacing[6] : spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.border.default,
   },
   closeFooterButton: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: colors.neutral[100],
+    borderRadius: borderRadius.xl,
+    padding: spacing[3],
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   closeFooterButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
 });
 

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ExpenseTemplate, TemplateFrequencyLabels } from '@/types/expenses';
 import { CategoryBadge } from './CategoryBadge';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface TemplateCardProps {
   template: ExpenseTemplate;
@@ -60,7 +61,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         <View
           style={[
             styles.statusIndicator,
-            { backgroundColor: template.isActive ? '#10B981' : '#94A3B8' },
+            { backgroundColor: template.isActive ? colors.success[500] : colors.neutral[400] },
           ]}
         />
       </View>
@@ -114,7 +115,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         {/* Site Info */}
         {template.site && (
           <View style={styles.siteContainer}>
-            <Ionicons name="business" size={14} color="#6366F1" />
+            <Ionicons name="business" size={14} color={colors.primary[500]} />
             <Text style={styles.siteText} numberOfLines={1}>
               {template.site.name}
             </Text>
@@ -153,7 +154,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
                 requiredPermissions={['expenses.templates.update']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="create-outline" size={18} color="#6366F1" />
+                <Ionicons name="create-outline" size={18} color={colors.primary[500]} />
                 <Text style={styles.actionButtonText}>Editar</Text>
               </ProtectedTouchableOpacity>
             )}
@@ -167,7 +168,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
                 requiredPermissions={['expenses.templates.delete']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                <Ionicons name="trash-outline" size={18} color={colors.danger[500]} />
                 <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Eliminar</Text>
               </ProtectedTouchableOpacity>
             )}
@@ -182,7 +183,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
               onGenerate(template);
             }}
           >
-            <Ionicons name="flash-outline" size={18} color="#FFFFFF" />
+            <Ionicons name="flash-outline" size={18} color={colors.neutral[0]} />
             <Text style={styles.generateButtonText}>Generar Gasto</Text>
           </TouchableOpacity>
         )}
@@ -193,23 +194,23 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   headerLeft: {
     flex: 1,
@@ -217,144 +218,144 @@ const styles = StyleSheet.create({
   nameContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   templateName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
     flex: 1,
   },
   inactiveBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.sm,
   },
   inactiveBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   description: {
     fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
   },
   statusIndicator: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: borderRadius.full,
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
-    marginBottom: 12,
+    backgroundColor: colors.border.default,
+    marginBottom: spacing[3],
   },
   content: {
-    gap: 12,
+    gap: spacing[3],
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   infoItem: {
     flex: 1,
   },
   label: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     fontWeight: '600',
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   value: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
+    color: colors.neutral[700],
   },
   amountValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   siteContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    gap: 6,
+    backgroundColor: colors.background.secondary,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.md,
+    gap: spacing[1.5],
   },
   siteText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
     flex: 1,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: spacing[2],
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.neutral[100],
   },
   footerItem: {
     flex: 1,
   },
   footerLabel: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   footerValue: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
   generateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366F1',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 8,
-    marginTop: 4,
+    backgroundColor: colors.primary[500],
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    gap: spacing[2],
+    marginTop: spacing[1],
   },
   generateButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
+    gap: spacing[2],
+    marginTop: spacing[1],
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    gap: 6,
+    backgroundColor: colors.neutral[100],
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[3],
+    gap: spacing[1.5],
   },
   actionButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6366F1',
+    color: colors.primary[500],
   },
   deleteButton: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.danger[50],
   },
   deleteButtonText: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
 });
 

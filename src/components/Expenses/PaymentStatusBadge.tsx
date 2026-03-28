@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { PaymentStatus, PaymentStatusLabels, PaymentStatusColors } from '@/types/expenses';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface PaymentStatusBadgeProps {
   status: PaymentStatus;
@@ -35,28 +36,28 @@ export const PaymentStatusBadge: React.FC<PaymentStatusBadgeProps> = ({
 
 const styles = StyleSheet.create({
   badge: {
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
     alignSelf: 'flex-start',
   },
   small: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.xl,
   },
   medium: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.xl,
   },
   large: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.xl,
   },
   text: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '600',
   },
   textSmall: {

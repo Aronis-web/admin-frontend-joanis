@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { expensesService } from '@/services/api/expenses';
 import { useAuthStore } from '@/store/auth';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface ExpenseBulkUploadModalProps {
   visible: boolean;
@@ -147,7 +148,7 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.title}>Carga Masiva de Gastos</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#64748B" />
+              <Ionicons name="close" size={24} color={colors.neutral[500]} />
             </TouchableOpacity>
           </View>
 
@@ -170,10 +171,10 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
                 disabled={downloading}
               >
                 {downloading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.neutral[0]} />
                 ) : (
                   <>
-                    <Ionicons name="download-outline" size={20} color="#FFFFFF" />
+                    <Ionicons name="download-outline" size={20} color={colors.neutral[0]} />
                     <Text style={styles.downloadButtonText}>Descargar Formato</Text>
                   </>
                 )}
@@ -211,7 +212,7 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
                 onPress={handleSelectFile}
                 disabled={uploading}
               >
-                <Ionicons name="document-outline" size={20} color="#6366F1" />
+                <Ionicons name="document-outline" size={20} color={colors.accent[500]} />
                 <Text style={styles.selectFileButtonText}>
                   {selectedFile ? selectedFile.name : 'Seleccionar Archivo'}
                 </Text>
@@ -225,10 +226,10 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
                   disabled={uploading}
                 >
                   {uploading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.neutral[0]} />
                   ) : (
                     <>
-                      <Ionicons name="cloud-upload-outline" size={20} color="#FFFFFF" />
+                      <Ionicons name="cloud-upload-outline" size={20} color={colors.neutral[0]} />
                       <Text style={styles.uploadButtonText}>Subir Archivo</Text>
                     </>
                   )}
@@ -252,18 +253,18 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
     width: '100%',
     maxWidth: 500,
     maxHeight: '90%',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -273,121 +274,121 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.default,
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   closeButton: {
-    padding: 4,
+    padding: spacing[1],
   },
   content: {
-    padding: 20,
-    gap: 24,
+    padding: spacing[5],
+    gap: spacing[6],
   },
   step: {
-    gap: 12,
+    gap: spacing[3],
   },
   stepHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
   },
   stepNumber: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#6366F1',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.accent[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepNumberText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   stepTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   stepDescription: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginLeft: 44,
   },
   downloadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    gap: spacing[2],
+    backgroundColor: colors.success[500],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[5],
+    borderRadius: borderRadius.lg,
     marginLeft: 44,
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   downloadButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   selectFileButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    gap: spacing[2],
+    backgroundColor: colors.neutral[100],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: colors.neutral[300],
     marginLeft: 44,
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   selectFileButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#475569',
+    color: colors.neutral[600],
     flex: 1,
   },
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    gap: spacing[2],
+    backgroundColor: colors.accent[500],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[5],
+    borderRadius: borderRadius.lg,
     marginLeft: 44,
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   uploadButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   footer: {
-    padding: 20,
+    padding: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.border.default,
   },
   cancelButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[5],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.neutral[100],
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
 });

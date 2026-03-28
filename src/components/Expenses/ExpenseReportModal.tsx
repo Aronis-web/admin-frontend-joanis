@@ -18,6 +18,7 @@ import { sitesService, expensesService } from '@/services/api';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { config } from '@/utils/config';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface ExpenseReportModalProps {
   visible: boolean;
@@ -300,7 +301,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
               {/* Header */}
               <View style={styles.header}>
                 <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-                  <Ionicons name="close" size={24} color="#64748B" />
+                  <Ionicons name="close" size={24} color={colors.neutral[500]} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>
                   {isRecurrent ? 'Reporte Gastos Recurrentes' : 'Reporte de Gastos'}
@@ -530,7 +531,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
               <View style={styles.footer}>
                 {hasFilters && (
                   <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
-                    <Ionicons name="refresh" size={18} color="#6366F1" />
+                    <Ionicons name="refresh" size={18} color={colors.accent[500]} />
                     <Text style={styles.clearButtonText}>Limpiar Filtros</Text>
                   </TouchableOpacity>
                 )}
@@ -543,7 +544,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <>
-                      <Ionicons name="download" size={20} color="#FFFFFF" />
+                      <Ionicons name="download" size={20} color={colors.neutral[0]} />
                       <Text style={styles.downloadButtonText}>Descargar Excel</Text>
                     </>
                   )}
@@ -577,13 +578,13 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.surface.primary,
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     height: '90%',
   },
   content: {
@@ -593,10 +594,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.default,
   },
   headerButton: {
     width: 40,
@@ -607,150 +608,150 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: spacing[4],
+    paddingBottom: spacing[8],
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#64748B',
-    marginBottom: 24,
+    color: colors.neutral[500],
+    marginBottom: spacing[6],
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   sectionLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
-    marginBottom: 12,
+    color: colors.neutral[600],
+    marginBottom: spacing[3],
   },
   filterChipsContainer: {
     flexDirection: 'row',
-    gap: 8,
-    paddingRight: 16,
+    gap: spacing[2],
+    paddingRight: spacing[4],
   },
   filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2.5],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   filterChipActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.accent[500],
+    borderColor: colors.accent[500],
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   examplesContainer: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
+    backgroundColor: colors.success[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginTop: spacing[2],
   },
   examplesTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#166534',
-    marginBottom: 12,
+    color: colors.success[800],
+    marginBottom: spacing[3],
   },
   exampleItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: spacing[2],
+    gap: spacing[2],
   },
   exampleText: {
     flex: 1,
     fontSize: 12,
-    color: '#166534',
+    color: colors.success[800],
     lineHeight: 18,
   },
   footer: {
-    padding: 16,
-    paddingBottom: 20,
+    padding: spacing[4],
+    paddingBottom: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
+    borderTopColor: colors.border.default,
+    gap: spacing[3],
+    backgroundColor: colors.surface.primary,
   },
   clearButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    gap: 8,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.neutral[100],
+    gap: spacing[2],
   },
   clearButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366F1',
+    color: colors.accent[500],
   },
   downloadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#10B981',
-    gap: 8,
+    paddingVertical: spacing[3.5],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.success[500],
+    gap: spacing[2],
   },
   downloadButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: colors.neutral[400],
   },
   downloadButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   switchContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing[2],
   },
   switchOption: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
     alignItems: 'center',
   },
   switchOptionActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.accent[500],
+    borderColor: colors.accent[500],
   },
   switchOptionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
   switchOptionTextActive: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ExpenseProjection, ConfidenceLevelLabels, ConfidenceLevelColors } from '@/types/expenses';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface ProjectionCardProps {
   projection: ExpenseProjection;
@@ -35,7 +36,7 @@ export const ProjectionCard: React.FC<ProjectionCardProps> = ({ projection, onPr
             </Text>
           </View>
         </View>
-        <Ionicons name="trending-up-outline" size={24} color="#6366F1" />
+        <Ionicons name="trending-up-outline" size={24} color={colors.accent[500]} />
       </View>
 
       <View style={styles.divider} />
@@ -72,23 +73,23 @@ export const ProjectionCard: React.FC<ProjectionCardProps> = ({ projection, onPr
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   headerLeft: {
     flex: 1,
@@ -96,22 +97,22 @@ const styles = StyleSheet.create({
   expenseName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 6,
+    color: colors.neutral[800],
+    marginBottom: spacing[1.5],
   },
   confidenceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 6,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.xl,
+    gap: spacing[1.5],
   },
   confidenceDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: borderRadius.full,
   },
   confidenceText: {
     fontSize: 11,
@@ -119,63 +120,63 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
-    marginBottom: 12,
+    backgroundColor: colors.border.default,
+    marginBottom: spacing[3],
   },
   content: {
-    gap: 12,
+    gap: spacing[3],
   },
   amountContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
   },
   amountLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   amountValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   infoItem: {
     flex: 1,
   },
   label: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     fontWeight: '600',
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   value: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
+    color: colors.neutral[700],
   },
   notesContainer: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing[2.5],
     borderLeftWidth: 3,
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: colors.warning[500],
   },
   notesLabel: {
     fontSize: 10,
-    color: '#92400E',
+    color: colors.warning[800],
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   notesText: {
     fontSize: 12,
-    color: '#78350F',
+    color: colors.warning[900],
     lineHeight: 16,
   },
 });

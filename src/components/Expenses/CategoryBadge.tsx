@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface CategoryBadgeProps {
   category: {
@@ -61,14 +62,14 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
         style={[
           styles.mainBadge,
           currentSize.mainBadge,
-          { backgroundColor: category.color || '#6366F1' },
+          { backgroundColor: category.color || colors.accent[500] },
         ]}
       >
         {category.icon && (
           <Ionicons
             name={safeIconName as any}
             size={currentSize.icon}
-            color="#FFFFFF"
+            color={colors.neutral[0]}
             style={styles.icon}
           />
         )}
@@ -98,41 +99,41 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   containerSmall: {
-    gap: 4,
+    gap: spacing[1],
   },
   containerMedium: {
-    gap: 6,
+    gap: spacing[1.5],
   },
   containerLarge: {
-    gap: 8,
+    gap: spacing[2],
   },
   mainBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
   },
   mainBadgeSmall: {
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[1.5],
+    paddingVertical: spacing[0.5],
   },
   mainBadgeMedium: {
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
   },
   mainBadgeLarge: {
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1.5],
   },
   icon: {
-    marginRight: 4,
+    marginRight: spacing[1],
   },
   mainText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '600',
   },
   mainTextSmall: {
@@ -145,30 +146,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   subBadge: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: colors.neutral[100],
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: colors.neutral[300],
   },
   subBadgeSmall: {
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[1.5],
+    paddingVertical: spacing[0.5],
   },
   subBadgeMedium: {
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
   },
   subBadgeLarge: {
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1.5],
   },
   subText: {
-    color: '#475569',
+    color: colors.neutral[600],
     fontWeight: '500',
   },
   subTextSmall: {

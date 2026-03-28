@@ -2,13 +2,14 @@ import React, { useState, useRef } from 'react';
 import {
   View,
   TouchableOpacity,
-  Text,
+  Text as RNText,
   StyleSheet,
   Animated,
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface ExpenseTemplatesFABProps {
   onCreateTemplate: () => void;
@@ -220,9 +221,9 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
             >
               <View style={styles.optionRow}>
                 <View style={styles.labelContainer}>
-                  <Text style={[styles.optionLabel, isTablet && styles.optionLabelTablet]}>
+                  <RNText style={[styles.optionLabel, isTablet && styles.optionLabelTablet]}>
                     {action.label}
-                  </Text>
+                  </RNText>
                 </View>
                 <TouchableOpacity
                   style={[
@@ -237,7 +238,7 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
                   <Ionicons
                     name={action.icon as any}
                     size={isTablet ? 24 : 20}
-                    color="#FFFFFF"
+                    color={colors.neutral[0]}
                   />
                 </TouchableOpacity>
               </View>
@@ -259,7 +260,7 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
             onPress={toggleMenu}
             activeOpacity={0.9}
           >
-            <Text style={[styles.mainFabIcon, isTablet && styles.mainFabIconTablet]}>🔄</Text>
+            <RNText style={[styles.mainFabIcon, isTablet && styles.mainFabIconTablet]}>🔄</RNText>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -270,7 +271,7 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
+    backgroundColor: colors.neutral[950],
     zIndex: 10000,
   },
   fabContainer: {
@@ -287,16 +288,16 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.danger[600],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#DC2626',
+    shadowColor: colors.danger[600],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 12,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: colors.neutral[0],
   },
   mainFabTablet: {
     width: 64,
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
   },
   mainFabIcon: {
     fontSize: 28,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '700',
   },
   mainFabIconTablet: {
@@ -320,21 +321,21 @@ const styles = StyleSheet.create({
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
   },
   optionButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.neutral[0],
   },
   optionButtonTablet: {
     width: 56,
@@ -342,11 +343,11 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   labelContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    shadowColor: '#000',
+    backgroundColor: colors.neutral[0],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
@@ -356,7 +357,7 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     textAlign: 'center',
   },
   optionLabelTablet: {

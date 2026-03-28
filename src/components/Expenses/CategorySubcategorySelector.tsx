@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { expensesService } from '@/services/api';
 import { ExpenseCategory } from '@/types/expenses';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface CategorySubcategorySelectorProps {
   categoryId: string;
@@ -64,7 +65,7 @@ export const CategorySubcategorySelector: React.FC<CategorySubcategorySelectorPr
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#6366F1" />
+        <ActivityIndicator size="small" color={colors.accent[500]} />
         <Text style={styles.loadingText}>Cargando categorías...</Text>
       </View>
     );
@@ -138,57 +139,57 @@ export const CategorySubcategorySelector: React.FC<CategorySubcategorySelectorPr
 
 const styles = StyleSheet.create({
   container: {
-    gap: 16,
+    gap: spacing[4],
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 8,
+    padding: spacing[4],
+    gap: spacing[2],
   },
   loadingText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   fieldContainer: {
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   required: {
-    color: '#DC2626',
+    color: colors.danger[600],
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface.primary,
     overflow: 'hidden',
   },
   pickerError: {
-    borderColor: '#DC2626',
+    borderColor: colors.danger[600],
   },
   pickerDisabled: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     opacity: 0.6,
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   errorText: {
     fontSize: 12,
-    color: '#DC2626',
-    marginTop: 4,
+    color: colors.danger[600],
+    marginTop: spacing[1],
   },
   helpText: {
     fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
     fontStyle: 'italic',
   },
 });

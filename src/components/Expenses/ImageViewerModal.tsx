@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
 import { filesApi } from '@/services/api/files';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface ImageViewerModalProps {
   visible: boolean;
@@ -153,7 +154,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
               {fileName || 'Imagen del Pago'}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={28} color="#FFFFFF" />
+              <Ionicons name="close" size={28} color={colors.neutral[0]} />
             </TouchableOpacity>
           </View>
         </View>
@@ -162,13 +163,13 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
         <View style={styles.imageContainer}>
           {loading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#6366F1" />
+              <ActivityIndicator size="large" color={colors.accent[500]} />
               <Text style={styles.loadingText}>Cargando imagen...</Text>
             </View>
           )}
           {error && (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={64} color="#EF4444" />
+              <Ionicons name="alert-circle" size={64} color={colors.danger[500]} />
               <Text style={styles.errorText}>No se pudo cargar la imagen</Text>
               <TouchableOpacity
                 style={styles.retryButton}
@@ -189,7 +190,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
           )}
           {!loading && !error && !imageData && !imageUrl && !fileId && (
             <View style={styles.errorContainer}>
-              <Ionicons name="image-outline" size={64} color="#94A3B8" />
+              <Ionicons name="image-outline" size={64} color={colors.neutral[400]} />
               <Text style={styles.errorText}>No hay imagen disponible</Text>
             </View>
           )}
@@ -198,7 +199,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
         {/* Footer */}
         <View style={styles.footer}>
           <TouchableOpacity style={styles.closeFooterButton} onPress={onClose}>
-            <Ionicons name="close-circle" size={20} color="#FFFFFF" />
+            <Ionicons name="close-circle" size={20} color={colors.neutral[0]} />
             <Text style={styles.closeFooterButtonText}>Cerrar</Text>
           </TouchableOpacity>
         </View>
@@ -210,13 +211,13 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: colors.overlay.dark,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingTop: Platform.OS === 'ios' ? 50 : spacing[5],
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[4],
+    backgroundColor: colors.overlay.dark,
   },
   headerContent: {
     flexDirection: 'row',
@@ -227,11 +228,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
-    marginRight: 12,
+    color: colors.neutral[0],
+    marginRight: spacing[3],
   },
   closeButton: {
-    padding: 4,
+    padding: spacing[1],
   },
   imageContainer: {
     flex: 1,
@@ -249,53 +250,53 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 14,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   errorContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: spacing[8],
   },
   errorText: {
-    marginTop: 16,
+    marginTop: spacing[4],
     fontSize: 16,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     textAlign: 'center',
   },
   retryButton: {
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: '#6366F1',
-    borderRadius: 8,
+    marginTop: spacing[4],
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[5],
+    backgroundColor: colors.accent[500],
+    borderRadius: borderRadius.lg,
   },
   retryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   footer: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    paddingBottom: Platform.OS === 'ios' ? spacing[8] : spacing[4],
+    backgroundColor: colors.overlay.dark,
     alignItems: 'center',
   },
   closeFooterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    backgroundColor: '#6366F1',
-    borderRadius: 8,
+    gap: spacing[2],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[6],
+    backgroundColor: colors.accent[500],
+    borderRadius: borderRadius.lg,
   },
   closeFooterButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
 
