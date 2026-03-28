@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   // ============================================
   container: {
     backgroundColor: colors.surface.primary,
-    zIndex: zIndex.sticky,
+    zIndex: zIndex.base, // Bajo para que FAB quede por encima
   },
 
   content: {

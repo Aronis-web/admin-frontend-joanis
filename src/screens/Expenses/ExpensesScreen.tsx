@@ -309,13 +309,6 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
       {/* Header */}
       <ScreenHeader
         title="Gastos"
-        onMenu={() => navigation.openDrawer?.()}
-        actions={[
-          {
-            icon: 'filter-outline',
-            onPress: () => navigation.navigate('ExpenseCategories'),
-          },
-        ]}
       />
 
       {/* Filters */}
@@ -373,6 +366,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
         openIcon="close"
         actions={fabActions}
         variant="primary"
+        style={{ bottom: 90, right: 20 }}
       />
 
       {/* Modals */}
@@ -421,6 +415,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.secondary,
+    position: 'relative', // Contexto para elementos absolutos (FAB)
   },
 
   filtersContainer: {

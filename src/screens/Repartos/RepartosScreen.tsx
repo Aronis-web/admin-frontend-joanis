@@ -1,20 +1,22 @@
+/**
+ * RepartosScreen - Rediseñado con Design System
+ *
+ * Pantalla de listado de repartos profesional y moderna.
+ */
+
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
-  Text,
-  StyleSheet,
   FlatList,
-  ScrollView,
-  TouchableOpacity,
+  StyleSheet,
   RefreshControl,
   Alert,
   ActivityIndicator,
   useWindowDimensions,
-  Linking,
   Platform,
   Modal,
+  TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -23,18 +25,51 @@ import {
   Campaign,
   CampaignStatus,
   CampaignStatusLabels,
-  CampaignStatusColors,
 } from '@/types/campaigns';
 import { useCampaigns } from '@/hooks/api';
-import { RepartoProducto, RepartoProductoValidationStatus } from '@/types/repartos';
+import { RepartoProducto } from '@/types/repartos';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProductSelectionModal, CircularProgress } from '@/components/Repartos';
 import * as downloadTracker from '@/utils/downloadTracker';
 import { logger } from '@/utils/logger';
 
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Button,
+  Card,
+  Badge,
+  StatusBadge,
+  Chip,
+  ChipGroup,
+  ScreenHeader,
+  EmptyState,
+  Pagination,
+  Divider,
+} from '@/design-system/components';
+
 interface RepartosScreenProps {
   navigation: any;
 }
+
+// Status colors mapping
+const STATUS_COLORS: Record<CampaignStatus, { background: string; text: string; border: string }> = {
+  [CampaignStatus.ACTIVE]: colors.status.active,
+  [CampaignStatus.DRAFT]: colors.status.draft,
+  [CampaignStatus.PAUSED]: colors.status.pending,
+  [CampaignStatus.COMPLETED]: colors.status.completed,
+  [CampaignStatus.CLOSED]: colors.status.completed,
+  [CampaignStatus.CANCELLED]: colors.status.cancelled,
+};
 
 export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) => {
   // ✅ Por defecto mostrar todas menos canceladas y borrador
@@ -50,7 +85,6 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   const [campaignProgress, setCampaignProgress] = useState<Map<string, { validated: number; total: number; percentage: number }>>(new Map());
   const [distributionFormatModalVisible, setDistributionFormatModalVisible] = useState(false);
   const [selectedProductsForExport, setSelectedProductsForExport] = useState<string[]>([]);
-  // ✅ Estado de paginación
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
@@ -72,13 +106,12 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   // React Query hook
   const { data, isLoading, isRefetching, refetch } = useCampaigns(queryParams);
 
-  // Clean campaigns data - remove duplicate products and filter by status
+  // Clean campaigns data
   const campaigns = useMemo(() => {
     if (!data?.data) return [];
 
     const allCampaigns = data.data.map((campaign: Campaign) => {
       if (campaign.products && campaign.products.length > 0) {
-        // Group products by productId to remove duplicates
         const uniqueProductsMap = new Map();
         campaign.products.forEach((product: any) => {
           const productId = product.productId || product.id;
@@ -94,7 +127,6 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       return campaign;
     });
 
-    // ✅ Filtrar canceladas y borrador si selectedStatus es 'NOT_CANCELLED_DRAFT'
     if (selectedStatus === 'NOT_CANCELLED_DRAFT') {
       return allCampaigns.filter(
         (c) => c.status !== CampaignStatus.CANCELLED && c.status !== CampaignStatus.DRAFT
@@ -103,10 +135,10 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     return allCampaigns;
   }, [data, selectedStatus]);
 
-  // ✅ Cargar progreso de campañas con límite de concurrencia (batches de 3)
+  // Load campaign progress
   const loadCampaignProgress = useCallback(async (campaignIds: string[]) => {
     const progressMap = new Map<string, { validated: number; total: number; percentage: number }>();
-    const BATCH_SIZE = 3; // Limitar a 3 requests simultáneos
+    const BATCH_SIZE = 3;
 
     for (let i = 0; i < campaignIds.length; i += BATCH_SIZE) {
       const batch = campaignIds.slice(i, i + BATCH_SIZE);
@@ -123,14 +155,9 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
               },
             };
           } catch (error) {
-            // Si falla, usar valores por defecto
             return {
               campaignId,
-              progressData: {
-                validated: 0,
-                total: 0,
-                percentage: 0,
-              },
+              progressData: { validated: 0, total: 0, percentage: 0 },
             };
           }
         })
@@ -144,10 +171,8 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     setCampaignProgress(progressMap);
   }, []);
 
-  // ✅ Combinar useEffects con stale time check
   const lastFetchRef = useRef<number>(0);
 
-  // ✅ Resetear página cuando cambia el filtro de estado
   React.useEffect(() => {
     setCurrentPage(1);
   }, [selectedStatus]);
@@ -155,7 +180,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   useFocusEffect(
     useCallback(() => {
       const now = Date.now();
-      const STALE_TIME = 5 * 60 * 1000; // 5 minutos
+      const STALE_TIME = 5 * 60 * 1000;
 
       if (now - lastFetchRef.current > STALE_TIME) {
         refetch();
@@ -186,16 +211,12 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     campaignCode: string
   ) => {
     try {
-      // Load repartos for this campaign to get all products
       const repartos = await repartosService.getRepartosByCampaign(campaignId);
-
-      // Collect all products from all repartos and group by product ID
       const productMap = new Map<string, RepartoProducto>();
 
       repartos.forEach((reparto) => {
         reparto.participantes?.forEach((participante: any) => {
           participante.productos?.forEach((producto: RepartoProducto) => {
-            // Use product ID as key to avoid duplicates
             const productKey = producto.productId;
             if (productKey && !productMap.has(productKey)) {
               productMap.set(productKey, producto);
@@ -204,7 +225,6 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         });
       });
 
-      // Convert map to array
       const uniqueProducts = Array.from(productMap.values());
 
       if (uniqueProducts.length === 0) {
@@ -212,10 +232,8 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         return;
       }
 
-      // Cargar información de descargas desde el almacenamiento local
       const downloadInfo = await downloadTracker.getCampaignDownloads(campaignId);
 
-      // Combinar productos con información de descargas
       const productsWithDownloadInfo = uniqueProducts.map((producto) => {
         const downloadRecord = downloadInfo.get(producto.productId);
         return {
@@ -225,7 +243,6 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         };
       });
 
-      // Sort products by area name (ascending)
       const sortedProducts = productsWithDownloadInfo.sort((a, b) => {
         const areaA = a.area?.name || a.areaId || '';
         const areaB = b.area?.name || b.areaId || '';
@@ -242,27 +259,18 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   }, []);
 
   const handleExportDistributionSheets = useCallback(async (selectedProductIds: string[]) => {
-    if (!selectedCampaign) {
-      return;
-    }
-
-    // Store selected products and show format selection modal
+    if (!selectedCampaign) return;
     setSelectedProductsForExport(selectedProductIds);
     setShowProductSelectionModal(false);
     setDistributionFormatModalVisible(true);
   }, [selectedCampaign]);
 
   const handleDownloadDistributionSheets = useCallback(async (format: 'pdf' | 'excel') => {
-    if (!selectedCampaign) {
-      return;
-    }
+    if (!selectedCampaign) return;
 
     try {
       setExportingCampaignId(selectedCampaign.id);
       setDistributionFormatModalVisible(false);
-
-      logger.info(`🔄 Iniciando descarga de ${format.toUpperCase()} para campaña:`, selectedCampaign.id);
-      const startTime = new Date().getTime();
 
       let blob: Blob;
       let extension: string;
@@ -270,7 +278,6 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       let uti: string;
 
       if (format === 'pdf') {
-        // Call the API to get the PDF blob with selected products
         blob = await repartosService.exportCampaignDistributionSheets(
           selectedCampaign.id,
           selectedProductsForExport
@@ -279,7 +286,6 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         mimeType = 'application/pdf';
         uti = 'com.adobe.pdf';
       } else {
-        // Call the API to get the Excel blob with selected products
         blob = await repartosService.exportDistributionSummaryExcel(
           selectedCampaign.id,
           selectedProductsForExport
@@ -289,23 +295,13 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         uti = 'org.openxmlformats.spreadsheetml.sheet';
       }
 
-      // Register download for tracking purposes (local storage)
       try {
         await downloadTracker.registerDownloads(selectedCampaign.id, selectedProductsForExport);
-        logger.debug('✅ Descarga registrada localmente para seguimiento');
       } catch (error) {
         logger.warn('⚠️ No se pudo registrar la descarga:', error);
-        // Don't fail the download if tracking fails
       }
 
-      const endTime = new Date().getTime();
-      logger.info(`✅ ${format.toUpperCase()} descargado del servidor`);
-      logger.debug(`📦 Tamaño del archivo:`, blob.size, 'bytes');
-      logger.debug('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
-      logger.debug('🕐 Timestamp actual:', new Date().toISOString());
-
       if (Platform.OS === 'web') {
-        // For web, create a download link using blob URL
         const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
@@ -313,22 +309,13 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
-        // Clean up the blob URL after a short delay
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-
-        Alert.alert(
-          'Éxito',
-          `Las hojas de reparto de "${selectedCampaign.name}" en ${format.toUpperCase()} se están descargando`
-        );
+        Alert.alert('Éxito', `Las hojas de reparto se están descargando`);
       } else {
-        // For mobile (iOS/Android), save to file system and share
-        // Use timestamp in filename to avoid caching issues
         const timestamp = new Date().getTime();
         const fileName = `hojas-reparto-${selectedCampaign.code}-${timestamp}.${extension}`;
         const file = new FileSystem.File(FileSystem.Paths.document, fileName);
 
-        // Convert blob to array buffer using FileReader
         const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as ArrayBuffer);
@@ -336,20 +323,14 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
           reader.readAsArrayBuffer(blob);
         });
 
-        // Write to file
         await file.create();
         const writer = file.writableStream().getWriter();
         await writer.write(new Uint8Array(arrayBuffer));
         await writer.close();
 
-        // Share the file - user can choose to save to Downloads from share menu
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
-          await Sharing.shareAsync(file.uri, {
-            mimeType,
-            dialogTitle: `Hojas de Reparto - ${selectedCampaign.name}`,
-            UTI: uti,
-          });
+          await Sharing.shareAsync(file.uri, { mimeType, dialogTitle: `Hojas de Reparto - ${selectedCampaign.name}`, UTI: uti });
         } else {
           Alert.alert('Éxito', `Archivo guardado en: ${file.uri}`);
         }
@@ -364,9 +345,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   }, [selectedCampaign, selectedProductsForExport]);
 
   const formatDate = useCallback((dateString?: string) => {
-    if (!dateString) {
-      return 'N/A';
-    }
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
@@ -375,314 +354,209 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     });
   }, []);
 
-  const getStatusBadgeStyle = useCallback((status: CampaignStatus) => {
+  // Status filter options
+  const statusOptions = useMemo(() => [
+    { label: 'Activas', value: 'NOT_CANCELLED_DRAFT' },
+    { label: 'Todos', value: 'ALL' },
+    { label: CampaignStatusLabels[CampaignStatus.ACTIVE], value: CampaignStatus.ACTIVE },
+    { label: CampaignStatusLabels[CampaignStatus.DRAFT], value: CampaignStatus.DRAFT },
+    { label: CampaignStatusLabels[CampaignStatus.COMPLETED], value: CampaignStatus.COMPLETED },
+    { label: CampaignStatusLabels[CampaignStatus.CLOSED], value: CampaignStatus.CLOSED },
+    { label: CampaignStatusLabels[CampaignStatus.CANCELLED], value: CampaignStatus.CANCELLED },
+  ], []);
+
+  // Pagination data
+  const paginationData = useMemo(() => {
+    if (!data || !data.total) {
+      return { page: 1, totalPages: 0, total: 0 };
+    }
     return {
-      backgroundColor: CampaignStatusColors[status] + '20',
-      borderColor: CampaignStatusColors[status],
+      page: currentPage,
+      totalPages: Math.ceil(data.total / ITEMS_PER_PAGE),
+      total: data.total,
     };
-  }, []);
+  }, [data, currentPage]);
 
-  const getStatusTextStyle = useCallback((status: CampaignStatus) => {
-    return {
-      color: CampaignStatusColors[status],
-    };
-  }, []);
+  // Render campaign card
+  const renderCampaignCard = useCallback(({ item: campaign }: { item: Campaign }) => {
+    const totalParticipantes = campaign.participants?.length || 0;
+    const totalProductos = campaign.products?.length || 0;
+    const isExporting = exportingCampaignId === campaign.id;
+    const progress = campaignProgress.get(campaign.id) || { validated: 0, total: 0, percentage: 0 };
+    const statusColor = STATUS_COLORS[campaign.status] || colors.status.draft;
 
-  const statuses: Array<CampaignStatus | 'ALL' | 'NOT_CANCELLED_DRAFT'> = useMemo(
-    () => [
-      'NOT_CANCELLED_DRAFT', // ✅ Por defecto
-      'ALL',
-      CampaignStatus.ACTIVE,
-      CampaignStatus.DRAFT,
-      CampaignStatus.COMPLETED,
-      CampaignStatus.CLOSED,
-      CampaignStatus.CANCELLED,
-    ],
-    []
-  );
-
-  const getStatusLabel = useCallback((status: CampaignStatus | 'ALL' | 'NOT_CANCELLED_DRAFT') => {
-    if (status === 'ALL') return 'Todos';
-    if (status === 'NOT_CANCELLED_DRAFT') return 'Activas'; // Todas menos canceladas y borrador
-    return CampaignStatusLabels[status];
-  }, []);
-
-  const renderStatusFilter = useMemo(() => {
     return (
-      <View style={styles.filterWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContent}
-        >
-          {statuses.map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.filterButton,
-                isTablet && styles.filterButtonTablet,
-                selectedStatus === status && styles.filterButtonActive,
-              ]}
-              onPress={() => setSelectedStatus(status)}
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  isTablet && styles.filterButtonTextTablet,
-                  selectedStatus === status && styles.filterButtonTextActive,
-                ]}
-              >
-                {getStatusLabel(status)}
+      <Card
+        variant="elevated"
+        padding="none"
+        style={styles.campaignCard}
+        onPress={() => handleCampaignPress(campaign)}
+      >
+        {/* Header */}
+        <View style={styles.cardHeader}>
+          <View style={styles.cardHeaderLeft}>
+            <Text variant="titleMedium" color="primary" style={styles.cardCode}>
+              {campaign.code}
+            </Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor.background, borderColor: statusColor.border }]}>
+              <Text variant="labelSmall" style={{ color: statusColor.text }}>
+                {CampaignStatusLabels[campaign.status]}
               </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  }, [statuses, isTablet, selectedStatus]);
+            </View>
+          </View>
+        </View>
 
-  const renderCampaignCard = useCallback(
-    (campaign: Campaign) => {
-      const totalParticipantes = campaign.participants?.length || 0;
-      const totalProductos = campaign.products?.length || 0;
-      const isExporting = exportingCampaignId === campaign.id;
+        {/* Body */}
+        <View style={styles.cardBody}>
+          <Title size="medium" numberOfLines={2} style={styles.campaignName}>
+            {campaign.name}
+          </Title>
 
-      // Obtener progreso de la campaña desde el estado
-      const progress = campaignProgress.get(campaign.id) || {
-        validated: 0,
-        total: 0,
-        percentage: 0,
-      };
+          {campaign.description && (
+            <Body size="small" color="secondary" numberOfLines={2} style={styles.campaignDescription}>
+              {campaign.description}
+            </Body>
+          )}
 
-      const totalProductosValidacion = progress.total;
-      const productosValidados = progress.validated;
-      const validationProgress = progress.percentage;
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text variant="numericMedium" color={colors.accent[600]}>
+                {totalParticipantes}
+              </Text>
+              <Caption color="tertiary">Participantes</Caption>
+            </View>
 
-      return (
-        <View key={campaign.id} style={[styles.card, isTablet && styles.cardTablet]}>
-          <TouchableOpacity onPress={() => handleCampaignPress(campaign)} activeOpacity={0.7}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderLeft}>
-                <Text style={[styles.cardCode, isTablet && styles.cardCodeTablet]}>
-                  {campaign.code}
-                </Text>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    isTablet && styles.statusBadgeTablet,
-                    getStatusBadgeStyle(campaign.status),
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      isTablet && styles.statusTextTablet,
-                      getStatusTextStyle(campaign.status),
-                    ]}
-                  >
-                    {CampaignStatusLabels[campaign.status]}
-                  </Text>
-                </View>
+            <View style={styles.statItem}>
+              <Text variant="numericMedium" color={colors.accent[600]}>
+                {totalProductos}
+              </Text>
+              <Caption color="tertiary">Productos</Caption>
+            </View>
+
+            {progress.total > 0 && (
+              <View style={styles.statItem}>
+                <CircularProgress
+                  size={isTablet ? 70 : 60}
+                  strokeWidth={isTablet ? 7 : 6}
+                  progress={progress.percentage}
+                  total={progress.total}
+                  validated={progress.validated}
+                  fontSize={isTablet ? 14 : 12}
+                />
+                <Caption color="tertiary" style={{ marginTop: spacing[2] }}>Validación</Caption>
               </View>
-            </View>
+            )}
+          </View>
 
-            <View style={styles.cardBody}>
-              <Text
-                style={[styles.repartoName, isTablet && styles.repartoNameTablet]}
-                numberOfLines={2}
-              >
-                {campaign.name}
+          {campaign.startDate && (
+            <View style={styles.dateRow}>
+              <Caption color="tertiary">Fecha inicio:</Caption>
+              <Text variant="labelMedium" color="primary" style={{ marginLeft: spacing[2] }}>
+                {formatDate(campaign.startDate)}
               </Text>
-
-              {campaign.description && (
-                <Text
-                  style={[styles.repartoDescription, isTablet && styles.repartoDescriptionTablet]}
-                  numberOfLines={2}
-                >
-                  {campaign.description}
-                </Text>
-              )}
-
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                    {totalParticipantes}
-                  </Text>
-                  <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                    Participantes
-                  </Text>
-                </View>
-
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                    {totalProductos}
-                  </Text>
-                  <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                    Productos
-                  </Text>
-                </View>
-
-                {/* Circular Progress for Validation */}
-                {totalProductosValidacion > 0 && (
-                  <View style={styles.statItem}>
-                    <CircularProgress
-                      size={isTablet ? 80 : 70}
-                      strokeWidth={isTablet ? 8 : 7}
-                      progress={validationProgress}
-                      total={totalProductosValidacion}
-                      validated={productosValidados}
-                      fontSize={isTablet ? 16 : 14}
-                    />
-                    <Text
-                      style={[
-                        styles.statLabel,
-                        isTablet && styles.statLabelTablet,
-                        { marginTop: 8 },
-                      ]}
-                    >
-                      Validación
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {campaign.startDate && (
-                <View style={styles.dateRow}>
-                  <Text style={[styles.dateLabel, isTablet && styles.dateLabelTablet]}>
-                    Fecha inicio:
-                  </Text>
-                  <Text style={[styles.dateValue, isTablet && styles.dateValueTablet]}>
-                    {formatDate(campaign.startDate)}
-                  </Text>
-                </View>
-              )}
             </View>
-
-            <View style={styles.cardFooter}>
-              <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
-                Creado: {formatDate(campaign.createdAt)}
-              </Text>
-              <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Export Button */}
-          {totalParticipantes > 0 && totalProductos > 0 && (
-            <TouchableOpacity
-              style={[styles.exportButton, isTablet && styles.exportButtonTablet]}
-              onPress={() => handleOpenProductSelection(campaign.id, campaign.name, campaign.code)}
-              disabled={isExporting}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.exportButtonText, isTablet && styles.exportButtonTextTablet]}>
-                {isExporting ? '📄 Generando...' : '📄 Descargar Hojas de Reparto'}
-              </Text>
-            </TouchableOpacity>
           )}
         </View>
-      );
-    },
-    [isTablet, exportingCampaignId, campaignProgress, handleCampaignPress, handleOpenProductSelection, formatDate]
-  );
 
+        <Divider spacing="none" />
+
+        {/* Footer */}
+        <View style={styles.cardFooter}>
+          <Caption color="tertiary">Creado: {formatDate(campaign.createdAt)}</Caption>
+          <Text variant="titleLarge" color={colors.neutral[300]}>›</Text>
+        </View>
+
+        {/* Export Button */}
+        {totalParticipantes > 0 && totalProductos > 0 && (
+          <TouchableOpacity
+            style={styles.exportButton}
+            onPress={() => handleOpenProductSelection(campaign.id, campaign.name, campaign.code)}
+            disabled={isExporting}
+            activeOpacity={0.7}
+          >
+            <Text variant="buttonSmall" color={colors.text.inverse}>
+              {isExporting ? '📄 Generando...' : '📄 Descargar Hojas de Reparto'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </Card>
+    );
+  }, [isTablet, exportingCampaignId, campaignProgress, handleCampaignPress, handleOpenProductSelection, formatDate]);
+
+  // Loading state
   if (isLoading && !isRefetching) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.container}>
+        <ScreenHeader title="Repartos" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando campañas...</Text>
+          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
+            Cargando campañas...
+          </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
     <ScreenLayout navigation={navigation}>
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.container}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>Repartos</Text>
-            <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-              Selecciona una campaña para ver sus repartos
-            </Text>
-          </View>
+        <ScreenHeader
+          title="Repartos"
+          subtitle="Selecciona una campaña para ver sus repartos"
+        />
+
+        {/* Filters */}
+        <View style={styles.filtersContainer}>
+          <ChipGroup
+            options={statusOptions}
+            selected={[selectedStatus]}
+            onChange={(selected) => setSelectedStatus((selected[0] || 'NOT_CANCELLED_DRAFT') as any)}
+            size="small"
+          />
         </View>
 
-        {/* Status Filter */}
-        {renderStatusFilter}
-
-        {/* Campaigns List - ✅ Migrado a FlatList para virtualización */}
+        {/* Campaigns List */}
         <FlatList
           data={campaigns}
-          renderItem={({ item }) => renderCampaignCard(item)}
+          renderItem={renderCampaignCard}
           keyExtractor={(item) => item.id}
-          style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                No hay campañas disponibles
-              </Text>
-              <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-                Las campañas con repartos aparecerán aquí
-              </Text>
-            </View>
+          style={styles.listContainer}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary[900]}
+              colors={[colors.primary[900]]}
+            />
           }
-          ListFooterComponent={
-            data && data.total > 0 ? (
-              <View style={styles.paginationContainer}>
-                <View style={styles.paginationInfo}>
-                  <Text style={styles.paginationText}>
-                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, data.total)} de {data.total} campañas
-                  </Text>
-                </View>
-                <View style={styles.paginationButtons}>
-                  <TouchableOpacity
-                    style={[
-                      styles.paginationButton,
-                      currentPage === 1 && styles.paginationButtonDisabled
-                    ]}
-                    onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1 || isLoading}
-                  >
-                    <Text style={[
-                      styles.paginationButtonText,
-                      currentPage === 1 && styles.paginationButtonTextDisabled
-                    ]}>
-                      ← Anterior
-                    </Text>
-                  </TouchableOpacity>
-
-                  <Text style={styles.paginationPageText}>
-                    Página {currentPage} de {Math.ceil(data.total / ITEMS_PER_PAGE)}
-                  </Text>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.paginationButton,
-                      currentPage >= Math.ceil(data.total / ITEMS_PER_PAGE) && styles.paginationButtonDisabled
-                    ]}
-                    onPress={() => setCurrentPage(prev => prev + 1)}
-                    disabled={currentPage >= Math.ceil(data.total / ITEMS_PER_PAGE) || isLoading}
-                  >
-                    <Text style={[
-                      styles.paginationButtonText,
-                      currentPage >= Math.ceil(data.total / ITEMS_PER_PAGE) && styles.paginationButtonTextDisabled
-                    ]}>
-                      Siguiente →
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : null
+          ListEmptyComponent={
+            <EmptyState
+              icon="calendar-outline"
+              title="No hay campañas disponibles"
+              description="Las campañas con repartos aparecerán aquí"
+            />
           }
           windowSize={5}
           maxToRenderPerBatch={10}
           removeClippedSubviews={true}
           initialNumToRender={10}
         />
+
+        {/* Pagination */}
+        {paginationData.total > 0 && (
+          <Pagination
+            currentPage={paginationData.page}
+            totalPages={paginationData.totalPages}
+            totalItems={paginationData.total}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+            loading={isLoading}
+          />
+        )}
 
         {/* Product Selection Modal */}
         <ProductSelectionModal
@@ -693,7 +567,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
           loading={exportingCampaignId !== null}
         />
 
-        {/* Format Selection Modal - Distribution Sheets */}
+        {/* Format Selection Modal */}
         <Modal
           visible={distributionFormatModalVisible}
           transparent={true}
@@ -704,13 +578,13 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
           }}
         >
           <View style={styles.modalOverlay}>
-            <View style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}>
-              <Text style={[styles.formatModalTitle, isTablet && styles.formatModalTitleTablet]}>
+            <Card variant="elevated" padding="large" style={styles.formatModalContainer}>
+              <Title size="medium" align="center" style={styles.formatModalTitle}>
                 Seleccionar formato de descarga
-              </Text>
-              <Text style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}>
+              </Title>
+              <Body size="small" color="secondary" align="center" style={styles.formatModalSubtitle}>
                 Hojas de Reparto - {selectedCampaign?.name}
-              </Text>
+              </Body>
 
               <View style={styles.formatButtonsContainer}>
                 <TouchableOpacity
@@ -719,10 +593,8 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                   disabled={exportingCampaignId !== null}
                 >
                   <Text style={styles.formatButtonIcon}>📄</Text>
-                  <Text style={styles.formatButtonTitle}>PDF</Text>
-                  <Text style={styles.formatButtonDescription}>
-                    Hojas de reparto detalladas
-                  </Text>
+                  <Text variant="titleSmall" color="primary">PDF</Text>
+                  <Caption color="secondary" align="center">Hojas detalladas</Caption>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -731,27 +603,25 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                   disabled={exportingCampaignId !== null}
                 >
                   <Text style={styles.formatButtonIcon}>📊</Text>
-                  <Text style={styles.formatButtonTitle}>Excel</Text>
-                  <Text style={styles.formatButtonDescription}>
-                    Resumen en tabla
-                  </Text>
+                  <Text variant="titleSmall" color="primary">Excel</Text>
+                  <Caption color="secondary" align="center">Resumen en tabla</Caption>
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity
-                style={styles.formatCancelButton}
+              <Button
+                title="Cancelar"
                 onPress={() => {
                   setDistributionFormatModalVisible(false);
                   setSelectedProductsForExport([]);
                 }}
+                variant="ghost"
+                fullWidth
                 disabled={exportingCampaignId !== null}
-              >
-                <Text style={styles.formatCancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
+              />
+            </Card>
           </View>
         </Modal>
-      </SafeAreaView>
+      </View>
     </ScreenLayout>
   );
 };
@@ -759,417 +629,166 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing[8],
   },
+
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#64748B',
+    marginTop: spacing[4],
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+
+  filtersContainer: {
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.light,
   },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    marginTop: 4,
-  },
-  subtitleTablet: {
-    fontSize: 16,
-  },
-  filterWrapper: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  filterContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    marginRight: 8,
-  },
-  filterButtonTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  filterButtonActive: {
-    backgroundColor: '#6366F1',
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  filterButtonTextTablet: {
-    fontSize: 16,
-  },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  scrollView: {
+
+  listContainer: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 16,
+
+  listContent: {
+    padding: spacing[4],
+    paddingBottom: spacing[20],
   },
-  scrollContentTablet: {
-    padding: 32,
+
+  // Campaign Card
+  campaignCard: {
+    marginBottom: spacing[3],
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardTablet: {
-    padding: 24,
-    marginBottom: 16,
-  },
+
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: spacing[4],
+    paddingBottom: spacing[2],
   },
+
   cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  cardCode: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  cardCodeTablet: {
-    fontSize: 20,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 14,
-  },
-  cardBody: {
-    marginBottom: 12,
-  },
-  repartoName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  repartoNameTablet: {
-    fontSize: 22,
+    gap: spacing[3],
   },
 
-  repartoDescription: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 12,
-    lineHeight: 20,
+  cardCode: {
+    fontWeight: '700',
   },
-  repartoDescriptionTablet: {
-    fontSize: 16,
-    lineHeight: 24,
+
+  statusBadge: {
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
   },
+
+  cardBody: {
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[3],
+  },
+
+  campaignName: {
+    marginBottom: spacing[1],
+  },
+
+  campaignDescription: {
+    marginBottom: spacing[3],
+  },
+
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 12,
+    paddingVertical: spacing[3],
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 12,
+    borderColor: colors.border.light,
+    marginBottom: spacing[3],
   },
+
   statItem: {
     alignItems: 'center',
   },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#6366F1',
-    marginBottom: 4,
-  },
-  statValueTablet: {
-    fontSize: 22,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  statLabelTablet: {
-    fontSize: 14,
-  },
+
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
   },
-  dateLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  dateLabelTablet: {
-    fontSize: 15,
-  },
-  dateValue: {
-    fontSize: 13,
-    color: '#1E293B',
-  },
-  dateValueTablet: {
-    fontSize: 15,
-  },
+
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
   },
-  footerText: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  footerTextTablet: {
-    fontSize: 14,
-  },
-  arrowIcon: {
-    fontSize: 24,
-    color: '#CBD5E1',
-    fontWeight: 'bold',
-  },
-  arrowIconTablet: {
-    fontSize: 32,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 8,
-  },
-  emptyTextTablet: {
-    fontSize: 22,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#94A3B8',
-  },
-  emptySubtextTablet: {
-    fontSize: 16,
-  },
+
   exportButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 12,
+    backgroundColor: colors.primary[900],
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[4],
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderBottomLeftRadius: borderRadius.lg,
+    borderBottomRightRadius: borderRadius.lg,
   },
-  exportButtonTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginTop: 16,
-  },
-  exportButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  exportButtonTextTablet: {
-    fontSize: 15,
-  },
-  // Format Modal Styles
+
+  // Format Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing[5],
   },
+
   formatModalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    width: '90%',
+    width: '100%',
     maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
-  formatModalContainerTablet: {
-    padding: 32,
-    maxWidth: 500,
-  },
+
   formatModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: 8,
-    textAlign: 'center',
+    marginBottom: spacing[2],
   },
-  formatModalTitleTablet: {
-    fontSize: 24,
-  },
+
   formatModalSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 24,
-    textAlign: 'center',
+    marginBottom: spacing[6],
   },
-  formatModalSubtitleTablet: {
-    fontSize: 16,
-  },
+
   formatButtonsContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: spacing[3],
+    marginBottom: spacing[4],
   },
+
   formatButton: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.light,
   },
+
   pdfButton: {
-    borderColor: '#EF4444',
+    borderColor: colors.danger[400],
   },
+
   excelButton: {
-    borderColor: '#10B981',
+    borderColor: colors.success[400],
   },
+
   formatButtonIcon: {
     fontSize: 32,
-    marginBottom: 8,
-  },
-  formatButtonTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  formatButtonDescription: {
-    fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  formatCancelButton: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  formatCancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  // ✅ Estilos de paginación
-  paginationContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginTop: 8,
-  },
-  paginationInfo: {
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  paginationText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  paginationButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  paginationButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
-  },
-  paginationButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  paginationButtonTextDisabled: {
-    color: '#94A3B8',
-  },
-  paginationPageText: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
+    marginBottom: spacing[2],
   },
 });
+
+export default RepartosScreen;

@@ -1,14 +1,18 @@
+/**
+ * ProductsScreen - Rediseñado con Design System
+ *
+ * Pantalla de listado de productos profesional y moderna.
+ */
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
   Alert,
-  TextInput,
   useWindowDimensions,
   Modal,
   Image,
@@ -29,9 +33,44 @@ import { PERMISSIONS } from '@/constants/permissions';
 import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
 import { logger } from '@/utils/logger';
 
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Label,
+  Button,
+  Card,
+  Badge,
+  StatusBadge,
+  IconButton,
+  Chip,
+  ChipGroup,
+  ScreenHeader,
+  SearchBar,
+  EmptyState,
+  Pagination,
+  Divider,
+} from '@/design-system/components';
+
 interface ProductsScreenProps {
   navigation: any;
 }
+
+// Status configuration
+const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
+  active: { color: colors.success[500], label: 'Activo' },
+  preliminary: { color: colors.warning[500], label: '⚠️ Preliminar' },
+  draft: { color: colors.warning[500], label: 'Borrador' },
+  archived: { color: colors.neutral[500], label: 'Archivado' },
+};
 
 export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) => {
   const { user, logout } = useAuthStore();
@@ -55,8 +94,9 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+  const isTablet = width >= 768 || height >= 768;
 
-  // ✅ Debounce search query para evitar múltiples llamadas al API
+  // Debounce search query
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -64,11 +104,10 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
     debounceTimerRef.current = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-      // Reset a página 1 cuando cambia la búsqueda
       if (searchQuery !== debouncedSearchQuery) {
         setPage(1);
       }
-    }, 300); // ✅ 300ms de delay (optimizado para mejor UX)
+    }, 300);
 
     return () => {
       if (debounceTimerRef.current) {
@@ -77,8 +116,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     };
   }, [searchQuery]);
 
-  // ✅ React Query: Reemplaza loadProducts() con caché automático
-  // Ahora incluye búsqueda del lado del servidor y carga de imágenes
+  // React Query filters
   const filters = useMemo(
     () => ({
       page,
@@ -86,14 +124,13 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       ...(statusFilter !== 'all' && { status: statusFilter }),
       ...(debouncedSearchQuery.trim() && {
         q: debouncedSearchQuery.trim(),
-        // ✅ Conectar searchType para búsqueda específica
         ...(searchType !== 'all' && { searchField: searchType }),
       }),
-      include: 'images', // ✅ Incluir imágenes en la respuesta
-      sortBy: 'correlativeNumber', // ✅ Ordenar por número correlativo
-      sortOrder: 'desc' as const, // ✅ De mayor a menor (descendente)
+      include: 'images',
+      sortBy: 'correlativeNumber',
+      sortOrder: 'desc' as const,
     }),
-    [page, statusFilter, debouncedSearchQuery, searchType] // ✅ Agregar searchType a dependencias
+    [page, statusFilter, debouncedSearchQuery, searchType]
   );
 
   const {
@@ -103,7 +140,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     refetch,
   } = useProducts(filters);
 
-  // Extraer productos y paginación de la respuesta
   const products = useMemo(() => productsResponse?.products || [], [productsResponse]);
   const pagination = useMemo(
     () => ({
@@ -115,13 +151,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     [productsResponse]
   );
 
-  // ✅ Ya no necesitamos filtrado local - el servidor hace la búsqueda
-  // Los productos ya vienen filtrados desde el backend
-  const filteredProducts = useMemo(() => {
-    return products;
-  }, [products]);
+  const filteredProducts = useMemo(() => products, [products]);
 
-  // Auto-reload products when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       logger.debug('📱 ProductsScreen focused - refetching products...');
@@ -129,72 +160,22 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     }, [refetch])
   );
 
-  // Reset to page 1 when status filter changes
   useEffect(() => {
     setPage(1);
   }, [statusFilter]);
 
-  // ✅ Handlers simplificados
-  const onRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
+  // Handlers
+  const onRefresh = useCallback(() => refetch(), [refetch]);
 
   const handlePreviousPage = useCallback(() => {
-    if (pagination.page > 1) {
-      setPage(pagination.page - 1);
-    }
+    if (pagination.page > 1) setPage(pagination.page - 1);
   }, [pagination.page]);
 
   const handleNextPage = useCallback(() => {
-    if (pagination.page < pagination.totalPages) {
-      setPage(pagination.page + 1);
-    }
+    if (pagination.page < pagination.totalPages) setPage(pagination.page + 1);
   }, [pagination.page, pagination.totalPages]);
 
-  const handleLogout = async () => {
-    Alert.alert('Cerrar Sesión', '¿Estás seguro de que deseas cerrar sesión?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Cerrar Sesión',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-        },
-      },
-    ]);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return '#10B981';
-      case 'preliminary':
-        return '#F59E0B';
-      case 'draft':
-        return '#F59E0B';
-      case 'archived':
-        return '#6B7280';
-      default:
-        return '#6B7280';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'Activo';
-      case 'preliminary':
-        return '⚠️ Preliminar';
-      case 'draft':
-        return 'Borrador';
-      case 'archived':
-        return 'Archivado';
-      default:
-        return status;
-    }
-  };
-
-  // Detectar SKUs duplicados
+  // Detect duplicate SKUs
   const getDuplicateSKUs = () => {
     const skuCount = new Map<string, number>();
     products.forEach((p) => {
@@ -207,10 +188,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       .map(([sku]) => sku);
   };
 
-  const hasDuplicateSKU = (sku: string) => {
-    return getDuplicateSKUs().includes(sku);
-  };
-
+  const hasDuplicateSKU = (sku: string) => getDuplicateSKUs().includes(sku);
   const duplicateSKUs = getDuplicateSKUs();
 
   const handleCreateProduct = () => {
@@ -220,7 +198,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   };
 
   const handleViewProduct = async (product: Product) => {
-    // Load images for this product if not already loaded
     let productWithImages = product;
     if (!product.imageUrl && !product.imageUrls) {
       try {
@@ -242,14 +219,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
   const handleEditProduct = async (product: Product) => {
     try {
-      // Fetch full product details including presentations
       logger.debug('📦 Fetching full product details for edit:', product.id);
       const fullProduct = await productsApi.getProductById(product.id);
-      logger.debug('📦 Full product loaded:', {
-        id: fullProduct.id,
-        title: fullProduct.title,
-        presentations: fullProduct.presentations
-      });
       setSelectedProduct(fullProduct);
       setModalMode('edit');
       setIsProductModalVisible(true);
@@ -289,22 +260,176 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     ]);
   };
 
-  const handleProductSuccess = useCallback(() => {
-    refetch();
-  }, [refetch]);
+  const handleProductSuccess = useCallback(() => refetch(), [refetch]);
 
+  // Search type options
+  const searchTypeOptions = useMemo(() => [
+    { label: 'Todos', value: 'all' },
+    { label: 'SKU', value: 'sku' },
+    { label: '#Correlativo', value: 'correlative' },
+  ], []);
+
+  // Status filter options
+  const statusOptions = useMemo(() => [
+    { label: 'Todos', value: 'all' },
+    { label: 'Preliminares', value: 'preliminary' },
+    { label: 'Activos', value: 'active' },
+    { label: 'Borradores', value: 'draft' },
+    { label: 'Archivados', value: 'archived' },
+  ], []);
+
+  // Render product card
+  const renderProductCard = useCallback(({ item: product, index }: { item: Product; index: number }) => {
+    const hasImage = (product.photos && product.photos.length > 0) || product.imageUrl || (product.imageUrls && product.imageUrls.length > 0);
+    const imageUri = product.photos?.[0] || product.imageUrl || product.imageUrls?.[0];
+    const statusConfig = STATUS_CONFIG[product.status] || STATUS_CONFIG.draft;
+
+    return (
+      <Card variant="outlined" padding="none" style={styles.productCard}>
+        <TouchableOpacity
+          onPress={() => handleEditProduct(product)}
+          style={styles.productCardContent}
+          activeOpacity={0.7}
+        >
+          {/* Product Header */}
+          <View style={styles.productHeader}>
+            {hasImage ? (
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.productThumbnail}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.productThumbnailPlaceholder}>
+                <Text style={styles.productThumbnailPlaceholderText}>📦</Text>
+              </View>
+            )}
+
+            <View style={styles.productInfo}>
+              <Text variant="titleSmall" color="primary" numberOfLines={2}>
+                {product.title}
+              </Text>
+              <View style={styles.productMetaRow}>
+                {product.correlativeNumber && (
+                  <Text variant="labelMedium" color={colors.accent[600]} style={styles.productCorrelative}>
+                    #{product.correlativeNumber}
+                  </Text>
+                )}
+                <Caption color="tertiary">SKU: {product.sku}</Caption>
+                {hasDuplicateSKU(product.sku) && (
+                  <View style={styles.duplicateBadge}>
+                    <Text variant="labelSmall" color={colors.warning[700]}>⚠️ Duplicado</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.badgesContainer}>
+              <View style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}>
+                <Text variant="labelSmall" color={colors.text.inverse}>{statusConfig.label}</Text>
+              </View>
+              {!hasImage && (
+                <View style={styles.noPhotoBadge}>
+                  <Text variant="labelSmall" color={colors.danger[600]}>📷 Sin foto</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Product Details */}
+          <View style={styles.productDetails}>
+            <View style={styles.productDetailItem}>
+              <Caption color="tertiary">Costo:</Caption>
+              <Text variant="labelMedium" color="primary">
+                S/ {((product.costCents || product.priceCents || 0) / 100).toFixed(2)}
+              </Text>
+            </View>
+            {product.category?.name && (
+              <View style={styles.productDetailItem}>
+                <Caption color="tertiary">Categoría:</Caption>
+                <Text variant="labelMedium" color="primary">{product.category.name}</Text>
+              </View>
+            )}
+          </View>
+
+          <Divider spacing="none" style={styles.productDivider} />
+
+          {/* Product Footer Info */}
+          <View style={styles.productFooter}>
+            <View style={styles.productFooterInfo}>
+              <Caption color="tertiary">📦 {product.presentations?.length || 0} presentaciones</Caption>
+              {product.salePrices && product.salePrices.length > 0 && (
+                <Caption color="tertiary">💰 {product.salePrices.length} precios</Caption>
+              )}
+              {product.status !== 'preliminary' && product.stockItems && product.stockItems.length > 0 && (
+                <Caption color="tertiary">📊 Stock en {product.stockItems.length} almacén(es)</Caption>
+              )}
+              {product.status === 'preliminary' && product.stock && (
+                <Caption color="tertiary">📦 Stock preliminar: {product.stock.available || 0} unidades</Caption>
+              )}
+            </View>
+            <Text variant="titleLarge" color={colors.neutral[300]}>›</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Action Buttons */}
+        <View style={styles.productActions}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.viewButton]}
+            onPress={() => handleViewProduct(product)}
+          >
+            <Text variant="labelMedium" color={colors.accent[600]}>👁️ Ver</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.imagesButton]}
+            onPress={() => handleManageImages(product)}
+          >
+            <Text variant="labelMedium" color={colors.warning[600]}>📸 Fotos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.pricesButton]}
+            onPress={() => handleManagePrices(product)}
+          >
+            <Text variant="labelMedium" color={colors.success[600]}>💰 Precios</Text>
+          </TouchableOpacity>
+
+          <ProtectedTouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleEditProduct(product)}
+            requiredPermissions={[PERMISSIONS.PRODUCTS.UPDATE]}
+            hideIfNoPermission={true}
+          >
+            <Text variant="labelMedium" color={colors.text.secondary}>✏️ Editar</Text>
+          </ProtectedTouchableOpacity>
+
+          <ProtectedTouchableOpacity
+            style={[styles.actionButton, styles.deleteButton]}
+            onPress={() => handleDeleteProduct(product)}
+            requiredPermissions={[PERMISSIONS.PRODUCTS.DELETE]}
+            hideIfNoPermission={true}
+          >
+            <Text variant="labelMedium" color={colors.danger[600]}>🗑️ Eliminar</Text>
+          </ProtectedTouchableOpacity>
+        </View>
+      </Card>
+    );
+  }, [hasDuplicateSKU, handleEditProduct, handleViewProduct, handleManageImages, handleManagePrices, handleDeleteProduct]);
+
+  // Loading state
   if (isLoading && !productsResponse) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Productos</Text>
-          <View style={styles.backButton} />
-        </View>
+        <ScreenHeader
+          title="Productos"
+          onBack={() => navigation.goBack()}
+        />
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Cargando productos...</Text>
+          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
+            Cargando productos...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -313,19 +438,16 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Productos</Text>
-        <View style={styles.backButton} />
-      </View>
+      <ScreenHeader
+        title="Productos"
+        onBack={() => navigation.goBack()}
+      />
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
+      <View style={styles.searchSection}>
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
           placeholder={
             searchType === 'correlative'
               ? 'Buscar por #correlativo...'
@@ -333,59 +455,20 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 ? 'Buscar por SKU...'
                 : 'Buscar por nombre, SKU o #correlativo...'
           }
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
-          keyboardType={searchType === 'correlative' ? 'numeric' : 'default'}
+          loading={searchQuery !== debouncedSearchQuery}
+          onClear={() => setSearchQuery('')}
         />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Text style={styles.clearIcon}>✕</Text>
-          </TouchableOpacity>
-        )}
-        {searchQuery !== debouncedSearchQuery && (
-          <ActivityIndicator size="small" color="#3B82F6" style={styles.searchLoader} />
-        )}
       </View>
 
       {/* Search Type Filter */}
-      <View style={styles.filterContainer}>
-        <Text style={styles.filterLabel}>Buscar por:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          <TouchableOpacity
-            style={[styles.filterChip, searchType === 'all' && styles.filterChipActive]}
-            onPress={() => setSearchType('all')}
-          >
-            <Text
-              style={[styles.filterChipText, searchType === 'all' && styles.filterChipTextActive]}
-            >
-              Todos
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, searchType === 'sku' && styles.filterChipActive]}
-            onPress={() => setSearchType('sku')}
-          >
-            <Text
-              style={[styles.filterChipText, searchType === 'sku' && styles.filterChipTextActive]}
-            >
-              SKU
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, searchType === 'correlative' && styles.filterChipActive]}
-            onPress={() => setSearchType('correlative')}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                searchType === 'correlative' && styles.filterChipTextActive,
-              ]}
-            >
-              #Correlativo
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+      <View style={styles.filterSection}>
+        <Label size="small" color="secondary" style={styles.filterLabel}>Buscar por:</Label>
+        <ChipGroup
+          options={searchTypeOptions}
+          selected={[searchType]}
+          onChange={(selected) => setSearchType((selected[0] || 'all') as any)}
+          size="small"
+        />
       </View>
 
       {/* Duplicate SKUs Warning */}
@@ -393,296 +476,72 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         <View style={styles.warningBanner}>
           <Text style={styles.warningIcon}>⚠️</Text>
           <View style={styles.warningContent}>
-            <Text style={styles.warningTitle}>SKUs Duplicados Detectados</Text>
-            <Text style={styles.warningText}>
-              Hay {duplicateSKUs.length} SKU(s) con productos duplicados. Usa el número correlativo
-              para identificarlos de forma única.
-            </Text>
+            <Text variant="titleSmall" color={colors.warning[800]}>SKUs Duplicados Detectados</Text>
+            <Caption color={colors.warning[700]}>
+              Hay {duplicateSKUs.length} SKU(s) con productos duplicados.
+            </Caption>
           </View>
         </View>
       )}
 
       {/* Status Filter */}
-      <View style={styles.filterContainer}>
-        <Text style={styles.filterLabel}>Estado:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'all' && styles.filterChipActive]}
-            onPress={() => setStatusFilter('all')}
-          >
-            <Text
-              style={[styles.filterChipText, statusFilter === 'all' && styles.filterChipTextActive]}
-            >
-              Todos
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'preliminary' && styles.filterChipActive]}
-            onPress={() => setStatusFilter('preliminary')}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                statusFilter === 'preliminary' && styles.filterChipTextActive,
-              ]}
-            >
-              Preliminares
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'active' && styles.filterChipActive]}
-            onPress={() => setStatusFilter('active')}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                statusFilter === 'active' && styles.filterChipTextActive,
-              ]}
-            >
-              Activos
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'draft' && styles.filterChipActive]}
-            onPress={() => setStatusFilter('draft')}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                statusFilter === 'draft' && styles.filterChipTextActive,
-              ]}
-            >
-              Borradores
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'archived' && styles.filterChipActive]}
-            onPress={() => setStatusFilter('archived')}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                statusFilter === 'archived' && styles.filterChipTextActive,
-              ]}
-            >
-              Archivados
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+      <View style={styles.filterSection}>
+        <Label size="small" color="secondary" style={styles.filterLabel}>Estado:</Label>
+        <ChipGroup
+          options={statusOptions}
+          selected={[statusFilter]}
+          onChange={(selected) => setStatusFilter(selected[0] || 'all')}
+          size="small"
+        />
       </View>
 
       {/* Stats Cards */}
       <View style={styles.statsContainer}>
-        <View style={[styles.statCard, { backgroundColor: '#EEF2FF' }]}>
-          <Text style={styles.statValue}>{filteredProducts.length}</Text>
-          <Text style={styles.statLabel}>Total</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.accent[50] }]}>
+          <Text variant="numericMedium" color="primary">{filteredProducts.length}</Text>
+          <Caption color="tertiary">Total</Caption>
         </View>
-        <View style={[styles.statCard, { backgroundColor: '#F0FDF4' }]}>
-          <Text style={styles.statValue}>
+        <View style={[styles.statCard, { backgroundColor: colors.success[50] }]}>
+          <Text variant="numericMedium" color="primary">
             {filteredProducts.filter((p) => p.status === 'active').length}
           </Text>
-          <Text style={styles.statLabel}>Activos</Text>
+          <Caption color="tertiary">Activos</Caption>
         </View>
-        <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
-          <Text style={styles.statValue}>
-            {filteredProducts.filter((p) => p.status === 'draft').length}
+        <View style={[styles.statCard, { backgroundColor: colors.warning[50] }]}>
+          <Text variant="numericMedium" color="primary">
+            {filteredProducts.filter((p) => p.status === 'draft' || p.status === 'preliminary').length}
           </Text>
-          <Text style={styles.statLabel}>Borradores</Text>
+          <Caption color="tertiary">Pendientes</Caption>
         </View>
       </View>
 
-      {/* Products List - ✅ Migrado a FlatList para virtualización */}
+      {/* Products List */}
       <FlatList
         data={filteredProducts}
-        renderItem={({ item: product, index }) => (
-              <View key={product.id || index} style={styles.productCard}>
-                <TouchableOpacity
-                  onPress={() => handleEditProduct(product)}
-                  style={styles.productCardContent}
-                >
-                  <View style={styles.productHeader}>
-                    {/* Product Image Thumbnail */}
-                    {(() => {
-                      // ✅ Priorizar photos (v2) sobre imageUrl/imageUrls
-                      const hasImage =
-                        (product.photos && product.photos.length > 0) ||
-                        product.imageUrl ||
-                        (product.imageUrls && product.imageUrls.length > 0);
-                      const imageUri =
-                        product.photos?.[0] || product.imageUrl || product.imageUrls?.[0];
-                      if (index === 0) {
-                        logger.debug('🖼️ Product image check:', {
-                          title: product.title,
-                          hasImage,
-                          photos: product.photos,
-                          imageUrl: product.imageUrl,
-                          imageUrls: product.imageUrls,
-                          imageUri,
-                        });
-                      }
-                      return hasImage ? (
-                        <Image
-                          source={{ uri: imageUri }}
-                          style={styles.productThumbnail}
-                          resizeMode="cover"
-                          onError={(e) =>
-                            logger.debug('❌ Image load error:', imageUri, e.nativeEvent.error)
-                          }
-                          onLoad={() => index === 0 && logger.debug('✅ Image loaded:', imageUri)}
-                        />
-                      ) : (
-                        <View style={styles.productThumbnailPlaceholder}>
-                          <Text style={styles.productThumbnailPlaceholderText}>📦</Text>
-                        </View>
-                      );
-                    })()}
-                    <View style={styles.productInfo}>
-                      <Text style={styles.productTitle}>{product.title}</Text>
-                      <View style={styles.productMetaRow}>
-                        {product.correlativeNumber && (
-                          <Text style={styles.productCorrelative}>
-                            #{product.correlativeNumber}
-                          </Text>
-                        )}
-                        <Text style={styles.productSku}>SKU: {product.sku}</Text>
-                        {hasDuplicateSKU(product.sku) && (
-                          <View style={styles.duplicateBadge}>
-                            <Text style={styles.duplicateBadgeText}>⚠️ Duplicado</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                    <View style={styles.badgesContainer}>
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          { backgroundColor: getStatusColor(product.status) },
-                        ]}
-                      >
-                        <Text style={styles.statusText}>{getStatusText(product.status)}</Text>
-                      </View>
-                      {/* ✅ Badge para productos sin fotos */}
-                      {!(() => {
-                        const hasImage =
-                          (product.photos && product.photos.length > 0) ||
-                          product.imageUrl ||
-                          (product.imageUrls && product.imageUrls.length > 0);
-                        return hasImage;
-                      })() && (
-                        <View style={styles.noPhotoBadge}>
-                          <Text style={styles.noPhotoBadgeText}>📷 Sin foto</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  <View style={styles.productDetails}>
-                    <View style={styles.productDetailItem}>
-                      <Text style={styles.productDetailLabel}>Costo:</Text>
-                      <Text style={styles.productDetailValue}>
-                        S/ {((product.costCents || product.priceCents || 0) / 100).toFixed(2)}
-                      </Text>
-                    </View>
-                    {product.category?.name && (
-                      <View style={styles.productDetailItem}>
-                        <Text style={styles.productDetailLabel}>Categoría:</Text>
-                        <Text style={styles.productDetailValue}>{product.category.name}</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.productFooter}>
-                    <View style={styles.productFooterInfo}>
-                      <Text style={styles.productFooterText}>
-                        📦 {product.presentations?.length || 0} presentaciones
-                      </Text>
-                      {product.salePrices && product.salePrices.length > 0 && (
-                        <Text style={styles.productFooterText}>
-                          💰 {product.salePrices.length} precios
-                        </Text>
-                      )}
-                      {/* Mostrar stock para productos activos */}
-                      {product.status !== 'preliminary' && product.stockItems && product.stockItems.length > 0 && (
-                        <Text style={styles.productFooterText}>
-                          📊 Stock en {product.stockItems.length} almacén(es)
-                        </Text>
-                      )}
-                      {/* Mostrar stock preliminar para productos preliminares */}
-                      {product.status === 'preliminary' && product.stock && (
-                        <Text style={styles.productFooterText}>
-                          📦 Stock preliminar: {product.stock.available || 0} unidades
-                        </Text>
-                      )}
-                      {product.status === 'preliminary' && product.preliminaryStock !== undefined && !product.stock && (
-                        <Text style={styles.productFooterText}>
-                          📦 Stock preliminar: {product.preliminaryStock} unidades
-                        </Text>
-                      )}
-                    </View>
-                    <Text style={styles.productArrow}>›</Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* Action Buttons */}
-                <View style={styles.productActions}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.viewButton]}
-                    onPress={() => handleViewProduct(product)}
-                  >
-                    <Text style={[styles.actionButtonText, styles.viewButtonText]}>👁️ Ver</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.imagesButton]}
-                    onPress={() => handleManageImages(product)}
-                  >
-                    <Text style={[styles.actionButtonText, styles.imagesButtonText]}>📸 Fotos</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.pricesButton]}
-                    onPress={() => handleManagePrices(product)}
-                  >
-                    <Text style={[styles.actionButtonText, styles.pricesButtonText]}>
-                      💰 Precios
-                    </Text>
-                  </TouchableOpacity>
-
-                  <ProtectedTouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => handleEditProduct(product)}
-                    requiredPermissions={[PERMISSIONS.PRODUCTS.UPDATE]}
-                    hideIfNoPermission={true}
-                  >
-                    <Text style={styles.actionButtonText}>✏️ Editar</Text>
-                  </ProtectedTouchableOpacity>
-
-                  <ProtectedTouchableOpacity
-                    style={[styles.actionButton, styles.deleteButton]}
-                    onPress={() => handleDeleteProduct(product)}
-                    requiredPermissions={[PERMISSIONS.PRODUCTS.DELETE]}
-                    hideIfNoPermission={true}
-                  >
-                    <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
-                      🗑️ Eliminar
-                    </Text>
-                  </ProtectedTouchableOpacity>
-                </View>
-              </View>
-        )}
+        renderItem={renderProductCard}
         keyExtractor={(item, index) => item.id || index.toString()}
-        style={[styles.content, isLandscape && styles.contentLandscape]}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
+        style={styles.listContainer}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={onRefresh}
+            tintColor={colors.primary[900]}
+            colors={[colors.primary[900]]}
+          />
+        }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyTitle}>No hay productos</Text>
-            <Text style={styles.emptyText}>
-              {debouncedSearchQuery
+          <EmptyState
+            icon="cube-outline"
+            title="No hay productos"
+            description={
+              debouncedSearchQuery
                 ? 'No se encontraron productos con ese criterio de búsqueda'
-                : 'Comienza creando tu primer producto'}
-            </Text>
-          </View>
+                : 'Comienza creando tu primer producto'
+            }
+            actionLabel={!debouncedSearchQuery ? 'Crear Producto' : undefined}
+            onAction={!debouncedSearchQuery ? handleCreateProduct : undefined}
+          />
         }
         windowSize={5}
         maxToRenderPerBatch={10}
@@ -690,58 +549,19 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         initialNumToRender={10}
       />
 
-      {/* Pagination Controls */}
+      {/* Pagination */}
       {!isLoading && pagination.total > 0 && (
-        <View style={styles.paginationContainer}>
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page === 1 && styles.paginationButtonDisabled,
-            ]}
-            onPress={handlePreviousPage}
-            disabled={pagination.page === 1}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page === 1 && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              ← Anterior
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.paginationInfo}>
-            <Text style={styles.paginationText}>
-              Pág. {pagination.page}/{pagination.totalPages}
-            </Text>
-            <Text style={styles.paginationSubtext}>
-              {filteredProducts.length} de {pagination.total}
-              {debouncedSearchQuery && ' (filtrados)'}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-            ]}
-            onPress={handleNextPage}
-            disabled={pagination.page >= pagination.totalPages}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              Siguiente →
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <Pagination
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.total}
+          itemsPerPage={pagination.limit}
+          onPageChange={setPage}
+          loading={isLoading}
+        />
       )}
 
-      {/* Floating Action Buttons - Similar to ExpensesScreen */}
+      {/* Floating Action Buttons */}
       <ProtectedElement
         requiredPermissions={[PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE]}
         requireAll={false}
@@ -795,330 +615,118 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         <Modal visible={isViewModalVisible} animationType="slide" transparent={false}>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity
+              <IconButton
+                icon="close"
                 onPress={() => setIsViewModalVisible(false)}
-                style={styles.modalCloseButton}
-              >
-                <Text style={styles.modalCloseButtonText}>✕</Text>
-              </TouchableOpacity>
-              <Text style={styles.modalHeaderTitle}>Detalles del Producto</Text>
-              <View style={styles.modalCloseButton} />
+                variant="ghost"
+                size="medium"
+              />
+              <Title size="medium">Detalles del Producto</Title>
+              <View style={{ width: 44 }} />
             </View>
 
-            <ScrollView style={styles.modalContent}>
+            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
               {/* Product Images */}
-              {(() => {
-                const hasImages =
-                  viewProduct.imageUrl ||
-                  (viewProduct.imageUrls && viewProduct.imageUrls.length > 0);
-                logger.debug('🖼️ View Product images:', {
-                  title: viewProduct.title,
-                  hasImages,
-                  imageUrl: viewProduct.imageUrl,
-                  imageUrls: viewProduct.imageUrls,
-                });
-                return (
-                  hasImages && (
-                    <View style={styles.viewSection}>
-                      <Text style={styles.viewSectionTitle}>🖼️ Imágenes del Producto</Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        <View style={styles.imageGallery}>
-                          {viewProduct.imageUrl && (
-                            <Image
-                              source={{ uri: viewProduct.imageUrl }}
-                              style={styles.productImage}
-                              resizeMode="cover"
-                              onError={(e) =>
-                                logger.debug(
-                                  '❌ View image load error:',
-                                  viewProduct.imageUrl,
-                                  e.nativeEvent.error
-                                )
-                              }
-                              onLoad={() =>
-                                logger.debug('✅ View image loaded:', viewProduct.imageUrl)
-                              }
-                            />
-                          )}
-                          {viewProduct.imageUrls &&
-                            viewProduct.imageUrls.map((url, idx) => (
-                              <Image
-                                key={idx}
-                                source={{ uri: url }}
-                                style={styles.productImage}
-                                resizeMode="cover"
-                                onError={(e) =>
-                                  logger.debug('❌ View image load error:', url, e.nativeEvent.error)
-                                }
-                                onLoad={() => logger.debug('✅ View image loaded:', url)}
-                              />
-                            ))}
-                        </View>
-                      </ScrollView>
+              {(viewProduct.imageUrl || (viewProduct.imageUrls && viewProduct.imageUrls.length > 0)) && (
+                <Card variant="outlined" style={styles.viewSection}>
+                  <Text variant="titleSmall" color="primary" style={styles.viewSectionTitle}>
+                    🖼️ Imágenes del Producto
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={styles.imageGallery}>
+                      {viewProduct.imageUrl && (
+                        <Image source={{ uri: viewProduct.imageUrl }} style={styles.productImage} resizeMode="cover" />
+                      )}
+                      {viewProduct.imageUrls?.map((url, idx) => (
+                        <Image key={idx} source={{ uri: url }} style={styles.productImage} resizeMode="cover" />
+                      ))}
                     </View>
-                  )
-                );
-              })()}
+                  </ScrollView>
+                </Card>
+              )}
 
               {/* Información Básica */}
-              <View style={styles.viewSection}>
-                <Text style={styles.viewSectionTitle}>📋 Información Básica</Text>
+              <Card variant="outlined" style={styles.viewSection}>
+                <Text variant="titleSmall" color="primary" style={styles.viewSectionTitle}>
+                  📋 Información Básica
+                </Text>
                 <View style={styles.viewRow}>
-                  <Text style={styles.viewLabel}>Título:</Text>
-                  <Text style={styles.viewValue}>{viewProduct.title}</Text>
+                  <Caption color="tertiary">Título:</Caption>
+                  <Text variant="bodyMedium" color="primary">{viewProduct.title}</Text>
                 </View>
                 {viewProduct.correlativeNumber && (
                   <View style={styles.viewRow}>
-                    <Text style={styles.viewLabel}>#Correlativo:</Text>
-                    <Text style={[styles.viewValue, styles.correlativeHighlight]}>
-                      {viewProduct.correlativeNumber}
-                    </Text>
+                    <Caption color="tertiary">#Correlativo:</Caption>
+                    <Text variant="numericMedium" color={colors.accent[600]}>{viewProduct.correlativeNumber}</Text>
                   </View>
                 )}
                 <View style={styles.viewRow}>
-                  <Text style={styles.viewLabel}>SKU:</Text>
-                  <View style={styles.viewValueRow}>
-                    <Text style={styles.viewValue}>{viewProduct.sku}</Text>
-                    {hasDuplicateSKU(viewProduct.sku) && (
-                      <View style={styles.duplicateBadgeSmall}>
-                        <Text style={styles.duplicateBadgeTextSmall}>⚠️ SKU Duplicado</Text>
-                      </View>
-                    )}
-                  </View>
+                  <Caption color="tertiary">SKU:</Caption>
+                  <Text variant="bodyMedium" color="primary">{viewProduct.sku}</Text>
                 </View>
                 {viewProduct.barcode && (
                   <View style={styles.viewRow}>
-                    <Text style={styles.viewLabel}>Código de Barras:</Text>
-                    <Text style={styles.viewValue}>{viewProduct.barcode}</Text>
-                  </View>
-                )}
-                {viewProduct.description && (
-                  <View style={styles.viewRow}>
-                    <Text style={styles.viewLabel}>Descripción:</Text>
-                    <Text style={styles.viewValue}>{viewProduct.description}</Text>
+                    <Caption color="tertiary">Código de Barras:</Caption>
+                    <Text variant="bodyMedium" color="primary">{viewProduct.barcode}</Text>
                   </View>
                 )}
                 <View style={styles.viewRow}>
-                  <Text style={styles.viewLabel}>Estado:</Text>
-                  <View
-                    style={[
-                      styles.viewStatusBadge,
-                      { backgroundColor: getStatusColor(viewProduct.status) },
-                    ]}
-                  >
-                    <Text style={styles.viewStatusText}>{getStatusText(viewProduct.status)}</Text>
+                  <Caption color="tertiary">Estado:</Caption>
+                  <View style={[styles.viewStatusBadge, { backgroundColor: STATUS_CONFIG[viewProduct.status]?.color || colors.neutral[500] }]}>
+                    <Text variant="labelSmall" color={colors.text.inverse}>{STATUS_CONFIG[viewProduct.status]?.label}</Text>
                   </View>
                 </View>
-                {viewProduct.category?.name && (
-                  <View style={styles.viewRow}>
-                    <Text style={styles.viewLabel}>Categoría:</Text>
-                    <Text style={styles.viewValue}>{viewProduct.category.name}</Text>
-                  </View>
-                )}
-              </View>
+              </Card>
 
               {/* Información Financiera */}
-              <View style={styles.viewSection}>
-                <Text style={styles.viewSectionTitle}>💰 Información Financiera</Text>
+              <Card variant="outlined" style={styles.viewSection}>
+                <Text variant="titleSmall" color="primary" style={styles.viewSectionTitle}>
+                  💰 Información Financiera
+                </Text>
                 <View style={styles.viewRow}>
-                  <Text style={styles.viewLabel}>Costo:</Text>
-                  <Text style={styles.viewValue}>
+                  <Caption color="tertiary">Costo:</Caption>
+                  <Text variant="numericMedium" color={colors.success[600]}>
                     S/ {((viewProduct.costCents || viewProduct.priceCents || 0) / 100).toFixed(2)}
                   </Text>
                 </View>
                 <View style={styles.viewRow}>
-                  <Text style={styles.viewLabel}>Moneda:</Text>
-                  <Text style={styles.viewValue}>{viewProduct.currency || 'PEN'}</Text>
+                  <Caption color="tertiary">Moneda:</Caption>
+                  <Text variant="bodyMedium" color="primary">{viewProduct.currency || 'PEN'}</Text>
                 </View>
-                <View style={styles.viewRow}>
-                  <Text style={styles.viewLabel}>Tipo de Impuesto:</Text>
-                  <Text style={styles.viewValue}>{viewProduct.taxType || 'GRAVADO'}</Text>
-                </View>
-              </View>
+              </Card>
 
               {/* Presentaciones */}
               {viewProduct.presentations && viewProduct.presentations.length > 0 && (
-                <View style={styles.viewSection}>
-                  <Text style={styles.viewSectionTitle}>
+                <Card variant="outlined" style={styles.viewSection}>
+                  <Text variant="titleSmall" color="primary" style={styles.viewSectionTitle}>
                     📦 Presentaciones ({viewProduct.presentations.length})
                   </Text>
                   {viewProduct.presentations.map((pres, index) => (
-                    <View key={index} style={styles.presentationViewCard}>
-                      <View style={styles.presentationViewHeader}>
-                        <Text style={styles.presentationViewName}>
+                    <View key={index} style={styles.presentationCard}>
+                      <View style={styles.presentationHeader}>
+                        <Text variant="labelLarge" color="primary">
                           {pres.presentation?.name || pres.presentation?.code || 'Presentación'}
                         </Text>
                         {pres.isBase && (
                           <View style={styles.baseBadge}>
-                            <Text style={styles.baseBadgeText}>BASE</Text>
+                            <Text variant="labelSmall" color={colors.text.inverse}>BASE</Text>
                           </View>
                         )}
                       </View>
-                      <View style={styles.viewRow}>
-                        <Text style={styles.viewLabel}>Código:</Text>
-                        <Text style={styles.viewValue}>{pres.presentation?.code}</Text>
-                      </View>
-                      <View style={styles.viewRow}>
-                        <Text style={styles.viewLabel}>Factor a Base:</Text>
-                        <Text style={styles.viewValue}>{pres.factorToBase}</Text>
-                      </View>
-                      <View style={styles.viewRow}>
-                        <Text style={styles.viewLabel}>Cantidad Mínima:</Text>
-                        <Text style={styles.viewValue}>{pres.minOrderQty}</Text>
-                      </View>
-                      <View style={styles.viewRow}>
-                        <Text style={styles.viewLabel}>Incremento:</Text>
-                        <Text style={styles.viewValue}>{pres.orderStep}</Text>
-                      </View>
+                      <Caption color="tertiary">Factor: {pres.factorToBase} | Min: {pres.minOrderQty}</Caption>
                     </View>
                   ))}
-                </View>
+                </Card>
               )}
-
-              {/* Precios de Venta */}
-              {viewProduct.salePrices && viewProduct.salePrices.length > 0 && (
-                <View style={styles.viewSection}>
-                  <Text style={styles.viewSectionTitle}>
-                    💵 Precios de Venta ({viewProduct.salePrices.length})
-                  </Text>
-                  {viewProduct.salePrices.map((price, index) => (
-                    <View key={index} style={styles.priceViewCard}>
-                      <View style={styles.viewRow}>
-                        <Text style={styles.viewLabel}>Perfil:</Text>
-                        <Text style={styles.viewValue}>{price.profile?.name || 'N/A'}</Text>
-                      </View>
-                      <View style={styles.viewRow}>
-                        <Text style={styles.viewLabel}>Presentación:</Text>
-                        <Text style={styles.viewValue}>
-                          {price.presentation?.name || price.presentation?.code || 'N/A'}
-                        </Text>
-                      </View>
-                      <View style={styles.viewRow}>
-                        <Text style={styles.viewLabel}>Precio:</Text>
-                        <Text style={[styles.viewValue, styles.priceHighlight]}>
-                          S/ {(price.priceCents / 100).toFixed(2)}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Stock para productos activos */}
-              {viewProduct.status !== 'preliminary' && viewProduct.stockItems && viewProduct.stockItems.length > 0 && (
-                <View style={styles.viewSection}>
-                  <Text style={styles.viewSectionTitle}>
-                    📊 Stock ({viewProduct.stockItems.length} ubicaciones)
-                  </Text>
-                  {viewProduct.stockItems.map((stock, index) => (
-                    <View key={index} style={styles.stockViewCard}>
-                      <View style={styles.viewRow}>
-                        <Text style={styles.viewLabel}>Almacén:</Text>
-                        <Text style={styles.viewValue}>{stock.warehouse?.name || 'N/A'}</Text>
-                      </View>
-                      {stock.area && (
-                        <View style={styles.viewRow}>
-                          <Text style={styles.viewLabel}>Área:</Text>
-                          <Text style={styles.viewValue}>{stock.area.name || 'N/A'}</Text>
-                        </View>
-                      )}
-                      <View style={styles.viewRow}>
-                        <Text style={styles.viewLabel}>Cantidad:</Text>
-                        <Text style={[styles.viewValue, styles.stockQuantityHighlight]}>
-                          {stock.availableQuantityBase ?? stock.quantityBase} unidades disponibles
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Stock preliminar para productos preliminares */}
-              {viewProduct.status === 'preliminary' && (viewProduct.stock || viewProduct.preliminaryStock !== undefined) && (
-                <View style={styles.viewSection}>
-                  <Text style={styles.viewSectionTitle}>
-                    📦 Stock Preliminar
-                  </Text>
-                  <View style={styles.stockViewCard}>
-                    <View style={styles.viewRow}>
-                      <Text style={styles.viewLabel}>Estado:</Text>
-                      <Text style={[styles.viewValue, { color: '#F59E0B' }]}>⚠️ Producto Preliminar (Por validar)</Text>
-                    </View>
-                    {viewProduct.stock && (
-                      <>
-                        <View style={styles.viewRow}>
-                          <Text style={styles.viewLabel}>Disponible:</Text>
-                          <Text style={[styles.viewValue, styles.stockQuantityHighlight]}>
-                            {viewProduct.stock.available} unidades
-                          </Text>
-                        </View>
-                        <View style={styles.viewRow}>
-                          <Text style={styles.viewLabel}>Total:</Text>
-                          <Text style={styles.viewValue}>
-                            {viewProduct.stock.total} unidades
-                          </Text>
-                        </View>
-                        {viewProduct.stock.reserved > 0 && (
-                          <View style={styles.viewRow}>
-                            <Text style={styles.viewLabel}>Reservado:</Text>
-                            <Text style={styles.viewValue}>
-                              {viewProduct.stock.reserved} unidades
-                            </Text>
-                          </View>
-                        )}
-                      </>
-                    )}
-                    {!viewProduct.stock && viewProduct.preliminaryStock !== undefined && (
-                      <View style={styles.viewRow}>
-                        <Text style={styles.viewLabel}>Cantidad:</Text>
-                        <Text style={[styles.viewValue, styles.stockQuantityHighlight]}>
-                          {viewProduct.preliminaryStock} unidades
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* Información Adicional */}
-              <View style={styles.viewSection}>
-                <Text style={styles.viewSectionTitle}>ℹ️ Información Adicional</Text>
-                {viewProduct.minStockAlert && (
-                  <View style={styles.viewRow}>
-                    <Text style={styles.viewLabel}>Alerta de Stock Mínimo:</Text>
-                    <Text style={styles.viewValue}>{viewProduct.minStockAlert} unidades</Text>
-                  </View>
-                )}
-                <View style={styles.viewRow}>
-                  <Text style={styles.viewLabel}>ID:</Text>
-                  <Text style={[styles.viewValue, styles.idText]}>{viewProduct.id}</Text>
-                </View>
-                {viewProduct.createdAt && (
-                  <View style={styles.viewRow}>
-                    <Text style={styles.viewLabel}>Creado:</Text>
-                    <Text style={styles.viewValue}>
-                      {new Date(viewProduct.createdAt).toLocaleString('es-PE')}
-                    </Text>
-                  </View>
-                )}
-                {viewProduct.updatedAt && (
-                  <View style={styles.viewRow}>
-                    <Text style={styles.viewLabel}>Actualizado:</Text>
-                    <Text style={styles.viewValue}>
-                      {new Date(viewProduct.updatedAt).toLocaleString('es-PE')}
-                    </Text>
-                  </View>
-                )}
-              </View>
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.modalCloseButtonBottom}
+              <Button
+                title="Cerrar"
                 onPress={() => setIsViewModalVisible(false)}
-              >
-                <Text style={styles.modalCloseButtonBottomText}>Cerrar</Text>
-              </TouchableOpacity>
+                variant="primary"
+                fullWidth
+              />
             </View>
           </SafeAreaView>
         </Modal>
@@ -1138,646 +746,328 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: '#1E293B',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1E293B',
-  },
-  clearIcon: {
-    fontSize: 18,
-    color: '#94A3B8',
-    paddingHorizontal: 8,
-  },
-  searchLoader: {
-    marginLeft: 8,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-    marginRight: 12,
-  },
-  filterScroll: {
-    flex: 1,
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  filterChipActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  filterChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 8,
-  },
-  statCard: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  content: {
-    flex: 1,
-    paddingBottom: 100,
-  },
-  contentLandscape: {
-    paddingBottom: 70,
-  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   loadingText: {
-    fontSize: 16,
-    color: '#64748B',
+    marginTop: spacing[4],
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
+
+  // Search & Filters
+  searchSection: {
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[2],
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+
+  filterSection: {
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[3],
   },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+
+  filterLabel: {
+    marginBottom: spacing[2],
   },
-  emptyText: {
-    fontSize: 15,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  productsList: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  productCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 12,
+
+  // Warning Banner
+  warningBanner: {
+    flexDirection: 'row',
+    backgroundColor: colors.warning[50],
+    marginHorizontal: spacing[4],
+    marginVertical: spacing[2],
+    padding: spacing[3],
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderColor: colors.warning[300],
   },
+
+  warningIcon: {
+    fontSize: 20,
+    marginRight: spacing[2],
+  },
+
+  warningContent: {
+    flex: 1,
+  },
+
+  // Stats
+  statsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    gap: spacing[2],
+  },
+
+  statCard: {
+    flex: 1,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+
+  // List
+  listContainer: {
+    flex: 1,
+  },
+
+  listContent: {
+    padding: spacing[4],
+    paddingBottom: spacing[24],
+  },
+
+  // Product Card
+  productCard: {
+    marginBottom: spacing[3],
+  },
+
   productCardContent: {
-    padding: 16,
+    padding: spacing[4],
   },
+
   productHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
+
   productThumbnail: {
     width: 60,
     height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.md,
+    marginRight: spacing[3],
+    backgroundColor: colors.surface.secondary,
   },
+
   productThumbnailPlaceholder: {
     width: 60,
     height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.md,
+    marginRight: spacing[3],
+    backgroundColor: colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   productThumbnailPlaceholderText: {
     fontSize: 28,
   },
+
   productInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: spacing[2],
   },
-  productTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
+
   productMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing[2],
+    marginTop: spacing[1],
   },
+
   productCorrelative: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#6366F1',
     fontFamily: 'monospace',
   },
-  productSku: {
-    fontSize: 13,
-    color: '#64748B',
-  },
+
   duplicateBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: colors.warning[100],
+    paddingHorizontal: spacing[1.5],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.xs,
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: colors.warning[300],
   },
-  duplicateBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#D97706',
-  },
+
   badgesContainer: {
     flexDirection: 'column',
-    gap: 6,
+    gap: spacing[1.5],
     alignItems: 'flex-end',
   },
+
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+
   noPhotoBadge: {
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: colors.danger[50],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: colors.danger[200],
   },
-  noPhotoBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#DC2626',
-  },
-  warningBanner: {
-    flexDirection: 'row',
-    backgroundColor: '#FEF3C7',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#F59E0B',
-  },
-  warningIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  warningContent: {
-    flex: 1,
-  },
-  warningTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#92400E',
-    marginBottom: 4,
-  },
-  warningText: {
-    fontSize: 12,
-    color: '#78350F',
-    lineHeight: 16,
-  },
+
   productDetails: {
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 12,
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
+
   productDetailItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: spacing[1.5],
   },
-  productDetailLabel: {
-    fontSize: 14,
-    color: '#64748B',
+
+  productDivider: {
+    marginVertical: spacing[3],
   },
-  productDetailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
+
   productFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 12,
   },
+
   productFooterInfo: {
     flex: 1,
-    gap: 4,
+    gap: spacing[1],
   },
-  productFooterText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 2,
-  },
-  productArrow: {
-    fontSize: 20,
-    color: '#94A3B8',
-  },
+
   productActions: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    gap: spacing[2],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 12,
+    borderTopColor: colors.border.light,
   },
+
   actionButton: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    backgroundColor: colors.surface.secondary,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[2],
+    borderRadius: borderRadius.sm,
     alignItems: 'center',
   },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  deleteButton: {
-    backgroundColor: '#FEE2E2',
-  },
-  deleteButtonText: {
-    color: '#DC2626',
-  },
+
   viewButton: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.accent[50],
   },
-  viewButtonText: {
-    color: '#667eea',
-  },
+
   imagesButton: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.warning[50],
   },
-  imagesButtonText: {
-    color: '#D97706',
-  },
+
   pricesButton: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.success[50],
   },
-  pricesButtonText: {
-    color: '#16A34A',
+
+  deleteButton: {
+    backgroundColor: colors.danger[50],
   },
+
+  // Modal
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
+
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.light,
   },
-  modalCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalCloseButtonText: {
-    fontSize: 20,
-    color: '#1E293B',
-  },
-  modalHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
+
   modalContent: {
     flex: 1,
-    padding: 16,
+    padding: spacing[4],
   },
+
   viewSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    marginBottom: spacing[4],
+    padding: spacing[4],
   },
+
   viewSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
+
   viewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-    gap: 12,
-  },
-  viewLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-    flex: 1,
-  },
-  viewValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
-    flex: 2,
-    textAlign: 'right',
-  },
-  viewValueRow: {
-    flex: 2,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8,
+    marginBottom: spacing[2],
   },
-  correlativeHighlight: {
-    color: '#6366F1',
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: 'monospace',
-  },
-  duplicateBadgeSmall: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#F59E0B',
-  },
-  duplicateBadgeTextSmall: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#D97706',
-  },
+
   viewStatusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
   },
-  viewStatusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
+
+  imageGallery: {
+    flexDirection: 'row',
+    gap: spacing[3],
+    paddingVertical: spacing[2],
   },
-  presentationViewCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+
+  productImage: {
+    width: 180,
+    height: 180,
+    borderRadius: borderRadius.lg,
   },
-  presentationViewHeader: {
+
+  presentationCard: {
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    marginBottom: spacing[2],
+  },
+
+  presentationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[1],
   },
-  presentationViewName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
+
   baseBadge: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: colors.success[500],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.xs,
   },
-  baseBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  priceViewCard: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-  priceHighlight: {
-    color: '#10B981',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  stockViewCard: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  stockQuantityHighlight: {
-    color: '#667eea',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  idText: {
-    fontSize: 11,
-    fontFamily: 'monospace',
-  },
+
   modalFooter: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    padding: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.border.light,
   },
-  modalCloseButtonBottom: {
-    backgroundColor: '#667eea',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalCloseButtonBottomText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  imageGallery: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 8,
-  },
-  productImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-  },
-  paginationContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 60,
-  },
-  paginationInfo: {
-    alignItems: 'center',
-    minWidth: 100,
-  },
-  paginationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  paginationSubtext: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  paginationButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#6366F1',
-    minWidth: 110,
-    alignItems: 'center',
-  },
-  paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
-  },
-  paginationButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  paginationButtonTextDisabled: {
-    color: '#94A3B8',
-  },
+
+  // Floating Button
   pricesFloatingButton: {
     position: 'absolute',
-    bottom: 160, // Above the Add button (90px) + 70px spacing
+    bottom: 160,
     right: 20,
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.primary[900],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+    ...shadows['2xl'],
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: colors.surface.primary,
     zIndex: 9997,
   },
+
   floatingButtonText: {
     fontSize: 24,
   },

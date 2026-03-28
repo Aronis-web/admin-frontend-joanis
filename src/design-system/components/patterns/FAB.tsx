@@ -272,8 +272,8 @@ export const FABGroup: React.FC<FABGroupProps> = ({
   });
 
   return (
-    <View style={[styles.groupContainer, style]}>
-      {/* Backdrop */}
+    <>
+      {/* Backdrop - Cubre toda la pantalla */}
       {isOpen && (
         <TouchableOpacity
           style={styles.backdrop}
@@ -282,74 +282,89 @@ export const FABGroup: React.FC<FABGroupProps> = ({
         />
       )}
 
-      {/* Actions */}
-      {actions.map((action, index) => (
-        <Animated.View
-          key={index}
-          style={[
-            styles.actionContainer,
-            {
-              opacity: actionAnimations[index],
-              transform: [
-                {
-                  translateY: actionAnimations[index].interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-                {
-                  scale: actionAnimations[index],
-                },
-              ],
-            },
-          ]}
-        >
-          <View style={styles.actionLabel}>
-            <Text variant="labelMedium" color="primary">
-              {action.label}
-            </Text>
-          </View>
+      {/* FAB Group Container - Posición fija en pantalla */}
+      <View style={[styles.groupContainer, style]}>
+        {/* Actions - Encima del botón principal */}
+        {isOpen && actions.map((action, index) => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.actionContainer,
+              {
+                opacity: actionAnimations[index],
+                transform: [
+                  {
+                    translateY: actionAnimations[index].interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [30, 0],
+                    }),
+                  },
+                  {
+                    scale: actionAnimations[index],
+                  },
+                ],
+              },
+            ]}
+          >
+            <View style={styles.actionLabel}>
+              <Text variant="labelMedium" color="primary">
+                {action.label}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.actionFab, shadows.md]}
+              onPress={() => handleActionPress(action)}
+              activeOpacity={activeOpacity.medium}
+            >
+              <Ionicons name={action.icon} size={iconSizes.md} color={colors.icon.primary} />
+            </TouchableOpacity>
+          </Animated.View>
+        ))}
+
+        {/* Main FAB Button - Creado directamente sin usar componente FAB */}
+        <Animated.View style={{ transform: [{ rotate: rotation }] }}>
           <TouchableOpacity
-            style={[styles.actionFab, shadows.md]}
-            onPress={() => handleActionPress(action)}
+            style={[
+              styles.mainFabButton,
+              variant === 'primary' && { backgroundColor: colors.primary[900] },
+              variant === 'secondary' && { backgroundColor: colors.accent[600] },
+              variant === 'surface' && { backgroundColor: colors.surface.primary },
+              shadows['2xl'],
+            ]}
+            onPress={toggleOpen}
             activeOpacity={activeOpacity.medium}
           >
-            <Ionicons name={action.icon} size={iconSizes.md} color={colors.icon.primary} />
+            <Ionicons
+              name={isOpen ? openIcon : icon}
+              size={iconSizes.lg}
+              color={variant === 'surface' ? colors.icon.primary : colors.icon.inverse}
+            />
           </TouchableOpacity>
         </Animated.View>
-      ))}
-
-      {/* Main FAB */}
-      <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-        <FAB
-          icon={isOpen ? openIcon : icon}
-          onPress={toggleOpen}
-          variant={variant}
-          style={styles.mainFab}
-        />
-      </Animated.View>
-    </View>
+      </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    zIndex: zIndex.fixed,
+    zIndex: 1100, // Más alto que FloatingActionButton (1000)
+    elevation: 15, // Android elevation
   },
 
   position_bottom_right: {
-    bottom: spacing[4],
-    right: spacing[4],
+    bottom: 90, // Encima del FloatingActionButton del drawer (20 + 60 + 10 gap)
+    right: 20, // Mismo right que FloatingActionButton
   },
 
   position_bottom_left: {
-    bottom: spacing[4],
-    left: spacing[4],
+    bottom: 90,
+    left: 20,
   },
 
   position_bottom_center: {
-    bottom: spacing[4],
+    bottom: 90,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -372,15 +387,30 @@ const styles = StyleSheet.create({
   // FAB Group styles
   groupContainer: {
     position: 'absolute',
-    bottom: spacing[4],
-    right: spacing[4],
+    bottom: 90,
+    right: 20,
     alignItems: 'flex-end',
-    zIndex: zIndex.fixed,
+    zIndex: 1100,
+    elevation: 15,
+  },
+
+  mainFabButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: colors.overlay.light,
+    zIndex: 1050, // Entre el FloatingActionButton (1000) y el FABGroup (1100)
+    elevation: 14,
   },
 
   actionContainer: {

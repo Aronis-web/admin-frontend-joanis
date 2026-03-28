@@ -1,7 +1,12 @@
+/**
+ * ProductSelectionModal - Rediseñado con Design System
+ *
+ * Modal de selección de productos para exportar hojas de reparto.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
@@ -10,6 +15,27 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { RepartoProducto } from '@/types/repartos';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Label,
+  Button,
+  Card,
+  Badge,
+  Chip,
+  Divider,
+  EmptyState,
+} from '@/design-system/components';
 
 interface ProductSelectionModalProps {
   visible: boolean;
@@ -36,15 +62,13 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
     if (visible && products.length > 0) {
       const allProductIds = new Set(products.map((p) => p.productId).filter(Boolean));
       setSelectedProducts(allProductIds);
-      // Reset filter when modal opens
       setShowOnlyNotDownloaded(false);
     }
   }, [visible, products]);
 
-  // When filter changes, adjust selection to only include visible products
+  // When filter changes, adjust selection
   useEffect(() => {
     if (showOnlyNotDownloaded) {
-      // Remove downloaded products from selection when filter is activated
       setSelectedProducts((prev) => {
         const newSet = new Set(prev);
         products.forEach((p) => {
@@ -83,14 +107,12 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
     const allVisibleSelected = visibleProductIds.every((id) => selectedProducts.has(id));
 
     if (allVisibleSelected) {
-      // Deselect all visible products
       setSelectedProducts((prev) => {
         const newSet = new Set(prev);
         visibleProductIds.forEach((id) => newSet.delete(id));
         return newSet;
       });
     } else {
-      // Select all visible products
       setSelectedProducts((prev) => {
         const newSet = new Set(prev);
         visibleProductIds.forEach((id) => newSet.add(id));
@@ -122,12 +144,12 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
         <View style={[styles.modalContainer, isTablet && styles.modalContainerTablet]}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>
+            <Title size="medium" align="center">
               Seleccionar Productos para Imprimir
-            </Text>
-            <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
+            </Title>
+            <Body size="small" color="secondary" align="center" style={styles.subtitle}>
               Selecciona los productos que deseas incluir en el PDF
-            </Text>
+            </Body>
           </View>
 
           {/* Download Statistics */}
@@ -135,13 +157,13 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Text style={styles.statIcon}>📥</Text>
-                <Text style={styles.statLabel}>Descargados:</Text>
-                <Text style={styles.statValue}>{downloadedCount}</Text>
+                <Caption color="secondary">Descargados:</Caption>
+                <Text variant="labelLarge" color="primary" style={styles.statValue}>{downloadedCount}</Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={styles.statIcon}>⏳</Text>
-                <Text style={styles.statLabel}>Pendientes:</Text>
-                <Text style={styles.statValue}>{notDownloadedCount}</Text>
+                <Caption color="secondary">Pendientes:</Caption>
+                <Text variant="labelLarge" color="primary" style={styles.statValue}>{notDownloadedCount}</Text>
               </View>
             </View>
           )}
@@ -150,17 +172,14 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
           {notDownloadedCount > 0 && (
             <View style={styles.filterContainer}>
               <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  showOnlyNotDownloaded && styles.filterButtonActive,
-                ]}
+                style={[styles.filterButton, showOnlyNotDownloaded && styles.filterButtonActive]}
                 onPress={() => setShowOnlyNotDownloaded(!showOnlyNotDownloaded)}
                 activeOpacity={0.7}
               >
-                <Text style={[
-                  styles.filterButtonText,
-                  showOnlyNotDownloaded && styles.filterButtonTextActive,
-                ]}>
+                <Text
+                  variant="labelMedium"
+                  color={showOnlyNotDownloaded ? colors.text.inverse : colors.text.secondary}
+                >
                   {showOnlyNotDownloaded ? '✓ ' : ''}Mostrar solo pendientes de descarga
                 </Text>
               </TouchableOpacity>
@@ -169,162 +188,125 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
 
           {/* Select All Toggle */}
           <View style={styles.selectAllContainer}>
-            <TouchableOpacity
-              style={styles.selectAllButton}
-              onPress={toggleAll}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  isTablet && styles.checkboxTablet,
-                  allSelected && styles.checkboxChecked,
-                  someSelected && styles.checkboxIndeterminate,
-                ]}
-              >
+            <TouchableOpacity style={styles.selectAllButton} onPress={toggleAll} activeOpacity={0.7}>
+              <View style={[
+                styles.checkbox,
+                allSelected && styles.checkboxChecked,
+                someSelected && styles.checkboxIndeterminate,
+              ]}>
                 {allSelected && <Text style={styles.checkmark}>✓</Text>}
                 {someSelected && <Text style={styles.checkmark}>−</Text>}
               </View>
-              <Text style={[styles.selectAllText, isTablet && styles.selectAllTextTablet]}>
+              <Text variant="labelLarge" color={colors.primary[900]}>
                 {showOnlyNotDownloaded
                   ? (allSelected ? 'Deseleccionar pendientes' : 'Seleccionar pendientes')
                   : (allSelected ? 'Deseleccionar todos' : 'Seleccionar todos')}
               </Text>
             </TouchableOpacity>
-            <Text style={[styles.countText, isTablet && styles.countTextTablet]}>
+            <Caption color="tertiary">
               {selectedProducts.size} de {products.length} seleccionados
-            </Text>
+            </Caption>
           </View>
+
+          <Divider spacing="none" />
 
           {/* Products List */}
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
             {filteredProducts.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateIcon}>📦</Text>
-                <Text style={styles.emptyStateText}>
-                  {showOnlyNotDownloaded
+              <EmptyState
+                icon="cube-outline"
+                title={showOnlyNotDownloaded ? 'Todo descargado' : 'Sin productos'}
+                description={
+                  showOnlyNotDownloaded
                     ? 'Todos los productos ya han sido descargados'
-                    : 'No hay productos disponibles'}
-                </Text>
-              </View>
+                    : 'No hay productos disponibles'
+                }
+                size="small"
+              />
             ) : (
               filteredProducts
                 .slice()
                 .sort((a, b) => {
-                  // Ordenar por correlativo
                   const correlativeA = (a.product as any)?.correlativeNumber || 0;
                   const correlativeB = (b.product as any)?.correlativeNumber || 0;
                   return correlativeA - correlativeB;
                 })
                 .map((product) => {
-                const productKey = product.productId;
-                if (!productKey) {
-                  return null;
-                }
+                  const productKey = product.productId;
+                  if (!productKey) return null;
 
-                const isSelected = selectedProducts.has(productKey);
-                const productName = getProductName(product);
-                const productSKU = getProductSKU(product);
-                const downloadCount = product.downloadCount || 0;
-                const lastDownloadedAt = product.lastDownloadedAt;
+                  const isSelected = selectedProducts.has(productKey);
+                  const productName = getProductName(product);
+                  const productSKU = getProductSKU(product);
+                  const downloadCount = product.downloadCount || 0;
+                  const lastDownloadedAt = product.lastDownloadedAt;
 
-                // Debug log
-                if (downloadCount > 0) {
-                  console.log(`🔍 [Modal] Producto ${productName}: downloadCount=${downloadCount}`);
-                }
-
-                return (
-                  <TouchableOpacity
-                    key={productKey}
-                    style={[
-                      styles.productItem,
-                      isTablet && styles.productItemTablet,
-                      isSelected && styles.productItemSelected,
-                    ]}
-                    onPress={() => toggleProduct(productKey)}
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.checkbox,
-                        isTablet && styles.checkboxTablet,
-                        isSelected && styles.checkboxChecked,
-                      ]}
+                  return (
+                    <TouchableOpacity
+                      key={productKey}
+                      style={[styles.productItem, isSelected && styles.productItemSelected]}
+                      onPress={() => toggleProduct(productKey)}
+                      activeOpacity={0.7}
                     >
-                      {isSelected && <Text style={styles.checkmark}>✓</Text>}
-                    </View>
-                    <View style={styles.productInfo}>
-                      <View style={styles.productHeader}>
-                        <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
-                          {productName}
-                        </Text>
-                        {downloadCount > 0 && (
-                          <View style={styles.downloadBadge}>
-                            <Text style={styles.downloadBadgeText}>
-                              📥 {downloadCount}x
-                            </Text>
-                          </View>
+                      <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                        {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                      </View>
+
+                      <View style={styles.productInfo}>
+                        <View style={styles.productHeader}>
+                          <Text variant="titleSmall" color="primary" style={styles.productName} numberOfLines={2}>
+                            {productName}
+                          </Text>
+                          {downloadCount > 0 && (
+                            <View style={styles.downloadBadge}>
+                              <Text variant="labelSmall" color={colors.text.inverse}>
+                                📥 {downloadCount}x
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <View style={styles.productDetails}>
+                          <Caption color="tertiary">SKU: {productSKU}</Caption>
+                          <Caption color="tertiary">
+                            Cantidad: {product.quantityAssigned || product.quantityBase || 0}
+                          </Caption>
+                        </View>
+
+                        {lastDownloadedAt && (
+                          <Caption color={colors.success[600]} style={styles.lastDownloadText}>
+                            Última descarga: {new Date(lastDownloadedAt).toLocaleString('es-PE', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </Caption>
                         )}
                       </View>
-                      <View style={styles.productDetails}>
-                        <Text style={[styles.productSKU, isTablet && styles.productSKUTablet]}>
-                          SKU: {productSKU}
-                        </Text>
-                        <Text
-                          style={[styles.productQuantity, isTablet && styles.productQuantityTablet]}
-                        >
-                          Cantidad: {product.quantityAssigned || product.quantityBase || 0}
-                        </Text>
-                      </View>
-                      {lastDownloadedAt && (
-                        <Text style={styles.lastDownloadText}>
-                          Última descarga: {new Date(lastDownloadedAt).toLocaleString('es-PE', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
+                    </TouchableOpacity>
+                  );
+                })
             )}
           </ScrollView>
 
           {/* Footer Actions */}
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.cancelButton, isTablet && styles.cancelButtonTablet]}
+            <Button
+              title="Cancelar"
               onPress={onClose}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.cancelButtonText, isTablet && styles.cancelButtonTextTablet]}>
-                Cancelar
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.confirmButton,
-                isTablet && styles.confirmButtonTablet,
-                selectedProducts.size === 0 && styles.confirmButtonDisabled,
-              ]}
+              variant="secondary"
+              style={styles.footerButton}
+            />
+            <Button
+              title={loading ? 'Generando...' : `Descargar PDF (${selectedProducts.size})`}
               onPress={handleConfirm}
+              variant="primary"
               disabled={selectedProducts.size === 0 || loading}
-              activeOpacity={0.7}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text
-                  style={[styles.confirmButtonText, isTablet && styles.confirmButtonTextTablet]}
-                >
-                  Descargar PDF ({selectedProducts.size})
-                </Text>
-              )}
-            </TouchableOpacity>
+              loading={loading}
+              style={styles.footerButton}
+            />
           </View>
         </View>
       </View>
@@ -335,306 +317,203 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
+
   modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
     width: '100%',
-    maxWidth: 900,
-    height: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    maxWidth: 600,
+    maxHeight: '90%',
+    ...shadows.xl,
   },
+
   modalContainerTablet: {
-    maxWidth: 1200,
-    height: '85%',
+    maxWidth: 800,
+    maxHeight: '85%',
   },
+
   header: {
-    padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    padding: spacing[5],
+    paddingBottom: spacing[3],
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  titleTablet: {
-    fontSize: 28,
-  },
+
   subtitle: {
-    fontSize: 15,
-    color: '#64748B',
+    marginTop: spacing[2],
   },
-  subtitleTablet: {
-    fontSize: 18,
-  },
+
+  // Stats
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    padding: 16,
-    backgroundColor: '#F0F9FF',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    backgroundColor: colors.info[50],
+    borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#BFDBFE',
+    borderColor: colors.info[200],
   },
+
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing[1.5],
   },
+
   statIcon: {
     fontSize: 16,
   },
-  statLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-  },
+
   statValue: {
-    fontSize: 15,
-    color: '#1E293B',
-    fontWeight: '700',
+    marginLeft: spacing[1],
   },
+
+  // Filter
   filterContainer: {
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    padding: spacing[3],
+    paddingHorizontal: spacing[4],
   },
+
   filterButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.light,
     alignItems: 'center',
   },
+
   filterButtonActive: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
   },
-  filterButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  filterButtonTextActive: {
-    color: '#6366F1',
-  },
+
+  // Select All
   selectAllContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    backgroundColor: colors.surface.secondary,
   },
+
   selectAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
   },
-  selectAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  selectAllTextTablet: {
-    fontSize: 16,
-  },
-  countText: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  countTextTablet: {
-    fontSize: 14,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 24,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyStateIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  productItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    marginBottom: 10,
-    gap: 14,
-  },
-  productItemTablet: {
-    padding: 20,
-    marginBottom: 14,
-  },
-  productItemSelected: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
-  },
+
+  // Checkbox
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: borderRadius.sm,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderColor: colors.border.default,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.primary,
   },
-  checkboxTablet: {
-    width: 28,
-    height: 28,
-  },
+
   checkboxChecked: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
   },
+
   checkboxIndeterminate: {
-    backgroundColor: '#94A3B8',
-    borderColor: '#94A3B8',
+    backgroundColor: colors.neutral[500],
+    borderColor: colors.neutral[500],
   },
+
   checkmark: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: colors.text.inverse,
+    fontSize: 14,
     fontWeight: 'bold',
   },
+
+  // Products List
+  scrollView: {
+    flex: 1,
+    maxHeight: 400,
+  },
+
+  scrollContent: {
+    padding: spacing[4],
+  },
+
+  productItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: spacing[4],
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    marginBottom: spacing[2],
+    gap: spacing[3],
+  },
+
+  productItemSelected: {
+    backgroundColor: colors.primary[50],
+    borderColor: colors.primary[900],
+  },
+
   productInfo: {
     flex: 1,
   },
+
   productHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 6,
-    gap: 8,
+    marginBottom: spacing[2],
+    gap: spacing[2],
   },
+
   productName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    lineHeight: 20,
     flex: 1,
   },
-  productNameTablet: {
-    fontSize: 18,
-    lineHeight: 24,
-  },
+
   downloadBadge: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: colors.success[500],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
     flexShrink: 0,
-    marginLeft: 8,
   },
-  downloadBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    lineHeight: 16,
-  },
+
   productDetails: {
     flexDirection: 'row',
-    gap: 16,
+    gap: spacing[4],
     flexWrap: 'wrap',
   },
+
   lastDownloadText: {
-    fontSize: 11,
-    color: '#10B981',
-    marginTop: 4,
+    marginTop: spacing[1],
     fontStyle: 'italic',
   },
-  productSKU: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  productSKUTablet: {
-    fontSize: 16,
-  },
-  productQuantity: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  productQuantityTablet: {
-    fontSize: 16,
-  },
+
+  // Footer
   footer: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 14,
+    padding: spacing[4],
+    gap: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderTopColor: colors.border.light,
+    backgroundColor: colors.surface.secondary,
+    borderBottomLeftRadius: borderRadius.xl,
+    borderBottomRightRadius: borderRadius.xl,
   },
-  cancelButton: {
+
+  footerButton: {
     flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  cancelButtonTablet: {
-    paddingVertical: 16,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  cancelButtonTextTablet: {
-    fontSize: 18,
-  },
-  confirmButton: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-  },
-  confirmButtonTablet: {
-    paddingVertical: 16,
-  },
-  confirmButtonDisabled: {
-    backgroundColor: '#CBD5E1',
-  },
-  confirmButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  confirmButtonTextTablet: {
-    fontSize: 18,
   },
 });
+
+export default ProductSelectionModal;
