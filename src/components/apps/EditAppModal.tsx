@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { appsApi, UpdateAppDto, App } from '@/services/api/apps';
 
@@ -198,8 +199,8 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
                 <Switch
                   value={formData.isActive}
                   onValueChange={(value) => updateField('isActive', value)}
-                  trackColor={{ false: '#E2E8F0', true: '#10B981' }}
-                  thumbColor={formData.isActive ? '#FFFFFF' : '#94A3B8'}
+                  trackColor={{ false: colors.neutral[200], true: colors.success[500] }}
+                  thumbColor={formData.isActive ? colors.neutral[0] : colors.neutral[400]}
                 />
               </View>
             </View>
@@ -217,7 +218,7 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.neutral[0]} />
               ) : (
                 <Text style={styles.submitButtonText}>Guardar Cambios</Text>
               )}
@@ -232,15 +233,15 @@ export const EditAppModal: React.FC<EditAppModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     maxHeight: '90%',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[900],
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -250,138 +251,138 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   form: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
   },
   formGroup: {
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   label: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   hint: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginTop: 6,
   },
   readOnlyField: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 16,
+    borderColor: colors.neutral[200],
+    paddingHorizontal: spacing[4],
     paddingVertical: 14,
   },
   readOnlyText: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   appTypeContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing[2],
   },
   appTypeButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing[4],
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    marginRight: 8,
-    marginBottom: 8,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[0],
+    marginRight: spacing[2],
+    marginBottom: spacing[2],
   },
   appTypeButtonActive: {
-    borderColor: '#667eea',
-    backgroundColor: '#EEF2FF',
+    borderColor: colors.accent[500],
+    backgroundColor: colors.accent[50],
   },
   appTypeButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   appTypeButtonTextActive: {
-    color: '#667eea',
+    color: colors.accent[500],
   },
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing[2],
   },
   switchLabel: {
     flex: 1,
   },
   footer: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
+    borderTopColor: colors.neutral[200],
+    gap: spacing[3],
   },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[0],
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   submitButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#667eea',
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.accent[500],
     alignItems: 'center',
-    shadowColor: '#667eea',
+    shadowColor: colors.accent[500],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },
   submitButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: colors.neutral[400],
     shadowOpacity: 0,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
 

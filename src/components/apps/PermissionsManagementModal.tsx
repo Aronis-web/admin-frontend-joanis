@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   TextInput,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { appPermissionsApi, AppPermission } from '@/services/api/apps';
 import { permissionsApi, Permission } from '@/services/api/roles';
 
@@ -376,7 +377,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
                 placeholder="Buscar permisos..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.neutral[400]}
                 keyboardType="default"
               />
               {searchQuery.length > 0 && (
@@ -396,7 +397,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
                   value={customPermission}
                   onChangeText={setCustomPermission}
                   autoCapitalize="none"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.neutral[400]}
                   keyboardType="default"
                 />
                 <TouchableOpacity
@@ -417,7 +418,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
 
               {loadingPermissions ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#667eea" />
+                  <ActivityIndicator size="large" color={colors.accent[500]} />
                 </View>
               ) : filteredPermissions.length === 0 ? (
                 <View style={styles.emptyContainer}>
@@ -499,7 +500,7 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.neutral[0]} />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar Cambios</Text>
               )}
@@ -514,15 +515,15 @@ export const PermissionsManagementModal: React.FC<PermissionsManagementModalProp
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     maxHeight: '90%',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[900],
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -532,59 +533,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748B',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   content: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
   },
   infoCard: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.accent[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#E0E7FF',
+    borderColor: colors.accent[100],
   },
   infoText: {
     fontSize: 14,
-    color: '#4F46E5',
+    color: colors.primary[600],
     lineHeight: 20,
   },
   statsCard: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   statItem: {
     flex: 1,
@@ -593,107 +594,107 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#667eea',
-    marginBottom: 4,
+    color: colors.accent[500],
+    marginBottom: spacing[1],
   },
   statLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#E2E8F0',
-    marginHorizontal: 16,
+    backgroundColor: colors.neutral[200],
+    marginHorizontal: spacing[4],
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   searchIcon: {
     fontSize: 18,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   clearIcon: {
     fontSize: 16,
-    color: '#94A3B8',
-    paddingHorizontal: 8,
+    color: colors.neutral[400],
+    paddingHorizontal: spacing[2],
   },
   customPermissionSection: {
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
+    color: colors.neutral[800],
+    marginBottom: spacing[3],
   },
   customPermissionInput: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
+    gap: spacing[2],
+    marginBottom: spacing[2],
   },
   input: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     fontSize: 15,
-    color: '#1E293B',
+    color: colors.neutral[800],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   addCustomButton: {
     width: 48,
     height: 48,
-    borderRadius: 12,
-    backgroundColor: '#10B981',
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.success[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
   addCustomButtonText: {
     fontSize: 24,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '300',
   },
   hint: {
     fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
   },
   permissionsSection: {
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   loadingContainer: {
     paddingVertical: 40,
     alignItems: 'center',
   },
   permissionsList: {
-    gap: 8,
+    gap: spacing[2],
   },
   permissionItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   permissionItemSelected: {
-    borderColor: '#667eea',
-    backgroundColor: '#F5F3FF',
+    borderColor: colors.accent[500],
+    backgroundColor: colors.accent[50],
   },
   permissionInfo: {
     flex: 1,
@@ -713,125 +714,125 @@ const styles = StyleSheet.create({
   permissionKey: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     fontFamily: 'monospace',
   },
   permissionKeySelected: {
-    color: '#667eea',
+    color: colors.accent[500],
   },
   assignedBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
+    backgroundColor: colors.success[100],
+    paddingHorizontal: spacing[2],
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#86EFAC',
+    borderColor: colors.success[300],
   },
   assignedBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#16A34A',
+    color: colors.success[600],
     textTransform: 'uppercase',
   },
   permissionDescription: {
     fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: borderRadius.md,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[0],
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxSelected: {
-    borderColor: '#667eea',
-    backgroundColor: '#667eea',
+    borderColor: colors.accent[500],
+    backgroundColor: colors.accent[500],
   },
   checkmark: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
+    borderTopColor: colors.neutral[200],
+    gap: spacing[3],
   },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[0],
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   saveButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#667eea',
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.accent[500],
     alignItems: 'center',
-    shadowColor: '#667eea',
+    shadowColor: colors.accent[500],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },
   saveButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: colors.neutral[400],
     shadowOpacity: 0,
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   moduleFilter: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   filterLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   moduleScroll: {
     flexGrow: 0,
   },
   moduleChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    marginRight: 8,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    marginRight: spacing[2],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   moduleChipActive: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
+    backgroundColor: colors.accent[500],
+    borderColor: colors.accent[500],
   },
   moduleChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   moduleChipTextActive: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   emptyContainer: {
     paddingVertical: 40,
@@ -839,25 +840,25 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   moduleGroup: {
-    marginBottom: 20,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    marginBottom: spacing[5],
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   moduleHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    padding: spacing[4],
+    backgroundColor: colors.neutral[0],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   moduleHeaderLeft: {
     flexDirection: 'row',
@@ -867,45 +868,45 @@ const styles = StyleSheet.create({
   moduleCheckbox: {
     width: 28,
     height: 28,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[0],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   moduleCheckboxSelected: {
-    borderColor: '#667eea',
-    backgroundColor: '#667eea',
+    borderColor: colors.accent[500],
+    backgroundColor: colors.accent[500],
   },
   moduleCheckboxPartial: {
-    borderColor: '#667eea',
-    backgroundColor: '#EEF2FF',
+    borderColor: colors.accent[500],
+    backgroundColor: colors.accent[50],
   },
   moduleCheckmark: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '700',
   },
   moduleTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   moduleCount: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   moduleToggleText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#667eea',
+    color: colors.accent[500],
   },
   modulePermissions: {
-    padding: 12,
-    gap: 8,
+    padding: spacing[3],
+    gap: spacing[2],
   },
 });
 

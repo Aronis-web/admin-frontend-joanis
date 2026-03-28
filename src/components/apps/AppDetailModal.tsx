@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { App, AppType } from '@/services/api/apps';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 
@@ -50,13 +51,13 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   };
 
   const getAppTypeColor = (type: AppType): string => {
-    const colors: Record<AppType, string> = {
-      [AppType.SALES]: '#10B981',
-      [AppType.POS]: '#F59E0B',
-      [AppType.ADMIN]: '#667eea',
-      [AppType.INTERNAL]: '#64748B',
+    const typeColors: Record<AppType, string> = {
+      [AppType.SALES]: colors.success[500],
+      [AppType.POS]: colors.warning[500],
+      [AppType.ADMIN]: colors.accent[500],
+      [AppType.INTERNAL]: colors.neutral[500],
     };
-    return colors[type] || '#64748B';
+    return typeColors[type] || colors.neutral[500];
   };
 
   return (
@@ -223,15 +224,15 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     maxHeight: '90%',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[900],
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -241,51 +242,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   content: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
   },
   card: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   cardHeader: {
-    marginBottom: 16,
-    paddingBottom: 12,
+    marginBottom: spacing[4],
+    paddingBottom: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   infoRow: {
     flexDirection: 'row',
@@ -293,44 +294,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.neutral[100],
   },
   infoLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
     flex: 1,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1E293B',
+    color: colors.neutral[800],
     flex: 2,
     textAlign: 'right',
   },
   infoValueSmall: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#64748B',
+    color: colors.neutral[500],
     flex: 2,
     textAlign: 'right',
   },
   codeContainer: {
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 12,
+    backgroundColor: colors.neutral[800],
+    paddingHorizontal: spacing[3],
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
   },
   codeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontFamily: 'monospace',
   },
   typeBadge: {
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing[3],
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
   },
   typeBadgeText: {
     fontSize: 14,
@@ -339,16 +340,16 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing[3],
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     gap: 6,
   },
   statusBadgeActive: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: colors.success[100],
   },
   statusBadgeInactive: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.danger[100],
   },
   statusDot: {
     width: 8,
@@ -356,50 +357,50 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   statusDotActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success[500],
   },
   statusDotInactive: {
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.danger[500],
   },
   statusText: {
     fontSize: 14,
     fontWeight: '600',
   },
   statusTextActive: {
-    color: '#10B981',
+    color: colors.success[500],
   },
   statusTextInactive: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   footer: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
+    borderTopColor: colors.neutral[200],
+    gap: spacing[3],
   },
   deleteButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     borderWidth: 1.5,
-    borderColor: '#FEE2E2',
-    backgroundColor: '#FEF2F2',
+    borderColor: colors.danger[100],
+    backgroundColor: colors.danger[50],
     alignItems: 'center',
   },
   deleteButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   editButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#667eea',
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.accent[500],
     alignItems: 'center',
-    shadowColor: '#667eea',
+    shadowColor: colors.accent[500],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -408,15 +409,15 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   actionButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   actionButtonContent: {
     flexDirection: 'row',
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
   },
   actionButtonIcon: {
     fontSize: 24,
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   actionButtonInfo: {
     flex: 1,
@@ -432,16 +433,16 @@ const styles = StyleSheet.create({
   actionButtonTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   actionButtonSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   actionButtonArrow: {
     fontSize: 20,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     fontWeight: '600',
   },
 });
