@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
   Alert,
   ActivityIndicator,
@@ -18,6 +16,18 @@ import { useTenantStore } from '@/store/tenant';
 import { getDocumentAsync } from '@/utils/filePicker';
 import { config } from '@/utils/config';
 import { authService } from '@/services/AuthService';
+
+// Design System
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import {
+  Title,
+  Body,
+  Caption,
+  Label,
+  Button,
+  Card,
+  IconButton,
+} from '@/design-system/components';
 
 interface ProductBulkUploadV2ModalProps {
   visible: boolean;
@@ -331,119 +341,114 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Carga Masiva de Productos V2</Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#64748B" />
-            </TouchableOpacity>
+            <Title size="medium">Carga Masiva de Productos V2</Title>
+            <IconButton
+              icon="close"
+              onPress={handleClose}
+              variant="ghost"
+              size="small"
+            />
           </View>
 
           {/* Content */}
           <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
             {/* Instructions */}
-            <View style={styles.instructionsCard}>
+            <Card variant="filled" padding="medium" style={styles.instructionsCard}>
               <View style={styles.instructionHeader}>
-                <Ionicons name="information-circle" size={24} color="#6366F1" />
-                <Text style={styles.instructionTitle}>Instrucciones</Text>
+                <Ionicons name="information-circle" size={24} color={colors.accent[500]} />
+                <Label size="large">Instrucciones</Label>
               </View>
-              <Text style={styles.instructionText}>
+              <Body size="small" color="secondary" style={styles.instructionText}>
                 1. Descarga la plantilla Excel con todas las presentaciones disponibles
-              </Text>
-              <Text style={styles.instructionText}>
+              </Body>
+              <Body size="small" color="secondary" style={styles.instructionText}>
                 2. Completa los datos de los productos (SKU, Nombre, Costo, Stock, etc.)
-              </Text>
-              <Text style={styles.instructionText}>
+              </Body>
+              <Body size="small" color="secondary" style={styles.instructionText}>
                 3. Especifica las cantidades por presentación que apliquen
-              </Text>
-              <Text style={styles.instructionText}>4. Sube el archivo completado</Text>
-            </View>
+              </Body>
+              <Body size="small" color="secondary" style={styles.instructionText}>
+                4. Sube el archivo completado
+              </Body>
+            </Card>
 
             {/* Features */}
             <View style={styles.featuresCard}>
-              <Text style={styles.featuresTitle}>✨ Características V2</Text>
+              <Label size="large" style={styles.featuresTitle}>✨ Características V2</Label>
               <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                <Text style={styles.featureText}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success[500]} />
+                <Body size="small" color={colors.success[700]} style={styles.featureText}>
                   Todas las presentaciones disponibles en el sistema
-                </Text>
+                </Body>
               </View>
               <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                <Text style={styles.featureText}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success[500]} />
+                <Body size="small" color={colors.success[700]} style={styles.featureText}>
                   Especifica solo las presentaciones que necesites
-                </Text>
+                </Body>
               </View>
               <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                <Text style={styles.featureText}>Stock inicial por almacén y área</Text>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success[500]} />
+                <Body size="small" color={colors.success[700]} style={styles.featureText}>
+                  Stock inicial por almacén y área
+                </Body>
               </View>
               <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                <Text style={styles.featureText}>Validación automática de datos</Text>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success[500]} />
+                <Body size="small" color={colors.success[700]} style={styles.featureText}>
+                  Validación automática de datos
+                </Body>
               </View>
             </View>
 
             {/* Action Buttons */}
             <View style={styles.actionsContainer}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.downloadButton]}
+              <Button
+                title="📄 Descargar Plantilla V2"
+                variant="secondary"
                 onPress={handleDownloadTemplate}
                 disabled={downloadingTemplate}
-              >
-                {downloadingTemplate ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="document-text" size={20} color="#FFFFFF" />
-                    <Text style={styles.actionButtonText}>Descargar Plantilla V2</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+                loading={downloadingTemplate}
+              />
 
-              <TouchableOpacity
-                style={[styles.actionButton, styles.uploadButton]}
+              <Button
+                title="☁️ Subir Archivo"
+                variant="primary"
                 onPress={handleUploadFile}
                 disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
-                    <Text style={styles.actionButtonText}>Subir Archivo</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+                loading={loading}
+              />
             </View>
 
             {/* Upload Result */}
             {uploadResult && (
-              <View style={styles.resultCard}>
+              <Card variant="filled" padding="medium" style={styles.resultCard}>
                 <View style={styles.resultHeader}>
                   <Ionicons
                     name={uploadResult.errorCount === 0 ? 'checkmark-circle' : 'warning'}
                     size={24}
-                    color={uploadResult.errorCount === 0 ? '#10B981' : '#F59E0B'}
+                    color={uploadResult.errorCount === 0 ? colors.success[500] : colors.warning[500]}
                   />
-                  <Text style={styles.resultTitle}>Resultado de la Carga</Text>
+                  <Label size="large">Resultado de la Carga</Label>
                 </View>
 
                 <View style={styles.resultStats}>
                   <View style={styles.resultStat}>
-                    <Text style={styles.resultStatLabel}>Total de filas:</Text>
-                    <Text style={styles.resultStatValue}>{uploadResult.totalRows}</Text>
+                    <Body size="small" color="secondary">Total de filas:</Body>
+                    <Label size="medium">{uploadResult.totalRows}</Label>
                   </View>
                   <View style={styles.resultStat}>
-                    <Text style={styles.resultStatLabel}>Productos creados:</Text>
-                    <Text style={[styles.resultStatValue, styles.successText]}>
+                    <Body size="small" color="secondary">Productos creados:</Body>
+                    <Label size="medium" color={colors.success[600]}>
                       {uploadResult.successCount}
-                    </Text>
+                    </Label>
                   </View>
                   {uploadResult.errorCount > 0 && (
                     <View style={styles.resultStat}>
-                      <Text style={styles.resultStatLabel}>Errores:</Text>
-                      <Text style={[styles.resultStatValue, styles.errorText]}>
+                      <Body size="small" color="secondary">Errores:</Body>
+                      <Label size="medium" color={colors.danger[600]}>
                         {uploadResult.errorCount}
-                      </Text>
+                      </Label>
                     </View>
                   )}
                 </View>
@@ -451,28 +456,28 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
                 {/* Errors List */}
                 {uploadResult.errors.length > 0 && (
                   <View style={styles.errorsContainer}>
-                    <Text style={styles.errorsTitle}>Detalles de errores:</Text>
+                    <Label size="medium" style={styles.errorsTitle}>Detalles de errores:</Label>
                     <ScrollView style={styles.errorsList} nestedScrollEnabled>
                       {uploadResult.errors.map((error, index) => (
                         <View key={index} style={styles.errorItem}>
-                          <Text style={styles.errorRow}>Fila {error.row}</Text>
-                          {error.sku && <Text style={styles.errorSku}>SKU: {error.sku}</Text>}
-                          <Text style={styles.errorMessage}>{error.error}</Text>
+                          <Label size="small" color={colors.danger[700]}>Fila {error.row}</Label>
+                          {error.sku && <Caption color={colors.danger[600]}>SKU: {error.sku}</Caption>}
+                          <Caption color={colors.danger[800]}>{error.error}</Caption>
                         </View>
                       ))}
                     </ScrollView>
                   </View>
                 )}
-              </View>
+              </Card>
             )}
 
             {/* Warning */}
             <View style={styles.warningCard}>
-              <Ionicons name="alert-circle" size={20} color="#F59E0B" />
-              <Text style={styles.warningText}>
+              <Ionicons name="alert-circle" size={20} color={colors.warning[500]} />
+              <Caption color={colors.warning[700]} style={styles.warningText}>
                 Asegúrate de que el archivo Excel esté correctamente formateado y contenga todos
                 los campos obligatorios.
-              </Text>
+              </Caption>
             </View>
           </ScrollView>
         </View>
@@ -484,218 +489,118 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
     width: '100%',
     maxWidth: 600,
     maxHeight: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...shadows.xl,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-    flex: 1,
-  },
-  closeButton: {
-    padding: 4,
+    borderBottomColor: colors.border.light,
   },
   modalContent: {
-    padding: 20,
+    padding: spacing[5],
   },
   instructionsCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    marginBottom: spacing[4],
   },
   instructionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  instructionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
+    marginBottom: spacing[3],
+    gap: spacing[2],
   },
   instructionText: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 8,
+    marginBottom: spacing[2],
     lineHeight: 20,
   },
   featuresCard: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.success[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: colors.success[200],
   },
   featuresTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: spacing[2],
+    gap: spacing[2],
   },
   featureText: {
-    fontSize: 14,
-    color: '#166534',
     flex: 1,
   },
   actionsContainer: {
-    gap: 12,
-    marginBottom: 16,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  downloadButton: {
-    backgroundColor: '#F59E0B',
-  },
-  uploadButton: {
-    backgroundColor: '#6366F1',
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    gap: spacing[3],
+    marginBottom: spacing[4],
   },
   resultCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    marginBottom: spacing[4],
   },
   resultHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
+    marginBottom: spacing[4],
+    gap: spacing[2],
   },
   resultStats: {
-    gap: 8,
-    marginBottom: 12,
+    gap: spacing[2],
+    marginBottom: spacing[3],
   },
   resultStat: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  resultStatLabel: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  resultStatValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  successText: {
-    color: '#10B981',
-  },
-  errorText: {
-    color: '#EF4444',
-  },
   errorsContainer: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: spacing[3],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.border.light,
   },
   errorsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   errorsList: {
     maxHeight: 200,
   },
   errorItem: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: colors.danger[50],
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    marginBottom: spacing[2],
     borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  errorRow: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#991B1B',
-    marginBottom: 4,
-  },
-  errorSku: {
-    fontSize: 12,
-    color: '#DC2626',
-    marginBottom: 4,
-  },
-  errorMessage: {
-    fontSize: 12,
-    color: '#7F1D1D',
+    borderColor: colors.danger[200],
   },
   warningCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFFBEB',
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[3],
+    gap: spacing[2],
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: colors.warning[200],
   },
   warningText: {
     flex: 1,
-    fontSize: 12,
-    color: '#92400E',
     lineHeight: 18,
   },
 });

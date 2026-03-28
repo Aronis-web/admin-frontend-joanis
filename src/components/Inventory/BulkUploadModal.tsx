@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
   Alert,
   ActivityIndicator,
@@ -16,6 +14,19 @@ import { inventoryApi } from '@/services/api/inventory';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { getDocumentAsync } from '@/utils/filePicker';
+
+// Design System
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import {
+  Title,
+  Body,
+  Caption,
+  Label,
+  Numeric,
+  Button,
+  Card,
+  IconButton,
+} from '@/design-system/components';
 
 interface BulkUploadModalProps {
   visible: boolean;
@@ -267,122 +278,115 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Actualización Masiva de Stock</Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
+            <Title size="medium">Actualización Masiva de Stock</Title>
+            <IconButton
+              icon="close"
+              onPress={handleClose}
+              variant="ghost"
+              size="small"
+            />
           </View>
 
           {/* Content */}
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Instructions */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📋 Instrucciones</Text>
-              <Text style={styles.instructionText}>
+              <Label size="large" style={styles.sectionTitle}>📋 Instrucciones</Label>
+              <Body size="small" color="secondary" style={styles.instructionText}>
                 1. Descarga el formato Excel con el stock actual
-              </Text>
-              <Text style={styles.instructionText}>
+              </Body>
+              <Body size="small" color="secondary" style={styles.instructionText}>
                 2. Edita la columna "NUEVO STOCK BASE" (amarilla) con los nuevos valores
-              </Text>
-              <Text style={styles.instructionText}>
+              </Body>
+              <Body size="small" color="secondary" style={styles.instructionText}>
                 3. Sube el archivo para actualizar el stock automáticamente
-              </Text>
+              </Body>
             </View>
 
             {/* Download Template Button */}
-            <TouchableOpacity
-              style={[styles.primaryButton, downloadingTemplate && styles.buttonDisabled]}
+            <Button
+              title="📥 Descargar Formato de Stock"
+              variant="primary"
               onPress={handleDownloadTemplate}
               disabled={downloadingTemplate || loading}
-            >
-              {downloadingTemplate ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Text style={styles.primaryButtonIcon}>📥</Text>
-                  <Text style={styles.primaryButtonText}>Descargar Formato de Stock</Text>
-                </>
-              )}
-            </TouchableOpacity>
+              loading={downloadingTemplate}
+              style={styles.primaryButton}
+            />
 
             {/* Upload File Button */}
-            <TouchableOpacity
-              style={[styles.secondaryButton, loading && styles.buttonDisabled]}
+            <Button
+              title="📤 Subir Actualización de Stock"
+              variant="outline"
               onPress={handleSelectFile}
               disabled={loading || downloadingTemplate}
-            >
-              {loading ? (
-                <ActivityIndicator color="#667eea" />
-              ) : (
-                <>
-                  <Text style={styles.secondaryButtonIcon}>📤</Text>
-                  <Text style={styles.secondaryButtonText}>Subir Actualización de Stock</Text>
-                </>
-              )}
-            </TouchableOpacity>
+              loading={loading}
+              style={styles.secondaryButton}
+            />
 
             {/* Upload Result */}
             {uploadResult && (
-              <View style={styles.resultSection}>
-                <Text style={styles.resultTitle}>Resultado de la Actualización</Text>
+              <Card variant="filled" padding="medium" style={styles.resultSection}>
+                <Label size="large" style={styles.resultTitle}>Resultado de la Actualización</Label>
 
                 <View style={styles.resultStats}>
                   <View style={styles.resultStatItem}>
-                    <Text style={styles.resultStatValue}>{uploadResult.totalRows}</Text>
-                    <Text style={styles.resultStatLabel}>Total Filas</Text>
+                    <Numeric size="large" weight="bold">{uploadResult.totalRows}</Numeric>
+                    <Caption color="secondary">Total Filas</Caption>
                   </View>
                   <View style={[styles.resultStatItem, styles.successStat]}>
-                    <Text style={[styles.resultStatValue, styles.successText]}>
+                    <Numeric size="large" weight="bold" color={colors.success[600]}>
                       {uploadResult.updatedRows}
-                    </Text>
-                    <Text style={styles.resultStatLabel}>Actualizados</Text>
+                    </Numeric>
+                    <Caption color="secondary">Actualizados</Caption>
                   </View>
                   <View style={[styles.resultStatItem, styles.errorStat]}>
-                    <Text style={[styles.resultStatValue, styles.errorText]}>
+                    <Numeric size="large" weight="bold" color={colors.danger[600]}>
                       {uploadResult.errors.length}
-                    </Text>
-                    <Text style={styles.resultStatLabel}>Errores</Text>
+                    </Numeric>
+                    <Caption color="secondary">Errores</Caption>
                   </View>
                 </View>
 
                 {/* Errors List */}
                 {uploadResult.errors.length > 0 && (
                   <View style={styles.errorsSection}>
-                    <Text style={styles.errorsTitle}>
+                    <Label size="medium" color={colors.danger[600]} style={styles.errorsTitle}>
                       ⚠️ Errores Encontrados ({uploadResult.errors.length})
-                    </Text>
+                    </Label>
                     <ScrollView style={styles.errorsList} nestedScrollEnabled>
                       {uploadResult.errors.map((error, index) => (
                         <View key={index} style={styles.errorItem}>
-                          <Text style={styles.errorRow}>Fila {error.row}</Text>
-                          <Text style={styles.errorSku}>SKU: {error.sku}</Text>
-                          <Text style={styles.errorMessage}>{error.error}</Text>
+                          <Label size="small" color={colors.danger[600]}>Fila {error.row}</Label>
+                          <Caption color="tertiary">SKU: {error.sku}</Caption>
+                          <Body size="small">{error.error}</Body>
                         </View>
                       ))}
                     </ScrollView>
                   </View>
                 )}
-              </View>
+              </Card>
             )}
 
             {/* Important Notes */}
             <View style={styles.notesSection}>
-              <Text style={styles.notesTitle}>💡 Notas Importantes</Text>
-              <Text style={styles.noteText}>
+              <Label size="medium" color={colors.accent[700]} style={styles.notesTitle}>
+                💡 Notas Importantes
+              </Label>
+              <Body size="small" color={colors.accent[700]} style={styles.noteText}>
                 • El formato incluye el stock actual de todos los productos
-              </Text>
-              <Text style={styles.noteText}>
+              </Body>
+              <Body size="small" color={colors.accent[700]} style={styles.noteText}>
                 • Solo edita la columna "NUEVO STOCK BASE" (resaltada en amarillo)
-              </Text>
-              <Text style={styles.noteText}>
+              </Body>
+              <Body size="small" color={colors.accent[700]} style={styles.noteText}>
                 • No modifiques las columnas de IDs (están ocultas en gris)
-              </Text>
-              <Text style={styles.noteText}>
+              </Body>
+              <Body size="small" color={colors.accent[700]} style={styles.noteText}>
                 • Cada actualización se registra automáticamente en el historial de movimientos
-              </Text>
-              <Text style={styles.noteText}>
+              </Body>
+              <Body size="small" color={colors.accent[700]} style={styles.noteText}>
                 • El stock disponible se calcula automáticamente (Stock Base - Stock Reservado)
-              </Text>
+              </Body>
             </View>
           </ScrollView>
         </View>
@@ -394,218 +398,99 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
     width: '90%',
     maxWidth: 600,
     maxHeight: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...shadows.xl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    flex: 1,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#64748B',
-    fontWeight: '300',
+    borderBottomColor: colors.border.light,
   },
   content: {
-    padding: 20,
+    padding: spacing[5],
   },
   section: {
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   instructionText: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 8,
+    marginBottom: spacing[2],
     lineHeight: 20,
   },
   primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#667eea',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  primaryButtonIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    marginBottom: spacing[3],
   },
   secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 2,
-    borderColor: '#667eea',
-  },
-  secondaryButtonIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#667eea',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
+    marginBottom: spacing[5],
   },
   resultSection: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    marginBottom: spacing[5],
   },
   resultTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   resultStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   resultStatItem: {
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    padding: spacing[3],
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.md,
     minWidth: 80,
   },
   successStat: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.success[50],
   },
   errorStat: {
-    backgroundColor: '#FEE2E2',
-  },
-  resultStatValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  successText: {
-    color: '#10B981',
-  },
-  errorText: {
-    color: '#EF4444',
-  },
-  resultStatLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
+    backgroundColor: colors.danger[50],
   },
   errorsSection: {
-    marginTop: 16,
+    marginTop: spacing[4],
   },
   errorsTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#DC2626',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   errorsList: {
     maxHeight: 200,
   },
   errorItem: {
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: colors.surface.primary,
+    padding: spacing[3],
+    borderRadius: borderRadius.md,
+    marginBottom: spacing[2],
     borderLeftWidth: 3,
-    borderLeftColor: '#EF4444',
-  },
-  errorRow: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#DC2626',
-    marginBottom: 4,
-  },
-  errorSku: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  errorMessage: {
-    fontSize: 13,
-    color: '#1E293B',
-    lineHeight: 18,
+    borderLeftColor: colors.danger[500],
   },
   notesSection: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.accent[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: colors.accent[200],
   },
   notesTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#4338CA',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   noteText: {
-    fontSize: 13,
-    color: '#4338CA',
-    marginBottom: 6,
+    marginBottom: spacing[1.5],
     lineHeight: 18,
   },
 });

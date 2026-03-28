@@ -2,13 +2,16 @@ import React, { useState, useRef } from 'react';
 import {
   View,
   TouchableOpacity,
-  Text,
+  Text as RNText,
   StyleSheet,
   Animated,
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+
+// Design System
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 
 interface StockFABProps {
   onDownloadTemplate: () => void;
@@ -46,21 +49,21 @@ export const StockFAB: React.FC<StockFABProps> = ({
     {
       key: 'export',
       label: 'Exportar Stock',
-      color: '#10B981',
+      color: colors.success[500],
       icon: 'download-outline',
       onPress: onExportStock,
     },
     {
       key: 'upload',
       label: 'Subir Archivo',
-      color: '#6366F1',
+      color: colors.accent[500],
       icon: 'cloud-upload',
       onPress: onUploadFile,
     },
     {
       key: 'template',
       label: 'Descargar Plantilla',
-      color: '#F59E0B',
+      color: colors.warning[500],
       icon: 'document-text',
       onPress: onDownloadTemplate,
     },
@@ -200,9 +203,9 @@ export const StockFAB: React.FC<StockFABProps> = ({
             >
               <View style={styles.optionRow}>
                 <View style={styles.labelContainer}>
-                  <Text style={[styles.optionLabel, isTablet && styles.optionLabelTablet]}>
+                  <RNText style={[styles.optionLabel, isTablet && styles.optionLabelTablet]}>
                     {action.label}
-                  </Text>
+                  </RNText>
                 </View>
                 <TouchableOpacity
                   style={[
@@ -216,7 +219,7 @@ export const StockFAB: React.FC<StockFABProps> = ({
                   <Ionicons
                     name={action.icon as any}
                     size={isTablet ? 24 : 20}
-                    color="#FFFFFF"
+                    color={colors.neutral[0]}
                   />
                 </TouchableOpacity>
               </View>
@@ -238,7 +241,7 @@ export const StockFAB: React.FC<StockFABProps> = ({
             onPress={toggleMenu}
             activeOpacity={0.9}
           >
-            <Text style={[styles.mainFabIcon, isTablet && styles.mainFabIconTablet]}>+</Text>
+            <RNText style={[styles.mainFabIcon, isTablet && styles.mainFabIconTablet]}>+</RNText>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -249,7 +252,7 @@ export const StockFAB: React.FC<StockFABProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
+    backgroundColor: colors.neutral[950],
     zIndex: 10000,
   },
   fabContainer: {
@@ -265,28 +268,28 @@ const styles = StyleSheet.create({
   mainFab: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#667eea',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[900],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#667eea',
+    shadowColor: colors.primary[900],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 12,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: colors.neutral[0],
   },
   mainFabTablet: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: borderRadius.full,
     shadowRadius: 16,
     elevation: 10,
   },
   mainFabIcon: {
     fontSize: 28,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '700',
   },
   mainFabIconTablet: {
@@ -299,33 +302,33 @@ const styles = StyleSheet.create({
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
   },
   optionButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.neutral[0],
   },
   optionButtonTablet: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: borderRadius.full,
   },
   labelContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    shadowColor: '#000',
+    backgroundColor: colors.neutral[0],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
@@ -335,7 +338,7 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.text.primary,
     textAlign: 'center',
   },
   optionLabelTablet: {
