@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { TransferItem, Transfer } from '@/types/transfers';
 
 interface TransferItemsListProps {
@@ -149,18 +150,18 @@ export const TransferItemsList: React.FC<TransferItemsListProps> = ({
 
 const styles = StyleSheet.create({
   listContainer: {
-    padding: 16,
+    padding: spacing[4],
   },
   itemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   itemHeader: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   itemInfo: {
     flex: 1,
@@ -168,126 +169,126 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   itemMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   itemCorrelative: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#6366F1',
+    color: colors.accent[500],
     fontFamily: 'monospace',
   },
   itemSku: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   quantitiesContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 8,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 6,
-    marginBottom: 8,
+    paddingVertical: spacing[2],
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing[2],
   },
   quantityItem: {
     alignItems: 'center',
   },
   quantityLabel: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     fontWeight: '600',
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   quantityValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#334155',
+    color: colors.neutral[700],
   },
   positive: {
-    color: '#10B981',
+    color: colors.success[500],
   },
   negative: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   notesContainer: {
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 4,
+    marginTop: spacing[2],
+    padding: spacing[2],
+    backgroundColor: colors.neutral[100],
+    borderRadius: borderRadius.sm,
   },
   notesLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
   },
   notesText: {
     fontSize: 12,
-    color: '#475569',
+    color: colors.neutral[600],
   },
   damageNotesContainer: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.danger[50],
     borderLeftWidth: 3,
-    borderLeftColor: '#EF4444',
+    borderLeftColor: colors.danger[500],
   },
   damageNotesLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#DC2626',
-    marginBottom: 4,
+    color: colors.danger[600],
+    marginBottom: spacing[1],
   },
   damageNotesText: {
     fontSize: 12,
-    color: '#991B1B',
+    color: colors.danger[800],
   },
   emptyContainer: {
-    padding: 32,
+    padding: spacing[8],
     alignItems: 'center',
   },
   emptyText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     fontStyle: 'italic',
   },
   areasContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 6,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   areaInfo: {
     flex: 1,
   },
   areaSeparator: {
     width: 1,
-    backgroundColor: '#CBD5E1',
-    marginHorizontal: 12,
+    backgroundColor: colors.neutral[300],
+    marginHorizontal: spacing[3],
   },
   areaLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
     textTransform: 'uppercase',
   },
   areaValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 2,
+    color: colors.neutral[800],
+    marginBottom: spacing[0.5],
   },
   warehouseValue: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
 });
 

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { Product, productsApi } from '@/services/api/products';
 import { inventoryApi } from '@/services/api/inventory';
 
@@ -178,12 +179,12 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
               onChangeText={setSearchQuery}
               onFocus={() => setShowDropdown(true)}
               editable={!disabled}
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.neutral[400]}
             />
             {isSearching && (
               <ActivityIndicator
                 size="small"
-                color="#6366F1"
+                color={colors.accent[500]}
                 style={styles.searchingIndicator}
               />
             )}
@@ -242,7 +243,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
           {showDropdown && searchQuery.trim() !== '' && isSearching && filteredProducts.length === 0 && (
             <View style={styles.dropdown}>
               <View style={styles.searchingContainer}>
-                <ActivityIndicator size="small" color="#6366F1" />
+                <ActivityIndicator size="small" color={colors.accent[500]} />
                 <Text style={styles.searchingText}>Buscando productos...</Text>
               </View>
             </View>
@@ -262,18 +263,18 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     paddingRight: 40, // Espacio para el indicador de carga
     fontSize: 14,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   inputDisabled: {
-    backgroundColor: '#F1F5F9',
-    color: '#94A3B8',
+    backgroundColor: colors.neutral[100],
+    color: colors.neutral[400],
   },
   searchingIndicator: {
     position: 'absolute',
@@ -281,11 +282,11 @@ const styles = StyleSheet.create({
     top: 12,
   },
   selectedContainer: {
-    backgroundColor: '#F0F9FF',
+    backgroundColor: colors.primary[50],
     borderWidth: 1,
-    borderColor: '#BAE6FD',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.primary[200],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -296,54 +297,54 @@ const styles = StyleSheet.create({
   selectedTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0C4A6E',
-    marginBottom: 2,
+    color: colors.primary[900],
+    marginBottom: spacing[0.5],
   },
   selectedMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 2,
+    gap: spacing[2],
+    marginBottom: spacing[0.5],
   },
   selectedCorrelative: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#6366F1',
+    color: colors.accent[500],
     fontFamily: 'monospace',
   },
   selectedSku: {
     fontSize: 12,
-    color: '#0369A1',
-    marginBottom: 2,
+    color: colors.primary[700],
+    marginBottom: spacing[0.5],
   },
   productMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   productCorrelative: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#6366F1',
+    color: colors.accent[500],
     fontFamily: 'monospace',
   },
   selectedStock: {
     fontSize: 12,
-    color: '#0284C7',
+    color: colors.primary[600],
     fontWeight: '500',
   },
   clearButton: {
     width: 24,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E0F2FE',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[100],
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    marginLeft: spacing[2],
   },
   clearButtonText: {
     fontSize: 16,
-    color: '#0369A1',
+    color: colors.primary[700],
     fontWeight: 'bold',
   },
   dropdown: {
@@ -351,10 +352,10 @@ const styles = StyleSheet.create({
     top: 48,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.lg,
     maxHeight: 250,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -370,23 +371,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    padding: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.neutral[100],
   },
   productInfo: {
     flex: 1,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   productTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1E293B',
-    marginBottom: 2,
+    color: colors.neutral[800],
+    marginBottom: spacing[0.5],
   },
   productSku: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   stockInfo: {
     alignItems: 'flex-end',
@@ -394,36 +395,36 @@ const styles = StyleSheet.create({
   stockText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#10B981',
+    color: colors.success[500],
   },
   stockTextZero: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   noStockBadge: {
     fontSize: 10,
-    color: '#EF4444',
-    backgroundColor: '#FEE2E2',
+    color: colors.danger[500],
+    backgroundColor: colors.danger[100],
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     marginTop: 2,
   },
   noResultsText: {
-    padding: 16,
+    padding: spacing[4],
     textAlign: 'center',
-    color: '#64748B',
+    color: colors.neutral[500],
     fontSize: 14,
   },
   searchingContainer: {
-    padding: 16,
+    padding: spacing[4],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   searchingText: {
-    color: '#64748B',
+    color: colors.neutral[500],
     fontSize: 14,
-    marginLeft: 8,
+    marginLeft: spacing[2],
   },
 });

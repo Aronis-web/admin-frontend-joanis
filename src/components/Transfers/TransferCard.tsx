@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { Transfer, getTransferTypeLabel } from '@/types/transfers';
 import { TransferStatusBadge } from './TransferStatusBadge';
 
@@ -75,23 +76,23 @@ export const TransferCard: React.FC<TransferCardProps> = ({ transfer, onPress })
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.default,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   headerLeft: {
     flex: 1,
@@ -99,75 +100,75 @@ const styles = StyleSheet.create({
   transferNumber: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 2,
+    color: colors.neutral[800],
+    marginBottom: spacing[0.5],
   },
   transferType: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
-    marginBottom: 12,
+    backgroundColor: colors.border.default,
+    marginBottom: spacing[3],
   },
   content: {
-    gap: 12,
+    gap: spacing[3],
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   locationContainer: {
     flex: 1,
   },
   label: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     fontWeight: '600',
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   locationText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
-    marginBottom: 2,
+    color: colors.neutral[700],
+    marginBottom: spacing[0.5],
   },
   siteText: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   arrow: {
     paddingHorizontal: 4,
   },
   arrowText: {
     fontSize: 20,
-    color: '#6366F1',
+    color: colors.accent[500],
     fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: spacing[2],
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.neutral[100],
   },
   footerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing[1],
   },
   footerLabel: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   footerValue: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[600],
   },
 });
 
