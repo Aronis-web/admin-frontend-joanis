@@ -12,18 +12,19 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAMERA_SIZE = SCREEN_WIDTH * 0.9;
 
 // Instrucciones para las posiciones de la cara (se ciclan durante la captura)
 const FACE_POSITIONS = [
-  { angle: 'Frente', icon: '😊', description: 'Mira directamente a la cámara', color: '#007AFF' },
-  { angle: 'Izquierda', icon: '👈', description: 'Gira tu cara ligeramente a la izquierda', color: '#34C759' },
-  { angle: 'Derecha', icon: '👉', description: 'Gira tu cara ligeramente a la derecha', color: '#FF9500' },
-  { angle: 'Arriba', icon: '👆', description: 'Inclina tu cara ligeramente hacia arriba', color: '#5856D6' },
-  { angle: 'Abajo', icon: '👇', description: 'Inclina tu cara ligeramente hacia abajo', color: '#FF2D55' },
-  { angle: 'Frente Final', icon: '😊', description: 'Mira directamente a la cámara', color: '#007AFF' },
+  { angle: 'Frente', icon: '😊', description: 'Mira directamente a la cámara', color: colors.primary[500] },
+  { angle: 'Izquierda', icon: '👈', description: 'Gira tu cara ligeramente a la izquierda', color: colors.success[500] },
+  { angle: 'Derecha', icon: '👉', description: 'Gira tu cara ligeramente a la derecha', color: colors.warning[500] },
+  { angle: 'Arriba', icon: '👆', description: 'Inclina tu cara ligeramente hacia arriba', color: colors.primary[600] },
+  { angle: 'Abajo', icon: '👇', description: 'Inclina tu cara ligeramente hacia abajo', color: colors.danger[500] },
+  { angle: 'Frente Final', icon: '😊', description: 'Mira directamente a la cámara', color: colors.primary[500] },
 ];
 
 interface FaceCaptureCameraProps {
@@ -226,7 +227,7 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
   if (!permission) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={colors.primary[500]} />
         <Text style={styles.loadingText}>Solicitando permisos de cámara...</Text>
       </View>
     );
@@ -235,7 +236,7 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <MaterialIcons name="camera-alt" size={64} color="#999" />
+        <MaterialIcons name="camera-alt" size={64} color={colors.neutral[400]} />
         <Text style={styles.errorText}>No se otorgaron permisos de cámara</Text>
         <TouchableOpacity style={styles.button} onPress={requestPermission}>
           <Text style={styles.buttonText}>Solicitar Permisos</Text>
@@ -395,7 +396,7 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
         ) : (
           <View style={styles.mainActions}>
             <View style={styles.statusContainer}>
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator size="small" color={colors.primary[500]} />
               <Text style={styles.statusText}>Finalizando...</Text>
             </View>
           </View>
@@ -408,14 +409,14 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.neutral[900],
     alignItems: 'center',
     justifyContent: 'center',
   },
   cameraContainer: {
     width: CAMERA_SIZE,
     height: CAMERA_SIZE,
-    borderRadius: 20,
+    borderRadius: borderRadius['2xl'],
     overflow: 'hidden',
     position: 'relative',
   },
@@ -424,18 +425,18 @@ const styles = StyleSheet.create({
   },
   flipButton: {
     position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 30,
-    padding: 10,
+    top: spacing[5],
+    right: spacing[5],
+    backgroundColor: colors.overlay.medium,
+    borderRadius: borderRadius.full,
+    padding: spacing[2.5],
     zIndex: 10,
   },
   topBar: {
     position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
+    top: spacing[5],
+    left: spacing[5],
+    right: spacing[5],
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -443,21 +444,21 @@ const styles = StyleSheet.create({
   },
   captureIndicator: {
     backgroundColor: 'rgba(52, 199, 89, 0.9)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: borderRadius['2xl'],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   captureDot: {
     width: 12,
     height: 12,
-    borderRadius: 6,
-    backgroundColor: '#fff',
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.neutral[0],
   },
   captureText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -465,19 +466,19 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: colors.overlay.light,
   },
   capturingIndicator: {
     alignItems: 'center',
-    gap: 10,
+    gap: spacing[2.5],
   },
   capturingText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '600',
   },
   capturingSubtext: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 14,
     opacity: 0.8,
   },
@@ -506,36 +507,36 @@ const styles = StyleSheet.create({
     left: -2,
     borderBottomWidth: 0,
     borderRightWidth: 0,
-    borderTopLeftRadius: 20,
+    borderTopLeftRadius: borderRadius['2xl'],
   },
   cornerTopRight: {
     top: -2,
     right: -2,
     borderBottomWidth: 0,
     borderLeftWidth: 0,
-    borderTopRightRadius: 20,
+    borderTopRightRadius: borderRadius['2xl'],
   },
   cornerBottomLeft: {
     bottom: -2,
     left: -2,
     borderTopWidth: 0,
     borderRightWidth: 0,
-    borderBottomLeftRadius: 20,
+    borderBottomLeftRadius: borderRadius['2xl'],
   },
   cornerBottomRight: {
     bottom: -2,
     right: -2,
     borderTopWidth: 0,
     borderLeftWidth: 0,
-    borderBottomRightRadius: 20,
+    borderBottomRightRadius: borderRadius['2xl'],
   },
   directionIndicator: {
     position: 'absolute',
-    top: 40,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
-    shadowColor: '#000',
+    top: spacing[10],
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[2.5],
+    borderRadius: borderRadius.full,
+    shadowColor: colors.neutral[900],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -545,18 +546,18 @@ const styles = StyleSheet.create({
     fontSize: 32,
   },
   instructionsContainer: {
-    marginTop: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    marginTop: spacing[5],
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     width: '100%',
-    borderRadius: 12,
-    marginHorizontal: 20,
+    borderRadius: borderRadius.xl,
+    marginHorizontal: spacing[5],
   },
   instructionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
-    marginBottom: 10,
+    gap: spacing[4],
+    marginBottom: spacing[2.5],
   },
   instructionIcon: {
     fontSize: 40,
@@ -567,58 +568,58 @@ const styles = StyleSheet.create({
   instructionsTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   instructionsDescription: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 14,
     opacity: 0.9,
   },
   progressBar: {
     height: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 3,
+    borderRadius: borderRadius.sm,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: borderRadius.sm,
   },
   actionsContainer: {
-    marginTop: 20,
+    marginTop: spacing[5],
     width: '100%',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing[5],
   },
   mainActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 15,
+    gap: spacing[4],
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: spacing[3.5],
+    paddingHorizontal: spacing[6],
+    borderRadius: borderRadius.xl,
+    gap: spacing[2],
     flex: 1,
   },
   cancelButton: {
-    backgroundColor: '#666',
+    backgroundColor: colors.neutral[500],
     flex: 0.4,
   },
   startButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: colors.success[500],
     flex: 1,
   },
   buttonDisabled: {
-    backgroundColor: '#444',
+    backgroundColor: colors.neutral[700],
     opacity: 0.5,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -627,27 +628,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: spacing[2.5],
     backgroundColor: 'rgba(52, 199, 89, 0.2)',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    paddingVertical: spacing[3.5],
+    paddingHorizontal: spacing[5],
+    borderRadius: borderRadius.xl,
   },
   statusText: {
-    color: '#34C759',
+    color: colors.success[500],
     fontSize: 14,
     fontWeight: '600',
   },
   loadingText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 16,
-    marginTop: 20,
+    marginTop: spacing[5],
   },
   errorText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 16,
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: spacing[5],
+    marginBottom: spacing[5],
     textAlign: 'center',
   },
 });
