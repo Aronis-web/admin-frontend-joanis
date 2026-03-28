@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { suppliersService } from '@/services/api';
 import { Supplier as FullSupplier, SupplierType } from '@/types/suppliers';
 import { Supplier } from '@/types/expenses';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface SupplierSearchInputProps {
   value?: string; // Supplier ID
@@ -142,7 +143,7 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
 
           {primaryLegalEntity && (
             <View style={styles.supplierItemDetails}>
-              <Ionicons name="document-text-outline" size={12} color="#64748B" />
+              <Ionicons name="document-text-outline" size={12} color={colors.neutral[500]} />
               <Text style={styles.supplierDetailText} numberOfLines={1}>
                 {primaryLegalEntity.legalName}
               </Text>
@@ -151,20 +152,20 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
 
           {primaryLegalEntity?.ruc && (
             <View style={styles.supplierItemDetails}>
-              <Ionicons name="card-outline" size={12} color="#64748B" />
+              <Ionicons name="card-outline" size={12} color={colors.neutral[500]} />
               <Text style={styles.supplierDetailText}>RUC: {primaryLegalEntity.ruc}</Text>
             </View>
           )}
 
           {item.category && (
             <View style={styles.supplierItemDetails}>
-              <Ionicons name="pricetag-outline" size={12} color="#64748B" />
+              <Ionicons name="pricetag-outline" size={12} color={colors.neutral[500]} />
               <Text style={styles.supplierDetailText}>{item.category}</Text>
             </View>
           )}
         </View>
 
-        <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+        <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
       </TouchableOpacity>
     );
   };
@@ -206,13 +207,13 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
                 style={styles.clearButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close-circle" size={20} color="#94A3B8" />
+                <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
               </TouchableOpacity>
             )}
           </View>
         ) : (
           <View style={styles.placeholderContainer}>
-            <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
+            <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
             <Text style={styles.placeholder}>{placeholder}</Text>
           </View>
         )}
@@ -235,7 +236,7 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
               style={styles.closeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="close" size={28} color="#1E293B" />
+              <Ionicons name="close" size={28} color={colors.neutral[800]} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Buscar Proveedor</Text>
             <View style={{ width: 28 }} />
@@ -243,7 +244,7 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
 
           {/* Search Input */}
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color="#64748B" style={styles.searchIconModal} />
+            <Ionicons name="search" size={20} color={colors.neutral[500]} style={styles.searchIconModal} />
             <TextInput
               style={styles.searchInput}
               value={searchQuery}
@@ -252,7 +253,7 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
               placeholderTextColor="#94A3B8"
               autoFocus
             />
-            {loading && <ActivityIndicator size="small" color="#6366F1" />}
+            {loading && <ActivityIndicator size="small" color={colors.accent[500]} />}
           </View>
 
           {/* Results */}
@@ -263,7 +264,7 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
             contentContainerStyle={styles.listContainer}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={48} color="#CBD5E1" />
+                <Ionicons name="search-outline" size={48} color={colors.neutral[300]} />
                 <Text style={styles.emptyText}>
                   {searchQuery
                     ? 'No se encontraron proveedores'
@@ -304,31 +305,31 @@ const getSupplierTypeLabel = (type: string): string => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
+    color: colors.neutral[600],
+    marginBottom: spacing[2],
   },
   required: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   inputContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderColor: colors.border.default,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[3],
     minHeight: 48,
   },
   inputContainerError: {
-    borderColor: '#EF4444',
+    borderColor: colors.danger[500],
   },
   inputContainerDisabled: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     opacity: 0.6,
   },
   placeholderContainer: {
@@ -336,11 +337,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   placeholder: {
     fontSize: 15,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   selectedSupplierContainer: {
     flexDirection: 'row',
@@ -353,74 +354,74 @@ const styles = StyleSheet.create({
   selectedSupplierName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 2,
+    color: colors.neutral[800],
+    marginBottom: spacing[0.5],
   },
   selectedSupplierRuc: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   clearButton: {
-    marginLeft: 8,
+    marginLeft: spacing[2],
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
-    marginTop: 4,
+    color: colors.danger[500],
+    marginTop: spacing[1],
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.primary,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.default,
   },
   closeButton: {
-    padding: 4,
+    padding: spacing[1],
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    margin: 16,
+    borderColor: colors.border.default,
+    paddingHorizontal: spacing[3],
+    margin: spacing[4],
   },
   searchIconModal: {
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: spacing[3],
     fontSize: 15,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   listContainer: {
-    padding: 16,
+    padding: spacing[4],
     paddingTop: 0,
   },
   supplierItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
-    marginBottom: 8,
+    borderColor: colors.border.default,
+    padding: spacing[3],
+    marginBottom: spacing[2],
   },
   supplierItemContent: {
     flex: 1,
@@ -428,46 +429,46 @@ const styles = StyleSheet.create({
   supplierItemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   supplierName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     flex: 1,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   typeBadge: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    backgroundColor: colors.accent[50],
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
   },
   typeBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#6366F1',
+    color: colors.accent[500],
   },
   supplierItemDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: spacing[1],
   },
   supplierDetailText: {
     fontSize: 12,
-    color: '#64748B',
-    marginLeft: 4,
+    color: colors.neutral[500],
+    marginLeft: spacing[1],
     flex: 1,
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 48,
+    paddingVertical: spacing[12],
   },
   emptyText: {
     fontSize: 14,
-    color: '#94A3B8',
-    marginTop: 12,
+    color: colors.neutral[400],
+    marginTop: spacing[3],
   },
 });
 

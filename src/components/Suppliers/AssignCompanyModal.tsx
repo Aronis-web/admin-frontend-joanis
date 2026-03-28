@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { suppliersService } from '@/services/api/suppliers';
 import { companiesApi } from '@/services/api/companies';
 import { SupplierDebtTransaction } from '@/types/suppliers';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface AssignCompanyModalProps {
   visible: boolean;
@@ -89,7 +90,7 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Asignar a Empresa</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#2c3e50" />
+              <Ionicons name="close" size={24} color={colors.neutral[0]} />
             </TouchableOpacity>
           </View>
 
@@ -113,7 +114,7 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
           <Text style={styles.sectionTitle}>Seleccione una empresa:</Text>
           <ScrollView style={styles.companiesList}>
             {loading ? (
-              <ActivityIndicator size="large" color="#3498db" style={styles.loader} />
+              <ActivityIndicator size="large" color={colors.accent[500]} style={styles.loader} />
             ) : (
               companies.map((company) => (
                 <TouchableOpacity
@@ -128,7 +129,7 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
                     <Ionicons
                       name={selectedCompanyId === company.id ? 'radio-button-on' : 'radio-button-off'}
                       size={24}
-                      color={selectedCompanyId === company.id ? '#3498db' : '#bdc3c7'}
+                      color={selectedCompanyId === company.id ? colors.accent[500] : colors.neutral[300]}
                     />
                     <View style={styles.companyTexts}>
                       <Text style={styles.companyName}>{company.name}</Text>
@@ -151,7 +152,7 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
               disabled={!selectedCompanyId || loading}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.neutral[0]} />
               ) : (
                 <Text style={styles.assignButtonText}>Asignar</Text>
               )}
@@ -166,7 +167,7 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -174,75 +175,75 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 500,
     maxHeight: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
     overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#3498db',
+    padding: spacing[4],
+    backgroundColor: colors.accent[500],
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.neutral[0],
   },
   closeButton: {
-    padding: 4,
+    padding: spacing[1],
   },
   transactionInfo: {
-    padding: 16,
-    backgroundColor: '#f8f9fa',
+    padding: spacing[4],
+    backgroundColor: colors.background.secondary,
     borderBottomWidth: 1,
-    borderBottomColor: '#ecf0f1',
+    borderBottomColor: colors.border.light,
   },
   infoLabel: {
     fontSize: 12,
-    color: '#7f8c8d',
-    marginTop: 8,
+    color: colors.neutral[500],
+    marginTop: spacing[2],
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2c3e50',
-    marginTop: 2,
+    color: colors.neutral[800],
+    marginTop: spacing[0.5],
   },
   amount: {
     fontSize: 18,
-    color: '#e74c3c',
+    color: colors.danger[500],
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#2c3e50',
-    padding: 16,
-    paddingBottom: 8,
+    color: colors.neutral[800],
+    padding: spacing[4],
+    paddingBottom: spacing[2],
   },
   companiesList: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing[4],
   },
   loader: {
-    marginVertical: 32,
+    marginVertical: spacing[8],
   },
   companyItem: {
-    padding: 12,
+    padding: spacing[3],
     borderWidth: 1,
-    borderColor: '#ecf0f1',
-    borderRadius: 8,
-    marginBottom: 8,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[2],
   },
   companyItemSelected: {
-    borderColor: '#3498db',
-    backgroundColor: '#ebf5fb',
+    borderColor: colors.accent[500],
+    backgroundColor: colors.accent[50],
   },
   companyInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
   },
   companyTexts: {
     flex: 1,
@@ -250,46 +251,46 @@ const styles = StyleSheet.create({
   companyName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2c3e50',
+    color: colors.neutral[800],
   },
   companyRuc: {
     fontSize: 12,
-    color: '#7f8c8d',
-    marginTop: 2,
+    color: colors.neutral[500],
+    marginTop: spacing[0.5],
   },
   footer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#ecf0f1',
-    gap: 12,
+    borderTopColor: colors.border.light,
+    gap: spacing[3],
   },
   cancelButton: {
     flex: 1,
-    padding: 12,
-    backgroundColor: '#ecf0f1',
-    borderRadius: 8,
+    padding: spacing[3],
+    backgroundColor: colors.neutral[100],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#7f8c8d',
+    color: colors.neutral[500],
   },
   assignButton: {
     flex: 1,
-    padding: 12,
-    backgroundColor: '#3498db',
-    borderRadius: 8,
+    padding: spacing[3],
+    backgroundColor: colors.accent[500],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   assignButtonDisabled: {
-    backgroundColor: '#95a5a6',
+    backgroundColor: colors.neutral[400],
   },
   assignButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.neutral[0],
   },
 });
 

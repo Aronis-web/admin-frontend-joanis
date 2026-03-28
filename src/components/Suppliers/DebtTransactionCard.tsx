@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
 import { SupplierDebtTransaction, TransactionType } from '@/types/suppliers';
 import filesApi from '@/services/api/files';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface DebtTransactionCardProps {
   transaction: SupplierDebtTransaction;
@@ -51,10 +52,10 @@ export const DebtTransactionCard: React.FC<DebtTransactionCardProps> = ({
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={onEdit} style={styles.iconButton}>
-            <Ionicons name="create-outline" size={20} color="#3498db" />
+            <Ionicons name="create-outline" size={20} color={colors.accent[500]} />
           </TouchableOpacity>
           <TouchableOpacity onPress={onDelete} style={styles.iconButton}>
-            <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+            <Ionicons name="trash-outline" size={20} color={colors.danger[500]} />
           </TouchableOpacity>
         </View>
       </View>
@@ -74,7 +75,7 @@ export const DebtTransactionCard: React.FC<DebtTransactionCardProps> = ({
       {/* Details */}
       <View style={styles.details}>
         <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={16} color="#7f8c8d" />
+          <Ionicons name="calendar-outline" size={16} color={colors.neutral[500]} />
           <Text style={styles.detailText}>
             {new Date(transaction.transactionDate).toLocaleDateString('es-PE')}
           </Text>
@@ -82,28 +83,28 @@ export const DebtTransactionCard: React.FC<DebtTransactionCardProps> = ({
 
         {transaction.referenceNumber && (
           <View style={styles.detailRow}>
-            <Ionicons name="document-text-outline" size={16} color="#7f8c8d" />
+            <Ionicons name="document-text-outline" size={16} color={colors.neutral[500]} />
             <Text style={styles.detailText}>{transaction.referenceNumber}</Text>
           </View>
         )}
 
         {transaction.company && (
           <View style={styles.detailRow}>
-            <Ionicons name="business-outline" size={16} color="#7f8c8d" />
+            <Ionicons name="business-outline" size={16} color={colors.neutral[500]} />
             <Text style={styles.detailText}>{transaction.company.name}</Text>
           </View>
         )}
 
         {!transaction.companyId && (
           <View style={styles.detailRow}>
-            <Ionicons name="alert-circle-outline" size={16} color="#f39c12" />
-            <Text style={[styles.detailText, { color: '#f39c12' }]}>Sin asignar</Text>
+            <Ionicons name="alert-circle-outline" size={16} color={colors.warning[500]} />
+            <Text style={[styles.detailText, { color: colors.warning[500] }]}>Sin asignar</Text>
           </View>
         )}
 
         {transaction.legalEntity && (
           <View style={styles.detailRow}>
-            <Ionicons name="document-outline" size={16} color="#7f8c8d" />
+            <Ionicons name="document-outline" size={16} color={colors.neutral[500]} />
             <Text style={styles.detailText}>
               {transaction.legalEntity.legalName} - {transaction.legalEntity.ruc}
             </Text>
@@ -112,7 +113,7 @@ export const DebtTransactionCard: React.FC<DebtTransactionCardProps> = ({
 
         {transaction.bankName && (
           <View style={styles.detailRow}>
-            <Ionicons name="card-outline" size={16} color="#7f8c8d" />
+            <Ionicons name="card-outline" size={16} color={colors.neutral[500]} />
             <Text style={styles.detailText}>
               {transaction.bankName}
               {transaction.bankAccountNumber && ` - ${transaction.bankAccountNumber}`}
@@ -122,8 +123,8 @@ export const DebtTransactionCard: React.FC<DebtTransactionCardProps> = ({
 
         {transaction.attachmentFileId && (
           <TouchableOpacity style={styles.detailRow} onPress={handleViewAttachment}>
-            <Ionicons name="attach-outline" size={16} color="#3498db" />
-            <Text style={[styles.detailText, { color: '#3498db' }]}>Ver archivo adjunto</Text>
+            <Ionicons name="attach-outline" size={16} color={colors.accent[500]} />
+            <Text style={[styles.detailText, { color: colors.accent[500] }]}>Ver archivo adjunto</Text>
           </TouchableOpacity>
         )}
 
@@ -138,7 +139,7 @@ export const DebtTransactionCard: React.FC<DebtTransactionCardProps> = ({
       {/* Actions */}
       {onAssign && !transaction.companyId && (
         <TouchableOpacity style={styles.assignButton} onPress={onAssign}>
-          <Ionicons name="business" size={16} color="#fff" />
+          <Ionicons name="business" size={16} color={colors.neutral[0]} />
           <Text style={styles.assignButtonText}>Asignar a Empresa</Text>
         </TouchableOpacity>
       )}
@@ -158,12 +159,12 @@ export const DebtTransactionCard: React.FC<DebtTransactionCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    marginHorizontal: spacing[4],
+    marginVertical: spacing[2],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   headerLeft: {
     flexDirection: 'row',
@@ -182,99 +183,99 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing[2],
   },
   typeBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 8,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.xl,
+    marginRight: spacing[2],
   },
   typeBadgeText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 12,
     fontWeight: 'bold',
   },
   transactionNumber: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2c3e50',
+    color: colors.neutral[800],
   },
   iconButton: {
-    padding: 4,
+    padding: spacing[1],
   },
   amountContainer: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   amount: {
     fontSize: 28,
     fontWeight: 'bold',
   },
   debitAmount: {
-    color: '#e74c3c',
+    color: colors.danger[500],
   },
   creditAmount: {
-    color: '#27ae60',
+    color: colors.success[600],
   },
   balanceAfter: {
     fontSize: 14,
-    color: '#7f8c8d',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
   },
   details: {
-    gap: 8,
+    gap: spacing[2],
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   detailText: {
     fontSize: 14,
-    color: '#2c3e50',
+    color: colors.neutral[800],
     flex: 1,
   },
   notesContainer: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    marginTop: spacing[2],
+    padding: spacing[3],
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
   },
   notesLabel: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#7f8c8d',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
   },
   notesText: {
     fontSize: 14,
-    color: '#2c3e50',
+    color: colors.neutral[800],
   },
   assignButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3498db',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 12,
-    gap: 8,
+    backgroundColor: colors.accent[500],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[3],
+    gap: spacing[2],
   },
   assignButtonText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 14,
     fontWeight: 'bold',
   },
   footer: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: spacing[3],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#ecf0f1',
+    borderTopColor: colors.border.light,
   },
   footerText: {
     fontSize: 12,
-    color: '#95a5a6',
+    color: colors.neutral[400],
   },
 });
 
