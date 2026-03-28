@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 export interface RecurrentProductCandidate {
   productId: string;
@@ -308,7 +309,7 @@ export const RecurrentProductModal: React.FC<RecurrentProductModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -322,8 +323,8 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 500,
     height: '90%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
     overflow: 'hidden',
   },
   containerTablet: {
@@ -334,10 +335,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 20,
+    padding: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderBottomColor: colors.border.default,
+    backgroundColor: colors.background.secondary,
   },
   headerContent: {
     flex: 1,
@@ -346,11 +347,11 @@ const styles = StyleSheet.create({
   },
   headerIcon: {
     fontSize: 32,
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   headerIconTablet: {
     fontSize: 40,
-    marginRight: 16,
+    marginRight: spacing[4],
   },
   headerTextContainer: {
     flex: 1,
@@ -358,15 +359,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   titleTablet: {
     fontSize: 22,
   },
   subtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginTop: 2,
   },
   subtitleTablet: {
@@ -377,84 +378,84 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   questionContainer: {
-    padding: 20,
-    backgroundColor: '#FEF3C7',
+    padding: spacing[5],
+    backgroundColor: colors.warning[50],
     borderBottomWidth: 1,
-    borderBottomColor: '#FDE68A',
+    borderBottomColor: colors.warning[200],
   },
   questionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#92400E',
-    marginBottom: 6,
+    color: colors.warning[800],
+    marginBottom: spacing[1.5],
   },
   questionTextTablet: {
     fontSize: 18,
   },
   questionHint: {
     fontSize: 13,
-    color: '#B45309',
+    color: colors.warning[700],
   },
   questionHintTablet: {
     fontSize: 15,
   },
   candidatesList: {
     flex: 1,
-    padding: 16,
+    padding: spacing[4],
   },
   candidateCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    padding: 12,
-    marginBottom: 12,
+    borderColor: colors.border.default,
+    padding: spacing[3],
+    marginBottom: spacing[3],
   },
   candidateCardTablet: {
-    padding: 16,
-    marginBottom: 16,
+    padding: spacing[4],
+    marginBottom: spacing[4],
   },
   candidateCardSelected: {
-    borderColor: '#6366F1',
-    backgroundColor: '#EEF2FF',
+    borderColor: colors.primary[500],
+    backgroundColor: colors.primary[50],
   },
   selectionIndicator: {
     width: 28,
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderColor: colors.neutral[300],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-    backgroundColor: '#FFFFFF',
+    marginRight: spacing[3],
+    backgroundColor: colors.surface.primary,
   },
   selectionIndicatorSelected: {
-    borderColor: '#6366F1',
-    backgroundColor: '#6366F1',
+    borderColor: colors.primary[500],
+    backgroundColor: colors.primary[500],
   },
   selectionCheckmark: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '700',
   },
   photoContainer: {
     width: 80,
     height: 80,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
+    marginRight: spacing[3],
+    backgroundColor: colors.neutral[100],
   },
   productPhoto: {
     width: '100%',
@@ -465,7 +466,7 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
   },
   noPhotoText: {
     fontSize: 32,
@@ -476,21 +477,21 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   productTitleTablet: {
     fontSize: 17,
   },
   infoRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   infoLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
-    marginRight: 6,
+    color: colors.neutral[500],
+    marginRight: spacing[1.5],
     minWidth: 100,
   },
   infoLabelTablet: {
@@ -499,7 +500,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: 12,
-    color: '#1E293B',
+    color: colors.neutral[800],
     flex: 1,
   },
   infoValueTablet: {
@@ -507,19 +508,19 @@ const styles = StyleSheet.create({
   },
   stockValue: {
     fontWeight: '600',
-    color: '#059669',
+    color: colors.success[600],
   },
   warehouseSection: {
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: spacing[2],
+    paddingTop: spacing[2],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.border.default,
   },
   warehouseSectionTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
   },
   warehouseSectionTitleTablet: {
     fontSize: 14,
@@ -531,7 +532,7 @@ const styles = StyleSheet.create({
   },
   warehouseName: {
     fontSize: 11,
-    color: '#475569',
+    color: colors.neutral[600],
     flex: 1,
   },
   warehouseNameTablet: {
@@ -540,60 +541,60 @@ const styles = StyleSheet.create({
   warehouseQuantity: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#059669',
+    color: colors.success[600],
   },
   warehouseQuantityTablet: {
     fontSize: 13,
   },
   footer: {
-    padding: 16,
+    padding: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderTopColor: colors.border.default,
+    backgroundColor: colors.background.secondary,
   },
   footerTablet: {
-    padding: 20,
+    padding: spacing[5],
   },
   confirmButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 8,
-    paddingVertical: 14,
+    backgroundColor: colors.primary[500],
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing[3.5],
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: spacing[2.5],
   },
   confirmButtonTablet: {
-    paddingVertical: 16,
-    marginBottom: 12,
+    paddingVertical: spacing[4],
+    marginBottom: spacing[3],
   },
   confirmButtonDisabled: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: colors.neutral[300],
   },
   confirmButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   confirmButtonTextTablet: {
     fontSize: 17,
   },
   confirmButtonTextDisabled: {
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   createNewButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.lg,
     borderWidth: 2,
-    borderColor: '#6366F1',
-    paddingVertical: 14,
+    borderColor: colors.primary[500],
+    paddingVertical: spacing[3.5],
     alignItems: 'center',
   },
   createNewButtonTablet: {
-    paddingVertical: 16,
+    paddingVertical: spacing[4],
   },
   createNewButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#6366F1',
+    color: colors.primary[500],
   },
   createNewButtonTextTablet: {
     fontSize: 17,
