@@ -110,7 +110,7 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
                   value={actualAmount}
                   onChangeText={setActualAmount}
                   placeholder="0.00"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.neutral[400]}
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -124,7 +124,7 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Ej: Factura recibida con descuento"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.neutral[400]}
                 multiline
                 numberOfLines={3}
               />

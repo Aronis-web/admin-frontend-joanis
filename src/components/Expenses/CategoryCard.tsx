@@ -62,14 +62,14 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
             <Ionicons
               name={safeIconName as any}
               size={isSubcategory ? 24 : 32}
-              color={category.color || '#6366F1'}
+              color={category.color || colors.accent[500]}
             />
           ) : (
             <View
               style={[
                 styles.iconPlaceholder,
                 isSubcategory && styles.iconPlaceholderSmall,
-                { backgroundColor: category.color || '#6366F1' },
+                { backgroundColor: category.color || colors.accent[500] },
               ]}
             >
               <Text
@@ -104,7 +104,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
           )}
           {!isSubcategory && hasSubcategories && (
             <View style={styles.subcategoryCountBadge}>
-              <Ionicons name="folder-outline" size={12} color="#6366F1" />
+              <Ionicons name="folder-outline" size={12} color={colors.accent[500]} />
               <Text style={styles.subcategoryCountText}>{category.subcategories!.length}</Text>
             </View>
           )}
@@ -115,17 +115,17 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
           <View style={styles.actionButtons}>
             {onCreateSubcategory && (
               <TouchableOpacity onPress={handleCreateSubcategory} style={styles.addButton}>
-                <Ionicons name="add-circle-outline" size={20} color="#10B981" />
+                <Ionicons name="add-circle-outline" size={20} color={colors.success[500]} />
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={handleEditPress} style={styles.editButton}>
-              <Ionicons name="create-outline" size={20} color="#6366F1" />
+              <Ionicons name="create-outline" size={20} color={colors.accent[500]} />
             </TouchableOpacity>
             {hasSubcategories && (
               <Ionicons
                 name={isExpanded ? 'chevron-up' : 'chevron-down'}
                 size={20}
-                color="#64748B"
+                color={colors.neutral[500]}
                 style={styles.expandIcon}
               />
             )}

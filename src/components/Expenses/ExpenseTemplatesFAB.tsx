@@ -53,7 +53,7 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
     {
       key: 'test-generation',
       label: 'Generar Gastos',
-      color: '#F59E0B',
+      color: colors.warning[500],
       icon: 'play-circle',
       onPress: onTestGeneration,
       loading: generatingExpenses,
@@ -61,21 +61,21 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
     {
       key: 'bulk-upload',
       label: 'Carga Masiva',
-      color: '#10B981',
+      color: colors.success[500],
       icon: 'cloud-upload',
       onPress: onBulkUpload,
     },
     {
       key: 'download',
       label: 'Descargar Reporte',
-      color: '#6366F1',
+      color: colors.accent[500],
       icon: 'download',
       onPress: onDownloadReport,
     },
     {
       key: 'create',
       label: 'Crear Plantilla',
-      color: '#DC2626',
+      color: colors.danger[600],
       icon: 'add',
       onPress: onCreateTemplate,
     },

@@ -258,7 +258,7 @@ export const TemplateSearchInput: React.FC<TemplateSearchInputProps> = ({
               value={searchQuery}
               onChangeText={handleSearchChange}
               placeholder="Buscar por nombre, código..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.neutral[400]}
               autoFocus
             />
             {loading && <ActivityIndicator size="small" color={colors.accent[500]} />}

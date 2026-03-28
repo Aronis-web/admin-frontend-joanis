@@ -76,15 +76,15 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
   const getAccountPayableStatusStyle = (status: string) => {
     switch (status) {
       case 'PAID':
-        return { backgroundColor: '#D1FAE5', borderColor: '#10B981' };
+        return { backgroundColor: colors.success[100], borderColor: colors.success[500] };
       case 'PARTIAL':
-        return { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' };
+        return { backgroundColor: colors.warning[100], borderColor: colors.warning[500] };
       case 'PENDING':
-        return { backgroundColor: '#F1F5F9', borderColor: '#94A3B8' };
+        return { backgroundColor: colors.neutral[100], borderColor: colors.neutral[400] };
       case 'CANCELLED':
-        return { backgroundColor: '#FEE2E2', borderColor: '#EF4444' };
+        return { backgroundColor: colors.danger[100], borderColor: colors.danger[500] };
       default:
-        return { backgroundColor: '#F1F5F9', borderColor: '#94A3B8' };
+        return { backgroundColor: colors.neutral[100], borderColor: colors.neutral[400] };
     }
   };
 

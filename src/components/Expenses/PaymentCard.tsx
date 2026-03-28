@@ -270,7 +270,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
                       handleViewAttachment(attachment);
                     }}
                   >
-                    <Ionicons name={getFileIcon(attachment) as any} size={20} color="#6366F1" />
+                    <Ionicons name={getFileIcon(attachment) as any} size={20} color={colors.accent[500]} />
                     <View style={styles.attachmentInfo}>
                       <Text style={styles.attachmentButtonText}>
                         {getFileTypeLabel(attachment)}
@@ -284,7 +284,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
                         </Text>
                       )}
                     </View>
-                    <Ionicons name="open-outline" size={16} color="#6366F1" />
+                    <Ionicons name="open-outline" size={16} color={colors.accent[500]} />
                   </TouchableOpacity>
                 );
               })}
@@ -305,13 +305,13 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
                 })
               }
             >
-              <Ionicons name="document-attach" size={20} color="#6366F1" />
+              <Ionicons name="document-attach" size={20} color={colors.accent[500]} />
               <Text style={styles.attachmentButtonText}>Ver archivo adjunto</Text>
-              <Ionicons name="open-outline" size={16} color="#6366F1" />
+              <Ionicons name="open-outline" size={16} color={colors.accent[500]} />
             </TouchableOpacity>
           ) : (
             <View style={styles.noAttachmentContainer}>
-              <Ionicons name="document-outline" size={16} color="#94A3B8" />
+              <Ionicons name="document-outline" size={16} color={colors.neutral[400]} />
               <Text style={styles.noAttachmentText}>Sin archivos adjuntos</Text>
             </View>
           )}

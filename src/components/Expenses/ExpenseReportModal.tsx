@@ -376,7 +376,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                 <View style={styles.section}>
                   <Text style={styles.sectionLabel}>Sede (Opcional)</Text>
                   {loadingSites ? (
-                    <ActivityIndicator size="small" color="#6366F1" />
+                    <ActivityIndicator size="small" color={colors.accent[500]} />
                   ) : (
                     <ScrollView
                       horizontal
@@ -423,7 +423,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                 <View style={styles.section}>
                   <Text style={styles.sectionLabel}>Categoría (Opcional)</Text>
                   {loadingCategories ? (
-                    <ActivityIndicator size="small" color="#6366F1" />
+                    <ActivityIndicator size="small" color={colors.accent[500]} />
                   ) : (
                     <ScrollView
                       horizontal
@@ -472,25 +472,25 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                   {isRecurrent ? (
                     <>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
                         <Text style={styles.exampleText}>
                           Todas las plantillas activas: Deja todos los filtros vacíos
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
                         <Text style={styles.exampleText}>
                           Plantillas de una sede: Selecciona la sede específica
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
                         <Text style={styles.exampleText}>
                           Todas las plantillas (incluyendo inactivas): Activa "Todas"
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
                         <Text style={styles.exampleText}>
                           Plantillas por categoría: Selecciona la categoría deseada
                         </Text>
@@ -499,25 +499,25 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                   ) : (
                     <>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
                         <Text style={styles.exampleText}>
                           Todos los gastos del 2024: Selecciona 01/01/2024 - 31/12/2024
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
                         <Text style={styles.exampleText}>
                           Gastos de una sede: Selecciona la sede específica
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
                         <Text style={styles.exampleText}>
                           Gastos por categoría: Selecciona la categoría deseada
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
                         <Text style={styles.exampleText}>
                           Todos los gastos: Deja todos los filtros vacíos
                         </Text>
@@ -541,7 +541,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                   disabled={downloading}
                 >
                   {downloading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.neutral[0]} />
                   ) : (
                     <>
                       <Ionicons name="download" size={20} color={colors.neutral[0]} />
