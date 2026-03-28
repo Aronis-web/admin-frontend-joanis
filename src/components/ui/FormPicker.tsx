@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, Platform } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface PickerOption {
   label: string;
@@ -104,117 +105,117 @@ export const FormPicker: React.FC<FormPickerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   pickerButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.primary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3.5],
   },
   pickerButtonError: {
-    borderColor: '#EF4444',
+    borderColor: colors.danger[500],
   },
   pickerButtonDisabled: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     opacity: 0.6,
   },
   pickerButtonText: {
     fontSize: 15,
-    color: '#1E293B',
+    color: colors.neutral[800],
     flex: 1,
   },
   placeholderText: {
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   disabledText: {
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   pickerIcon: {
     fontSize: 12,
-    color: '#64748B',
-    marginLeft: 8,
+    color: colors.neutral[500],
+    marginLeft: spacing[2],
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
-    marginTop: 4,
-    marginLeft: 4,
+    color: colors.danger[500],
+    marginTop: spacing[1],
+    marginLeft: spacing[1],
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.surface.primary,
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     maxHeight: '70%',
-    paddingBottom: 20,
+    paddingBottom: spacing[5],
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.default,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   optionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.neutral[100],
   },
   selectedOption: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.primary[50],
   },
   optionText: {
     fontSize: 16,
-    color: '#1E293B',
+    color: colors.neutral[800],
     flex: 1,
   },
   selectedOptionText: {
-    color: '#3B82F6',
+    color: colors.primary[500],
     fontWeight: '600',
   },
   checkmark: {
     fontSize: 18,
-    color: '#3B82F6',
+    color: colors.primary[500],
     fontWeight: '700',
   },
 });

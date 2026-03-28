@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePermissions } from '@/hooks/usePermissions';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface ProtectedFABProps {
   icon: string;
@@ -181,18 +182,18 @@ export const ProtectedFAB: React.FC<ProtectedFABProps> = ({
 const styles = StyleSheet.create({
   fabContainer: {
     position: 'absolute',
-    right: 20,
+    right: spacing[5],
     alignItems: 'center',
-    zIndex: 9998, // Just below the menu FAB (9999)
+    zIndex: 9998,
   },
   fab: {
     width: 60,
     height: 60,
-    borderRadius: 30,
-    backgroundColor: '#3B82F6',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: {
       width: 0,
       height: 4,
@@ -208,21 +209,21 @@ const styles = StyleSheet.create({
   },
   fabIcon: {
     fontSize: 28,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   fabIconTablet: {
     fontSize: 32,
   },
   fabLabel: {
-    marginTop: 8,
+    marginTop: spacing[2],
     fontSize: 12,
-    color: '#1E293B',
+    color: colors.neutral[800],
     fontWeight: '600',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.xl,
+    shadowColor: colors.neutral[950],
     shadowOffset: {
       width: 0,
       height: 2,
@@ -233,8 +234,8 @@ const styles = StyleSheet.create({
   },
   fabLabelTablet: {
     fontSize: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[1.5],
   },
 });
 

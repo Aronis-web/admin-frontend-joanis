@@ -8,7 +8,7 @@ import {
   ViewStyle,
   Animated,
 } from 'react-native';
-import { theme } from '@/theme';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface FormTextInputProps extends TextInputProps {
   label?: string;
@@ -52,7 +52,7 @@ export const FormTextInput: React.FC<FormTextInputProps> = ({
       <Animated.View style={[styles.inputContainer, inputStyle, style]}>
         <TextInput
           style={styles.textInput}
-          placeholderTextColor={theme.colors.text.hint}
+          placeholderTextColor={colors.text.tertiary}
           keyboardType="default"
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -66,23 +66,23 @@ export const FormTextInput: React.FC<FormTextInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: spacing[4],
   },
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.xs,
+    color: colors.text.primary,
+    marginBottom: spacing[1],
     letterSpacing: 0.5,
   },
   inputContainer: {
-    borderRadius: 24, // Pill style
+    borderRadius: borderRadius['2xl'],
     borderWidth: 1,
-    borderColor: theme.colors.outline,
-    backgroundColor: theme.colors.white,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    shadowColor: '#000',
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -92,24 +92,24 @@ const styles = StyleSheet.create({
     // Base styles
   },
   inputFocused: {
-    borderColor: theme.colors.blue,
-    shadowColor: theme.colors.blue,
+    borderColor: colors.primary[500],
+    shadowColor: colors.primary[500],
     shadowOffset: { width: 0, height: 5 },
     shadowRadius: 13,
     elevation: 4,
   },
   inputError: {
-    borderColor: '#FFB3BA',
+    borderColor: colors.danger[200],
   },
   textInput: {
     fontSize: 16,
-    color: theme.colors.text.primary,
+    color: colors.text.primary,
     flex: 1,
   },
   errorText: {
     fontSize: 12,
-    color: '#FF6B6B',
-    marginTop: theme.spacing.xs,
+    color: colors.danger[500],
+    marginTop: spacing[1],
   },
 });
 

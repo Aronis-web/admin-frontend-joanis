@@ -9,7 +9,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@/theme';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { FormTextInput } from './FormTextInput';
 
 interface PasswordInputProps extends Omit<TextInputProps, 'secureTextEntry'> {
@@ -62,7 +62,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
       <Animated.View style={[styles.inputContainer, inputStyle, style]}>
         <TextInput
           style={styles.textInput}
-          placeholderTextColor={theme.colors.text.hint}
+          placeholderTextColor={colors.text.tertiary}
           keyboardType="default"
           secureTextEntry={!showPassword}
           onFocus={() => setIsFocused(true)}
@@ -81,7 +81,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
           <Ionicons
             name={showPassword ? 'eye-off' : 'eye'}
             size={20}
-            color={theme.colors.text.secondary}
+            color={colors.text.secondary}
             style={{ opacity: eyeOpacity }}
           />
         </TouchableOpacity>
@@ -93,25 +93,25 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: spacing[4],
   },
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.xs,
+    color: colors.text.primary,
+    marginBottom: spacing[1],
     letterSpacing: 0.5,
   },
   inputContainer: {
-    borderRadius: 24, // Pill style
+    borderRadius: borderRadius['2xl'],
     borderWidth: 1,
-    borderColor: theme.colors.outline,
-    backgroundColor: theme.colors.white,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -121,32 +121,32 @@ const styles = StyleSheet.create({
     // Base styles
   },
   inputFocused: {
-    borderColor: theme.colors.blue,
-    shadowColor: theme.colors.blue,
+    borderColor: colors.primary[500],
+    shadowColor: colors.primary[500],
     shadowOffset: { width: 0, height: 5 },
     shadowRadius: 13,
     elevation: 4,
   },
   inputError: {
-    borderColor: '#FFB3BA',
+    borderColor: colors.danger[200],
   },
   textInput: {
     fontSize: 16,
-    color: theme.colors.text.primary,
+    color: colors.text.primary,
     flex: 1,
   },
   eyeButton: {
-    padding: 4,
-    marginLeft: 8,
+    padding: spacing[1],
+    marginLeft: spacing[2],
     justifyContent: 'center',
     alignItems: 'center',
-    width: 36, // 36px hit area
-    height: 36, // 36px hit area
+    width: 36,
+    height: 36,
   },
   errorText: {
     fontSize: 12,
-    color: '#FF6B6B',
-    marginTop: theme.spacing.xs,
+    color: colors.danger[500],
+    marginTop: spacing[1],
   },
 });
 

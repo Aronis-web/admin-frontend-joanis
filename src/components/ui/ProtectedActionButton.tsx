@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { usePermissions } from '@/hooks/usePermissions';
 import { buildPermission } from '@/constants/permissions';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 type ActionType = 'create' | 'read' | 'update' | 'delete' | 'custom';
 type VariantType = 'primary' | 'secondary' | 'danger' | 'success' | 'warning';
@@ -132,51 +133,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
     minHeight: 36,
   },
   primary: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary[600],
   },
   secondary: {
-    backgroundColor: '#6B7280',
+    backgroundColor: colors.neutral[500],
   },
   danger: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.danger[600],
   },
   success: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success[500],
   },
   warning: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: colors.warning[500],
   },
   disabled: {
     opacity: 0.5,
   },
   icon: {
     fontSize: 16,
-    marginRight: 4,
+    marginRight: spacing[1],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
   },
   label_primary: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   label_secondary: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   label_danger: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   label_success: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   label_warning: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
 
