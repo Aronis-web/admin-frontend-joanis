@@ -250,7 +250,7 @@ export const SupplierSearchInput: React.FC<SupplierSearchInputProps> = ({
               value={searchQuery}
               onChangeText={handleSearchChange}
               placeholder="Buscar por nombre, RUC, categoría..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.neutral[400]}
               autoFocus
             />
             {loading && <ActivityIndicator size="small" color={colors.accent[500]} />}

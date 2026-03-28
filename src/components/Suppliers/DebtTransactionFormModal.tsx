@@ -340,7 +340,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#2c3e50" />
+            <Ionicons name="close" size={24} color={colors.neutral[800]} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
             {isEditMode ? 'Editar Transacción' : 'Nueva Transacción'}
@@ -365,7 +365,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
                   <Ionicons
                     name={type.icon as any}
                     size={24}
-                    color={transactionType === type.value ? '#fff' : '#3498db'}
+                    color={transactionType === type.value ? colors.neutral[0] : colors.primary[500]}
                   />
                   <Text
                     style={[
@@ -434,7 +434,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
               style={styles.dateButton}
               onPress={() => setShowTransactionDatePicker(true)}
             >
-              <Ionicons name="calendar-outline" size={20} color="#3498db" />
+              <Ionicons name="calendar-outline" size={20} color={colors.primary[500]} />
               <Text style={styles.dateButtonText}>
                 {transactionDate.toLocaleDateString('es-PE', {
                   year: 'numeric',
@@ -465,7 +465,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
               style={styles.dateButton}
               onPress={() => setShowDueDatePicker(true)}
             >
-              <Ionicons name="calendar-outline" size={20} color="#3498db" />
+              <Ionicons name="calendar-outline" size={20} color={colors.primary[500]} />
               <Text style={styles.dateButtonText}>
                 {dueDate
                   ? dueDate.toLocaleDateString('es-PE', {
@@ -539,7 +539,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
               onPress={showAttachmentOptions}
               disabled={uploading}
             >
-              <Ionicons name="attach" size={20} color="#3498db" />
+              <Ionicons name="attach" size={20} color={colors.primary[500]} />
               <Text style={styles.attachmentButtonText}>
                 {uploading
                   ? 'Subiendo...'
@@ -548,7 +548,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
             </TouchableOpacity>
             {attachmentFileName && (
               <View style={styles.attachmentInfo}>
-                <Ionicons name="checkmark-circle" size={16} color="#27ae60" />
+                <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
                 <Text style={styles.attachmentInfoText}>{attachmentFileName}</Text>
               </View>
             )}
