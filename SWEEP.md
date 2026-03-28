@@ -52,8 +52,53 @@ npm run build:electron:win
 - Soporta actualizaciones automáticas vía GitHub Releases
 - Ver `README_ELECTRON.md` para más detalles
 
-#### Generar APK de Producción
-Para generar el APK del proyecto usando EAS Build:
+#### Generar APK de Producción (Local - Recomendado)
+
+**Build local usando Gradle** (evita límites de EAS Build):
+
+```powershell
+# Variables
+$PROJECT = "C:/Users/aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis"
+$BUILD_DIR = "C:\erp"
+$OUTPUT_DIR = "C:\Users\aaron\OneDrive\Desktop\apps Erp aio"
+
+# 1. Obtener versión del app.json
+$appJson = Get-Content "$PROJECT\app.json" | ConvertFrom-Json
+$VERSION = $appJson.expo.version
+
+# 2. Limpiar y copiar proyecto a ruta corta (evita límite de 250 caracteres de CMake)
+Remove-Item -Recurse -Force $BUILD_DIR -ErrorAction SilentlyContinue
+Copy-Item -Recurse $PROJECT $BUILD_DIR
+
+# 3. Limpiar y regenerar android en ruta corta
+Set-Location $BUILD_DIR
+Remove-Item -Recurse -Force node_modules, android -ErrorAction SilentlyContinue
+npm install
+npx expo prebuild --platform android
+
+# 4. Compilar APK
+Set-Location "$BUILD_DIR\android"
+./gradlew assembleRelease
+
+# 5. Copiar APK con versión en el nombre
+Copy-Item "$BUILD_DIR\android\app\build\outputs\apk\release\app-release.apk" "$OUTPUT_DIR\ERP-aio-v$VERSION.apk"
+
+# 6. Volver al proyecto original
+Set-Location $PROJECT
+
+Write-Host "APK generado: $OUTPUT_DIR\ERP-aio-v$VERSION.apk"
+```
+
+**Carpeta de salida:** `C:\Users\aaron\OneDrive\Desktop\apps Erp aio\`
+**Formato del archivo:** `ERP-aio-v{VERSION}.apk` (ej: `ERP-aio-v1.0.2.apk`)
+
+**Notas:**
+- Se usa ruta corta `C:\erp` para evitar errores de CMake con paths largos (límite 250 caracteres)
+- El build local toma ~5-10 minutos dependiendo del hardware
+- Requiere Android SDK instalado (`ANDROID_HOME` configurado)
+- La versión se extrae automáticamente de `app.json`
+
+#### Generar APK con EAS Build (Nube - Límite mensual)
 
 ```bash
 cd C:/Users/aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis
@@ -61,11 +106,9 @@ npx eas-cli build --platform android --profile production
 ```
 
 **Notas:**
-- El comando incrementa automáticamente el versionCode
-- El APK se genera en la nube usando EAS Build
-- Al finalizar, se proporciona un enlace de descarga del APK
-- El proceso toma aproximadamente 10-20 minutos
-- Requiere cuenta de Expo configurada
+- EAS Build tiene límite de builds gratuitos por mes
+- El APK se genera en la nube
+- Al finalizar, se proporciona un enlace de descarga
 
 #### Perfiles de Build Disponibles (eas.json)
 - `production`: APK de producción con auto-incremento de versión
