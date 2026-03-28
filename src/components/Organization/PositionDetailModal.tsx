@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { PositionTreeNode } from '@/types/organization';
 
 interface PositionDetailModalProps {
@@ -150,7 +151,7 @@ export const PositionDetailModal: React.FC<PositionDetailModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -158,8 +159,8 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 500,
     maxHeight: '80%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
     overflow: 'hidden',
   },
   modalHeader: {
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
   },
   headerContent: {
     flexDirection: 'row',
@@ -185,16 +186,16 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
+    color: colors.neutral[900],
+    marginBottom: spacing[1],
   },
   positionCode: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   closeButton: {
     fontSize: 24,
-    color: '#6B7280',
+    color: colors.neutral[500],
     padding: 4,
   },
   modalContent: {
@@ -202,145 +203,145 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
+    gap: spacing[2],
+    marginBottom: spacing[5],
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.md,
   },
   statusActive: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: colors.success[100],
   },
   statusInactive: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.danger[100],
   },
   statusText: {
     fontSize: 14,
     fontWeight: '600',
   },
   statusTextActive: {
-    color: '#059669',
+    color: colors.success[600],
   },
   statusTextInactive: {
-    color: '#DC2626',
+    color: colors.danger[600],
   },
   scopeBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: '#EEF2FF',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary[50],
   },
   scopeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4F46E5',
+    color: colors.primary[600],
   },
   section: {
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 12,
+    color: colors.neutral[900],
+    marginBottom: spacing[3],
   },
   description: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.neutral[700],
     lineHeight: 20,
   },
   detailsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: spacing[3],
   },
   detailItem: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#F9FAFB',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: colors.neutral[50],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
   },
   detailLabel: {
     fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
   },
   detailValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.neutral[900],
   },
   hierarchyInfo: {
-    backgroundColor: '#F9FAFB',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: colors.neutral[50],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
   },
   hierarchyItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   hierarchyLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   hierarchyValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.neutral[900],
   },
   assignmentsInfo: {
-    backgroundColor: '#EEF2FF',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: colors.primary[50],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
   },
   assignmentsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4F46E5',
+    color: colors.primary[600],
   },
   infoBox: {
-    backgroundColor: '#FEF3C7',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
+    backgroundColor: colors.warning[100],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[2],
   },
   infoText: {
     fontSize: 12,
-    color: '#92400E',
+    color: colors.warning[800],
     lineHeight: 18,
   },
   modalFooter: {
     flexDirection: 'row',
-    padding: 20,
+    padding: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    gap: 12,
+    borderTopColor: colors.neutral[200],
+    gap: spacing[3],
   },
   button: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   deleteButton: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.danger[100],
   },
   deleteButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#DC2626',
+    color: colors.danger[600],
   },
   editButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.accent[500],
   },
   editButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
 

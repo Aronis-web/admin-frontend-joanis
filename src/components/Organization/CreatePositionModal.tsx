@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { organizationApi } from '@/services/api/organization';
 import { PositionTreeNode, ScopeLevel } from '@/types/organization';
 
@@ -229,7 +230,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.neutral[0]} />
               ) : (
                 <Text style={styles.submitButtonText}>Crear Puesto</Text>
               )}
@@ -244,7 +245,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -252,8 +253,8 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 500,
     maxHeight: '80%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
     overflow: 'hidden',
   },
   modalHeader: {
@@ -262,57 +263,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.neutral[900],
   },
   closeButton: {
     fontSize: 24,
-    color: '#6B7280',
+    color: colors.neutral[500],
     padding: 4,
   },
   modalContent: {
     padding: 20,
   },
   parentInfo: {
-    backgroundColor: '#F3F4F6',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
+    backgroundColor: colors.neutral[100],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[4],
   },
   parentLabel: {
     fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
   },
   parentName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.neutral[900],
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    color: colors.neutral[700],
+    marginBottom: spacing[2],
   },
   required: {
-    color: '#DC2626',
+    color: colors.danger[600],
   },
   input: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
+    color: colors.neutral[900],
+    backgroundColor: colors.neutral[0],
   },
   textArea: {
     minHeight: 80,
@@ -320,50 +321,50 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   halfWidth: {
     flex: 1,
   },
   infoBox: {
-    backgroundColor: '#EEF2FF',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
+    backgroundColor: colors.primary[50],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[2],
   },
   infoText: {
     fontSize: 14,
-    color: '#4F46E5',
-    marginBottom: 4,
+    color: colors.primary[600],
+    marginBottom: spacing[1],
   },
   modalFooter: {
     flexDirection: 'row',
-    padding: 20,
+    padding: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    gap: 12,
+    borderTopColor: colors.neutral[200],
+    gap: spacing[3],
   },
   button: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.neutral[100],
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.neutral[700],
   },
   submitButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.accent[500],
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   buttonDisabled: {
     opacity: 0.5,

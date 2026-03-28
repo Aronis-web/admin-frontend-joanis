@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { PositionTreeNode } from '@/types/organization';
 
 interface OrganizationInteractiveTreeProps {
@@ -179,7 +180,7 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
                 y1={parentBottomY}
                 x2={parentCenterX}
                 y2={midY}
-                stroke="#94A3B8"
+                stroke={colors.neutral[400]}
                 strokeWidth="2"
               />
             );
@@ -192,7 +193,7 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
                 y1={midY}
                 x2={childCenterX}
                 y2={midY}
-                stroke="#94A3B8"
+                stroke={colors.neutral[400]}
                 strokeWidth="2"
               />
             );
@@ -205,7 +206,7 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
                 y1={midY}
                 x2={childCenterX}
                 y2={childTopY}
-                stroke="#94A3B8"
+                stroke={colors.neutral[400]}
                 strokeWidth="2"
               />
             );
@@ -231,8 +232,8 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
 
     // Determine card color based on level
     const getCardColor = (level: number) => {
-      const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
-      return colors[(level - 1) % colors.length];
+      const levelColors = [colors.primary[500], colors.success[500], '#8B5CF6', colors.warning[500], colors.danger[500]];
+      return levelColors[(level - 1) % levelColors.length];
     };
 
     const cardColor = getCardColor(node.level);
@@ -396,12 +397,12 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4F8',
+    backgroundColor: colors.background.secondary,
   },
   nodeCard: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 40,
+    borderRadius: borderRadius.full,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -416,16 +417,16 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2.5],
   },
   avatarContainer: {
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   avatar: {
     width: 45,
     height: 45,
-    borderRadius: 22.5,
+    borderRadius: borderRadius.full,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -442,8 +443,8 @@ const styles = StyleSheet.create({
   nodeName: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 2,
+    color: colors.neutral[0],
+    marginBottom: spacing[0.5],
     lineHeight: 15,
   },
   nodeCode: {
@@ -453,44 +454,44 @@ const styles = StyleSheet.create({
   collapseButtonInline: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: borderRadius.full,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginLeft: spacing[2],
   },
   collapseIconInline: {
     fontSize: 10,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: 'bold',
   },
   inactiveBadgeOverlay: {
     position: 'absolute',
     top: 5,
     right: 10,
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    backgroundColor: colors.danger[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.xl,
   },
   inactiveBadgeText: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: '#DC2626',
+    color: colors.danger[600],
   },
   floatingActions: {
     position: 'absolute',
     top: -12,
     right: -12,
     flexDirection: 'row',
-    gap: 4,
+    gap: spacing[1],
     opacity: 0.9,
   },
   floatingActionBtn: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[0],
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { PositionTreeNode } from '@/types/organization';
 
 interface OrganizationTreeViewProps {
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   positionContainer: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
     position: 'relative',
   },
   connectorContainer: {
@@ -160,7 +161,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: colors.neutral[300],
   },
   verticalLine: {
     position: 'absolute',
@@ -168,14 +169,14 @@ const styles = StyleSheet.create({
     bottom: -16,
     left: 0,
     width: 2,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: colors.neutral[300],
   },
   positionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -184,17 +185,17 @@ const styles = StyleSheet.create({
   },
   positionCardInactive: {
     opacity: 0.6,
-    borderColor: '#D1D5DB',
+    borderColor: colors.neutral[300],
     borderStyle: 'dashed',
   },
   positionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   positionInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   positionTitleRow: {
     flexDirection: 'row',
@@ -204,83 +205,83 @@ const styles = StyleSheet.create({
   },
   positionIcon: {
     fontSize: 20,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   positionName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.neutral[900],
     flex: 1,
   },
   inactiveBadge: {
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 8,
+    backgroundColor: colors.danger[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.sm,
+    marginLeft: spacing[2],
   },
   inactiveBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#DC2626',
+    color: colors.danger[600],
   },
   positionCode: {
     fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
   },
   positionDescription: {
     fontSize: 14,
-    color: '#374151',
-    marginTop: 4,
+    color: colors.neutral[700],
+    marginTop: spacing[1],
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing[2],
   },
   statItem: {
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
     minWidth: 40,
   },
   statLabel: {
     fontSize: 10,
-    color: '#6B7280',
-    marginBottom: 2,
+    color: colors.neutral[500],
+    marginBottom: spacing[0.5],
   },
   statValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.neutral[900],
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing[2],
     flexWrap: 'wrap',
   },
   actionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: '#F3F4F6',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.neutral[100],
   },
   actionButtonDanger: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.danger[100],
   },
   actionButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.neutral[700],
   },
   actionButtonTextDanger: {
-    color: '#DC2626',
+    color: colors.danger[600],
   },
   childrenContainer: {
-    marginTop: 16,
-    marginLeft: 20,
+    marginTop: spacing[4],
+    marginLeft: spacing[5],
   },
 });
 
