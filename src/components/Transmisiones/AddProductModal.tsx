@@ -14,6 +14,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { transmisionesApi } from '@/services/api';
 import { productsApi } from '@/services/api';
 import { PriceProfile } from '@/types/price-profiles';
@@ -208,14 +209,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholder="Escribe al menos 2 caracteres..."
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.neutral[400]}
                   editable={!adding}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
                 {searching && (
                   <View style={styles.searchingIndicator}>
-                    <ActivityIndicator color="#0EA5E9" size="small" />
+                    <ActivityIndicator color={colors.primary[500]} size="small" />
                   </View>
                 )}
               </View>
@@ -262,7 +263,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                       </View>
                     </View>
                     {adding ? (
-                      <ActivityIndicator color="#0EA5E9" size="small" />
+                      <ActivityIndicator color={colors.primary[500]} size="small" />
                     ) : (
                       <Text style={styles.resultArrow}>+ Agregar</Text>
                     )}
@@ -315,10 +316,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
   },
   modal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
@@ -337,14 +338,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.neutral[900],
   },
   titleTablet: {
     fontSize: 24,
   },
   closeButton: {
     fontSize: 24,
-    color: '#6B7280',
+    color: colors.neutral[500],
     padding: 4,
   },
   content: {
@@ -356,30 +357,30 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    color: colors.neutral[700],
+    marginBottom: spacing[2],
   },
   labelTablet: {
     fontSize: 16,
   },
   required: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   searchContainer: {
     position: 'relative',
   },
   searchInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.neutral[50],
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     paddingRight: 40,
     fontSize: 16,
-    color: '#111827',
+    color: colors.neutral[900],
   },
   searchInputTablet: {
-    padding: 16,
+    padding: spacing[4],
     paddingRight: 48,
     fontSize: 18,
   },
@@ -390,8 +391,8 @@ const styles = StyleSheet.create({
   },
   searchHint: {
     fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
     fontStyle: 'italic',
   },
   resultsContainer: {
@@ -400,26 +401,26 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 12,
+    color: colors.neutral[500],
+    marginBottom: spacing[3],
   },
   resultItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: colors.neutral[50],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[2],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
   },
   resultImage: {
     width: 50,
     height: 50,
-    borderRadius: 6,
-    marginRight: 12,
-    backgroundColor: '#E5E7EB',
+    borderRadius: borderRadius.md,
+    marginRight: spacing[3],
+    backgroundColor: colors.neutral[200],
   },
   resultInfo: {
     flex: 1,
@@ -427,43 +428,43 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    color: colors.neutral[900],
+    marginBottom: spacing[1],
   },
   resultSku: {
     fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
   },
   resultCost: {
     fontSize: 13,
-    color: '#059669',
+    color: colors.success[600],
     fontWeight: '600',
     marginBottom: 4,
   },
   resultBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    backgroundColor: colors.primary[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.md,
   },
   resultBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: colors.primary[800],
   },
   resultArrow: {
     fontSize: 20,
-    color: '#9CA3AF',
-    marginLeft: 12,
+    color: colors.neutral[400],
+    marginLeft: spacing[3],
   },
   selectedProductContainer: {
-    backgroundColor: '#F0F9FF',
+    backgroundColor: colors.primary[50],
     borderWidth: 1,
-    borderColor: '#BAE6FD',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.primary[200],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     marginBottom: 20,
   },
   selectedProductHeader: {
@@ -475,38 +476,38 @@ const styles = StyleSheet.create({
   selectedProductLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#0369A1',
+    color: colors.primary[700],
   },
   changeButton: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0EA5E9',
+    color: colors.primary[500],
   },
   selectedProductInfo: {},
   selectedProductTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
+    color: colors.neutral[900],
+    marginBottom: spacing[1],
   },
   selectedProductSku: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.neutral[50],
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     fontSize: 16,
-    color: '#111827',
+    color: colors.neutral[900],
   },
   inputTablet: {
-    padding: 16,
+    padding: spacing[4],
     fontSize: 18,
   },
   textArea: {
@@ -514,86 +515,86 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   priceProfileInfo: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.success[50],
     borderWidth: 1,
-    borderColor: '#BBF7D0',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.success[200],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     marginBottom: 20,
   },
   priceProfileLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#15803D',
-    marginBottom: 4,
+    color: colors.success[700],
+    marginBottom: spacing[1],
   },
   priceProfileName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#166534',
-    marginBottom: 2,
+    color: colors.success[800],
+    marginBottom: spacing[0.5],
   },
   priceProfileFactor: {
     fontSize: 14,
-    color: '#16A34A',
-    marginBottom: 6,
+    color: colors.success[600],
+    marginBottom: spacing[1.5],
   },
   priceProfileHint: {
     fontSize: 12,
-    color: '#15803D',
+    color: colors.success[700],
     fontStyle: 'italic',
   },
   optional: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.neutral[500],
     fontStyle: 'italic',
   },
   fieldHint: {
     fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
     fontStyle: 'italic',
   },
   inputReadonly: {
-    backgroundColor: '#F3F4F6',
-    color: '#6B7280',
+    backgroundColor: colors.neutral[100],
+    color: colors.neutral[500],
   },
   calculatedPriceHint: {
     fontSize: 12,
-    color: '#16A34A',
-    marginTop: 4,
+    color: colors.success[600],
+    marginTop: spacing[1],
     fontWeight: '600',
   },
   actions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
+    gap: spacing[3],
+    marginTop: spacing[5],
   },
   button: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: spacing[3.5],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   addButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success[500],
   },
   addButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: colors.neutral[400],
   },
   addButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });

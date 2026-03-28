@@ -8,6 +8,7 @@ import {
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { TransmisionProduct } from '@/types/transmisiones';
 
 interface ProductDisplayModalProps {
@@ -112,7 +113,7 @@ export const ProductDisplayModal: React.FC<ProductDisplayModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.neutral[800],
   },
   header: {
     padding: 20,
@@ -120,13 +121,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   closeButton: {
-    backgroundColor: '#374151',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: colors.neutral[700],
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
   },
   closeButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 18,
     fontWeight: '600',
   },
@@ -143,8 +144,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 24,
-    color: '#9CA3AF',
-    marginBottom: 12,
+    color: colors.neutral[400],
+    marginBottom: spacing[3],
     fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 2,
@@ -152,11 +153,11 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 72,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     textAlign: 'center',
   },
   sku: {
-    color: '#60A5FA',
+    color: colors.primary[400],
     fontFamily: 'monospace',
   },
   productName: {
@@ -165,23 +166,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   stock: {
-    color: '#34D399',
+    color: colors.success[400],
   },
   cost: {
-    color: '#FBBF24',
+    color: colors.warning[400],
   },
   priceSection: {
-    backgroundColor: '#374151',
-    borderRadius: 16,
-    padding: 32,
-    marginBottom: 24,
+    backgroundColor: colors.neutral[700],
+    borderRadius: borderRadius.xl,
+    padding: spacing[8],
+    marginBottom: spacing[6],
     borderWidth: 3,
-    borderColor: '#4B5563',
+    borderColor: colors.neutral[600],
   },
   priceLabel: {
     fontSize: 28,
-    color: '#D1D5DB',
-    marginBottom: 16,
+    color: colors.neutral[300],
+    marginBottom: spacing[4],
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 2,
@@ -196,20 +197,20 @@ const styles = StyleSheet.create({
   },
   priceFormula: {
     fontSize: 20,
-    color: '#9CA3AF',
-    marginTop: 8,
+    color: colors.neutral[400],
+    marginTop: spacing[2],
     fontStyle: 'italic',
   },
   statusBadge: {
-    marginTop: 40,
-    backgroundColor: '#374151',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
+    marginTop: spacing[10],
+    backgroundColor: colors.neutral[700],
+    paddingHorizontal: spacing[8],
+    paddingVertical: spacing[4],
+    borderRadius: borderRadius.xl,
   },
   statusText: {
     fontSize: 24,
-    color: '#D1D5DB',
+    color: colors.neutral[300],
     fontWeight: '600',
   },
 });

@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { transmisionesApi } from '@/services/api';
 import {
   TransmisionProduct,
@@ -149,7 +150,7 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
                 onChangeText={setCostInput}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.neutral[400]}
                 editable={!saving}
                 selectTextOnFocus
               />
@@ -165,7 +166,7 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
                 onChangeText={setSalePriceInput}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.neutral[400]}
                 editable={!saving}
                 selectTextOnFocus
               />
@@ -213,7 +214,7 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={colors.neutral[0]} size="small" />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar</Text>
               )}
@@ -237,11 +238,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
   },
   modal: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
     width: '90%',
     maxWidth: 500,
     padding: 24,
@@ -264,31 +265,31 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.neutral[900],
   },
   titleTablet: {
     fontSize: 24,
   },
   closeButton: {
     fontSize: 24,
-    color: '#6B7280',
+    color: colors.neutral[500],
     padding: 4,
   },
   productInfo: {
-    backgroundColor: '#F9FAFB',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: colors.neutral[50],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
     marginBottom: 20,
   },
   productName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    color: colors.neutral[900],
+    marginBottom: spacing[1],
   },
   productSku: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   content: {
     marginBottom: 20,
@@ -299,20 +300,20 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    color: colors.neutral[700],
+    marginBottom: spacing[2],
   },
   labelTablet: {
     fontSize: 16,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.neutral[50],
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     fontSize: 18,
-    color: '#111827',
+    color: colors.neutral[900],
     fontWeight: '600',
   },
   inputTablet: {
@@ -323,32 +324,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
+    backgroundColor: colors.neutral[100],
+    padding: spacing[4],
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[4],
   },
   marginLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.neutral[700],
   },
   marginValue: {
     fontSize: 24,
     fontWeight: '700',
   },
   marginPositive: {
-    color: '#10B981',
+    color: colors.success[500],
   },
   marginNegative: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   comparisonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 16,
+    paddingTop: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.neutral[200],
   },
   comparisonItem: {
     flex: 1,
@@ -356,43 +357,43 @@ const styles = StyleSheet.create({
   },
   comparisonLabel: {
     fontSize: 12,
-    color: '#9CA3AF',
-    marginBottom: 4,
+    color: colors.neutral[400],
+    marginBottom: spacing[1],
   },
   comparisonValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   actions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   button: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: spacing[3.5],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   saveButton: {
-    backgroundColor: '#0EA5E9',
+    backgroundColor: colors.primary[500],
   },
   saveButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: colors.neutral[400],
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
