@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { colors, borderRadius } from '@/design-system/tokens';
 
 interface CenterFloatingButtonProps {
   onPress: () => void;
@@ -93,21 +94,21 @@ const styles = StyleSheet.create({
   button: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#4F46E5',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[600],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#4F46E5',
+    shadowColor: colors.primary[600],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: colors.neutral[0],
   },
   buttonText: {
     fontSize: 28,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '300',
     textAlign: 'center',
     lineHeight: 32,

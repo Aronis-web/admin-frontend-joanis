@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Animated, useWindowDimensions } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AddButtonProps {
@@ -65,16 +66,16 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success[500],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#10B981',
+    shadowColor: colors.success[500],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 8,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: colors.neutral[0],
   },
   fabTablet: {
     width: 64,
@@ -85,21 +86,21 @@ const styles = StyleSheet.create({
   },
   fabIcon: {
     fontSize: 28,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '700',
   },
   fabIconTablet: {
     fontSize: 32,
   },
   fabLabel: {
-    marginTop: 6,
+    marginTop: spacing[1.5],
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    color: colors.neutral[500],
+    backgroundColor: colors.neutral[0],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.lg,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

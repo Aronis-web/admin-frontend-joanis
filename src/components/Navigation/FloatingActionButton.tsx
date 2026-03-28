@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { Ionicons } from '@expo/vector-icons';
 
 interface FloatingActionButtonProps {
@@ -36,7 +37,7 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPr
       ]}
     >
       <TouchableOpacity style={styles.button} onPress={handlePress} activeOpacity={0.8}>
-        <Ionicons name="menu" size={28} color="#FFFFFF" />
+        <Ionicons name="menu" size={28} color={colors.neutral[0]} />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -45,8 +46,8 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPr
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
+    bottom: spacing[5],
+    right: spacing[5],
     zIndex: 1000,
     elevation: 8,
     shadowColor: '#000',
@@ -60,8 +61,8 @@ const styles = StyleSheet.create({
   button: {
     width: 60,
     height: 60,
-    borderRadius: 30,
-    backgroundColor: '#6366F1',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.accent[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
