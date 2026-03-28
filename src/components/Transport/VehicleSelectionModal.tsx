@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { Vehicle, VehicleStatus } from '@/types/transport';
 import { transportService } from '@/services/api';
 
@@ -91,7 +92,7 @@ export const VehicleSelectionModal: React.FC<VehicleSelectionModalProps> = ({
         activeOpacity={0.7}
       >
         <View style={styles.vehicleIcon}>
-          <Ionicons name="car-outline" size={24} color={isSelected ? '#6366F1' : '#6B7280'} />
+          <Ionicons name="car-outline" size={24} color={isSelected ? colors.accent[500] : colors.neutral[500]} />
         </View>
         <View style={styles.vehicleInfo}>
           <Text style={[styles.vehiclePlate, isSelected && styles.vehiclePlateSelected]}>
@@ -103,7 +104,7 @@ export const VehicleSelectionModal: React.FC<VehicleSelectionModalProps> = ({
           {item.color && <Text style={styles.vehicleColor}>Color: {item.color}</Text>}
         </View>
         {isSelected && (
-          <Ionicons name="checkmark-circle" size={24} color="#6366F1" />
+          <Ionicons name="checkmark-circle" size={24} color={colors.accent[500]} />
         )}
       </TouchableOpacity>
     );
@@ -122,13 +123,13 @@ export const VehicleSelectionModal: React.FC<VehicleSelectionModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Seleccionar Vehículo</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#6B7280" />
+              <Ionicons name="close" size={24} color={colors.neutral[500]} />
             </TouchableOpacity>
           </View>
 
           {/* Search */}
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+            <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar por placa, marca o modelo..."
@@ -138,7 +139,7 @@ export const VehicleSelectionModal: React.FC<VehicleSelectionModalProps> = ({
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
               </TouchableOpacity>
             )}
           </View>
@@ -146,12 +147,12 @@ export const VehicleSelectionModal: React.FC<VehicleSelectionModalProps> = ({
           {/* List */}
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#6366F1" />
+              <ActivityIndicator size="large" color={colors.accent[500]} />
               <Text style={styles.loadingText}>Cargando vehículos...</Text>
             </View>
           ) : filteredVehicles.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="car-outline" size={64} color="#D1D5DB" />
+              <Ionicons name="car-outline" size={64} color={colors.neutral[300]} />
               <Text style={styles.emptyText}>
                 {searchQuery ? 'No se encontraron vehículos' : 'No hay vehículos disponibles'}
               </Text>
@@ -187,29 +188,29 @@ export const VehicleSelectionModal: React.FC<VehicleSelectionModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     maxHeight: '80%',
-    paddingBottom: 20,
+    paddingBottom: spacing[5],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   closeButton: {
     padding: 4,
@@ -217,21 +218,21 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 12,
-    paddingHorizontal: 12,
+    backgroundColor: colors.neutral[100],
+    borderRadius: borderRadius.xl,
+    marginHorizontal: spacing[5],
+    marginTop: spacing[4],
+    marginBottom: spacing[3],
+    paddingHorizontal: spacing[3],
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: spacing[3],
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   clearButton: {
     padding: 4,
@@ -243,9 +244,9 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   emptyContainer: {
     flex: 1,
@@ -254,42 +255,42 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    marginTop: 16,
+    marginTop: spacing[4],
     fontSize: 18,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   emptySubtext: {
-    marginTop: 8,
+    marginTop: spacing[2],
     fontSize: 14,
-    color: '#9CA3AF',
+    color: colors.neutral[400],
   },
   listContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[2],
   },
   vehicleItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[2],
     borderWidth: 2,
     borderColor: 'transparent',
   },
   vehicleItemSelected: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
+    backgroundColor: colors.accent[50],
+    borderColor: colors.accent[500],
   },
   vehicleIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[0],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   vehicleInfo: {
     flex: 1,
@@ -297,30 +298,30 @@ const styles = StyleSheet.create({
   vehiclePlate: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   vehiclePlateSelected: {
-    color: '#6366F1',
+    color: colors.accent[500],
   },
   vehicleDetails: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
     marginBottom: 2,
   },
   vehicleColor: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.neutral[400],
   },
   footer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.neutral[200],
   },
   footerText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
 });

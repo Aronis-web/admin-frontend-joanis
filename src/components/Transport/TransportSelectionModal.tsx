@@ -13,6 +13,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import {
   Vehicle,
   Driver,
@@ -281,13 +282,13 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Seleccionar Transporte</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#6B7280" />
+                <Ionicons name="close" size={24} color={colors.neutral[500]} />
               </TouchableOpacity>
             </View>
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6366F1" />
+                <ActivityIndicator size="large" color={colors.accent[500]} />
                 <Text style={styles.loadingText}>Cargando datos...</Text>
               </View>
             ) : (
@@ -308,7 +309,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                       <Ionicons
                         name="business"
                         size={24}
-                        color={transportType === 'public' ? '#10B981' : '#6B7280'}
+                        color={transportType === 'public' ? colors.success[500] : colors.neutral[500]}
                       />
                       <Text
                         style={[
@@ -333,7 +334,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                       <Ionicons
                         name="car"
                         size={24}
-                        color={transportType === 'private' ? '#10B981' : '#6B7280'}
+                        color={transportType === 'private' ? colors.success[500] : colors.neutral[500]}
                       />
                       <Text
                         style={[
@@ -352,21 +353,21 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                 {transportType === 'public' && (
                   <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                      <Ionicons name="business" size={24} color="#6366F1" />
+                      <Ionicons name="business" size={24} color={colors.accent[500]} />
                       <Text style={styles.sectionTitle}>Transportista</Text>
                       <TouchableOpacity
                         style={styles.createButton}
                         onPress={handleCreateTransporter}
                         activeOpacity={0.7}
                       >
-                        <Ionicons name="add-circle" size={24} color="#10B981" />
+                        <Ionicons name="add-circle" size={24} color={colors.success[500]} />
                         <Text style={styles.createButtonText}>Crear Nuevo</Text>
                       </TouchableOpacity>
                     </View>
 
                     {/* Search Input */}
                     <View style={styles.searchContainer}>
-                      <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+                      <Ionicons name="search" size={20} color={colors.neutral[500]} style={styles.searchIcon} />
                       <TextInput
                         style={styles.searchInput}
                         placeholder="Buscar por razón social o RUC..."
@@ -381,7 +382,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
                             setSelectedTransporter(null);
                           }}
                         >
-                          <Ionicons name="close-circle" size={20} color="#6B7280" />
+                          <Ionicons name="close-circle" size={20} color={colors.neutral[500]} />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -436,7 +437,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
               {transportType === 'private' && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="car" size={24} color="#6366F1" />
+                  <Ionicons name="car" size={24} color={colors.accent[500]} />
                   <Text style={styles.sectionTitle}>Vehículo</Text>
                   <TouchableOpacity
                     style={styles.createButton}
@@ -515,7 +516,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
               {transportType === 'private' && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="person" size={24} color="#6366F1" />
+                  <Ionicons name="person" size={24} color={colors.accent[500]} />
                   <Text style={styles.sectionTitle}>Conductor</Text>
                   <TouchableOpacity
                     style={styles.createButton}
@@ -662,17 +663,17 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: colors.overlay.dark,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius['2xl'],
     width: '90%',
     maxWidth: 600,
     height: '85%',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[900],
     shadowOffset: {
       width: 0,
       height: 2,
@@ -685,15 +686,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   closeButton: {
     padding: 4,
@@ -705,73 +706,73 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[2],
   },
   section: {
-    marginTop: 12,
-    marginBottom: 12,
+    marginTop: spacing[3],
+    marginBottom: spacing[3],
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
-    marginLeft: 8,
+    color: colors.neutral[800],
+    marginLeft: spacing[2],
     flex: 1,
   },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing[3],
     paddingVertical: 6,
-    backgroundColor: '#ECFDF5',
-    borderRadius: 8,
-    gap: 4,
+    backgroundColor: colors.success[50],
+    borderRadius: borderRadius.lg,
+    gap: spacing[1],
   },
   createButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10B981',
+    color: colors.success[500],
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 8,
+    borderColor: colors.neutral[200],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    marginBottom: spacing[2],
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1F2937',
-    paddingVertical: 4,
+    color: colors.neutral[800],
+    paddingVertical: spacing[1],
   },
   dropdown: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
     maxHeight: 200,
-    marginBottom: 8,
-    shadowColor: '#000',
+    marginBottom: spacing[2],
+    shadowColor: colors.neutral[900],
     shadowOffset: {
       width: 0,
       height: 2,
@@ -784,93 +785,93 @@ const styles = StyleSheet.create({
     maxHeight: 200,
   },
   dropdownItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.neutral[100],
   },
   dropdownItemTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   dropdownItemSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   detailsCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 8,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[3],
+    marginTop: spacing[2],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: spacing[1],
   },
   detailLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   detailValue: {
     fontSize: 14,
-    color: '#1F2937',
+    color: colors.neutral[800],
     fontWeight: '600',
     flex: 1,
     textAlign: 'right',
   },
   footer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    gap: 12,
+    borderTopColor: colors.neutral[200],
+    gap: spacing[3],
   },
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.neutral[100],
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   confirmButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.accent[500],
   },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   buttonDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: colors.neutral[300],
     opacity: 0.6,
   },
   publicTransportCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
   },
   publicTransportCardActive: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#10B981',
+    backgroundColor: colors.success[50],
+    borderColor: colors.success[500],
   },
   publicTransportHeader: {
     flexDirection: 'row',
@@ -880,72 +881,72 @@ const styles = StyleSheet.create({
   publicTransportTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
-    marginLeft: 8,
+    color: colors.neutral[800],
+    marginLeft: spacing[2],
   },
   publicTransportTitleActive: {
-    color: '#10B981',
+    color: colors.success[500],
   },
   publicTransportSubtext: {
     fontSize: 13,
-    color: '#6B7280',
-    marginLeft: 32,
+    color: colors.neutral[500],
+    marginLeft: spacing[8],
   },
   sectionDisabled: {
     opacity: 0.4,
   },
   transportTypeContainer: {
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   transportTypeLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
+    color: colors.neutral[800],
+    marginBottom: spacing[3],
   },
   transportTypeButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   transportTypeCard: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 120,
   },
   transportTypeCardActive: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#10B981',
+    backgroundColor: colors.success[50],
+    borderColor: colors.success[500],
   },
   transportTypeTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 8,
+    color: colors.neutral[800],
+    marginTop: spacing[2],
     textAlign: 'center',
   },
   transportTypeTitleActive: {
-    color: '#10B981',
+    color: colors.success[500],
   },
   transportTypeSubtext: {
     fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
     textAlign: 'center',
   },
   // Estilos para modales secundarios (modal sobre modal)
   secondaryModalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius['2xl'],
     width: '85%',
     maxWidth: 500,
     height: '70%',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[900],
     shadowOffset: {
       width: 0,
       height: 4,
@@ -955,23 +956,23 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   formInput: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 12,
+    borderColor: colors.neutral[200],
+    paddingHorizontal: spacing[3],
     paddingVertical: 10,
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   formLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    color: colors.neutral[700],
+    marginBottom: spacing[2],
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
 });
 
@@ -1020,7 +1021,7 @@ const CreateVehicleModal: React.FC<{
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Crear Vehículo</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#6B7280" />
+              <Ionicons name="close" size={24} color={colors.neutral[500]} />
             </TouchableOpacity>
           </View>
 
