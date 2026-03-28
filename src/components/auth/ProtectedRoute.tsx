@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { useAuthStore } from '@/store/auth';
 
 interface ProtectedRouteProps {
@@ -49,7 +50,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color={colors.primary[600]} />
         <Text style={styles.loadingText}>Verificando permisos...</Text>
       </View>
     );
@@ -257,32 +258,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#F8F9FA',
+    padding: spacing[5],
+    backgroundColor: colors.background.secondary,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: spacing[4],
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   deniedTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#DC2626',
-    marginBottom: 12,
+    color: colors.danger[500],
+    marginBottom: spacing[3],
     textAlign: 'center',
   },
   deniedMessage: {
     fontSize: 16,
-    color: '#374151',
+    color: colors.neutral[700],
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
     lineHeight: 24,
   },
   deniedHint: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
     textAlign: 'center',
     fontStyle: 'italic',
   },

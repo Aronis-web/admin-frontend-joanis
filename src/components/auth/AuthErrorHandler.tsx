@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import Alert from '@/utils/alert';
 import { View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { useAuthStore } from '@/store/auth';
 import { AuthError } from '@/types/auth';
 
@@ -220,15 +221,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#F8F9FA',
+    padding: spacing[5],
+    backgroundColor: colors.background.secondary,
   },
   errorCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing[6],
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -238,59 +239,59 @@ const styles = StyleSheet.create({
   },
   errorIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   errorTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#DC2626',
-    marginBottom: 8,
+    color: colors.danger[500],
+    marginBottom: spacing[2],
     textAlign: 'center',
   },
   errorMessage: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: spacing[6],
     lineHeight: 20,
   },
   buttonContainer: {
     width: '100%',
-    gap: 12,
+    gap: spacing[3],
   },
   button: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[6],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   retryButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
   },
   logoutButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.danger[500],
   },
   cancelButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.neutral[300],
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 14,
     fontWeight: '600',
   },
   cancelButtonText: {
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   dismissButton: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+    backgroundColor: colors.primary[500],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.md,
   },
   dismissButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 12,
     fontWeight: '600',
   },
@@ -303,41 +304,41 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   banner: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.danger[100],
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#FCA5A5',
+    borderBottomColor: colors.danger[300],
   },
   bannerIcon: {
     fontSize: 16,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   bannerText: {
     flex: 1,
     fontSize: 14,
-    color: '#991B1B',
+    color: colors.danger[800],
     fontWeight: '500',
   },
   bannerClose: {
-    padding: 4,
+    padding: spacing[1],
   },
   bannerCloseText: {
     fontSize: 16,
-    color: '#991B1B',
+    color: colors.danger[800],
     fontWeight: '600',
   },
   // Inline styles
   inlineContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    padding: 8,
-    borderRadius: 6,
+    backgroundColor: colors.danger[50],
+    padding: spacing[2],
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    marginVertical: 4,
+    borderColor: colors.danger[200],
+    marginVertical: spacing[1],
   },
   inlineIcon: {
     fontSize: 14,
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
   inlineText: {
     flex: 1,
     fontSize: 12,
-    color: '#991B1B',
+    color: colors.danger[800],
     fontWeight: '500',
   },
   inlineClose: {
@@ -354,7 +355,7 @@ const styles = StyleSheet.create({
   },
   inlineCloseText: {
     fontSize: 12,
-    color: '#991B1B',
+    color: colors.danger[800],
     fontWeight: '600',
   },
 });
