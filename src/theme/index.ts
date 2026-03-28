@@ -1,38 +1,67 @@
-import { colors } from '@/theme/colors';
-import { spacing, borderRadius, fontSize } from '@/theme/spacing';
+/**
+ * Theme - Legacy Compatibility Layer
+ *
+ * Este archivo mantiene compatibilidad con el código existente
+ * mientras se migra al nuevo Design System.
+ *
+ * Para nuevos componentes, usar: import { colors, spacing, ... } from '@/design-system';
+ */
+
+import { colors as legacyColors } from '@/theme/colors';
+import { spacing as legacySpacing, borderRadius as legacyBorderRadius, fontSize } from '@/theme/spacing';
+
+// Re-export desde el nuevo Design System para compatibilidad
+import {
+  colors as dsColors,
+  spacing as dsSpacing,
+  borderRadius as dsBorderRadius,
+  shadows as dsShadows,
+  fontWeights,
+} from '@/design-system/tokens';
+
+// Mapeo de colores legacy a nuevo sistema
+const mappedColors = {
+  ...legacyColors,
+  // Agregar colores del nuevo sistema
+  primary: dsColors.primary[900],
+  primaryLight: dsColors.primary[100],
+  primaryDark: dsColors.primary[950],
+  secondary: dsColors.accent[500],
+  secondaryLight: dsColors.accent[200],
+  secondaryDark: dsColors.accent[700],
+  background: dsColors.background.primary,
+  surface: dsColors.surface.primary,
+  error: dsColors.danger[500],
+  success: dsColors.success[500],
+  warning: dsColors.warning[500],
+  text: {
+    primary: dsColors.text.primary,
+    secondary: dsColors.text.secondary,
+    disabled: dsColors.text.disabled,
+    hint: dsColors.text.placeholder,
+    white: dsColors.text.inverse,
+  },
+  border: {
+    light: dsColors.border.light,
+    medium: dsColors.border.default,
+    dark: dsColors.border.dark,
+  },
+};
 
 export const theme = {
-  colors,
-  spacing,
-  borderRadius,
+  colors: mappedColors,
+  spacing: legacySpacing,
+  borderRadius: legacyBorderRadius,
   fontSize,
   fonts: {
-    bold: 'Baloo2_700Bold',
-    semibold: 'Baloo2_600SemiBold',
-    medium: 'Baloo2_500Medium',
+    bold: 'System',
+    semibold: 'System',
+    medium: 'System',
   },
   shadows: {
-    sm: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.18,
-      shadowRadius: 1.0,
-      elevation: 1,
-    },
-    md: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.23,
-      shadowRadius: 2.62,
-      elevation: 4,
-    },
-    lg: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4.65,
-      elevation: 8,
-    },
+    sm: dsShadows.sm,
+    md: dsShadows.md,
+    lg: dsShadows.lg,
   },
 } as const;
 

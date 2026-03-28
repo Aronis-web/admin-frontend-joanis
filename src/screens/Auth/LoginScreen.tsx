@@ -1,23 +1,47 @@
+/**
+ * LoginScreen - Rediseñado con Design System
+ *
+ * Pantalla de inicio de sesión con diseño profesional y moderno.
+ */
+
 import React, { useState } from 'react';
 import {
   View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Alert,
   useWindowDimensions,
+  StatusBar,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { AUTH_ROUTES } from '@/constants/routes';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  DisplayText,
+  Body,
+  Caption,
+  Button,
+  Input,
+  Card,
+  Divider,
+} from '@/design-system/components';
+
 // @ts-ignore
 import { version } from '../../../package.json';
+import { Ionicons } from '@expo/vector-icons';
+import { TouchableOpacity } from 'react-native';
 
 interface LoginScreenProps {
   navigation: any;
@@ -26,14 +50,12 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const { width, height } = useWindowDimensions();
 
-  const { loginWithCredentials, isLoading, error, isAuthenticated } = useAuthStore();
+  const { loginWithCredentials, isLoading, error } = useAuthStore();
   const { clearTenantContext } = useTenantStore();
 
-  // Determine if device is tablet based on width (works for both portrait and landscape)
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
@@ -54,154 +76,82 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       }
 
       console.log('✅ Login exitoso, limpiando contexto de tenant...');
-      // Limpiar el contexto de tenant (empresa/sede) de sesiones anteriores
       await clearTenantContext();
-
       console.log('✅ Login completado - La navegación se manejará automáticamente');
-      // La navegación a CompanySelection se maneja automáticamente en Navigation.tsx
-      // mediante el useEffect que detecta cambios en isAuthenticated y currentCompany
     } catch (error) {
       console.error('❌ Error en handleLogin:', error);
       Alert.alert('Error', 'No se pudo conectar al servidor');
     }
   };
 
+  const containerMaxWidth = isTablet ? (isLandscape ? 480 : 440) : '100%';
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.backgroundPattern}>
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
-        <View style={styles.circle3} />
-      </View>
-
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View
-          style={[
-            styles.content,
-            isTablet && styles.contentTablet,
-            isTablet && isLandscape && styles.contentTabletLandscape,
-          ]}
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background.primary} />
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView
+          style={styles.keyboardView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <View style={[styles.header, isTablet && isLandscape && styles.headerLandscape]}>
-            <View style={styles.logoContainer}>
-              <View
-                style={[
-                  styles.logoInner,
-                  isTablet && styles.logoInnerTablet,
-                  isTablet && isLandscape && styles.logoInnerLandscape,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.logo,
-                    isTablet && styles.logoTablet,
-                    isTablet && isLandscape && styles.logoLandscape,
-                  ]}
+          <View style={[styles.content, { maxWidth: containerMaxWidth }]}>
+            {/* Logo & Branding */}
+            <View style={styles.brandingSection}>
+              <View style={styles.logoContainer}>
+                <View style={styles.logo}>
+                  <Text
+                    variant="displayMedium"
+                    color={colors.text.inverse}
+                    style={styles.logoText}
+                  >
+                    ERP
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.titleContainer}>
+                <DisplayText size="small" color="primary" align="center">
+                  Bienvenido
+                </DisplayText>
+                <Body
+                  size="medium"
+                  color="secondary"
+                  align="center"
+                  style={styles.subtitle}
                 >
-                  PG
-                </Text>
-              </View>
-            </View>
-            <Text
-              style={[
-                styles.title,
-                isTablet && styles.titleTablet,
-                isTablet && isLandscape && styles.titleLandscape,
-              ]}
-            >
-              Bienvenido
-            </Text>
-            <Text
-              style={[
-                styles.subtitle,
-                isTablet && styles.subtitleTablet,
-                isTablet && isLandscape && styles.subtitleLandscape,
-              ]}
-            >
-              Inicia sesión para acceder a tu panel
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.form,
-              isTablet && styles.formTablet,
-              isTablet && isLandscape && styles.formLandscape,
-            ]}
-          >
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, isTablet && styles.inputLabelTablet]}>
-                Correo electrónico
-              </Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  isTablet && styles.inputWrapperTablet,
-                  isTablet && isLandscape && styles.inputWrapperLandscape,
-                ]}
-              >
-                <TextInput
-                  style={[
-                    styles.input,
-                    isTablet && styles.inputTablet,
-                    isTablet && isLandscape && styles.inputLandscape,
-                  ]}
-                  placeholder="correo@empresa.com"
-                  placeholderTextColor="#94A3B8"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+                  Inicia sesión para acceder a tu panel de administración
+                </Body>
               </View>
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, isTablet && styles.inputLabelTablet]}>
-                Contraseña
-              </Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  isTablet && styles.inputWrapperTablet,
-                  isTablet && isLandscape && styles.inputWrapperLandscape,
-                ]}
-              >
-                <TextInput
-                  style={[
-                    styles.input,
-                    styles.inputWithIcon,
-                    isTablet && styles.inputTablet,
-                    isTablet && isLandscape && styles.inputLandscape,
-                  ]}
-                  placeholder="Ingresa tu contraseña"
-                  placeholderTextColor="#94A3B8"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoCorrect={false}
-                />
-                <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={() => setShowPassword(!showPassword)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={22}
-                    color="#64748B"
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
+            {/* Login Form */}
+            <Card variant="elevated" padding="large" style={styles.formCard}>
+              <Input
+                label="Correo electrónico"
+                placeholder="correo@empresa.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                leftIcon="mail-outline"
+                size="large"
+              />
 
-            <View style={styles.rememberMeContainer}>
+              <Input
+                label="Contraseña"
+                placeholder="Ingresa tu contraseña"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCorrect={false}
+                leftIcon="lock-closed-outline"
+                size="large"
+              />
+
+              {/* Remember Me */}
               <TouchableOpacity
-                style={styles.checkboxContainer}
+                style={styles.rememberMeContainer}
                 onPress={() => setRememberMe(!rememberMe)}
                 activeOpacity={0.7}
               >
@@ -209,355 +159,137 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   style={[
                     styles.checkbox,
                     rememberMe && styles.checkboxChecked,
-                    isTablet && styles.checkboxTablet,
                   ]}
                 >
                   {rememberMe && (
-                    <Ionicons name="checkmark" size={isTablet ? 18 : 16} color="#FFFFFF" />
+                    <Ionicons name="checkmark" size={14} color={colors.text.inverse} />
                   )}
                 </View>
-                <Text style={[styles.rememberMeText, isTablet && styles.rememberMeTextTablet]}>
+                <Body size="small" color="secondary">
                   Mantener sesión iniciada
-                </Text>
+                </Body>
               </TouchableOpacity>
+
+              {/* Submit Button */}
+              <Button
+                title={isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                onPress={handleLogin}
+                variant="primary"
+                size="large"
+                fullWidth
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.submitButton}
+              />
+            </Card>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Caption color="tertiary" align="center">
+                © 2024 ERP-aio • Versión {version}
+              </Caption>
             </View>
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                isLoading && styles.buttonDisabled,
-                isTablet && styles.buttonTablet,
-                isTablet && isLandscape && styles.buttonLandscape,
-              ]}
-              onPress={handleLogin}
-              disabled={isLoading}
-              activeOpacity={0.9}
-            >
-              <View style={[styles.buttonInner, isLoading && styles.buttonInnerDisabled]}>
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={[styles.buttonText, isTablet && styles.buttonTextTablet]}>
-                    Iniciar Sesión
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
           </View>
-
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
-              © 2024 ERP-aio
-            </Text>
-            <Text style={[styles.versionText, isTablet && styles.versionTextTablet]}>
-              Versión {version}
-            </Text>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
-  backgroundPattern: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
+
+  keyboardView: {
+    flex: 1,
   },
-  circle1: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
-    top: -100,
-    right: -100,
-  },
-  circle2: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(139, 92, 246, 0.06)',
-    bottom: 100,
-    left: -50,
-  },
-  circle3: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    top: '50%',
-    right: 50,
-  },
+
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 40,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  logoContainer: {
-    marginBottom: 24,
-  },
-  logoInner: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logo: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 1,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 24,
-    fontWeight: '400',
-  },
-  form: {
-    marginBottom: 40,
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  input: {
-    width: '100%',
-    height: 52,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#1E293B',
-    fontWeight: '500',
-  },
-  button: {
-    width: '100%',
-    height: 52,
-    borderRadius: 12,
-    marginTop: 20,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  buttonDisabled: {
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  buttonInner: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonInnerDisabled: {
-    backgroundColor: '#94A3B8',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#94A3B8',
-    fontWeight: '500',
-  },
-  versionText: {
-    fontSize: 11,
-    color: '#CBD5E1',
-    fontWeight: '400',
-    marginTop: 4,
-  },
-  versionTextTablet: {
-    fontSize: 13,
-  },
-  // Tablet-specific styles
-  contentTablet: {
-    maxWidth: 500,
     alignSelf: 'center',
     width: '100%',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[6],
   },
-  logoInnerTablet: {
-    width: 100,
-    height: 100,
-    borderRadius: 28,
+
+  // ============================================
+  // BRANDING SECTION
+  // ============================================
+  brandingSection: {
+    alignItems: 'center',
+    marginBottom: spacing[8],
   },
-  logoTablet: {
-    fontSize: 40,
+
+  logoContainer: {
+    marginBottom: spacing[6],
   },
-  titleTablet: {
-    fontSize: 38,
-  },
-  subtitleTablet: {
-    fontSize: 18,
-  },
-  formTablet: {
-    marginBottom: 48,
-  },
-  inputLabelTablet: {
-    fontSize: 16,
-  },
-  inputWrapperTablet: {
-    borderRadius: 14,
-  },
-  inputTablet: {
-    height: 60,
-    fontSize: 18,
-    paddingHorizontal: 20,
-  },
-  buttonTablet: {
-    height: 60,
-    borderRadius: 14,
-  },
-  buttonTextTablet: {
-    fontSize: 18,
-  },
-  footerTextTablet: {
-    fontSize: 14,
-  },
-  // Landscape-specific styles for tablets
-  contentTabletLandscape: {
-    maxWidth: 700,
-    paddingVertical: 10,
-    justifyContent: 'center',
-  },
-  headerLandscape: {
-    marginBottom: 12,
-    paddingTop: 0,
-  },
-  logoInnerLandscape: {
-    width: 70,
-    height: 70,
-    borderRadius: 20,
-  },
-  logoLandscape: {
-    fontSize: 30,
-  },
-  titleLandscape: {
-    fontSize: 28,
-    marginTop: 12,
-  },
-  subtitleLandscape: {
-    fontSize: 15,
-    marginTop: 6,
-  },
-  formLandscape: {
-    marginBottom: 20,
-  },
-  inputWrapperLandscape: {
-    borderRadius: 12,
-  },
-  inputLandscape: {
-    height: 50,
-    fontSize: 16,
-    paddingHorizontal: 18,
-  },
-  buttonLandscape: {
-    height: 50,
-    borderRadius: 12,
-    marginTop: 16,
-  },
-  inputWithIcon: {
-    paddingRight: 48,
-  },
-  eyeButton: {
-    position: 'absolute',
-    right: 16,
-    top: 0,
-    bottom: 0,
+
+  logo: {
+    width: 88,
+    height: 88,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.primary[900],
     justifyContent: 'center',
     alignItems: 'center',
-    width: 40,
-    height: '100%',
+    ...shadows.lg,
   },
+
+  logoText: {
+    letterSpacing: 2,
+  },
+
+  titleContainer: {
+    alignItems: 'center',
+  },
+
+  subtitle: {
+    marginTop: spacing[2],
+    maxWidth: 300,
+  },
+
+  // ============================================
+  // FORM
+  // ============================================
+  formCard: {
+    marginBottom: spacing[6],
+  },
+
   rememberMeContainer: {
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: spacing[4],
+    marginTop: -spacing[2],
   },
+
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
+    width: 22,
+    height: 22,
+    borderRadius: borderRadius.sm,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: spacing[2],
   },
+
   checkboxChecked: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
   },
-  checkboxTablet: {
-    width: 24,
-    height: 24,
-    borderRadius: 7,
-    marginRight: 12,
+
+  submitButton: {
+    marginTop: spacing[2],
   },
-  rememberMeText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  rememberMeTextTablet: {
-    fontSize: 16,
+
+  // ============================================
+  // FOOTER
+  // ============================================
+  footer: {
+    alignItems: 'center',
   },
 });
 

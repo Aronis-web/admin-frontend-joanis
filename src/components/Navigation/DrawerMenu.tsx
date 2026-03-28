@@ -1,8 +1,13 @@
+/**
+ * DrawerMenu - Rediseñado con Design System
+ *
+ * Menú de navegación lateral profesional y moderno.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
   TouchableOpacity,
-  Text,
   StyleSheet,
   Animated,
   Modal,
@@ -12,17 +17,39 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { MAIN_ROUTES, AUTH_ROUTES } from '@/constants/routes';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
 
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  activeOpacity,
+  iconSizes,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Title,
+  Body,
+  Caption,
+  Avatar,
+  Divider,
+  IconButton,
+} from '@/design-system/components';
+
+// ============================================
+// MENU CONFIGURATION
+// ============================================
 interface MenuItem {
   id: string;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   route?: string;
-  color: string;
   requiredPermissions?: string[];
   subItems?: MenuItem[];
 }
@@ -30,51 +57,45 @@ interface MenuItem {
 interface MenuCategory {
   id: string;
   title: string;
-  icon: string;
-  color: string;
+  icon: keyof typeof Ionicons.glyphMap;
   items: MenuItem[];
   requiredPermissions?: string[];
 }
 
 const menuCategories: MenuCategory[] = [
-  // Dashboard - Con submenú
+  // Dashboard
   {
     id: 'dashboard',
     title: 'Dashboard',
-    icon: '📊',
-    color: '#6366F1',
+    icon: 'analytics-outline',
     items: [
       {
         id: 'dashboard',
-        icon: '📊',
+        icon: 'bar-chart-outline',
         label: 'Dashboard',
         route: MAIN_ROUTES.DASHBOARD,
-        color: '#6366F1',
         requiredPermissions: ['dashboard.read'],
       },
       {
         id: 'dashboard-widget',
-        icon: '📈',
+        icon: 'apps-outline',
         label: 'Dashboard Widget',
         route: MAIN_ROUTES.DASHBOARD_WIDGET,
-        color: '#6366F1',
         requiredPermissions: ['dashboard.read'],
       },
     ],
   },
-  // Inicio - Sin submenú
+  // Inicio
   {
     id: 'home',
     title: 'Inicio',
-    icon: '🏠',
-    color: '#8B5CF6',
+    icon: 'home-outline',
     items: [
       {
         id: 'home',
-        icon: '🏠',
+        icon: 'home-outline',
         label: 'Inicio',
         route: MAIN_ROUTES.HOME,
-        color: '#8B5CF6',
       },
     ],
   },
@@ -82,209 +103,171 @@ const menuCategories: MenuCategory[] = [
   {
     id: 'inventory',
     title: 'Inventario',
-    icon: '📦',
-    color: '#8B5CF6',
+    icon: 'cube-outline',
     items: [
       {
         id: 'products',
-        icon: '📦',
+        icon: 'cube-outline',
         label: 'Productos',
         route: MAIN_ROUTES.PRODUCTS,
-        color: '#8B5CF6',
         requiredPermissions: ['products.read', 'products.create', 'products.update'],
       },
       {
         id: 'stock',
-        icon: '📊',
+        icon: 'layers-outline',
         label: 'Stock',
         route: MAIN_ROUTES.STOCK,
-        color: '#10B981',
         requiredPermissions: ['products.read'],
       },
       {
         id: 'fotos',
-        icon: '📸',
+        icon: 'camera-outline',
         label: 'Fotos',
         route: MAIN_ROUTES.PHOTOS,
-        color: '#EC4899',
         requiredPermissions: ['products.read'],
       },
     ],
   },
-  // Compras - Sin submenú
+  // Compras
   {
     id: 'purchases',
     title: 'Compras',
-    icon: '🛒',
-    color: '#F59E0B',
+    icon: 'cart-outline',
     items: [
       {
         id: 'purchases',
-        icon: '🛒',
+        icon: 'cart-outline',
         label: 'Compras',
         route: MAIN_ROUTES.PURCHASES,
-        color: '#F59E0B',
         requiredPermissions: ['purchases.read', 'purchases.create', 'purchases.update'],
       },
     ],
   },
-  // Ventas - Sin submenú
+  // Ventas
   {
     id: 'sales',
     title: 'Ventas',
-    icon: '💰',
-    color: '#10B981',
+    icon: 'cash-outline',
     items: [
       {
         id: 'sales',
-        icon: '💰',
+        icon: 'cash-outline',
         label: 'Ventas',
         route: MAIN_ROUTES.SALES,
-        color: '#10B981',
         requiredPermissions: ['sales.read', 'sales.create', 'sales.update'],
       },
     ],
   },
-  // Campaña - Con submenú (Campañas y Repartos)
+  // Campaña
   {
     id: 'campana',
     title: 'Campaña',
-    icon: '🎯',
-    color: '#10B981',
+    icon: 'megaphone-outline',
     items: [
       {
         id: 'campaigns',
-        icon: '📋',
+        icon: 'calendar-outline',
         label: 'Campañas',
         route: MAIN_ROUTES.CAMPAIGNS,
-        color: '#10B981',
         requiredPermissions: ['menu.campain'],
       },
       {
         id: 'repartos',
-        icon: '🚚',
+        icon: 'bicycle-outline',
         label: 'Repartos',
         route: MAIN_ROUTES.REPARTOS,
-        color: '#059669',
         requiredPermissions: ['campaigns.read'],
       },
     ],
   },
-  // Traslados - Módulo Unificado (SALIDAS y ENTRADAS)
+  // Traslados
   {
     id: 'transfers',
     title: 'Traslados',
-    icon: '🚛',
-    color: '#EC4899',
+    icon: 'swap-horizontal-outline',
     items: [
       {
         id: 'internal-transfers',
-        icon: '📤',
-        label: '📤 Traslado Interno',
+        icon: 'arrow-forward-outline',
+        label: 'Traslado Interno',
         route: MAIN_ROUTES.INTERNAL_TRANSFERS,
-        color: '#EC4899',
         requiredPermissions: ['transfers.read', 'transfers.create'],
       },
       {
         id: 'external-transfers',
-        icon: '📤',
-        label: '📤 Traslado Externo',
+        icon: 'globe-outline',
+        label: 'Traslado Externo',
         route: MAIN_ROUTES.EXTERNAL_TRANSFERS,
-        color: '#14B8A6',
         requiredPermissions: ['transfers.read', 'transfers.create'],
       },
       {
         id: 'receptions',
-        icon: '📥',
-        label: '📥 Recepciones',
+        icon: 'download-outline',
+        label: 'Recepciones',
         route: MAIN_ROUTES.RECEPTIONS,
-        color: '#06B6D4',
         requiredPermissions: ['transfers.receive', 'transfers.validate', 'transfers.complete'],
       },
     ],
   },
-
   // Finanzas
   {
     id: 'finances',
     title: 'Finanzas',
-    icon: '💰',
-    color: '#DC2626',
+    icon: 'wallet-outline',
     items: [
       {
         id: 'accounts-payable',
-        icon: '💰',
+        icon: 'trending-down-outline',
         label: 'Cuentas por Pagar',
         route: MAIN_ROUTES.ACCOUNTS_PAYABLE,
-        color: '#F59E0B',
         requiredPermissions: ['accounts-payable.read', 'accounts-payable.read-own-company', 'accounts-payable.read-all'],
       },
       {
         id: 'accounts-receivable',
-        icon: '💵',
+        icon: 'trending-up-outline',
         label: 'Cuentas por Cobrar',
         route: MAIN_ROUTES.ACCOUNTS_RECEIVABLE,
-        color: '#10B981',
         requiredPermissions: ['accounts-receivable.read', 'accounts-receivable.read-own-company', 'accounts-receivable.read-all'],
       },
       {
-        id: 'treasury',
-        icon: '🏦',
-        label: 'Tesorería (Próximamente)',
-        route: MAIN_ROUTES.HOME, // Temporal hasta que se implemente
-        color: '#3B82F6',
-        requiredPermissions: [],
-      },
-      {
         id: 'expenses-list',
-        icon: '📋',
+        icon: 'receipt-outline',
         label: 'Lista de Gastos',
         route: MAIN_ROUTES.EXPENSES,
-        color: '#DC2626',
         requiredPermissions: ['expenses.read'],
       },
       {
         id: 'expenses-templates',
-        icon: '🔄',
+        icon: 'repeat-outline',
         label: 'Gastos Recurrentes',
         route: MAIN_ROUTES.EXPENSE_TEMPLATES,
-        color: '#8B5CF6',
-        requiredPermissions: [
-          'expenses.templates.create',
-          'expenses.templates.read',
-          'expenses.templates.update',
-          'expenses.templates.delete',
-        ],
+        requiredPermissions: ['expenses.templates.read'],
       },
       {
         id: 'cash-reconciliation',
-        icon: '📊',
+        icon: 'calculator-outline',
         label: 'Cuadre de Caja',
-        color: '#06B6D4',
         requiredPermissions: ['cash_reconciliation.read'],
         subItems: [
           {
             id: 'upload-cash-files',
-            icon: '📤',
+            icon: 'cloud-upload-outline',
             label: 'Subir Archivos',
             route: MAIN_ROUTES.UPLOAD_CASH_RECONCILIATION_FILES,
-            color: '#10B981',
             requiredPermissions: ['cash_reconciliation.upload'],
           },
           {
             id: 'review-documents',
-            icon: '📋',
+            icon: 'document-text-outline',
             label: 'Revisar Documentos',
             route: MAIN_ROUTES.REVIEW_DOCUMENTS_MENU,
-            color: '#3B82F6',
             requiredPermissions: ['cash_reconciliation.read'],
           },
           {
             id: 'cuadre',
-            icon: '📊',
+            icon: 'checkmark-done-outline',
             label: 'Cuadre',
             route: MAIN_ROUTES.CUADRE,
-            color: '#8B5CF6',
             requiredPermissions: ['cash_reconciliation.read'],
           },
         ],
@@ -295,23 +278,20 @@ const menuCategories: MenuCategory[] = [
   {
     id: 'accounting',
     title: 'Contaduría',
-    icon: '📊',
-    color: '#8B5CF6',
+    icon: 'document-attach-outline',
     items: [
       {
-        id: 'generate-documents-accounting',
-        icon: '📝',
+        id: 'generate-documents',
+        icon: 'create-outline',
         label: 'Generar Documentos',
         route: MAIN_ROUTES.BIZLINKS_DOCUMENTS,
-        color: '#10B981',
         requiredPermissions: ['bizlinks.documents.view', 'bizlinks.documents.send'],
       },
       {
         id: 'retenciones',
-        icon: '📋',
+        icon: 'shield-checkmark-outline',
         label: 'Retenciones',
         route: MAIN_ROUTES.RETENCIONES,
-        color: '#8B5CF6',
         requiredPermissions: ['bizlinks.documents.view', 'bizlinks.documents.send'],
       },
     ],
@@ -320,192 +300,142 @@ const menuCategories: MenuCategory[] = [
   {
     id: 'config',
     title: 'Configuración',
-    icon: '⚙️',
-    color: '#6366F1',
+    icon: 'settings-outline',
     requiredPermissions: ['menu.config'],
     items: [
-      // General
       {
         id: 'companies',
-        icon: '🏛️',
+        icon: 'business-outline',
         label: 'Empresas',
         route: MAIN_ROUTES.COMPANIES,
-        color: '#6366F1',
       },
       {
         id: 'customers',
-        icon: '👥',
+        icon: 'people-outline',
         label: 'Clientes',
         route: MAIN_ROUTES.CUSTOMERS,
-        color: '#10B981',
-        requiredPermissions: [
-          'customers.read',
-          'customers.create',
-          'customers.update',
-        ],
+        requiredPermissions: ['customers.read', 'customers.create', 'customers.update'],
       },
-      // Productos (Subcategoría)
       {
         id: 'products-config',
-        icon: '📦',
+        icon: 'pricetags-outline',
         label: 'Productos',
-        color: '#8B5CF6',
         subItems: [
           {
             id: 'presentations',
-            icon: '📋',
+            icon: 'list-outline',
             label: 'Presentaciones',
             route: MAIN_ROUTES.PRESENTATIONS,
-            color: '#F59E0B',
           },
           {
             id: 'price-profiles',
-            icon: '💰',
+            icon: 'pricetag-outline',
             label: 'Perfiles de Precio',
             route: MAIN_ROUTES.PRICE_PROFILES,
-            color: '#14B8A6',
           },
           {
             id: 'suppliers',
-            icon: '🏢',
+            icon: 'storefront-outline',
             label: 'Proveedores',
             route: MAIN_ROUTES.SUPPLIERS,
-            color: '#3B82F6',
-            requiredPermissions: [
-              'suppliers.read',
-              'suppliers.create',
-              'suppliers.update',
-              'providers.read',
-            ],
+            requiredPermissions: ['suppliers.read', 'suppliers.create', 'suppliers.update', 'providers.read'],
           },
         ],
       },
-      // Documentos (Subcategoría)
       {
         id: 'documents-config',
-        icon: '📄',
+        icon: 'folder-outline',
         label: 'Documentos',
-        color: '#8B5CF6',
         subItems: [
           {
             id: 'emission-points',
-            icon: '📝',
-            label: 'Generación de Comprobantes',
+            icon: 'print-outline',
+            label: 'Comprobantes',
             route: MAIN_ROUTES.EMISSION_POINTS,
-            color: '#8B5CF6',
             requiredPermissions: ['billing.emission-points.read', 'billing.series.read'],
           },
           {
             id: 'vehicles',
-            icon: '🚗',
+            icon: 'car-outline',
             label: 'Vehículos',
             route: 'Vehicles',
-            color: '#06B6D4',
-            requiredPermissions: [
-              'transport.vehicles.read',
-              'transport.vehicles.create',
-              'transport.vehicles.update',
-              'transport.vehicles.delete',
-            ],
+            requiredPermissions: ['transport.vehicles.read'],
           },
           {
             id: 'drivers',
-            icon: '👤',
+            icon: 'person-circle-outline',
             label: 'Conductores',
             route: 'Drivers',
-            color: '#14B8A6',
-            requiredPermissions: [
-              'transport.drivers.read',
-              'transport.drivers.create',
-              'transport.drivers.update',
-              'transport.drivers.delete',
-            ],
+            requiredPermissions: ['transport.drivers.read'],
           },
           {
             id: 'transporters',
-            icon: '🚛',
+            icon: 'bus-outline',
             label: 'Transportistas',
             route: 'Transporters',
-            color: '#10B981',
-            requiredPermissions: [
-              'transport.transporters.read',
-              'transport.transporters.create',
-              'transport.transporters.update',
-              'transport.transporters.delete',
-            ],
+            requiredPermissions: ['transport.transporters.read'],
           },
         ],
       },
-      // Acceso (Subcategoría)
       {
         id: 'access-config',
-        icon: '🔐',
+        icon: 'lock-closed-outline',
         label: 'Acceso',
-        color: '#EF4444',
         subItems: [
           {
             id: 'users',
-            icon: '👥',
+            icon: 'people-outline',
             label: 'Usuarios',
             route: MAIN_ROUTES.USERS,
-            color: '#8B5CF6',
             requiredPermissions: ['users.read', 'users.create', 'users.update'],
           },
           {
             id: 'organization-chart',
-            icon: '📊',
+            icon: 'git-network-outline',
             label: 'Organigrama',
             route: MAIN_ROUTES.ORGANIZATION_CHART,
-            color: '#F59E0B',
             requiredPermissions: ['organization.positions.company.read', 'organization.positions.site.read'],
           },
           {
             id: 'roles',
-            icon: '🔐',
+            icon: 'key-outline',
             label: 'Roles y Permisos',
             route: MAIN_ROUTES.ROLES_PERMISSIONS,
-            color: '#EF4444',
             requiredPermissions: ['roles.read', 'roles.create', 'roles.update', 'permissions.read'],
           },
         ],
       },
-      // Otros (Subcategoría)
       {
         id: 'others-config',
-        icon: '⚙️',
+        icon: 'ellipsis-horizontal-outline',
         label: 'Otros',
-        color: '#6B7280',
         subItems: [
           {
             id: 'face-recognition-menu',
-            icon: '📸',
+            icon: 'scan-outline',
             label: 'Reconocimiento Facial',
             route: MAIN_ROUTES.FACE_RECOGNITION_MENU,
-            color: '#EC4899',
             requiredPermissions: ['biometric.read', 'biometric.register', 'biometric.verify'],
           },
           {
             id: 'apps',
-            icon: '📱',
+            icon: 'apps-outline',
             label: 'Apps',
             route: MAIN_ROUTES.APPS,
-            color: '#06B6D4',
             requiredPermissions: ['apps.manage', 'apps.read'],
           },
           {
             id: 'expenses-categories',
-            icon: '🏷️',
+            icon: 'bookmark-outline',
             label: 'Categorías de Gastos',
             route: MAIN_ROUTES.EXPENSES_CATEGORIES,
-            color: '#FCA5A5',
             requiredPermissions: ['expenses.categories.read'],
           },
           {
             id: 'series-config',
-            icon: '📊',
+            icon: 'options-outline',
             label: 'Config. Series Cuadre',
             route: MAIN_ROUTES.SERIES_CONFIG,
-            color: '#06B6D4',
             requiredPermissions: ['cash_reconciliation.config'],
           },
         ],
@@ -514,6 +444,9 @@ const menuCategories: MenuCategory[] = [
   },
 ];
 
+// ============================================
+// DRAWER MENU COMPONENT
+// ============================================
 interface DrawerMenuProps {
   visible: boolean;
   onClose: () => void;
@@ -522,17 +455,17 @@ interface DrawerMenuProps {
 
 export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side = 'left' }) => {
   const [slideAnim] = useState(new Animated.Value(side === 'left' ? -300 : 300));
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['main']));
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubItems, setExpandedSubItems] = useState<Set<string>>(new Set());
   const navigation = useNavigation();
   const { logout, user } = useAuthStore();
-  const { selectedSite, setSelectedSite } = useTenantStore();
+  const { selectedSite } = useTenantStore();
   const { hasPermission } = usePermissions();
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   const isTablet = width >= 768;
-  const drawerWidth = isTablet ? 400 : 350; // Increased by 25% (320->400, 280->350)
+  const drawerWidth = isTablet ? 380 : 320;
 
   useEffect(() => {
     if (visible) {
@@ -559,21 +492,14 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
     }, 300);
   };
 
-  const safeHandleMenuItemPress = (route?: string) => {
-    handleMenuItemPress(route || '');
-  };
-
   const handleLogout = () => {
     onClose();
-    setTimeout(() => {
-      logout();
-    }, 300);
+    setTimeout(logout, 300);
   };
 
   const handleSiteChange = () => {
     onClose();
     setTimeout(() => {
-      // Navigate to site selection screen to change the current site
       navigation.navigate(AUTH_ROUTES.SITE_SELECTION as never);
     }, 300);
   };
@@ -584,7 +510,6 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
       if (newSet.has(categoryId)) {
         newSet.delete(categoryId);
       } else {
-        // Close all other categories and open this one (accordion behavior)
         newSet.clear();
         newSet.add(categoryId);
       }
@@ -607,7 +532,6 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
   // Filter categories and items based on permissions
   const visibleCategories = menuCategories
     .filter((category) => {
-      // Check category-level permissions first
       if (category.requiredPermissions && category.requiredPermissions.length > 0) {
         return category.requiredPermissions.some((permission) => hasPermission(permission));
       }
@@ -623,7 +547,6 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
           return item.requiredPermissions.some((permission) => hasPermission(permission));
         })
         .map((item) => {
-          // Filter subitems if they exist
           if (item.subItems && item.subItems.length > 0) {
             const filteredSubItems = item.subItems.filter((subItem) => {
               if (!subItem.requiredPermissions || subItem.requiredPermissions.length === 0) {
@@ -631,18 +554,12 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
               }
               return subItem.requiredPermissions.some((permission) => hasPermission(permission));
             });
-            return {
-              ...item,
-              subItems: filteredSubItems,
-            };
+            return { ...item, subItems: filteredSubItems };
           }
           return item;
         })
         .filter((item) => {
-          // Keep items without subitems, or items with at least one visible subitem
-          if (!item.subItems || item.subItems.length === 0) {
-            return true;
-          }
+          if (!item.subItems || item.subItems.length === 0) return true;
           return item.subItems.length > 0;
         }),
     }))
@@ -651,10 +568,8 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
   return (
     <Modal visible={visible} animationType="none" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        {/* Overlay */}
         <Pressable style={styles.overlay} onPress={onClose} />
 
-        {/* Drawer */}
         <Animated.View
           style={[
             styles.drawer,
@@ -669,40 +584,44 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
         >
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>Menú Principal</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
+            <View style={styles.headerTop}>
+              <Title size="large">Menú</Title>
+              <IconButton icon="close" onPress={onClose} variant="ghost" size="medium" />
             </View>
 
             {/* User Info */}
             <View style={styles.userInfo}>
-              <View style={styles.userAvatar}>
-                <Text style={styles.userAvatarText}>
-                  {user?.name?.charAt(0).toUpperCase() || 'U'}
-                </Text>
-              </View>
+              <Avatar name={user?.name || 'Usuario'} size="large" />
               <View style={styles.userDetails}>
-                <Text style={styles.userName}>{user?.name || 'Usuario'}</Text>
-                <Text style={styles.userEmail}>{user?.email || ''}</Text>
+                <Text variant="titleSmall" color="primary" numberOfLines={1}>
+                  {user?.name || 'Usuario'}
+                </Text>
+                <Caption color="tertiary" numberOfLines={1}>
+                  {user?.email || ''}
+                </Caption>
               </View>
             </View>
 
             {/* Site Selector */}
             {selectedSite && (
-              <TouchableOpacity style={styles.siteSelector} onPress={handleSiteChange}>
-                <View style={styles.siteSelectorContent}>
-                  <Text style={styles.siteSelectorIcon}>🏪</Text>
-                  <View style={styles.siteSelectorText}>
-                    <Text style={styles.siteSelectorLabel}>Sede Actual</Text>
-                    <Text style={styles.siteSelectorValue}>{selectedSite.name}</Text>
-                  </View>
+              <TouchableOpacity
+                style={styles.siteSelector}
+                onPress={handleSiteChange}
+                activeOpacity={activeOpacity.medium}
+              >
+                <Ionicons name="business" size={iconSizes.md} color={colors.primary[900]} />
+                <View style={styles.siteSelectorText}>
+                  <Caption color="tertiary">Sede actual</Caption>
+                  <Text variant="labelMedium" color="primary" numberOfLines={1}>
+                    {selectedSite.name}
+                  </Text>
                 </View>
-                <Text style={styles.siteSelectorArrow}>›</Text>
+                <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.icon.tertiary} />
               </TouchableOpacity>
             )}
           </View>
+
+          <Divider spacing="none" />
 
           {/* Menu Items */}
           <ScrollView
@@ -714,114 +633,108 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
               const isExpanded = expandedCategories.has(category.id);
               const isSingleItem = category.items.length === 1;
 
-              // Si solo tiene un item, renderizar directamente sin categoría
+              // Single item - render directly
               if (isSingleItem) {
                 const item = category.items[0];
-                // @ts-ignore - TypeScript narrowing issue with optional route
-                const handlePress = () => safeHandleMenuItemPress(item.route);
                 return (
                   <TouchableOpacity
                     key={category.id}
-                    style={styles.singleMenuItem}
-                    onPress={handlePress}
-                    activeOpacity={0.7}
+                    style={styles.menuItem}
+                    onPress={() => handleMenuItemPress(item.route)}
+                    activeOpacity={activeOpacity.medium}
                     disabled={!item.route}
                   >
-                    <View style={[styles.menuItemIcon, { backgroundColor: item.color }]}>
-                      <Text style={styles.menuItemEmoji}>{item.icon}</Text>
+                    <View style={styles.menuItemIcon}>
+                      <Ionicons name={item.icon} size={iconSizes.md} color={colors.icon.secondary} />
                     </View>
-                    <Text style={styles.menuItemLabel}>{item.label}</Text>
+                    <Text variant="bodyMedium" color="primary">
+                      {item.label}
+                    </Text>
                   </TouchableOpacity>
                 );
               }
 
-              // Categoría con múltiples items (desplegable)
+              // Category with multiple items
               return (
                 <View key={category.id} style={styles.categorySection}>
-                  {/* Category Header */}
                   <TouchableOpacity
                     style={styles.categoryHeader}
                     onPress={() => toggleCategory(category.id)}
-                    activeOpacity={0.7}
+                    activeOpacity={activeOpacity.medium}
                   >
-                    <View style={styles.categoryHeaderContent}>
-                      <View style={[styles.menuItemIcon, { backgroundColor: category.color }]}>
-                        <Text style={styles.menuItemEmoji}>{category.icon}</Text>
+                    <View style={styles.categoryHeaderLeft}>
+                      <View style={styles.menuItemIcon}>
+                        <Ionicons name={category.icon} size={iconSizes.md} color={colors.icon.secondary} />
                       </View>
-                      <Text style={styles.categoryTitle}>{category.title}</Text>
-                      <Text style={styles.categoryCount}>({category.items.length})</Text>
+                      <Text variant="titleSmall" color="primary">
+                        {category.title}
+                      </Text>
                     </View>
-                    <Text
-                      style={[styles.categoryArrow, isExpanded && styles.categoryArrowExpanded]}
-                    >
-                      ›
-                    </Text>
+                    <Ionicons
+                      name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={iconSizes.sm}
+                      color={colors.icon.tertiary}
+                    />
                   </TouchableOpacity>
 
-                  {/* Category Items */}
-                  {isExpanded &&
-                    category.items.map((item) => {
-                      // Si el item tiene subitems, renderizar como subcategoría
-                      if (item.subItems && item.subItems.length > 0) {
-                        const isSubExpanded = expandedSubItems.has(item.id);
-                        return (
-                          <View key={item.id}>
+                  {isExpanded && category.items.map((item) => {
+                    if (item.subItems && item.subItems.length > 0) {
+                      const isSubExpanded = expandedSubItems.has(item.id);
+                      return (
+                        <View key={item.id}>
+                          <TouchableOpacity
+                            style={styles.subCategoryHeader}
+                            onPress={() => toggleSubItem(item.id)}
+                            activeOpacity={activeOpacity.medium}
+                          >
+                            <View style={styles.subMenuItemIcon}>
+                              <Ionicons name={item.icon} size={iconSizes.sm} color={colors.icon.tertiary} />
+                            </View>
+                            <Text variant="bodySmall" color="secondary" style={styles.subMenuLabel}>
+                              {item.label}
+                            </Text>
+                            <Ionicons
+                              name={isSubExpanded ? 'chevron-up' : 'chevron-down'}
+                              size={iconSizes.xs}
+                              color={colors.icon.tertiary}
+                            />
+                          </TouchableOpacity>
+
+                          {isSubExpanded && item.subItems.map((subItem) => (
                             <TouchableOpacity
-                              style={styles.subCategoryHeader}
-                              onPress={() => toggleSubItem(item.id)}
-                              activeOpacity={0.7}
+                              key={subItem.id}
+                              style={styles.subMenuItem}
+                              onPress={() => handleMenuItemPress(subItem.route)}
+                              activeOpacity={activeOpacity.medium}
                             >
-                              <View style={[styles.menuItemIcon, { backgroundColor: item.color }]}>
-                                <Text style={styles.menuItemEmoji}>{item.icon}</Text>
+                              <View style={styles.subMenuItemIconSmall}>
+                                <Ionicons name={subItem.icon} size={iconSizes.sm} color={colors.icon.tertiary} />
                               </View>
-                              <Text style={styles.menuItemLabel}>{item.label}</Text>
-                              <Text
-                                style={[
-                                  styles.subCategoryArrow,
-                                  isSubExpanded && styles.subCategoryArrowExpanded,
-                                ]}
-                              >
-                                ›
+                              <Text variant="bodySmall" color="secondary">
+                                {subItem.label}
                               </Text>
                             </TouchableOpacity>
-                            {isSubExpanded &&
-                              item.subItems.map((subItem) => {
-                                if (!subItem.route) return null;
-                                return (
-                                  <TouchableOpacity
-                                    key={subItem.id}
-                                    style={styles.subMenuItem}
-                                    onPress={() => handleMenuItemPress(subItem.route)}
-                                    activeOpacity={0.7}
-                                  >
-                                  <View
-                                    style={[styles.subMenuItemIcon, { backgroundColor: subItem.color }]}
-                                  >
-                                    <Text style={styles.subMenuItemEmoji}>{subItem.icon}</Text>
-                                  </View>
-                                  <Text style={styles.subMenuItemLabel}>{subItem.label}</Text>
-                                </TouchableOpacity>
-                                );
-                              })}
-                          </View>
-                        );
-                      }
-
-                      // Item normal sin subitems
-                      return (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={styles.menuItem}
-                          onPress={() => handleMenuItemPress(item.route)}
-                          activeOpacity={0.7}
-                        >
-                          <View style={[styles.menuItemIcon, { backgroundColor: item.color }]}>
-                            <Text style={styles.menuItemEmoji}>{item.icon}</Text>
-                          </View>
-                          <Text style={styles.menuItemLabel}>{item.label}</Text>
-                        </TouchableOpacity>
+                          ))}
+                        </View>
                       );
-                    })}
+                    }
+
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={styles.categoryItem}
+                        onPress={() => handleMenuItemPress(item.route)}
+                        activeOpacity={activeOpacity.medium}
+                      >
+                        <View style={styles.subMenuItemIcon}>
+                          <Ionicons name={item.icon} size={iconSizes.sm} color={colors.icon.tertiary} />
+                        </View>
+                        <Text variant="bodySmall" color="secondary">
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               );
             })}
@@ -829,9 +742,16 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutIcon}>🚪</Text>
-              <Text style={styles.logoutText}>Cerrar Sesión</Text>
+            <Divider spacing="none" />
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              activeOpacity={activeOpacity.medium}
+            >
+              <Ionicons name="log-out-outline" size={iconSizes.lg} color={colors.danger[600]} />
+              <Text variant="buttonMedium" color={colors.danger[600]} style={styles.logoutText}>
+                Cerrar Sesión
+              </Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -845,281 +765,178 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
   },
+
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
   },
+
   drawer: {
     position: 'absolute',
     top: 0,
     bottom: 0,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
+    backgroundColor: colors.surface.primary,
+    ...shadows.xl,
   },
+
+  // ============================================
+  // HEADER
+  // ============================================
   header: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    paddingBottom: 16,
+    padding: spacing[4],
   },
-  headerContent: {
+
+  headerTop: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
+    marginBottom: spacing[4],
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#6B7280',
-    fontWeight: '600',
-  },
+
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#F9FAFB',
-    marginHorizontal: 16,
-    borderRadius: 12,
+    backgroundColor: colors.surface.secondary,
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[3],
   },
-  userAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  userAvatarText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
+
   userDetails: {
     flex: 1,
+    marginLeft: spacing[3],
   },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  userEmail: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
+
   siteSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 12,
+    backgroundColor: colors.primary[50],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: colors.primary[200],
   },
-  siteSelectorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  siteSelectorIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
+
   siteSelectorText: {
     flex: 1,
+    marginLeft: spacing[3],
   },
-  siteSelectorLabel: {
-    fontSize: 11,
-    color: '#6366F1',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  siteSelectorValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  siteSelectorArrow: {
-    fontSize: 24,
-    color: '#6366F1',
-    fontWeight: '600',
-  },
+
+  // ============================================
+  // MENU
+  // ============================================
   menuScroll: {
     flex: 1,
   },
+
   menuScrollContent: {
-    paddingVertical: 8,
+    paddingVertical: spacing[2],
   },
+
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+  },
+
+  menuItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing[3],
+  },
+
   categorySection: {
-    marginBottom: 2,
+    marginBottom: spacing[1],
   },
+
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    backgroundColor: colors.surface.primary,
   },
-  singleMenuItem: {
+
+  categoryHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
-  categoryHeaderContent: {
+
+  categoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    paddingVertical: spacing[2.5],
+    paddingLeft: spacing[8],
+    paddingRight: spacing[4],
+    backgroundColor: colors.surface.secondary,
   },
-  categoryTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#374151',
-    flex: 1,
-  },
-  categoryCount: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    marginLeft: 6,
-  },
-  categoryArrow: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    transform: [{ rotate: '90deg' }],
-    marginLeft: 8,
-  },
-  categoryArrowExpanded: {
-    transform: [{ rotate: '-90deg' }],
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    paddingLeft: 68,
-  },
-  menuItemIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  menuItemEmoji: {
-    fontSize: 18,
-  },
-  menuItemLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#374151',
-    flex: 1,
-  },
-  subCategoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: '#F9FAFB',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    paddingLeft: 68,
-  },
-  subCategoryArrow: {
-    fontSize: 20,
-    color: '#9CA3AF',
-    fontWeight: '600',
-    marginLeft: 8,
-    transform: [{ rotate: '0deg' }],
-  },
-  subCategoryArrowExpanded: {
-    transform: [{ rotate: '90deg' }],
-  },
-  subMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    paddingLeft: 92,
-  },
+
   subMenuItemIcon: {
     width: 28,
     height: 28,
-    borderRadius: 6,
-    justifyContent: 'center',
+    borderRadius: borderRadius.sm,
     alignItems: 'center',
-    marginRight: 10,
+    justifyContent: 'center',
+    marginRight: spacing[2],
   },
-  subMenuItemEmoji: {
-    fontSize: 14,
+
+  subMenuItemIconSmall: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing[2],
   },
-  subMenuItemLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
+
+  subCategoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing[2.5],
+    paddingLeft: spacing[8],
+    paddingRight: spacing[4],
+    backgroundColor: colors.surface.secondary,
+  },
+
+  subMenuLabel: {
     flex: 1,
   },
-  footer: {
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    padding: 16,
+
+  subMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing[2],
+    paddingLeft: spacing[14],
+    paddingRight: spacing[4],
+    backgroundColor: colors.surface.tertiary,
   },
+
+  // ============================================
+  // FOOTER
+  // ============================================
+  footer: {
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[2],
+  },
+
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    paddingVertical: spacing[3],
+    marginTop: spacing[3],
+    backgroundColor: colors.danger[50],
+    borderRadius: borderRadius.lg,
   },
-  logoutIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
+
   logoutText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#DC2626',
+    marginLeft: spacing[2],
   },
 });
+
+export default DrawerMenu;
