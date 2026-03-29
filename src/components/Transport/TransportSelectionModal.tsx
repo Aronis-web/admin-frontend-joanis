@@ -276,15 +276,12 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
     <>
       <Modal
         visible={visible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={onClose}
         statusBarTranslucent
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* Header */}
             <View style={styles.header}>
@@ -300,7 +297,11 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
                 <Text style={styles.loadingText}>Cargando datos...</Text>
               </View>
             ) : (
-              <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+              <ScrollView
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
                 {/* Transport Type Selection */}
                 <View style={styles.transportTypeContainer}>
                   <Text style={styles.transportTypeLabel}>Tipo de Transporte *</Text>
@@ -398,7 +399,7 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
                     {/* Dropdown */}
                     {showTransporterDropdown && filteredTransporters.length > 0 && (
                       <View style={styles.dropdown}>
-                        <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
+                        <ScrollView style={styles.dropdownScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                           {filteredTransporters.map((transporter) => (
                             <TouchableOpacity
                               key={transporter.id}
@@ -482,7 +483,7 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
                 {/* Dropdown */}
                 {showVehicleDropdown && filteredVehicles.length > 0 && (
                   <View style={styles.dropdown}>
-                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                       {filteredVehicles.map((vehicle) => (
                         <TouchableOpacity
                           key={vehicle.id}
@@ -561,7 +562,7 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
                 {/* Dropdown */}
                 {showDriverDropdown && filteredDrivers.length > 0 && (
                   <View style={styles.dropdown}>
-                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                       {filteredDrivers.map((driver) => (
                         <TouchableOpacity
                           key={driver.id}
@@ -635,7 +636,7 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
 
     {/* Create Vehicle Modal */}
