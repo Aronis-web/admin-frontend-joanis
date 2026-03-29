@@ -261,9 +261,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
       if (productData.barcode) setBarcode(productData.barcode);
       if (productData.validationNotes) setValidationNotes(productData.validationNotes);
+      // Cargar peso siempre en gramos
       if (productData.weightKg !== undefined && productData.weightKg !== null) {
-        setWeightValue(productData.weightKg.toString());
-        setWeightUnit('kg');
+        setWeightValue((productData.weightKg * 1000).toString());
+        setWeightUnit('g');
       }
 
       setPhotoUri(undefined);
@@ -728,13 +729,33 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 <View style={styles.weightUnitContainer}>
                   <TouchableOpacity
                     style={[styles.weightUnitButton, weightUnit === 'kg' && styles.weightUnitButtonActive]}
-                    onPress={() => setWeightUnit('kg')}
+                    onPress={() => {
+                      // Convertir de gramos a kilos al cambiar
+                      if (weightUnit === 'g' && weightValue) {
+                        const grams = parseFloat(weightValue);
+                        if (!isNaN(grams)) {
+                          const kg = grams / 1000;
+                          setWeightValue(kg.toString());
+                        }
+                      }
+                      setWeightUnit('kg');
+                    }}
                   >
                     <Caption color={weightUnit === 'kg' ? colors.text.inverse : 'secondary'}>kg</Caption>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.weightUnitButton, weightUnit === 'g' && styles.weightUnitButtonActive]}
-                    onPress={() => setWeightUnit('g')}
+                    onPress={() => {
+                      // Convertir de kilos a gramos al cambiar
+                      if (weightUnit === 'kg' && weightValue) {
+                        const kg = parseFloat(weightValue);
+                        if (!isNaN(kg)) {
+                          const grams = kg * 1000;
+                          setWeightValue(grams.toString());
+                        }
+                      }
+                      setWeightUnit('g');
+                    }}
                   >
                     <Caption color={weightUnit === 'g' ? colors.text.inverse : 'secondary'}>g</Caption>
                   </TouchableOpacity>
