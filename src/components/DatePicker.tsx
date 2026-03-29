@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface DatePickerProps {
   visible: boolean;
@@ -230,7 +231,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             </View>
 
             <View style={styles.dateDisplay}>
-              <Ionicons name="calendar" size={32} color="#6366F1" />
+              <Ionicons name="calendar" size={32} color={colors.accent[500]} />
               <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
             </View>
 
@@ -436,11 +437,11 @@ export const DatePickerButton: React.FC<DatePickerButtonProps> = ({
     <View style={styles.buttonContainer}>
       <Text style={styles.buttonLabel}>{label}</Text>
       <TouchableOpacity style={styles.button} onPress={handlePress}>
-        <Ionicons name={icon as any} size={20} color="#64748B" style={styles.buttonIcon} />
+        <Ionicons name={icon as any} size={20} color={colors.neutral[500]} style={styles.buttonIcon} />
         <Text style={[styles.buttonText, !value && styles.buttonTextPlaceholder]}>
           {formatDate(value || '')}
         </Text>
-        <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+        <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
       </TouchableOpacity>
     </View>
   );
@@ -449,56 +450,56 @@ export const DatePickerButton: React.FC<DatePickerButtonProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
   },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
   },
   content: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   headerButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: spacing[1],
+    paddingHorizontal: spacing[2],
   },
   headerButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   headerButtonConfirm: {
-    color: '#6366F1',
+    color: colors.accent[500],
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   dateDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    backgroundColor: '#F8FAFC',
+    paddingVertical: spacing[5],
+    paddingHorizontal: spacing[4],
+    backgroundColor: colors.background.secondary,
   },
   dateText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E293B',
-    marginLeft: 12,
+    color: colors.neutral[800],
+    marginLeft: spacing[3],
   },
   pickerContainer: {
     flex: 1,
@@ -506,29 +507,29 @@ const styles = StyleSheet.create({
   monthYearSelector: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   monthYearButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
   },
   monthYearText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   weekDays: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    paddingVertical: spacing[2],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   weekDayText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   daysContainer: {
@@ -547,7 +548,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayButtonSelected: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.accent[500],
   },
   dayButtonDisabled: {
     opacity: 0.3,
@@ -558,13 +559,13 @@ const styles = StyleSheet.create({
   dayButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   dayButtonTextSelected: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   dayButtonTextDisabled: {
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   dayButtonTextEmpty: {
     color: 'transparent',
@@ -578,22 +579,22 @@ const styles = StyleSheet.create({
   monthsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 16,
+    padding: spacing[4],
   },
   monthButton: {
     width: 80,
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
-    margin: 8,
-    backgroundColor: '#F8FAFC',
+    borderRadius: borderRadius.lg,
+    margin: spacing[2],
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   monthButtonSelected: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.accent[500],
+    borderColor: colors.accent[500],
   },
   monthButtonDisabled: {
     opacity: 0.3,
@@ -601,13 +602,13 @@ const styles = StyleSheet.create({
   monthButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   monthButtonTextSelected: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   monthButtonTextDisabled: {
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   yearsContainer: {
     flex: 1,
@@ -618,22 +619,22 @@ const styles = StyleSheet.create({
   yearsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 16,
+    padding: spacing[4],
   },
   yearButton: {
     width: 80,
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
-    margin: 8,
-    backgroundColor: '#F8FAFC',
+    borderRadius: borderRadius.lg,
+    margin: spacing[2],
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   yearButtonSelected: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.accent[500],
+    borderColor: colors.accent[500],
   },
   yearButtonDisabled: {
     opacity: 0.3,
@@ -641,42 +642,42 @@ const styles = StyleSheet.create({
   yearButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   yearButtonTextSelected: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   yearButtonTextDisabled: {
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   buttonContainer: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   buttonLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
+    color: colors.neutral[600],
+    marginBottom: spacing[2],
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderColor: colors.neutral[200],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[3],
   },
   buttonIcon: {
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   buttonText: {
     flex: 1,
     fontSize: 15,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   buttonTextPlaceholder: {
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
 });
