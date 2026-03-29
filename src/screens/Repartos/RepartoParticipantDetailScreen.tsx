@@ -199,6 +199,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     driver: Driver | null;
     transporter: Transporter | null;
   } | null>(null);
+  const [shouldOpenBultosModal, setShouldOpenBultosModal] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -458,6 +459,18 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       photosMap: productPhotos
     });
   }, [productPhotos]);
+
+  // 📦 Abrir modal de bultos después de cerrar modal de transporte
+  React.useEffect(() => {
+    if (shouldOpenBultosModal && !transportModalVisible && pendingTransportData) {
+      // Esperar a que el modal de transporte termine de cerrarse
+      const timer = setTimeout(() => {
+        setBultosModalVisible(true);
+        setShouldOpenBultosModal(false);
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldOpenBultosModal, transportModalVisible, pendingTransportData]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -723,17 +736,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   };
 
   const handleTransportConfirm = async (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
-    // Cerrar el modal de transporte primero
-    setTransportModalVisible(false);
-
-    // Guardar datos de transporte
+    // Guardar datos de transporte y marcar que debe abrirse el modal de bultos
     setPendingTransportData({ vehicle, driver, transporter });
     setNumeroBultos('1'); // Resetear a valor por defecto
+    setShouldOpenBultosModal(true);
 
-    // Esperar un momento para que el modal de transporte se cierre antes de abrir el de bultos
-    setTimeout(() => {
-      setBultosModalVisible(true);
-    }, 300);
+    // Cerrar el modal de transporte - el useEffect se encargará de abrir el modal de bultos
+    setTransportModalVisible(false);
   };
 
   const handleBultosConfirm = async () => {
