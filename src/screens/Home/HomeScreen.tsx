@@ -10,6 +10,8 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
@@ -54,30 +56,29 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     return 'Usuario';
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Buenos días';
+    if (hour < 18) return 'Buenas tardes';
+    return 'Buenas noches';
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.backgroundPattern}>
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
-        <View style={styles.circle3} />
-      </View>
-
-      <ScrollView
-        style={[
-          styles.content,
-          isTablet && styles.contentTablet,
-          isTablet && isLandscape && styles.contentTabletLandscape,
-        ]}
-        showsVerticalScrollIndicator={false}
+      {/* Header con gradiente */}
+      <LinearGradient
+        colors={[colors.primary[900], colors.primary[800]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {/* Header del Perfil */}
-        <View
-          style={[
-            styles.profileHeader,
-            isTablet && styles.profileHeaderTablet,
-            isTablet && isLandscape && styles.profileHeaderLandscape,
-          ]}
-        >
+        <View style={styles.headerContent}>
+          <View style={styles.greetingSection}>
+            <Text style={styles.greetingText}>{getGreeting()}</Text>
+            <Text style={[styles.userName, isTablet && styles.userNameTablet]}>
+              {user?.name?.split(' ')[0] || 'Usuario'}
+            </Text>
+          </View>
           <View style={styles.avatarContainer}>
             {user?.avatar ? (
               <Image
@@ -85,40 +86,83 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 style={[styles.avatar, isTablet && styles.avatarTablet]}
               />
             ) : (
-              <View style={[styles.avatarPlaceholder, isTablet && styles.avatarPlaceholderTablet]}>
+              <LinearGradient
+                colors={[colors.accent[400], colors.accent[600]]}
+                style={[styles.avatarPlaceholder, isTablet && styles.avatarPlaceholderTablet]}
+              >
                 <Text style={[styles.avatarText, isTablet && styles.avatarTextTablet]}>
                   {user?.name ? getUserInitials(user.name) : 'U'}
                 </Text>
-              </View>
+              </LinearGradient>
             )}
           </View>
+        </View>
 
-          <View style={styles.profileInfo}>
-            <Text style={[styles.welcomeText, isTablet && styles.welcomeTextTablet]}>
-              Bienvenido de nuevo
-            </Text>
-            <Text style={[styles.userName, isTablet && styles.userNameTablet]}>
-              {user?.name || 'Usuario'}
-            </Text>
-            <Text style={[styles.userEmail, isTablet && styles.userEmailTablet]}>
-              {user?.email || 'usuario@ejemplo.com'}
-            </Text>
-            <View style={[styles.roleContainer, isTablet && styles.roleContainerTablet]}>
-              <Text style={[styles.userRole, isTablet && styles.userRoleTablet]}>
-                {getUserRole()}
-              </Text>
+        {/* Info badges */}
+        <View style={styles.badgesContainer}>
+          {currentCompany && (
+            <View style={styles.infoBadge}>
+              <Ionicons name="business" size={14} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.infoBadgeText}>{currentCompany.alias || currentCompany.name}</Text>
+            </View>
+          )}
+          {currentSite && (
+            <View style={styles.infoBadge}>
+              <Ionicons name="location" size={14} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.infoBadgeText}>{currentSite.name}</Text>
+            </View>
+          )}
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.content,
+          isTablet && styles.contentTablet,
+          isTablet && isLandscape && styles.contentTabletLandscape,
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Card */}
+        <View style={[styles.profileCard, isTablet && styles.profileCardTablet]}>
+          <View style={styles.profileCardHeader}>
+            <View style={styles.profileIconContainer}>
+              <Ionicons name="person" size={20} color={colors.accent[600]} />
+            </View>
+            <Text style={styles.profileCardTitle}>Mi Perfil</Text>
+          </View>
+
+          <View style={styles.profileInfoRow}>
+            <View style={styles.profileInfoItem}>
+              <Text style={styles.profileInfoLabel}>Correo electrónico</Text>
+              <Text style={styles.profileInfoValue}>{user?.email || 'No disponible'}</Text>
+            </View>
+          </View>
+
+          <View style={styles.profileInfoRow}>
+            <View style={styles.profileInfoItem}>
+              <Text style={styles.profileInfoLabel}>Rol</Text>
+              <View style={styles.roleContainer}>
+                <Ionicons name="shield-checkmark" size={14} color={colors.accent[600]} />
+                <Text style={styles.userRole}>{getUserRole()}</Text>
+              </View>
             </View>
           </View>
         </View>
 
-        {/* QR Code */}
-        <View
-          style={[
-            styles.qrSection,
-            isTablet && styles.qrSectionTablet,
-            isTablet && isLandscape && styles.qrSectionLandscape,
-          ]}
-        >
+        {/* QR Code Section */}
+        <View style={[styles.qrCard, isTablet && styles.qrCardTablet]}>
+          <View style={styles.qrCardHeader}>
+            <View style={styles.qrIconContainer}>
+              <Ionicons name="qr-code" size={20} color={colors.primary[700]} />
+            </View>
+            <View style={styles.qrCardTitleContainer}>
+              <Text style={styles.qrCardTitle}>Mi Código QR</Text>
+              <Text style={styles.qrCardSubtitle}>Identificación única</Text>
+            </View>
+          </View>
+
           <View
             style={[
               styles.qrContainer,
@@ -127,17 +171,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             ]}
           >
             {user?.id ? (
-              <QRCodeStyled
-                data={user.id}
-                style={
-                  isTablet && isLandscape
-                    ? styles.qrCodeLandscape
-                    : isTablet
-                      ? styles.qrCodeTablet
-                      : styles.qrCode
-                }
-                color={colors.neutral[800]}
-              />
+              <View style={styles.qrWrapper}>
+                <QRCodeStyled
+                  data={user.id}
+                  style={
+                    isTablet && isLandscape
+                      ? styles.qrCodeLandscape
+                      : isTablet
+                        ? styles.qrCodeTablet
+                        : styles.qrCode
+                  }
+                  color={colors.primary[900]}
+                />
+              </View>
             ) : (
               <View
                 style={[
@@ -146,27 +192,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   isTablet && isLandscape && styles.qrPlaceholderLandscape,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.qrIcon,
-                    isTablet && styles.qrIconTablet,
-                    isTablet && isLandscape && styles.qrIconLandscape,
-                  ]}
-                >
-                  📱
-                </Text>
-                <Text
-                  style={[
-                    styles.qrText,
-                    isTablet && styles.qrTextTablet,
-                    isTablet && isLandscape && styles.qrTextLandscape,
-                  ]}
-                >
-                  Generando QR...
-                </Text>
+                <Ionicons name="qr-code-outline" size={48} color={colors.neutral[400]} />
+                <Text style={styles.qrPlaceholderText}>Generando QR...</Text>
               </View>
             )}
           </View>
+
+          <Text style={styles.qrHint}>
+            <Ionicons name="information-circle-outline" size={14} color={colors.neutral[400]} />
+            {' '}Usa este código para identificarte
+          </Text>
         </View>
 
         {/* Espacio para el botón flotante */}
@@ -181,149 +216,256 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.secondary,
   },
-  backgroundPattern: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[6],
   },
-  circle1: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: colors.accent[100],
-    opacity: 0.3,
-    top: -100,
-    right: -100,
-  },
-  circle2: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: colors.accent[200],
-    opacity: 0.2,
-    bottom: 100,
-    left: -50,
-  },
-  circle3: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: colors.primary[100],
-    opacity: 0.2,
-    top: '50%',
-    right: 50,
-  },
-  content: {
-    flex: 1,
-    padding: spacing[6],
-    paddingBottom: 100,
-  },
-  profileHeader: {
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[10],
-    paddingTop: spacing[5],
   },
-  avatarContainer: {
-    marginBottom: spacing[5],
+  greetingSection: {
+    flex: 1,
   },
+  greetingText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginBottom: spacing[0.5],
+  },
+  userName: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
+  },
+  userNameTablet: {
+    fontSize: 32,
+  },
+  avatarContainer: {},
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 3,
-    borderColor: colors.neutral[0],
-    shadowColor: colors.accent[500],
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.accent[500],
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: colors.neutral[0],
-    shadowColor: colors.accent[500],
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.neutral[0],
     letterSpacing: 1,
   },
-  profileInfo: {
+  avatarTextTablet: {
+    fontSize: 24,
+  },
+  avatarTablet: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  avatarPlaceholderTablet: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  badgesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+    marginTop: spacing[4],
+  },
+  infoBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  welcomeText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    fontWeight: '500',
-    marginBottom: spacing[1],
-  },
-  userName: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1.5],
-  },
-  userEmail: {
-    fontSize: 16,
-    color: colors.neutral[500],
-    marginBottom: spacing[3],
-  },
-  roleContainer: {
-    backgroundColor: colors.accent[50],
-    paddingHorizontal: spacing[4],
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: spacing[3],
     paddingVertical: spacing[1.5],
     borderRadius: borderRadius.full,
-    borderWidth: 1,
-    borderColor: colors.accent[100],
+    gap: spacing[1.5],
   },
-  userRole: {
-    fontSize: 13,
-    color: colors.accent[500],
+  infoBadgeText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '600',
   },
-  qrSection: {
-    marginBottom: spacing[6],
-    alignItems: 'center',
+  scrollView: {
+    flex: 1,
   },
-  qrContainer: {
+  content: {
+    padding: spacing[5],
+    paddingBottom: 100,
+  },
+  contentTablet: {
+    paddingHorizontal: spacing[8],
+    maxWidth: 700,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  contentTabletLandscape: {
+    maxWidth: 800,
+    paddingBottom: 80,
+  },
+  // Profile Card
+  profileCard: {
     backgroundColor: colors.surface.primary,
     borderRadius: borderRadius['2xl'],
     padding: spacing[5],
-    borderWidth: 2,
+    marginBottom: spacing[4],
+    borderWidth: 1,
     borderColor: colors.neutral[200],
     shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 3,
+  },
+  profileCardTablet: {
+    padding: spacing[6],
+  },
+  profileCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[5],
+    paddingBottom: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[100],
+  },
+  profileIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.accent[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  profileCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.neutral[800],
+  },
+  profileInfoRow: {
+    marginBottom: spacing[4],
+  },
+  profileInfoItem: {},
+  profileInfoLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.neutral[400],
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing[1],
+  },
+  profileInfoValue: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.neutral[700],
+  },
+  roleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent[50],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
+    alignSelf: 'flex-start',
+    gap: spacing[1.5],
+  },
+  userRole: {
+    fontSize: 13,
+    color: colors.accent[700],
+    fontWeight: '600',
+  },
+  // QR Card
+  qrCard: {
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing[5],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    shadowColor: colors.neutral[950],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  qrCardTablet: {
+    padding: spacing[6],
+  },
+  qrCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[5],
+  },
+  qrIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  qrCardTitleContainer: {
+    flex: 1,
+  },
+  qrCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.neutral[800],
+  },
+  qrCardSubtitle: {
+    fontSize: 13,
+    color: colors.neutral[500],
+    marginTop: spacing[0.5],
+  },
+  qrContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: spacing[4],
+  },
+  qrContainerTablet: {},
+  qrContainerLandscape: {},
+  qrWrapper: {
+    backgroundColor: colors.neutral[0],
+    padding: spacing[4],
+    borderRadius: borderRadius.xl,
+    borderWidth: 2,
+    borderColor: colors.neutral[100],
+    shadowColor: colors.neutral[950],
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   qrCode: {
-    width: 200,
-    height: 200,
+    width: 180,
+    height: 180,
+  },
+  qrCodeTablet: {
+    width: 220,
+    height: 220,
+  },
+  qrCodeLandscape: {
+    width: 160,
+    height: 160,
   },
   qrPlaceholder: {
-    width: 200,
-    height: 200,
-    backgroundColor: colors.background.secondary,
+    width: 180,
+    height: 180,
+    backgroundColor: colors.neutral[50],
     borderRadius: borderRadius.xl,
     borderWidth: 2,
     borderColor: colors.neutral[200],
@@ -332,108 +474,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[2],
   },
-  qrIcon: {
-    fontSize: 48,
-  },
-  qrText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  bottomSpacer: {
-    height: 100,
-  },
-  // Tablet-specific styles
-  contentTablet: {
-    paddingHorizontal: 48,
-    maxWidth: 900,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  profileHeaderTablet: {
-    marginBottom: 48,
-    paddingTop: 24,
-  },
-  avatarTablet: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  avatarPlaceholderTablet: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  avatarTextTablet: {
-    fontSize: 40,
-  },
-  welcomeTextTablet: {
-    fontSize: 16,
-  },
-  userNameTablet: {
-    fontSize: 34,
-  },
-  userEmailTablet: {
-    fontSize: 18,
-  },
-  roleContainerTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-  },
-  userRoleTablet: {
-    fontSize: 15,
-  },
-  qrSectionTablet: {
-    marginBottom: 32,
-  },
-  qrContainerTablet: {
-    padding: 24,
-    borderRadius: 20,
-  },
-  qrCodeTablet: {
-    width: 250,
-    height: 250,
-  },
   qrPlaceholderTablet: {
-    width: 250,
-    height: 250,
-  },
-  qrIconTablet: {
-    fontSize: 56,
-  },
-  qrTextTablet: {
-    fontSize: 18,
-  },
-  // Landscape-specific styles for tablets
-  contentTabletLandscape: {
-    maxWidth: 1200,
-    paddingHorizontal: 64,
-    paddingBottom: 70,
-  },
-  profileHeaderLandscape: {
-    marginBottom: 20,
-    paddingTop: 8,
-  },
-  qrSectionLandscape: {
-    marginBottom: 20,
-  },
-  qrContainerLandscape: {
-    padding: 16,
-    borderRadius: 16,
-  },
-  qrCodeLandscape: {
-    width: 180,
-    height: 180,
+    width: 220,
+    height: 220,
   },
   qrPlaceholderLandscape: {
-    width: 180,
-    height: 180,
+    width: 160,
+    height: 160,
   },
-  qrIconLandscape: {
-    fontSize: 40,
+  qrPlaceholderText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.neutral[500],
   },
-  qrTextLandscape: {
-    fontSize: 15,
+  qrHint: {
+    fontSize: 13,
+    color: colors.neutral[400],
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  bottomSpacer: {
+    height: 80,
   },
 });
 
