@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { companiesApi, scopesApi } from '@/services/api';
@@ -282,7 +283,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#667eea" />
+          <ActivityIndicator size="large" color={colors.accent[500]} />
           <Text style={styles.loadingText}>Cargando sedes...</Text>
         </View>
       </SafeAreaView>
@@ -355,7 +356,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
                   </View>
                   {selectedSiteId === siteId && (
                     <View style={styles.loadingIndicator}>
-                      <ActivityIndicator size="small" color="#667eea" />
+                      <ActivityIndicator size="small" color={colors.accent[500]} />
                     </View>
                   )}
                 </View>
@@ -383,14 +384,14 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -399,14 +400,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   backButtonText: {
     fontSize: 24,
-    color: '#1E293B',
+    color: colors.neutral[800],
     fontWeight: '600',
   },
   headerContent: {
@@ -415,24 +416,24 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   logoutButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#FEE2E2',
-    marginLeft: 12,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.danger[100],
+    marginLeft: spacing[3],
   },
   logoutButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#DC2626',
+    color: colors.danger[600],
   },
   loadingContainer: {
     flex: 1,
@@ -440,56 +441,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 15,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: spacing[5],
   },
   infoCard: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    backgroundColor: colors.info[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[6],
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: colors.info[200],
   },
   infoIcon: {
     fontSize: 24,
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: '#1E40AF',
+    color: colors.info[800],
     lineHeight: 20,
   },
   sitesContainer: {
-    gap: 12,
+    gap: spacing[3],
   },
   siteCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing[4],
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.neutral[200],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
   siteCardSelected: {
-    borderColor: '#667eea',
-    backgroundColor: '#F5F7FF',
+    borderColor: colors.accent[500],
+    backgroundColor: colors.accent[50],
   },
   siteCardDisabled: {
     opacity: 0.5,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   siteCardContent: {
     flexDirection: 'row',
@@ -498,11 +499,11 @@ const styles = StyleSheet.create({
   siteIconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.background.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: spacing[4],
   },
   siteIcon: {
     fontSize: 28,
@@ -513,13 +514,13 @@ const styles = StyleSheet.create({
   siteName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   siteCode: {
     fontSize: 13,
-    color: '#64748B',
-    marginBottom: 8,
+    color: colors.neutral[500],
+    marginBottom: spacing[2],
     fontFamily: 'monospace',
   },
   siteFooter: {
@@ -527,35 +528,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   restrictedBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: colors.warning[100],
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
   },
   restrictedText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#92400E',
+    color: colors.warning[800],
   },
   loadingIndicator: {
-    marginLeft: 12,
+    marginLeft: spacing[3],
   },
   arrowContainer: {
-    marginTop: 12,
+    marginTop: spacing[3],
     alignItems: 'flex-end',
   },
   arrow: {
     fontSize: 24,
-    color: '#667eea',
+    color: colors.accent[500],
   },
   footer: {
-    marginTop: 24,
-    paddingVertical: 16,
+    marginTop: spacing[6],
+    paddingVertical: spacing[4],
     alignItems: 'center',
   },
   footerText: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
 });
 
