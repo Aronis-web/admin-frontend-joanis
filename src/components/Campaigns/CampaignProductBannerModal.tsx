@@ -891,7 +891,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                         disabled={savingQuantity}
                       >
                         {savingQuantity ? (
-                          <ActivityIndicator size="small" color="#FFFFFF" />
+                          <ActivityIndicator size="small" color={colors.neutral[0]} />
                         ) : (
                           <Text style={styles.saveQuantityButtonText}>✓ Guardar</Text>
                         )}
@@ -982,7 +982,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                       disabled={savingCost}
                     >
                       {savingCost ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <ActivityIndicator size="small" color={colors.neutral[0]} />
                       ) : (
                         <Text style={styles.saveCostButtonText}>✓ Guardar</Text>
                       )}
@@ -1020,7 +1020,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
             {/* Price Profiles Section */}
             {loadingPrices ? (
               <View style={styles.loadingPricesContainer}>
-                <ActivityIndicator size="large" color="#10B981" />
+                <ActivityIndicator size="large" color={colors.success[500]} />
                 <Text style={styles.loadingPricesText}>Cargando perfiles de precio...</Text>
               </View>
             ) : priceFormData.length === 0 ? (
@@ -1112,7 +1112,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                             disabled={saving}
                           >
                             {saving ? (
-                              <ActivityIndicator size="small" color="#FFFFFF" />
+                              <ActivityIndicator size="small" color={colors.neutral[0]} />
                             ) : (
                               <Text style={styles.savePriceButtonText}>✓ Guardar</Text>
                             )}
@@ -1188,7 +1188,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
               <Text style={styles.bannerLabel}>FOTO DEL PRODUCTO</Text>
               {loadingImage ? (
                 <View style={styles.loadingImageContainer}>
-                  <ActivityIndicator size="large" color="#6366F1" />
+                  <ActivityIndicator size="large" color={colors.accent[500]} />
                   <Text style={styles.loadingImageText}>Cargando imagen...</Text>
                 </View>
               ) : productImageUrl ? (
@@ -1211,7 +1211,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                 <Text style={styles.bannerLabel}>{stockLabel.toUpperCase()}</Text>
                 {loadingStock ? (
                   <View style={styles.loadingStockContainer}>
-                    <ActivityIndicator size="large" color="#60A5FA" />
+                    <ActivityIndicator size="large" color={colors.primary[400]} />
                     <Text style={styles.loadingStockText}>Cargando stock...</Text>
                   </View>
                 ) : (
