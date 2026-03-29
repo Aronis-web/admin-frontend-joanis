@@ -401,7 +401,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets?.[0]) {
         const asset = result.assets[0];
         const fileData = {
           uri: asset.uri,

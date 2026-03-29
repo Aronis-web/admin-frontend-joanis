@@ -1,21 +1,39 @@
+/**
+ * CreatePurchaseScreen - Crear Nueva Compra
+ * Migrado al Design System unificado
+ */
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { purchasesService } from '@/services/api';
 import { GuideType, GuideTypeLabels } from '@/types/purchases';
 import { Supplier } from '@/types/expenses';
+import { SupplierType } from '@/types/suppliers';
 import { getTodayString } from '@/utils/dateHelpers';
 import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  Title,
+  Body,
+  Label,
+  Caption,
+  Button,
+  Card,
+  Input,
+  IconButton,
+} from '@/design-system';
 
 interface CreatePurchaseScreenProps {
   navigation: any;
@@ -70,8 +88,6 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
     }
   };
 
-
-
   const renderGuideTypePicker = () => {
     if (!showGuideTypePicker) {
       return null;
@@ -83,32 +99,33 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
       <View style={styles.pickerOverlay}>
         <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
           <View style={styles.pickerHeader}>
-            <Text style={[styles.pickerTitle, isTablet && styles.pickerTitleTablet]}>
-              Tipo de Guía
-            </Text>
-            <TouchableOpacity onPress={() => setShowGuideTypePicker(false)}>
-              <Text style={styles.pickerClose}>✕</Text>
-            </TouchableOpacity>
+            <Title size="medium">Tipo de Guía</Title>
+            <IconButton
+              icon="close"
+              onPress={() => setShowGuideTypePicker(false)}
+              variant="ghost"
+              size="small"
+            />
           </View>
           <ScrollView style={styles.pickerList}>
             {guideTypes.map((type) => (
               <TouchableOpacity
                 key={type}
-                style={[styles.pickerItem, guideType === type && styles.pickerItemSelected]}
+                style={[
+                  styles.pickerItem,
+                  guideType === type && styles.pickerItemSelected,
+                ]}
                 onPress={() => {
                   setGuideType(type);
                   setShowGuideTypePicker(false);
                 }}
               >
-                <Text
-                  style={[
-                    styles.pickerItemText,
-                    isTablet && styles.pickerItemTextTablet,
-                    guideType === type && styles.pickerItemTextSelected,
-                  ]}
+                <Body
+                  color={guideType === type ? colors.primary[900] : 'primary'}
+                  style={guideType === type && { fontWeight: '600' }}
                 >
                   {GuideTypeLabels[type]}
-                </Text>
+                </Body>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -120,127 +137,116 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>‹</Text>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={24} color={colors.icon.primary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Nueva Compra</Text>
-          <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-            Ingreso de guía de compra
-          </Text>
+          <Title size="large">Nueva Compra</Title>
+          <Body color="secondary">Ingreso de guía de compra</Body>
         </View>
       </View>
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
+        contentContainerStyle={[
+          styles.contentContainer,
+          isTablet && styles.contentContainerTablet,
+        ]}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Supplier Search - Smart Search with MERCHANDISE filter */}
-        <View style={styles.section}>
+        {/* Supplier Search */}
+        <Card variant="outlined" padding="medium" style={styles.section}>
           <SupplierSearchInput
             selectedSupplier={selectedSupplier || undefined}
             onSelect={(supplier) => setSelectedSupplier(supplier)}
             label="Proveedor de Mercadería"
             placeholder="Buscar proveedor de mercadería..."
             required
-            filterByType="MERCHANDISE"
+            filterByType={SupplierType.MERCHANDISE}
           />
-          <Text style={[styles.infoText, isTablet && styles.infoTextTablet]}>
-            💡 Solo se muestran proveedores de tipo Mercadería
-          </Text>
-        </View>
+          <View style={styles.infoNote}>
+            <Ionicons name="information-circle" size={16} color={colors.info[500]} />
+            <Caption color="secondary" style={styles.infoNoteText}>
+              Solo se muestran proveedores de tipo Mercadería
+            </Caption>
+          </View>
+        </Card>
 
         {/* Guide Number */}
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Número de Guía <Text style={styles.required}>*</Text>
-          </Text>
-          <TextInput
-            style={[styles.input, isTablet && styles.inputTablet]}
+        <Card variant="outlined" padding="medium" style={styles.section}>
+          <Input
+            label="Número de Guía"
             value={guideNumber}
             onChangeText={setGuideNumber}
             placeholder="Ej: F001-00123"
-            placeholderTextColor="#94A3B8"
+            required
           />
-        </View>
+        </Card>
 
         {/* Guide Type */}
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Tipo de Guía <Text style={styles.required}>*</Text>
-          </Text>
+        <Card variant="outlined" padding="medium" style={styles.section}>
+          <Label color="secondary" style={styles.fieldLabel}>
+            Tipo de Guía <Label color={colors.danger[500]}>*</Label>
+          </Label>
           <TouchableOpacity
-            style={[styles.input, styles.selectInput, isTablet && styles.inputTablet]}
+            style={styles.selectInput}
             onPress={() => setShowGuideTypePicker(true)}
           >
-            <Text style={[styles.selectText, isTablet && styles.selectTextTablet]}>
-              {GuideTypeLabels[guideType]}
-            </Text>
-            <Text style={styles.selectArrow}>▼</Text>
+            <Body>{GuideTypeLabels[guideType]}</Body>
+            <Ionicons name="chevron-down" size={20} color={colors.icon.tertiary} />
           </TouchableOpacity>
-        </View>
+        </Card>
 
         {/* Guide Date */}
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Fecha de Guía <Text style={styles.required}>*</Text>
-          </Text>
-          <TextInput
-            style={[styles.input, isTablet && styles.inputTablet]}
+        <Card variant="outlined" padding="medium" style={styles.section}>
+          <Input
+            label="Fecha de Guía"
             value={guideDate}
             onChangeText={setGuideDate}
             placeholder="YYYY-MM-DD"
-            placeholderTextColor="#94A3B8"
+            required
           />
-        </View>
+        </Card>
 
         {/* Notes */}
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>Notas</Text>
-          <TextInput
-            style={[styles.input, styles.textArea, isTablet && styles.inputTablet]}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Notas adicionales (opcional)"
-            placeholderTextColor="#94A3B8"
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-        </View>
+        <Card variant="outlined" padding="medium" style={styles.section}>
+          <Label color="secondary" style={styles.fieldLabel}>Notas</Label>
+          <View style={styles.textAreaContainer}>
+            <Input
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Notas adicionales (opcional)"
+              multiline
+              numberOfLines={4}
+              inputStyle={styles.textArea}
+            />
+          </View>
+        </Card>
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
       {/* Action Buttons */}
-      <View style={[styles.footer, isTablet && styles.footerTablet]}>
-        <TouchableOpacity
-          style={[styles.cancelButton, isTablet && styles.cancelButtonTablet]}
+      <View style={styles.footer}>
+        <Button
+          title="Cancelar"
           onPress={() => navigation.goBack()}
+          variant="secondary"
           disabled={loading}
-        >
-          <Text style={[styles.cancelButtonText, isTablet && styles.cancelButtonTextTablet]}>
-            Cancelar
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.createButton,
-            isTablet && styles.createButtonTablet,
-            loading && styles.createButtonDisabled,
-          ]}
+          style={styles.footerButton}
+        />
+        <Button
+          title="Crear Compra"
           onPress={handleCreate}
+          variant="primary"
+          loading={loading}
           disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
-              Crear Compra
-            </Text>
-          )}
-        </TouchableOpacity>
+          style={styles.footerButton}
+        />
       </View>
 
       {renderGuideTypePicker()}
@@ -251,197 +257,111 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
+    borderBottomColor: colors.border.light,
+    gap: spacing[3],
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-  },
-  backButtonText: {
-    fontSize: 28,
-    color: '#64748B',
-    fontWeight: '300',
   },
   headerContent: {
     flex: 1,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  subtitleTablet: {
-    fontSize: 15,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 24,
+    padding: spacing[4],
+    gap: spacing[4],
   },
   contentContainerTablet: {
-    padding: 32,
+    padding: spacing[6],
     maxWidth: 800,
     alignSelf: 'center',
     width: '100%',
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing[2],
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+  fieldLabel: {
+    marginBottom: spacing[2],
   },
-  labelTablet: {
-    fontSize: 16,
+  infoNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing[3],
+    gap: spacing[2],
   },
-  required: {
-    color: '#EF4444',
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1E293B',
-  },
-  inputTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    fontSize: 17,
-    borderRadius: 14,
+  infoNoteText: {
+    flex: 1,
   },
   selectInput: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: colors.surface.primary,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    minHeight: 48,
   },
-  selectText: {
-    flex: 1,
-    fontSize: 15,
-    color: '#1E293B',
-  },
-  selectTextTablet: {
-    fontSize: 17,
-  },
-  selectPlaceholder: {
-    color: '#94A3B8',
-  },
-  selectArrow: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginLeft: 8,
+  textAreaContainer: {
+    marginTop: spacing[2],
   },
   textArea: {
     minHeight: 100,
-    paddingTop: 12,
+    textAlignVertical: 'top',
+    paddingTop: spacing[3],
   },
   bottomSpacer: {
-    height: 40,
+    height: spacing[10],
   },
   footer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
+    borderTopColor: colors.border.light,
+    gap: spacing[3],
   },
-  footerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-    gap: 16,
-  },
-  cancelButton: {
+  footerButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
   },
-  cancelButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  cancelButtonTextTablet: {
-    fontSize: 17,
-  },
-  createButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-  },
-  createButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  createButtonDisabled: {
-    opacity: 0.6,
-  },
-  createButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  createButtonTextTablet: {
-    fontSize: 17,
-  },
+  // Picker Modal
   pickerOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   pickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
     width: '90%',
     maxHeight: '70%',
     overflow: 'hidden',
+    ...shadows.xl,
   },
   pickerContainerTablet: {
     width: '60%',
@@ -451,61 +371,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  pickerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  pickerTitleTablet: {
-    fontSize: 20,
-  },
-  pickerClose: {
-    fontSize: 24,
-    color: '#64748B',
-    fontWeight: '300',
+    borderBottomColor: colors.border.light,
   },
   pickerList: {
     maxHeight: 400,
   },
   pickerItem: {
-    padding: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.border.light,
   },
   pickerItemSelected: {
-    backgroundColor: '#EEF2FF',
-  },
-  pickerItemText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  pickerItemTextTablet: {
-    fontSize: 17,
-  },
-  pickerItemTextSelected: {
-    color: '#6366F1',
-  },
-  pickerItemSubtext: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  pickerItemSubtextTablet: {
-    fontSize: 15,
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  infoTextTablet: {
-    fontSize: 14,
+    backgroundColor: colors.primary[50],
   },
 });
 

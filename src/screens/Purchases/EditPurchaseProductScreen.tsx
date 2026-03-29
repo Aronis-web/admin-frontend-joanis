@@ -1,7 +1,10 @@
+/**
+ * EditPurchaseProductScreen - Editar Producto de Compra
+ * Migrado al Design System unificado
+ */
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -9,12 +12,28 @@ import {
   Alert,
   ActivityIndicator,
   useWindowDimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { purchasesService } from '@/services/api';
 import { presentationsApi } from '@/services/api/presentations';
 import type { Presentation } from '@/services/api/presentations';
 import type { ProductPresentationConfig } from '@/types/purchases';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  Title,
+  Body,
+  Label,
+  Caption,
+  Button,
+  Card,
+  Input,
+  IconButton,
+} from '@/design-system';
 
 interface EditPurchaseProductScreenProps {
   navigation: any;
@@ -26,6 +45,10 @@ interface EditPurchaseProductScreenProps {
   };
 }
 
+interface ProductPresentationWithQuantity extends ProductPresentationConfig {
+  quantityOfPresentations: number;
+}
+
 export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps> = ({
   navigation,
   route,
@@ -34,24 +57,17 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
   const [sku, setSku] = useState('');
   const [name, setName] = useState('');
   const [cost, setCost] = useState('');
-  const [looseUnits, setLooseUnits] = useState('0'); // Unidades sueltas
+  const [looseUnits, setLooseUnits] = useState('0');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingPresentations, setLoadingPresentations] = useState(false);
 
   // Presentations
-  interface ProductPresentationWithQuantity extends ProductPresentationConfig {
-    quantityOfPresentations: number;
-  }
   const [presentations, setPresentations] = useState<Presentation[]>([]);
-  const [productPresentations, setProductPresentations] = useState<
-    ProductPresentationWithQuantity[]
-  >([]);
+  const [productPresentations, setProductPresentations] = useState<ProductPresentationWithQuantity[]>([]);
   const [showAddPresentation, setShowAddPresentation] = useState(false);
-  const [selectedPresentationForQuantity, setSelectedPresentationForQuantity] = useState<
-    string | null
-  >(null);
+  const [selectedPresentationForQuantity, setSelectedPresentationForQuantity] = useState<string | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -83,25 +99,22 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
         setSku(product.sku);
         setName(product.name);
         setCost((product.costCents / 100).toFixed(2));
-        setNotes(''); // Notes are not stored in PurchaseProduct
+        setNotes('');
 
-        // Initialize loose units from DB fields
         if (product.preliminaryLooseUnits !== undefined && product.preliminaryLooseUnits !== null) {
           setLooseUnits(product.preliminaryLooseUnits.toString());
         } else {
           setLooseUnits('0');
         }
 
-        // Load existing presentations from presentation history (PRELIMINARY type)
+        // Load existing presentations from presentation history
         if (product.presentationHistory && product.presentationHistory.length > 0) {
           const preliminaryPresentations = product.presentationHistory
             .filter((ph: any) => ph.type === 'PRELIMINARY')
             .map((p: any) => {
               const factor = Number(p.factorToBase);
-              // Validate factorToBase
               if (!isFinite(factor) || isNaN(factor) || factor < 1) {
                 console.error('❌ Invalid factorToBase in presentation history:', p);
-                // Default to 1 if invalid
                 return {
                   presentationId: p.presentationId,
                   factorToBase: 1,
@@ -113,19 +126,16 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
                 presentationId: p.presentationId,
                 factorToBase: factor,
                 notes: p.notes || '',
-                quantityOfPresentations: 0, // Inicializar en 0
+                quantityOfPresentations: 0,
               };
             });
-          console.log('📦 Loaded presentations from history:', preliminaryPresentations);
           setProductPresentations(preliminaryPresentations);
 
-          // If there's a saved presentation quantity, restore it
           if (
             product.preliminaryPresentationQuantity !== undefined &&
             product.preliminaryPresentationQuantity !== null &&
             product.preliminaryPresentationQuantity > 0
           ) {
-            // Find the first presentation and set its quantity (assuming only one has quantity)
             if (preliminaryPresentations.length > 0) {
               const firstPresentationId = preliminaryPresentations[0].presentationId;
               setSelectedPresentationForQuantity(firstPresentationId);
@@ -167,7 +177,6 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
       return;
     }
 
-    // Check if presentation already exists
     if (productPresentations.some((p) => p.presentationId === presentationId)) {
       Alert.alert('Error', 'Esta presentación ya fue agregada');
       return;
@@ -189,18 +198,15 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
     setProductPresentations(
       productPresentations.filter((p) => p.presentationId !== presentationId)
     );
-    // If this was the selected presentation for quantity, clear it
     if (selectedPresentationForQuantity === presentationId) {
       setSelectedPresentationForQuantity(null);
     }
   };
 
-  // Calculate total stock automatically
   const calculateTotalStock = (): number => {
     const loose = parseInt(looseUnits) || 0;
     let presentationUnits = 0;
 
-    // Only calculate from the selected presentation for quantity
     if (selectedPresentationForQuantity) {
       const selectedPres = productPresentations.find(
         (p) => p.presentationId === selectedPresentationForQuantity
@@ -243,7 +249,6 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
 
     const totalStock = calculateTotalStock();
 
-    // Get the quantity of presentations from the selected presentation
     let preliminaryPresentationQuantity = 0;
     if (selectedPresentationForQuantity) {
       const selectedPres = productPresentations.find(
@@ -254,11 +259,9 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
       }
     }
 
-    // Validate presentations before sending
     const validPresentations = productPresentations.map((p) => {
       const factor = Number(p.factorToBase);
       if (!isFinite(factor) || isNaN(factor) || factor < 1) {
-        console.error('❌ Invalid factorToBase detected:', p);
         throw new Error(
           `Presentación inválida: el factor de conversión debe ser >= 1 (valor actual: ${p.factorToBase})`
         );
@@ -269,8 +272,6 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
         notes: p.notes,
       };
     });
-
-    console.log('📦 Updating product with presentations:', validPresentations);
 
     setLoading(true);
     try {
@@ -296,12 +297,96 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
     }
   };
 
+  const renderPresentationCard = (pp: ProductPresentationWithQuantity, index: number) => {
+    const presentation = presentations.find((p) => p.id === pp.presentationId);
+    const isSelected = selectedPresentationForQuantity === pp.presentationId;
+
+    return (
+      <Card key={pp.presentationId} variant="outlined" padding="medium" style={styles.presentationCard}>
+        <View style={styles.presentationHeader}>
+          <Title size="small">{presentation?.name || 'Presentación'}</Title>
+          <IconButton
+            icon="close-circle"
+            onPress={() => handleRemovePresentation(pp.presentationId)}
+            variant="ghost"
+            size="small"
+          />
+        </View>
+
+        <View style={styles.presentationDetails}>
+          <Label color={colors.primary[600]}>Factor: {pp.factorToBase}x</Label>
+          {pp.notes && (
+            <Caption color="secondary" style={styles.presentationNotes}>
+              {pp.notes}
+            </Caption>
+          )}
+        </View>
+
+        {/* Quantity Section */}
+        <View style={styles.quantitySection}>
+          <View style={styles.quantityHeaderRow}>
+            <Label color="secondary">Cantidad de Presentaciones:</Label>
+            <TouchableOpacity
+              style={[
+                styles.selectForQuantityButton,
+                isSelected && styles.selectForQuantityButtonActive,
+              ]}
+              onPress={() => {
+                if (isSelected) {
+                  setSelectedPresentationForQuantity(null);
+                  const newPresentations = [...productPresentations];
+                  newPresentations[index].quantityOfPresentations = 0;
+                  setProductPresentations(newPresentations);
+                } else {
+                  setSelectedPresentationForQuantity(pp.presentationId);
+                  const newPresentations = productPresentations.map((p, i) => ({
+                    ...p,
+                    quantityOfPresentations: i === index ? p.quantityOfPresentations : 0,
+                  }));
+                  setProductPresentations(newPresentations);
+                }
+              }}
+            >
+              <Caption color={isSelected ? colors.text.inverse : colors.primary[600]}>
+                {isSelected ? '✓ Seleccionada' : 'Seleccionar'}
+              </Caption>
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={[
+              styles.quantityInput,
+              !isSelected && styles.quantityInputDisabled,
+            ]}
+            value={pp.quantityOfPresentations.toString()}
+            onChangeText={(text) => {
+              if (isSelected) {
+                const newPresentations = [...productPresentations];
+                const parsedValue = parseInt(text);
+                newPresentations[index].quantityOfPresentations = isNaN(parsedValue) ? 0 : parsedValue;
+                setProductPresentations(newPresentations);
+              }
+            }}
+            placeholder={isSelected ? 'Ej: 5' : 'Seleccione esta presentación primero'}
+            placeholderTextColor={colors.text.placeholder}
+            keyboardType="number-pad"
+            editable={isSelected}
+          />
+          {isSelected && pp.quantityOfPresentations > 0 && (
+            <Caption color={colors.success[600]} style={styles.calculationHint}>
+              = {pp.quantityOfPresentations} × {pp.factorToBase} = {pp.quantityOfPresentations * pp.factorToBase} unidades
+            </Caption>
+          )}
+        </View>
+      </Card>
+    );
+  };
+
   if (initialLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando producto...</Text>
+          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <Body color="secondary" style={styles.loadingText}>Cargando producto...</Body>
         </View>
       </SafeAreaView>
     );
@@ -310,332 +395,271 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>‹</Text>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={24} color={colors.icon.primary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Editar Producto</Text>
-          <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-            Datos preliminares del producto
-          </Text>
+          <Title size="large">Editar Producto</Title>
+          <Body color="secondary">Datos preliminares del producto</Body>
         </View>
       </View>
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
+        contentContainerStyle={[
+          styles.contentContainer,
+          isTablet && styles.contentContainerTablet,
+        ]}
+        keyboardShouldPersistTaps="handled"
       >
         {/* SKU */}
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            SKU <Text style={styles.required}>*</Text>
-          </Text>
-          <TextInput
-            style={[styles.input, isTablet && styles.inputTablet]}
-            value={sku}
-            onChangeText={setSku}
-            placeholder="Ej: PROD-001"
-            placeholderTextColor="#94A3B8"
-            autoCapitalize="characters"
-          />
-        </View>
+        <Input
+          label="SKU"
+          value={sku}
+          onChangeText={setSku}
+          placeholder="Ej: PROD-001"
+          required
+          autoCapitalize="characters"
+        />
 
         {/* Name */}
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Nombre del Producto <Text style={styles.required}>*</Text>
-          </Text>
-          <TextInput
-            style={[styles.input, isTablet && styles.inputTablet]}
-            value={name}
-            onChangeText={setName}
-            placeholder="Ej: Aceite de Oliva 500ml"
-            placeholderTextColor="#94A3B8"
-          />
-        </View>
+        <Input
+          label="Nombre del Producto"
+          value={name}
+          onChangeText={setName}
+          placeholder="Ej: Aceite de Oliva 500ml"
+          required
+        />
 
         {/* Cost */}
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Costo Unitario (S/) <Text style={styles.required}>*</Text>
-          </Text>
-          <TextInput
-            style={[styles.input, isTablet && styles.inputTablet]}
-            value={cost}
-            onChangeText={setCost}
-            placeholder="Ej: 15.50"
-            placeholderTextColor="#94A3B8"
-            keyboardType="decimal-pad"
-          />
-        </View>
+        <Input
+          label="Costo Unitario (S/)"
+          value={cost}
+          onChangeText={setCost}
+          placeholder="Ej: 15.50"
+          keyboardType="decimal-pad"
+          required
+        />
 
         {/* Notes */}
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>Notas</Text>
-          <TextInput
-            style={[styles.input, styles.textArea, isTablet && styles.inputTablet]}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Notas adicionales sobre el producto"
-            placeholderTextColor="#94A3B8"
-            multiline
-            numberOfLines={3}
-          />
-        </View>
+        <Input
+          label="Notas"
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="Notas adicionales sobre el producto"
+          multiline
+          numberOfLines={3}
+        />
 
         {/* Presentations Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.label, isTablet && styles.labelTablet]}>
-              Presentaciones <Text style={styles.required}>*</Text>
-            </Text>
-            <TouchableOpacity
-              style={[styles.addPresentationButton, isTablet && styles.addPresentationButtonTablet]}
+            <Label color="primary">
+              Presentaciones <Label color={colors.danger[500]}>*</Label>
+            </Label>
+            <Button
+              title="+ Agregar"
               onPress={() => setShowAddPresentation(true)}
-            >
-              <Text style={styles.addPresentationButtonText}>+ Agregar</Text>
-            </TouchableOpacity>
+              variant="primary"
+              size="small"
+            />
           </View>
 
           {productPresentations.length === 0 ? (
-            <View style={styles.emptyPresentations}>
-              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+            <Card variant="filled" padding="medium" style={styles.emptyPresentations}>
+              <Body color="secondary" align="center">
                 No hay presentaciones agregadas
-              </Text>
-              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
+              </Body>
+              <Caption color="tertiary" align="center">
                 Agrega al menos una presentación con su factor de conversión
-              </Text>
-            </View>
+              </Caption>
+            </Card>
           ) : (
             <View style={styles.presentationsList}>
-              {productPresentations.map((pp, index) => {
-                const presentation = presentations.find((p) => p.id === pp.presentationId);
-                return (
-                  <View
-                    key={pp.presentationId}
-                    style={[styles.presentationCard, isTablet && styles.presentationCardTablet]}
-                  >
-                    <View style={styles.presentationHeader}>
-                      <Text
-                        style={[styles.presentationName, isTablet && styles.presentationNameTablet]}
-                      >
-                        {presentation?.name || 'Presentación'}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.removeButton}
-                        onPress={() => handleRemovePresentation(pp.presentationId)}
-                      >
-                        <Text style={styles.removeButtonText}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.presentationDetails}>
-                      <Text
-                        style={[
-                          styles.presentationFactor,
-                          isTablet && styles.presentationFactorTablet,
-                        ]}
-                      >
-                        Factor: {pp.factorToBase}x
-                      </Text>
-                      {pp.notes && (
-                        <Text
-                          style={[
-                            styles.presentationNotes,
-                            isTablet && styles.presentationNotesTablet,
-                          ]}
-                        >
-                          {pp.notes}
-                        </Text>
-                      )}
-                    </View>
-
-                    {/* Quantity of Presentations - Only for selected presentation */}
-                    <View style={styles.quantitySection}>
-                      <View style={styles.quantityHeaderRow}>
-                        <Text
-                          style={[styles.quantityLabel, isTablet && styles.quantityLabelTablet]}
-                        >
-                          Cantidad de Presentaciones:
-                        </Text>
-                        <TouchableOpacity
-                          style={[
-                            styles.selectForQuantityButton,
-                            selectedPresentationForQuantity === pp.presentationId &&
-                              styles.selectForQuantityButtonActive,
-                          ]}
-                          onPress={() => {
-                            if (selectedPresentationForQuantity === pp.presentationId) {
-                              // Deselect
-                              setSelectedPresentationForQuantity(null);
-                              const newPresentations = [...productPresentations];
-                              newPresentations[index].quantityOfPresentations = 0;
-                              setProductPresentations(newPresentations);
-                            } else {
-                              // Select this presentation and clear others
-                              setSelectedPresentationForQuantity(pp.presentationId);
-                              const newPresentations = productPresentations.map((p, i) => ({
-                                ...p,
-                                quantityOfPresentations:
-                                  i === index ? p.quantityOfPresentations : 0,
-                              }));
-                              setProductPresentations(newPresentations);
-                            }
-                          }}
-                        >
-                          <Text
-                            style={[
-                              styles.selectForQuantityButtonText,
-                              selectedPresentationForQuantity === pp.presentationId &&
-                                styles.selectForQuantityButtonTextActive,
-                            ]}
-                          >
-                            {selectedPresentationForQuantity === pp.presentationId
-                              ? '✓ Seleccionada'
-                              : 'Seleccionar'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                      <TextInput
-                        style={[
-                          styles.quantityInput,
-                          isTablet && styles.quantityInputTablet,
-                          selectedPresentationForQuantity !== pp.presentationId &&
-                            styles.quantityInputDisabled,
-                        ]}
-                        value={pp.quantityOfPresentations.toString()}
-                        onChangeText={(text) => {
-                          if (selectedPresentationForQuantity === pp.presentationId) {
-                            const newPresentations = [...productPresentations];
-                            const parsedValue = parseInt(text);
-                            newPresentations[index].quantityOfPresentations = isNaN(parsedValue)
-                              ? 0
-                              : parsedValue;
-                            setProductPresentations(newPresentations);
-                          }
-                        }}
-                        placeholder={
-                          selectedPresentationForQuantity === pp.presentationId
-                            ? 'Ej: 5'
-                            : 'Seleccione esta presentación primero'
-                        }
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="number-pad"
-                        editable={selectedPresentationForQuantity === pp.presentationId}
-                      />
-                      {selectedPresentationForQuantity === pp.presentationId &&
-                        pp.quantityOfPresentations > 0 && (
-                          <Text
-                            style={[
-                              styles.hint,
-                              isTablet && styles.hintTablet,
-                              styles.calculationHint,
-                            ]}
-                          >
-                            = {pp.quantityOfPresentations} × {pp.factorToBase} ={' '}
-                            {pp.quantityOfPresentations * pp.factorToBase} unidades
-                          </Text>
-                        )}
-                    </View>
-                  </View>
-                );
-              })}
+              {productPresentations.map((pp, index) => renderPresentationCard(pp, index))}
             </View>
           )}
         </View>
 
-        {/* Add Presentation Modal */}
-        {showAddPresentation && (
-          <AddPresentationModal
-            presentations={presentations}
-            onAdd={handleAddPresentation}
-            onCancel={() => setShowAddPresentation(false)}
-            isTablet={isTablet}
-          />
-        )}
-
         {/* Loose Units */}
-        <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Unidades Sueltas <Text style={styles.required}>*</Text>
-          </Text>
-          <TextInput
-            style={[styles.input, isTablet && styles.inputTablet]}
-            value={looseUnits}
-            onChangeText={setLooseUnits}
-            placeholder="Ej: 5"
-            placeholderTextColor="#94A3B8"
-            keyboardType="number-pad"
-          />
-          <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-            Cantidad de unidades individuales sueltas
-          </Text>
-        </View>
+        <Input
+          label="Unidades Sueltas"
+          value={looseUnits}
+          onChangeText={setLooseUnits}
+          placeholder="Ej: 5"
+          keyboardType="number-pad"
+          required
+          helperText="Cantidad de unidades individuales sueltas"
+        />
 
-        {/* Total Stock (Calculated - Read Only) */}
+        {/* Total Stock (Calculated) */}
         <View style={styles.section}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Stock Total Preliminar (Calculado)
-          </Text>
-          <View style={[styles.input, isTablet && styles.inputTablet, styles.calculatedField]}>
-            <Text style={[styles.calculatedText, isTablet && styles.calculatedTextTablet]}>
+          <Label color="secondary">Stock Total Preliminar (Calculado)</Label>
+          <View style={styles.calculatedField}>
+            <Title size="medium" color={colors.text.secondary}>
               {calculateTotalStock()} unidades
-            </Text>
+            </Title>
           </View>
-          <Text style={[styles.hint, isTablet && styles.hintTablet]}>
+          <Caption color="tertiary">
             Unidades sueltas + (Cantidad de presentaciones × Factor de conversión)
-          </Text>
+          </Caption>
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={[styles.infoIcon, isTablet && styles.infoIconTablet]}>ℹ️</Text>
-          <Text style={[styles.infoText, isTablet && styles.infoTextTablet]}>
-            Estos datos son preliminares. Podrás validar y completar la información del producto en
-            la siguiente etapa.
-          </Text>
-        </View>
+        {/* Info Box */}
+        <Card variant="filled" padding="medium" style={styles.infoBox}>
+          <View style={styles.infoBoxContent}>
+            <Ionicons name="information-circle" size={24} color={colors.info[600]} />
+            <Body color={colors.info[800]} style={styles.infoBoxText}>
+              Estos datos son preliminares. Podrás validar y completar la información del producto en la siguiente etapa.
+            </Body>
+          </View>
+        </Card>
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
       {/* Action Buttons */}
-      <View style={[styles.footer, isTablet && styles.footerTablet]}>
-        <TouchableOpacity
-          style={[styles.cancelButton, isTablet && styles.cancelButtonTablet]}
+      <View style={styles.footer}>
+        <Button
+          title="Cancelar"
           onPress={() => navigation.goBack()}
+          variant="secondary"
           disabled={loading}
-        >
-          <Text style={[styles.cancelButtonText, isTablet && styles.cancelButtonTextTablet]}>
-            Cancelar
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.updateButton,
-            isTablet && styles.updateButtonTablet,
-            loading && styles.updateButtonDisabled,
-          ]}
+          style={styles.footerButton}
+        />
+        <Button
+          title="Actualizar Producto"
           onPress={handleUpdate}
+          variant="primary"
+          loading={loading}
           disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={[styles.updateButtonText, isTablet && styles.updateButtonTextTablet]}>
-              Actualizar Producto
-            </Text>
-          )}
-        </TouchableOpacity>
+          style={styles.footerButton}
+        />
       </View>
+
+      {/* Add Presentation Modal */}
+      <AddPresentationModal
+        visible={showAddPresentation}
+        presentations={presentations}
+        onAdd={handleAddPresentation}
+        onCancel={() => setShowAddPresentation(false)}
+      />
     </SafeAreaView>
+  );
+};
+
+// Add Presentation Modal Component
+interface AddPresentationModalProps {
+  visible: boolean;
+  presentations: Presentation[];
+  onAdd: (presentationId: string, factorToBase: string, notes: string) => void;
+  onCancel: () => void;
+}
+
+const AddPresentationModal: React.FC<AddPresentationModalProps> = ({
+  visible,
+  presentations,
+  onAdd,
+  onCancel,
+}) => {
+  const [selectedPresentationId, setSelectedPresentationId] = useState('');
+  const [factorToBase, setFactorToBase] = useState('1');
+  const [notes, setNotes] = useState('');
+
+  const handleAdd = () => {
+    if (!selectedPresentationId) {
+      Alert.alert('Error', 'Debe seleccionar una presentación');
+      return;
+    }
+    onAdd(selectedPresentationId, factorToBase, notes);
+    setSelectedPresentationId('');
+    setFactorToBase('1');
+    setNotes('');
+  };
+
+  const handleCancel = () => {
+    setSelectedPresentationId('');
+    setFactorToBase('1');
+    setNotes('');
+    onCancel();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleCancel}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Title size="medium">Agregar Presentación</Title>
+            <IconButton icon="close" onPress={handleCancel} variant="ghost" size="small" />
+          </View>
+
+          <ScrollView style={styles.modalBody}>
+            <Label color="secondary" style={styles.modalLabel}>
+              Seleccionar Presentación <Label color={colors.danger[500]}>*</Label>
+            </Label>
+            <View style={styles.presentationOptions}>
+              {presentations.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[
+                    styles.presentationOption,
+                    selectedPresentationId === p.id && styles.presentationOptionSelected,
+                  ]}
+                  onPress={() => setSelectedPresentationId(p.id)}
+                >
+                  <Body color={selectedPresentationId === p.id ? colors.primary[900] : 'primary'}>
+                    {p.name}
+                  </Body>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Input
+              label="Factor de Conversión"
+              value={factorToBase}
+              onChangeText={setFactorToBase}
+              placeholder="Ej: 12"
+              keyboardType="number-pad"
+              required
+              helperText="Cuántas unidades base hay en esta presentación"
+            />
+
+            <Input
+              label="Notas (Opcional)"
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Ej: Caja de 12 unidades"
+            />
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <Button
+              title="Cancelar"
+              onPress={handleCancel}
+              variant="secondary"
+              style={styles.modalButton}
+            />
+            <Button
+              title="Agregar"
+              onPress={handleAdd}
+              variant="primary"
+              style={styles.modalButton}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   loadingContainer: {
     flex: 1,
@@ -643,763 +667,204 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748B',
+    marginTop: spacing[4],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
+    borderBottomColor: colors.border.light,
+    gap: spacing[3],
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-  },
-  backButtonText: {
-    fontSize: 28,
-    color: '#64748B',
-    fontWeight: '300',
   },
   headerContent: {
     flex: 1,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  subtitleTablet: {
-    fontSize: 15,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 24,
+    padding: spacing[4],
   },
   contentContainerTablet: {
-    padding: 32,
+    padding: spacing[6],
     maxWidth: 800,
     alignSelf: 'center',
     width: '100%',
   },
   section: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1E293B',
-  },
-  inputTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    fontSize: 17,
-    borderRadius: 14,
-  },
-  hint: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 6,
-  },
-  hintTablet: {
-    fontSize: 14,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    marginBottom: 24,
-  },
-  infoIcon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
-  infoIconTablet: {
-    fontSize: 24,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#1E40AF',
-    lineHeight: 18,
-  },
-  infoTextTablet: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  bottomSpacer: {
-    height: 40,
-  },
-  footer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
-  },
-  footerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-    gap: 16,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-  },
-  cancelButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  cancelButtonTextTablet: {
-    fontSize: 17,
-  },
-  updateButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-  },
-  updateButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  updateButtonDisabled: {
-    opacity: 0.6,
-  },
-  updateButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  updateButtonTextTablet: {
-    fontSize: 17,
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
+    marginBottom: spacing[5],
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  addPresentationButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addPresentationButtonTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  addPresentationButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    marginBottom: spacing[3],
   },
   emptyPresentations: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 24,
     alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  emptyTextTablet: {
-    fontSize: 16,
+    gap: spacing[2],
   },
   presentationsList: {
-    gap: 12,
-  },
-  presentationItem: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  presentationItemTablet: {
-    padding: 20,
-    borderRadius: 14,
-  },
-  presentationInfo: {
-    flex: 1,
-  },
-  presentationName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  presentationNameTablet: {
-    fontSize: 17,
-  },
-  presentationFactor: {
-    fontSize: 13,
-    color: '#6366F1',
-    fontWeight: '500',
-  },
-  presentationFactorTablet: {
-    fontSize: 15,
-  },
-  presentationNotes: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  presentationNotesTablet: {
-    fontSize: 14,
-  },
-  removeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FEE2E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 12,
-  },
-  removeButtonText: {
-    fontSize: 18,
-    color: '#EF4444',
-    fontWeight: '600',
-  },
-  calculatedField: {
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-  },
-  calculatedText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  calculatedTextTablet: {
-    fontSize: 17,
+    gap: spacing[3],
   },
   presentationCard: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  presentationCardTablet: {
-    padding: 20,
-    borderRadius: 14,
+    marginBottom: spacing[2],
   },
   presentationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[2],
   },
   presentationDetails: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
+  },
+  presentationNotes: {
+    marginTop: spacing[1],
+    fontStyle: 'italic',
   },
   quantitySection: {
-    marginTop: 8,
+    paddingTop: spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
   },
   quantityHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  quantityLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  quantityLabelTablet: {
-    fontSize: 15,
+    marginBottom: spacing[2],
   },
   selectForQuantityButton: {
-    backgroundColor: '#E0E7FF',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: colors.primary[100],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: colors.primary[200],
   },
   selectForQuantityButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  selectForQuantityButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4F46E5',
-  },
-  selectForQuantityButtonTextActive: {
-    color: '#FFFFFF',
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
   },
   quantityInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
-    color: '#1E293B',
-  },
-  quantityInputTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
+    backgroundColor: colors.surface.primary,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2.5],
+    fontSize: 15,
+    color: colors.text.primary,
   },
   quantityInputDisabled: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surface.secondary,
     opacity: 0.6,
   },
   calculationHint: {
-    color: '#10B981',
-    fontWeight: '600',
-    marginTop: 4,
-  },
-});
-
-// Add Presentation Modal Component
-interface AddPresentationModalProps {
-  presentations: Presentation[];
-  onAdd: (presentationId: string, factorToBase: string, notes: string) => void;
-  onCancel: () => void;
-  isTablet: boolean;
-}
-
-const AddPresentationModal: React.FC<AddPresentationModalProps> = ({
-  presentations,
-  onAdd,
-  onCancel,
-  isTablet,
-}) => {
-  const [selectedPresentationId, setSelectedPresentationId] = useState('');
-  const [factorToBase, setFactorToBase] = useState('');
-  const [presentationNotes, setPresentationNotes] = useState('');
-  const [showPresentationSelector, setShowPresentationSelector] = useState(false);
-
-  const selectedPresentation = presentations.find((p) => p.id === selectedPresentationId);
-
-  const handleAdd = () => {
-    if (!selectedPresentationId) {
-      Alert.alert('Error', 'Debe seleccionar una presentación');
-      return;
-    }
-    if (!factorToBase.trim()) {
-      Alert.alert('Error', 'Debe ingresar el factor de conversión');
-      return;
-    }
-    onAdd(selectedPresentationId, factorToBase, presentationNotes);
-    // Reset form
-    setSelectedPresentationId('');
-    setFactorToBase('');
-    setPresentationNotes('');
-  };
-
-  return (
-    <View style={modalStyles.overlay}>
-      <View style={[modalStyles.modal, isTablet && modalStyles.modalTablet]}>
-        <View style={modalStyles.header}>
-          <Text style={[modalStyles.title, isTablet && modalStyles.titleTablet]}>
-            Agregar Presentación
-          </Text>
-          <TouchableOpacity onPress={onCancel} style={modalStyles.closeButton}>
-            <Text style={modalStyles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={modalStyles.content}>
-          {/* Presentation Selector */}
-          <View style={modalStyles.section}>
-            <Text style={[modalStyles.label, isTablet && modalStyles.labelTablet]}>
-              Presentación <Text style={modalStyles.required}>*</Text>
-            </Text>
-            <TouchableOpacity
-              style={[modalStyles.selector, isTablet && modalStyles.selectorTablet]}
-              onPress={() => setShowPresentationSelector(!showPresentationSelector)}
-            >
-              <Text
-                style={[
-                  modalStyles.selectorText,
-                  isTablet && modalStyles.selectorTextTablet,
-                  !selectedPresentation && modalStyles.selectorPlaceholder,
-                ]}
-              >
-                {selectedPresentation ? selectedPresentation.name : 'Seleccionar presentación'}
-              </Text>
-              <Text style={modalStyles.selectorIcon}>{showPresentationSelector ? '▲' : '▼'}</Text>
-            </TouchableOpacity>
-
-            {showPresentationSelector && (
-              <View style={[modalStyles.optionsList, isTablet && modalStyles.optionsListTablet]}>
-                {presentations.map((presentation) => (
-                  <TouchableOpacity
-                    key={presentation.id}
-                    style={[
-                      modalStyles.optionItem,
-                      isTablet && modalStyles.optionItemTablet,
-                      selectedPresentationId === presentation.id && modalStyles.optionItemSelected,
-                    ]}
-                    onPress={() => {
-                      setSelectedPresentationId(presentation.id);
-                      setShowPresentationSelector(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        modalStyles.optionText,
-                        isTablet && modalStyles.optionTextTablet,
-                        selectedPresentationId === presentation.id &&
-                          modalStyles.optionTextSelected,
-                      ]}
-                    >
-                      {presentation.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Factor to Base */}
-          <View style={modalStyles.section}>
-            <Text style={[modalStyles.label, isTablet && modalStyles.labelTablet]}>
-              Factor de Conversión <Text style={modalStyles.required}>*</Text>
-            </Text>
-            <TextInput
-              style={[modalStyles.input, isTablet && modalStyles.inputTablet]}
-              value={factorToBase}
-              onChangeText={setFactorToBase}
-              placeholder="Ej: 24 (1 caja = 24 unidades)"
-              placeholderTextColor="#94A3B8"
-              keyboardType="decimal-pad"
-            />
-            <Text style={[modalStyles.hint, isTablet && modalStyles.hintTablet]}>
-              Cuántas unidades base equivalen a esta presentación
-            </Text>
-          </View>
-
-          {/* Notes */}
-          <View style={modalStyles.section}>
-            <Text style={[modalStyles.label, isTablet && modalStyles.labelTablet]}>Notas</Text>
-            <TextInput
-              style={[modalStyles.input, modalStyles.textArea, isTablet && modalStyles.inputTablet]}
-              value={presentationNotes}
-              onChangeText={setPresentationNotes}
-              placeholder="Notas sobre esta presentación (opcional)"
-              placeholderTextColor="#94A3B8"
-              multiline
-              numberOfLines={2}
-            />
-          </View>
-        </ScrollView>
-
-        {/* Footer */}
-        <View style={[modalStyles.footer, isTablet && modalStyles.footerTablet]}>
-          <TouchableOpacity
-            style={[modalStyles.cancelButton, isTablet && modalStyles.cancelButtonTablet]}
-            onPress={onCancel}
-          >
-            <Text
-              style={[modalStyles.cancelButtonText, isTablet && modalStyles.cancelButtonTextTablet]}
-            >
-              Cancelar
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[modalStyles.addButton, isTablet && modalStyles.addButtonTablet]}
-            onPress={handleAdd}
-          >
-            <Text style={[modalStyles.addButtonText, isTablet && modalStyles.addButtonTextTablet]}>
-              Agregar
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
-};
-
-const modalStyles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    width: '90%',
-    maxWidth: 500,
-    maxHeight: '80%',
-  },
-  modalTablet: {
-    borderRadius: 20,
-    maxWidth: 600,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 20,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#64748B',
+    marginTop: spacing[2],
     fontWeight: '600',
   },
-  content: {
-    padding: 20,
+  calculatedField: {
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing[4],
+    marginTop: spacing[2],
+    marginBottom: spacing[2],
   },
-  section: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  input: {
-    backgroundColor: '#F8FAFC',
+  infoBox: {
+    backgroundColor: colors.info[50],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1E293B',
+    borderColor: colors.info[200],
   },
-  inputTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    fontSize: 17,
-    borderRadius: 14,
-  },
-  textArea: {
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  hint: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 6,
-  },
-  hintTablet: {
-    fontSize: 14,
-  },
-  selector: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  infoBoxContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: spacing[3],
   },
-  selectorTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  selectorText: {
-    fontSize: 15,
-    color: '#1E293B',
+  infoBoxText: {
     flex: 1,
+    lineHeight: 20,
   },
-  selectorTextTablet: {
-    fontSize: 17,
-  },
-  selectorPlaceholder: {
-    color: '#94A3B8',
-  },
-  selectorIcon: {
-    fontSize: 12,
-    color: '#64748B',
-    marginLeft: 8,
-  },
-  optionsList: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    marginTop: 8,
-    maxHeight: 200,
-  },
-  optionsListTablet: {
-    borderRadius: 14,
-    maxHeight: 300,
-  },
-  optionItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  optionItemTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  optionItemSelected: {
-    backgroundColor: '#EEF2FF',
-  },
-  optionText: {
-    fontSize: 15,
-    color: '#1E293B',
-  },
-  optionTextTablet: {
-    fontSize: 17,
-  },
-  optionTextSelected: {
-    color: '#6366F1',
-    fontWeight: '600',
+  bottomSpacer: {
+    height: spacing[10],
   },
   footer: {
     flexDirection: 'row',
-    padding: 20,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
+    borderTopColor: colors.border.light,
+    gap: spacing[3],
   },
-  footerTablet: {
-    gap: 16,
-  },
-  cancelButton: {
+  footerButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
   },
-  cancelButtonTablet: {
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  cancelButtonTextTablet: {
-    fontSize: 17,
-  },
-  addButton: {
+  // Modal Styles
+  modalOverlay: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.overlay.medium,
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing[5],
   },
-  addButtonTablet: {
-    paddingVertical: 14,
-    borderRadius: 14,
+  modalContent: {
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    ...shadows.xl,
   },
-  addButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing[5],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
   },
-  addButtonTextTablet: {
-    fontSize: 17,
+  modalBody: {
+    padding: spacing[5],
+  },
+  modalLabel: {
+    marginBottom: spacing[2],
+  },
+  presentationOptions: {
+    gap: spacing[2],
+    marginBottom: spacing[4],
+  },
+  presentationOption: {
+    backgroundColor: colors.surface.secondary,
+    padding: spacing[3],
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+  },
+  presentationOptionSelected: {
+    backgroundColor: colors.primary[50],
+    borderColor: colors.primary[500],
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: spacing[5],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+    gap: spacing[3],
+  },
+  modalButton: {
+    flex: 1,
   },
 });
 

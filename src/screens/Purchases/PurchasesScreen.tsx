@@ -1,7 +1,10 @@
+/**
+ * PurchasesScreen - Lista de Compras
+ * Migrado al Design System unificado
+ */
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -13,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { usePurchases } from '@/hooks/api';
 import {
   Purchase,
@@ -39,7 +43,21 @@ import { CircularProgress } from '@/components/Repartos';
 import type { PurchaseValidationProgressResponse } from '@/types/purchases';
 import { usePermissions } from '@/hooks/usePermissions';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  Title,
+  Body,
+  Label,
+  Caption,
+  Badge,
+  Card,
+  Button,
+  EmptyState,
+  Pagination,
+} from '@/design-system';
 
 interface PurchasesScreenProps {
   navigation: any;
@@ -70,7 +88,6 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   const { hasPermission } = usePermissions();
 
   const isTablet = width >= 768 || height >= 768;
-  const isLandscape = width > height;
 
   // Debounce search term
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -129,7 +146,6 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
         progressMap.set(purchaseId, progressData);
       } catch (error) {
         logger.error(`Error loading progress for purchase ${purchaseId}:`, error);
-        // Set default values on error
         progressMap.set(purchaseId, {
           purchaseId,
           purchaseCode: '',
@@ -169,7 +185,6 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   // Auto-reload purchases when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('📱 PurchasesScreen focused - reloading purchases...');
       refetch();
     }, [refetch])
   );
@@ -224,9 +239,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
   const handleSuggestionSelect = useCallback(
     (suggestion: PurchaseAutocompleteSuggestion) => {
-      // Navigate directly to the purchase detail
       navigation.navigate('PurchaseDetail', { purchaseId: suggestion.id });
-      // Clear search term
       setSearchTerm('');
     },
     [navigation]
@@ -234,7 +247,6 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
   const handleDownloadReport = useCallback(
     async (purchase: Purchase, event: any) => {
-      // Prevent navigation to detail screen
       event.stopPropagation();
 
       try {
@@ -243,7 +255,6 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
         logger.info('🔄 Descargando reporte de compra...');
         const startTime = new Date().getTime();
 
-        // Call the API to get the PDF blob
         const pdfBlob = await purchasesService.downloadPurchaseReportPdf(purchase.id);
 
         const endTime = new Date().getTime();
@@ -252,7 +263,6 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
         logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
         if (Platform.OS === 'web') {
-          // For web, create a download link using blob URL
           const blobUrl = URL.createObjectURL(pdfBlob);
           const link = document.createElement('a');
           link.href = blobUrl;
@@ -260,18 +270,13 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-
-          // Clean up the blob URL after a short delay
           setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-
           Alert.alert('Éxito', 'El reporte se está descargando');
         } else {
-          // For mobile (iOS/Android), save to file system and share
           const timestamp = new Date().getTime();
           const fileName = `reporte-compra-${purchase.code}-${timestamp}.pdf`;
           const file = new FileSystem.File(FileSystem.Paths.document, fileName);
 
-          // Convert blob to array buffer using FileReader
           const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result as ArrayBuffer);
@@ -279,13 +284,11 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             reader.readAsArrayBuffer(pdfBlob);
           });
 
-          // Write to file
           await file.create();
           const writer = file.writableStream().getWriter();
           await writer.write(new Uint8Array(arrayBuffer));
           await writer.close();
 
-          // Share the file
           const canShare = await Sharing.isAvailableAsync();
           if (canShare) {
             await Sharing.shareAsync(file.uri, {
@@ -320,46 +323,33 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
     return `S/ ${(cents / 100).toFixed(2)}`;
   }, []);
 
-  const getStatusBadgeStyle = useCallback(
-    (status: PurchaseStatus) => {
-      return {
-        backgroundColor: PurchaseStatusColors[status] + '20',
-        borderColor: PurchaseStatusColors[status],
-      };
-    },
-    []
-  );
+  const getStatusVariant = useCallback((status: PurchaseStatus): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
+    switch (status) {
+      case PurchaseStatus.DRAFT:
+        return 'draft';
+      case PurchaseStatus.IN_CAPTURE:
+      case PurchaseStatus.IN_VALIDATION:
+        return 'pending';
+      case PurchaseStatus.VALIDATED:
+        return 'completed';
+      case PurchaseStatus.CLOSED:
+        return 'active';
+      case PurchaseStatus.CANCELLED:
+        return 'cancelled';
+      default:
+        return 'draft';
+    }
+  }, []);
 
-  const getStatusTextStyle = useCallback(
-    (status: PurchaseStatus) => {
-      return {
-        color: PurchaseStatusColors[status],
-      };
-    },
-    []
-  );
-
-  const statuses = useMemo<Array<PurchaseStatus | 'ALL'>>(
-    () => [
-      'ALL',
-      PurchaseStatus.DRAFT,
-      PurchaseStatus.IN_CAPTURE,
-      PurchaseStatus.IN_VALIDATION,
-      PurchaseStatus.VALIDATED,
-      PurchaseStatus.CLOSED,
-    ],
-    []
-  );
-
-  // Status filter options using new StatusFilter component
+  // Status filter options
   const statusOptions: StatusOption[] = useMemo(() => {
     const getStatusColor = (status: PurchaseStatus | 'ALL'): string => {
-      if (status === 'ALL') return '#6366F1';
-      return PurchaseStatusColors[status] || '#6B7280';
+      if (status === 'ALL') return colors.accent[500];
+      return PurchaseStatusColors[status] || colors.neutral[500];
     };
 
     return [
-      { value: 'ALL', label: 'Todos', color: '#6366F1' },
+      { value: 'ALL', label: 'Todos', color: colors.accent[500] },
       { value: PurchaseStatus.DRAFT, label: PurchaseStatusLabels[PurchaseStatus.DRAFT], color: getStatusColor(PurchaseStatus.DRAFT) },
       { value: PurchaseStatus.IN_CAPTURE, label: PurchaseStatusLabels[PurchaseStatus.IN_CAPTURE], color: getStatusColor(PurchaseStatus.IN_CAPTURE) },
       { value: PurchaseStatus.IN_VALIDATION, label: PurchaseStatusLabels[PurchaseStatus.IN_VALIDATION], color: getStatusColor(PurchaseStatus.IN_VALIDATION) },
@@ -375,70 +365,56 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
       purchase.products?.filter((p) => p.status === 'VALIDATED').length || 0;
     const isDownloading = downloadingReportId === purchase.id;
 
-    // Get progress data from state
     const progress = purchaseProgress.get(purchase.id);
     const progressPercentage = progress?.validationProgressPercentage || 0;
     const progressTotal = progress?.totalProducts || totalProducts;
     const progressValidated = progress?.productsValidated || validatedProducts;
 
     return (
-      <TouchableOpacity
+      <Card
         key={purchase.id}
-        style={[styles.card, isTablet && styles.cardTablet]}
+        variant="elevated"
+        padding="medium"
         onPress={() => handlePurchasePress(purchase)}
-        activeOpacity={0.7}
+        style={styles.purchaseCard}
       >
+        {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
-            <Text style={[styles.cardCode, isTablet && styles.cardCodeTablet]}>
+            <Title size="medium" style={styles.cardCode}>
               {purchase.code}
-            </Text>
-            <View
-              style={[
-                styles.statusBadge,
-                isTablet && styles.statusBadgeTablet,
-                getStatusBadgeStyle(purchase.status),
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
-                  isTablet && styles.statusTextTablet,
-                  getStatusTextStyle(purchase.status),
-                ]}
-              >
-                {PurchaseStatusLabels[purchase.status]}
-              </Text>
-            </View>
+            </Title>
+            <Badge
+              label={PurchaseStatusLabels[purchase.status]}
+              variant={getStatusVariant(purchase.status)}
+              size="small"
+            />
           </View>
-          <Text style={[styles.cardDate, isTablet && styles.cardDateTablet]}>
-            {formatDate(purchase.guideDate)}
-          </Text>
+          <Caption color="secondary">{formatDate(purchase.guideDate)}</Caption>
         </View>
 
+        {/* Body */}
         <View style={styles.cardBody}>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Proveedor:</Text>
-            <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]} numberOfLines={1}>
+            <Label color="secondary" style={styles.infoLabel}>Proveedor:</Label>
+            <Body numberOfLines={1} style={styles.infoValue}>
               {purchase.supplier?.commercialName || 'N/A'}
-            </Text>
+            </Body>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Guía:</Text>
-            <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {purchase.guideNumber}
-            </Text>
+            <Label color="secondary" style={styles.infoLabel}>Guía:</Label>
+            <Body style={styles.infoValue}>{purchase.guideNumber}</Body>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Productos:</Text>
-            <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+            <Label color="secondary" style={styles.infoLabel}>Productos:</Label>
+            <Body style={styles.infoValue}>
               {validatedProducts}/{totalProducts}
-            </Text>
+            </Body>
           </View>
 
-          {/* Circular Progress for Validation */}
+          {/* Circular Progress */}
           {progressTotal > 0 && (
             <View style={styles.progressContainer}>
               <CircularProgress
@@ -449,51 +425,49 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
                 validated={progressValidated}
                 fontSize={isTablet ? 14 : 12}
               />
-              <Text style={[styles.progressLabel, isTablet && styles.progressLabelTablet]}>
+              <Caption color="secondary" style={styles.progressLabel}>
                 Validación
-              </Text>
+              </Caption>
             </View>
           )}
         </View>
 
+        {/* Footer */}
         <View style={styles.cardFooter}>
-          <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
-            Creado: {formatDate(purchase.createdAt)}
-          </Text>
+          <Caption color="tertiary">Creado: {formatDate(purchase.createdAt)}</Caption>
           <View style={styles.cardActions}>
             {hasPermission('purchases.reports.download') && (
               <TouchableOpacity
-                style={[
-                  styles.downloadButton,
-                  isTablet && styles.downloadButtonTablet,
-                  isDownloading && styles.downloadButtonDisabled,
-                ]}
+                style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
                 onPress={(e) => handleDownloadReport(purchase, e)}
                 disabled={isDownloading}
                 activeOpacity={0.7}
               >
                 {isDownloading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.text.inverse} />
                 ) : (
-                  <Text style={[styles.downloadButtonText, isTablet && styles.downloadButtonTextTablet]}>
-                    📄 Reporte
-                  </Text>
+                  <>
+                    <Ionicons name="document-text-outline" size={14} color={colors.text.inverse} />
+                    <Caption color={colors.text.inverse} style={styles.downloadButtonText}>
+                      Reporte
+                    </Caption>
+                  </>
                 )}
               </TouchableOpacity>
             )}
-            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.icon.tertiary} />
           </View>
         </View>
-      </TouchableOpacity>
+      </Card>
     );
-  }, [isTablet, handlePurchasePress, handleDownloadReport, getStatusBadgeStyle, getStatusTextStyle, formatDate, formatCurrency, downloadingReportId, purchaseProgress, hasPermission]);
+  }, [isTablet, handlePurchasePress, handleDownloadReport, getStatusVariant, formatDate, downloadingReportId, purchaseProgress, hasPermission]);
 
   if (isLoading && !isRefetching) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando compras...</Text>
+          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <Body color="secondary" style={styles.loadingText}>Cargando compras...</Body>
         </View>
       </SafeAreaView>
     );
@@ -503,12 +477,12 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
+        <View style={styles.header}>
           <View>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>Compras</Text>
-            <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
+            <Title size="large">Compras</Title>
+            <Body color="secondary">
               Gestión de compras y validación de productos
-            </Text>
+            </Body>
           </View>
         </View>
 
@@ -546,15 +520,15 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <Ionicons
               name={showDateFilters ? 'calendar' : 'calendar-outline'}
               size={20}
-              color="#6366F1"
+              color={colors.primary[900]}
             />
-            <Text style={styles.dateFilterToggleText}>
+            <Label color="primary" style={styles.dateFilterToggleText}>
               {showDateFilters ? 'Ocultar Filtros de Fecha' : 'Filtrar por Fecha'}
-            </Text>
+            </Label>
             <Ionicons
               name={showDateFilters ? 'chevron-up' : 'chevron-down'}
               size={20}
-              color="#6366F1"
+              color={colors.primary[900]}
             />
           </TouchableOpacity>
           {(startDate || endDate) && (
@@ -563,7 +537,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
               onPress={handleClearDateFilters}
               activeOpacity={0.7}
             >
-              <Ionicons name="close-circle" size={20} color="#EF4444" />
+              <Ionicons name="close-circle" size={20} color={colors.danger[500]} />
             </TouchableOpacity>
           )}
         </View>
@@ -573,68 +547,32 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           <View style={styles.dateFiltersPanel}>
             {/* Date Field Selector */}
             <View style={styles.dateFieldSelector}>
-              <Text style={styles.dateFieldLabel}>Filtrar por:</Text>
+              <Label color="secondary">Filtrar por:</Label>
               <View style={styles.dateFieldButtons}>
-                <TouchableOpacity
-                  style={[
-                    styles.dateFieldButton,
-                    dateField === 'guideDate' && styles.dateFieldButtonActive,
-                  ]}
-                  onPress={() => {
-                    setDateField('guideDate');
-                    setPage(1);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text
+                {[
+                  { field: 'guideDate' as DateFieldType, label: 'Fecha de Guía' },
+                  { field: 'createdAt' as DateFieldType, label: 'Fecha de Creación' },
+                  { field: 'closedAt' as DateFieldType, label: 'Fecha de Cierre' },
+                ].map(({ field, label }) => (
+                  <TouchableOpacity
+                    key={field}
                     style={[
-                      styles.dateFieldButtonText,
-                      dateField === 'guideDate' && styles.dateFieldButtonTextActive,
+                      styles.dateFieldButton,
+                      dateField === field && styles.dateFieldButtonActive,
                     ]}
+                    onPress={() => {
+                      setDateField(field);
+                      setPage(1);
+                    }}
+                    activeOpacity={0.7}
                   >
-                    Fecha de Guía
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.dateFieldButton,
-                    dateField === 'createdAt' && styles.dateFieldButtonActive,
-                  ]}
-                  onPress={() => {
-                    setDateField('createdAt');
-                    setPage(1);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.dateFieldButtonText,
-                      dateField === 'createdAt' && styles.dateFieldButtonTextActive,
-                    ]}
-                  >
-                    Fecha de Creación
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.dateFieldButton,
-                    dateField === 'closedAt' && styles.dateFieldButtonActive,
-                  ]}
-                  onPress={() => {
-                    setDateField('closedAt');
-                    setPage(1);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.dateFieldButtonText,
-                      dateField === 'closedAt' && styles.dateFieldButtonTextActive,
-                    ]}
-                  >
-                    Fecha de Cierre
-                  </Text>
-                </TouchableOpacity>
+                    <Caption
+                      color={dateField === field ? colors.text.inverse : 'secondary'}
+                    >
+                      {label}
+                    </Caption>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
@@ -663,14 +601,14 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             {/* Active Filters Info */}
             {(startDate || endDate) && (
               <View style={styles.activeFiltersInfo}>
-                <Ionicons name="information-circle" size={16} color="#6366F1" />
-                <Text style={styles.activeFiltersText}>
+                <Ionicons name="information-circle" size={16} color={colors.info[500]} />
+                <Caption color="secondary" style={styles.activeFiltersText}>
                   {startDate && endDate
                     ? `Mostrando compras desde ${startDate} hasta ${endDate}`
                     : startDate
                     ? `Mostrando compras desde ${startDate}`
                     : `Mostrando compras hasta ${endDate}`}
-                </Text>
+                </Caption>
               </View>
             )}
           </View>
@@ -683,18 +621,16 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             styles.contentContainer,
             isTablet && styles.contentContainerTablet,
           ]}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} colors={[colors.primary[900]]} />}
         >
           {purchases.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>📦</Text>
-              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                No hay compras registradas
-              </Text>
-              <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-                Crea una nueva compra para comenzar
-              </Text>
-            </View>
+            <EmptyState
+              icon="cube-outline"
+              title="No hay compras registradas"
+              description="Crea una nueva compra para comenzar"
+              actionLabel="Nueva Compra"
+              onAction={handleCreatePurchase}
+            />
           ) : (
             purchases.map(renderPurchaseCard)
           )}
@@ -704,52 +640,13 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
         {/* Pagination Controls */}
         {pagination.total > 0 && (
-          <View style={styles.paginationContainer}>
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                pagination.page === 1 && styles.paginationButtonDisabled,
-              ]}
-              onPress={handlePreviousPage}
-              disabled={pagination.page === 1}
-            >
-              <Text
-                style={[
-                  styles.paginationButtonText,
-                  pagination.page === 1 && styles.paginationButtonTextDisabled,
-                ]}
-              >
-                ← Anterior
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.paginationInfo}>
-              <Text style={styles.paginationText}>
-                Pág. {pagination.page}/{pagination.totalPages}
-              </Text>
-              <Text style={styles.paginationSubtext}>
-                {purchases.length} de {pagination.total}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-              ]}
-              onPress={handleNextPage}
-              disabled={pagination.page >= pagination.totalPages}
-            >
-              <Text
-                style={[
-                  styles.paginationButtonText,
-                  pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-                ]}
-              >
-                Siguiente →
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <Pagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            itemsPerPage={limit}
+            onPageChange={setPage}
+          />
         )}
 
         {/* Add Button */}
@@ -784,7 +681,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   loadingContainer: {
     flex: 1,
@@ -792,365 +689,79 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748B',
+    marginTop: spacing[4],
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  titleTablet: {
-    fontSize: 28,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  subtitleTablet: {
-    fontSize: 16,
+    borderBottomColor: colors.border.light,
   },
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border.light,
   },
   statusFilter: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 24,
-  },
-  contentContainerTablet: {
-    padding: 32,
-    maxWidth: 1200,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardTablet: {
-    padding: 24,
-    borderRadius: 18,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  cardHeaderLeft: {
-    flex: 1,
-    gap: 8,
-  },
-  cardCode: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  cardCodeTablet: {
-    fontSize: 20,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 13,
-  },
-  cardDate: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  cardDateTablet: {
-    fontSize: 15,
-  },
-  cardBody: {
-    gap: 8,
-    marginBottom: 16,
-  },
-  progressContainer: {
-    alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  progressLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
-    marginTop: 6,
-  },
-  progressLabelTablet: {
-    fontSize: 12,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  infoLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-    width: 90,
-  },
-  infoLabelTablet: {
-    fontSize: 15,
-    width: 110,
-  },
-  infoValue: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  footerTextTablet: {
-    fontSize: 14,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  downloadButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    minWidth: 90,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  downloadButtonTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    minWidth: 100,
-  },
-  downloadButtonDisabled: {
-    backgroundColor: '#94A3B8',
-    opacity: 0.7,
-  },
-  downloadButtonText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  downloadButtonTextTablet: {
-    fontSize: 12,
-  },
-  arrowIcon: {
-    fontSize: 24,
-    color: '#CBD5E1',
-    fontWeight: '300',
-  },
-  arrowIconTablet: {
-    fontSize: 28,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 80,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyIconTablet: {
-    fontSize: 80,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  emptyTextTablet: {
-    fontSize: 22,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  emptySubtextTablet: {
-    fontSize: 16,
-  },
-  bottomSpacer: {
-    height: 100,
-  },
-  paginationContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 60,
-  },
-  paginationInfo: {
-    alignItems: 'center',
-    minWidth: 100,
-  },
-  paginationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  paginationSubtext: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  paginationButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#6366F1',
-    minWidth: 110,
-    alignItems: 'center',
-  },
-  paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
-  },
-  paginationButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  paginationButtonTextDisabled: {
-    color: '#94A3B8',
+    borderBottomColor: colors.border.light,
   },
   dateFilterToggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderBottomColor: colors.border.light,
   },
   dateFilterToggle: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   dateFilterToggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6366F1',
-    flex: 1,
+    marginLeft: spacing[2],
   },
   clearDateButton: {
-    padding: 4,
+    padding: spacing[1],
   },
   dateFiltersPanel: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surface.secondary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderBottomColor: colors.border.light,
+    gap: spacing[4],
   },
   dateFieldSelector: {
-    marginBottom: 16,
-  },
-  dateFieldLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
+    gap: spacing[2],
   },
   dateFieldButtons: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: spacing[2],
   },
   dateFieldButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface.primary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
+    borderColor: colors.border.light,
   },
   dateFieldButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  dateFieldButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  dateFieldButtonTextActive: {
-    color: '#FFFFFF',
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
   },
   dateRangePickers: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   datePickerWrapper: {
     flex: 1,
@@ -1158,19 +769,98 @@ const styles = StyleSheet.create({
   activeFiltersInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
+    gap: spacing[2],
+    backgroundColor: colors.info[50],
+    padding: spacing[3],
+    borderRadius: borderRadius.md,
   },
   activeFiltersText: {
     flex: 1,
-    fontSize: 12,
-    color: '#4338CA',
-    fontWeight: '500',
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: spacing[4],
+    gap: spacing[4],
+  },
+  contentContainerTablet: {
+    padding: spacing[6],
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  purchaseCard: {
+    marginBottom: spacing[3],
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing[4],
+  },
+  cardHeaderLeft: {
+    flex: 1,
+    gap: spacing[2],
+  },
+  cardCode: {
+    marginBottom: spacing[1],
+  },
+  cardBody: {
+    gap: spacing[2],
+    marginBottom: spacing[4],
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoLabel: {
+    width: 90,
+  },
+  infoValue: {
+    flex: 1,
+  },
+  progressContainer: {
+    alignItems: 'center',
+    marginTop: spacing[3],
+    paddingTop: spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  progressLabel: {
+    marginTop: spacing[2],
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary[900],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.md,
+    gap: spacing[1],
+  },
+  downloadButtonDisabled: {
+    backgroundColor: colors.neutral[400],
+    opacity: 0.7,
+  },
+  downloadButtonText: {
+    marginLeft: spacing[1],
+  },
+  bottomSpacer: {
+    height: spacing[20],
   },
 });
 

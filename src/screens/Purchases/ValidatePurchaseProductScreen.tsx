@@ -1,7 +1,10 @@
+/**
+ * ValidatePurchaseProductScreen - Validar Producto de Compra
+ * Migrado al Design System unificado
+ */
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -15,6 +18,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { purchasesService } from '@/services/api';
 import { inventoryApi } from '@/services/api/inventory';
 import { presentationsApi } from '@/services/api/presentations';
@@ -30,6 +34,21 @@ import {
   RecurrentProductModal,
   RecurrentProductCandidate,
 } from '@/components/Purchases/RecurrentProductModal';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  Title,
+  Body,
+  Label,
+  Caption,
+  Button,
+  Card,
+  Input,
+  IconButton,
+  Badge,
+} from '@/design-system';
 
 interface ValidatePurchaseProductScreenProps {
   navigation: any;
@@ -43,54 +62,40 @@ interface ValidatePurchaseProductScreenProps {
 
 // Helper function to copy text to clipboard
 const copyToClipboard = async (text: string): Promise<boolean> => {
-  console.log('🔍 Attempting to copy text:', text);
-  console.log('🔍 Platform:', Platform.OS);
-
   try {
     if (Platform.OS === 'web') {
-      console.log('🌐 Using web clipboard API');
-
-      // Use native browser API for web
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        console.log('✅ navigator.clipboard available');
         await navigator.clipboard.writeText(text);
-        console.log('✅ Text copied successfully via navigator.clipboard');
         return true;
       } else {
-        console.log('⚠️ navigator.clipboard not available, using fallback');
-        // Fallback for older browsers
         const textArea = document.createElement('textarea');
         textArea.value = text;
         textArea.style.position = 'fixed';
         textArea.style.left = '-999999px';
-        textArea.style.top = '0';
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-
-        try {
-          const successful = document.execCommand('copy');
-          console.log('📋 execCommand result:', successful);
-          document.body.removeChild(textArea);
-          return successful;
-        } catch (err) {
-          console.error('❌ execCommand failed:', err);
-          document.body.removeChild(textArea);
-          return false;
-        }
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return successful;
       }
     } else {
-      console.log('📱 Using expo-clipboard for mobile');
-      // Use expo-clipboard for mobile
       await Clipboard.setStringAsync(text);
-      console.log('✅ Text copied successfully via expo-clipboard');
       return true;
     }
   } catch (error) {
-    console.error('❌ Error copying to clipboard:', error);
+    console.error('Error copying to clipboard:', error);
     return false;
   }
 };
+
+interface ValidatedPresentation {
+  presentationId: string;
+  presentationName: string;
+  factorToBase: number;
+  notes: string;
+  quantityOfPresentations: number;
+}
 
 export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScreenProps> = ({
   navigation,
@@ -107,23 +112,22 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [sku, setSku] = useState('');
   const [name, setName] = useState('');
   const [costCents, setCostCents] = useState('');
-  const [looseUnits, setLooseUnits] = useState(''); // Unidades sueltas
+  const [looseUnits, setLooseUnits] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
   const [selectedArea, setSelectedArea] = useState<WarehouseArea | null>(null);
   const [barcode, setBarcode] = useState('');
   const [validationNotes, setValidationNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
-  // Peso del producto
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'g'>('kg');
 
   // Photo and Signature
   const [photoUri, setPhotoUri] = useState<string | undefined>();
   const [signatureUri, setSignatureUri] = useState<string | undefined>();
-  const [productPhotoUri, setProductPhotoUri] = useState<string | undefined>(); // ✅ Foto del producto
+  const [productPhotoUri, setProductPhotoUri] = useState<string | undefined>();
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [showSignatureCapture, setShowSignatureCapture] = useState(false);
-  const [showProductPhotoCapture, setShowProductPhotoCapture] = useState(false); // ✅ Modal para foto del producto
+  const [showProductPhotoCapture, setShowProductPhotoCapture] = useState(false);
 
   // Recurrence state
   const [showRecurrenceModal, setShowRecurrenceModal] = useState(false);
@@ -132,20 +136,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [recurrenceAction, setRecurrenceAction] = useState<'MERGE' | 'CREATE_NEW' | null>(null);
   const [selectedExistingProductId, setSelectedExistingProductId] = useState<string | null>(null);
 
-  // Presentations from product (preliminary presentations)
-  interface ValidatedPresentation {
-    presentationId: string;
-    presentationName: string;
-    factorToBase: number;
-    notes: string;
-    quantityOfPresentations: number; // Cantidad de presentaciones (ej: 5 cajas)
-  }
+  // Presentations
   const [validatedPresentations, setValidatedPresentations] = useState<ValidatedPresentation[]>([]);
   const [showAddPresentation, setShowAddPresentation] = useState(false);
   const [newPresentationId, setNewPresentationId] = useState('');
-  const [selectedPresentationForQuantity, setSelectedPresentationForQuantity] = useState<
-    string | null
-  >(null); // Solo una presentación puede tener cantidad
+  const [selectedPresentationForQuantity, setSelectedPresentationForQuantity] = useState<string | null>(null);
 
   // Lists
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -169,7 +164,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     try {
       setLoading(true);
 
-      // Get effective site (selected site or current site)
       const effectiveSite = selectedSite || currentSite;
 
       if (!effectiveSite) {
@@ -191,7 +185,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         return;
       }
 
-      // Filter warehouses by current site
       const filteredWarehouses = warehousesData.filter(
         (warehouse) => warehouse.siteId === effectiveSite.id
       );
@@ -205,16 +198,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setName(productData.name || '');
       setCostCents(productData.costCents ? (productData.costCents / 100).toFixed(2) : '');
 
-      // Initialize loose units from DB fields
-      if (
-        productData.validatedLooseUnits !== undefined &&
-        productData.validatedLooseUnits !== null
-      ) {
+      if (productData.validatedLooseUnits !== undefined && productData.validatedLooseUnits !== null) {
         setLooseUnits(productData.validatedLooseUnits.toString());
-      } else if (
-        productData.preliminaryLooseUnits !== undefined &&
-        productData.preliminaryLooseUnits !== null
-      ) {
+      } else if (productData.preliminaryLooseUnits !== undefined && productData.preliminaryLooseUnits !== null) {
         setLooseUnits(productData.preliminaryLooseUnits.toString());
       } else {
         setLooseUnits('0');
@@ -224,31 +210,20 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         const warehouse = warehousesData.find((w) => w.id === productData.warehouseId);
         if (warehouse) {
           setSelectedWarehouse(warehouse);
-
-          // Load areas for this warehouse
-          console.log('🔍 [INIT] Loading areas for warehouse:', warehouse.id, warehouse.name);
           try {
             const areasData = await inventoryApi.getWarehouseAreas(warehouse.id);
-            console.log('✅ [INIT] Areas loaded:', areasData.length, areasData);
             setAreas(areasData);
-
-            // Set selected area if exists
             if (productData.areaId) {
               const area = areasData.find((a) => a.id === productData.areaId);
-              console.log('🔍 [INIT] Looking for area:', productData.areaId, 'Found:', area);
-              if (area) {
-                setSelectedArea(area);
-              }
+              if (area) setSelectedArea(area);
             }
           } catch (error: any) {
-            console.error('❌ [INIT] Error loading warehouse areas:', error);
-            console.error('Error details:', error.message, error.response?.data);
             setAreas([]);
           }
         }
       }
 
-      // Load presentations from presentationHistory (PRELIMINARY type)
+      // Load presentations from presentationHistory
       if (productData.presentationHistory && productData.presentationHistory.length > 0) {
         const preliminaryPresentations: ValidatedPresentation[] = productData.presentationHistory
           .filter((ph) => ph.type === 'PRELIMINARY')
@@ -257,69 +232,40 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             presentationName: ph.presentation?.name || 'Presentación',
             factorToBase: ph.factorToBase,
             notes: ph.notes || '',
-            quantityOfPresentations: 0 as number, // Inicializar en 0
+            quantityOfPresentations: 0,
           }));
         setValidatedPresentations(preliminaryPresentations);
 
-        // If there's a saved presentation quantity, restore it
-        if (
-          productData.validatedPresentationQuantity !== undefined &&
-          productData.validatedPresentationQuantity !== null &&
-          productData.validatedPresentationQuantity > 0
-        ) {
-          // Find the first presentation and set its quantity (assuming only one has quantity)
+        if (productData.validatedPresentationQuantity !== undefined && productData.validatedPresentationQuantity > 0) {
           if (preliminaryPresentations.length > 0) {
             const firstPresentationId = preliminaryPresentations[0].presentationId;
             setSelectedPresentationForQuantity(firstPresentationId);
-            const validatedQty: number = productData.validatedPresentationQuantity ?? 0;
             const updatedPresentations = preliminaryPresentations.map((p, i) => ({
-              presentationId: p.presentationId,
-              presentationName: p.presentationName,
-              factorToBase: p.factorToBase,
-              notes: p.notes,
-              quantityOfPresentations: (i === 0 ? validatedQty : 0) as number,
-            })) as ValidatedPresentation[];
-            // @ts-ignore - TypeScript incorrectly infers quantityOfPresentations as number | undefined
+              ...p,
+              quantityOfPresentations: i === 0 ? (productData.validatedPresentationQuantity ?? 0) : 0,
+            }));
             setValidatedPresentations(updatedPresentations);
           }
-        } else if (
-          productData.preliminaryPresentationQuantity !== undefined &&
-          productData.preliminaryPresentationQuantity !== null &&
-          productData.preliminaryPresentationQuantity > 0
-        ) {
-          // Load from preliminary data
+        } else if (productData.preliminaryPresentationQuantity !== undefined && productData.preliminaryPresentationQuantity > 0) {
           if (preliminaryPresentations.length > 0) {
             const firstPresentationId = preliminaryPresentations[0].presentationId;
             setSelectedPresentationForQuantity(firstPresentationId);
-            const preliminaryQty: number = productData.preliminaryPresentationQuantity ?? 0;
             const updatedPresentations = preliminaryPresentations.map((p, i) => ({
-              presentationId: p.presentationId,
-              presentationName: p.presentationName,
-              factorToBase: p.factorToBase,
-              notes: p.notes,
-              quantityOfPresentations: (i === 0 ? preliminaryQty : 0) as number,
-            })) as ValidatedPresentation[];
-            // @ts-ignore - TypeScript incorrectly infers quantityOfPresentations as number | undefined
+              ...p,
+              quantityOfPresentations: i === 0 ? (productData.preliminaryPresentationQuantity ?? 0) : 0,
+            }));
             setValidatedPresentations(updatedPresentations);
           }
         }
       }
 
-      if (productData.barcode) {
-        setBarcode(productData.barcode);
-      }
-
-      if (productData.validationNotes) {
-        setValidationNotes(productData.validationNotes);
-      }
-
-      // Cargar peso si existe
+      if (productData.barcode) setBarcode(productData.barcode);
+      if (productData.validationNotes) setValidationNotes(productData.validationNotes);
       if (productData.weightKg !== undefined && productData.weightKg !== null) {
         setWeightValue(productData.weightKg.toString());
         setWeightUnit('kg');
       }
 
-      // Reset photo and signature when loading
       setPhotoUri(undefined);
       setSignatureUri(undefined);
       setProductPhotoUri(undefined);
@@ -333,9 +279,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   };
 
   const handleStartValidation = async () => {
-    if (product?.status !== PurchaseProductStatus.PRELIMINARY) {
-      return;
-    }
+    if (product?.status !== PurchaseProductStatus.PRELIMINARY) return;
 
     setActionLoading(true);
     try {
@@ -349,23 +293,18 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     }
   };
 
-  // Convertir peso a kilogramos (siempre se envía en kg al backend)
   const getWeightInKg = (): number | undefined => {
     if (!weightValue) return undefined;
     const value = parseFloat(weightValue);
     if (isNaN(value) || value < 0) return undefined;
-    if (weightUnit === 'g') {
-      return Math.round((value / 1000) * 1000) / 1000; // Convertir gramos a kg con 3 decimales
-    }
-    return Math.round(value * 1000) / 1000; // Redondear a 3 decimales
+    if (weightUnit === 'g') return Math.round((value / 1000) * 1000) / 1000;
+    return Math.round(value * 1000) / 1000;
   };
 
-  // Calculate total stock automatically
   const calculateTotalStock = (): number => {
     const loose = parseInt(looseUnits) || 0;
     let presentationUnits = 0;
 
-    // Only calculate from the selected presentation for quantity
     if (selectedPresentationForQuantity) {
       const selectedPres = validatedPresentations.find(
         (p) => p.presentationId === selectedPresentationForQuantity
@@ -378,10 +317,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     return loose + presentationUnits;
   };
 
-  /**
-   * Upload photo and signature to server before validation
-   * Returns the URLs of uploaded files
-   */
   const uploadValidationFiles = async (): Promise<{
     photoUrl?: string;
     signatureUrl?: string;
@@ -390,91 +325,56 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     const result: { photoUrl?: string; signatureUrl?: string; productPhotoUrl?: string } = {};
 
     try {
-      // Upload validation photo if exists
       if (photoUri) {
-        console.log('📸 Uploading validation photo...');
         const photoFilename = `validacion-${Date.now()}.jpg`;
         const photoResponse = await filesApi.uploadByCategory(
-          photoUri,
-          photoFilename,
-          'PURCHASES_VALIDACIONES_FOTOS',
-          purchaseId,
-          'image/jpeg'
+          photoUri, photoFilename, 'PURCHASES_VALIDACIONES_FOTOS', purchaseId, 'image/jpeg'
         );
         result.photoUrl = photoResponse.url;
-        console.log('✅ Validation photo uploaded:', result.photoUrl);
       }
 
-      // Upload signature if exists
       if (signatureUri) {
-        console.log('✍️ Uploading validation signature...');
         const signatureFilename = `firma-${Date.now()}.png`;
         const signatureResponse = await filesApi.uploadByCategory(
-          signatureUri,
-          signatureFilename,
-          'PURCHASES_VALIDACIONES_FIRMAS',
-          purchaseId,
-          'image/png'
+          signatureUri, signatureFilename, 'PURCHASES_VALIDACIONES_FIRMAS', purchaseId, 'image/png'
         );
         result.signatureUrl = signatureResponse.url;
-        console.log('✅ Signature uploaded:', result.signatureUrl);
       }
 
-      // ✅ Upload product photo if exists (goes to product catalog)
       if (productPhotoUri && product?.productId) {
-        console.log('🖼️ Uploading product photo to catalog...');
         const productPhotoFilename = `producto-${Date.now()}.jpg`;
         const productPhotoResponse = await filesApi.uploadProductImage(
-          productPhotoUri,
-          product.productId,
-          productPhotoFilename,
-          'image/jpeg'
+          productPhotoUri, product.productId, productPhotoFilename, 'image/jpeg'
         );
         result.productPhotoUrl = productPhotoResponse.url;
-        console.log('✅ Product photo uploaded to catalog:', result.productPhotoUrl);
       }
 
       return result;
     } catch (error: any) {
-      console.error('❌ Error uploading validation files:', error);
-      throw new Error(
-        error.message || 'No se pudieron subir las fotos de validación al servidor'
-      );
+      throw new Error(error.message || 'No se pudieron subir las fotos de validación');
     }
   };
 
-  /**
-   * Check for recurrent products before closing validation
-   */
   const checkRecurrentProducts = async () => {
-    if (!product || !sku.trim()) {
-      return false;
-    }
+    if (!product || !sku.trim()) return false;
 
     try {
-      console.log('🔍 Checking for recurrent products...', { sku, barcode });
       const response = await purchasesService.checkRecurrence(purchaseId, productId, {
         sku: sku.trim(),
         barcode: barcode.trim() || undefined,
       });
 
-      console.log('✅ Recurrence check response:', response);
-
       if (response.hasRecurrentProducts && response.candidates.length > 0) {
-        // Show modal with candidates
         setRecurrentCandidates(response.candidates);
         setRecurrenceMessage(response.message || 'Se encontraron productos similares');
         setShowRecurrenceModal(true);
-        return true; // Has recurrent products
+        return true;
       } else {
-        // No recurrent products, proceed with CREATE_NEW
         setRecurrenceAction('CREATE_NEW');
         setSelectedExistingProductId(null);
-        return false; // No recurrent products
+        return false;
       }
     } catch (error: any) {
-      console.error('❌ Error checking recurrence:', error);
-      // If check fails, continue with normal flow (CREATE_NEW)
       setRecurrenceAction('CREATE_NEW');
       setSelectedExistingProductId(null);
       return false;
@@ -482,76 +382,27 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   };
 
   const handleCloseValidation = async () => {
-    if (!product) {
-      return;
-    }
+    if (!product) return;
 
-    // Validate SKU
-    if (!sku.trim()) {
-      Alert.alert('Error', 'El SKU es obligatorio');
-      return;
-    }
+    // Validations
+    if (!sku.trim()) { Alert.alert('Error', 'El SKU es obligatorio'); return; }
+    if (!name.trim()) { Alert.alert('Error', 'El nombre es obligatorio'); return; }
+    if (!barcode.trim()) { Alert.alert('Error', 'El código de barras es obligatorio'); return; }
 
-    // Validate name
-    if (!name.trim()) {
-      Alert.alert('Error', 'El nombre es obligatorio');
-      return;
-    }
-
-    // Validate barcode
-    if (!barcode.trim()) {
-      Alert.alert('Error', 'El código de barras es obligatorio');
-      return;
-    }
-
-    // Validate cost
     const costValue = parseFloat(costCents);
-    if (isNaN(costValue) || costValue <= 0) {
-      Alert.alert('Error', 'Debe ingresar un costo válido');
-      return;
-    }
+    if (isNaN(costValue) || costValue <= 0) { Alert.alert('Error', 'Debe ingresar un costo válido'); return; }
 
     const looseUnitsValue = parseInt(looseUnits);
-    if (isNaN(looseUnitsValue) || looseUnitsValue < 0) {
-      Alert.alert('Error', 'Debe ingresar unidades sueltas válidas');
-      return;
-    }
+    if (isNaN(looseUnitsValue) || looseUnitsValue < 0) { Alert.alert('Error', 'Debe ingresar unidades sueltas válidas'); return; }
 
-    // Validate weight (obligatorio)
     const weightKg = getWeightInKg();
-    if (weightKg === undefined || weightKg <= 0) {
-      Alert.alert('Error', 'El peso es obligatorio y debe ser mayor a 0');
-      return;
-    }
+    if (weightKg === undefined || weightKg <= 0) { Alert.alert('Error', 'El peso es obligatorio y debe ser mayor a 0'); return; }
 
-    if (!selectedWarehouse) {
-      Alert.alert('Error', 'Debe seleccionar un almacén');
-      return;
-    }
+    if (!selectedWarehouse) { Alert.alert('Error', 'Debe seleccionar un almacén'); return; }
+    if (!photoUri) { Alert.alert('Error', 'La foto de validación es obligatoria'); return; }
+    if (!productPhotoUri) { Alert.alert('Error', 'La foto del producto es obligatoria'); return; }
+    if (!signatureUri) { Alert.alert('Error', 'La firma de validación es obligatoria'); return; }
 
-    // Validar que todas las fotos sean obligatorias
-    if (!photoUri) {
-      Alert.alert('Error', 'La foto de validación es obligatoria');
-      return;
-    }
-
-    if (!productPhotoUri) {
-      Alert.alert('Error', 'La foto del producto es obligatoria');
-      return;
-    }
-
-    if (!signatureUri) {
-      Alert.alert('Error', 'La firma de validación es obligatoria');
-      return;
-    }
-
-    // Presentaciones ahora son opcionales
-    // if (validatedPresentations.length === 0) {
-    //   Alert.alert('Error', 'Debe tener al menos una presentación validada');
-    //   return;
-    // }
-
-    // Validate all presentations have valid data (only if there are presentations)
     if (validatedPresentations.length > 0) {
       for (const pres of validatedPresentations) {
         if (!pres.presentationId || pres.factorToBase <= 0) {
@@ -561,74 +412,50 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       }
     }
 
-    // ========== NEW: Check for recurrent products BEFORE closing ==========
     setActionLoading(true);
     try {
       const hasRecurrent = await checkRecurrentProducts();
       if (hasRecurrent) {
-        // Modal will be shown, wait for user decision
         setActionLoading(false);
         return;
       }
-      // No recurrent products, continue with close validation
     } catch (error: any) {
-      console.error('❌ Error in recurrence check:', error);
       setActionLoading(false);
       return;
     }
     setActionLoading(false);
 
-    // Continue with confirmation dialog
     Alert.alert(
       'Cerrar Validación',
-      '¿Está seguro de cerrar la validación? El producto se activará y se agregará al inventario. Esta acción no se puede deshacer.',
+      '¿Está seguro de cerrar la validación? El producto se activará y se agregará al inventario.',
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Validación',
-          style: 'destructive',
-          onPress: async () => {
-            await performCloseValidation();
-          },
-        },
+        { text: 'Cerrar Validación', style: 'destructive', onPress: performCloseValidation },
       ]
     );
   };
 
-  /**
-   * Perform the actual close validation (called after recurrence check and confirmation)
-   */
   const performCloseValidation = async () => {
-    if (!product || !selectedWarehouse) {
-      return;
-    }
+    if (!product || !selectedWarehouse) return;
 
     const costValue = parseFloat(costCents);
     const looseUnitsValue = parseInt(looseUnits);
     const totalStock = calculateTotalStock();
 
-    // Get the quantity of presentations from the selected presentation
     let validatedPresentationQuantity = 0;
     if (selectedPresentationForQuantity) {
       const selectedPres = validatedPresentations.find(
         (p) => p.presentationId === selectedPresentationForQuantity
       );
-      if (selectedPres) {
-        validatedPresentationQuantity = selectedPres.quantityOfPresentations;
-      }
+      if (selectedPres) validatedPresentationQuantity = selectedPres.quantityOfPresentations;
     }
 
-    // Store warehouse ID to satisfy TypeScript
     const warehouseId = selectedWarehouse.id;
 
     setActionLoading(true);
     try {
-      // Upload photos and signature first
-      console.log('📤 Uploading validation files before closing...');
       const uploadedFiles = await uploadValidationFiles();
-      console.log('✅ Files uploaded successfully:', uploadedFiles);
 
-      // Prepare validation data
       const validationData = {
         sku: sku.trim(),
         name: name.trim(),
@@ -645,11 +472,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           notes: p.notes.trim() || undefined,
         })) : undefined,
         barcode: barcode.trim() || undefined,
-        weightKg: getWeightInKg(), // Peso del producto en kilogramos
+        weightKg: getWeightInKg(),
         photoUrl: uploadedFiles.photoUrl,
         signatureUrl: uploadedFiles.signatureUrl,
         validationNotes: validationNotes.trim() || undefined,
-        // ========== NEW: Recurrence fields ==========
         recurrenceAction: recurrenceAction || 'CREATE_NEW',
         existingProductId: selectedExistingProductId || undefined,
         recurrenceMetadata: recurrentCandidates.length > 0 ? {
@@ -659,17 +485,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         } : undefined,
       };
 
-      console.log('📝 Validation data:', validationData);
-
-      // Use V2 endpoint with recurrence support
       const response = await purchasesService.validateProductV2(purchaseId, productId, validationData);
-
-      console.log('✅ Validation V2 response:', response);
-
-      // Then close validation
       await purchasesService.closeValidation(purchaseId, productId);
 
-      // Show success message based on action
       const successMessage = response.action === 'MERGED'
         ? `Stock agregado al producto existente: ${response.product.title}. Validación cerrada.`
         : 'Validación cerrada. Producto nuevo creado y activado.';
@@ -678,12 +496,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
 
-      // Reset recurrence state
       setRecurrenceAction(null);
       setSelectedExistingProductId(null);
       setRecurrentCandidates([]);
     } catch (error: any) {
-      console.error('❌ Error in performCloseValidation:', error);
       Alert.alert('Error', error.message || 'No se pudo cerrar la validación');
     } finally {
       setActionLoading(false);
@@ -701,7 +517,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       await purchasesService.rejectProduct(purchaseId, productId, {
         rejectionReason: rejectionReason.trim(),
       });
-
       Alert.alert('Éxito', 'Producto rechazado', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
@@ -713,86 +528,40 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     }
   };
 
-  /**
-   * Handle recurrence modal - User confirms existing product (MERGE)
-   */
   const handleRecurrenceConfirm = (productId: string) => {
-    console.log('✅ User confirmed existing product:', productId);
     setRecurrenceAction('MERGE');
     setSelectedExistingProductId(productId);
     setShowRecurrenceModal(false);
 
-    // Show confirmation dialog before closing
     Alert.alert(
       'Cerrar Validación',
-      '¿Está seguro de cerrar la validación? El stock se sumará al producto existente. Esta acción no se puede deshacer.',
+      '¿Está seguro? El stock se sumará al producto existente.',
       [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-          onPress: () => {
-            // Reset recurrence state if user cancels
-            setRecurrenceAction(null);
-            setSelectedExistingProductId(null);
-          }
-        },
-        {
-          text: 'Cerrar Validación',
-          style: 'destructive',
-          onPress: async () => {
-            await performCloseValidation();
-          },
-        },
+        { text: 'Cancelar', style: 'cancel', onPress: () => { setRecurrenceAction(null); setSelectedExistingProductId(null); } },
+        { text: 'Cerrar Validación', style: 'destructive', onPress: performCloseValidation },
       ]
     );
   };
 
-  /**
-   * Handle recurrence modal - User creates new product (CREATE_NEW)
-   */
   const handleRecurrenceCreateNew = () => {
-    console.log('➕ User chose to create new product');
     setRecurrenceAction('CREATE_NEW');
     setSelectedExistingProductId(null);
     setShowRecurrenceModal(false);
 
-    // Show confirmation dialog before closing
     Alert.alert(
       'Cerrar Validación',
-      '¿Está seguro de cerrar la validación? Se creará un nuevo producto. Esta acción no se puede deshacer.',
+      '¿Está seguro? Se creará un nuevo producto.',
       [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-          onPress: () => {
-            // Reset recurrence state if user cancels
-            setRecurrenceAction(null);
-          }
-        },
-        {
-          text: 'Cerrar Validación',
-          style: 'destructive',
-          onPress: async () => {
-            await performCloseValidation();
-          },
-        },
+        { text: 'Cancelar', style: 'cancel', onPress: () => { setRecurrenceAction(null); } },
+        { text: 'Cerrar Validación', style: 'destructive', onPress: performCloseValidation },
       ]
     );
   };
 
-  /**
-   * Handle recurrence modal - User cancels
-   */
   const handleRecurrenceCancel = () => {
-    console.log('❌ User cancelled recurrence modal');
     setShowRecurrenceModal(false);
     setRecurrentCandidates([]);
     setRecurrenceMessage('');
-    // Don't reset recurrenceAction here, let user try again
-  };
-
-  const formatCurrency = (cents: number) => {
-    return `S/ ${(cents / 100).toFixed(2)}`;
   };
 
   const handleAddPresentation = () => {
@@ -801,7 +570,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       return;
     }
 
-    // Check if presentation already exists
     if (validatedPresentations.some((p) => p.presentationId === newPresentationId)) {
       Alert.alert('Error', 'Esta presentación ya está agregada');
       return;
@@ -829,7 +597,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   };
 
   const handleRemovePresentation = (index: number) => {
-    Alert.alert('Eliminar Presentación', '¿Está seguro de eliminar esta presentación?', [
+    Alert.alert('Eliminar Presentación', '¿Está seguro?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar',
@@ -838,8 +606,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           const presentationToRemove = validatedPresentations[index];
           const newPresentations = validatedPresentations.filter((_, i) => i !== index);
           setValidatedPresentations(newPresentations);
-
-          // If this was the selected presentation for quantity, clear it
           if (selectedPresentationForQuantity === presentationToRemove.presentationId) {
             setSelectedPresentationForQuantity(null);
           }
@@ -848,764 +614,430 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     ]);
   };
 
-  const canEdit = () => {
-    return (
-      product?.status === PurchaseProductStatus.PRELIMINARY ||
-      product?.status === PurchaseProductStatus.IN_VALIDATION
-    );
-  };
+  const canEdit = () => product?.status === PurchaseProductStatus.PRELIMINARY || product?.status === PurchaseProductStatus.IN_VALIDATION;
+  const canStartValidation = () => product?.status === PurchaseProductStatus.PRELIMINARY;
+  const canCloseValidation = () => product?.status === PurchaseProductStatus.IN_VALIDATION;
+  const canReject = () => product?.status === PurchaseProductStatus.PRELIMINARY || product?.status === PurchaseProductStatus.IN_VALIDATION;
 
-  const canStartValidation = () => {
-    return product?.status === PurchaseProductStatus.PRELIMINARY;
-  };
-
-  const canCloseValidation = () => {
-    return product?.status === PurchaseProductStatus.IN_VALIDATION;
-  };
-
-  const canReject = () => {
-    return (
-      product?.status === PurchaseProductStatus.PRELIMINARY ||
-      product?.status === PurchaseProductStatus.IN_VALIDATION
-    );
+  const getStatusVariant = (status: PurchaseProductStatus): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
+    switch (status) {
+      case PurchaseProductStatus.PRELIMINARY: return 'draft';
+      case PurchaseProductStatus.IN_VALIDATION: return 'pending';
+      case PurchaseProductStatus.VALIDATED: return 'completed';
+      case PurchaseProductStatus.REJECTED: return 'cancelled';
+      default: return 'draft';
+    }
   };
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando producto...</Text>
+          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <Body color="secondary" style={styles.loadingText}>Cargando producto...</Body>
         </View>
       </SafeAreaView>
     );
   }
 
-  if (!product) {
-    return null;
-  }
+  if (!product) return null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
+      <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>‹</Text>
+          <Ionicons name="chevron-back" size={24} color={colors.icon.primary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Validar Producto</Text>
-          <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>{product.name}</Text>
+          <Title size="large">Validar Producto</Title>
+          <Body color="secondary" numberOfLines={1}>{product.name}</Body>
         </View>
       </View>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Product Info - Editable */}
+        {/* Product Info Card */}
+        <Card variant="elevated" padding="medium" style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <Title size="small">Información del Producto</Title>
+            <Badge
+              label={PurchaseProductStatusLabels[product.status]}
+              variant={getStatusVariant(product.status)}
+              size="small"
+            />
+          </View>
+          <View style={styles.infoRow}>
+            <Label color="secondary" style={styles.infoLabel}>Stock Preliminar:</Label>
+            <Body style={styles.infoValue}>{product.preliminaryStock} unidades</Body>
+          </View>
+          <View style={styles.infoRow}>
+            <Label color="secondary" style={styles.infoLabel}>Costo Original:</Label>
+            <Body style={styles.infoValue}>S/ {(product.costCents / 100).toFixed(2)}</Body>
+          </View>
+        </Card>
+
+        {/* Editable Fields */}
         {canEdit() && (
           <>
-            {/* SKU */}
-            <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                SKU <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={[styles.input, isTablet && styles.inputTablet]}
-                value={sku}
-                onChangeText={setSku}
-                placeholder="Ej: PROD-001"
-                placeholderTextColor="#94A3B8"
-                editable={canEdit()}
-              />
-            </View>
+            <Input
+              label="SKU"
+              value={sku}
+              onChangeText={setSku}
+              placeholder="Ej: PROD-001"
+              required
+              disabled={!canEdit()}
+            />
 
-            {/* Name */}
-            <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Nombre <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={[styles.input, isTablet && styles.inputTablet]}
-                value={name}
-                onChangeText={setName}
-                placeholder="Ej: Producto de ejemplo"
-                placeholderTextColor="#94A3B8"
-                editable={canEdit()}
-              />
-            </View>
+            <Input
+              label="Nombre"
+              value={name}
+              onChangeText={setName}
+              placeholder="Ej: Producto de ejemplo"
+              required
+              disabled={!canEdit()}
+            />
 
-            {/* Cost */}
-            <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Costo (S/) <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={[styles.input, isTablet && styles.inputTablet]}
-                value={costCents}
-                onChangeText={setCostCents}
-                placeholder="Ej: 15.50"
-                placeholderTextColor="#94A3B8"
-                keyboardType="decimal-pad"
-                editable={canEdit()}
-              />
-              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Costo unitario en soles
-              </Text>
-            </View>
+            <Input
+              label="Costo (S/)"
+              value={costCents}
+              onChangeText={setCostCents}
+              placeholder="Ej: 15.50"
+              keyboardType="decimal-pad"
+              required
+              helperText="Costo unitario en soles"
+              disabled={!canEdit()}
+            />
 
-            {/* Peso del producto */}
+            {/* Weight */}
             <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Peso <Text style={styles.required}>*</Text>
-              </Text>
+              <Label color="secondary">Peso <Label color={colors.danger[500]}>*</Label></Label>
               <View style={styles.weightRow}>
                 <TextInput
-                  style={[styles.input, isTablet && styles.inputTablet, styles.weightInput]}
+                  style={styles.weightInput}
                   value={weightValue}
                   onChangeText={setWeightValue}
                   placeholder={weightUnit === 'kg' ? '0.500' : '500'}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.text.placeholder}
                   keyboardType="decimal-pad"
                   editable={canEdit()}
                 />
                 <View style={styles.weightUnitContainer}>
                   <TouchableOpacity
-                    style={[
-                      styles.weightUnitButton,
-                      isTablet && styles.weightUnitButtonTablet,
-                      weightUnit === 'kg' && styles.weightUnitButtonActive,
-                    ]}
+                    style={[styles.weightUnitButton, weightUnit === 'kg' && styles.weightUnitButtonActive]}
                     onPress={() => setWeightUnit('kg')}
-                    disabled={!canEdit()}
                   >
-                    <Text
-                      style={[
-                        styles.weightUnitButtonText,
-                        isTablet && styles.weightUnitButtonTextTablet,
-                        weightUnit === 'kg' && styles.weightUnitButtonTextActive,
-                      ]}
-                    >
-                      kg
-                    </Text>
+                    <Caption color={weightUnit === 'kg' ? colors.text.inverse : 'secondary'}>kg</Caption>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[
-                      styles.weightUnitButton,
-                      isTablet && styles.weightUnitButtonTablet,
-                      weightUnit === 'g' && styles.weightUnitButtonActive,
-                    ]}
+                    style={[styles.weightUnitButton, weightUnit === 'g' && styles.weightUnitButtonActive]}
                     onPress={() => setWeightUnit('g')}
-                    disabled={!canEdit()}
                   >
-                    <Text
-                      style={[
-                        styles.weightUnitButtonText,
-                        isTablet && styles.weightUnitButtonTextTablet,
-                        weightUnit === 'g' && styles.weightUnitButtonTextActive,
-                      ]}
-                    >
-                      g
-                    </Text>
+                    <Caption color={weightUnit === 'g' ? colors.text.inverse : 'secondary'}>g</Caption>
                   </TouchableOpacity>
                 </View>
               </View>
-              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
+              <Caption color="tertiary">
                 {weightValue && !isNaN(parseFloat(weightValue))
                   ? weightUnit === 'g'
-                    ? `= ${(parseFloat(weightValue) / 1000).toFixed(3)} kg (para guías de remisión)`
-                    : `${parseFloat(weightValue).toFixed(3)} kg (para guías de remisión)`
+                    ? `= ${(parseFloat(weightValue) / 1000).toFixed(3)} kg`
+                    : `${parseFloat(weightValue).toFixed(3)} kg`
                   : 'Peso del producto para guías de remisión'}
-              </Text>
+              </Caption>
             </View>
 
             {/* Warehouse Selector */}
             <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Almacén <Text style={styles.required}>*</Text>
-              </Text>
+              <Label color="secondary">Almacén <Label color={colors.danger[500]}>*</Label></Label>
               <TouchableOpacity
-                style={[styles.selector, isTablet && styles.selectorTablet]}
+                style={styles.selector}
                 onPress={() => setShowWarehouseSelector(!showWarehouseSelector)}
-                disabled={!canEdit()}
               >
-                <Text
-                  style={[
-                    styles.selectorText,
-                    isTablet && styles.selectorTextTablet,
-                    !selectedWarehouse && styles.selectorPlaceholder,
-                  ]}
-                >
+                <Body color={selectedWarehouse ? 'primary' : 'placeholder'}>
                   {selectedWarehouse ? selectedWarehouse.name : 'Seleccionar almacén'}
-                </Text>
-                <Text style={styles.selectorIcon}>{showWarehouseSelector ? '▲' : '▼'}</Text>
+                </Body>
+                <Ionicons name={showWarehouseSelector ? 'chevron-up' : 'chevron-down'} size={20} color={colors.icon.tertiary} />
               </TouchableOpacity>
 
               {showWarehouseSelector && (
-                <ScrollView
-                  style={[styles.optionsList, isTablet && styles.optionsListTablet]}
-                  nestedScrollEnabled={true}
-                >
-                  {warehouses.map((warehouse) => (
-                    <TouchableOpacity
-                      key={warehouse.id}
-                      style={[
-                        styles.optionItem,
-                        isTablet && styles.optionItemTablet,
-                        selectedWarehouse?.id === warehouse.id && styles.optionItemSelected,
-                      ]}
-                      onPress={async () => {
-                        setSelectedWarehouse(warehouse);
-                        setSelectedArea(null);
-                        setShowWarehouseSelector(false);
-
-                        // Load areas for the selected warehouse
-                        setLoadingAreas(true);
-                        console.log(
-                          '🔍 Loading areas for warehouse:',
-                          warehouse.id,
-                          warehouse.name
-                        );
-                        try {
-                          const areasData = await inventoryApi.getWarehouseAreas(warehouse.id);
-                          console.log('✅ Areas loaded:', areasData.length, areasData);
-                          setAreas(areasData);
-                        } catch (error: any) {
-                          console.error('❌ Error loading warehouse areas:', error);
-                          console.error('Error details:', error.message, error.response?.data);
-                          setAreas([]);
-                          Alert.alert(
-                            'Advertencia',
-                            `No se pudieron cargar las áreas del almacén: ${error.message || 'Error desconocido'}`
-                          );
-                        } finally {
-                          setLoadingAreas(false);
-                        }
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.optionText,
-                          isTablet && styles.optionTextTablet,
-                          selectedWarehouse?.id === warehouse.id && styles.optionTextSelected,
-                        ]}
+                <Card variant="outlined" padding="none" style={styles.selectorList}>
+                  <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
+                    {warehouses.map((warehouse) => (
+                      <TouchableOpacity
+                        key={warehouse.id}
+                        style={[styles.selectorItem, selectedWarehouse?.id === warehouse.id && styles.selectorItemSelected]}
+                        onPress={async () => {
+                          setSelectedWarehouse(warehouse);
+                          setSelectedArea(null);
+                          setShowWarehouseSelector(false);
+                          setLoadingAreas(true);
+                          try {
+                            const areasData = await inventoryApi.getWarehouseAreas(warehouse.id);
+                            setAreas(areasData);
+                          } catch (error) {
+                            setAreas([]);
+                          } finally {
+                            setLoadingAreas(false);
+                          }
+                        }}
                       >
-                        {warehouse.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                        <Body color={selectedWarehouse?.id === warehouse.id ? colors.primary[600] : 'primary'}>
+                          {warehouse.name}
+                        </Body>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </Card>
               )}
             </View>
 
             {/* Area Selector */}
             {selectedWarehouse && (
               <View style={styles.section}>
-                <Text style={[styles.label, isTablet && styles.labelTablet]}>Área</Text>
+                <Label color="secondary">Área</Label>
                 <TouchableOpacity
-                  style={[styles.selector, isTablet && styles.selectorTablet]}
+                  style={styles.selector}
                   onPress={() => setShowAreaSelector(!showAreaSelector)}
-                  disabled={!canEdit() || loadingAreas}
+                  disabled={loadingAreas}
                 >
-                  <Text
-                    style={[
-                      styles.selectorText,
-                      isTablet && styles.selectorTextTablet,
-                      !selectedArea && styles.selectorPlaceholder,
-                    ]}
-                  >
-                    {loadingAreas
-                      ? 'Cargando áreas...'
-                      : selectedArea
-                        ? selectedArea.code
-                        : areas.length > 0
-                          ? 'Seleccionar área (opcional)'
-                          : 'Sin áreas disponibles'}
-                  </Text>
-                  <Text style={styles.selectorIcon}>{showAreaSelector ? '▲' : '▼'}</Text>
+                  <Body color={selectedArea ? 'primary' : 'placeholder'}>
+                    {loadingAreas ? 'Cargando áreas...' : selectedArea ? selectedArea.code : areas.length > 0 ? 'Seleccionar área (opcional)' : 'Sin áreas disponibles'}
+                  </Body>
+                  <Ionicons name={showAreaSelector ? 'chevron-up' : 'chevron-down'} size={20} color={colors.icon.tertiary} />
                 </TouchableOpacity>
 
                 {showAreaSelector && !loadingAreas && (
-                  <ScrollView
-                    style={[styles.optionsList, isTablet && styles.optionsListTablet]}
-                    nestedScrollEnabled={true}
-                  >
-                    <TouchableOpacity
-                      style={[styles.optionItem, isTablet && styles.optionItemTablet]}
-                      onPress={() => {
-                        setSelectedArea(null);
-                        setShowAreaSelector(false);
-                      }}
-                    >
-                      <Text style={[styles.optionText, isTablet && styles.optionTextTablet]}>
-                        Sin área específica
-                      </Text>
-                    </TouchableOpacity>
-                    {areas.map((area) => (
+                  <Card variant="outlined" padding="none" style={styles.selectorList}>
+                    <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
                       <TouchableOpacity
-                        key={area.id}
-                        style={[
-                          styles.optionItem,
-                          isTablet && styles.optionItemTablet,
-                          selectedArea?.id === area.id && styles.optionItemSelected,
-                        ]}
-                        onPress={() => {
-                          setSelectedArea(area);
-                          setShowAreaSelector(false);
-                        }}
+                        style={styles.selectorItem}
+                        onPress={() => { setSelectedArea(null); setShowAreaSelector(false); }}
                       >
-                        <Text
-                          style={[
-                            styles.optionText,
-                            isTablet && styles.optionTextTablet,
-                            selectedArea?.id === area.id && styles.optionTextSelected,
-                          ]}
-                        >
-                          {area.code}
-                        </Text>
+                        <Body color="secondary">Sin área específica</Body>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                      {areas.map((area) => (
+                        <TouchableOpacity
+                          key={area.id}
+                          style={[styles.selectorItem, selectedArea?.id === area.id && styles.selectorItemSelected]}
+                          onPress={() => { setSelectedArea(area); setShowAreaSelector(false); }}
+                        >
+                          <Body color={selectedArea?.id === area.id ? colors.primary[600] : 'primary'}>{area.code}</Body>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </Card>
                 )}
               </View>
             )}
 
-            {/* Presentations List */}
+            {/* Presentations */}
             <View style={styles.section}>
-              <View style={styles.presentationHeaderRow}>
-                <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                  Presentaciones Validadas (Opcional)
-                </Text>
-                {canEdit() && (
-                  <TouchableOpacity
-                    style={[
-                      styles.addPresentationButton,
-                      isTablet && styles.addPresentationButtonTablet,
-                    ]}
-                    onPress={() => setShowAddPresentation(true)}
-                  >
-                    <Text
-                      style={[
-                        styles.addPresentationButtonText,
-                        isTablet && styles.addPresentationButtonTextTablet,
-                      ]}
-                    >
-                      + Agregar
-                    </Text>
-                  </TouchableOpacity>
-                )}
+              <View style={styles.sectionHeader}>
+                <Label color="secondary">Presentaciones Validadas (Opcional)</Label>
+                <Button title="+ Agregar" onPress={() => setShowAddPresentation(true)} variant="primary" size="small" />
               </View>
-              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Presentaciones del producto (opcional). Confirme o edite los factores de conversión.
-              </Text>
+              <Caption color="tertiary">Confirme o edite los factores de conversión.</Caption>
 
               {validatedPresentations.map((pres, index) => (
-                <View
-                  key={index}
-                  style={[styles.presentationCard, isTablet && styles.presentationCardTablet]}
-                >
+                <Card key={index} variant="outlined" padding="medium" style={styles.presentationCard}>
                   <View style={styles.presentationHeader}>
-                    <Text
-                      style={[styles.presentationName, isTablet && styles.presentationNameTablet]}
-                    >
-                      {pres.presentationName}
-                    </Text>
-                    {canEdit() && (
+                    <Title size="small">{pres.presentationName}</Title>
+                    <IconButton icon="trash-outline" onPress={() => handleRemovePresentation(index)} variant="ghost" size="small" />
+                  </View>
+
+                  <View style={styles.presentationField}>
+                    <Label color="secondary">Factor a Base:</Label>
+                    <TextInput
+                      style={styles.presentationInput}
+                      value={pres.factorToBase.toString()}
+                      onChangeText={(text) => {
+                        const newPresentations = [...validatedPresentations];
+                        newPresentations[index].factorToBase = parseFloat(text) || 0;
+                        setValidatedPresentations(newPresentations);
+                      }}
+                      placeholder="Ej: 24"
+                      keyboardType="numeric"
+                    />
+                  </View>
+
+                  <View style={styles.presentationField}>
+                    <View style={styles.quantityHeaderRow}>
+                      <Label color="secondary">Cantidad:</Label>
                       <TouchableOpacity
-                        style={[
-                          styles.removePresentationButton,
-                          isTablet && styles.removePresentationButtonTablet,
-                        ]}
-                        onPress={() => handleRemovePresentation(index)}
-                      >
-                        <Text
-                          style={[
-                            styles.removePresentationButtonText,
-                            isTablet && styles.removePresentationButtonTextTablet,
-                          ]}
-                        >
-                          🗑️
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <View style={styles.presentationRow}>
-                    <View style={styles.presentationField}>
-                      <Text
-                        style={[
-                          styles.presentationLabel,
-                          isTablet && styles.presentationLabelTablet,
-                        ]}
-                      >
-                        Factor a Base:
-                      </Text>
-                      <TextInput
-                        style={[
-                          styles.presentationInput,
-                          isTablet && styles.presentationInputTablet,
-                        ]}
-                        value={pres.factorToBase.toString()}
-                        onChangeText={(text) => {
-                          const newPresentations = [...validatedPresentations];
-                          const parsedValue = parseFloat(text);
-                          newPresentations[index].factorToBase = isNaN(parsedValue)
-                            ? 0
-                            : parsedValue;
-                          setValidatedPresentations(newPresentations);
-                        }}
-                        placeholder="Ej: 24"
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="numeric"
-                        editable={canEdit()}
-                      />
-                    </View>
-                  </View>
-
-                  {/* Quantity of Presentations - Only for selected presentation */}
-                  <View style={styles.presentationRow}>
-                    <View style={styles.presentationFieldFull}>
-                      <View style={styles.quantityHeaderRow}>
-                        <Text
-                          style={[
-                            styles.presentationLabel,
-                            isTablet && styles.presentationLabelTablet,
-                          ]}
-                        >
-                          Cantidad de Presentaciones:
-                        </Text>
-                        {canEdit() && (
-                          <TouchableOpacity
-                            style={[
-                              styles.selectForQuantityButton,
-                              selectedPresentationForQuantity === pres.presentationId &&
-                                styles.selectForQuantityButtonActive,
-                            ]}
-                            onPress={() => {
-                              if (selectedPresentationForQuantity === pres.presentationId) {
-                                // Deselect
-                                setSelectedPresentationForQuantity(null);
-                                const newPresentations = [...validatedPresentations];
-                                newPresentations[index].quantityOfPresentations = 0;
-                                setValidatedPresentations(newPresentations);
-                              } else {
-                                // Select this presentation and clear others
-                                setSelectedPresentationForQuantity(pres.presentationId);
-                                const newPresentations = validatedPresentations.map((p, i) => ({
-                                  ...p,
-                                  quantityOfPresentations:
-                                    i === index ? p.quantityOfPresentations : 0,
-                                }));
-                                setValidatedPresentations(newPresentations);
-                              }
-                            }}
-                          >
-                            <Text
-                              style={[
-                                styles.selectForQuantityButtonText,
-                                selectedPresentationForQuantity === pres.presentationId &&
-                                  styles.selectForQuantityButtonTextActive,
-                              ]}
-                            >
-                              {selectedPresentationForQuantity === pres.presentationId
-                                ? '✓ Seleccionada'
-                                : 'Seleccionar'}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                      <TextInput
-                        style={[
-                          styles.presentationInput,
-                          isTablet && styles.presentationInputTablet,
-                          selectedPresentationForQuantity !== pres.presentationId &&
-                            styles.presentationInputDisabled,
-                        ]}
-                        value={pres.quantityOfPresentations.toString()}
-                        onChangeText={(text) => {
+                        style={[styles.selectForQuantityButton, selectedPresentationForQuantity === pres.presentationId && styles.selectForQuantityButtonActive]}
+                        onPress={() => {
                           if (selectedPresentationForQuantity === pres.presentationId) {
+                            setSelectedPresentationForQuantity(null);
                             const newPresentations = [...validatedPresentations];
-                            const parsedValue = parseInt(text);
-                            newPresentations[index].quantityOfPresentations = isNaN(parsedValue)
-                              ? 0
-                              : parsedValue;
+                            newPresentations[index].quantityOfPresentations = 0;
+                            setValidatedPresentations(newPresentations);
+                          } else {
+                            setSelectedPresentationForQuantity(pres.presentationId);
+                            const newPresentations = validatedPresentations.map((p, i) => ({
+                              ...p,
+                              quantityOfPresentations: i === index ? p.quantityOfPresentations : 0,
+                            }));
                             setValidatedPresentations(newPresentations);
                           }
                         }}
-                        placeholder={
-                          selectedPresentationForQuantity === pres.presentationId
-                            ? 'Ej: 5'
-                            : 'Seleccione esta presentación primero'
-                        }
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="number-pad"
-                        editable={
-                          canEdit() && selectedPresentationForQuantity === pres.presentationId
-                        }
-                      />
-                      {selectedPresentationForQuantity === pres.presentationId &&
-                        pres.quantityOfPresentations > 0 && (
-                          <Text
-                            style={[
-                              styles.hint,
-                              isTablet && styles.hintTablet,
-                              styles.calculationHint,
-                            ]}
-                          >
-                            = {pres.quantityOfPresentations} × {pres.factorToBase} ={' '}
-                            {pres.quantityOfPresentations * pres.factorToBase} unidades
-                          </Text>
-                        )}
-                    </View>
-                  </View>
-
-                  <View style={styles.presentationRow}>
-                    <View style={styles.presentationFieldFull}>
-                      <Text
-                        style={[
-                          styles.presentationLabel,
-                          isTablet && styles.presentationLabelTablet,
-                        ]}
                       >
-                        Notas:
-                      </Text>
-                      <TextInput
-                        style={[
-                          styles.presentationInput,
-                          isTablet && styles.presentationInputTablet,
-                        ]}
-                        value={pres.notes}
-                        onChangeText={(text) => {
-                          const newPresentations = [...validatedPresentations];
-                          newPresentations[index].notes = text;
-                          setValidatedPresentations(newPresentations);
-                        }}
-                        placeholder="Ej: Caja de 24 unidades confirmada"
-                        placeholderTextColor="#94A3B8"
-                        editable={canEdit()}
-                      />
+                        <Caption color={selectedPresentationForQuantity === pres.presentationId ? colors.text.inverse : colors.primary[600]}>
+                          {selectedPresentationForQuantity === pres.presentationId ? '✓ Seleccionada' : 'Seleccionar'}
+                        </Caption>
+                      </TouchableOpacity>
                     </View>
+                    <TextInput
+                      style={[styles.presentationInput, selectedPresentationForQuantity !== pres.presentationId && styles.inputDisabled]}
+                      value={pres.quantityOfPresentations.toString()}
+                      onChangeText={(text) => {
+                        if (selectedPresentationForQuantity === pres.presentationId) {
+                          const newPresentations = [...validatedPresentations];
+                          newPresentations[index].quantityOfPresentations = parseInt(text) || 0;
+                          setValidatedPresentations(newPresentations);
+                        }
+                      }}
+                      placeholder={selectedPresentationForQuantity === pres.presentationId ? 'Ej: 5' : 'Seleccione primero'}
+                      keyboardType="number-pad"
+                      editable={selectedPresentationForQuantity === pres.presentationId}
+                    />
+                    {selectedPresentationForQuantity === pres.presentationId && pres.quantityOfPresentations > 0 && (
+                      <Caption color={colors.success[600]}>
+                        = {pres.quantityOfPresentations} × {pres.factorToBase} = {pres.quantityOfPresentations * pres.factorToBase} unidades
+                      </Caption>
+                    )}
                   </View>
-                </View>
+                </Card>
               ))}
 
               {validatedPresentations.length === 0 && (
-                <View style={styles.emptyPresentations}>
-                  <Text style={styles.emptyPresentationsText}>
-                    No hay presentaciones. Use el botón "+ Agregar" para agregar presentaciones.
-                  </Text>
-                </View>
+                <Card variant="filled" padding="medium">
+                  <Body color="secondary" align="center">No hay presentaciones agregadas</Body>
+                </Card>
               )}
             </View>
 
             {/* Barcode */}
             <View style={styles.section}>
-              <View style={styles.labelWithButton}>
-                <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                  Código de Barras <Text style={styles.required}>*</Text>
-                </Text>
-                <TouchableOpacity
-                  style={[styles.copyButton, !sku.trim() && styles.copyButtonDisabled]}
-                  onPress={() => {
-                    const skuValue = sku.trim();
-                    if (skuValue) {
-                      // Copiar SKU al campo de código de barras
-                      setBarcode(skuValue);
-                      Alert.alert('Copiado', 'SKU copiado al campo de código de barras');
-                    } else {
-                      Alert.alert('Error', 'No hay SKU para copiar');
-                    }
-                  }}
-                >
-                  <Text style={[styles.copyButtonText, !sku.trim() && styles.copyButtonTextDisabled]}>📋 Copiar SKU</Text>
+              <View style={styles.sectionHeader}>
+                <Label color="secondary">Código de Barras <Label color={colors.danger[500]}>*</Label></Label>
+                <TouchableOpacity style={styles.copyButton} onPress={() => { if (sku.trim()) { setBarcode(sku.trim()); Alert.alert('Copiado', 'SKU copiado'); } }}>
+                  <Caption color={colors.primary[600]}>📋 Copiar SKU</Caption>
                 </TouchableOpacity>
               </View>
               <TextInput
-                style={[styles.input, isTablet && styles.inputTablet]}
+                style={styles.input}
                 value={barcode}
                 onChangeText={setBarcode}
                 placeholder="Ej: ABC123XYZ"
-                placeholderTextColor="#94A3B8"
-                keyboardType="default"
-                editable={canEdit()}
+                placeholderTextColor={colors.text.placeholder}
               />
             </View>
 
             {/* Loose Units */}
-            <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Unidades Sueltas <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={[styles.input, isTablet && styles.inputTablet]}
-                value={looseUnits}
-                onChangeText={setLooseUnits}
-                placeholder="Ej: 5"
-                placeholderTextColor="#94A3B8"
-                keyboardType="number-pad"
-                editable={canEdit()}
-              />
-              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Cantidad de unidades individuales sueltas
-              </Text>
-            </View>
+            <Input
+              label="Unidades Sueltas"
+              value={looseUnits}
+              onChangeText={setLooseUnits}
+              placeholder="Ej: 5"
+              keyboardType="number-pad"
+              required
+              helperText="Cantidad de unidades individuales sueltas"
+            />
 
-            {/* Total Stock (Calculated - Read Only) */}
+            {/* Total Stock (Calculated) */}
             <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Stock Total Validado (Calculado)
-              </Text>
-              <View style={[styles.input, isTablet && styles.inputTablet, styles.calculatedField]}>
-                <Text style={[styles.calculatedText, isTablet && styles.calculatedTextTablet]}>
-                  {calculateTotalStock()} unidades
-                </Text>
+              <Label color="secondary">Stock Total Validado (Calculado)</Label>
+              <View style={styles.calculatedField}>
+                <Title size="medium" color={colors.text.secondary}>{calculateTotalStock()} unidades</Title>
               </View>
-              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Unidades sueltas + (Cantidad de presentaciones × Factor de conversión)
-              </Text>
+              <Caption color="tertiary">Unidades sueltas + (Cantidad de presentaciones × Factor)</Caption>
             </View>
 
             {/* Photo Capture */}
             <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>Foto de Validación</Text>
+              <Label color="secondary">Foto de Validación <Label color={colors.danger[500]}>*</Label></Label>
               {photoUri ? (
                 <View style={styles.capturedContainer}>
                   <Image source={{ uri: photoUri }} style={styles.capturedPhoto} />
-                  <TouchableOpacity
-                    style={styles.recaptureButton}
-                    onPress={() => setShowPhotoCapture(true)}
-                    disabled={!canEdit()}
-                  >
-                    <Text style={styles.recaptureButtonText}>📷 Cambiar Foto</Text>
-                  </TouchableOpacity>
+                  <Button title="📷 Cambiar Foto" onPress={() => setShowPhotoCapture(true)} variant="secondary" size="small" />
                 </View>
               ) : (
-                <TouchableOpacity
-                  style={styles.captureButton}
-                  onPress={() => setShowPhotoCapture(true)}
-                  disabled={!canEdit()}
-                >
-                  <Text style={styles.captureButtonIcon}>📷</Text>
-                  <Text style={styles.captureButtonText}>Tomar Foto</Text>
+                <TouchableOpacity style={styles.captureButton} onPress={() => setShowPhotoCapture(true)}>
+                  <Ionicons name="camera" size={32} color={colors.primary[600]} />
+                  <Body color={colors.primary[600]}>Tomar Foto</Body>
                 </TouchableOpacity>
               )}
-              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Foto del producto durante la validación *
-              </Text>
             </View>
 
-            {/* ✅ Product Photo Capture */}
+            {/* Product Photo */}
             <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>Foto del Producto (Catálogo)</Text>
+              <Label color="secondary">Foto del Producto (Catálogo) <Label color={colors.danger[500]}>*</Label></Label>
               {productPhotoUri ? (
                 <View style={styles.capturedContainer}>
                   <Image source={{ uri: productPhotoUri }} style={styles.capturedPhoto} />
-                  <TouchableOpacity
-                    style={styles.recaptureButton}
-                    onPress={() => setShowProductPhotoCapture(true)}
-                    disabled={!canEdit()}
-                  >
-                    <Text style={styles.recaptureButtonText}>🖼️ Cambiar Foto</Text>
-                  </TouchableOpacity>
+                  <Button title="🖼️ Cambiar Foto" onPress={() => setShowProductPhotoCapture(true)} variant="secondary" size="small" />
                 </View>
               ) : (
-                <TouchableOpacity
-                  style={styles.captureButton}
-                  onPress={() => setShowProductPhotoCapture(true)}
-                  disabled={!canEdit()}
-                >
-                  <Text style={styles.captureButtonIcon}>🖼️</Text>
-                  <Text style={styles.captureButtonText}>Tomar Foto del Producto</Text>
+                <TouchableOpacity style={styles.captureButton} onPress={() => setShowProductPhotoCapture(true)}>
+                  <Ionicons name="image" size={32} color={colors.primary[600]} />
+                  <Body color={colors.primary[600]}>Tomar Foto del Producto</Body>
                 </TouchableOpacity>
               )}
-              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Foto del producto para el catálogo *
-              </Text>
             </View>
 
-            {/* Signature Capture */}
+            {/* Signature */}
             <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Firma de Validación
-              </Text>
+              <Label color="secondary">Firma de Validación <Label color={colors.danger[500]}>*</Label></Label>
               {signatureUri ? (
                 <View style={styles.capturedContainer}>
                   <Image source={{ uri: signatureUri }} style={styles.capturedSignature} />
-                  <TouchableOpacity
-                    style={styles.recaptureButton}
-                    onPress={() => setShowSignatureCapture(true)}
-                    disabled={!canEdit()}
-                  >
-                    <Text style={styles.recaptureButtonText}>✍️ Cambiar Firma</Text>
-                  </TouchableOpacity>
+                  <Button title="✍️ Cambiar Firma" onPress={() => setShowSignatureCapture(true)} variant="secondary" size="small" />
                 </View>
               ) : (
-                <TouchableOpacity
-                  style={styles.captureButton}
-                  onPress={() => setShowSignatureCapture(true)}
-                  disabled={!canEdit()}
-                >
-                  <Text style={styles.captureButtonIcon}>✍️</Text>
-                  <Text style={styles.captureButtonText}>Capturar Firma</Text>
+                <TouchableOpacity style={styles.captureButton} onPress={() => setShowSignatureCapture(true)}>
+                  <Ionicons name="pencil" size={32} color={colors.primary[600]} />
+                  <Body color={colors.primary[600]}>Capturar Firma</Body>
                 </TouchableOpacity>
               )}
-              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-                Firma del responsable de la validación *
-              </Text>
             </View>
 
             {/* Validation Notes */}
-            <View style={styles.section}>
-              <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Notas de Validación
-              </Text>
-              <TextInput
-                style={[styles.textArea, isTablet && styles.textAreaTablet]}
-                value={validationNotes}
-                onChangeText={setValidationNotes}
-                placeholder="Observaciones sobre la validación..."
-                placeholderTextColor="#94A3B8"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-                editable={canEdit()}
-              />
-            </View>
+            <Input
+              label="Notas de Validación"
+              value={validationNotes}
+              onChangeText={setValidationNotes}
+              placeholder="Observaciones sobre la validación..."
+              multiline
+              numberOfLines={4}
+            />
           </>
         )}
 
         {/* Validated Product Info */}
         {product.status === PurchaseProductStatus.VALIDATED && (
-          <View style={[styles.successCard, isTablet && styles.successCardTablet]}>
-            <Text style={[styles.successIcon, isTablet && styles.successIconTablet]}>✅</Text>
-            <Text style={[styles.successTitle, isTablet && styles.successTitleTablet]}>
-              Producto Validado
-            </Text>
-            <Text style={[styles.successText, isTablet && styles.successTextTablet]}>
-              Este producto ha sido validado y activado en el catálogo.
-            </Text>
+          <Card variant="filled" padding="large" style={styles.successCard}>
+            <Ionicons name="checkmark-circle" size={48} color={colors.success[500]} />
+            <Title size="medium" color={colors.success[700]} align="center">Producto Validado</Title>
+            <Body color="secondary" align="center">Este producto ha sido validado y activado en el catálogo.</Body>
             {product.validatedAt && (
-              <Text style={[styles.successDate, isTablet && styles.successDateTablet]}>
+              <Caption color="tertiary" align="center">
                 Validado el {new Date(product.validatedAt).toLocaleDateString('es-PE')}
-              </Text>
+              </Caption>
             )}
-          </View>
+          </Card>
         )}
 
         {/* Rejected Product Info */}
         {product.status === PurchaseProductStatus.REJECTED && product.rejectionReason && (
-          <View style={[styles.rejectionCard, isTablet && styles.rejectionCardTablet]}>
-            <Text style={[styles.rejectionIcon, isTablet && styles.rejectionIconTablet]}>❌</Text>
-            <Text style={[styles.rejectionTitle, isTablet && styles.rejectionTitleTablet]}>
-              Producto Rechazado
-            </Text>
-            <Text style={[styles.rejectionLabel, isTablet && styles.rejectionLabelTablet]}>
-              Razón:
-            </Text>
-            <Text style={[styles.rejectionText, isTablet && styles.rejectionTextTablet]}>
-              {product.rejectionReason}
-            </Text>
-          </View>
+          <Card variant="filled" padding="large" style={styles.rejectionCard}>
+            <Ionicons name="close-circle" size={48} color={colors.danger[500]} />
+            <Title size="medium" color={colors.danger[700]} align="center">Producto Rechazado</Title>
+            <Label color={colors.danger[600]}>Razón:</Label>
+            <Body color={colors.danger[700]}>{product.rejectionReason}</Body>
+          </Card>
         )}
 
         <View style={styles.bottomSpacer} />
@@ -1613,242 +1045,84 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
       {/* Action Buttons */}
       {(canStartValidation() || canEdit() || canCloseValidation() || canReject()) && (
-        <View style={[styles.footer, isTablet && styles.footerTablet]}>
+        <View style={styles.footer}>
           {canStartValidation() && (
-            <TouchableOpacity
-              style={[styles.primaryButton, isTablet && styles.primaryButtonTablet]}
-              onPress={handleStartValidation}
-              disabled={actionLoading}
-            >
-              {actionLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text
-                  style={[styles.primaryButtonText, isTablet && styles.primaryButtonTextTablet]}
-                >
-                  Iniciar Validación
-                </Text>
-              )}
-            </TouchableOpacity>
+            <Button title="Iniciar Validación" onPress={handleStartValidation} variant="primary" loading={actionLoading} fullWidth />
           )}
-
           {canEdit() && product.status === PurchaseProductStatus.IN_VALIDATION && (
-            <TouchableOpacity
-              style={[styles.primaryButton, isTablet && styles.primaryButtonTablet]}
-              onPress={handleCloseValidation}
-              disabled={actionLoading}
-            >
-              {actionLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text
-                  style={[styles.primaryButtonText, isTablet && styles.primaryButtonTextTablet]}
-                >
-                  Cerrar Validación
-                </Text>
-              )}
-            </TouchableOpacity>
+            <Button title="Cerrar Validación" onPress={handleCloseValidation} variant="primary" loading={actionLoading} style={styles.footerButton} />
           )}
-
           {canReject() && (
-            <TouchableOpacity
-              style={[styles.rejectButton, isTablet && styles.rejectButtonTablet]}
-              onPress={() => setShowRejectDialog(true)}
-              disabled={actionLoading}
-            >
-              <Text style={[styles.rejectButtonText, isTablet && styles.rejectButtonTextTablet]}>
-                Rechazar
-              </Text>
-            </TouchableOpacity>
+            <Button title="Rechazar" onPress={() => setShowRejectDialog(true)} variant="danger" disabled={actionLoading} style={styles.footerButton} />
           )}
         </View>
       )}
 
       {/* Reject Dialog */}
-      {showRejectDialog && (
-        <View style={styles.overlay}>
-          <View style={[styles.dialog, isTablet && styles.dialogTablet]}>
-            <Text style={[styles.dialogTitle, isTablet && styles.dialogTitleTablet]}>
-              Rechazar Producto
-            </Text>
-            <Text style={[styles.dialogText, isTablet && styles.dialogTextTablet]}>
-              Ingrese la razón del rechazo:
-            </Text>
+      <Modal visible={showRejectDialog} animationType="fade" transparent onRequestClose={() => setShowRejectDialog(false)}>
+        <View style={styles.dialogOverlay}>
+          <View style={styles.dialog}>
+            <Title size="medium">Rechazar Producto</Title>
+            <Body color="secondary">Ingrese la razón del rechazo:</Body>
             <TextInput
-              style={[styles.dialogInput, isTablet && styles.dialogInputTablet]}
+              style={styles.dialogInput}
               value={rejectionReason}
               onChangeText={setRejectionReason}
               placeholder="Ej: Producto dañado, no cumple especificaciones"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.text.placeholder}
               multiline
               numberOfLines={3}
-              textAlignVertical="top"
               autoFocus
             />
             <View style={styles.dialogButtons}>
-              <TouchableOpacity
-                style={[styles.dialogCancelButton, isTablet && styles.dialogCancelButtonTablet]}
-                onPress={() => {
-                  setShowRejectDialog(false);
-                  setRejectionReason('');
-                }}
-              >
-                <Text
-                  style={[
-                    styles.dialogCancelButtonText,
-                    isTablet && styles.dialogCancelButtonTextTablet,
-                  ]}
-                >
-                  Cancelar
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dialogConfirmButton, isTablet && styles.dialogConfirmButtonTablet]}
-                onPress={handleReject}
-                disabled={actionLoading}
-              >
-                {actionLoading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text
-                    style={[
-                      styles.dialogConfirmButtonText,
-                      isTablet && styles.dialogConfirmButtonTextTablet,
-                    ]}
-                  >
-                    Rechazar
-                  </Text>
-                )}
-              </TouchableOpacity>
+              <Button title="Cancelar" onPress={() => { setShowRejectDialog(false); setRejectionReason(''); }} variant="secondary" style={styles.dialogButton} />
+              <Button title="Rechazar" onPress={handleReject} variant="danger" loading={actionLoading} style={styles.dialogButton} />
             </View>
           </View>
         </View>
-      )}
+      </Modal>
 
       {/* Add Presentation Dialog */}
-      {showAddPresentation && (
-        <View style={styles.overlay}>
-          <View style={[styles.dialog, isTablet && styles.dialogTablet]}>
-            <Text style={[styles.dialogTitle, isTablet && styles.dialogTitleTablet]}>
-              Agregar Presentación
-            </Text>
-            <Text style={[styles.dialogText, isTablet && styles.dialogTextTablet]}>
-              Seleccione una presentación:
-            </Text>
-
-            <View style={[styles.dialogSelector, isTablet && styles.dialogSelectorTablet]}>
+      <Modal visible={showAddPresentation} animationType="fade" transparent onRequestClose={() => setShowAddPresentation(false)}>
+        <View style={styles.dialogOverlay}>
+          <View style={styles.dialog}>
+            <Title size="medium">Agregar Presentación</Title>
+            <Body color="secondary">Seleccione una presentación:</Body>
+            <ScrollView style={styles.presentationList}>
               {presentations.map((presentation) => (
                 <TouchableOpacity
                   key={presentation.id}
-                  style={[
-                    styles.dialogOptionItem,
-                    isTablet && styles.dialogOptionItemTablet,
-                    newPresentationId === presentation.id && styles.dialogOptionItemSelected,
-                  ]}
+                  style={[styles.presentationOption, newPresentationId === presentation.id && styles.presentationOptionSelected]}
                   onPress={() => setNewPresentationId(presentation.id)}
                 >
-                  <Text
-                    style={[
-                      styles.dialogOptionText,
-                      isTablet && styles.dialogOptionTextTablet,
-                      newPresentationId === presentation.id && styles.dialogOptionTextSelected,
-                    ]}
-                  >
-                    {presentation.name}
-                  </Text>
+                  <Body color={newPresentationId === presentation.id ? colors.primary[600] : 'primary'}>{presentation.name}</Body>
                 </TouchableOpacity>
               ))}
-            </View>
-
+            </ScrollView>
             <View style={styles.dialogButtons}>
-              <TouchableOpacity
-                style={[styles.dialogCancelButton, isTablet && styles.dialogCancelButtonTablet]}
-                onPress={() => {
-                  setShowAddPresentation(false);
-                  setNewPresentationId('');
-                }}
-              >
-                <Text
-                  style={[
-                    styles.dialogCancelButtonText,
-                    isTablet && styles.dialogCancelButtonTextTablet,
-                  ]}
-                >
-                  Cancelar
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dialogConfirmButton, isTablet && styles.dialogConfirmButtonTablet]}
-                onPress={handleAddPresentation}
-              >
-                <Text
-                  style={[
-                    styles.dialogConfirmButtonText,
-                    isTablet && styles.dialogConfirmButtonTextTablet,
-                  ]}
-                >
-                  Agregar
-                </Text>
-              </TouchableOpacity>
+              <Button title="Cancelar" onPress={() => { setShowAddPresentation(false); setNewPresentationId(''); }} variant="secondary" style={styles.dialogButton} />
+              <Button title="Agregar" onPress={handleAddPresentation} variant="primary" style={styles.dialogButton} />
             </View>
           </View>
         </View>
-      )}
+      </Modal>
 
       {/* Photo Capture Modal */}
-      {showPhotoCapture && (
-        <Modal
-          visible={showPhotoCapture}
-          animationType="slide"
-          onRequestClose={() => setShowPhotoCapture(false)}
-        >
-          <PhotoCapture
-            onPhotoCapture={(uri) => {
-              setPhotoUri(uri);
-              setShowPhotoCapture(false);
-            }}
-            onCancel={() => setShowPhotoCapture(false)}
-            currentPhoto={photoUri}
-          />
-        </Modal>
-      )}
+      <Modal visible={showPhotoCapture} animationType="slide" onRequestClose={() => setShowPhotoCapture(false)}>
+        <PhotoCapture onPhotoCapture={(uri) => { setPhotoUri(uri); setShowPhotoCapture(false); }} onCancel={() => setShowPhotoCapture(false)} currentPhoto={photoUri} />
+      </Modal>
 
-      {/* ✅ Product Photo Capture Modal */}
-      {showProductPhotoCapture && (
-        <Modal
-          visible={showProductPhotoCapture}
-          animationType="slide"
-          onRequestClose={() => setShowProductPhotoCapture(false)}
-        >
-          <PhotoCapture
-            onPhotoCapture={(uri) => {
-              setProductPhotoUri(uri);
-              setShowProductPhotoCapture(false);
-            }}
-            onCancel={() => setShowProductPhotoCapture(false)}
-            currentPhoto={productPhotoUri}
-          />
-        </Modal>
-      )}
+      {/* Product Photo Capture Modal */}
+      <Modal visible={showProductPhotoCapture} animationType="slide" onRequestClose={() => setShowProductPhotoCapture(false)}>
+        <PhotoCapture onPhotoCapture={(uri) => { setProductPhotoUri(uri); setShowProductPhotoCapture(false); }} onCancel={() => setShowProductPhotoCapture(false)} currentPhoto={productPhotoUri} />
+      </Modal>
 
       {/* Signature Capture Modal */}
-      {showSignatureCapture && (
-        <Modal
-          visible={showSignatureCapture}
-          animationType="slide"
-          onRequestClose={() => setShowSignatureCapture(false)}
-        >
-          <SignatureCapture
-            onSignatureCapture={(signature) => {
-              setSignatureUri(signature);
-              setShowSignatureCapture(false);
-            }}
-            onCancel={() => setShowSignatureCapture(false)}
-          />
-        </Modal>
-      )}
+      <Modal visible={showSignatureCapture} animationType="slide" onRequestClose={() => setShowSignatureCapture(false)}>
+        <SignatureCapture onSignatureCapture={(signature) => { setSignatureUri(signature); setShowSignatureCapture(false); }} onCancel={() => setShowSignatureCapture(false)} />
+      </Modal>
 
-      {/* ========== NEW: Recurrent Product Modal ========== */}
+      {/* Recurrent Product Modal */}
       <RecurrentProductModal
         visible={showRecurrenceModal}
         candidates={recurrentCandidates}
@@ -1861,10 +1135,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   );
 };
 
+// Import status labels
+const PurchaseProductStatusLabels: Record<PurchaseProductStatus, string> = {
+  [PurchaseProductStatus.PRELIMINARY]: 'Preliminar',
+  [PurchaseProductStatus.IN_VALIDATION]: 'En Validación',
+  [PurchaseProductStatus.VALIDATED]: 'Validado',
+  [PurchaseProductStatus.REJECTED]: 'Rechazado',
+  [PurchaseProductStatus.CLOSED]: 'Cerrado',
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   loadingContainer: {
     flex: 1,
@@ -1872,818 +1155,287 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748B',
+    marginTop: spacing[4],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
+    borderBottomColor: colors.border.light,
+    gap: spacing[3],
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-  },
-  backButtonText: {
-    fontSize: 28,
-    color: '#64748B',
-    fontWeight: '300',
   },
   headerContent: {
     flex: 1,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  subtitleTablet: {
-    fontSize: 15,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 24,
+    padding: spacing[4],
   },
   contentContainerTablet: {
-    padding: 32,
+    padding: spacing[6],
     maxWidth: 800,
     alignSelf: 'center',
     width: '100%',
   },
   infoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    marginBottom: spacing[4],
   },
-  infoCardTablet: {
-    padding: 24,
-    borderRadius: 18,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 16,
-  },
-  sectionTitleTablet: {
-    fontSize: 18,
+  infoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing[3],
   },
   infoRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: spacing[2],
   },
   infoLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
     width: 140,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
-    width: 160,
   },
   infoValue: {
     flex: 1,
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
-  },
-  infoValueTablet: {
-    fontSize: 16,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing[5],
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  labelWithButton: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
-  copyButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  weightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    marginTop: spacing[2],
   },
-  copyButtonDisabled: {
-    backgroundColor: '#CBD5E1',
-    opacity: 0.6,
+  weightInput: {
+    flex: 1,
+    backgroundColor: colors.surface.primary,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    fontSize: 16,
+    color: colors.text.primary,
   },
-  copyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+  weightUnitContainer: {
+    flexDirection: 'row',
+    gap: spacing[1],
   },
-  copyButtonTextDisabled: {
-    color: '#94A3B8',
+  weightUnitButton: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2.5],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface.secondary,
   },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1E293B',
-  },
-  inputTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    fontSize: 17,
-    borderRadius: 14,
-  },
-  textArea: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1E293B',
-    minHeight: 100,
-  },
-  textAreaTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    fontSize: 17,
-    borderRadius: 14,
-    minHeight: 120,
-  },
-  hint: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 6,
-  },
-  hintTablet: {
-    fontSize: 14,
+  weightUnitButtonActive: {
+    backgroundColor: colors.primary[900],
   },
   selector: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: colors.surface.primary,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    marginTop: spacing[2],
   },
-  selectorTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 14,
+  selectorList: {
+    marginTop: spacing[2],
   },
-  selectorText: {
-    fontSize: 15,
-    color: '#1E293B',
-    flex: 1,
-  },
-  selectorTextTablet: {
-    fontSize: 17,
-  },
-  selectorPlaceholder: {
-    color: '#94A3B8',
-  },
-  selectorIcon: {
-    fontSize: 12,
-    color: '#64748B',
-    marginLeft: 8,
-  },
-  optionsList: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    marginTop: 8,
-    maxHeight: 200,
-  },
-  optionsListTablet: {
-    borderRadius: 14,
-    maxHeight: 300,
-  },
-  optionItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  selectorItem: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.border.light,
   },
-  optionItemTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  optionItemSelected: {
-    backgroundColor: '#EEF2FF',
-  },
-  optionText: {
-    fontSize: 15,
-    color: '#1E293B',
-  },
-  optionTextTablet: {
-    fontSize: 17,
-  },
-  optionTextSelected: {
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-  successCard: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    marginBottom: 24,
-  },
-  successCardTablet: {
-    padding: 32,
-    borderRadius: 18,
-  },
-  successIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  successIconTablet: {
-    fontSize: 64,
-  },
-  successTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#166534',
-    marginBottom: 8,
-  },
-  successTitleTablet: {
-    fontSize: 22,
-  },
-  successText: {
-    fontSize: 14,
-    color: '#15803D',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  successTextTablet: {
-    fontSize: 16,
-  },
-  successDate: {
-    fontSize: 12,
-    color: '#16A34A',
-  },
-  successDateTablet: {
-    fontSize: 14,
-  },
-  rejectionCard: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    marginBottom: 24,
-  },
-  rejectionCardTablet: {
-    padding: 32,
-    borderRadius: 18,
-  },
-  rejectionIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  rejectionIconTablet: {
-    fontSize: 64,
-  },
-  rejectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#991B1B',
-    marginBottom: 12,
-  },
-  rejectionTitleTablet: {
-    fontSize: 22,
-  },
-  rejectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#DC2626',
-    marginBottom: 4,
-  },
-  rejectionLabelTablet: {
-    fontSize: 15,
-  },
-  rejectionText: {
-    fontSize: 14,
-    color: '#B91C1C',
-    textAlign: 'center',
-  },
-  rejectionTextTablet: {
-    fontSize: 16,
-  },
-  bottomSpacer: {
-    height: 40,
-  },
-  footer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
-  },
-  footerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-    gap: 16,
-  },
-  primaryButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-  },
-  primaryButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  primaryButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  primaryButtonTextTablet: {
-    fontSize: 17,
-  },
-  secondaryButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-  },
-  secondaryButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  secondaryButtonTextTablet: {
-    fontSize: 17,
-  },
-  rejectButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
-  },
-  rejectButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  rejectButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#DC2626',
-  },
-  rejectButtonTextTablet: {
-    fontSize: 17,
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  dialog: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-  },
-  dialogTablet: {
-    padding: 32,
-    borderRadius: 18,
-    maxWidth: 500,
-  },
-  dialogTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
-  },
-  dialogTitleTablet: {
-    fontSize: 22,
-  },
-  dialogText: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 16,
-  },
-  dialogTextTablet: {
-    fontSize: 16,
-  },
-  dialogInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1E293B',
-    minHeight: 80,
-    marginBottom: 20,
-  },
-  dialogInputTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    fontSize: 17,
-    borderRadius: 14,
-    minHeight: 100,
-  },
-  dialogButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  dialogCancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-  },
-  dialogCancelButtonTablet: {
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  dialogCancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  dialogCancelButtonTextTablet: {
-    fontSize: 17,
-  },
-  dialogConfirmButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-  },
-  dialogConfirmButtonTablet: {
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  dialogConfirmButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  dialogConfirmButtonTextTablet: {
-    fontSize: 17,
-  },
-  captureButton: {
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    paddingVertical: 32,
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-  },
-  captureButtonIcon: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  captureButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  capturedContainer: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#F8FAFC',
-  },
-  capturedPhoto: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'contain',
-  },
-  capturedSignature: {
-    width: '100%',
-    height: 150,
-    resizeMode: 'contain',
-    backgroundColor: '#FFFFFF',
-  },
-  recaptureButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  recaptureButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  presentationHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  addPresentationButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  addPresentationButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  addPresentationButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  addPresentationButtonTextTablet: {
-    fontSize: 15,
+  selectorItemSelected: {
+    backgroundColor: colors.primary[50],
   },
   presentationCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  presentationCardTablet: {
-    padding: 20,
-    borderRadius: 14,
+    marginTop: spacing[3],
   },
   presentationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  presentationName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    flex: 1,
-  },
-  presentationNameTablet: {
-    fontSize: 17,
-  },
-  removePresentationButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FEE2E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  removePresentationButtonTablet: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  removePresentationButtonText: {
-    fontSize: 16,
-  },
-  removePresentationButtonTextTablet: {
-    fontSize: 18,
-  },
-  presentationRow: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   presentationField: {
-    flex: 1,
-  },
-  presentationFieldFull: {
-    width: '100%',
-  },
-  presentationLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#64748B',
-    marginBottom: 6,
-  },
-  presentationLabelTablet: {
-    fontSize: 15,
+    marginBottom: spacing[3],
   },
   presentationInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1E293B',
-  },
-  presentationInputTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    borderRadius: 10,
-  },
-  emptyPresentations: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  emptyPresentationsText: {
-    fontSize: 14,
-    color: '#92400E',
-    textAlign: 'center',
-  },
-  dialogSelector: {
-    maxHeight: 300,
-    marginVertical: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-  },
-  dialogSelectorTablet: {
-    maxHeight: 400,
-    borderRadius: 14,
-  },
-  dialogOptionItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  dialogOptionItemTablet: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-  },
-  dialogOptionItemSelected: {
-    backgroundColor: '#EEF2FF',
-  },
-  dialogOptionText: {
-    fontSize: 14,
-    color: '#1E293B',
-  },
-  dialogOptionTextTablet: {
-    fontSize: 16,
-  },
-  dialogOptionTextSelected: {
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-  calculatedField: {
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-  },
-  calculatedText: {
+    backgroundColor: colors.surface.primary,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2.5],
     fontSize: 15,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  calculatedTextTablet: {
-    fontSize: 17,
+    color: colors.text.primary,
+    marginTop: spacing[2],
   },
   quantityHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
   },
   selectForQuantityButton: {
-    backgroundColor: '#E0E7FF',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
+    backgroundColor: colors.primary[100],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
   },
   selectForQuantityButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.primary[900],
   },
-  selectForQuantityButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4F46E5',
-  },
-  selectForQuantityButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  presentationInputDisabled: {
-    backgroundColor: '#F8FAFC',
+  inputDisabled: {
+    backgroundColor: colors.surface.secondary,
     opacity: 0.6,
   },
-  calculationHint: {
-    color: '#10B981',
-    fontWeight: '600',
-    marginTop: 4,
+  copyButton: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
   },
-  // Estilos para el campo de peso
-  weightRow: {
-    flexDirection: 'row',
+  input: {
+    backgroundColor: colors.surface.primary,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    fontSize: 16,
+    color: colors.text.primary,
+    marginTop: spacing[2],
+  },
+  calculatedField: {
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing[4],
+    marginTop: spacing[2],
     alignItems: 'center',
-    gap: 12,
   },
-  weightInput: {
-    flex: 1,
-  },
-  weightUnitContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  weightUnitButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+  captureButton: {
+    backgroundColor: colors.surface.primary,
+    borderWidth: 2,
+    borderColor: colors.primary[200],
+    borderStyle: 'dashed',
+    borderRadius: borderRadius.lg,
+    padding: spacing[6],
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 50,
+    marginTop: spacing[2],
+    gap: spacing[2],
   },
-  weightUnitButtonTablet: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 14,
-    minWidth: 60,
+  capturedContainer: {
+    marginTop: spacing[2],
+    gap: spacing[3],
   },
-  weightUnitButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+  capturedPhoto: {
+    width: '100%',
+    height: 200,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface.secondary,
   },
-  weightUnitButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
+  capturedSignature: {
+    width: '100%',
+    height: 120,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface.primary,
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
-  weightUnitButtonTextTablet: {
-    fontSize: 16,
+  successCard: {
+    backgroundColor: colors.success[50],
+    alignItems: 'center',
+    gap: spacing[3],
   },
-  weightUnitButtonTextActive: {
-    color: '#FFFFFF',
+  rejectionCard: {
+    backgroundColor: colors.danger[50],
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  bottomSpacer: {
+    height: spacing[20],
+  },
+  footer: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+    gap: spacing[3],
+  },
+  footerButton: {
+    flex: 1,
+  },
+  dialogOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay.medium,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing[5],
+  },
+  dialog: {
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing[6],
+    width: '100%',
+    maxWidth: 400,
+    gap: spacing[4],
+    ...shadows.xl,
+  },
+  dialogInput: {
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.md,
+    padding: spacing[4],
+    fontSize: 15,
+    color: colors.text.primary,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  dialogButtons: {
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  dialogButton: {
+    flex: 1,
+  },
+  presentationList: {
+    maxHeight: 300,
+  },
+  presentationOption: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface.secondary,
+    marginBottom: spacing[2],
+  },
+  presentationOptionSelected: {
+    backgroundColor: colors.primary[50],
+    borderWidth: 1.5,
+    borderColor: colors.primary[500],
   },
 });
 

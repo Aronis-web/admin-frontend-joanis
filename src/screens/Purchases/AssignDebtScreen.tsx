@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -9,9 +8,19 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { purchasesService } from '@/services/api';
 import { PurchaseProduct, PurchaseProductStatus } from '@/types/purchases';
+import {
+  ScreenContainer,
+  ScreenHeader,
+  Card,
+  Button,
+  Badge,
+  Text,
+  EmptyState,
+  Divider,
+} from '@/design-system';
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 
 interface AssignDebtScreenProps {
   navigation: any;
@@ -166,98 +175,72 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <ScreenContainer>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando datos...</Text>
+          <ActivityIndicator size="large" color={colors.primary[500]} />
+          <Text variant="bodyMedium" color="secondary" style={{ marginTop: spacing[4] }}>
+            Cargando datos...
+          </Text>
         </View>
-      </SafeAreaView>
+      </ScreenContainer>
     );
   }
 
   if (products.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>Asignar Deudas</Text>
-          </View>
-        </View>
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>📋</Text>
-          <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-            No hay productos validados para asignar deudas
-          </Text>
-        </View>
-      </SafeAreaView>
+      <ScreenContainer>
+        <ScreenHeader
+          title="Asignar Deudas"
+          onBack={() => navigation.goBack()}
+        />
+        <EmptyState
+          emoji="📋"
+          title="Sin productos validados"
+          description="No hay productos validados para asignar deudas"
+        />
+      </ScreenContainer>
     );
   }
 
   const debtsByLegalEntity = getDebtByLegalEntity();
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Asignar Deudas</Text>
-          <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-            {purchase?.code || 'Compra'}
-          </Text>
-        </View>
-      </View>
+    <ScreenContainer>
+      <ScreenHeader
+        title="Asignar Deudas"
+        subtitle={purchase?.code || 'Compra'}
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
       >
         {/* Summary Card */}
-        <View style={[styles.summaryCard, isTablet && styles.summaryCardTablet]}>
-          <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+        <Card style={styles.summaryCard}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
             Resumen de Deudas
           </Text>
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
-              Total de Productos:
-            </Text>
-            <Text style={[styles.summaryValue, isTablet && styles.summaryValueTablet]}>
-              {products.length}
-            </Text>
+            <Text variant="bodyMedium" color="secondary">Total de Productos:</Text>
+            <Text variant="bodyMedium">{products.length}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
-              Productos Asignados:
-            </Text>
-            <Text style={[styles.summaryValue, isTablet && styles.summaryValueTablet]}>
-              {Object.keys(selectedLegalEntities).length}
-            </Text>
+            <Text variant="bodyMedium" color="secondary">Productos Asignados:</Text>
+            <Text variant="bodyMedium">{Object.keys(selectedLegalEntities).length}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, isTablet && styles.summaryLabelTablet]}>
-              Deuda Total:
-            </Text>
-            <Text
-              style={[
-                styles.summaryValue,
-                isTablet && styles.summaryValueTablet,
-                styles.summaryHighlight,
-              ]}
-            >
+            <Text variant="bodyMedium" color="secondary">Deuda Total:</Text>
+            <Text variant="titleMedium" style={{ color: colors.primary[500] }}>
               {formatCurrency(getTotalDebt())}
             </Text>
           </View>
-        </View>
+        </Card>
 
         {/* Debt by Legal Entity */}
         {debtsByLegalEntity.length > 0 && (
-          <View style={[styles.debtCard, isTablet && styles.debtCardTablet]}>
-            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+          <Card style={styles.debtCard}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
               Deudas por Razón Social
             </Text>
             {debtsByLegalEntity.map((item, index) => (
@@ -265,98 +248,59 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
                 key={item.legalEntity.id}
                 style={[
                   styles.debtItem,
-                  isTablet && styles.debtItemTablet,
                   index < debtsByLegalEntity.length - 1 && styles.debtItemBorder,
                 ]}
               >
                 <View style={styles.debtItemHeader}>
-                  <Text style={[styles.debtLegalName, isTablet && styles.debtLegalNameTablet]}>
-                    {item.legalEntity.legalName}
-                  </Text>
-                  <Text style={[styles.debtRuc, isTablet && styles.debtRucTablet]}>
-                    RUC: {item.legalEntity.ruc}
-                  </Text>
+                  <Text variant="bodyMedium">{item.legalEntity.legalName}</Text>
+                  <Text variant="caption" color="secondary">RUC: {item.legalEntity.ruc}</Text>
                 </View>
                 <View style={styles.debtItemBody}>
                   <View style={styles.debtRow}>
-                    <Text style={[styles.debtLabel, isTablet && styles.debtLabelTablet]}>
-                      Productos:
-                    </Text>
-                    <Text style={[styles.debtValue, isTablet && styles.debtValueTablet]}>
-                      {item.products}
-                    </Text>
+                    <Text variant="caption" color="secondary">Productos:</Text>
+                    <Text variant="caption">{item.products}</Text>
                   </View>
                   <View style={styles.debtRow}>
-                    <Text style={[styles.debtLabel, isTablet && styles.debtLabelTablet]}>
-                      Deuda:
-                    </Text>
-                    <Text
-                      style={[
-                        styles.debtValue,
-                        isTablet && styles.debtValueTablet,
-                        styles.debtAmount,
-                      ]}
-                    >
+                    <Text variant="caption" color="secondary">Deuda:</Text>
+                    <Text variant="bodyMedium" style={{ color: colors.success[600] }}>
                       {formatCurrency(item.debtCents)}
                     </Text>
                   </View>
                 </View>
               </View>
             ))}
-          </View>
+          </Card>
         )}
 
         {/* Products List */}
         <View style={styles.productsSection}>
-          <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
             Asignar Productos ({products.length})
           </Text>
 
           {products.map((product) => (
-            <View
-              key={product.id}
-              style={[styles.productCard, isTablet && styles.productCardTablet]}
-            >
+            <Card key={product.id} style={styles.productCard}>
               <View style={styles.productHeader}>
                 <View style={styles.productHeaderLeft}>
-                  <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
-                    {product.name}
-                  </Text>
-                  <Text style={[styles.productSku, isTablet && styles.productSkuTablet]}>
-                    {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU:{' '}
-                    {product.sku}
+                  <Text variant="bodyMedium">{product.name}</Text>
+                  <Text variant="caption" color="secondary">
+                    {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku}
                   </Text>
                 </View>
               </View>
 
               <View style={styles.productBody}>
                 <View style={styles.productRow}>
-                  <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-                    Stock Validado:
-                  </Text>
-                  <Text style={[styles.productValue, isTablet && styles.productValueTablet]}>
-                    {product.validatedStock}
-                  </Text>
+                  <Text variant="caption" color="secondary">Stock Validado:</Text>
+                  <Text variant="caption">{product.validatedStock}</Text>
                 </View>
                 <View style={styles.productRow}>
-                  <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-                    Costo Unitario:
-                  </Text>
-                  <Text style={[styles.productValue, isTablet && styles.productValueTablet]}>
-                    {formatCurrency(product.costCents)}
-                  </Text>
+                  <Text variant="caption" color="secondary">Costo Unitario:</Text>
+                  <Text variant="caption">{formatCurrency(product.costCents)}</Text>
                 </View>
                 <View style={styles.productRow}>
-                  <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-                    Deuda Total:
-                  </Text>
-                  <Text
-                    style={[
-                      styles.productValue,
-                      isTablet && styles.productValueTablet,
-                      styles.productDebt,
-                    ]}
-                  >
+                  <Text variant="caption" color="secondary">Deuda Total:</Text>
+                  <Text variant="bodyMedium" style={{ color: colors.primary[500] }}>
                     {formatCurrency(calculateDebt(product))}
                   </Text>
                 </View>
@@ -364,7 +308,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
 
               {/* Legal Entity Selector */}
               <View style={styles.selectorSection}>
-                <Text style={[styles.selectorLabel, isTablet && styles.selectorLabelTablet]}>
+                <Text variant="labelMedium" style={styles.selectorLabel}>
                   Razón Social <Text style={styles.required}>*</Text>
                 </Text>
                 <TouchableOpacity
@@ -373,11 +317,9 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
                   disabled={actionLoading}
                 >
                   <Text
-                    style={[
-                      styles.selectorText,
-                      isTablet && styles.selectorTextTablet,
-                      !selectedLegalEntities[product.id] && styles.selectorPlaceholder,
-                    ]}
+                    variant="bodyMedium"
+                    color={selectedLegalEntities[product.id] ? 'primary' : 'secondary'}
+                    style={styles.selectorText}
                   >
                     {selectedLegalEntities[product.id]
                       ? getLegalEntityName(selectedLegalEntities[product.id])
@@ -387,47 +329,35 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
                 </TouchableOpacity>
 
                 {showSelector === product.id && (
-                  <View style={[styles.optionsList, isTablet && styles.optionsListTablet]}>
+                  <View style={styles.optionsList}>
                     {legalEntities.map((entity) => (
                       <TouchableOpacity
                         key={entity.id}
                         style={[
                           styles.optionItem,
-                          isTablet && styles.optionItemTablet,
-                          selectedLegalEntities[product.id] === entity.id &&
-                            styles.optionItemSelected,
+                          selectedLegalEntities[product.id] === entity.id && styles.optionItemSelected,
                         ]}
                         onPress={() => handleAssignDebt(product.id, entity.id)}
                         disabled={actionLoading}
                       >
                         <View style={styles.optionContent}>
                           <Text
-                            style={[
-                              styles.optionText,
-                              isTablet && styles.optionTextTablet,
-                              selectedLegalEntities[product.id] === entity.id &&
-                                styles.optionTextSelected,
-                            ]}
+                            variant="bodyMedium"
+                            style={selectedLegalEntities[product.id] === entity.id ? { color: colors.primary[500] } : undefined}
                           >
                             {entity.legalName}
                           </Text>
-                          <Text
-                            style={[styles.optionSubtext, isTablet && styles.optionSubtextTablet]}
-                          >
-                            RUC: {entity.ruc}
-                          </Text>
+                          <Text variant="caption" color="secondary">RUC: {entity.ruc}</Text>
                         </View>
                         {entity.isPrimary && (
-                          <View style={styles.primaryBadge}>
-                            <Text style={styles.primaryBadgeText}>Principal</Text>
-                          </View>
+                          <Badge label="Principal" variant="info" size="small" />
                         )}
                       </TouchableOpacity>
                     ))}
                   </View>
                 )}
               </View>
-            </View>
+            </Card>
           ))}
         </View>
 
@@ -435,440 +365,156 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
       </ScrollView>
 
       {/* Action Button */}
-      <View style={[styles.footer, isTablet && styles.footerTablet]}>
-        <TouchableOpacity
-          style={[styles.saveButton, isTablet && styles.saveButtonTablet]}
+      <View style={styles.footer}>
+        <Button
+          title="Continuar"
           onPress={handleSaveAll}
-          disabled={actionLoading}
-        >
-          {actionLoading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={[styles.saveButtonText, isTablet && styles.saveButtonTextTablet]}>
-              Continuar
-            </Text>
-          )}
-        </TouchableOpacity>
+          loading={actionLoading}
+          fullWidth
+        />
       </View>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748B',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyIconTablet: {
-    fontSize: 80,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  emptyTextTablet: {
-    fontSize: 18,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  backButtonText: {
-    fontSize: 28,
-    color: '#64748B',
-    fontWeight: '300',
-  },
-  headerContent: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  subtitleTablet: {
-    fontSize: 15,
-  },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 24,
+    padding: spacing[5],
   },
   contentContainerTablet: {
-    padding: 32,
+    padding: spacing[8],
     maxWidth: 1000,
     alignSelf: 'center',
     width: '100%',
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  summaryCardTablet: {
-    padding: 24,
-    borderRadius: 18,
+    marginBottom: spacing[5],
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 16,
-  },
-  sectionTitleTablet: {
-    fontSize: 18,
+    marginBottom: spacing[4],
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  summaryLabelTablet: {
-    fontSize: 16,
-  },
-  summaryValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
-  },
-  summaryValueTablet: {
-    fontSize: 16,
-  },
-  summaryHighlight: {
-    color: '#6366F1',
-    fontSize: 16,
+    marginBottom: spacing[3],
   },
   debtCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  debtCardTablet: {
-    padding: 24,
-    borderRadius: 18,
+    marginBottom: spacing[5],
   },
   debtItem: {
-    paddingVertical: 12,
-  },
-  debtItemTablet: {
-    paddingVertical: 16,
+    paddingVertical: spacing[3],
   },
   debtItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.border.light,
   },
   debtItemHeader: {
-    marginBottom: 8,
-  },
-  debtLegalName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  debtLegalNameTablet: {
-    fontSize: 17,
-  },
-  debtRuc: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  debtRucTablet: {
-    fontSize: 14,
+    marginBottom: spacing[2],
   },
   debtItemBody: {
-    gap: 6,
+    gap: spacing[1.5],
   },
   debtRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  debtLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  debtLabelTablet: {
-    fontSize: 15,
-  },
-  debtValue: {
-    fontSize: 13,
-    color: '#1E293B',
-    fontWeight: '600',
-  },
-  debtValueTablet: {
-    fontSize: 15,
-  },
-  debtAmount: {
-    color: '#10B981',
-    fontSize: 14,
-  },
   productsSection: {
-    marginBottom: 24,
+    marginBottom: spacing[5],
   },
   productCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  productCardTablet: {
-    padding: 20,
-    borderRadius: 18,
+    marginBottom: spacing[4],
   },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   productHeaderLeft: {
     flex: 1,
   },
-  productName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  productNameTablet: {
-    fontSize: 17,
-  },
-  productSku: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  productSkuTablet: {
-    fontSize: 14,
-  },
   productBody: {
-    gap: 8,
-    marginBottom: 16,
+    gap: spacing[2],
+    marginBottom: spacing[4],
   },
   productRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  productLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  productLabelTablet: {
-    fontSize: 15,
-  },
-  productValue: {
-    fontSize: 13,
-    color: '#1E293B',
-    fontWeight: '600',
-  },
-  productValueTablet: {
-    fontSize: 15,
-  },
-  productDebt: {
-    color: '#6366F1',
-    fontSize: 14,
-  },
   selectorSection: {
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   selectorLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  selectorLabelTablet: {
-    fontSize: 15,
+    marginBottom: spacing[2],
   },
   required: {
-    color: '#EF4444',
+    color: colors.danger[500],
   },
   selector: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   selectorTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[3.5],
+    borderRadius: borderRadius.xl,
   },
   selectorText: {
-    fontSize: 14,
-    color: '#1E293B',
     flex: 1,
-  },
-  selectorTextTablet: {
-    fontSize: 16,
-  },
-  selectorPlaceholder: {
-    color: '#94A3B8',
   },
   selectorIcon: {
     fontSize: 12,
-    color: '#64748B',
-    marginLeft: 8,
+    color: colors.neutral[500],
+    marginLeft: spacing[2],
   },
   optionsList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.primary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    marginTop: 8,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[2],
     maxHeight: 200,
-  },
-  optionsListTablet: {
-    borderRadius: 14,
-    maxHeight: 300,
+    ...shadows.sm,
   },
   optionItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  optionItemTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    borderBottomColor: colors.border.light,
   },
   optionItemSelected: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.primary[50],
   },
   optionContent: {
     flex: 1,
   },
-  optionText: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  optionTextTablet: {
-    fontSize: 16,
-  },
-  optionTextSelected: {
-    color: '#6366F1',
-  },
-  optionSubtext: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  optionSubtextTablet: {
-    fontSize: 14,
-  },
-  primaryBadge: {
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  primaryBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#1E40AF',
-  },
   bottomSpacer: {
-    height: 40,
+    height: spacing[10],
   },
   footer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  footerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-  },
-  saveButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-  },
-  saveButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  saveButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  saveButtonTextTablet: {
-    fontSize: 17,
+    borderTopColor: colors.border.default,
   },
 });
 

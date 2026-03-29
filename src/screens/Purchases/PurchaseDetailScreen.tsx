@@ -1,7 +1,10 @@
+/**
+ * PurchaseDetailScreen - Detalle de Compra
+ * Migrado al Design System unificado
+ */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -15,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { purchasesService, suppliersService } from '@/services/api';
 import {
   Purchase,
@@ -28,7 +32,7 @@ import {
   GuideTypeLabels,
   PurchaseTotalSumResponse,
 } from '@/types/purchases';
-import { Supplier as FullSupplier } from '@/types/suppliers';
+import { Supplier as FullSupplier, SupplierType } from '@/types/suppliers';
 import { Supplier as ExpenseSupplier } from '@/types/expenses';
 import { OcrScannerModal } from '@/components/Purchases/OcrScannerModal';
 import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
@@ -36,17 +40,24 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { ScreenProps } from '@/types/navigation';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+  Title,
+  Body,
+  Label,
+  Caption,
+  Badge,
+  Card,
+  Button,
+  IconButton,
+  EmptyState,
+  SearchBar,
+} from '@/design-system';
 
 type PurchaseDetailScreenProps = ScreenProps<'PurchaseDetail'>;
-
-interface LegacyPurchaseDetailScreenProps {
-  navigation: any;
-  route: {
-    params: {
-      purchaseId: string;
-    };
-  };
-}
 
 export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   navigation,
@@ -61,9 +72,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [selectedProductForInfo, setSelectedProductForInfo] = useState<PurchaseProduct | null>(
-    null
-  );
+  const [selectedProductForInfo, setSelectedProductForInfo] = useState<PurchaseProduct | null>(null);
   const [productPhotos, setProductPhotos] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
@@ -79,20 +88,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       const [purchaseData, productsData, totalSumData] = await Promise.all([
         purchasesService.getPurchase(purchaseId),
         purchasesService.getPurchaseProducts(purchaseId),
-        purchasesService.getPurchaseTotalSum(purchaseId).catch(() => null), // Don't fail if endpoint not available yet
+        purchasesService.getPurchaseTotalSum(purchaseId).catch(() => null),
       ]);
-
-      console.log('📦 Purchase loaded:', {
-        purchaseId: purchaseData.id,
-        supplierId: purchaseData.supplierId,
-        supplierInObject: purchaseData.supplier?.id,
-        supplierName: purchaseData.supplier?.commercialName,
-      });
-
-      // Debug: Log para verificar si vienen las validaciones
-      if (productsData.length > 0) {
-        console.log('🔍 First product validations:', productsData[0].validations);
-      }
 
       setPurchase(purchaseData);
       setProducts(productsData);
@@ -111,7 +108,6 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     loadPurchase();
   }, [loadPurchase]);
 
-  // Reload data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadPurchase();
@@ -135,10 +131,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     setSelectedProductForInfo(product);
     setShowInfoModal(true);
 
-    // Usar las fotos del producto de compra (productPhotos) directamente
     if (product.productPhotos && product.productPhotos.length > 0) {
       setProductPhotos(product.productPhotos);
-      console.log('📷 Product photos loaded from purchase:', product.productPhotos.length, 'photos');
     } else {
       setProductPhotos([]);
     }
@@ -151,9 +145,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const handleOpenEditSupplierModal = () => {
-    // Set the current supplier as selected
     if (purchase?.supplier) {
-      // Cast to ExpenseSupplier type (simplified supplier from purchase response)
       setSelectedSupplier(purchase.supplier as ExpenseSupplier);
     }
     setShowEditSupplierModal(true);
@@ -181,32 +173,14 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
     setUpdatingSupplier(true);
     try {
-      console.log('🔄 Updating supplier:', {
-        purchaseId,
-        currentSupplierId: purchase?.supplier?.id,
-        newSupplierId: selectedSupplier.id,
-        newSupplierName: selectedSupplier.commercialName,
-      });
-
-      const updatedPurchase = await purchasesService.updatePurchase(purchaseId, {
+      await purchasesService.updatePurchase(purchaseId, {
         supplierId: selectedSupplier.id,
       });
 
-      console.log('✅ Purchase updated, response:', {
-        supplierId: updatedPurchase.supplierId,
-        supplierInResponse: updatedPurchase.supplier?.id,
-        supplierName: updatedPurchase.supplier?.commercialName,
-      });
-
-      // Reload purchase data to get updated supplier info
       await loadPurchase();
-
-      // Close modal after successful update and reload
       handleCloseEditSupplierModal();
-
       Alert.alert('Éxito', 'Proveedor actualizado correctamente');
     } catch (error: any) {
-      console.error('❌ Error updating supplier:', error);
       Alert.alert('Error', error.message || 'No se pudo actualizar el proveedor');
     } finally {
       setUpdatingSupplier(false);
@@ -216,91 +190,50 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const handleOcrProductsConfirmed = async (ocrProducts: any[]) => {
     setActionLoading(true);
     try {
-      // Import presentations API to get available presentations
       const { presentationsApi } = await import('@/services/api/presentations');
-
-      // Get all available presentations
       const presentations = await presentationsApi.getPresentations();
 
       if (!presentations || presentations.length === 0) {
         throw new Error('No hay presentaciones disponibles en el sistema');
       }
 
-      // Use the first available presentation (same as manual form does)
       const defaultPresentation = presentations[0];
-
-      // Process products in batches to handle large quantities
-      const BATCH_SIZE = 5; // Reduced batch size for better stability on tablets
+      const BATCH_SIZE = 5;
       const totalProducts = ocrProducts.length;
       let successCount = 0;
       let errorCount = 0;
       const errors: string[] = [];
 
-      console.log(`📦 Procesando ${totalProducts} productos del OCR en lotes de ${BATCH_SIZE}...`);
-
-      // Process in batches
       for (let i = 0; i < totalProducts; i += BATCH_SIZE) {
         const batch = ocrProducts.slice(i, i + BATCH_SIZE);
-        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-        const totalBatches = Math.ceil(totalProducts / BATCH_SIZE);
 
-        console.log(
-          `📦 Procesando lote ${batchNumber}/${totalBatches} (${batch.length} productos)...`
-        );
-
-        // Process batch in parallel
-        const batchPromises = batch.map(async (product, index) => {
+        const batchPromises = batch.map(async (product) => {
           try {
-            // Validate product data to prevent NaN crashes
             if (!product.sku || !product.nombre) {
               throw new Error('Producto sin SKU o nombre');
             }
 
-            // Ensure all numeric values are valid and safe
-            const cajas =
-              isFinite(product.cajas) && !isNaN(product.cajas) && product.cajas > 0
-                ? Math.max(1, Math.floor(product.cajas))
-                : 1;
-            const unidadesPorCaja =
-              isFinite(product.unidades_por_caja) &&
-              !isNaN(product.unidades_por_caja) &&
-              product.unidades_por_caja > 0
-                ? Math.max(1, Math.floor(product.unidades_por_caja))
-                : 1;
-            const cantidadTotal =
-              isFinite(product.cantidad_total) &&
-              !isNaN(product.cantidad_total) &&
-              product.cantidad_total > 0
-                ? Math.max(1, Math.floor(product.cantidad_total))
-                : 0;
-            const precioUnitario =
-              isFinite(product.precio_unitario) &&
-              !isNaN(product.precio_unitario) &&
-              product.precio_unitario > 0
-                ? Math.max(0.01, product.precio_unitario)
-                : 0;
+            const cajas = isFinite(product.cajas) && !isNaN(product.cajas) && product.cajas > 0
+              ? Math.max(1, Math.floor(product.cajas)) : 1;
+            const unidadesPorCaja = isFinite(product.unidades_por_caja) && !isNaN(product.unidades_por_caja) && product.unidades_por_caja > 0
+              ? Math.max(1, Math.floor(product.unidades_por_caja)) : 1;
+            const cantidadTotal = isFinite(product.cantidad_total) && !isNaN(product.cantidad_total) && product.cantidad_total > 0
+              ? Math.max(1, Math.floor(product.cantidad_total)) : 0;
+            const precioUnitario = isFinite(product.precio_unitario) && !isNaN(product.precio_unitario) && product.precio_unitario > 0
+              ? Math.max(0.01, product.precio_unitario) : 0;
 
-            if (cantidadTotal <= 0) {
-              throw new Error('Cantidad inválida o cero');
+            if (cantidadTotal <= 0 || precioUnitario <= 0) {
+              throw new Error('Cantidad o precio inválido');
             }
 
-            if (precioUnitario <= 0) {
-              throw new Error('Precio inválido o cero');
-            }
-
-            // Build presentations array from OCR data
             const productPresentations = [];
-
-            // If product has boxes/packages (cajas > 1 or unidades_por_caja > 1)
             if (cajas > 1 || unidadesPorCaja > 1) {
-              // Add the presentation with the factor from OCR
               productPresentations.push({
                 presentationId: defaultPresentation.id,
                 factorToBase: unidadesPorCaja,
                 notes: `${cajas} caja(s) x ${unidadesPorCaja} unidades (OCR)`,
               });
             } else {
-              // Single unit presentation
               productPresentations.push({
                 presentationId: defaultPresentation.id,
                 factorToBase: 1,
@@ -308,24 +241,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
               });
             }
 
-            // Calculate loose units (remainder after dividing by factor)
             const looseUnits = cantidadTotal % unidadesPorCaja;
-
-            // Ensure costCents is a valid integer (safe conversion)
             const costCents = Math.max(1, Math.round(precioUnitario * 100));
-            if (!isFinite(costCents) || isNaN(costCents) || costCents <= 0) {
-              throw new Error('Precio inválido al convertir a centavos');
-            }
-
-            // Validate all values one more time before sending
-            if (
-              !isFinite(cantidadTotal) ||
-              !isFinite(cajas) ||
-              !isFinite(looseUnits) ||
-              !isFinite(costCents)
-            ) {
-              throw new Error('Valores numéricos inválidos detectados');
-            }
 
             await purchasesService.addProduct(purchaseId, {
               sku: product.sku,
@@ -339,19 +256,11 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
             return { success: true, product };
           } catch (error: any) {
-            console.error(`❌ Error agregando producto ${product.sku}:`, error);
-            return {
-              success: false,
-              product,
-              error: error.message || 'Error desconocido',
-            };
+            return { success: false, product, error: error.message || 'Error desconocido' };
           }
         });
 
-        // Wait for batch to complete
         const batchResults = await Promise.all(batchPromises);
-
-        // Count successes and errors
         batchResults.forEach((result) => {
           if (result.success) {
             successCount++;
@@ -361,45 +270,27 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           }
         });
 
-        console.log(
-          `✅ Lote ${batchNumber}/${totalBatches} completado. Éxitos: ${successCount}, Errores: ${errorCount}`
-        );
-
-        // Add a small delay between batches to prevent overwhelming the system on tablets
         if (i + BATCH_SIZE < totalProducts) {
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
 
-      // Show results
       if (errorCount === 0) {
-        Alert.alert(
-          'Éxito',
-          `Se agregaron ${successCount} producto${successCount !== 1 ? 's' : ''} correctamente`
-        );
+        Alert.alert('Éxito', `Se agregaron ${successCount} producto${successCount !== 1 ? 's' : ''} correctamente`);
       } else if (successCount > 0) {
-        Alert.alert(
-          'Completado con errores',
+        Alert.alert('Completado con errores',
           `Se agregaron ${successCount} producto${successCount !== 1 ? 's' : ''} correctamente.\n\n` +
-            `${errorCount} producto${errorCount !== 1 ? 's' : ''} no se pudieron agregar:\n` +
-            errors.slice(0, 5).join('\n') +
-            (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
+          `${errorCount} producto${errorCount !== 1 ? 's' : ''} no se pudieron agregar:\n` +
+          errors.slice(0, 5).join('\n') + (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
         );
       } else {
-        Alert.alert(
-          'Error',
-          `No se pudo agregar ningún producto.\n\nErrores:\n` +
-            errors.slice(0, 5).join('\n') +
-            (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
-        );
+        Alert.alert('Error', `No se pudo agregar ningún producto.\n\nErrores:\n` + errors.slice(0, 5).join('\n'));
       }
 
-      // Reload purchase data if at least one product was added
       if (successCount > 0) {
         await loadPurchase();
       }
     } catch (error: any) {
-      console.error('Error adding OCR products:', error);
       Alert.alert('Error', error.message || 'No se pudieron agregar los productos');
     } finally {
       setActionLoading(false);
@@ -411,7 +302,6 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     try {
       await purchasesService.startValidation(purchaseId, product.id);
       Alert.alert('Éxito', 'Validación iniciada. Ahora puede validar el producto.');
-      // Navigate to validation screen
       navigation.navigate('ValidatePurchaseProduct', { purchaseId, productId: product.id });
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo iniciar la validación');
@@ -421,16 +311,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const handleProductPress = (product: PurchaseProduct) => {
-    // Allow editing for PRELIMINARY and IN_VALIDATION statuses
-    if (
-      product.status === PurchaseProductStatus.PRELIMINARY ||
-      product.status === PurchaseProductStatus.IN_VALIDATION
-    ) {
+    if (product.status === PurchaseProductStatus.PRELIMINARY || product.status === PurchaseProductStatus.IN_VALIDATION) {
       navigation.navigate('EditPurchaseProduct', { purchaseId, productId: product.id });
-    } else if (
-      product.status === PurchaseProductStatus.VALIDATED ||
-      product.status === PurchaseProductStatus.REJECTED
-    ) {
+    } else if (product.status === PurchaseProductStatus.VALIDATED || product.status === PurchaseProductStatus.REJECTED) {
       navigation.navigate('ValidatePurchaseProduct', { purchaseId, productId: product.id });
     }
   };
@@ -462,29 +345,25 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const handleClosePurchase = async () => {
-    Alert.alert(
-      'Cerrar Compra',
-      '¿Está seguro de cerrar esta compra? Esta acción no se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar',
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              await purchasesService.closePurchase(purchaseId);
-              Alert.alert('Éxito', 'Compra cerrada correctamente');
-              loadPurchase();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'No se pudo cerrar la compra');
-            } finally {
-              setActionLoading(false);
-            }
-          },
+    Alert.alert('Cerrar Compra', '¿Está seguro de cerrar esta compra? Esta acción no se puede deshacer.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar',
+        style: 'destructive',
+        onPress: async () => {
+          setActionLoading(true);
+          try {
+            await purchasesService.closePurchase(purchaseId);
+            Alert.alert('Éxito', 'Compra cerrada correctamente');
+            loadPurchase();
+          } catch (error: any) {
+            Alert.alert('Error', error.message || 'No se pudo cerrar la compra');
+          } finally {
+            setActionLoading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleCancelPurchase = async () => {
@@ -511,41 +390,30 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const handleDeleteProductValidations = async (product: PurchaseProduct) => {
-    Alert.alert(
-      'Eliminar Validaciones',
-      `¿Está seguro de eliminar las validaciones del producto "${product.name}"? Esta acción no se puede deshacer.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              const result = await purchasesService.deleteProductValidations(purchaseId, product.id);
-              Alert.alert(
-                'Éxito',
-                `Se eliminaron ${result.deletedCount} validación(es) del producto correctamente`
-              );
-              loadPurchase();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'No se pudieron eliminar las validaciones');
-            } finally {
-              setActionLoading(false);
-            }
-          },
+    Alert.alert('Eliminar Validaciones', `¿Está seguro de eliminar las validaciones del producto "${product.name}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          setActionLoading(true);
+          try {
+            const result = await purchasesService.deleteProductValidations(purchaseId, product.id);
+            Alert.alert('Éxito', `Se eliminaron ${result.deletedCount} validación(es)`);
+            loadPurchase();
+          } catch (error: any) {
+            Alert.alert('Error', error.message || 'No se pudieron eliminar las validaciones');
+          } finally {
+            setActionLoading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('es-PE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const formatCurrency = (cents: number) => {
@@ -554,249 +422,165 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
   const getProductStats = () => {
     const total = products.length;
-    const preliminary = products.filter(
-      (p) => p.status === PurchaseProductStatus.PRELIMINARY
-    ).length;
-    const inValidation = products.filter(
-      (p) => p.status === PurchaseProductStatus.IN_VALIDATION
-    ).length;
+    const preliminary = products.filter((p) => p.status === PurchaseProductStatus.PRELIMINARY).length;
+    const inValidation = products.filter((p) => p.status === PurchaseProductStatus.IN_VALIDATION).length;
     const validated = products.filter((p) => p.status === PurchaseProductStatus.VALIDATED).length;
     const rejected = products.filter((p) => p.status === PurchaseProductStatus.REJECTED).length;
-
     return { total, preliminary, inValidation, validated, rejected };
   };
 
   const canAddProducts = () => {
-    return (
-      purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED
-    );
+    return purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED;
   };
 
-  // Filter products based on search query (minimum 2 characters)
   const filteredProducts = products.filter((product) => {
     const trimmedQuery = searchQuery.trim();
-
-    // Show all products if search query is empty or less than 2 characters
-    if (trimmedQuery.length < 2) {
-      return true;
-    }
-
+    if (trimmedQuery.length < 2) return true;
     const query = trimmedQuery.toLowerCase();
-    const matchesSku = product.sku.toLowerCase().includes(query);
-    const matchesName = product.name.toLowerCase().includes(query);
-    const matchesCorrelative = product.correlativeNumber?.toString().includes(query);
-
-    return matchesSku || matchesName || matchesCorrelative;
+    return product.sku.toLowerCase().includes(query) ||
+      product.name.toLowerCase().includes(query) ||
+      product.correlativeNumber?.toString().includes(query);
   });
 
-  const canAssignDebts = () => {
-    return purchase?.status === PurchaseStatus.VALIDATED;
+  const canAssignDebts = () => purchase?.status === PurchaseStatus.VALIDATED;
+  const canClosePurchase = () => purchase?.status === PurchaseStatus.VALIDATED;
+  const canCancelPurchase = () => purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED;
+
+  const getStatusVariant = (status: PurchaseStatus): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
+    switch (status) {
+      case PurchaseStatus.DRAFT: return 'draft';
+      case PurchaseStatus.IN_CAPTURE:
+      case PurchaseStatus.IN_VALIDATION: return 'pending';
+      case PurchaseStatus.VALIDATED: return 'completed';
+      case PurchaseStatus.CLOSED: return 'active';
+      case PurchaseStatus.CANCELLED: return 'cancelled';
+      default: return 'draft';
+    }
   };
 
-  const canClosePurchase = () => {
-    return purchase?.status === PurchaseStatus.VALIDATED;
-  };
-
-  const canCancelPurchase = () => {
-    return (
-      purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED
-    );
+  const getProductStatusVariant = (status: PurchaseProductStatus): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
+    switch (status) {
+      case PurchaseProductStatus.PRELIMINARY: return 'draft';
+      case PurchaseProductStatus.IN_VALIDATION: return 'pending';
+      case PurchaseProductStatus.VALIDATED: return 'completed';
+      case PurchaseProductStatus.REJECTED: return 'cancelled';
+      case PurchaseProductStatus.CLOSED: return 'active';
+      default: return 'draft';
+    }
   };
 
   const renderProductCard = (product: PurchaseProduct) => {
-    const canDelete =
-      product.status === PurchaseProductStatus.PRELIMINARY ||
-      product.status === PurchaseProductStatus.IN_VALIDATION;
-    const canValidate =
-      product.status !== PurchaseProductStatus.VALIDATED &&
+    const canDelete = product.status === PurchaseProductStatus.PRELIMINARY || product.status === PurchaseProductStatus.IN_VALIDATION;
+    const canValidate = product.status !== PurchaseProductStatus.VALIDATED &&
       product.status !== PurchaseProductStatus.CLOSED &&
       product.status !== PurchaseProductStatus.REJECTED &&
       purchase?.status !== PurchaseStatus.CLOSED &&
       purchase?.status !== PurchaseStatus.CANCELLED;
 
     return (
-      <View key={product.id} style={[styles.productCard, isTablet && styles.productCardTablet]}>
-        <TouchableOpacity
-          onPress={() => handleProductPress(product)}
-          activeOpacity={0.7}
-          style={styles.productCardContent}
-        >
+      <Card key={product.id} variant="outlined" padding="medium" style={styles.productCard}>
+        <TouchableOpacity onPress={() => handleProductPress(product)} activeOpacity={0.7}>
+          {/* Product Header */}
           <View style={styles.productHeader}>
             <View style={styles.productHeaderLeft}>
-              <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
-                {product.name}
-              </Text>
-              <Text style={[styles.productSku, isTablet && styles.productSkuTablet]}>
+              <Title size="small" numberOfLines={1}>{product.name}</Title>
+              <Caption color="secondary">
                 {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku}
-              </Text>
+              </Caption>
             </View>
             <View style={styles.productHeaderRight}>
-              <View
-                style={[
-                  styles.productStatusBadge,
-                  isTablet && styles.productStatusBadgeTablet,
-                  {
-                    backgroundColor: PurchaseProductStatusColors[product.status] + '20',
-                    borderColor: PurchaseProductStatusColors[product.status],
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.productStatusText,
-                    isTablet && styles.productStatusTextTablet,
-                    { color: PurchaseProductStatusColors[product.status] },
-                  ]}
-                >
-                  {PurchaseProductStatusLabels[product.status]}
-                </Text>
-              </View>
+              <Badge
+                label={PurchaseProductStatusLabels[product.status]}
+                variant={getProductStatusVariant(product.status)}
+                size="small"
+              />
               {canDelete && (
                 <TouchableOpacity
-                  style={[styles.deleteButton, isTablet && styles.deleteButtonTablet]}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleDeleteProduct(product);
-                  }}
-                  activeOpacity={0.7}
+                  style={styles.deleteButton}
+                  onPress={(e) => { e.stopPropagation(); handleDeleteProduct(product); }}
                 >
-                  <Text
-                    style={[styles.deleteButtonText, isTablet && styles.deleteButtonTextTablet]}
-                  >
-                    🗑️
-                  </Text>
+                  <Ionicons name="trash-outline" size={18} color={colors.danger[500]} />
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
+          {/* Product Body */}
           <View style={styles.productBody}>
             <View style={styles.productRow}>
-              <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-                Costo:
-              </Text>
-              <Text style={[styles.productValue, isTablet && styles.productValueTablet]}>
-                {formatCurrency(product.costCents)}
-              </Text>
+              <Label color="secondary">Costo:</Label>
+              <Body>{formatCurrency(product.costCents)}</Body>
             </View>
-
             <View style={styles.productRow}>
-              <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-                Stock Preliminar:
-              </Text>
-              <Text style={[styles.productValue, isTablet && styles.productValueTablet]}>
-                {product.preliminaryStock}
-              </Text>
+              <Label color="secondary">Stock Preliminar:</Label>
+              <Body>{product.preliminaryStock}</Body>
             </View>
-
             {product.validatedStock !== undefined && (
               <View style={styles.productRow}>
-                <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-                  Stock Validado:
-                </Text>
-                <Text
-                  style={[
-                    styles.productValue,
-                    isTablet && styles.productValueTablet,
-                    styles.productValueHighlight,
-                  ]}
-                >
-                  {product.validatedStock}
-                </Text>
+                <Label color="secondary">Stock Validado:</Label>
+                <Body color={colors.success[600]}>{product.validatedStock}</Body>
               </View>
             )}
-
             {product.warehouse && (
               <View style={styles.productRow}>
-                <Text style={[styles.productLabel, isTablet && styles.productLabelTablet]}>
-                  Almacén:
-                </Text>
-                <Text style={[styles.productValue, isTablet && styles.productValueTablet]}>
-                  {product.warehouse.name}
-                </Text>
+                <Label color="secondary">Almacén:</Label>
+                <Body>{product.warehouse.name}</Body>
               </View>
             )}
           </View>
 
           {product.rejectionReason && (
             <View style={styles.rejectionContainer}>
-              <Text style={styles.rejectionLabel}>Razón de Rechazo:</Text>
-              <Text style={styles.rejectionText}>{product.rejectionReason}</Text>
+              <Label color={colors.danger[600]}>Razón de Rechazo:</Label>
+              <Caption color={colors.danger[600]}>{product.rejectionReason}</Caption>
             </View>
           )}
 
-          {/* Action hint */}
-          {product.status === PurchaseProductStatus.PRELIMINARY && (
-            <View style={styles.productActionHint}>
-              <Text style={styles.productActionHintText}>✏️ Toca para editar</Text>
-            </View>
-          )}
-          {product.status === PurchaseProductStatus.IN_VALIDATION && (
-            <View style={styles.productActionHint}>
-              <Text style={styles.productActionHintText}>✏️ Toca para editar</Text>
-            </View>
+          {/* Action hints */}
+          {(product.status === PurchaseProductStatus.PRELIMINARY || product.status === PurchaseProductStatus.IN_VALIDATION) && (
+            <Caption color="tertiary" style={styles.actionHint}>✏️ Toca para editar</Caption>
           )}
           {product.status === PurchaseProductStatus.VALIDATED && (
-            <View style={styles.productActionHint}>
-              <Text style={styles.productActionHintText}>👁️ Toca para ver detalles</Text>
-            </View>
+            <Caption color="tertiary" style={styles.actionHint}>👁️ Toca para ver detalles</Caption>
           )}
         </TouchableOpacity>
 
-        {/* Validate button for PRELIMINARY products */}
+        {/* Action Buttons */}
         {canValidate && (
-          <TouchableOpacity
-            style={[styles.validateProductButton, isTablet && styles.validateProductButtonTablet]}
+          <Button
+            title="✓ Validar Producto"
             onPress={() => handleStartProductValidation(product)}
+            variant="success"
+            size="small"
+            fullWidth
             disabled={actionLoading}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.validateProductButtonText,
-                isTablet && styles.validateProductButtonTextTablet,
-              ]}
-            >
-              ✓ Validar Producto
-            </Text>
-          </TouchableOpacity>
+            style={styles.productActionButton}
+          />
         )}
 
-        {/* Info button for VALIDATED or CLOSED products */}
-        {(product.status === PurchaseProductStatus.VALIDATED ||
-          product.status === PurchaseProductStatus.CLOSED) && (
-          <TouchableOpacity
-            style={[styles.infoProductButton, isTablet && styles.infoProductButtonTablet]}
+        {(product.status === PurchaseProductStatus.VALIDATED || product.status === PurchaseProductStatus.CLOSED) && (
+          <Button
+            title="📋 Información Registrada"
             onPress={() => handleOpenInfoModal(product)}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[styles.infoProductButtonText, isTablet && styles.infoProductButtonTextTablet]}
-            >
-              📋 Información Registrada
-            </Text>
-          </TouchableOpacity>
+            variant="outline"
+            size="small"
+            fullWidth
+            style={styles.productActionButton}
+          />
         )}
 
-        {/* Delete validations button for VALIDATED products */}
         {product.status === PurchaseProductStatus.VALIDATED && (
-          <TouchableOpacity
-            style={[styles.deleteValidationsProductButton, isTablet && styles.deleteValidationsProductButtonTablet]}
+          <Button
+            title="🗑️ Eliminar Validaciones"
             onPress={() => handleDeleteProductValidations(product)}
+            variant="danger"
+            size="small"
+            fullWidth
             disabled={actionLoading}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.deleteValidationsProductButtonText,
-                isTablet && styles.deleteValidationsProductButtonTextTablet,
-              ]}
-            >
-              🗑️ Eliminar Validaciones
-            </Text>
-          </TouchableOpacity>
+            style={styles.productActionButton}
+          />
         )}
-      </View>
+      </Card>
     );
   };
 
@@ -804,47 +588,32 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando compra...</Text>
+          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <Body color="secondary" style={styles.loadingText}>Cargando compra...</Body>
         </View>
       </SafeAreaView>
     );
   }
 
-  if (!purchase) {
-    return null;
-  }
+  if (!purchase) return null;
 
   const stats = getProductStats();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
+      <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>‹</Text>
+          <Ionicons name="chevron-back" size={24} color={colors.icon.primary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>{purchase.code}</Text>
-          <View
-            style={[
-              styles.statusBadge,
-              isTablet && styles.statusBadgeTablet,
-              {
-                backgroundColor: PurchaseStatusColors[purchase.status] + '20',
-                borderColor: PurchaseStatusColors[purchase.status],
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusText,
-                isTablet && styles.statusTextTablet,
-                { color: PurchaseStatusColors[purchase.status] },
-              ]}
-            >
-              {PurchaseStatusLabels[purchase.status]}
-            </Text>
+          <View style={styles.headerTitleRow}>
+            <Title size="large">{purchase.code}</Title>
+            <Badge
+              label={PurchaseStatusLabels[purchase.status]}
+              variant={getStatusVariant(purchase.status)}
+              size="small"
+            />
           </View>
         </View>
       </View>
@@ -852,313 +621,162 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       <ScrollView
         style={styles.content}
         contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary[900]]} />}
       >
-        {/* Purchase Info */}
-        <View style={[styles.infoCard, isTablet && styles.infoCardTablet]}>
-          <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            Información de la Compra
-          </Text>
+        {/* Purchase Info Card */}
+        <Card variant="elevated" padding="medium" style={styles.infoCard}>
+          <Title size="small" style={styles.sectionTitle}>Información de la Compra</Title>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Proveedor:</Text>
+            <Label color="secondary" style={styles.infoLabel}>Proveedor:</Label>
             <View style={styles.infoValueWithButton}>
-              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                {purchase.supplier?.commercialName || 'N/A'}
-              </Text>
+              <Body style={styles.infoValue}>{purchase.supplier?.commercialName || 'N/A'}</Body>
               {canAddProducts() && (
-                <TouchableOpacity
-                  style={[styles.editSupplierButton, isTablet && styles.editSupplierButtonTablet]}
-                  onPress={handleOpenEditSupplierModal}
-                  disabled={actionLoading}
-                >
-                  <Text style={[styles.editSupplierButtonText, isTablet && styles.editSupplierButtonTextTablet]}>
-                    ✏️ Editar
-                  </Text>
+                <TouchableOpacity style={styles.editSupplierButton} onPress={handleOpenEditSupplierModal}>
+                  <Caption color={colors.primary[600]}>✏️ Editar</Caption>
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Tipo de Guía:
-            </Text>
-            <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {GuideTypeLabels[purchase.guideType]}
-            </Text>
+            <Label color="secondary" style={styles.infoLabel}>Tipo de Guía:</Label>
+            <Body style={styles.infoValue}>{GuideTypeLabels[purchase.guideType]}</Body>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Número de Guía:
-            </Text>
-            <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {purchase.guideNumber}
-            </Text>
+            <Label color="secondary" style={styles.infoLabel}>Número de Guía:</Label>
+            <Body style={styles.infoValue}>{purchase.guideNumber}</Body>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Fecha de Guía:
-            </Text>
-            <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {formatDate(purchase.guideDate)}
-            </Text>
+            <Label color="secondary" style={styles.infoLabel}>Fecha de Guía:</Label>
+            <Body style={styles.infoValue}>{formatDate(purchase.guideDate)}</Body>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Creado:</Text>
-            <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {formatDate(purchase.createdAt)}
-            </Text>
+            <Label color="secondary" style={styles.infoLabel}>Creado:</Label>
+            <Body style={styles.infoValue}>{formatDate(purchase.createdAt)}</Body>
           </View>
 
           {purchase.notes && (
             <View style={styles.notesContainer}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Notas:</Text>
-              <Text style={[styles.notesText, isTablet && styles.notesTextTablet]}>
-                {purchase.notes}
-              </Text>
+              <Label color="secondary">Notas:</Label>
+              <Body color="secondary">{purchase.notes}</Body>
             </View>
           )}
-        </View>
+        </Card>
 
-        {/* Product Stats */}
-        <View style={[styles.statsCard, isTablet && styles.statsCardTablet]}>
-          <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            Resumen de Productos
-          </Text>
+        {/* Product Stats Card */}
+        <Card variant="elevated" padding="medium" style={styles.statsCard}>
+          <Title size="small" style={styles.sectionTitle}>Resumen de Productos</Title>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
-              <Text style={[styles.statNumber, isTablet && styles.statNumberTablet]}>
-                {stats.total}
-              </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Total</Text>
+              <Title size="medium" color={colors.text.primary}>{stats.total}</Title>
+              <Caption color="secondary">Total</Caption>
             </View>
             <View style={styles.statItem}>
-              <Text
-                style={[
-                  styles.statNumber,
-                  isTablet && styles.statNumberTablet,
-                  { color: '#94A3B8' },
-                ]}
-              >
-                {stats.preliminary}
-              </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Preliminar</Text>
+              <Title size="medium" color={colors.neutral[500]}>{stats.preliminary}</Title>
+              <Caption color="secondary">Preliminar</Caption>
             </View>
             <View style={styles.statItem}>
-              <Text
-                style={[
-                  styles.statNumber,
-                  isTablet && styles.statNumberTablet,
-                  { color: '#F59E0B' },
-                ]}
-              >
-                {stats.inValidation}
-              </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>
-                En Validación
-              </Text>
+              <Title size="medium" color={colors.warning[500]}>{stats.inValidation}</Title>
+              <Caption color="secondary">En Validación</Caption>
             </View>
             <View style={styles.statItem}>
-              <Text
-                style={[
-                  styles.statNumber,
-                  isTablet && styles.statNumberTablet,
-                  { color: '#10B981' },
-                ]}
-              >
-                {stats.validated}
-              </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Validados</Text>
+              <Title size="medium" color={colors.success[500]}>{stats.validated}</Title>
+              <Caption color="secondary">Validados</Caption>
             </View>
             <View style={styles.statItem}>
-              <Text
-                style={[
-                  styles.statNumber,
-                  isTablet && styles.statNumberTablet,
-                  { color: '#EF4444' },
-                ]}
-              >
-                {stats.rejected}
-              </Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelTablet]}>Rechazados</Text>
+              <Title size="medium" color={colors.danger[500]}>{stats.rejected}</Title>
+              <Caption color="secondary">Rechazados</Caption>
             </View>
           </View>
-        </View>
+        </Card>
 
         {/* Total Sum Card */}
         {totalSum && (
-          <View style={[styles.totalSumCard, isTablet && styles.totalSumCardTablet]}>
-            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-              💰 Totales de la Compra
-            </Text>
-
+          <Card variant="elevated" padding="medium" style={styles.totalSumCard}>
+            <Title size="small" style={styles.sectionTitle}>💰 Totales de la Compra</Title>
             <View style={styles.totalSumGrid}>
               <View style={styles.totalSumRow}>
                 <View style={styles.totalSumItem}>
-                  <Text style={[styles.totalSumLabel, isTablet && styles.totalSumLabelTablet]}>
-                    Total Sin Validar
-                  </Text>
-                  <Text
-                    style={[
-                      styles.totalSumValue,
-                      isTablet && styles.totalSumValueTablet,
-                      styles.totalSumUnvalidated,
-                    ]}
-                  >
-                    {formatCurrency(totalSum.totalUnvalidatedCents)}
-                  </Text>
-                  <Text style={[styles.totalSumSubtext, isTablet && styles.totalSumSubtextTablet]}>
-                    {totalSum.totalProducts} producto{totalSum.totalProducts !== 1 ? 's' : ''}
-                  </Text>
+                  <Caption color="secondary">Total Sin Validar</Caption>
+                  <Title size="medium" color={colors.neutral[600]}>{formatCurrency(totalSum.totalUnvalidatedCents)}</Title>
+                  <Caption color="tertiary">{totalSum.totalProducts} producto{totalSum.totalProducts !== 1 ? 's' : ''}</Caption>
                 </View>
-
                 <View style={styles.totalSumItem}>
-                  <Text style={[styles.totalSumLabel, isTablet && styles.totalSumLabelTablet]}>
-                    Total Validado
-                  </Text>
-                  <Text
-                    style={[
-                      styles.totalSumValue,
-                      isTablet && styles.totalSumValueTablet,
-                      styles.totalSumValidated,
-                    ]}
-                  >
-                    {formatCurrency(totalSum.totalValidatedCents)}
-                  </Text>
-                  <Text style={[styles.totalSumSubtext, isTablet && styles.totalSumSubtextTablet]}>
-                    {totalSum.validatedProducts} validado
-                    {totalSum.validatedProducts !== 1 ? 's' : ''}
-                  </Text>
+                  <Caption color="secondary">Total Validado</Caption>
+                  <Title size="medium" color={colors.success[600]}>{formatCurrency(totalSum.totalValidatedCents)}</Title>
+                  <Caption color="tertiary">{totalSum.validatedProducts} validado{totalSum.validatedProducts !== 1 ? 's' : ''}</Caption>
                 </View>
               </View>
-
               {totalSum.differenceCents !== 0 && (
-                <View
-                  style={[
-                    styles.totalSumDifference,
-                    totalSum.differenceCents > 0
-                      ? styles.totalSumDifferencePositive
-                      : styles.totalSumDifferenceNegative,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.totalSumDifferenceLabel,
-                      isTablet && styles.totalSumDifferenceLabelTablet,
-                    ]}
-                  >
-                    Diferencia:
-                  </Text>
-                  <Text
-                    style={[
-                      styles.totalSumDifferenceValue,
-                      isTablet && styles.totalSumDifferenceValueTablet,
-                    ]}
-                  >
-                    {totalSum.differenceCents > 0 ? '+' : ''}
-                    {formatCurrency(totalSum.differenceCents)}
-                  </Text>
+                <View style={[styles.totalSumDifference, totalSum.differenceCents > 0 ? styles.differencePositive : styles.differenceNegative]}>
+                  <Caption color={totalSum.differenceCents > 0 ? colors.success[700] : colors.danger[700]}>Diferencia:</Caption>
+                  <Body color={totalSum.differenceCents > 0 ? colors.success[700] : colors.danger[700]}>
+                    {totalSum.differenceCents > 0 ? '+' : ''}{formatCurrency(totalSum.differenceCents)}
+                  </Body>
                 </View>
               )}
             </View>
-          </View>
+          </Card>
         )}
 
-        {/* Products List */}
+        {/* Products Section */}
         <View style={styles.productsSection}>
-          <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            Productos ({products.length})
-          </Text>
+          <Title size="small" style={styles.sectionTitle}>Productos ({products.length})</Title>
 
           {/* Search Bar */}
           {products.length > 0 && (
-            <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
-              <Text style={styles.searchIcon}>🔍</Text>
-              <TextInput
-                style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Buscar por SKU, nombre o #correlativo (mín. 2 letras)..."
-                placeholderTextColor="#94A3B8"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  style={styles.clearSearchButton}
-                  onPress={() => setSearchQuery('')}
-                >
-                  <Text style={styles.clearSearchText}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            <SearchBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Buscar por SKU, nombre o #correlativo..."
+              onClear={() => setSearchQuery('')}
+              style={styles.searchBar}
+            />
           )}
 
+          {/* Action Buttons */}
           {canAddProducts() && (
-            <View
-              style={[
-                styles.headerActionsContainer,
-                isTablet && styles.headerActionsContainerTablet,
-              ]}
-            >
-              <View style={styles.headerActions}>
-                <ProtectedTouchableOpacity
-                  style={[styles.ocrButton, isTablet && styles.ocrButtonTablet]}
-                  onPress={handleOpenOcrScanner}
-                  disabled={actionLoading}
-                  requiredPermissions={['purchases.ocr.scan']}
-                  hideIfNoPermission={true}
-                >
-                  <Text style={[styles.ocrButtonText, isTablet && styles.ocrButtonTextTablet]}>
-                    📷 Escáner OCR
-                  </Text>
-                </ProtectedTouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.addButton, isTablet && styles.addButtonTablet]}
-                  onPress={handleAddProduct}
-                >
-                  <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
-                    + Agregar
-                  </Text>
-                </TouchableOpacity>
-              </View>
+            <View style={styles.headerActions}>
+              <ProtectedTouchableOpacity
+                style={styles.ocrButton}
+                onPress={handleOpenOcrScanner}
+                disabled={actionLoading}
+                requiredPermissions={['purchases.ocr.scan']}
+                hideIfNoPermission={true}
+              >
+                <Ionicons name="camera" size={16} color={colors.text.inverse} />
+                <Caption color={colors.text.inverse}>Escáner OCR</Caption>
+              </ProtectedTouchableOpacity>
+              <Button
+                title="+ Agregar"
+                onPress={handleAddProduct}
+                variant="primary"
+                size="small"
+              />
             </View>
           )}
 
+          {/* Products List */}
           {products.length === 0 ? (
-            <View style={styles.emptyProducts}>
-              <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>📦</Text>
-              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                No hay productos agregados
-              </Text>
-            </View>
+            <EmptyState
+              icon="cube-outline"
+              title="No hay productos agregados"
+              description="Agrega productos a esta compra"
+              size="small"
+            />
           ) : filteredProducts.length === 0 && searchQuery.trim().length >= 2 ? (
-            <View style={styles.emptyProducts}>
-              <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>🔍</Text>
-              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                No se encontraron productos que coincidan con "{searchQuery}"
-              </Text>
-              <TouchableOpacity
-                style={[
-                  styles.clearSearchButtonLarge,
-                  isTablet && styles.clearSearchButtonLargeTablet,
-                ]}
-                onPress={() => setSearchQuery('')}
-              >
-                <Text
-                  style={[
-                    styles.clearSearchButtonLargeText,
-                    isTablet && styles.clearSearchButtonLargeTextTablet,
-                  ]}
-                >
-                  Limpiar búsqueda
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <EmptyState
+              icon="search-outline"
+              title="Sin resultados"
+              description={`No se encontraron productos que coincidan con "${searchQuery}"`}
+              actionLabel="Limpiar búsqueda"
+              onAction={() => setSearchQuery('')}
+              size="small"
+            />
           ) : (
             filteredProducts.map(renderProductCard)
           )}
@@ -1167,45 +785,36 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Action Buttons */}
+      {/* Footer Action Buttons */}
       {(canAssignDebts() || canClosePurchase() || canCancelPurchase()) && (
-        <View style={[styles.footer, isTablet && styles.footerTablet]}>
+        <View style={styles.footer}>
           {canCancelPurchase() && (
-            <TouchableOpacity
-              style={[styles.cancelButton, isTablet && styles.cancelButtonTablet]}
+            <Button
+              title="Cancelar Compra"
               onPress={handleCancelPurchase}
+              variant="secondary"
               disabled={actionLoading}
-            >
-              <Text style={[styles.cancelButtonText, isTablet && styles.cancelButtonTextTablet]}>
-                Cancelar Compra
-              </Text>
-            </TouchableOpacity>
+              style={styles.footerButton}
+            />
           )}
           {canAssignDebts() && (
-            <TouchableOpacity
-              style={[styles.assignButton, isTablet && styles.assignButtonTablet]}
+            <Button
+              title="Asignar Deudas"
               onPress={handleAssignDebts}
+              variant="outline"
               disabled={actionLoading}
-            >
-              <Text style={[styles.assignButtonText, isTablet && styles.assignButtonTextTablet]}>
-                Asignar Deudas
-              </Text>
-            </TouchableOpacity>
+              style={styles.footerButton}
+            />
           )}
           {canClosePurchase() && (
-            <TouchableOpacity
-              style={[styles.closeButton, isTablet && styles.closeButtonTablet]}
+            <Button
+              title="Cerrar Compra"
               onPress={handleClosePurchase}
+              variant="primary"
+              loading={actionLoading}
               disabled={actionLoading}
-            >
-              {actionLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={[styles.closeButtonText, isTablet && styles.closeButtonTextTablet]}>
-                  Cerrar Compra
-                </Text>
-              )}
-            </TouchableOpacity>
+              style={styles.footerButton}
+            />
           )}
         </View>
       )}
@@ -1224,7 +833,6 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           visible={showInfoModal}
           product={selectedProductForInfo}
           onClose={handleCloseInfoModal}
-          isTablet={isTablet}
           productPhotos={productPhotos}
         />
       )}
@@ -1237,496 +845,127 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         selectedSupplier={selectedSupplier}
         onUpdate={handleUpdateSupplier}
         updating={updatingSupplier}
-        isTablet={isTablet}
       />
     </SafeAreaView>
   );
 };
 
+// ============================================
 // Product Info Modal Component
+// ============================================
 interface ProductInfoModalProps {
   visible: boolean;
   product: PurchaseProduct;
   onClose: () => void;
-  isTablet: boolean;
   productPhotos: string[];
 }
 
-const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
-  visible,
-  product,
-  onClose,
-  isTablet,
-  productPhotos,
-}) => {
-  const formatCurrency = (cents: number) => {
-    return `S/ ${(cents / 100).toFixed(2)}`;
-  };
-
+const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, onClose, productPhotos }) => {
+  const formatCurrency = (cents: number) => `S/ ${(cents / 100).toFixed(2)}`;
   const formatDate = (dateString?: string) => {
-    if (!dateString) {
-      return 'N/A';
-    }
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-PE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('es-PE', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   };
 
-  // Get preliminary presentation from history
-  const preliminaryPresentation = product.presentationHistory?.find(
-    (ph) => ph.type === 'PRELIMINARY'
-  );
-
-  // Get validated presentation from history
+  const preliminaryPresentation = product.presentationHistory?.find((ph) => ph.type === 'PRELIMINARY');
   const validatedPresentation = product.presentationHistory?.find((ph) => ph.type === 'VALIDATED');
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={modalStyles.overlay}>
-        <View style={[modalStyles.container, isTablet && modalStyles.containerTablet]}>
-          {/* Header */}
+        <View style={modalStyles.container}>
           <View style={modalStyles.header}>
-            <View style={modalStyles.headerContent}>
-              <Text style={[modalStyles.title, isTablet && modalStyles.titleTablet]}>
-                📋 Información Registrada
-              </Text>
-              <Text style={[modalStyles.subtitle, isTablet && modalStyles.subtitleTablet]}>
-                {product.name}
-              </Text>
+            <View>
+              <Title size="medium">📋 Información Registrada</Title>
+              <Body color="secondary" numberOfLines={1}>{product.name}</Body>
             </View>
-            <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
-              <Text style={modalStyles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
+            <IconButton icon="close" onPress={onClose} variant="ghost" size="small" />
           </View>
 
           <ScrollView style={modalStyles.content}>
-            {/* Datos Preliminares Section */}
-            <View style={modalStyles.section}>
-              <Text style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}>
-                📝 Datos Preliminares (Registro Inicial)
-              </Text>
-              <View style={modalStyles.card}>
-                <InfoRow
-                  label="SKU"
-                  value={`${product.correlativeNumber ? `#${product.correlativeNumber} | ` : ''}${product.sku}`}
-                  isTablet={isTablet}
-                />
-                <InfoRow label="Nombre" value={product.name} isTablet={isTablet} />
-                <InfoRow
-                  label="Costo Unitario"
-                  value={formatCurrency(product.costCents)}
-                  isTablet={isTablet}
-                />
-                <InfoRow
-                  label="Stock Preliminar"
-                  value={`${product.preliminaryStock} unidades`}
-                  isTablet={isTablet}
-                />
-                {product.preliminaryPresentationQuantity !== undefined && (
-                  <InfoRow
-                    label="Cantidad de Presentaciones"
-                    value={`${product.preliminaryPresentationQuantity}`}
-                    isTablet={isTablet}
-                  />
-                )}
-                {product.preliminaryLooseUnits !== undefined && (
-                  <InfoRow
-                    label="Unidades Sueltas"
-                    value={`${product.preliminaryLooseUnits}`}
-                    isTablet={isTablet}
-                  />
-                )}
-                {preliminaryPresentation && (
-                  <>
-                    <InfoRow
-                      label="Presentación Preliminar"
-                      value={preliminaryPresentation.presentation?.name || 'N/A'}
-                      isTablet={isTablet}
-                    />
-                    <InfoRow
-                      label="Factor de Conversión"
-                      value={`${preliminaryPresentation.factorToBase}x`}
-                      isTablet={isTablet}
-                    />
-                    {preliminaryPresentation.notes && (
-                      <InfoRow
-                        label="Notas"
-                        value={preliminaryPresentation.notes}
-                        isTablet={isTablet}
-                      />
-                    )}
-                  </>
-                )}
-                <InfoRow
-                  label="Fecha de Registro"
-                  value={formatDate(product.createdAt)}
-                  isTablet={isTablet}
-                />
+            {/* Preliminary Data */}
+            <Card variant="outlined" padding="medium" style={modalStyles.section}>
+              <Label color="primary" style={modalStyles.sectionTitle}>📝 Datos Preliminares</Label>
+              <InfoRow label="SKU" value={`${product.correlativeNumber ? `#${product.correlativeNumber} | ` : ''}${product.sku}`} />
+              <InfoRow label="Nombre" value={product.name} />
+              <InfoRow label="Costo Unitario" value={formatCurrency(product.costCents)} />
+              <InfoRow label="Stock Preliminar" value={`${product.preliminaryStock} unidades`} />
+              {product.preliminaryPresentationQuantity !== undefined && (
+                <InfoRow label="Cant. Presentaciones" value={`${product.preliminaryPresentationQuantity}`} />
+              )}
+              {product.preliminaryLooseUnits !== undefined && (
+                <InfoRow label="Unidades Sueltas" value={`${product.preliminaryLooseUnits}`} />
+              )}
+              {preliminaryPresentation && (
+                <>
+                  <InfoRow label="Presentación" value={preliminaryPresentation.presentation?.name || 'N/A'} />
+                  <InfoRow label="Factor" value={`${preliminaryPresentation.factorToBase}x`} />
+                </>
+              )}
+              <InfoRow label="Fecha de Registro" value={formatDate(product.createdAt)} />
 
-                {/* Fotos del Producto */}
-                {productPhotos.length > 0 && (
-                  <View style={modalStyles.photoSection}>
-                    <Text
-                      style={[
-                        modalStyles.photoLabel,
-                        isTablet && modalStyles.photoLabelTablet,
-                      ]}
-                    >
-                      📷 Fotos del Producto ({productPhotos.length}):
-                    </Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={modalStyles.photosScroll}
-                    >
-                      {productPhotos.map((photoUrl, photoIndex) => (
-                        <Image
-                          key={photoIndex}
-                          source={{ uri: photoUrl }}
-                          style={[
-                            modalStyles.additionalPhoto,
-                            isTablet && modalStyles.additionalPhotoTablet,
-                          ]}
-                          resizeMode="cover"
-                        />
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Datos Validados Section */}
-            {(product.status === PurchaseProductStatus.VALIDATED ||
-              product.status === PurchaseProductStatus.CLOSED) && (
-              <View style={modalStyles.section}>
-                <Text
-                  style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}
-                >
-                  ✅ Datos Validados
-                </Text>
-                <View style={[modalStyles.card, modalStyles.cardValidated]}>
-                  {product.validatedStock !== undefined && (
-                    <InfoRow
-                      label="Stock Validado"
-                      value={`${product.validatedStock} unidades`}
-                      isTablet={isTablet}
-                      highlight
-                    />
-                  )}
-                  {product.validatedPresentationQuantity !== undefined && (
-                    <InfoRow
-                      label="Cantidad de Presentaciones Validadas"
-                      value={`${product.validatedPresentationQuantity}`}
-                      isTablet={isTablet}
-                      highlight
-                    />
-                  )}
-                  {product.validatedLooseUnits !== undefined && (
-                    <InfoRow
-                      label="Unidades Sueltas Validadas"
-                      value={`${product.validatedLooseUnits}`}
-                      isTablet={isTablet}
-                      highlight
-                    />
-                  )}
-                  {validatedPresentation && (
-                    <>
-                      <InfoRow
-                        label="Presentación Validada"
-                        value={validatedPresentation.presentation?.name || 'N/A'}
-                        isTablet={isTablet}
-                        highlight
-                      />
-                      <InfoRow
-                        label="Factor de Conversión"
-                        value={`${validatedPresentation.factorToBase}x`}
-                        isTablet={isTablet}
-                        highlight
-                      />
-                      {validatedPresentation.notes && (
-                        <InfoRow
-                          label="Notas"
-                          value={validatedPresentation.notes}
-                          isTablet={isTablet}
-                          highlight
-                        />
-                      )}
-                    </>
-                  )}
-                  {product.warehouse && (
-                    <InfoRow
-                      label="Almacén"
-                      value={product.warehouse.name}
-                      isTablet={isTablet}
-                      highlight
-                    />
-                  )}
-                  {product.area && (
-                    <InfoRow
-                      label="Área"
-                      value={product.area.name || product.area.code}
-                      isTablet={isTablet}
-                      highlight
-                    />
-                  )}
-                  {product.barcode && (
-                    <InfoRow
-                      label="Código de Barras"
-                      value={product.barcode}
-                      isTablet={isTablet}
-                      highlight
-                    />
-                  )}
-                  {product.validationNotes && (
-                    <InfoRow
-                      label="Notas de Validación"
-                      value={product.validationNotes}
-                      isTablet={isTablet}
-                      highlight
-                    />
-                  )}
-                  {product.validatedAt && (
-                    <InfoRow
-                      label="Fecha de Validación"
-                      value={formatDate(product.validatedAt)}
-                      isTablet={isTablet}
-                      highlight
-                    />
-                  )}
-                  {product.validatedByUser && (
-                    <InfoRow
-                      label="Validado Por"
-                      value={product.validatedByUser.name || product.validatedByUser.email}
-                      isTablet={isTablet}
-                      highlight
-                    />
-                  )}
-                </View>
-              </View>
-            )}
-
-            {/* Comparación Section */}
-            {product.validatedStock !== undefined &&
-              product.validatedStock !== product.preliminaryStock && (
-                <View style={modalStyles.section}>
-                  <Text
-                    style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}
-                  >
-                    📊 Diferencias
-                  </Text>
-                  <View style={modalStyles.card}>
-                    <View style={modalStyles.comparisonRow}>
-                      <Text
-                        style={[
-                          modalStyles.comparisonLabel,
-                          isTablet && modalStyles.comparisonLabelTablet,
-                        ]}
-                      >
-                        Stock:
-                      </Text>
-                      <View style={modalStyles.comparisonValues}>
-                        <Text
-                          style={[
-                            modalStyles.comparisonValue,
-                            isTablet && modalStyles.comparisonValueTablet,
-                          ]}
-                        >
-                          {product.preliminaryStock} → {product.validatedStock}
-                        </Text>
-                        <Text
-                          style={[
-                            modalStyles.comparisonDiff,
-                            isTablet && modalStyles.comparisonDiffTablet,
-                            product.validatedStock > product.preliminaryStock
-                              ? modalStyles.comparisonDiffPositive
-                              : modalStyles.comparisonDiffNegative,
-                          ]}
-                        >
-                          {product.validatedStock > product.preliminaryStock ? '+' : ''}
-                          {product.validatedStock - product.preliminaryStock}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
+              {productPhotos.length > 0 && (
+                <View style={modalStyles.photoSection}>
+                  <Label color="secondary">📷 Fotos del Producto ({productPhotos.length}):</Label>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={modalStyles.photosScroll}>
+                    {productPhotos.map((photoUrl, index) => (
+                      <Image key={index} source={{ uri: photoUrl }} style={modalStyles.photo} resizeMode="cover" />
+                    ))}
+                  </ScrollView>
                 </View>
               )}
+            </Card>
 
-            {/* Deuda Asignada Section */}
-            {product.supplierLegalEntity && product.assignedDebtCents !== undefined && (
-              <View style={modalStyles.section}>
-                <Text
-                  style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}
-                >
-                  💰 Deuda Asignada
-                </Text>
-                <View style={modalStyles.card}>
-                  <InfoRow
-                    label="Entidad Legal"
-                    value={product.supplierLegalEntity.legalName}
-                    isTablet={isTablet}
-                  />
-                  <InfoRow
-                    label="RUC"
-                    value={product.supplierLegalEntity.ruc}
-                    isTablet={isTablet}
-                  />
-                  <InfoRow
-                    label="Monto"
-                    value={formatCurrency(product.assignedDebtCents)}
-                    isTablet={isTablet}
-                  />
-                </View>
-              </View>
+            {/* Validated Data */}
+            {(product.status === PurchaseProductStatus.VALIDATED || product.status === PurchaseProductStatus.CLOSED) && (
+              <Card variant="outlined" padding="medium" style={{...modalStyles.section, ...modalStyles.validatedCard}}>
+                <Label color={colors.success[700]} style={modalStyles.sectionTitle}>✅ Datos Validados</Label>
+                {product.validatedStock !== undefined && (
+                  <InfoRow label="Stock Validado" value={`${product.validatedStock} unidades`} highlight />
+                )}
+                {product.validatedPresentationQuantity !== undefined && (
+                  <InfoRow label="Cant. Presentaciones" value={`${product.validatedPresentationQuantity}`} highlight />
+                )}
+                {product.warehouse && (
+                  <InfoRow label="Almacén" value={product.warehouse.name} highlight />
+                )}
+                {product.barcode && (
+                  <InfoRow label="Código de Barras" value={product.barcode} highlight />
+                )}
+                {product.validatedAt && (
+                  <InfoRow label="Fecha de Validación" value={formatDate(product.validatedAt)} highlight />
+                )}
+                {product.validatedByUser && (
+                  <InfoRow label="Validado Por" value={product.validatedByUser.name || product.validatedByUser.email} highlight />
+                )}
+              </Card>
             )}
 
-            {/* Validaciones con Fotos y Firmas Section */}
+            {/* Validation History */}
             {product.validations && product.validations.length > 0 && (
-              <View style={modalStyles.section}>
-                <Text
-                  style={[modalStyles.sectionTitle, isTablet && modalStyles.sectionTitleTablet]}
-                >
-                  📸 Historial de Validaciones
-                </Text>
+              <Card variant="outlined" padding="medium" style={modalStyles.section}>
+                <Label color="primary" style={modalStyles.sectionTitle}>📸 Historial de Validaciones</Label>
                 {product.validations.map((validation, index) => (
-                  <View
-                    key={validation.id}
-                    style={[modalStyles.card, modalStyles.validationCard]}
-                  >
-                    <Text
-                      style={[
-                        modalStyles.validationTitle,
-                        isTablet && modalStyles.validationTitleTablet,
-                      ]}
-                    >
-                      Validación #{index + 1}
-                    </Text>
-
-                    <InfoRow
-                      label="Fecha"
-                      value={formatDate(validation.validatedAt)}
-                      isTablet={isTablet}
-                    />
-                    {validation.validatedByUser && (
-                      <InfoRow
-                        label="Validado por"
-                        value={validation.validatedByUser.name || validation.validatedByUser.email}
-                        isTablet={isTablet}
-                      />
-                    )}
-                    <InfoRow
-                      label="Stock Validado"
-                      value={`${validation.validatedStock} unidades`}
-                      isTablet={isTablet}
-                    />
-                    {validation.barcodeAdded && (
-                      <InfoRow
-                        label="Código de Barras"
-                        value={validation.barcodeAdded}
-                        isTablet={isTablet}
-                      />
-                    )}
-                    {validation.notes && (
-                      <InfoRow label="Notas" value={validation.notes} isTablet={isTablet} />
-                    )}
-
-                    {/* Foto de Validación */}
+                  <View key={validation.id} style={modalStyles.validationItem}>
+                    <Body>Validación #{index + 1}</Body>
+                    <InfoRow label="Fecha" value={formatDate(validation.validatedAt)} />
+                    <InfoRow label="Stock" value={`${validation.validatedStock} unidades`} />
                     {validation.photoUrl && (
-                      <View style={modalStyles.photoSection}>
-                        <Text
-                          style={[
-                            modalStyles.photoLabel,
-                            isTablet && modalStyles.photoLabelTablet,
-                          ]}
-                        >
-                          📸 Foto de Validación:
-                        </Text>
-                        <Image
-                          source={{ uri: validation.photoUrl }}
-                          style={[modalStyles.validationImage, isTablet && modalStyles.validationImageTablet]}
-                          resizeMode="cover"
-                        />
-                      </View>
+                      <Image source={{ uri: validation.photoUrl }} style={modalStyles.validationPhoto} resizeMode="cover" />
                     )}
-
-                    {/* Firma de Validación */}
                     {validation.signatureUrl && (
-                      <View style={modalStyles.photoSection}>
-                        <Text
-                          style={[
-                            modalStyles.photoLabel,
-                            isTablet && modalStyles.photoLabelTablet,
-                          ]}
-                        >
-                          ✍️ Firma de Validación:
-                        </Text>
-                        <Image
-                          source={{ uri: validation.signatureUrl }}
-                          style={[modalStyles.signatureImage, isTablet && modalStyles.signatureImageTablet]}
-                          resizeMode="contain"
-                        />
-                      </View>
-                    )}
-
-                    {/* Fotos Adicionales */}
-                    {validation.photosAdded && validation.photosAdded.length > 0 && (
-                      <View style={modalStyles.photoSection}>
-                        <Text
-                          style={[
-                            modalStyles.photoLabel,
-                            isTablet && modalStyles.photoLabelTablet,
-                          ]}
-                        >
-                          📷 Fotos Adicionales ({validation.photosAdded.length}):
-                        </Text>
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          style={modalStyles.photosScroll}
-                        >
-                          {validation.photosAdded.map((photoUrl, photoIndex) => (
-                            <Image
-                              key={photoIndex}
-                              source={{ uri: photoUrl }}
-                              style={[
-                                modalStyles.additionalPhoto,
-                                isTablet && modalStyles.additionalPhotoTablet,
-                              ]}
-                              resizeMode="cover"
-                            />
-                          ))}
-                        </ScrollView>
-                      </View>
+                      <Image source={{ uri: validation.signatureUrl }} style={modalStyles.signaturePhoto} resizeMode="contain" />
                     )}
                   </View>
                 ))}
-              </View>
+              </Card>
             )}
           </ScrollView>
 
-          {/* Footer */}
           <View style={modalStyles.footer}>
-            <TouchableOpacity
-              style={[
-                modalStyles.closeFooterButton,
-                isTablet && modalStyles.closeFooterButtonTablet,
-              ]}
-              onPress={onClose}
-            >
-              <Text
-                style={[
-                  modalStyles.closeFooterButtonText,
-                  isTablet && modalStyles.closeFooterButtonTextTablet,
-                ]}
-              >
-                Cerrar
-              </Text>
-            </TouchableOpacity>
+            <Button title="Cerrar" onPress={onClose} variant="primary" fullWidth />
           </View>
         </View>
       </View>
@@ -1735,29 +974,16 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
 };
 
 // Info Row Component
-interface InfoRowProps {
-  label: string;
-  value: string;
-  isTablet: boolean;
-  highlight?: boolean;
-}
-
-const InfoRow: React.FC<InfoRowProps> = ({ label, value, isTablet, highlight }) => (
+const InfoRow: React.FC<{ label: string; value: string; highlight?: boolean }> = ({ label, value, highlight }) => (
   <View style={modalStyles.infoRow}>
-    <Text style={[modalStyles.infoLabel, isTablet && modalStyles.infoLabelTablet]}>{label}:</Text>
-    <Text
-      style={[
-        modalStyles.infoValue,
-        isTablet && modalStyles.infoValueTablet,
-        highlight && modalStyles.infoValueHighlight,
-      ]}
-    >
-      {value}
-    </Text>
+    <Label color="secondary" style={modalStyles.infoLabel}>{label}:</Label>
+    <Body color={highlight ? colors.success[700] : 'primary'} style={modalStyles.infoValue}>{value}</Body>
   </View>
 );
 
+// ============================================
 // Edit Supplier Modal Component
+// ============================================
 interface EditSupplierModalProps {
   visible: boolean;
   onClose: () => void;
@@ -1765,81 +991,40 @@ interface EditSupplierModalProps {
   selectedSupplier: ExpenseSupplier | null;
   onUpdate: () => void;
   updating: boolean;
-  isTablet: boolean;
 }
 
 const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
-  visible,
-  onClose,
-  onSupplierSelect,
-  selectedSupplier,
-  onUpdate,
-  updating,
-  isTablet,
+  visible, onClose, onSupplierSelect, selectedSupplier, onUpdate, updating,
 }) => {
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
-      <View style={editSupplierModalStyles.overlay}>
-        <View style={[editSupplierModalStyles.container, isTablet && editSupplierModalStyles.containerTablet]}>
-          {/* Header */}
-          <View style={editSupplierModalStyles.header}>
-            <View style={editSupplierModalStyles.headerContent}>
-              <Text style={[editSupplierModalStyles.title, isTablet && editSupplierModalStyles.titleTablet]}>
-                ✏️ Editar Proveedor
-              </Text>
-              <Text style={[editSupplierModalStyles.subtitle, isTablet && editSupplierModalStyles.subtitleTablet]}>
-                Seleccione un nuevo proveedor de mercadería
-              </Text>
+      <View style={modalStyles.overlay}>
+        <View style={modalStyles.container}>
+          <View style={modalStyles.header}>
+            <View>
+              <Title size="medium">✏️ Editar Proveedor</Title>
+              <Body color="secondary">Seleccione un nuevo proveedor</Body>
             </View>
-            <TouchableOpacity onPress={onClose} style={editSupplierModalStyles.closeButton}>
-              <Text style={editSupplierModalStyles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
+            <IconButton icon="close" onPress={onClose} variant="ghost" size="small" />
           </View>
 
-          {/* Content */}
-          <View style={editSupplierModalStyles.content}>
-            {/* Smart Supplier Search Input with MERCHANDISE filter */}
+          <View style={modalStyles.content}>
             <SupplierSearchInput
               selectedSupplier={selectedSupplier || undefined}
               onSelect={onSupplierSelect}
               label="Proveedor de Mercadería"
-              placeholder="Buscar proveedor de mercadería..."
+              placeholder="Buscar proveedor..."
               required
-              filterByType="MERCHANDISE"
+              filterByType={SupplierType.MERCHANDISE}
             />
-            <Text style={[editSupplierModalStyles.infoText, isTablet && editSupplierModalStyles.infoTextTablet]}>
+            <Caption color="secondary" style={modalStyles.infoText}>
               💡 Solo se muestran proveedores de tipo Mercadería
-            </Text>
+            </Caption>
           </View>
 
-          {/* Footer */}
-          <View style={editSupplierModalStyles.footer}>
-            <TouchableOpacity
-              style={[editSupplierModalStyles.cancelButton, isTablet && editSupplierModalStyles.cancelButtonTablet]}
-              onPress={onClose}
-              disabled={updating}
-            >
-              <Text style={[editSupplierModalStyles.cancelButtonText, isTablet && editSupplierModalStyles.cancelButtonTextTablet]}>
-                Cancelar
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                editSupplierModalStyles.updateButton,
-                isTablet && editSupplierModalStyles.updateButtonTablet,
-                (updating || !selectedSupplier) && editSupplierModalStyles.updateButtonDisabled,
-              ]}
-              onPress={onUpdate}
-              disabled={updating || !selectedSupplier}
-            >
-              {updating ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={[editSupplierModalStyles.updateButtonText, isTablet && editSupplierModalStyles.updateButtonTextTablet]}>
-                  Actualizar
-                </Text>
-              )}
-            </TouchableOpacity>
+          <View style={modalStyles.footer}>
+            <Button title="Cancelar" onPress={onClose} variant="secondary" disabled={updating} style={modalStyles.modalButton} />
+            <Button title="Actualizar" onPress={onUpdate} variant="primary" loading={updating} disabled={updating || !selectedSupplier} style={modalStyles.modalButton} />
           </View>
         </View>
       </View>
@@ -1847,10 +1032,13 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
   );
 };
 
+// ============================================
+// STYLES
+// ============================================
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   loadingContainer: {
     flex: 1,
@@ -1858,1241 +1046,298 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748B',
+    marginTop: spacing[4],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
+    borderBottomColor: colors.border.light,
+    gap: spacing[3],
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-  },
-  backButtonText: {
-    fontSize: 28,
-    color: '#64748B',
-    fontWeight: '300',
   },
   headerContent: {
     flex: 1,
+  },
+  headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 13,
+    gap: spacing[3],
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 24,
+    padding: spacing[4],
   },
   contentContainerTablet: {
-    padding: 32,
+    padding: spacing[6],
     maxWidth: 1200,
     alignSelf: 'center',
     width: '100%',
   },
   infoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  infoCardTablet: {
-    padding: 24,
-    borderRadius: 18,
+    marginBottom: spacing[4],
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 16,
-  },
-  sectionTitleTablet: {
-    fontSize: 18,
+    marginBottom: spacing[4],
   },
   infoRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   infoLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
     width: 120,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
-    width: 140,
   },
   infoValue: {
     flex: 1,
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
-  },
-  infoValueTablet: {
-    fontSize: 16,
   },
   infoValueWithButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   editSupplierButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#EEF2FF',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.primary[50],
     borderWidth: 1,
-    borderColor: '#6366F1',
-  },
-  editSupplierButtonTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 10,
-  },
-  editSupplierButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  editSupplierButtonTextTablet: {
-    fontSize: 14,
+    borderColor: colors.primary[200],
   },
   notesContainer: {
-    marginTop: 8,
-    paddingTop: 12,
+    marginTop: spacing[2],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  notesText: {
-    fontSize: 14,
-    color: '#475569',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  notesTextTablet: {
-    fontSize: 16,
-    lineHeight: 24,
+    borderTopColor: colors.border.light,
+    gap: spacing[1],
   },
   statsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  statsCardTablet: {
-    padding: 24,
-    borderRadius: 18,
+    marginBottom: spacing[4],
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: spacing[3],
   },
   statItem: {
-    flex: 1,
-    minWidth: 60,
     alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  statNumberTablet: {
-    fontSize: 28,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  statLabelTablet: {
-    fontSize: 13,
+    minWidth: 70,
   },
   totalSumCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  totalSumCardTablet: {
-    padding: 24,
-    borderRadius: 18,
+    marginBottom: spacing[4],
   },
   totalSumGrid: {
-    gap: 16,
+    gap: spacing[3],
   },
   totalSumRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: spacing[4],
   },
   totalSumItem: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  totalSumLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  totalSumLabelTablet: {
-    fontSize: 14,
-  },
-  totalSumValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  totalSumValueTablet: {
-    fontSize: 28,
-  },
-  totalSumUnvalidated: {
-    color: '#F59E0B',
-  },
-  totalSumValidated: {
-    color: '#10B981',
-  },
-  totalSumSubtext: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '500',
-  },
-  totalSumSubtextTablet: {
-    fontSize: 13,
+    alignItems: 'center',
+    gap: spacing[1],
   },
   totalSumDifference: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
+    padding: spacing[3],
+    borderRadius: borderRadius.md,
+    marginTop: spacing[2],
   },
-  totalSumDifferencePositive: {
-    backgroundColor: '#FEF3C7',
-    borderWidth: 1,
-    borderColor: '#F59E0B',
+  differencePositive: {
+    backgroundColor: colors.success[50],
   },
-  totalSumDifferenceNegative: {
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#EF4444',
-  },
-  totalSumDifferenceLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  totalSumDifferenceLabelTablet: {
-    fontSize: 15,
-  },
-  totalSumDifferenceValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  totalSumDifferenceValueTablet: {
-    fontSize: 20,
+  differenceNegative: {
+    backgroundColor: colors.danger[50],
   },
   productsSection: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  searchContainerTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: '#1E293B',
-    padding: 0,
-  },
-  searchInputTablet: {
-    fontSize: 17,
-  },
-  clearSearchButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  clearSearchText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  clearSearchButtonLarge: {
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    backgroundColor: '#6366F1',
-    borderRadius: 12,
-  },
-  clearSearchButtonLargeTablet: {
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 14,
-  },
-  clearSearchButtonLargeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  clearSearchButtonLargeTextTablet: {
-    fontSize: 16,
-  },
-  headerActionsContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 20,
-  },
-  headerActionsContainerTablet: {
-    borderRadius: 16,
-    padding: 14,
-    shadowRadius: 8,
-    elevation: 4,
-    marginTop: 14,
-    marginBottom: 24,
+  searchBar: {
+    marginBottom: spacing[3],
   },
   headerActions: {
     flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  validateButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  validateButtonTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  validateButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  validateButtonTextTablet: {
-    fontSize: 15,
+    justifyContent: 'flex-end',
+    gap: spacing[3],
+    marginBottom: spacing[4],
   },
   ocrButton: {
-    backgroundColor: '#8B5CF6',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 10,
-    minWidth: 140,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ocrButtonTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    minWidth: 160,
-  },
-  ocrButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  ocrButtonTextTablet: {
-    fontSize: 16,
-  },
-  addButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 10,
-    minWidth: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    minWidth: 140,
-  },
-  addButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  addButtonTextTablet: {
-    fontSize: 16,
-  },
-  emptyProducts: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 40,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyIconTablet: {
-    fontSize: 64,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  emptyTextTablet: {
-    fontSize: 18,
+    backgroundColor: colors.accent[600],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.md,
+    gap: spacing[2],
   },
   productCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  productCardTablet: {
-    padding: 20,
-    borderRadius: 18,
+    marginBottom: spacing[3],
   },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   productHeaderLeft: {
     flex: 1,
-    marginRight: 12,
+    gap: spacing[1],
   },
   productHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing[2],
   },
-  productName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  productNameTablet: {
-    fontSize: 17,
-  },
-  productSku: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  productSkuTablet: {
-    fontSize: 14,
-  },
-  productStatusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  productStatusBadgeTablet: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  productStatusText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  productStatusTextTablet: {
-    fontSize: 12,
+  deleteButton: {
+    padding: spacing[2],
   },
   productBody: {
-    gap: 8,
+    gap: spacing[2],
   },
   productRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  productLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  productLabelTablet: {
-    fontSize: 15,
-  },
-  productValue: {
-    fontSize: 13,
-    color: '#1E293B',
-    fontWeight: '600',
-  },
-  productValueTablet: {
-    fontSize: 15,
-  },
-  productValueHighlight: {
-    color: '#10B981',
-  },
-  rejectionContainer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#FEE2E2',
-    backgroundColor: '#FEF2F2',
-    padding: 12,
-    borderRadius: 8,
-  },
-  rejectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#EF4444',
-    marginBottom: 4,
-  },
-  rejectionText: {
-    fontSize: 13,
-    color: '#DC2626',
-  },
-  productActionHint: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
     alignItems: 'center',
   },
-  productActionHintValidate: {
-    backgroundColor: '#ECFDF5',
+  rejectionContainer: {
+    marginTop: spacing[3],
+    padding: spacing[3],
+    backgroundColor: colors.danger[50],
+    borderRadius: borderRadius.md,
+    gap: spacing[1],
   },
-  productActionHintText: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '600',
+  actionHint: {
+    marginTop: spacing[3],
+    textAlign: 'center',
   },
-  productActionHintTextValidate: {
-    color: '#059669',
+  productActionButton: {
+    marginTop: spacing[3],
   },
   bottomSpacer: {
-    height: 40,
+    height: spacing[20],
   },
   footer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
+    borderTopColor: colors.border.light,
+    gap: spacing[3],
   },
-  footerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-    gap: 16,
-  },
-  cancelButton: {
+  footerButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-  },
-  cancelButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  cancelButtonTextTablet: {
-    fontSize: 17,
-  },
-  closeButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-  },
-  closeButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  closeButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  closeButtonTextTablet: {
-    fontSize: 17,
-  },
-  assignButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-  },
-  assignButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  assignButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  assignButtonTextTablet: {
-    fontSize: 17,
-  },
-  deleteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FEE2E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  deleteButtonTablet: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  deleteButtonText: {
-    fontSize: 16,
-  },
-  deleteButtonTextTablet: {
-    fontSize: 18,
-  },
-  productCardContent: {
-    flex: 1,
-  },
-  validateProductButton: {
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  validateProductButtonTablet: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  validateProductButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  validateProductButtonTextTablet: {
-    fontSize: 16,
-  },
-  infoProductButton: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  infoProductButtonTablet: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  infoProductButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  infoProductButtonTextTablet: {
-    fontSize: 16,
-  },
-  deleteValidationsProductButton: {
-    backgroundColor: '#EF4444',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  deleteValidationsProductButtonTablet: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  deleteValidationsProductButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  deleteValidationsProductButtonTextTablet: {
-    fontSize: 16,
   },
 });
 
 // Modal Styles
-const editSupplierModalStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    width: '100%',
-    maxWidth: 500,
-    maxHeight: '85%',
-  },
-  containerTablet: {
-    maxWidth: 600,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerContent: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  subtitleTablet: {
-    fontSize: 15,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 12,
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#64748B',
-    fontWeight: '300',
-  },
-  content: {
-    padding: 20,
-    maxHeight: 450,
-  },
-  loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#64748B',
-  },
-  searchSection: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  searchInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1E293B',
-  },
-  searchInputTablet: {
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    fontSize: 17,
-    borderRadius: 14,
-  },
-  suppliersList: {
-    maxHeight: 350,
-  },
-  supplierItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
-  },
-  supplierItemSelected: {
-    backgroundColor: '#EEF2FF',
-  },
-  supplierItemContent: {
-    flex: 1,
-  },
-  supplierName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  supplierNameTablet: {
-    fontSize: 17,
-  },
-  supplierNameSelected: {
-    color: '#6366F1',
-  },
-  supplierCode: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  supplierCodeTablet: {
-    fontSize: 15,
-  },
-  checkmark: {
-    fontSize: 20,
-    color: '#6366F1',
-    fontWeight: '700',
-    marginLeft: 12,
-  },
-  noResults: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  noResultsText: {
-    fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
-  },
-  noResultsTextTablet: {
-    fontSize: 16,
-  },
-  footer: {
-    flexDirection: 'row',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-  },
-  cancelButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  cancelButtonTextTablet: {
-    fontSize: 17,
-  },
-  updateButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-  },
-  updateButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  updateButtonDisabled: {
-    opacity: 0.5,
-  },
-  updateButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  updateButtonTextTablet: {
-    fontSize: 17,
-  },
-  infoText: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 8,
-  },
-  infoTextTablet: {
-    fontSize: 15,
-  },
-});
-
 const modalStyles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing[4],
   },
   container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    width: '95%',
-    height: '90%',
-    overflow: 'hidden',
-  },
-  containerTablet: {
-    width: '85%',
-    maxWidth: 1000,
-    height: '92%',
-    borderRadius: 20,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
+    width: '100%',
+    maxWidth: 700,
+    maxHeight: '90%',
+    ...shadows.xl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 24,
+    padding: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-  },
-  headerContent: {
-    flex: 1,
-    marginRight: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  subtitleTablet: {
-    fontSize: 16,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: '#64748B',
-    fontWeight: '600',
+    borderBottomColor: colors.border.light,
   },
   content: {
-    flex: 1,
-    padding: 24,
+    padding: spacing[5],
+    maxHeight: 500,
   },
   section: {
-    marginBottom: 28,
+    marginBottom: spacing[4],
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 14,
-    letterSpacing: 0.3,
+    marginBottom: spacing[3],
   },
-  sectionTitleTablet: {
-    fontSize: 19,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  cardValidated: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#BBF7D0',
+  validatedCard: {
+    backgroundColor: colors.success[50],
+    borderColor: colors.success[200],
   },
   infoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    gap: 12,
+    marginBottom: spacing[2],
   },
   infoLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-    flex: 1,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
+    width: 140,
   },
   infoValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
     flex: 1,
-    textAlign: 'right',
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  infoValueHighlight: {
-    color: '#10B981',
-  },
-  comparisonRow: {
-    paddingVertical: 8,
-  },
-  comparisonLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  comparisonLabelTablet: {
-    fontSize: 16,
-  },
-  comparisonValues: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  comparisonValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '500',
-  },
-  comparisonValueTablet: {
-    fontSize: 16,
-  },
-  comparisonDiff: {
-    fontSize: 14,
-    fontWeight: '700',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  comparisonDiffTablet: {
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-  },
-  comparisonDiffPositive: {
-    color: '#10B981',
-    backgroundColor: '#D1FAE5',
-  },
-  comparisonDiffNegative: {
-    color: '#EF4444',
-    backgroundColor: '#FEE2E2',
-  },
-  validationCard: {
-    marginBottom: 16,
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
-  },
-  validationTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#92400E',
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#FDE68A',
-  },
-  validationTitleTablet: {
-    fontSize: 17,
   },
   photoSection: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  photoLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 12,
-  },
-  photoLabelTablet: {
-    fontSize: 16,
-  },
-  validationImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-  },
-  validationImageTablet: {
-    height: 300,
-    borderRadius: 14,
-  },
-  signatureImage: {
-    width: '100%',
-    height: 150,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-  },
-  signatureImageTablet: {
-    height: 200,
-    borderRadius: 14,
+    marginTop: spacing[4],
+    gap: spacing[2],
   },
   photosScroll: {
-    marginTop: 8,
+    marginTop: spacing[2],
   },
-  additionalPhoto: {
+  photo: {
     width: 120,
     height: 120,
-    borderRadius: 10,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.md,
+    marginRight: spacing[3],
   },
-  additionalPhotoTablet: {
-    width: 160,
-    height: 160,
-    borderRadius: 12,
+  validationItem: {
+    paddingVertical: spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+    gap: spacing[2],
+  },
+  validationPhoto: {
+    width: '100%',
+    height: 200,
+    borderRadius: borderRadius.md,
+    marginTop: spacing[2],
+  },
+  signaturePhoto: {
+    width: '100%',
+    height: 100,
+    borderRadius: borderRadius.md,
+    marginTop: spacing[2],
+    backgroundColor: colors.surface.secondary,
+  },
+  infoText: {
+    marginTop: spacing[3],
   },
   footer: {
-    padding: 24,
+    flexDirection: 'row',
+    padding: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderTopColor: colors.border.light,
+    gap: spacing[3],
   },
-  closeFooterButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  closeFooterButtonTablet: {
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  closeFooterButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  closeFooterButtonTextTablet: {
-    fontSize: 17,
+  modalButton: {
+    flex: 1,
   },
 });
 
