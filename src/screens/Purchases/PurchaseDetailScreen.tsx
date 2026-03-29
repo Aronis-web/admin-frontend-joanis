@@ -934,13 +934,10 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, o
                 {product.barcode && (
                   <InfoRow label="Código de Barras" value={product.barcode} highlight />
                 )}
-                {product.weightKg !== undefined && product.weightKg !== null && (
+                {product.weightKg !== undefined && product.weightKg !== null && typeof product.weightKg === 'number' && !isNaN(product.weightKg) && (
                   <InfoRow
                     label="Peso"
-                    value={product.weightKg >= 1
-                      ? `${product.weightKg.toFixed(3)} kg`
-                      : `${(product.weightKg * 1000).toFixed(0)} g`
-                    }
+                    value={`${(product.weightKg * 1000).toFixed(0)} g (${product.weightKg.toFixed(3)} kg)`}
                     highlight
                   />
                 )}

@@ -702,7 +702,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                   <Caption color="tertiary">Moneda:</Caption>
                   <Text variant="bodyMedium" color="primary">{viewProduct.currency || 'PEN'}</Text>
                 </View>
-                {viewProduct.weightKg !== undefined && viewProduct.weightKg !== null && (
+                {viewProduct.weightKg !== undefined && viewProduct.weightKg !== null && typeof viewProduct.weightKg === 'number' && !isNaN(viewProduct.weightKg) && (
                   <View style={styles.viewRow}>
                     <Caption color="tertiary">Peso:</Caption>
                     <Text variant="bodyMedium" color="primary">
