@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { purchasesService } from '@/services/api';
 import {
   PurchaseAutocompleteSuggestion,
@@ -205,7 +206,7 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
       </View>
       {item.matchedProduct && (
         <View style={styles.matchedProductContainer}>
-          <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+          <Ionicons name="checkmark-circle" size={14} color={colors.success[500]} />
           <Text style={styles.matchedProductText} numberOfLines={1}>
             {item.matchedProduct}
           </Text>
@@ -239,7 +240,7 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
           returnKeyType="search"
         />
         {isLoading && (
-          <ActivityIndicator size="small" color="#6366F1" style={styles.loadingIndicator} />
+          <ActivityIndicator size="small" color={colors.accent[500]} style={styles.loadingIndicator} />
         )}
         {internalValue.length > 0 && !isLoading && (
           <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
@@ -284,38 +285,38 @@ const styles = StyleSheet.create({
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    paddingHorizontal: 12,
+    backgroundColor: colors.neutral[100],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[3],
     height: 44,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: colors.neutral[800],
     paddingVertical: 0,
   },
   loadingIndicator: {
-    marginLeft: 8,
+    marginLeft: spacing[2],
   },
   clearButton: {
-    padding: 4,
-    marginLeft: 8,
+    padding: spacing[1],
+    marginLeft: spacing[2],
   },
   suggestionsContainer: {
     position: 'absolute',
     top: 48,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
     maxHeight: 400,
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -327,9 +328,9 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   suggestionItem: {
-    padding: 12,
+    padding: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.neutral[100],
   },
   suggestionHeader: {
     flexDirection: 'row',
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
   },
   suggestionIcon: {
     fontSize: 20,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   suggestionInfo: {
     flex: 1,
@@ -352,19 +353,19 @@ const styles = StyleSheet.create({
   suggestionCode: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   suggestionSupplier: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing[2],
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    marginLeft: 8,
+    marginLeft: spacing[2],
   },
   statusText: {
     fontSize: 10,
@@ -373,30 +374,30 @@ const styles = StyleSheet.create({
   suggestionDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   suggestionGuide: {
     fontSize: 11,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   suggestionDate: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   matchedProductContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 4,
+    backgroundColor: colors.success[50],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
+    marginBottom: spacing[1],
   },
   matchedProductText: {
     fontSize: 11,
-    color: '#10B981',
+    color: colors.success[500],
     fontWeight: '500',
-    marginLeft: 4,
+    marginLeft: spacing[1],
     flex: 1,
   },
   matchTypeContainer: {
@@ -404,7 +405,7 @@ const styles = StyleSheet.create({
   },
   matchTypeText: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     fontStyle: 'italic',
   },
   noResultsContainer: {
@@ -412,12 +413,12 @@ const styles = StyleSheet.create({
     top: 48,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 16,
-    shadowColor: '#000',
+    borderColor: colors.neutral[200],
+    padding: spacing[4],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
 });

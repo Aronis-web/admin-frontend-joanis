@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { colors, spacing } from '@/design-system/tokens';
 
 interface LazyLoadFallbackProps {
   message?: string;
@@ -13,7 +14,7 @@ export const LazyLoadFallback: React.FC<LazyLoadFallbackProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#6366F1" />
+      <ActivityIndicator size="large" color={colors.accent[500]} />
       <Text style={styles.text}>{message}</Text>
     </View>
   );
@@ -24,12 +25,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   text: {
-    marginTop: 16,
+    marginTop: spacing[4],
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
 });

@@ -1,6 +1,7 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PermissionDenied } from './PermissionDenied';
 
@@ -79,7 +80,7 @@ export class PermissionErrorBoundary extends Component<Props, State> {
       return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           <View style={styles.container}>
-            <Ionicons name="alert-circle" size={80} color="#EF4444" />
+            <Ionicons name="alert-circle" size={80} color={colors.danger[500]} />
             <Text style={styles.title}>Algo salió mal</Text>
             <Text style={styles.message}>
               {this.state.error?.message || 'Ha ocurrido un error inesperado.'}
@@ -99,36 +100,36 @@ export class PermissionErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
   },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#F8FAFC',
+    padding: spacing[6],
+    backgroundColor: colors.background.secondary,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1E293B',
-    marginTop: 16,
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginTop: spacing[4],
+    marginBottom: spacing[2],
   },
   message: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   button: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: colors.accent[500],
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '600',
   },

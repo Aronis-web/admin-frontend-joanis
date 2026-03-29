@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { locationsApi, LocationDetails, LocationSuggestion } from '@/services/api';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 // Conditional import for react-native-maps (only on native platforms)
 let MapView: any = null;
@@ -311,7 +312,7 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
         <TextInput
           style={[styles.input, disabled && styles.inputDisabled]}
           placeholder={placeholder}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={colors.neutral[400]}
           value={searchText}
           onChangeText={setSearchText}
           onFocus={() => {
@@ -325,7 +326,7 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
         />
         {loading && (
           <View style={styles.loadingIcon}>
-            <ActivityIndicator size="small" color="#3B82F6" />
+            <ActivityIndicator size="small" color={colors.primary[500]} />
           </View>
         )}
         {!loading && searchText.length > 0 && (
@@ -337,7 +338,7 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
 
       {loadingDetails && (
         <View style={styles.loadingDetailsContainer}>
-          <ActivityIndicator size="small" color="#3B82F6" />
+          <ActivityIndicator size="small" color={colors.primary[500]} />
           <Text style={styles.loadingDetailsText}>Obteniendo detalles de la ubicación...</Text>
         </View>
       )}
@@ -385,7 +386,7 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
                 longitude: selectedCoordinates.longitude,
               }}
               title="Ubicación seleccionada"
-              pinColor="#3B82F6"
+              pinColor={colors.primary[500]}
             />
           </MapView>
           <View style={styles.mapInfo}>
@@ -419,21 +420,21 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
     zIndex: 1000,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderColor: colors.neutral[200],
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[3],
     height: 48,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   searchIconText: {
     fontSize: 16,
@@ -441,75 +442,75 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#1E293B',
+    color: colors.neutral[800],
     paddingVertical: 0,
   },
   inputDisabled: {
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   loadingIcon: {
-    marginLeft: 8,
+    marginLeft: spacing[2],
   },
   clearButton: {
     width: 24,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E2E8F0',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[200],
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginLeft: spacing[2],
   },
   clearButtonText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   loadingDetailsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    marginTop: 8,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[3],
+    backgroundColor: colors.accent[50],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[2],
   },
   loadingDetailsText: {
     fontSize: 13,
-    color: '#3B82F6',
-    marginLeft: 8,
+    color: colors.primary[500],
+    marginLeft: spacing[2],
     fontWeight: '500',
   },
   suggestionsContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginTop: 8,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    marginTop: spacing[2],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
     maxHeight: 300,
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   suggestionsList: {
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[3],
     minHeight: 56,
   },
   suggestionIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EEF2FF',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.accent[50],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   suggestionIconText: {
     fontSize: 16,
@@ -520,33 +521,33 @@ const styles = StyleSheet.create({
   suggestionValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   suggestionSubtext: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   suggestionSeparator: {
     height: 1,
-    backgroundColor: '#F1F5F9',
-    marginHorizontal: 12,
+    backgroundColor: colors.neutral[100],
+    marginHorizontal: spacing[3],
   },
   hintText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     marginTop: 6,
-    marginLeft: 4,
+    marginLeft: spacing[1],
     fontStyle: 'italic',
   },
   mapContainer: {
-    marginTop: 16,
-    borderRadius: 12,
+    marginTop: spacing[4],
+    borderRadius: borderRadius.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[0],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -555,44 +556,44 @@ const styles = StyleSheet.create({
   mapTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
-    paddingHorizontal: 12,
+    color: colors.neutral[800],
+    paddingHorizontal: spacing[3],
     paddingVertical: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   map: {
     width: '100%',
     height: 200,
   },
   mapInfo: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F8FAFC',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    backgroundColor: colors.background.secondary,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
   },
   mapInfoText: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   webCoordinatesContainer: {
-    padding: 16,
-    backgroundColor: '#F8FAFC',
+    padding: spacing[4],
+    backgroundColor: colors.background.secondary,
   },
   webCoordinatesText: {
     fontSize: 14,
-    color: '#1E293B',
+    color: colors.neutral[800],
     fontWeight: '500',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   webCoordinatesHint: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     fontStyle: 'italic',
-    marginTop: 8,
+    marginTop: spacing[2],
   },
 });
 

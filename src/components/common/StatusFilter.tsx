@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 export interface StatusOption {
   value: string;
@@ -58,24 +59,24 @@ const styles = StyleSheet.create({
     maxHeight: 50,
   },
   contentContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    gap: spacing[2],
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    marginRight: 8,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    marginRight: spacing[2],
   },
   filterText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666',
+    color: colors.neutral[500],
   },
   filterTextActive: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontWeight: '600',
   },
 });

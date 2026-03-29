@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Svg, Circle, Rect, Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
-import { theme } from '@/theme';
+import { colors, spacing } from '@/design-system/tokens';
 
 const { width, height } = Dimensions.get('window');
 
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1a1f35',
+    backgroundColor: colors.neutral[900],
   },
   patternContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -182,21 +182,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 1,
     height: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.neutral[0],
     left: '25%',
   },
   gridLine2: {
     position: 'absolute',
     width: 1,
     height: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.neutral[0],
     left: '50%',
   },
   gridLine3: {
     position: 'absolute',
     width: 1,
     height: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.neutral[0],
     left: '75%',
   },
   content: {
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconContainer: {
-    marginBottom: 48,
-    shadowColor: '#3b82f6',
+    marginBottom: spacing[12],
+    shadowColor: colors.primary[500],
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
     shadowRadius: 24,
@@ -214,11 +214,11 @@ const styles = StyleSheet.create({
   appNameContainer: {
     flexDirection: 'column',
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: spacing[10],
   },
   appName: {
     fontSize: 28,
-    color: '#ffffff',
+    color: colors.neutral[0],
     fontFamily: 'Baloo2_700Bold',
     letterSpacing: 4,
     textTransform: 'uppercase',
@@ -226,13 +226,13 @@ const styles = StyleSheet.create({
   divider: {
     width: 60,
     height: 3,
-    backgroundColor: '#3b82f6',
-    marginVertical: 8,
+    backgroundColor: colors.primary[500],
+    marginVertical: spacing[2],
     borderRadius: 2,
   },
   appNameHighlight: {
     fontSize: 24,
-    color: '#60a5fa',
+    color: colors.primary[400],
     fontFamily: 'Baloo2_600SemiBold',
     letterSpacing: 6,
     textTransform: 'uppercase',
@@ -242,18 +242,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    marginBottom: 20,
+    marginBottom: spacing[5],
     height: 20,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#60a5fa',
+    backgroundColor: colors.primary[400],
   },
   text: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: colors.neutral[400],
     textAlign: 'center',
     fontFamily: 'Baloo2_400Regular',
     letterSpacing: 1,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: '#64748b',
+    color: colors.neutral[500],
     fontFamily: 'Baloo2_400Regular',
     letterSpacing: 1,
     textTransform: 'uppercase',

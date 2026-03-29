@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 export interface Column<T> {
   key: string;
@@ -103,7 +104,7 @@ export const DataTable = <T extends Record<string, any>>({
     if (!loading) return null;
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#007AFF" />
+        <ActivityIndicator size="small" color={colors.primary[500]} />
       </View>
     );
   };
@@ -139,15 +140,15 @@ export const DataTable = <T extends Record<string, any>>({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.neutral[0],
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background.secondary,
     borderBottomWidth: 2,
-    borderBottomColor: '#dee2e6',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    borderBottomColor: colors.neutral[300],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
   },
   headerCell: {
     justifyContent: 'center',
@@ -155,38 +156,38 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#495057',
+    color: colors.neutral[600],
     textTransform: 'uppercase',
   },
   row: {
     flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: colors.neutral[200],
   },
   rowEven: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background.secondary,
   },
   cell: {
     justifyContent: 'center',
   },
   cellText: {
     fontSize: 14,
-    color: '#212529',
+    color: colors.neutral[900],
   },
   emptyContainer: {
-    padding: 32,
+    padding: spacing[8],
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyText: {
     fontSize: 16,
-    color: '#6c757d',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   loadingContainer: {
-    padding: 16,
+    padding: spacing[4],
     alignItems: 'center',
   },
 });

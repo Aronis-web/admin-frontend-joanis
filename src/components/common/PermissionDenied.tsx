@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface PermissionDeniedProps {
@@ -20,7 +21,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.iconContainer}>
-          <Ionicons name="lock-closed" size={80} color="#EF4444" />
+          <Ionicons name="lock-closed" size={80} color={colors.danger[500]} />
         </View>
 
         <Text style={styles.title}>Acceso Denegado</Text>
@@ -32,7 +33,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
             <Text style={styles.permissionsTitle}>Permisos requeridos:</Text>
             {requiredPermissions.map((permission, index) => (
               <View key={index} style={styles.permissionItem}>
-                <Ionicons name="key" size={16} color="#6366F1" />
+                <Ionicons name="key" size={16} color={colors.accent[500]} />
                 <Text style={styles.permissionText}>{permission}</Text>
               </View>
             ))}
@@ -42,7 +43,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
         <View style={styles.actionsContainer}>
           {onGoBack && (
             <TouchableOpacity style={styles.button} onPress={onGoBack}>
-              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={20} color={colors.neutral[0]} />
               <Text style={styles.buttonText}>Volver</Text>
             </TouchableOpacity>
           )}
@@ -52,7 +53,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
               style={[styles.button, styles.buttonSecondary]}
               onPress={onContactAdmin}
             >
-              <Ionicons name="mail" size={20} color="#6366F1" />
+              <Ionicons name="mail" size={20} color={colors.accent[500]} />
               <Text style={[styles.buttonText, styles.buttonTextSecondary]}>
                 Contactar Administrador
               </Text>
@@ -61,7 +62,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
         </View>
 
         <View style={styles.infoContainer}>
-          <Ionicons name="information-circle" size={20} color="#64748B" />
+          <Ionicons name="information-circle" size={20} color={colors.neutral[500]} />
           <Text style={styles.infoText}>
             Si crees que esto es un error, contacta al administrador del sistema para solicitar los
             permisos necesarios.
@@ -75,106 +76,106 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   content: {
-    padding: 24,
+    padding: spacing[6],
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: '100%',
   },
   iconContainer: {
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 16,
+    color: colors.neutral[800],
+    marginBottom: spacing[4],
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
-    color: '#475569',
+    color: colors.neutral[600],
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: spacing[6],
     lineHeight: 24,
   },
   permissionsContainer: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[6],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   permissionsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 12,
+    color: colors.neutral[500],
+    marginBottom: spacing[3],
   },
   permissionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[2],
   },
   permissionText: {
     fontSize: 14,
-    color: '#1E293B',
-    marginLeft: 8,
+    color: colors.neutral[800],
+    marginLeft: spacing[2],
     fontFamily: 'monospace',
   },
   actionsContainer: {
     width: '100%',
-    gap: 12,
-    marginBottom: 24,
+    gap: spacing[3],
+    marginBottom: spacing[6],
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 24,
+    backgroundColor: colors.accent[500],
+    paddingHorizontal: spacing[6],
     paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
+    borderRadius: borderRadius.xl,
+    gap: spacing[2],
   },
   buttonSecondary: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
     borderWidth: 2,
-    borderColor: '#6366F1',
+    borderColor: colors.accent[500],
   },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   buttonTextSecondary: {
-    color: '#6366F1',
+    color: colors.accent[500],
   },
   infoContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: colors.warning[100],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.xl,
     width: '100%',
   },
   infoText: {
     fontSize: 13,
-    color: '#92400E',
-    marginLeft: 8,
+    color: colors.warning[800],
+    marginLeft: spacing[2],
     flex: 1,
     lineHeight: 20,
   },

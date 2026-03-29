@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet, ViewStyle } from 'react-native';
-import { theme } from '@/theme';
+import { colors, spacing } from '@/design-system/tokens';
 import { SplashScreen } from './SplashScreen';
 
 interface LoaderProps {
@@ -13,7 +13,7 @@ interface LoaderProps {
 
 export const Loader: React.FC<LoaderProps> = ({
   size = 'large',
-  color = theme.colors.primary,
+  color = colors.primary[500],
   text,
   fullScreen = false,
   style,
@@ -35,14 +35,14 @@ export const Loader: React.FC<LoaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: theme.spacing.lg,
+    padding: spacing[6],
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: {
-    marginTop: theme.spacing.md,
-    fontSize: theme.fontSize.md,
-    color: theme.colors.text.secondary,
+    marginTop: spacing[4],
+    fontSize: 16,
+    color: colors.neutral[500],
     textAlign: 'center',
   },
 });
