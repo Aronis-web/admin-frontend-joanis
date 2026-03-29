@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -36,11 +36,13 @@ interface TransportSelectionModalProps {
   onConfirm: (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => void;
 }
 
-export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = ({
+const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> = ({
   visible,
   onClose,
   onConfirm,
 }) => {
+  // Usar ref para trackear si ya se cargaron los datos
+  const dataLoadedRef = useRef(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [transporters, setTransporters] = useState<Transporter[]>([]);
@@ -65,25 +67,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
   const [showDriverDropdown, setShowDriverDropdown] = useState(false);
   const [showTransporterDropdown, setShowTransporterDropdown] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      loadData();
-    } else {
-      // Reset selections when modal closes
-      setSelectedVehicle(null);
-      setSelectedDriver(null);
-      setSelectedTransporter(null);
-      setTransportType(null);
-      setVehicleSearch('');
-      setDriverSearch('');
-      setTransporterSearch('');
-      setShowVehicleDropdown(false);
-      setShowDriverDropdown(false);
-      setShowTransporterDropdown(false);
-    }
-  }, [visible]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -115,7 +99,31 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Efecto para cargar datos y resetear al abrir/cerrar
+  useEffect(() => {
+    if (visible) {
+      // Solo cargar datos si no se han cargado antes o si el modal se abre de nuevo
+      if (!dataLoadedRef.current) {
+        loadData();
+        dataLoadedRef.current = true;
+      }
+    } else {
+      // Reset selections when modal closes
+      dataLoadedRef.current = false;
+      setSelectedVehicle(null);
+      setSelectedDriver(null);
+      setSelectedTransporter(null);
+      setTransportType(null);
+      setVehicleSearch('');
+      setDriverSearch('');
+      setTransporterSearch('');
+      setShowVehicleDropdown(false);
+      setShowDriverDropdown(false);
+      setShowTransporterDropdown(false);
+    }
+  }, [visible, loadData]);
 
   // Filtered lists based on search
   const filteredVehicles = useMemo(() => {
@@ -151,7 +159,7 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
     );
   }, [transporters, transporterSearch]);
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     if (!transportType) {
       Alert.alert('Error', 'Debes seleccionar un tipo de transporte');
       return;
@@ -180,9 +188,9 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
 
     // Enviar vehículo y conductor, sin transportista
     onConfirm(selectedVehicle, selectedDriver, null);
-  };
+  }, [transportType, selectedTransporter, selectedVehicle, selectedDriver, onConfirm]);
 
-  const handleSelectTransportType = (type: 'public' | 'private') => {
+  const handleSelectTransportType = useCallback((type: 'public' | 'private') => {
     setTransportType(type);
 
     if (type === 'public') {
@@ -196,37 +204,37 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
       setSelectedTransporter(null);
       setTransporterSearch('');
     }
-  };
+  }, []);
 
-  const handleSelectVehicle = (vehicle: Vehicle) => {
+  const handleSelectVehicle = useCallback((vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
     setVehicleSearch(`${vehicle.numeroPlaca} - ${vehicle.marca} ${vehicle.modelo}`);
     setShowVehicleDropdown(false);
-  };
+  }, []);
 
-  const handleSelectDriver = (driver: Driver) => {
+  const handleSelectDriver = useCallback((driver: Driver) => {
     setSelectedDriver(driver);
     setDriverSearch(`${driver.nombre} ${driver.apellido} - Lic: ${driver.numeroLicencia}`);
     setShowDriverDropdown(false);
-  };
+  }, []);
 
-  const handleSelectTransporter = (transporter: Transporter) => {
+  const handleSelectTransporter = useCallback((transporter: Transporter) => {
     setSelectedTransporter(transporter);
     setTransporterSearch(`${transporter.razonSocial} - RUC: ${transporter.numeroRuc}`);
     setShowTransporterDropdown(false);
-  };
+  }, []);
 
-  const handleCreateVehicle = () => {
+  const handleCreateVehicle = useCallback(() => {
     setShowCreateVehicle(true);
-  };
+  }, []);
 
-  const handleCreateDriver = () => {
+  const handleCreateDriver = useCallback(() => {
     setShowCreateDriver(true);
-  };
+  }, []);
 
-  const handleCreateTransporter = () => {
+  const handleCreateTransporter = useCallback(() => {
     setShowCreateTransporter(true);
-  };
+  }, []);
 
   const handleVehicleCreated = async (data: CreateVehicleRequest) => {
     try {
@@ -659,6 +667,9 @@ export const TransportSelectionModal: React.FC<TransportSelectionModalProps> = (
   </>
   );
 };
+
+// Exportar con React.memo para evitar re-renders innecesarios desde el componente padre
+export const TransportSelectionModal = React.memo(TransportSelectionModalComponent);
 
 const styles = StyleSheet.create({
   modalOverlay: {
