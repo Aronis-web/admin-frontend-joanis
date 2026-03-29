@@ -272,6 +272,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       console.log('📦 Loading product for edit:', {
         id: product.id,
         title: product.title,
+        weightKg: product.weightKg,
         presentations: product.presentations
       });
 
@@ -302,6 +303,15 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         warehouseId: '',
         areaId: '',
         initialStock: '',
+      });
+
+      // Debug: verificar carga de peso
+      console.log('⚖️ Weight loaded:', {
+        originalWeightKg: product.weightKg,
+        calculatedValue: product.weightKg !== undefined && product.weightKg !== null
+          ? (product.weightKg < 1 ? (product.weightKg * 1000).toString() : product.weightKg.toString())
+          : '',
+        unit: product.weightKg !== undefined && product.weightKg !== null && product.weightKg < 1 ? 'g' : 'kg',
       });
 
       if (product.presentations && product.presentations.length > 0) {
