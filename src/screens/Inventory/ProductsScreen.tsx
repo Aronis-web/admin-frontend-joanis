@@ -198,23 +198,32 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   };
 
   const handleViewProduct = async (product: Product) => {
-    let productWithImages = product;
-    if (!product.imageUrl && !product.imageUrls) {
-      try {
-        const imagesResponse = await productsApi.getProductImages(product.id);
-        if (imagesResponse.success && imagesResponse.images.length > 0) {
-          productWithImages = {
-            ...product,
-            imageUrl: imagesResponse.images[0].url,
-            imageUrls: imagesResponse.images.map((img) => img.url),
-          };
+    try {
+      // Obtener datos completos del producto (incluye weightKg y otros campos)
+      const fullProduct = await productsApi.getProductById(product.id);
+
+      // Obtener imágenes si no están incluidas
+      let productWithImages = fullProduct;
+      if (!fullProduct.imageUrl && !fullProduct.imageUrls) {
+        try {
+          const imagesResponse = await productsApi.getProductImages(product.id);
+          if (imagesResponse.success && imagesResponse.images.length > 0) {
+            productWithImages = {
+              ...fullProduct,
+              imageUrl: imagesResponse.images[0].url,
+              imageUrls: imagesResponse.images.map((img) => img.url),
+            };
+          }
+        } catch (error) {
+          logger.debug(`⚠️ No images found for product ${product.id}`);
         }
-      } catch (error) {
-        logger.debug(`⚠️ No images found for product ${product.id}`);
       }
+      setViewProduct(productWithImages);
+      setIsViewModalVisible(true);
+    } catch (error: any) {
+      logger.error('❌ Error loading product details:', error);
+      Alert.alert('Error', 'No se pudo cargar los detalles del producto');
     }
-    setViewProduct(productWithImages);
-    setIsViewModalVisible(true);
   };
 
   const handleEditProduct = async (product: Product) => {
