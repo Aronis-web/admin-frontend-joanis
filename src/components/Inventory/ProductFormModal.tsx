@@ -295,11 +295,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         costCents: (product.costCents || product.priceCents)?.toString() || '', // Support both costCents and legacy priceCents
         currency: product.currency || 'PEN',
         minStockAlert: product.minStockAlert?.toString() || '',
-        // Cargar peso: si es menor a 1 kg, mostrar en gramos para mejor UX
+        // Cargar peso siempre en gramos
         weightValue: product.weightKg !== undefined && product.weightKg !== null
-          ? (product.weightKg < 1 ? (product.weightKg * 1000).toString() : product.weightKg.toString())
+          ? (product.weightKg * 1000).toString()
           : '',
-        weightUnit: product.weightKg !== undefined && product.weightKg !== null && product.weightKg < 1 ? 'g' : 'kg',
+        weightUnit: 'g', // Por defecto mostrar en gramos
         warehouseId: '',
         areaId: '',
         initialStock: '',
@@ -308,10 +308,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       // Debug: verificar carga de peso
       console.log('⚖️ Weight loaded:', {
         originalWeightKg: product.weightKg,
-        calculatedValue: product.weightKg !== undefined && product.weightKg !== null
-          ? (product.weightKg < 1 ? (product.weightKg * 1000).toString() : product.weightKg.toString())
+        convertedToGrams: product.weightKg !== undefined && product.weightKg !== null
+          ? (product.weightKg * 1000).toString()
           : '',
-        unit: product.weightKg !== undefined && product.weightKg !== null && product.weightKg < 1 ? 'g' : 'kg',
+        unit: 'g',
       });
 
       if (product.presentations && product.presentations.length > 0) {
@@ -967,7 +967,18 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                       styles.weightUnitButton,
                       formData.weightUnit === 'kg' && styles.weightUnitButtonActive,
                     ]}
-                    onPress={() => setFormData({ ...formData, weightUnit: 'kg' })}
+                    onPress={() => {
+                      // Convertir de gramos a kilos al cambiar
+                      if (formData.weightUnit === 'g' && formData.weightValue) {
+                        const grams = parseFloat(formData.weightValue);
+                        if (!isNaN(grams)) {
+                          const kg = grams / 1000;
+                          setFormData({ ...formData, weightUnit: 'kg', weightValue: kg.toString() });
+                          return;
+                        }
+                      }
+                      setFormData({ ...formData, weightUnit: 'kg' });
+                    }}
                   >
                     <Text
                       style={[
@@ -983,7 +994,18 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                       styles.weightUnitButton,
                       formData.weightUnit === 'g' && styles.weightUnitButtonActive,
                     ]}
-                    onPress={() => setFormData({ ...formData, weightUnit: 'g' })}
+                    onPress={() => {
+                      // Convertir de kilos a gramos al cambiar
+                      if (formData.weightUnit === 'kg' && formData.weightValue) {
+                        const kg = parseFloat(formData.weightValue);
+                        if (!isNaN(kg)) {
+                          const grams = kg * 1000;
+                          setFormData({ ...formData, weightUnit: 'g', weightValue: grams.toString() });
+                          return;
+                        }
+                      }
+                      setFormData({ ...formData, weightUnit: 'g' });
+                    }}
                   >
                     <Text
                       style={[

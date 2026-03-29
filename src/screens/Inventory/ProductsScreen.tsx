@@ -706,10 +706,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                   <View style={styles.viewRow}>
                     <Caption color="tertiary">Peso:</Caption>
                     <Text variant="bodyMedium" color="primary">
-                      {viewProduct.weightKg >= 1
-                        ? `${viewProduct.weightKg.toFixed(3)} kg`
-                        : `${(viewProduct.weightKg * 1000).toFixed(0)} g`
-                      }
+                      {(viewProduct.weightKg * 1000).toFixed(0)} g ({viewProduct.weightKg.toFixed(3)} kg)
                     </Text>
                   </View>
                 )}
