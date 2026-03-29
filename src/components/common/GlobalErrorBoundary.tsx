@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing[4],
   },
   primaryButton: {
-    backgroundColor: colors.secondary[500],
+    backgroundColor: colors.accent[500],
     paddingVertical: 14,
     paddingHorizontal: spacing[6],
     borderRadius: borderRadius.lg,
