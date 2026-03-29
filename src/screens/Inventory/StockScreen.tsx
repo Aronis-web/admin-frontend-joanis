@@ -1,21 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
   Alert,
-  TextInput,
   ActivityIndicator,
   useWindowDimensions,
-  Platform,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
@@ -28,10 +24,28 @@ import { StockExportModal } from '@/components/Inventory/StockExportModal';
 import { ProductBulkUploadV2Modal } from '@/components/Inventory/ProductBulkUploadV2Modal';
 import { StockFAB } from '@/components/Inventory/StockFAB';
 import { inventoryApi, StockItem } from '@/services/api/inventory';
-import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
-import { Warehouse, WarehouseArea } from '@/types/warehouses';
-import { useStock, useWarehouses, useWarehouseAreas, useSearchStockV2, useStockV2 } from '@/hooks/api/useStock';
+import { WarehouseArea } from '@/types/warehouses';
+import { useWarehouses, useWarehouseAreas, useSearchStockV2, useStockV2 } from '@/hooks/api/useStock';
 import { logger } from '@/utils/logger';
+
+// Design System
+import {
+  colors,
+  spacing,
+  borderRadius,
+  shadows,
+} from '@/design-system/tokens';
+import {
+  Text,
+  Caption,
+  Button,
+  Card,
+  ScreenHeader,
+  SearchBar,
+  EmptyState,
+  Pagination,
+  Divider,
+} from '@/design-system/components';
 
 interface StockScreenProps {
   navigation: any;
@@ -358,71 +372,68 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   if (isLoading && !stockResponseV2) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Inventario</Text>
-          <View style={styles.backButton} />
-        </View>
+        <ScreenHeader
+          title="Inventario"
+          onBack={() => navigation.goBack()}
+        />
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Cargando inventario...</Text>
+          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
+            Cargando inventario...
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Inventario</Text>
-        <View style={styles.backButton} />
-      </View>
+      <ScreenHeader
+        title="Inventario"
+        onBack={() => navigation.goBack()}
+      />
       <View style={styles.container}>
         {/* Filters Container */}
         <View style={styles.filtersWrapper}>
           {/* Stock Level Filter */}
           <View style={styles.filterContainer}>
-            <Text style={styles.filterLabel}>Nivel de Stock:</Text>
+            <Text variant="labelMedium" color="secondary" style={styles.filterLabel}>Nivel de Stock:</Text>
             <TouchableOpacity
               style={styles.filterButton}
               onPress={() => setShowStockLevelPicker(true)}
             >
-              <Text style={styles.filterButtonText}>
+              <Text variant="bodyMedium" color="primary" style={styles.filterButtonText}>
                 {stockLevelFilter === 'all'
                   ? 'Todos'
                   : stockLevelFilter === 'normal'
                     ? 'Stock Normal'
                     : 'Sin Stock'}
               </Text>
-              <Text style={styles.filterButtonIcon}>▼</Text>
+              <Ionicons name="chevron-down" size={16} color={colors.icon.tertiary} />
             </TouchableOpacity>
           </View>
 
           {/* Warehouse Filter */}
           <View style={styles.filterContainer}>
-            <Text style={styles.filterLabel}>Almacén:</Text>
+            <Text variant="labelMedium" color="secondary" style={styles.filterLabel}>Almacén:</Text>
             {loadingWarehouses ? (
               <View style={styles.pickerLoading}>
-                <ActivityIndicator size="small" color="#667eea" />
-                <Text style={styles.pickerLoadingText}>Cargando...</Text>
+                <ActivityIndicator size="small" color={colors.primary[900]} />
+                <Caption color="tertiary" style={styles.pickerLoadingText}>Cargando...</Caption>
               </View>
             ) : (
               <TouchableOpacity
                 style={styles.customPickerButton}
                 onPress={() => setShowWarehousePicker(true)}
               >
-                <Text style={styles.customPickerText}>
+                <Text variant="bodyMedium" color="primary" style={styles.customPickerText}>
                   {selectedWarehouseId === 'all'
                     ? 'Todos'
                     : warehouses.find((w) => w.id === selectedWarehouseId)?.name ||
                       'Seleccionar...'}
                 </Text>
-                <Text style={styles.customPickerArrow}>▼</Text>
+                <Ionicons name="chevron-down" size={16} color={colors.icon.tertiary} />
               </TouchableOpacity>
             )}
           </View>
@@ -430,25 +441,25 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
           {/* Area Filter - Only show when a warehouse is selected */}
           {selectedWarehouseId !== 'all' && (
             <View style={styles.filterContainer}>
-              <Text style={styles.filterLabel}>Área:</Text>
+              <Text variant="labelMedium" color="secondary" style={styles.filterLabel}>Área:</Text>
               {loadingAreas ? (
                 <View style={styles.pickerLoading}>
-                  <ActivityIndicator size="small" color="#667eea" />
-                  <Text style={styles.pickerLoadingText}>Cargando...</Text>
+                  <ActivityIndicator size="small" color={colors.primary[900]} />
+                  <Caption color="tertiary" style={styles.pickerLoadingText}>Cargando...</Caption>
                 </View>
               ) : (
                 <TouchableOpacity
                   style={styles.customPickerButton}
                   onPress={() => setShowAreaPicker(true)}
                 >
-                  <Text style={styles.customPickerText}>
+                  <Text variant="bodyMedium" color="primary" style={styles.customPickerText}>
                     {selectedAreaId === 'all'
                       ? 'Todas'
                       : areas.find((a: WarehouseArea) => a.id === selectedAreaId)?.name ||
                         areas.find((a: WarehouseArea) => a.id === selectedAreaId)?.code ||
                         'Seleccionar...'}
                   </Text>
-                  <Text style={styles.customPickerArrow}>▼</Text>
+                  <Ionicons name="chevron-down" size={16} color={colors.icon.tertiary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -469,9 +480,9 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
           >
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Seleccionar Almacén</Text>
+                <Text variant="titleMedium" color="primary">Seleccionar Almacén</Text>
                 <TouchableOpacity onPress={() => setShowWarehousePicker(false)}>
-                  <Text style={styles.modalCloseButton}>✕</Text>
+                  <Ionicons name="close" size={24} color={colors.icon.secondary} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalList}>
@@ -486,14 +497,14 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   }}
                 >
                   <Text
-                    style={[
-                      styles.modalItemText,
-                      selectedWarehouseId === 'all' && styles.modalItemTextSelected,
-                    ]}
+                    variant="bodyMedium"
+                    color={selectedWarehouseId === 'all' ? colors.accent[600] : 'primary'}
                   >
                     Todos los almacenes
                   </Text>
-                  {selectedWarehouseId === 'all' && <Text style={styles.modalItemCheck}>✓</Text>}
+                  {selectedWarehouseId === 'all' && (
+                    <Ionicons name="checkmark" size={20} color={colors.accent[600]} />
+                  )}
                 </TouchableOpacity>
                 {warehouses.map((warehouse) => (
                   <TouchableOpacity
@@ -509,17 +520,15 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   >
                     <View style={styles.modalItemContent}>
                       <Text
-                        style={[
-                          styles.modalItemText,
-                          selectedWarehouseId === warehouse.id && styles.modalItemTextSelected,
-                        ]}
+                        variant="bodyMedium"
+                        color={selectedWarehouseId === warehouse.id ? colors.accent[600] : 'primary'}
                       >
                         {warehouse.name}
                       </Text>
-                      <Text style={styles.modalItemSubtext}>Código: {warehouse.code}</Text>
+                      <Caption color="tertiary">Código: {warehouse.code}</Caption>
                     </View>
                     {selectedWarehouseId === warehouse.id && (
-                      <Text style={styles.modalItemCheck}>✓</Text>
+                      <Ionicons name="checkmark" size={20} color={colors.accent[600]} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -542,9 +551,9 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
           >
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Seleccionar Área</Text>
+                <Text variant="titleMedium" color="primary">Seleccionar Área</Text>
                 <TouchableOpacity onPress={() => setShowAreaPicker(false)}>
-                  <Text style={styles.modalCloseButton}>✕</Text>
+                  <Ionicons name="close" size={24} color={colors.icon.secondary} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalList}>
@@ -556,20 +565,20 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   }}
                 >
                   <Text
-                    style={[
-                      styles.modalItemText,
-                      selectedAreaId === 'all' && styles.modalItemTextSelected,
-                    ]}
+                    variant="bodyMedium"
+                    color={selectedAreaId === 'all' ? colors.accent[600] : 'primary'}
                   >
                     Todas las áreas
                   </Text>
-                  {selectedAreaId === 'all' && <Text style={styles.modalItemCheck}>✓</Text>}
+                  {selectedAreaId === 'all' && (
+                    <Ionicons name="checkmark" size={20} color={colors.accent[600]} />
+                  )}
                 </TouchableOpacity>
                 {areas.length === 0 ? (
                   <View style={styles.modalItem}>
-                    <Text style={styles.modalItemSubtext}>
+                    <Caption color="tertiary">
                       No hay áreas disponibles para este almacén
-                    </Text>
+                    </Caption>
                   </View>
                 ) : (
                   areas.map((area: WarehouseArea) => (
@@ -586,18 +595,18 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                     >
                       <View style={styles.modalItemContent}>
                         <Text
-                          style={[
-                            styles.modalItemText,
-                            selectedAreaId === area.id && styles.modalItemTextSelected,
-                          ]}
+                          variant="bodyMedium"
+                          color={selectedAreaId === area.id ? colors.accent[600] : 'primary'}
                         >
                           {area.name || area.code || `Área ${area.id.substring(0, 8)}`}
                         </Text>
                         {area.code && area.name && (
-                          <Text style={styles.modalItemSubtext}>Código: {area.code}</Text>
+                          <Caption color="tertiary">Código: {area.code}</Caption>
                         )}
                       </View>
-                      {selectedAreaId === area.id && <Text style={styles.modalItemCheck}>✓</Text>}
+                      {selectedAreaId === area.id && (
+                        <Ionicons name="checkmark" size={20} color={colors.accent[600]} />
+                      )}
                     </TouchableOpacity>
                   ))
                 )}
@@ -620,9 +629,9 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
           >
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Seleccionar Nivel de Stock</Text>
+                <Text variant="titleMedium" color="primary">Seleccionar Nivel de Stock</Text>
                 <TouchableOpacity onPress={() => setShowStockLevelPicker(false)}>
-                  <Text style={styles.modalCloseButton}>✕</Text>
+                  <Ionicons name="close" size={24} color={colors.icon.secondary} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalList}>
@@ -637,14 +646,14 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   }}
                 >
                   <Text
-                    style={[
-                      styles.modalItemText,
-                      stockLevelFilter === 'normal' && styles.modalItemTextSelected,
-                    ]}
+                    variant="bodyMedium"
+                    color={stockLevelFilter === 'normal' ? colors.accent[600] : 'primary'}
                   >
                     Stock Normal (con stock)
                   </Text>
-                  {stockLevelFilter === 'normal' && <Text style={styles.modalItemCheck}>✓</Text>}
+                  {stockLevelFilter === 'normal' && (
+                    <Ionicons name="checkmark" size={20} color={colors.accent[600]} />
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -657,14 +666,14 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   }}
                 >
                   <Text
-                    style={[
-                      styles.modalItemText,
-                      stockLevelFilter === 'no-stock' && styles.modalItemTextSelected,
-                    ]}
+                    variant="bodyMedium"
+                    color={stockLevelFilter === 'no-stock' ? colors.accent[600] : 'primary'}
                   >
                     Sin Stock
                   </Text>
-                  {stockLevelFilter === 'no-stock' && <Text style={styles.modalItemCheck}>✓</Text>}
+                  {stockLevelFilter === 'no-stock' && (
+                    <Ionicons name="checkmark" size={20} color={colors.accent[600]} />
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalItem, stockLevelFilter === 'all' && styles.modalItemSelected]}
@@ -674,14 +683,14 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   }}
                 >
                   <Text
-                    style={[
-                      styles.modalItemText,
-                      stockLevelFilter === 'all' && styles.modalItemTextSelected,
-                    ]}
+                    variant="bodyMedium"
+                    color={stockLevelFilter === 'all' ? colors.accent[600] : 'primary'}
                   >
                     Todos
                   </Text>
-                  {stockLevelFilter === 'all' && <Text style={styles.modalItemCheck}>✓</Text>}
+                  {stockLevelFilter === 'all' && (
+                    <Ionicons name="checkmark" size={20} color={colors.accent[600]} />
+                  )}
                 </TouchableOpacity>
               </ScrollView>
             </View>
@@ -689,29 +698,20 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
         </Modal>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar por producto, SKU o bodega..."
+        <View style={styles.searchSection}>
+          <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor="#94A3B8"
+            placeholder="Buscar por producto, SKU o bodega..."
+            loading={isSearchingV2}
+            onClear={() => setSearchQuery('')}
           />
-          {isSearchingV2 && (
-            <ActivityIndicator size="small" color="#6366F1" style={styles.searchLoader} />
-          )}
-          {searchQuery.length > 0 && !isSearchingV2 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Text style={styles.clearIcon}>✕</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         {/* ✅ Indicador de búsqueda V2 optimizada */}
         {isUsingSearch && searchResultsV2 && (
           <View style={styles.searchInfoBanner}>
-            <Text style={styles.searchInfoText}>
+            <Text variant="labelSmall" color={colors.accent[700]} style={styles.searchInfoText}>
               {searchResultsV2.cached ? '⚡ Búsqueda desde caché' : '🔍 Búsqueda optimizada'}
               {' • '}
               {searchResultsV2.total} resultados
@@ -722,62 +722,68 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
-          <View style={[styles.statCard, { backgroundColor: '#EEF2FF' }]}>
-            <Text style={styles.statValue}>{getGroupedProducts.length}</Text>
-            <Text style={styles.statLabel}>Productos</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.accent[50] }]}>
+            <Text variant="numericMedium" color="primary">{getGroupedProducts.length}</Text>
+            <Caption color="tertiary">Productos</Caption>
           </View>
-          <View style={[styles.statCard, { backgroundColor: '#F0FDF4' }]}>
-            <Text style={styles.statValue}>{filteredStockItems.length}</Text>
-            <Text style={styles.statLabel}>Ubicaciones</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.success[50] }]}>
+            <Text variant="numericMedium" color="primary">{filteredStockItems.length}</Text>
+            <Caption color="tertiary">Ubicaciones</Caption>
           </View>
-          <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
-            <Text style={styles.statValue}>
+          <View style={[styles.statCard, { backgroundColor: colors.warning[50] }]}>
+            <Text variant="numericMedium" color="primary">
               {
                 getGroupedProducts.filter(
                   (p) => p.totalStock > 0 && p.totalStock <= (p.minStockAlert || 0)
                 ).length
               }
             </Text>
-            <Text style={styles.statLabel}>Stock Bajo</Text>
+            <Caption color="tertiary">Stock Bajo</Caption>
           </View>
-          <View style={[styles.statCard, { backgroundColor: '#FEE2E2' }]}>
-            <Text style={styles.statValue}>
+          <View style={[styles.statCard, { backgroundColor: colors.danger[50] }]}>
+            <Text variant="numericMedium" color="primary">
               {getGroupedProducts.filter((p) => p.totalStock === 0).length}
             </Text>
-            <Text style={styles.statLabel}>Sin Stock</Text>
+            <Caption color="tertiary">Sin Stock</Caption>
           </View>
         </View>
 
         {/* Stock List - Grouped by Product */}
         <ScrollView
           style={[styles.content, isLandscape && styles.contentLandscape]}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={onRefresh}
+              tintColor={colors.primary[900]}
+              colors={[colors.primary[900]]}
+            />
+          }
         >
           {!isLoading && getGroupedProducts.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📊</Text>
-              <Text style={styles.emptyTitle}>No hay registros de inventario</Text>
-              <Text style={styles.emptyText}>
-                {searchQuery
+            <EmptyState
+              emoji="📊"
+              title="No hay registros de inventario"
+              description={
+                searchQuery
                   ? 'No se encontraron registros con ese criterio de búsqueda'
-                  : 'El inventario está vacío o no tienes permisos para verlo.\n\nSi crees que deberías tener acceso, contacta al administrador.'}
-              </Text>
-              <TouchableOpacity
-                style={styles.debugButton}
-                onPress={() => navigation.navigate('PermissionsDebug')}
-              >
-                <Text style={styles.debugButtonText}>🔍 Ver Mis Permisos</Text>
-              </TouchableOpacity>
-            </View>
+                  : 'El inventario está vacío o no tienes permisos para verlo.'
+              }
+              actionLabel={!searchQuery ? '🔍 Ver Mis Permisos' : undefined}
+              onAction={!searchQuery ? () => navigation.navigate('PermissionsDebug') : undefined}
+            />
           ) : (
             <View style={styles.stockList}>
               {getGroupedProducts.map((product, index) => (
-                <View key={product.productId || index} style={styles.productCard}>
+                <Card key={product.productId || index} variant="outlined" padding="none" style={styles.productCard}>
                   <View style={styles.productCardContent}>
                     <View style={styles.productHeader}>
                       <View style={styles.productInfo}>
-                        <Text style={styles.productTitle}>{product.productTitle}</Text>
-                        <Text style={styles.productSku}>SKU: {product.productSku}</Text>
+                        <Text variant="titleSmall" color="primary" numberOfLines={2}>
+                          {product.productTitle}
+                        </Text>
+                        <Caption color="tertiary">SKU: {product.productSku}</Caption>
                       </View>
                       <View
                         style={[
@@ -790,40 +796,36 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                           },
                         ]}
                       >
-                        <Text style={styles.stockLevelText}>
+                        <Text variant="labelSmall" color={colors.text.inverse}>
                           {getStockLevelText(product.totalStock, product.minStockAlert || 0)}
                         </Text>
                       </View>
                     </View>
 
+                    <Divider spacing="none" style={styles.productDivider} />
+
                     <View style={styles.productDetails}>
                       <View style={styles.productDetailRow}>
-                        <View style={styles.productDetailItem}>
-                          <Text style={styles.productDetailLabel}>Stock Disponible:</Text>
-                          <Text style={[styles.productDetailValue, styles.stockQuantity]}>
-                            {(product.totalStock || 0).toFixed(2)} unidades
-                          </Text>
-                        </View>
+                        <Caption color="tertiary">Stock Disponible:</Caption>
+                        <Text variant="numericMedium" color={colors.accent[600]}>
+                          {(product.totalStock || 0).toFixed(2)} unidades
+                        </Text>
                       </View>
 
                       <View style={styles.productDetailRow}>
-                        <View style={styles.productDetailItem}>
-                          <Text style={styles.productDetailLabel}>📍 Ubicación:</Text>
-                          <Text style={styles.productDetailValue}>
-                            {product.warehouseName || 'Sin almacén'}
-                            {product.areaName ? ` / ${product.areaName}` : ''}
-                          </Text>
-                        </View>
+                        <Caption color="tertiary">📍 Ubicación:</Caption>
+                        <Text variant="labelMedium" color="primary">
+                          {product.warehouseName || 'Sin almacén'}
+                          {product.areaName ? ` / ${product.areaName}` : ''}
+                        </Text>
                       </View>
 
                       {product.minStockAlert && (
                         <View style={styles.productDetailRow}>
-                          <View style={styles.productDetailItem}>
-                            <Text style={styles.productDetailLabel}>Alerta Mínima:</Text>
-                            <Text style={styles.productDetailValue}>
-                              {product.minStockAlert} unidades
-                            </Text>
-                          </View>
+                          <Caption color="tertiary">Alerta Mínima:</Caption>
+                          <Text variant="labelMedium" color="primary">
+                            {product.minStockAlert} unidades
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -832,7 +834,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   {/* Action Buttons */}
                   <View style={styles.productActions}>
                     <TouchableOpacity
-                      style={styles.viewAreasButton}
+                      style={[styles.actionButton, styles.viewAreasButton]}
                       onPress={() =>
                         handleViewStockByAreas(
                           product.productId,
@@ -841,11 +843,11 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                         )
                       }
                     >
-                      <Text style={styles.viewAreasButtonText}>📊 Ver Stock por Áreas</Text>
+                      <Text variant="labelMedium" color={colors.text.inverse}>📊 Stock por Áreas</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={styles.viewHistoryButton}
+                      style={[styles.actionButton, styles.viewHistoryButton]}
                       onPress={() =>
                         handleViewHistory(
                           product.productId,
@@ -854,10 +856,10 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                         )
                       }
                     >
-                      <Text style={styles.viewHistoryButtonText}>📜 Ver Historial</Text>
+                      <Text variant="labelMedium" color={colors.text.inverse}>📜 Historial</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
+                </Card>
               ))}
             </View>
           )}
@@ -865,52 +867,14 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
         {/* ✅ Paginación - Solo mostrar si NO hay búsqueda activa */}
         {!isUsingSearch && pagination.total > 0 && (
-          <View style={styles.paginationContainer}>
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                pagination.page === 1 && styles.paginationButtonDisabled,
-              ]}
-              onPress={handlePreviousPage}
-              disabled={pagination.page === 1}
-            >
-              <Text
-                style={[
-                  styles.paginationButtonText,
-                  pagination.page === 1 && styles.paginationButtonTextDisabled,
-                ]}
-              >
-                ← Anterior
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.paginationInfo}>
-              <Text style={styles.paginationText}>
-                Pág. {pagination.page}/{pagination.totalPages}
-              </Text>
-              <Text style={styles.paginationSubtext}>
-                {getGroupedProducts.length} de {pagination.total} ubicaciones
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-              ]}
-              onPress={handleNextPage}
-              disabled={pagination.page >= pagination.totalPages}
-            >
-              <Text
-                style={[
-                  styles.paginationButtonText,
-                  pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-                ]}
-              >
-                Siguiente →
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <Pagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            itemsPerPage={pagination.limit}
+            onPageChange={setPage}
+            loading={isLoading}
+          />
         )}
       </View>
 
@@ -977,123 +941,104 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+
+  // Loading
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backButtonText: {
-    fontSize: 24,
-    color: '#1E293B',
+  loadingText: {
+    marginTop: spacing[4],
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
+
+  // Filters
   filtersWrapper: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: colors.surface.primary,
+    marginHorizontal: spacing[4],
+    marginTop: spacing[4],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 12,
+    borderColor: colors.border.light,
+    gap: spacing[3],
   },
   filterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-    marginRight: 12,
-    minWidth: 70,
+    marginRight: spacing[3],
+    minWidth: 90,
+  },
+  filterButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[3],
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  filterButtonText: {
+    flex: 1,
   },
   customPickerButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[3],
+    backgroundColor: colors.surface.secondary,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border.light,
   },
   customPickerText: {
     flex: 1,
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '500',
   },
-  customPickerArrow: {
-    fontSize: 10,
-    color: '#64748B',
-    marginLeft: 8,
+  pickerLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing[2],
   },
+  pickerLoadingText: {
+    marginLeft: spacing[2],
+  },
+
+  // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
     width: '100%',
     maxWidth: 400,
     maxHeight: '70%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...shadows.lg,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  modalCloseButton: {
-    fontSize: 24,
-    color: '#64748B',
-    fontWeight: '300',
+    borderBottomColor: colors.border.light,
   },
   modalList: {
     maxHeight: 400,
@@ -1102,366 +1047,125 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.surface.secondary,
   },
   modalItemSelected: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.accent[50],
   },
   modalItemContent: {
     flex: 1,
   },
-  modalItemText: {
-    fontSize: 16,
-    color: '#1E293B',
-    fontWeight: '500',
-  },
-  modalItemTextSelected: {
-    color: '#667eea',
-    fontWeight: '600',
-  },
-  modalItemSubtext: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  modalItemCheck: {
-    fontSize: 20,
-    color: '#667eea',
-    fontWeight: '700',
-  },
-  searchLoader: {
-    marginRight: 8,
+
+  // Search Section
+  searchSection: {
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[2],
   },
   searchInfoBanner: {
-    backgroundColor: '#EEF2FF',
-    marginHorizontal: 16,
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    backgroundColor: colors.accent[50],
+    marginHorizontal: spacing[4],
+    marginTop: spacing[2],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: colors.accent[200],
   },
   searchInfoText: {
-    fontSize: 12,
-    color: '#4F46E5',
-    fontWeight: '600',
     textAlign: 'center',
   },
-  pickerLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  pickerLoadingText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#64748B',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1E293B',
-  },
-  clearIcon: {
-    fontSize: 18,
-    color: '#94A3B8',
-    paddingHorizontal: 8,
-  },
+
+  // Stats
   statsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 8,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    gap: spacing[2],
   },
   statCard: {
     flex: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
     alignItems: 'center',
   },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 10,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  actionContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  adjustButton: {
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  adjustButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+
+  // Content
   content: {
     flex: 1,
   },
   contentLandscape: {
-    paddingBottom: 20,
+    paddingBottom: spacing[5],
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  listContent: {
+    padding: spacing[4],
+    paddingBottom: spacing[24],
   },
-  loadingText: {
-    fontSize: 16,
-    color: '#64748B',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
+
+  // Stock List
   stockList: {
-    paddingHorizontal: 16,
-    paddingBottom: 140,
+    gap: spacing[3],
   },
   productCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    marginBottom: spacing[3],
   },
   productCardContent: {
-    padding: 16,
+    padding: spacing[4],
   },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   productInfo: {
     flex: 1,
-    marginRight: 12,
-  },
-  productTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  productSku: {
-    fontSize: 13,
-    color: '#64748B',
+    marginRight: spacing[3],
   },
   stockLevelBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
   },
-  stockLevelText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  productDivider: {
+    marginVertical: spacing[3],
   },
   productDetails: {
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 12,
+    gap: spacing[2],
   },
   productDetailRow: {
-    marginBottom: 8,
-  },
-  productDetailItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  productDetailLabel: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  productDetailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  stockQuantity: {
-    color: '#667eea',
-    fontSize: 15,
-  },
-  areaValue: {
-    color: '#10B981',
-    fontWeight: '700',
-  },
+
+  // Action Buttons
   productActions: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 12,
     flexDirection: 'row',
-    gap: 8,
-  },
-  viewAreasButton: {
-    flex: 1,
-    backgroundColor: '#667eea',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  viewAreasButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  viewHistoryButton: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  viewHistoryButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  debugButton: {
-    marginTop: 20,
-    backgroundColor: '#667eea',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  debugButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  paginationContainer: {
-    backgroundColor: '#FFFFFF',
+    gap: spacing[2],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
+    borderTopColor: colors.border.light,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
   },
-  paginationInfo: {
-    alignItems: 'center',
-    minWidth: 120,
+  viewAreasButton: {
+    backgroundColor: colors.accent[600],
   },
-  paginationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  paginationSubtext: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  paginationButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#6366F1',
-    minWidth: 110,
-    alignItems: 'center',
-  },
-  paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
-  },
-  paginationButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  paginationButtonTextDisabled: {
-    color: '#94A3B8',
-  },
-  filterButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  filterButtonText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '500',
-  },
-  filterButtonIcon: {
-    fontSize: 10,
-    color: '#64748B',
-    marginLeft: 8,
+  viewHistoryButton: {
+    backgroundColor: colors.success[600],
   },
 });
 

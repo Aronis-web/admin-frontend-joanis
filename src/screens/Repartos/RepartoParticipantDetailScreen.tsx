@@ -17,6 +17,8 @@ import {
   Platform,
   Image,
   FlatList,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -190,6 +192,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const [notasModalVisible, setNotasModalVisible] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [selectedDiscrepancy, setSelectedDiscrepancy] = useState<TransferReportDiscrepancy | null>(null);
+  const [bultosModalVisible, setBultosModalVisible] = useState(false);
+  const [numeroBultos, setNumeroBultos] = useState('1');
+  const [pendingTransportData, setPendingTransportData] = useState<{
+    vehicle: Vehicle | null;
+    driver: Driver | null;
+    transporter: Transporter | null;
+  } | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -716,6 +725,28 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const handleTransportConfirm = async (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
     setTransportModalVisible(false);
 
+    // Guardar datos de transporte y abrir modal de bultos
+    setPendingTransportData({ vehicle, driver, transporter });
+    setNumeroBultos('1'); // Resetear a valor por defecto
+    setBultosModalVisible(true);
+  };
+
+  const handleBultosConfirm = async () => {
+    if (!pendingTransportData) {
+      Alert.alert('Error', 'No se encontraron los datos de transporte');
+      return;
+    }
+
+    const { vehicle, driver, transporter } = pendingTransportData;
+    const bultosNum = parseInt(numeroBultos, 10);
+
+    if (isNaN(bultosNum) || bultosNum < 1) {
+      Alert.alert('Error', 'La cantidad de bultos debe ser un número mayor a 0');
+      return;
+    }
+
+    setBultosModalVisible(false);
+
     const participantName =
       participant?.participantType === ParticipantType.EXTERNAL_COMPANY
         ? participant.company?.alias || participant.company?.name || 'Empresa'
@@ -731,16 +762,17 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       confirmMessage +=
         `🚌 Transporte: Público\n` +
         `🏢 Transportista: ${transporter!.razonSocial}\n` +
-        `📋 RUC: ${transporter!.numeroRuc}\n\n`;
+        `📋 RUC: ${transporter!.numeroRuc}\n`;
     } else {
       confirmMessage +=
         `🚗 Transporte: Privado\n` +
         `🚗 Vehículo: ${vehicle!.numeroPlaca} (${vehicle!.marca} ${vehicle!.modelo})\n` +
         `👤 Conductor: ${driver!.nombre} ${driver!.apellido}\n` +
-        `📋 Licencia: ${driver!.numeroLicencia}\n\n`;
+        `📋 Licencia: ${driver!.numeroLicencia}\n`;
     }
 
     confirmMessage +=
+      `📦 Bultos: ${bultosNum}\n\n` +
       'Esta acción:\n' +
       '• Generará una guía de remisión tipo 09 (Traslado)\n' +
       '• Se enviará automáticamente a SUNAT\n' +
@@ -754,6 +786,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         {
           text: 'Cancelar',
           style: 'cancel',
+          onPress: () => {
+            setPendingTransportData(null);
+          },
         },
         {
           text: 'Generar',
@@ -762,6 +797,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             try {
               setGeneratingRemissionGuide(true);
               logger.info('🔄 Generando guía de remisión para:', participantName);
+              logger.info('📦 Número de bultos:', bultosNum);
 
               if (isPublicTransport) {
                 logger.info('🚌 Tipo de transporte: Público');
@@ -777,9 +813,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 campaignId,
                 isPublicTransport ? {
                   transporterId: transporter!.id,
+                  numeroBultos: bultosNum,
                 } : {
                   vehicleId: vehicle!.id,
                   driverId: driver!.id,
+                  numeroBultos: bultosNum,
                 }
               );
 
@@ -789,7 +827,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 `Guía de remisión generada exitosamente:\n\n` +
                 `📄 Número: ${response.remissionGuide.serieNumero}\n` +
                 `✅ Estado: ${response.remissionGuide.status}\n` +
-                `📦 Traslado: ${response.transfer.transferNumber}\n`;
+                `📦 Traslado: ${response.transfer.transferNumber}\n` +
+                `📦 Bultos: ${bultosNum}\n`;
 
               if (isPublicTransport) {
                 successMessage +=
@@ -822,6 +861,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               );
             } finally {
               setGeneratingRemissionGuide(false);
+              setPendingTransportData(null);
             }
           },
         },
@@ -1661,6 +1701,90 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           onConfirm={handleTransportConfirm}
         />
 
+        {/* Bultos Modal */}
+        <Modal
+          visible={bultosModalVisible}
+          animationType="fade"
+          transparent
+          onRequestClose={() => {
+            setBultosModalVisible(false);
+            setPendingTransportData(null);
+          }}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.bultosModalOverlay}
+          >
+            <View style={[styles.bultosModalContainer, isTablet && styles.bultosModalContainerTablet]}>
+              <View style={styles.bultosModalHeader}>
+                <Ionicons name="cube-outline" size={32} color={colors.primary[500]} />
+                <Text style={[styles.bultosModalTitle, isTablet && styles.bultosModalTitleTablet]}>
+                  Cantidad de Bultos
+                </Text>
+                <Text style={[styles.bultosModalSubtitle, isTablet && styles.bultosModalSubtitleTablet]}>
+                  Ingrese el número de bultos para la guía de remisión
+                </Text>
+              </View>
+
+              <View style={styles.bultosInputContainer}>
+                <TouchableOpacity
+                  style={[styles.bultosButton, styles.bultosButtonMinus]}
+                  onPress={() => {
+                    const current = parseInt(numeroBultos, 10) || 1;
+                    if (current > 1) {
+                      setNumeroBultos(String(current - 1));
+                    }
+                  }}
+                >
+                  <Ionicons name="remove" size={24} color={colors.text.inverse} />
+                </TouchableOpacity>
+
+                <TextInput
+                  style={[styles.bultosInput, isTablet && styles.bultosInputTablet]}
+                  value={numeroBultos}
+                  onChangeText={(text) => {
+                    // Solo permitir números
+                    const numericValue = text.replace(/[^0-9]/g, '');
+                    setNumeroBultos(numericValue);
+                  }}
+                  keyboardType="numeric"
+                  maxLength={4}
+                  selectTextOnFocus
+                />
+
+                <TouchableOpacity
+                  style={[styles.bultosButton, styles.bultosButtonPlus]}
+                  onPress={() => {
+                    const current = parseInt(numeroBultos, 10) || 0;
+                    setNumeroBultos(String(current + 1));
+                  }}
+                >
+                  <Ionicons name="add" size={24} color={colors.text.inverse} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.bultosModalActions}>
+                <TouchableOpacity
+                  style={[styles.bultosModalButton, styles.bultosModalButtonCancel]}
+                  onPress={() => {
+                    setBultosModalVisible(false);
+                    setPendingTransportData(null);
+                  }}
+                >
+                  <Text style={styles.bultosModalButtonCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.bultosModalButton, styles.bultosModalButtonConfirm]}
+                  onPress={handleBultosConfirm}
+                >
+                  <Text style={styles.bultosModalButtonConfirmText}>Continuar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
         {/* Image Viewer Modal */}
         <ImageViewerModal
           visible={imageViewerVisible}
@@ -2266,6 +2390,114 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   filterButtonTextActive: {
+    color: colors.text.inverse,
+  },
+  // Bultos Modal Styles
+  bultosModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing[4],
+  },
+  bultosModalContainer: {
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[6],
+    width: '100%',
+    maxWidth: 340,
+    ...shadows.lg,
+  },
+  bultosModalContainerTablet: {
+    maxWidth: 400,
+    padding: spacing[8],
+  },
+  bultosModalHeader: {
+    alignItems: 'center',
+    marginBottom: spacing[6],
+  },
+  bultosModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginTop: spacing[3],
+    textAlign: 'center',
+  },
+  bultosModalTitleTablet: {
+    fontSize: 24,
+  },
+  bultosModalSubtitle: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginTop: spacing[2],
+    textAlign: 'center',
+  },
+  bultosModalSubtitleTablet: {
+    fontSize: 16,
+  },
+  bultosInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[6],
+    gap: spacing[3],
+  },
+  bultosButton: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+  bultosButtonMinus: {
+    backgroundColor: colors.error[500],
+  },
+  bultosButtonPlus: {
+    backgroundColor: colors.success[500],
+  },
+  bultosInput: {
+    width: 100,
+    height: 60,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: colors.primary[500],
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  bultosInputTablet: {
+    width: 120,
+    height: 70,
+    fontSize: 32,
+  },
+  bultosModalActions: {
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  bultosModalButton: {
+    flex: 1,
+    paddingVertical: spacing[3.5],
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bultosModalButtonCancel: {
+    backgroundColor: colors.neutral[200],
+  },
+  bultosModalButtonConfirm: {
+    backgroundColor: colors.primary[500],
+  },
+  bultosModalButtonCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.secondary,
+  },
+  bultosModalButtonConfirmText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.text.inverse,
   },
 });

@@ -594,6 +594,7 @@ class RepartosService {
       vehicleId?: string;
       driverId?: string;
       transporterId?: string;
+      numeroBultos?: number;
     }
   ): Promise<{
     success: boolean;
