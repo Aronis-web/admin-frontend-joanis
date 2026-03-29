@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { Site, SiteAdmin } from '@/types/sites';
 import { sitesApi, usersApi, User } from '@/services/api';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
@@ -161,7 +162,7 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
                               disabled={removingAdminId === admin.userId}
                             >
                               {removingAdminId === admin.userId ? (
-                                <ActivityIndicator size="small" color="#EF4444" />
+                                <ActivityIndicator size="small" color={colors.danger[500]} />
                               ) : (
                                 <Text style={styles.removeButtonText}>✕</Text>
                               )}
@@ -183,7 +184,7 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
                 <Text style={styles.sectionTitle}>Agregar Administrador</Text>
                 {loading ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#3B82F6" />
+                    <ActivityIndicator size="small" color={colors.primary[500]} />
                     <Text style={styles.loadingText}>Cargando usuarios...</Text>
                   </View>
                 ) : availableUsers.length > 0 ? (
@@ -235,83 +236,83 @@ export const ManageAdminsModal: React.FC<ManageAdminsModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     maxHeight: '90%',
-    paddingBottom: 20,
+    paddingBottom: spacing[5],
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
     flex: 1,
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingHorizontal: spacing[6],
+    paddingTop: spacing[5],
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 12,
+    color: colors.neutral[800],
+    marginBottom: spacing[3],
   },
   adminsList: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 8,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[2],
   },
   adminItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[2],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   adminAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#3B82F6',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   adminAvatarText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   adminInfo: {
     flex: 1,
@@ -319,52 +320,52 @@ const styles = StyleSheet.create({
   adminName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   adminEmail: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   removeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FEE2E2',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.danger[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   removeButtonText: {
     fontSize: 18,
-    color: '#EF4444',
+    color: colors.danger[500],
     fontWeight: '600',
   },
   usersList: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 8,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[2],
   },
   userItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[2],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   userAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#10B981',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.success[500],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   userAvatarText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   userInfo: {
     flex: 1,
@@ -372,64 +373,64 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   userEmail: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   addButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#DBEAFE',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   addButtonText: {
     fontSize: 20,
-    color: '#3B82F6',
+    color: colors.primary[500],
     fontWeight: '600',
   },
   emptyText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
-    paddingVertical: 20,
+    paddingVertical: spacing[5],
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: spacing[5],
   },
   loadingText: {
     fontSize: 14,
-    color: '#64748B',
-    marginLeft: 8,
+    color: colors.neutral[500],
+    marginLeft: spacing[2],
   },
   modalActions: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingHorizontal: spacing[6],
+    paddingTop: spacing[5],
   },
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeActionButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   closeActionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
 });
 

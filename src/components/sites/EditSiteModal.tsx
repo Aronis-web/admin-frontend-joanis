@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { sitesApi } from '@/services/api';
 import { Site, UpdateSiteRequest } from '@/types/sites';
@@ -335,8 +336,8 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
                 value={formData.isActive}
                 onValueChange={(value) => updateField('isActive', value)}
                 disabled={loading}
-                trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-                thumbColor={formData.isActive ? '#FFFFFF' : '#94A3B8'}
+                trackColor={{ false: colors.neutral[200], true: colors.primary[500] }}
+                thumbColor={formData.isActive ? colors.neutral[0] : colors.neutral[400]}
               />
             </View>
 
@@ -504,7 +505,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.neutral[0]} />
               ) : (
                 <Text style={styles.submitButtonText}>Guardar Cambios</Text>
               )}
@@ -520,89 +521,89 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     maxHeight: '90%',
-    paddingBottom: 20,
+    paddingBottom: spacing[5],
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   formContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingHorizontal: spacing[6],
+    paddingTop: spacing[5],
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginTop: 16,
-    marginBottom: 12,
+    color: colors.neutral[800],
+    marginTop: spacing[4],
+    marginBottom: spacing[3],
   },
   sectionDescription: {
     fontSize: 13,
-    color: '#64748B',
-    marginBottom: 12,
+    color: colors.neutral[500],
+    marginBottom: spacing[3],
     lineHeight: 18,
   },
   checkboxGroup: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   checkboxItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    marginBottom: 8,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing[2],
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: borderRadius.md,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.neutral[300],
+    backgroundColor: colors.neutral[0],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   checkboxChecked: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
   },
   checkboxIcon: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '700',
   },
@@ -612,51 +613,51 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   checkboxDescription: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    marginBottom: 16,
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[4],
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing[4],
   },
   switchLabelContainer: {
     flex: 1,
-    marginRight: 16,
+    marginRight: spacing[4],
   },
   switchLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   switchDescription: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   mapButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    backgroundColor: colors.accent[50],
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing[4],
     borderWidth: 2,
-    borderColor: '#3B82F6',
+    borderColor: colors.primary[500],
   },
   mapButtonIcon: {
     fontSize: 32,
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   mapButtonContent: {
     flex: 1,
@@ -664,80 +665,80 @@ const styles = StyleSheet.create({
   mapButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3B82F6',
-    marginBottom: 4,
+    color: colors.primary[500],
+    marginBottom: spacing[1],
   },
   mapButtonSubtext: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   modalActions: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    gap: 12,
+    paddingHorizontal: spacing[6],
+    paddingTop: spacing[5],
+    gap: spacing[3],
   },
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   submitButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
   },
   submitButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: colors.neutral[400],
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   locationSearchSection: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: colors.primary[200],
   },
   locationSearchLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#0369A1',
-    marginBottom: 4,
+    color: colors.primary[700],
+    marginBottom: spacing[1],
   },
   locationSearchHint: {
     fontSize: 12,
-    color: '#0284C7',
-    marginBottom: 12,
+    color: colors.primary[600],
+    marginBottom: spacing[3],
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
+    marginVertical: spacing[4],
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.neutral[200],
   },
   dividerText: {
     fontSize: 13,
-    color: '#94A3B8',
-    marginHorizontal: 12,
+    color: colors.neutral[400],
+    marginHorizontal: spacing[3],
     fontWeight: '500',
   },
 });

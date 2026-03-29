@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Alert from '@/utils/alert';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView} from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { Site } from '@/types/sites';
 import { Warehouse } from '@/types/warehouses';
 import { warehousesApi } from '@/services/api';
@@ -186,24 +187,24 @@ export const WarehousesModal: React.FC<WarehousesModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
     maxHeight: '80%',
-    paddingBottom: 20,
+    paddingBottom: spacing[5],
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   headerLeft: {
     flexDirection: 'row',
@@ -213,11 +214,11 @@ const styles = StyleSheet.create({
   warehouseIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FEF3C7',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.warning[100],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   iconText: {
     fontSize: 24,
@@ -225,69 +226,69 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginTop: 2,
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingHorizontal: spacing[6],
+    paddingTop: spacing[5],
     maxHeight: 400,
   },
   loadingContainer: {
-    paddingVertical: 40,
+    paddingVertical: spacing[10],
     alignItems: 'center',
   },
   loadingText: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   emptyContainer: {
-    paddingVertical: 40,
+    paddingVertical: spacing[10],
     alignItems: 'center',
   },
   emptyIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing[5],
   },
   warehouseItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   warehouseInfo: {
     flexDirection: 'row',
@@ -297,11 +298,11 @@ const styles = StyleSheet.create({
   warehouseIconSmall: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FEF3C7',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.warning[100],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   iconTextSmall: {
     fontSize: 20,
@@ -312,68 +313,68 @@ const styles = StyleSheet.create({
   warehouseName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   warehouseCode: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginBottom: 2,
   },
   areasCount: {
     fontSize: 12,
-    color: '#3B82F6',
+    color: colors.primary[500],
     fontWeight: '500',
   },
   deleteIconButton: {
-    padding: 8,
+    padding: spacing[2],
   },
   deleteIconText: {
     fontSize: 20,
   },
   modalActions: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    gap: 12,
+    paddingHorizontal: spacing[6],
+    paddingTop: spacing[5],
+    gap: spacing[3],
   },
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeActionButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   closeActionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   createButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
   },
   createButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   floatingButton: {
     position: 'absolute',
     bottom: 100,
-    right: 24,
+    right: spacing[6],
     width: 60,
     height: 60,
-    borderRadius: 30,
-    backgroundColor: '#3B82F6',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: {
       width: 0,
       height: 4,
@@ -385,7 +386,7 @@ const styles = StyleSheet.create({
   floatingButtonIcon: {
     fontSize: 32,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     lineHeight: 32,
   },
 });
