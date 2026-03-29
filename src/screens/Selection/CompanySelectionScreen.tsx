@@ -48,7 +48,14 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
 
     try {
       setLoading(true);
-      const userCompanies = await companiesApi.getUserCompanies(user.id);
+      const userCompaniesResponse = await companiesApi.getUserCompanies(user.id);
+
+      // Handle both array and object response formats
+      const userCompanies: Company[] = Array.isArray(userCompaniesResponse)
+        ? userCompaniesResponse
+        : (userCompaniesResponse as any)?.data || (userCompaniesResponse as any)?.items || [];
+
+      console.log('📦 Companies loaded:', userCompanies.length);
 
       if (userCompanies.length === 0) {
         Alert.alert(

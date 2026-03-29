@@ -93,11 +93,16 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       console.log('🔍 AppId:', appId);
 
       // Get user scopes from the scopes API instead of user_company_site
-      const userScopes = await scopesApi.getUserResolvedScopes(user.id, appId, { limit: 100 });
+      const userScopesResponse = await scopesApi.getUserResolvedScopes(user.id, appId, { limit: 100 });
 
-      console.log('📦 Respuesta de scopes (tipo):', typeof userScopes);
-      console.log('📦 Respuesta de scopes (es array):', Array.isArray(userScopes));
-      console.log('📦 Respuesta de scopes (raw):', JSON.stringify(userScopes, null, 2));
+      console.log('📦 Respuesta de scopes (tipo):', typeof userScopesResponse);
+      console.log('📦 Respuesta de scopes (es array):', Array.isArray(userScopesResponse));
+      console.log('📦 Respuesta de scopes (raw):', JSON.stringify(userScopesResponse, null, 2));
+
+      // Handle both array and paginated response formats
+      const userScopes: ResolvedScope[] = Array.isArray(userScopesResponse)
+        ? userScopesResponse
+        : (userScopesResponse as any)?.items || [];
 
       // Filter scopes for the current company and site level
       const companySiteScopes = userScopes.filter((scope) => {
@@ -130,7 +135,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       console.log('📋 Sedes procesadas:', sitesArray.length, 'sedes encontradas');
       sitesArray.forEach((site, index) => {
         console.log(`  Sede ${index + 1} - ESTRUCTURA COMPLETA:`, JSON.stringify(site, null, 2));
-        console.log(`  Sede ${index + 1} - KEYS:`, Object.keys(site));
+        console.log(`  Sede ${index + 1} - KEYS:`, site ? Object.keys(site) : 'undefined');
       });
 
       // Sort sites alphabetically by name
