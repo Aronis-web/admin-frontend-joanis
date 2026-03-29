@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { usersApi, User, GetUsersParams } from '@/services/api';
@@ -199,7 +200,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'active' ? '#10B981' : '#EF4444';
+    return status === 'active' ? colors.success[500] : colors.danger[500];
   };
 
   const getStatusText = (status: string) => {
@@ -279,7 +280,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
           placeholder="Buscar usuarios..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={colors.neutral[400]}
           keyboardType="default"
         />
       </View>
@@ -345,35 +346,35 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 20,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   headerSpacer: {
     width: 40,
@@ -385,28 +386,28 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   searchInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: colors.neutral[200],
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     fontSize: 16,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   usersList: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing[5],
     paddingBottom: 100,
   },
   usersListLandscape: {
@@ -416,13 +417,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.neutral[200],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -437,15 +438,15 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   avatarText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   userDetails: {
     flex: 1,
@@ -453,17 +454,17 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   userEmail: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginBottom: 2,
   },
   userRoles: {
     fontSize: 12,
-    color: '#3B82F6',
+    color: colors.primary[500],
     fontWeight: '500',
   },
   userStatus: {
@@ -487,19 +488,19 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   statsFooter: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
   },
   statsText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
     fontWeight: '500',
   },

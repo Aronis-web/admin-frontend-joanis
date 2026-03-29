@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { sitesApi, Site, GetSitesParams } from '@/services/api';
@@ -202,7 +203,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
   };
 
   const getStatusColor = (isActive: boolean) => {
-    return isActive ? '#10B981' : '#EF4444';
+    return isActive ? colors.success[500] : colors.danger[500];
   };
 
   const getStatusText = (isActive: boolean) => {
@@ -325,7 +326,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
           placeholder="Buscar sedes..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={colors.neutral[400]}
         />
       </View>
 
@@ -385,29 +386,29 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 20,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   headerTitleContainer: {
@@ -417,11 +418,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginTop: 2,
   },
   placeholder: {
@@ -432,13 +433,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
   addButtonText: {
     fontSize: 24,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '600',
   },
   loadingContainer: {
@@ -448,28 +449,28 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   searchInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: colors.neutral[200],
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     fontSize: 16,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   sitesList: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing[5],
     paddingBottom: 100,
   },
   sitesListLandscape: {
@@ -479,13 +480,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginTop: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.neutral[200],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -500,10 +501,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.accent[50],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   iconText: {
     fontSize: 24,
@@ -519,29 +520,29 @@ const styles = StyleSheet.create({
   siteName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     flex: 1,
   },
   codeContainer: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
+    backgroundColor: colors.accent[50],
+    paddingHorizontal: spacing[2],
     paddingVertical: 2,
-    borderRadius: 6,
-    marginLeft: 8,
+    borderRadius: borderRadius.md,
+    marginLeft: spacing[2],
   },
   siteCode: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#3B82F6',
+    color: colors.primary[500],
   },
   siteAddress: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginBottom: 2,
   },
   sitePhone: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   siteStatus: {
     alignItems: 'center',
@@ -564,7 +565,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   emptyStateContainer: {
@@ -575,44 +576,44 @@ const styles = StyleSheet.create({
   },
   emptyStateIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
+    color: colors.neutral[800],
+    marginBottom: spacing[3],
     textAlign: 'center',
   },
   emptyStateMessage: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
     lineHeight: 20,
   },
   emptyStateButton: {
-    backgroundColor: '#3B82F6',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 16,
+    backgroundColor: colors.primary[500],
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.xl,
+    marginTop: spacing[4],
   },
   emptyStateButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   statsFooter: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
   },
   statsText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
     fontWeight: '500',
   },
