@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { FaceCaptureCamera } from '@/components/FaceRecognition/FaceCaptureCamera';
 import { biometricApi } from '@/services/api/biometric';
 
@@ -130,7 +131,7 @@ export const VerifyFaceScreen: React.FC<VerifyFaceScreenProps> = ({ route }) => 
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.processingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={colors.primary[500]} />
           <Text style={styles.processingText}>Verificando rostro...</Text>
           <Text style={styles.processingSubtext}>Esto puede tomar unos segundos</Text>
         </View>
@@ -146,7 +147,7 @@ export const VerifyFaceScreen: React.FC<VerifyFaceScreenProps> = ({ route }) => 
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
-            <MaterialIcons name="verified-user" size={64} color="#34C759" />
+            <MaterialIcons name="verified-user" size={64} color={colors.success[500]} />
             <Text style={styles.title}>Verificar Rostro</Text>
             <Text style={styles.subtitle}>
               Verifica la identidad de una persona comparando su rostro con el perfil registrado
@@ -228,13 +229,13 @@ export const VerifyFaceScreen: React.FC<VerifyFaceScreenProps> = ({ route }) => 
               onPress={handleStartVerification}
               disabled={!entityId.trim()}
             >
-              <MaterialIcons name="camera-alt" size={24} color="#fff" />
+              <MaterialIcons name="camera-alt" size={24} color={colors.neutral[0]} />
               <Text style={styles.verifyButtonText}>Iniciar Verificación</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.infoBox}>
-            <MaterialIcons name="info-outline" size={24} color="#34C759" />
+            <MaterialIcons name="info-outline" size={24} color={colors.success[500]} />
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>¿Cómo funciona?</Text>
               <Text style={styles.infoText}>
@@ -253,7 +254,7 @@ export const VerifyFaceScreen: React.FC<VerifyFaceScreenProps> = ({ route }) => 
           </View>
 
           <View style={styles.warningBox}>
-            <MaterialIcons name="warning" size={24} color="#FF9500" />
+            <MaterialIcons name="warning" size={24} color={colors.warning[500]} />
             <View style={styles.warningContent}>
               <Text style={styles.warningText}>
                 Asegúrate de que la persona esté presente y que el ID sea correcto antes de
@@ -270,121 +271,121 @@ export const VerifyFaceScreen: React.FC<VerifyFaceScreenProps> = ({ route }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.secondary,
   },
   cameraContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.neutral[950],
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: spacing[5],
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: spacing[8],
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: 15,
+    color: colors.neutral[800],
+    marginTop: spacing[4],
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: colors.neutral[500],
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   form: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[5],
+    marginBottom: spacing[5],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   required: {
-    color: '#ff3b30',
+    color: colors.danger[500],
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     fontSize: 14,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.primary,
   },
   helperText: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
   },
   pickerContainer: {
     flexDirection: 'row',
-    gap: 10,
+    gap: spacing[2.5],
   },
   pickerOption: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.neutral[300],
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.primary,
   },
   pickerOptionSelected: {
-    backgroundColor: '#34C759',
-    borderColor: '#34C759',
+    backgroundColor: colors.success[500],
+    borderColor: colors.success[500],
   },
   pickerOptionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: colors.neutral[500],
   },
   pickerOptionTextSelected: {
-    color: '#fff',
+    color: colors.neutral[0],
   },
   verifyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#34C759',
-    paddingVertical: 16,
-    borderRadius: 10,
-    marginTop: 10,
-    gap: 10,
+    backgroundColor: colors.success[500],
+    paddingVertical: spacing[4],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[2.5],
+    gap: spacing[2.5],
   },
   verifyButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: colors.neutral[300],
   },
   verifyButtonText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 18,
     fontWeight: 'bold',
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#e8f5e9',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-    marginBottom: 15,
+    backgroundColor: colors.success[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    gap: spacing[3],
+    marginBottom: spacing[4],
   },
   infoContent: {
     flex: 1,
@@ -392,43 +393,43 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#34C759',
-    marginBottom: 8,
+    color: colors.success[500],
+    marginBottom: spacing[2],
   },
   infoText: {
     fontSize: 14,
-    color: '#555',
-    marginBottom: 4,
+    color: colors.neutral[600],
+    marginBottom: spacing[1],
   },
   warningBox: {
     flexDirection: 'row',
-    backgroundColor: '#fff3cd',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
+    backgroundColor: colors.warning[100],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    gap: spacing[3],
   },
   warningContent: {
     flex: 1,
   },
   warningText: {
     fontSize: 14,
-    color: '#856404',
+    color: colors.warning[800],
   },
   processingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   processingText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: 20,
+    color: colors.neutral[800],
+    marginTop: spacing[5],
   },
   processingSubtext: {
     fontSize: 16,
-    color: '#666',
-    marginTop: 8,
+    color: colors.neutral[500],
+    marginTop: spacing[2],
   },
 });

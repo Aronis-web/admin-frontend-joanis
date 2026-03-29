@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { biometricApi, BiometricProfile } from '@/services/api/biometric';
 
 export const BiometricProfilesScreen: React.FC = () => {
@@ -116,13 +117,13 @@ export const BiometricProfilesScreen: React.FC = () => {
             <Text style={styles.profileType}>{item.entity_type || 'Sin tipo'}</Text>
             <View style={styles.profileStats}>
               <View style={styles.statBadge}>
-                <MaterialIcons name="photo-camera" size={14} color="#666" />
+                <MaterialIcons name="photo-camera" size={14} color={colors.neutral[500]} />
                 <Text style={styles.statText}>
                   {item.registration_frames_count || 0} frames
                 </Text>
               </View>
               <View style={styles.statBadge}>
-                <MaterialIcons name="verified" size={14} color="#34C759" />
+                <MaterialIcons name="verified" size={14} color={colors.success[500]} />
                 <Text style={styles.statText}>
                   {registrationQuality ? (registrationQuality * 100).toFixed(0) : '0'}%
                 </Text>
@@ -134,14 +135,14 @@ export const BiometricProfilesScreen: React.FC = () => {
               style={[styles.actionButton, styles.verifyButton]}
               onPress={() => handleVerifyProfile(item)}
             >
-              <MaterialIcons name="face" size={24} color="#fff" />
+              <MaterialIcons name="face" size={24} color={colors.neutral[0]} />
               <Text style={styles.actionButtonText}>Verificar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.deleteButton]}
               onPress={() => handleDeleteProfile(item)}
             >
-              <MaterialIcons name="delete" size={24} color="#fff" />
+              <MaterialIcons name="delete" size={24} color={colors.neutral[0]} />
             </TouchableOpacity>
           </View>
         </View>
@@ -162,7 +163,7 @@ export const BiometricProfilesScreen: React.FC = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <MaterialIcons name="face-retouching-off" size={64} color="#ccc" />
+      <MaterialIcons name="face-retouching-off" size={64} color={colors.neutral[300]} />
       <Text style={styles.emptyTitle}>No hay perfiles registrados</Text>
       <Text style={styles.emptyText}>
         Registra un nuevo rostro para comenzar
@@ -171,7 +172,7 @@ export const BiometricProfilesScreen: React.FC = () => {
         style={styles.registerButton}
         onPress={() => navigation.navigate('RegisterFace' as never)}
       >
-        <MaterialIcons name="add-a-photo" size={24} color="#fff" />
+        <MaterialIcons name="add-a-photo" size={24} color={colors.neutral[0]} />
         <Text style={styles.registerButtonText}>Registrar Rostro</Text>
       </TouchableOpacity>
     </View>
@@ -185,7 +186,7 @@ export const BiometricProfilesScreen: React.FC = () => {
           style={styles.addButton}
           onPress={() => navigation.navigate('RegisterFace' as never)}
         >
-          <MaterialIcons name="add" size={24} color="#007AFF" />
+          <MaterialIcons name="add" size={24} color={colors.primary[500]} />
         </TouchableOpacity>
       </View>
 
@@ -218,7 +219,7 @@ export const BiometricProfilesScreen: React.FC = () => {
 
       {isLoading && !isRefreshing ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={colors.primary[500]} />
           <Text style={styles.loadingText}>Cargando perfiles...</Text>
         </View>
       ) : (
@@ -240,58 +241,58 @@ export const BiometricProfilesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.neutral[200],
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.neutral[800],
   },
   addButton: {
-    padding: 8,
+    padding: spacing[2],
   },
   filterContainer: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.neutral[200],
   },
   filterLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
+    color: colors.neutral[500],
+    marginBottom: spacing[2],
   },
   filterButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing[2],
   },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
+    gap: spacing[1],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.neutral[200],
   },
   filterButtonActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
   },
   filterIcon: {
     fontSize: 16,
@@ -299,10 +300,10 @@ const styles = StyleSheet.create({
   filterButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
+    color: colors.neutral[500],
   },
   filterButtonTextActive: {
-    color: '#fff',
+    color: colors.neutral[0],
   },
   loadingContainer: {
     flex: 1,
@@ -310,19 +311,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 16,
-    color: '#666',
+    color: colors.neutral[500],
   },
   listContent: {
-    padding: 16,
+    padding: spacing[4],
   },
   profileCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -339,65 +340,65 @@ const styles = StyleSheet.create({
   profileId: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   profileType: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    color: colors.neutral[500],
+    marginBottom: spacing[2],
   },
   profileStats: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing[2],
   },
   statBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 12,
+    gap: spacing[1],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    backgroundColor: colors.neutral[100],
+    borderRadius: borderRadius.xl,
   },
   statText: {
     fontSize: 12,
-    color: '#666',
+    color: colors.neutral[500],
   },
   profileActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing[2],
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    gap: spacing[1],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
   },
   verifyButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.primary[500],
   },
   deleteButton: {
-    backgroundColor: '#FF3B30',
-    paddingHorizontal: 12,
+    backgroundColor: colors.danger[500],
+    paddingHorizontal: spacing[3],
   },
   actionButtonText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 14,
     fontWeight: '600',
   },
   profileDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 12,
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: colors.neutral[100],
   },
   detailText: {
     fontSize: 12,
-    color: '#666',
+    color: colors.neutral[500],
   },
   emptyState: {
     flex: 1,
@@ -408,27 +409,27 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginTop: spacing[4],
+    marginBottom: spacing[2],
   },
   emptyText: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 24,
+    color: colors.neutral[500],
+    marginBottom: spacing[6],
     textAlign: 'center',
   },
   registerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    gap: spacing[2],
+    backgroundColor: colors.primary[500],
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
   },
   registerButtonText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '600',
   },

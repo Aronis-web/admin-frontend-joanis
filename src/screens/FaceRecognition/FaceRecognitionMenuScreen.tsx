@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 export const FaceRecognitionMenuScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -13,7 +14,7 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
       title: 'Ver Perfiles',
       description: 'Lista de perfiles biométricos registrados',
       icon: 'people' as const,
-      color: '#5856D6',
+      color: colors.accent[600],
       screen: 'BiometricProfiles',
     },
     {
@@ -21,7 +22,7 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
       title: 'Registrar Rostro',
       description: 'Captura y registra un nuevo rostro en el sistema',
       icon: 'face' as const,
-      color: '#007AFF',
+      color: colors.primary[500],
       screen: 'RegisterFace',
     },
     {
@@ -29,7 +30,7 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
       title: 'Verificar Rostro',
       description: 'Verifica la identidad comparando con un perfil registrado',
       icon: 'verified-user' as const,
-      color: '#34C759',
+      color: colors.success[500],
       screen: 'VerifyFace',
     },
   ];
@@ -38,7 +39,7 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <MaterialIcons name="face-retouching-natural" size={80} color="#007AFF" />
+          <MaterialIcons name="face-retouching-natural" size={80} color={colors.primary[500]} />
           <Text style={styles.title}>Reconocimiento Facial</Text>
           <Text style={styles.subtitle}>
             Sistema de verificación biométrica para autenticación segura
@@ -68,19 +69,19 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
         <View style={styles.featuresContainer}>
           <Text style={styles.featuresTitle}>Características</Text>
           <View style={styles.featureItem}>
-            <MaterialIcons name="check-circle" size={20} color="#34C759" />
+            <MaterialIcons name="check-circle" size={20} color={colors.success[500]} />
             <Text style={styles.featureText}>Detección de vivacidad (anti-spoofing)</Text>
           </View>
           <View style={styles.featureItem}>
-            <MaterialIcons name="check-circle" size={20} color="#34C759" />
+            <MaterialIcons name="check-circle" size={20} color={colors.success[500]} />
             <Text style={styles.featureText}>Reconocimiento facial de alta precisión</Text>
           </View>
           <View style={styles.featureItem}>
-            <MaterialIcons name="check-circle" size={20} color="#34C759" />
+            <MaterialIcons name="check-circle" size={20} color={colors.success[500]} />
             <Text style={styles.featureText}>Verificación 1:1 contra perfil específico</Text>
           </View>
           <View style={styles.featureItem}>
-            <MaterialIcons name="check-circle" size={20} color="#34C759" />
+            <MaterialIcons name="check-circle" size={20} color={colors.success[500]} />
             <Text style={styles.featureText}>Procesamiento seguro y privado</Text>
           </View>
         </View>
@@ -92,10 +93,10 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.secondary,
   },
   scrollContent: {
-    padding: 20,
+    padding: spacing[5],
   },
   header: {
     alignItems: 'center',
@@ -104,27 +105,27 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: 15,
+    color: colors.neutral[800],
+    marginTop: spacing[4],
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: colors.neutral[500],
     textAlign: 'center',
-    marginTop: 8,
-    paddingHorizontal: 20,
+    marginTop: spacing[2],
+    paddingHorizontal: spacing[5],
   },
   menuContainer: {
-    gap: 15,
-    marginBottom: 30,
+    gap: spacing[4],
+    marginBottom: spacing[8],
   },
   menuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -133,10 +134,10 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 64,
     height: 64,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: spacing[4],
   },
   menuContent: {
     flex: 1,
@@ -144,18 +145,18 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   menuDescription: {
     fontSize: 14,
-    color: '#666',
+    color: colors.neutral[500],
   },
   featuresContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[5],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -164,18 +165,18 @@ const styles = StyleSheet.create({
   featuresTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    color: colors.neutral[800],
+    marginBottom: spacing[4],
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 10,
+    marginBottom: spacing[3],
+    gap: spacing[2.5],
   },
   featureText: {
     fontSize: 14,
-    color: '#555',
+    color: colors.neutral[600],
     flex: 1,
   },
 });

@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { warehouseAreasApi } from '@/services/api';
 import {
   WarehouseArea,
@@ -239,7 +240,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={colors.primary[500]} />
           <Text style={styles.loadingText}>Cargando áreas...</Text>
         </View>
       </SafeAreaView>
@@ -274,7 +275,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
           placeholder="Buscar áreas..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={colors.neutral[400]}
           keyboardType="default"
         />
       </View>
@@ -417,29 +418,29 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 20,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   headerTitleContainer: {
@@ -449,11 +450,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginTop: 2,
   },
   placeholder: {
@@ -464,13 +465,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
   addButtonText: {
     fontSize: 24,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '600',
   },
   loadingContainer: {
@@ -481,37 +482,37 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   searchInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: colors.neutral[200],
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     fontSize: 16,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   areasList: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing[5],
   },
   areaCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginTop: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.neutral[200],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -526,10 +527,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.warning[100],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   iconText: {
     fontSize: 24,
@@ -540,12 +541,12 @@ const styles = StyleSheet.create({
   areaCode: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   areaName: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   areaActions: {
     flexDirection: 'row',
@@ -553,26 +554,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   editButton: {
-    backgroundColor: '#F59E0B',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    backgroundColor: colors.warning[500],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   editButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 14,
     fontWeight: '600',
   },
   deleteButton: {
-    backgroundColor: '#EF4444',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    backgroundColor: colors.danger[500],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   deleteButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 14,
     fontWeight: '600',
   },
@@ -588,47 +589,47 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     textAlign: 'center',
     paddingHorizontal: 40,
   },
   statsFooter: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface.primary,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
   },
   statsText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
     fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing[6],
     width: '90%',
     maxWidth: 400,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 20,
+    color: colors.neutral[800],
+    marginBottom: spacing[5],
     textAlign: 'center',
   },
   formGroup: {
@@ -637,18 +638,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
+    color: colors.neutral[600],
+    marginBottom: spacing[2],
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: colors.neutral[200],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2.5],
     fontSize: 16,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   modalActions: {
     flexDirection: 'row',
@@ -658,39 +659,39 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: colors.neutral[100],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#64748B',
+    color: colors.neutral[500],
     fontSize: 16,
     fontWeight: '600',
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#3B82F6',
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: colors.primary[500],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '600',
   },
   floatingButton: {
     position: 'absolute',
-    right: 20,
+    right: spacing[5],
     bottom: 90,
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#3B82F6',
+    shadowColor: colors.primary[500],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -699,7 +700,7 @@ const styles = StyleSheet.create({
   floatingButtonIcon: {
     fontSize: 32,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     lineHeight: 32,
   },
 });

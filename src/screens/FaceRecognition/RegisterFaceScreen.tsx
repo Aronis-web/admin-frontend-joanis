@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { FaceCaptureCamera } from '@/components/FaceRecognition/FaceCaptureCamera';
 import { biometricApi } from '@/services/api/biometric';
 
@@ -129,7 +130,7 @@ export const RegisterFaceScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.processingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={colors.primary[500]} />
           <Text style={styles.processingText}>Procesando rostro...</Text>
           <Text style={styles.processingSubtext}>Esto puede tomar unos segundos</Text>
         </View>
@@ -145,7 +146,7 @@ export const RegisterFaceScreen: React.FC = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
-            <MaterialIcons name="face" size={64} color="#007AFF" />
+            <MaterialIcons name="face" size={64} color={colors.primary[500]} />
             <Text style={styles.title}>Registrar Rostro</Text>
             <Text style={styles.subtitle}>
               Captura el rostro de una persona para registrarlo en el sistema
@@ -221,7 +222,7 @@ export const RegisterFaceScreen: React.FC = () => {
                   autoCorrect={false}
                 />
                 <TouchableOpacity style={styles.generateButton} onPress={handleGenerateUUID}>
-                  <MaterialIcons name="refresh" size={20} color="#007AFF" />
+                  <MaterialIcons name="refresh" size={20} color={colors.primary[500]} />
                   <Text style={styles.generateButtonText}>Generar</Text>
                 </TouchableOpacity>
               </View>
@@ -244,13 +245,13 @@ export const RegisterFaceScreen: React.FC = () => {
               onPress={handleStartCapture}
               disabled={!entityId.trim()}
             >
-              <MaterialIcons name="camera-alt" size={24} color="#fff" />
+              <MaterialIcons name="camera-alt" size={24} color={colors.neutral[0]} />
               <Text style={styles.captureButtonText}>Iniciar Captura</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.infoBox}>
-            <MaterialIcons name="info-outline" size={24} color="#007AFF" />
+            <MaterialIcons name="info-outline" size={24} color={colors.primary[500]} />
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>Consejos para una buena captura:</Text>
               <Text style={styles.infoText}>• Asegúrate de tener buena iluminación</Text>
@@ -268,150 +269,150 @@ export const RegisterFaceScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.secondary,
   },
   cameraContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.neutral[950],
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: spacing[5],
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: spacing[8],
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: 15,
+    color: colors.neutral[800],
+    marginTop: spacing[4],
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: colors.neutral[500],
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   form: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[5],
+    marginBottom: spacing[5],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   required: {
-    color: '#ff3b30',
+    color: colors.danger[500],
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.primary,
   },
   inputWithButton: {
     flexDirection: 'row',
-    gap: 10,
+    gap: spacing[2.5],
     alignItems: 'center',
   },
   inputFlex: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     fontSize: 14,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.primary,
   },
   generateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    gap: spacing[1],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#007AFF',
-    backgroundColor: '#fff',
+    borderColor: colors.primary[500],
+    backgroundColor: colors.surface.primary,
   },
   generateButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#007AFF',
+    color: colors.primary[500],
   },
   helperText: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
   },
   pickerContainer: {
     flexDirection: 'row',
-    gap: 10,
+    gap: spacing[2.5],
   },
   pickerOption: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.neutral[300],
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.primary,
   },
   pickerOptionSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
   },
   pickerOptionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: colors.neutral[500],
   },
   pickerOptionTextSelected: {
-    color: '#fff',
+    color: colors.neutral[0],
   },
   captureButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#007AFF',
-    paddingVertical: 16,
-    borderRadius: 10,
-    marginTop: 10,
-    gap: 10,
+    backgroundColor: colors.primary[500],
+    paddingVertical: spacing[4],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[2.5],
+    gap: spacing[2.5],
   },
   captureButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: colors.neutral[300],
   },
   captureButtonText: {
-    color: '#fff',
+    color: colors.neutral[0],
     fontSize: 18,
     fontWeight: 'bold',
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#e3f2fd',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
+    backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    gap: spacing[3],
   },
   infoContent: {
     flex: 1,
@@ -419,29 +420,29 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007AFF',
-    marginBottom: 8,
+    color: colors.primary[500],
+    marginBottom: spacing[2],
   },
   infoText: {
     fontSize: 14,
-    color: '#555',
-    marginBottom: 4,
+    color: colors.neutral[600],
+    marginBottom: spacing[1],
   },
   processingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   processingText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: 20,
+    color: colors.neutral[800],
+    marginTop: spacing[5],
   },
   processingSubtext: {
     fontSize: 16,
-    color: '#666',
-    marginTop: 8,
+    color: colors.neutral[500],
+    marginTop: spacing[2],
   },
 });

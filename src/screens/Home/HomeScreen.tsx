@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -135,7 +136,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                       ? styles.qrCodeTablet
                       : styles.qrCode
                 }
-                color="#1E293B"
+                color={colors.neutral[800]}
               />
             ) : (
               <View
@@ -178,7 +179,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   backgroundPattern: {
     position: 'absolute',
@@ -193,7 +194,8 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     borderRadius: 150,
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    backgroundColor: colors.accent[100],
+    opacity: 0.3,
     top: -100,
     right: -100,
   },
@@ -202,7 +204,8 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(139, 92, 246, 0.06)',
+    backgroundColor: colors.accent[200],
+    opacity: 0.2,
     bottom: 100,
     left: -50,
   },
@@ -211,30 +214,31 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+    backgroundColor: colors.primary[100],
+    opacity: 0.2,
     top: '50%',
     right: 50,
   },
   content: {
     flex: 1,
-    padding: 24,
+    padding: spacing[6],
     paddingBottom: 100,
   },
   profileHeader: {
     alignItems: 'center',
-    marginBottom: 40,
-    paddingTop: 20,
+    marginBottom: spacing[10],
+    paddingTop: spacing[5],
   },
   avatarContainer: {
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#6366F1',
+    borderColor: colors.neutral[0],
+    shadowColor: colors.accent[500],
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
@@ -244,12 +248,12 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.accent[500],
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#6366F1',
+    borderColor: colors.neutral[0],
+    shadowColor: colors.accent[500],
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
@@ -258,7 +262,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     letterSpacing: 1,
   },
   profileInfo: {
@@ -266,45 +270,45 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '500',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   userName: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 6,
+    color: colors.neutral[800],
+    marginBottom: spacing[1.5],
   },
   userEmail: {
     fontSize: 16,
-    color: '#64748B',
-    marginBottom: 12,
+    color: colors.neutral[500],
+    marginBottom: spacing[3],
   },
   roleContainer: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
+    backgroundColor: colors.accent[50],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
     borderWidth: 1,
-    borderColor: '#E0E7FF',
+    borderColor: colors.accent[100],
   },
   userRole: {
     fontSize: 13,
-    color: '#6366F1',
+    color: colors.accent[500],
     fontWeight: '600',
   },
   qrSection: {
-    marginBottom: 24,
+    marginBottom: spacing[6],
     alignItems: 'center',
   },
   qrContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing[5],
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.neutral[200],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -319,14 +323,14 @@ const styles = StyleSheet.create({
   qrPlaceholder: {
     width: 200,
     height: 200,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   qrIcon: {
     fontSize: 48,
@@ -334,7 +338,7 @@ const styles = StyleSheet.create({
   qrText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   bottomSpacer: {
     height: 100,
