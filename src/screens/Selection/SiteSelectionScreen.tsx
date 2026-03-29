@@ -39,8 +39,8 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
   const { setSelectedSite } = useTenantStore();
 
   // Get companyId and companyName from route params or from currentCompany
-  const companyId = (route.params?.companyId || currentCompany?.id || '') as string;
-  const companyName = (route.params?.companyName ||
+  const companyId = (route?.params?.companyId || currentCompany?.id || '') as string;
+  const companyName = (route?.params?.companyName ||
     currentCompany?.alias ||
     currentCompany?.name ||
     '') as string;
@@ -121,7 +121,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
         site: {
           id: scope.siteId!,
           name: scope.site?.name || (scope as any).site_name || 'Sede sin nombre',
-          code: scope.site?.code || (scope as any).code || '',
+          code: (scope.site as any)?.code || (scope as any).code || '',
         },
         canSelect: true, // If user has scope, they can select it
         createdAt: new Date().toISOString(),
