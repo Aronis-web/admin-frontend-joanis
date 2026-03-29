@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import {
   View,
   Text,
@@ -456,7 +457,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               <TextInput
                 style={styles.customSearchInput}
                 placeholder="Buscar lugares, negocios, direcciones..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.neutral[400]}
                 value={searchText}
                 onChangeText={handleSearchTextChange}
                 onFocus={() => {
@@ -472,7 +473,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator size="small" color="#3B82F6" />
+                  <ActivityIndicator size="small" color={colors.primary[500]} />
                 ) : (
                   <Text style={styles.currentLocationIcon}>📍</Text>
                 )}
@@ -552,7 +553,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         <View style={styles.infoContainer}>
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#3B82F6" />
+              <ActivityIndicator size="small" color={colors.primary[500]} />
               <Text style={styles.loadingText}>Obteniendo dirección...</Text>
             </View>
           ) : addressInfo ? (
@@ -610,17 +611,17 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.neutral[0],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
     ...Platform.select({
       ios: {
         paddingTop: 50,
@@ -633,26 +634,26 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius['2xl'],
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   locationButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#3B82F6',
+    borderRadius: borderRadius['2xl'],
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -663,98 +664,98 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
     maxHeight: 250,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: spacing[5],
   },
   loadingText: {
     fontSize: 14,
-    color: '#64748B',
-    marginLeft: 8,
+    color: colors.neutral[500],
+    marginLeft: spacing[2],
   },
   addressContainer: {
-    padding: 16,
+    padding: spacing[4],
   },
   addressTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
+    color: colors.neutral[800],
+    marginBottom: spacing[3],
   },
   addressText: {
     fontSize: 14,
-    color: '#475569',
+    color: colors.neutral[600],
     marginBottom: 6,
     lineHeight: 20,
   },
   coordinatesText: {
     fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 8,
+    color: colors.neutral[400],
+    marginTop: spacing[2],
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   instructionsContainer: {
-    padding: 20,
+    padding: spacing[5],
     alignItems: 'center',
   },
   instructionsText: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   instructionsSubtext: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: colors.neutral[400],
     textAlign: 'center',
   },
   actions: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[4],
+    gap: spacing[3],
+    backgroundColor: colors.neutral[0],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
   },
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   confirmButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
   },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.neutral[0],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   customAutocompleteContainer: {
     position: 'relative',
@@ -763,28 +764,28 @@ const styles = StyleSheet.create({
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    backgroundColor: colors.neutral[100],
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing[3],
     height: 44,
   },
   customSearchInput: {
     flex: 1,
     height: 44,
     fontSize: 15,
-    color: '#1E293B',
+    color: colors.neutral[800],
     paddingVertical: 0,
   },
   searchIcon: {
     fontSize: 16,
-    marginRight: 8,
+    marginRight: spacing[2],
   },
   currentLocationButton: {
     width: 32,
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginLeft: spacing[2],
   },
   currentLocationIcon: {
     fontSize: 18,
@@ -794,10 +795,10 @@ const styles = StyleSheet.create({
     top: 48,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginTop: 4,
-    shadowColor: '#000',
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[1],
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -806,21 +807,21 @@ const styles = StyleSheet.create({
     zIndex: 1001,
   },
   predictionsList: {
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
   },
   predictionItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
     padding: 13,
     minHeight: 44,
     justifyContent: 'center',
   },
   predictionText: {
     fontSize: 14,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   predictionSeparator: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
   },
 });
 

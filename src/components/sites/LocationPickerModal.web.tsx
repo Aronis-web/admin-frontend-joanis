@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 interface LocationData {
   latitude: number;
@@ -117,73 +118,73 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    padding: spacing[5],
     width: '90%',
     maxWidth: 500,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: spacing[2],
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
+    color: colors.neutral[500],
+    marginBottom: spacing[5],
     textAlign: 'center',
   },
   inputContainer: {
-    marginBottom: 15,
+    marginBottom: spacing[4],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 5,
-    color: '#333',
+    marginBottom: spacing[1],
+    color: colors.neutral[700],
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.md,
+    padding: spacing[2],
     fontSize: 16,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: spacing[5],
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
-    padding: 15,
-    borderRadius: 5,
-    marginRight: 10,
+    backgroundColor: colors.neutral[100],
+    padding: spacing[4],
+    borderRadius: borderRadius.md,
+    marginRight: spacing[2],
   },
   cancelButtonText: {
     textAlign: 'center',
     fontSize: 16,
-    color: '#333',
+    color: colors.neutral[700],
     fontWeight: '600',
   },
   confirmButton: {
     flex: 1,
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 5,
+    backgroundColor: colors.primary[500],
+    padding: spacing[4],
+    borderRadius: borderRadius.md,
   },
   confirmButtonText: {
     textAlign: 'center',
     fontSize: 16,
-    color: 'white',
+    color: colors.neutral[0],
     fontWeight: '600',
   },
 });
