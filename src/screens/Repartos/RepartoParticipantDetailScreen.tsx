@@ -723,12 +723,17 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   };
 
   const handleTransportConfirm = async (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
+    // Cerrar el modal de transporte primero
     setTransportModalVisible(false);
 
-    // Guardar datos de transporte y abrir modal de bultos
+    // Guardar datos de transporte
     setPendingTransportData({ vehicle, driver, transporter });
     setNumeroBultos('1'); // Resetear a valor por defecto
-    setBultosModalVisible(true);
+
+    // Esperar un momento para que el modal de transporte se cierre antes de abrir el de bultos
+    setTimeout(() => {
+      setBultosModalVisible(true);
+    }, 300);
   };
 
   const handleBultosConfirm = async () => {
