@@ -2451,7 +2451,7 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   bultosButtonMinus: {
-    backgroundColor: colors.error[500],
+    backgroundColor: colors.danger[500],
   },
   bultosButtonPlus: {
     backgroundColor: colors.success[500],
