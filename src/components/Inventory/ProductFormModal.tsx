@@ -294,8 +294,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         costCents: (product.costCents || product.priceCents)?.toString() || '', // Support both costCents and legacy priceCents
         currency: product.currency || 'PEN',
         minStockAlert: product.minStockAlert?.toString() || '',
-        weightValue: product.weightKg?.toString() || '',
-        weightUnit: 'kg',
+        // Cargar peso: si es menor a 1 kg, mostrar en gramos para mejor UX
+        weightValue: product.weightKg !== undefined && product.weightKg !== null
+          ? (product.weightKg < 1 ? (product.weightKg * 1000).toString() : product.weightKg.toString())
+          : '',
+        weightUnit: product.weightKg !== undefined && product.weightKg !== null && product.weightKg < 1 ? 'g' : 'kg',
         warehouseId: '',
         areaId: '',
         initialStock: '',

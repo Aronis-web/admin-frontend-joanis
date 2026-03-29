@@ -693,6 +693,17 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                   <Caption color="tertiary">Moneda:</Caption>
                   <Text variant="bodyMedium" color="primary">{viewProduct.currency || 'PEN'}</Text>
                 </View>
+                {viewProduct.weightKg !== undefined && viewProduct.weightKg !== null && (
+                  <View style={styles.viewRow}>
+                    <Caption color="tertiary">Peso:</Caption>
+                    <Text variant="bodyMedium" color="primary">
+                      {viewProduct.weightKg >= 1
+                        ? `${viewProduct.weightKg.toFixed(3)} kg`
+                        : `${(viewProduct.weightKg * 1000).toFixed(0)} g`
+                      }
+                    </Text>
+                  </View>
+                )}
               </Card>
 
               {/* Presentaciones */}
