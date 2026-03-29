@@ -101,6 +101,7 @@ export interface Product {
   salePrices?: ProductSalePrice[];
   stockItems?: StockItem[];
   preliminaryStock?: number; // Stock preliminar para productos en estado preliminary
+  weightKg?: number; // Peso del producto en kilogramos (3 decimales)
   stock?: {
     available: number;
     reserved: number;
@@ -208,6 +209,7 @@ export interface CreateProductDto {
   costCents: number; // Cost of the product (base for price calculations)
   currency?: string;
   minStockAlert?: number;
+  weightKg?: number; // Peso del producto en kilogramos (3 decimales)
   presentations: {
     presentationIdOrCode: string;
     isBase: boolean;
@@ -233,6 +235,7 @@ export interface UpdateProductDto {
   costCents?: number; // Cost of the product
   currency?: string;
   minStockAlert?: number;
+  weightKg?: number; // Peso del producto en kilogramos (3 decimales)
   presentations?: {
     presentationIdOrCode: string;
     isBase: boolean;

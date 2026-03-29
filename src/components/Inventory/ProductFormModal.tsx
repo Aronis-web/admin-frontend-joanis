@@ -89,6 +89,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     costCents: '', // Changed from priceCents to costCents
     currency: 'PEN',
     minStockAlert: '',
+    // Peso del producto
+    weightValue: '',
+    weightUnit: 'kg' as 'kg' | 'g',
     // Stock inicial
     warehouseId: '',
     areaId: '',
@@ -291,6 +294,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         costCents: (product.costCents || product.priceCents)?.toString() || '', // Support both costCents and legacy priceCents
         currency: product.currency || 'PEN',
         minStockAlert: product.minStockAlert?.toString() || '',
+        weightValue: product.weightKg?.toString() || '',
+        weightUnit: 'kg',
         warehouseId: '',
         areaId: '',
         initialStock: '',
@@ -335,11 +340,24 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       costCents: '',
       currency: 'PEN',
       minStockAlert: '',
+      weightValue: '',
+      weightUnit: 'kg',
       warehouseId: '',
       areaId: '',
       initialStock: '',
     });
     setPresentations([]);
+  };
+
+  // Convertir peso a kilogramos (siempre se envía en kg al backend)
+  const getWeightInKg = (): number | undefined => {
+    if (!formData.weightValue) return undefined;
+    const value = parseFloat(formData.weightValue);
+    if (isNaN(value) || value < 0) return undefined;
+    if (formData.weightUnit === 'g') {
+      return Math.round((value / 1000) * 1000) / 1000; // Convertir gramos a kg con 3 decimales
+    }
+    return Math.round(value * 1000) / 1000; // Redondear a 3 decimales
   };
 
   const validateForm = (): boolean => {
@@ -355,6 +373,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
     if (!formData.costCents || parseFloat(formData.costCents) <= 0) {
       Alert.alert('Error', 'El costo debe ser mayor a 0');
+      return false;
+    }
+
+    // Validación de peso (obligatorio)
+    const weightKg = getWeightInKg();
+    if (weightKg === undefined || weightKg <= 0) {
+      Alert.alert('Error', 'El peso es obligatorio y debe ser mayor a 0');
       return false;
     }
 
@@ -430,6 +455,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           costCents: parseFloat(formData.costCents),
           currency: formData.currency,
           minStockAlert: formData.minStockAlert ? parseFloat(formData.minStockAlert) : undefined,
+          weightKg: getWeightInKg(),
           presentations: presentations,
           salePrices: salePrices.length > 0 ? salePrices : undefined,
         };
@@ -498,6 +524,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           costCents: parseFloat(formData.costCents),
           currency: formData.currency,
           minStockAlert: formData.minStockAlert ? parseFloat(formData.minStockAlert) : undefined,
+          weightKg: getWeightInKg(),
           presentations: presentations, // Incluir presentaciones actualizadas
         };
 
@@ -893,6 +920,68 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   placeholderTextColor="#94A3B8"
                   keyboardType="numeric"
                 />
+              </View>
+            </View>
+
+            {/* Peso del producto */}
+            <View style={styles.formRow}>
+              <View style={[styles.formGroup, styles.formGroupHalf]}>
+                <Text style={styles.label}>
+                  Peso <Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.weightValue}
+                  onChangeText={(text) => setFormData({ ...formData, weightValue: text })}
+                  placeholder={formData.weightUnit === 'kg' ? '0.500' : '500'}
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="decimal-pad"
+                />
+                <Text style={styles.helpText}>
+                  {formData.weightValue && !isNaN(parseFloat(formData.weightValue))
+                    ? formData.weightUnit === 'g'
+                      ? `= ${(parseFloat(formData.weightValue) / 1000).toFixed(3)} kg`
+                      : `${parseFloat(formData.weightValue).toFixed(3)} kg`
+                    : 'Peso para guías de remisión'}
+                </Text>
+              </View>
+
+              <View style={[styles.formGroup, styles.formGroupHalf]}>
+                <Text style={styles.label}>Unidad</Text>
+                <View style={styles.weightUnitContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.weightUnitButton,
+                      formData.weightUnit === 'kg' && styles.weightUnitButtonActive,
+                    ]}
+                    onPress={() => setFormData({ ...formData, weightUnit: 'kg' })}
+                  >
+                    <Text
+                      style={[
+                        styles.weightUnitButtonText,
+                        formData.weightUnit === 'kg' && styles.weightUnitButtonTextActive,
+                      ]}
+                    >
+                      Kilos (kg)
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.weightUnitButton,
+                      formData.weightUnit === 'g' && styles.weightUnitButtonActive,
+                    ]}
+                    onPress={() => setFormData({ ...formData, weightUnit: 'g' })}
+                  >
+                    <Text
+                      style={[
+                        styles.weightUnitButtonText,
+                        formData.weightUnit === 'g' && styles.weightUnitButtonTextActive,
+                      ]}
+                    >
+                      Gramos (g)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </View>
@@ -1530,6 +1619,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.warning[700],
     lineHeight: 18,
+  },
+  weightUnitContainer: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  weightUnitButton: {
+    flex: 1,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[2],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weightUnitButtonActive: {
+    backgroundColor: colors.accent[500],
+    borderColor: colors.accent[500],
+  },
+  weightUnitButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.secondary,
+  },
+  weightUnitButtonTextActive: {
+    color: colors.text.inverse,
   },
 });
 

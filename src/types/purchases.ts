@@ -149,6 +149,7 @@ export interface PurchaseProduct {
   areaId?: string;
   productPhotos?: string[];
   barcode?: string;
+  weightKg?: number; // Peso del producto en kilogramos (3 decimales)
 
   // Asignación de deuda
   supplierLegalEntityId?: string;
@@ -359,6 +360,7 @@ export interface ValidateProductRequest {
   presentations?: ValidatedPresentationConfig[]; // OPCIONAL: Array de presentaciones validadas
   barcode?: string;
   productPhotos?: string[];
+  weightKg?: number; // OBLIGATORIO para validación: Peso del producto en kilogramos (3 decimales)
   photoUrl?: string; // OPCIONAL: URL de la foto de validación
   signatureUrl?: string; // OPCIONAL: URL de la firma de validación
   validationNotes?: string;

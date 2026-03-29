@@ -113,6 +113,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [barcode, setBarcode] = useState('');
   const [validationNotes, setValidationNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  // Peso del producto
+  const [weightValue, setWeightValue] = useState('');
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'g'>('kg');
 
   // Photo and Signature
   const [photoUri, setPhotoUri] = useState<string | undefined>();
@@ -310,6 +313,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         setValidationNotes(productData.validationNotes);
       }
 
+      // Cargar peso si existe
+      if (productData.weightKg !== undefined && productData.weightKg !== null) {
+        setWeightValue(productData.weightKg.toString());
+        setWeightUnit('kg');
+      }
+
       // Reset photo and signature when loading
       setPhotoUri(undefined);
       setSignatureUri(undefined);
@@ -338,6 +347,17 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // Convertir peso a kilogramos (siempre se envía en kg al backend)
+  const getWeightInKg = (): number | undefined => {
+    if (!weightValue) return undefined;
+    const value = parseFloat(weightValue);
+    if (isNaN(value) || value < 0) return undefined;
+    if (weightUnit === 'g') {
+      return Math.round((value / 1000) * 1000) / 1000; // Convertir gramos a kg con 3 decimales
+    }
+    return Math.round(value * 1000) / 1000; // Redondear a 3 decimales
   };
 
   // Calculate total stock automatically
@@ -497,6 +517,13 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       return;
     }
 
+    // Validate weight (obligatorio)
+    const weightKg = getWeightInKg();
+    if (weightKg === undefined || weightKg <= 0) {
+      Alert.alert('Error', 'El peso es obligatorio y debe ser mayor a 0');
+      return;
+    }
+
     if (!selectedWarehouse) {
       Alert.alert('Error', 'Debe seleccionar un almacén');
       return;
@@ -572,7 +599,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
    * Perform the actual close validation (called after recurrence check and confirmation)
    */
   const performCloseValidation = async () => {
-    if (!product) {
+    if (!product || !selectedWarehouse) {
       return;
     }
 
@@ -591,6 +618,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       }
     }
 
+    // Store warehouse ID to satisfy TypeScript
+    const warehouseId = selectedWarehouse.id;
+
     setActionLoading(true);
     try {
       // Upload photos and signature first
@@ -607,7 +637,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         validatedStock: totalStock,
         validatedLooseUnits: looseUnitsValue,
         validatedPresentationQuantity: validatedPresentationQuantity,
-        warehouseId: selectedWarehouse.id,
+        warehouseId: warehouseId,
         areaId: selectedArea?.id,
         presentations: validatedPresentations.length > 0 ? validatedPresentations.map((p) => ({
           presentationId: p.presentationId,
@@ -615,6 +645,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           notes: p.notes.trim() || undefined,
         })) : undefined,
         barcode: barcode.trim() || undefined,
+        weightKg: getWeightInKg(), // Peso del producto en kilogramos
         photoUrl: uploadedFiles.photoUrl,
         signatureUrl: uploadedFiles.signatureUrl,
         validationNotes: validationNotes.trim() || undefined,
@@ -920,6 +951,71 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               />
               <Text style={[styles.hint, isTablet && styles.hintTablet]}>
                 Costo unitario en soles
+              </Text>
+            </View>
+
+            {/* Peso del producto */}
+            <View style={styles.section}>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                Peso <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.weightRow}>
+                <TextInput
+                  style={[styles.input, isTablet && styles.inputTablet, styles.weightInput]}
+                  value={weightValue}
+                  onChangeText={setWeightValue}
+                  placeholder={weightUnit === 'kg' ? '0.500' : '500'}
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="decimal-pad"
+                  editable={canEdit()}
+                />
+                <View style={styles.weightUnitContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.weightUnitButton,
+                      isTablet && styles.weightUnitButtonTablet,
+                      weightUnit === 'kg' && styles.weightUnitButtonActive,
+                    ]}
+                    onPress={() => setWeightUnit('kg')}
+                    disabled={!canEdit()}
+                  >
+                    <Text
+                      style={[
+                        styles.weightUnitButtonText,
+                        isTablet && styles.weightUnitButtonTextTablet,
+                        weightUnit === 'kg' && styles.weightUnitButtonTextActive,
+                      ]}
+                    >
+                      kg
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.weightUnitButton,
+                      isTablet && styles.weightUnitButtonTablet,
+                      weightUnit === 'g' && styles.weightUnitButtonActive,
+                    ]}
+                    onPress={() => setWeightUnit('g')}
+                    disabled={!canEdit()}
+                  >
+                    <Text
+                      style={[
+                        styles.weightUnitButtonText,
+                        isTablet && styles.weightUnitButtonTextTablet,
+                        weightUnit === 'g' && styles.weightUnitButtonTextActive,
+                      ]}
+                    >
+                      g
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <Text style={[styles.hint, isTablet && styles.hintTablet]}>
+                {weightValue && !isNaN(parseFloat(weightValue))
+                  ? weightUnit === 'g'
+                    ? `= ${(parseFloat(weightValue) / 1000).toFixed(3)} kg (para guías de remisión)`
+                    : `${parseFloat(weightValue).toFixed(3)} kg (para guías de remisión)`
+                  : 'Peso del producto para guías de remisión'}
               </Text>
             </View>
 
@@ -2543,6 +2639,51 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontWeight: '600',
     marginTop: 4,
+  },
+  // Estilos para el campo de peso
+  weightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  weightInput: {
+    flex: 1,
+  },
+  weightUnitContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  weightUnitButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 50,
+  },
+  weightUnitButtonTablet: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    minWidth: 60,
+  },
+  weightUnitButtonActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  weightUnitButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  weightUnitButtonTextTablet: {
+    fontSize: 16,
+  },
+  weightUnitButtonTextActive: {
+    color: '#FFFFFF',
   },
 });
 
