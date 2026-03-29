@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { Picker } from '@react-native-picker/picker';
 import { userAppRolesApi, UserRole, AssignUserRoleDto } from '@/services/api/apps';
 import { appsApi, App } from '@/services/api/apps';
@@ -619,8 +620,8 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
                     <Switch
                       value={enableScope}
                       onValueChange={setEnableScope}
-                      trackColor={{ false: '#E2E8F0', true: '#667eea' }}
-                      thumbColor={enableScope ? '#FFFFFF' : '#94A3B8'}
+                      trackColor={{ false: colors.neutral[200], true: colors.accent[500] }}
+                      thumbColor={enableScope ? colors.neutral[0] : colors.neutral[400]}
                     />
                   </View>
                 </View>
@@ -853,7 +854,7 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
                     disabled={assigning}
                   >
                     {assigning ? (
-                      <ActivityIndicator color="#FFFFFF" />
+                      <ActivityIndicator color={colors.neutral[0]} />
                     ) : (
                       <Text style={styles.saveButtonText}>Asignar</Text>
                     )}
@@ -868,7 +869,7 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
 
               {loading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#667eea" />
+                  <ActivityIndicator size="large" color={colors.accent[500]} />
                 </View>
               ) : userRoles.length === 0 ? (
                 <View style={styles.emptyContainer}>
@@ -899,15 +900,15 @@ export const UserAppRolesModal: React.FC<UserAppRolesModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius.full,
+    borderTopRightRadius: borderRadius.full,
     maxHeight: '90%',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -917,59 +918,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748B',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius['2xl'],
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   content: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
   },
   infoCard: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.accent[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#E0E7FF',
+    borderColor: colors.accent[100],
   },
   infoText: {
     fontSize: 14,
-    color: '#4F46E5',
+    color: colors.primary[600],
     lineHeight: 20,
   },
   statsCard: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   statItem: {
     flex: 1,
@@ -978,21 +979,21 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#667eea',
-    marginBottom: 4,
+    color: colors.accent[500],
+    marginBottom: spacing[1],
   },
   statLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   addButton: {
-    backgroundColor: '#667eea',
+    backgroundColor: colors.accent[500],
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#667eea',
+    marginBottom: spacing[5],
+    shadowColor: colors.accent[500],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -1001,137 +1002,137 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   addForm: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing[4],
+    marginBottom: spacing[5],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   formTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 16,
+    color: colors.neutral[800],
+    marginBottom: spacing[4],
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   label: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   pickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   switchLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   switchHint: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginTop: 2,
   },
   typeButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing[2],
   },
   typeButton: {
     minWidth: '30%',
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: borderRadius.lg,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[0],
     alignItems: 'center',
   },
   typeButtonActive: {
-    borderColor: '#667eea',
-    backgroundColor: '#EEF2FF',
+    borderColor: colors.accent[500],
+    backgroundColor: colors.accent[50],
   },
   typeButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   typeButtonTextActive: {
-    color: '#667eea',
+    color: colors.accent[500],
   },
   hint: {
     fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
     fontStyle: 'italic',
   },
   formActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    gap: spacing[3],
+    marginTop: spacing[2],
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.xl,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[0],
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#10B981',
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.success[500],
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: colors.neutral[400],
   },
   saveButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   rolesList: {
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
+    color: colors.neutral[800],
+    marginBottom: spacing[3],
   },
   loadingContainer: {
     paddingVertical: 40,
@@ -1143,32 +1144,32 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 48,
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   roleCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   roleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   roleInfo: {
     flex: 1,
@@ -1176,17 +1177,17 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   roleCode: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
     fontFamily: 'monospace',
   },
   removeButton: {
-    padding: 8,
+    padding: spacing[2],
   },
   removeButtonText: {
     fontSize: 18,
@@ -1194,73 +1195,73 @@ const styles = StyleSheet.create({
   roleDetails: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
+    gap: spacing[2],
+    marginBottom: spacing[2],
   },
   roleBadge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 12,
+    backgroundColor: colors.accent[50],
+    paddingHorizontal: spacing[3],
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E0E7FF',
+    borderColor: colors.accent[100],
   },
   roleText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#667eea',
+    color: colors.accent[500],
   },
   scopeBadge: {
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 12,
+    backgroundColor: colors.success[50],
+    paddingHorizontal: spacing[3],
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: colors.success[200],
   },
   scopeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#16A34A',
+    color: colors.success[600],
   },
   assignedDate: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   inheritedScopesContainer: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: spacing[3],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
   },
   inheritedScopesTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
     marginBottom: 6,
   },
   inheritedScopeText: {
     fontSize: 11,
-    color: '#10B981',
+    color: colors.success[500],
     marginBottom: 2,
-    paddingLeft: 8,
+    paddingLeft: spacing[2],
   },
   footer: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
   },
   closeFooterButton: {
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.neutral[100],
     alignItems: 'center',
   },
   closeFooterButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
 });
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { FormPicker } from '@/components/ui/FormPicker';
 import { FormDatePicker } from '@/components/ui/FormDatePicker';
@@ -224,46 +225,46 @@ export const WorkerProfileFields: React.FC<WorkerProfileFieldsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   sectionHeader: {
-    marginBottom: 20,
-    paddingBottom: 16,
+    marginBottom: spacing[5],
+    paddingBottom: spacing[4],
     borderBottomWidth: 2,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   subsection: {
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   subsectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#475569',
-    marginBottom: 12,
-    paddingLeft: 4,
+    color: colors.neutral[600],
+    marginBottom: spacing[3],
+    paddingLeft: spacing[1],
   },
   infoBox: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 8,
-    marginBottom: 16,
+    backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[3],
+    marginTop: spacing[2],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: colors.primary[200],
   },
   infoText: {
     fontSize: 13,
-    color: '#1E40AF',
+    color: colors.primary[800],
     lineHeight: 18,
   },
 });

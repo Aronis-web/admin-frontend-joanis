@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { RoleSelector } from '@/components/users/RoleSelector';
@@ -285,8 +286,8 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 value={formData.is_active}
                 onValueChange={(value) => updateField('is_active', value)}
                 disabled={loading}
-                trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-                thumbColor={formData.is_active ? '#FFFFFF' : '#94A3B8'}
+                trackColor={{ false: colors.neutral[200], true: colors.primary[500] }}
+                thumbColor={formData.is_active ? colors.neutral[0] : colors.neutral[400]}
               />
             </View>
 
@@ -323,7 +324,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.neutral[0]} />
               ) : (
                 <Text style={styles.submitButtonText}>Crear Usuario</Text>
               )}
@@ -338,114 +339,114 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius.full,
+    borderTopRightRadius: borderRadius.full,
     maxHeight: '90%',
-    paddingBottom: 20,
+    paddingBottom: spacing[5],
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius['2xl'],
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   formContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[5],
     maxHeight: '70%',
   },
   switchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    marginBottom: 16,
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[4],
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   switchLabelContainer: {
     flex: 1,
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   switchLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   switchDescription: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   requiredNote: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontStyle: 'italic',
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: spacing[2],
+    marginBottom: spacing[4],
   },
   modalActions: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    gap: 12,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[5],
+    gap: spacing[3],
   },
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   submitButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
   },
   submitButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: colors.neutral[400],
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
 

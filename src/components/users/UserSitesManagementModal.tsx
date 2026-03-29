@@ -10,6 +10,7 @@ import {
   Alert,
   Switch,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
 import { Site } from '@/types/sites';
@@ -192,7 +193,7 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
           <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {loading && allSites.length === 0 ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#3B82F6" />
+                <ActivityIndicator size="large" color={colors.primary[500]} />
                 <Text style={styles.loadingText}>Cargando sedes...</Text>
               </View>
             ) : (
@@ -216,8 +217,8 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
                     <Switch
                       value={canSelect}
                       onValueChange={setCanSelect}
-                      trackColor={{ false: '#CBD5E1', true: '#3B82F6' }}
-                      thumbColor={canSelect ? '#FFFFFF' : '#94A3B8'}
+                      trackColor={{ false: colors.neutral[300], true: colors.primary[500] }}
+                      thumbColor={canSelect ? colors.neutral[0] : colors.neutral[400]}
                     />
                   </View>
                 </View>
@@ -264,7 +265,7 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.neutral[0]} />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar Cambios</Text>
               )}
@@ -279,17 +280,17 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius['2xl'],
     width: '90%',
     maxWidth: 600,
     height: '85%',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -301,67 +302,67 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 20,
+    padding: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
     marginBottom: 2,
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    borderRadius: borderRadius['2xl'],
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#6B7280',
+    color: colors.neutral[500],
     fontWeight: 'bold',
   },
   scrollContent: {
     flex: 1,
-    padding: 20,
+    padding: spacing[5],
   },
   loadingContainer: {
     padding: 40,
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   infoCard: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: colors.primary[500],
   },
   infoText: {
     fontSize: 14,
-    color: '#1E40AF',
+    color: colors.primary[800],
     lineHeight: 20,
   },
   switchCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
   },
   switchContent: {
     flexDirection: 'row',
@@ -371,21 +372,21 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   switchHint: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   statsCard: {
     flexDirection: 'row',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[5],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
   },
   statItem: {
     flex: 1,
@@ -393,43 +394,43 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 16,
+    backgroundColor: colors.neutral[200],
+    marginHorizontal: spacing[4],
   },
   statNumber: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#3B82F6',
-    marginBottom: 4,
+    color: colors.primary[500],
+    marginBottom: spacing[1],
   },
   statLabel: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   section: {
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
+    color: colors.neutral[800],
+    marginBottom: spacing[3],
   },
   sitesList: {
-    gap: 12,
+    gap: spacing[3],
   },
   siteCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
     borderWidth: 2,
-    borderColor: '#E5E7EB',
-    marginBottom: 8,
+    borderColor: colors.neutral[200],
+    marginBottom: spacing[2],
   },
   siteCardSelected: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#EFF6FF',
+    borderColor: colors.primary[500],
+    backgroundColor: colors.primary[50],
   },
   siteCardContent: {
     flexDirection: 'row',
@@ -442,49 +443,49 @@ const styles = StyleSheet.create({
   siteName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   siteCode: {
     fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
   },
   siteAddress: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: colors.neutral[400],
   },
   checkboxContainer: {
-    marginLeft: 12,
+    marginLeft: spacing[3],
   },
   checkbox: {
     width: 28,
     height: 28,
-    borderRadius: 6,
+    borderRadius: borderRadius.md,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.neutral[300],
+    backgroundColor: colors.neutral[0],
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 18,
     fontWeight: 'bold',
   },
   siteMetadata: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: spacing[3],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.neutral[200],
   },
   metadataText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   emptyState: {
     padding: 40,
@@ -492,44 +493,44 @@ const styles = StyleSheet.create({
   },
   emptyStateIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   footer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    gap: 12,
+    borderTopColor: colors.neutral[200],
+    gap: spacing[3],
   },
   cancelButton: {
     flex: 1,
     padding: 14,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.neutral[100],
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#6B7280',
+    color: colors.neutral[500],
     fontSize: 16,
     fontWeight: '600',
   },
   saveButton: {
     flex: 1,
     padding: 14,
-    borderRadius: 8,
-    backgroundColor: '#3B82F6',
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary[500],
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: colors.neutral[400],
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '600',
   },

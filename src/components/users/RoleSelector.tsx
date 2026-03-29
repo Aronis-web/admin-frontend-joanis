@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { rolesApi, Role } from '@/services/api/roles';
 
 interface RoleSelectorProps {
@@ -83,7 +84,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
       <View style={styles.container}>
         <Text style={styles.label}>Roles</Text>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#3B82F6" />
+          <ActivityIndicator size="small" color={colors.primary[500]} />
           <Text style={styles.loadingText}>Cargando roles...</Text>
         </View>
       </View>
@@ -197,91 +198,91 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   description: {
     fontSize: 13,
-    color: '#64748B',
-    marginBottom: 12,
+    color: colors.neutral[500],
+    marginBottom: spacing[3],
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    padding: spacing[4],
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   loadingText: {
-    marginLeft: 12,
+    marginLeft: spacing[3],
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   errorContainer: {
-    padding: 16,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
+    padding: spacing[4],
+    backgroundColor: colors.danger[50],
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: colors.danger[100],
   },
   errorText: {
     fontSize: 14,
-    color: '#DC2626',
-    marginBottom: 12,
+    color: colors.danger[600],
+    marginBottom: spacing[3],
   },
   retryButton: {
-    backgroundColor: '#EF4444',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    backgroundColor: colors.danger[500],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
     alignSelf: 'flex-start',
   },
   retryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   emptyContainer: {
-    padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    padding: spacing[4],
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   emptyText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   rolesContainer: {
     maxHeight: 300,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 8,
+    borderColor: colors.neutral[200],
+    padding: spacing[2],
   },
   roleItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 8,
+    padding: spacing[3],
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[2],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   roleItemSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#3B82F6',
+    backgroundColor: colors.primary[50],
+    borderColor: colors.primary[500],
     borderWidth: 2,
   },
   roleItemDisabled: {
@@ -295,24 +296,24 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: borderRadius.md,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.neutral[300],
+    backgroundColor: colors.neutral[0],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing[3],
   },
   checkboxSelected: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
   },
   checkboxDisabled: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#E2E8F0',
+    backgroundColor: colors.neutral[100],
+    borderColor: colors.neutral[200],
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '700',
   },
@@ -322,43 +323,43 @@ const styles = StyleSheet.create({
   roleName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   roleNameSelected: {
-    color: '#1E40AF',
+    color: colors.primary[800],
   },
   roleNameDisabled: {
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   roleCode: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontFamily: 'monospace',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   roleCodeDisabled: {
-    color: '#CBD5E1',
+    color: colors.neutral[300],
   },
   roleDescription: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
     lineHeight: 16,
   },
   roleDescriptionDisabled: {
-    color: '#CBD5E1',
+    color: colors.neutral[300],
   },
   hintContainer: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
+    marginTop: spacing[2],
+    padding: spacing[3],
+    backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: colors.primary[200],
   },
   hintText: {
     fontSize: 13,
-    color: '#1E40AF',
+    color: colors.primary[800],
     lineHeight: 18,
   },
 });

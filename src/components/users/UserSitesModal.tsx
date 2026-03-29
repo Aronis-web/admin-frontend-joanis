@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
 import { Company } from '@/types/companies';
@@ -72,7 +73,7 @@ export const UserSitesModal: React.FC<UserSitesModalProps> = ({ visible, userId,
           {/* Content */}
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#6366F1" />
+              <ActivityIndicator size="large" color={colors.accent[500]} />
               <Text style={styles.loadingText}>Cargando sedes...</Text>
             </View>
           ) : (
@@ -112,28 +113,28 @@ export const UserSitesModal: React.FC<UserSitesModalProps> = ({ visible, userId,
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius.full,
+    borderTopRightRadius: borderRadius.full,
     maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   closeButton: {
     width: 32,
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 28,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '300',
   },
   scrollContent: {
@@ -156,9 +157,9 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   emptyContainer: {
     paddingVertical: 60,
@@ -166,13 +167,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   siteItem: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.neutral[100],
   },
   siteInfo: {
     flex: 1,
@@ -180,27 +181,27 @@ const styles = StyleSheet.create({
   siteName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   siteCode: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginBottom: 2,
   },
   siteAddress: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   modalActions: {
-    padding: 20,
+    padding: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
   },
   button: {
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.accent[500],
   },
 });

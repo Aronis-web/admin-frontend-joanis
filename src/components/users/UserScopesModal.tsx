@@ -10,6 +10,7 @@ import {
   Alert,
   Switch,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { Picker } from '@react-native-picker/picker';
 import { scopesApi, UserScope, AssignUserScopeDto, ScopeLevel } from '@/services/api/scopes';
 import { companiesApi } from '@/services/api/companies';
@@ -309,13 +310,13 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
   };
 
   const getLevelColor = (level: string): string => {
-    const colors: Record<string, string> = {
-      COMPANY: '#3B82F6',
-      SITE: '#10B981',
-      WAREHOUSE: '#F59E0B',
-      AREA: '#8B5CF6',
+    const levelColors: Record<string, string> = {
+      COMPANY: colors.primary[500],
+      SITE: colors.success[500],
+      WAREHOUSE: colors.warning[500],
+      AREA: colors.accent[600],
     };
-    return colors[level] || '#6B7280';
+    return levelColors[level] || colors.neutral[500];
   };
 
   const renderScopeCard = (scope: UserScope) => (
@@ -335,8 +336,8 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
             onValueChange={(value) =>
               handleUpdateScope(scope.id, { canRead: value, canWrite: scope.canWrite })
             }
-            trackColor={{ false: '#CBD5E1', true: '#10B981' }}
-            thumbColor={scope.canRead ? '#FFFFFF' : '#94A3B8'}
+            trackColor={{ false: colors.neutral[300], true: colors.success[500] }}
+            thumbColor={scope.canRead ? colors.neutral[0] : colors.neutral[400]}
           />
         </View>
         <View style={styles.permissionRow}>
@@ -346,8 +347,8 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
             onValueChange={(value) =>
               handleUpdateScope(scope.id, { canRead: scope.canRead, canWrite: value })
             }
-            trackColor={{ false: '#CBD5E1', true: '#3B82F6' }}
-            thumbColor={scope.canWrite ? '#FFFFFF' : '#94A3B8'}
+            trackColor={{ false: colors.neutral[300], true: colors.primary[500] }}
+            thumbColor={scope.canWrite ? colors.neutral[0] : colors.neutral[400]}
           />
         </View>
       </View>
@@ -530,8 +531,8 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
                     <Switch
                       value={canRead}
                       onValueChange={setCanRead}
-                      trackColor={{ false: '#CBD5E1', true: '#10B981' }}
-                      thumbColor={canRead ? '#FFFFFF' : '#94A3B8'}
+                      trackColor={{ false: colors.neutral[300], true: colors.success[500] }}
+                      thumbColor={canRead ? colors.neutral[0] : colors.neutral[400]}
                     />
                   </View>
                   <View style={styles.switchRow}>
@@ -539,8 +540,8 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
                     <Switch
                       value={canWrite}
                       onValueChange={setCanWrite}
-                      trackColor={{ false: '#CBD5E1', true: '#3B82F6' }}
-                      thumbColor={canWrite ? '#FFFFFF' : '#94A3B8'}
+                      trackColor={{ false: colors.neutral[300], true: colors.primary[500] }}
+                      thumbColor={canWrite ? colors.neutral[0] : colors.neutral[400]}
                     />
                   </View>
                 </View>
@@ -562,7 +563,7 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
                     disabled={loading}
                   >
                     {loading ? (
-                      <ActivityIndicator color="#FFFFFF" />
+                      <ActivityIndicator color={colors.neutral[0]} />
                     ) : (
                       <Text style={styles.submitButtonText}>Asignar Scope</Text>
                     )}
@@ -577,7 +578,7 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
 
               {loadingScopes ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#3B82F6" />
+                  <ActivityIndicator size="large" color={colors.primary[500]} />
                   <Text style={styles.loadingText}>Cargando scopes...</Text>
                 </View>
               ) : userScopes.length > 0 ? (
@@ -634,17 +635,17 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius['2xl'],
     width: '90%',
     maxWidth: 600,
     height: '85%',
-    shadowColor: '#000',
+    shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -656,125 +657,125 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 20,
+    padding: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   modalSubtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    borderRadius: borderRadius['2xl'],
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#6B7280',
+    color: colors.neutral[500],
     fontWeight: 'bold',
   },
   scrollContent: {
     flex: 1,
-    padding: 20,
+    padding: spacing[5],
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 16,
+    color: colors.neutral[800],
+    marginBottom: spacing[4],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    color: colors.neutral[700],
+    marginBottom: spacing[2],
   },
   pickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    marginBottom: 16,
+    borderColor: colors.neutral[300],
+    marginBottom: spacing[4],
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   addButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
     padding: 14,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '600',
   },
   addForm: {
-    backgroundColor: '#F9FAFB',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
+    backgroundColor: colors.neutral[50],
+    padding: spacing[4],
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing[6],
   },
   formTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 16,
+    color: colors.neutral[800],
+    marginBottom: spacing[4],
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   switchLabel: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.neutral[700],
     flex: 1,
   },
   formActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
+    gap: spacing[3],
+    marginTop: spacing[4],
   },
   formButton: {
     flex: 1,
     padding: 14,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#6B7280',
+    backgroundColor: colors.neutral[500],
   },
   cancelButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success[500],
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '600',
   },
@@ -783,64 +784,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   scopesList: {
-    gap: 12,
+    gap: spacing[3],
   },
   scopeCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 12,
+    borderColor: colors.neutral[200],
+    marginBottom: spacing[3],
   },
   scopeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   scopeLabel: {
     flex: 1,
     fontSize: 14,
-    color: '#374151',
+    color: colors.neutral[700],
     fontWeight: '500',
   },
   levelBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.xl,
   },
   levelText: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontWeight: '600',
   },
   scopePermissions: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   permissionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   permissionLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   revokeButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.danger[500],
     padding: 10,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   revokeButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 14,
     fontWeight: '600',
   },
@@ -850,54 +851,54 @@ const styles = StyleSheet.create({
   },
   emptyStateIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.neutral[500],
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: colors.neutral[400],
     textAlign: 'center',
   },
   infoSection: {
-    backgroundColor: '#EFF6FF',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: colors.primary[50],
+    padding: spacing[4],
+    borderRadius: borderRadius.xl,
     borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: colors.primary[500],
   },
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E40AF',
-    marginBottom: 12,
+    color: colors.primary[800],
+    marginBottom: spacing[3],
   },
   infoText: {
     fontSize: 14,
-    color: '#1E40AF',
-    marginBottom: 8,
+    color: colors.primary[800],
+    marginBottom: spacing[2],
     lineHeight: 20,
   },
   infoBold: {
     fontWeight: '600',
   },
   footer: {
-    padding: 16,
+    padding: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.neutral[200],
   },
   closeFooterButton: {
-    backgroundColor: '#6B7280',
+    backgroundColor: colors.neutral[500],
     padding: 14,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   closeFooterButtonText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '600',
   },

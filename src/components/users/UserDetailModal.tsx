@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { User } from '@/services/api/users';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { UserScopesModal } from './UserScopesModal';
@@ -81,7 +82,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'active' ? '#10B981' : '#EF4444';
+    return status === 'active' ? colors.success[500] : colors.danger[500];
   };
 
   const getStatusText = (status: string) => {
@@ -300,24 +301,24 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius.full,
+    borderTopRightRadius: borderRadius.full,
     maxHeight: '90%',
-    paddingBottom: 20,
+    paddingBottom: spacing[5],
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   headerLeft: {
     flexDirection: 'row',
@@ -328,15 +329,15 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: spacing[4],
   },
   avatarText: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   headerInfo: {
     flex: 1,
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
     marginBottom: 6,
   },
   statusBadge: {
@@ -354,7 +355,7 @@ const styles = StyleSheet.create({
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: borderRadius.full,
     marginRight: 6,
   },
   statusText: {
@@ -364,126 +365,126 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    borderRadius: borderRadius['2xl'],
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '600',
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[5],
     maxHeight: '70%',
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing[6],
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
+    color: colors.neutral[800],
+    marginBottom: spacing[3],
   },
   sectionContent: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
   },
   infoRow: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   infoLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 4,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   infoValue: {
     fontSize: 15,
-    color: '#1E293B',
+    color: colors.neutral[800],
     fontWeight: '500',
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing[2],
   },
   tag: {
-    backgroundColor: '#3B82F6',
-    paddingHorizontal: 12,
+    backgroundColor: colors.primary[500],
+    paddingHorizontal: spacing[3],
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: borderRadius['2xl'],
   },
   tagText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   permissionTag: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent[600],
   },
   permissionTagText: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   modalActions: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    gap: 8,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[5],
+    gap: spacing[2],
   },
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeActionButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.neutral[200],
     flex: 0.8,
   },
   closeActionButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   secondaryButton: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.accent[50],
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: colors.accent[200],
   },
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#667eea',
+    color: colors.accent[500],
   },
   scopesButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.accent[600],
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: colors.accent[700],
   },
   scopesButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   editButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.primary[500],
   },
   editButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
 

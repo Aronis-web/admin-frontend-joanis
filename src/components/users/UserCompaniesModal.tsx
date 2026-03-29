@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
 import { Company } from '@/types/companies';
@@ -122,7 +123,7 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
           {/* Content */}
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#6366F1" />
+              <ActivityIndicator size="large" color={colors.accent[500]} />
               <Text style={styles.loadingText}>Cargando empresas...</Text>
             </View>
           ) : (
@@ -174,7 +175,7 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
               disabled={saving || loading}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.neutral[0]} />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar</Text>
               )}
@@ -189,28 +190,28 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius.full,
+    borderTopRightRadius: borderRadius.full,
     maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   closeButton: {
     width: 32,
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 28,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '300',
   },
   scrollContent: {
@@ -233,9 +234,9 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   emptyContainer: {
     paddingVertical: 60,
@@ -243,16 +244,16 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   companyItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.neutral[100],
   },
   companyInfo: {
     flex: 1,
@@ -260,63 +261,63 @@ const styles = StyleSheet.create({
   companyName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing[1],
   },
   companyRuc: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     marginBottom: 2,
   },
   companyType: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: borderRadius.md,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderColor: colors.neutral[300],
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: colors.accent[500],
+    borderColor: colors.accent[500],
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: 16,
     fontWeight: '700',
   },
   modalActions: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 12,
+    padding: spacing[5],
+    gap: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
   },
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.neutral[100],
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   saveButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.accent[500],
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });
