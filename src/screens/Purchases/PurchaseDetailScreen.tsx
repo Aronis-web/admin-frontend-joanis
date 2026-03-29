@@ -934,6 +934,16 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, o
                 {product.barcode && (
                   <InfoRow label="Código de Barras" value={product.barcode} highlight />
                 )}
+                {product.weightKg !== undefined && product.weightKg !== null && (
+                  <InfoRow
+                    label="Peso"
+                    value={product.weightKg >= 1
+                      ? `${product.weightKg.toFixed(3)} kg`
+                      : `${(product.weightKg * 1000).toFixed(0)} g`
+                    }
+                    highlight
+                  />
+                )}
                 {product.validatedAt && (
                   <InfoRow label="Fecha de Validación" value={formatDate(product.validatedAt)} highlight />
                 )}
