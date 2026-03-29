@@ -2,7 +2,7 @@
  * RepartoParticipantDetailScreen - Detalle de participante en reparto
  * Migrado al Design System unificado
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -199,7 +199,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     driver: Driver | null;
     transporter: Transporter | null;
   } | null>(null);
-  const [shouldOpenBultosModal, setShouldOpenBultosModal] = useState(false);
+
+  // Usar ref para evitar re-renders innecesarios al controlar la apertura del modal de bultos
+  const pendingBultosModalRef = useRef(false);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -462,15 +464,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
   // 📦 Abrir modal de bultos después de cerrar modal de transporte
   React.useEffect(() => {
-    if (shouldOpenBultosModal && !transportModalVisible && pendingTransportData) {
-      // Esperar a que el modal de transporte termine de cerrarse
+    // Solo actuar cuando el modal de transporte se cierra Y hay datos pendientes
+    if (!transportModalVisible && pendingBultosModalRef.current) {
+      // Esperar a que el modal de transporte termine de cerrarse completamente
       const timer = setTimeout(() => {
+        pendingBultosModalRef.current = false;
         setBultosModalVisible(true);
-        setShouldOpenBultosModal(false);
-      }, 350);
+      }, 400);
       return () => clearTimeout(timer);
     }
-  }, [shouldOpenBultosModal, transportModalVisible, pendingTransportData]);
+  }, [transportModalVisible]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -735,15 +738,23 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     setTransportModalVisible(true);
   };
 
-  const handleTransportConfirm = async (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
-    // Guardar datos de transporte y marcar que debe abrirse el modal de bultos
+  const handleTransportModalClose = useCallback(() => {
+    setTransportModalVisible(false);
+    // Si el usuario cierra el modal sin confirmar, limpiar el flag pendiente
+    pendingBultosModalRef.current = false;
+  }, []);
+
+  const handleTransportConfirm = useCallback((vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
+    // Guardar datos de transporte
     setPendingTransportData({ vehicle, driver, transporter });
     setNumeroBultos('1'); // Resetear a valor por defecto
-    setShouldOpenBultosModal(true);
+
+    // Marcar que debe abrirse el modal de bultos (usando ref para evitar re-renders)
+    pendingBultosModalRef.current = true;
 
     // Cerrar el modal de transporte - el useEffect se encargará de abrir el modal de bultos
     setTransportModalVisible(false);
-  };
+  }, []);
 
   const handleBultosConfirm = async () => {
     if (!pendingTransportData) {
@@ -1711,7 +1722,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         {/* Transport Selection Modal */}
         <TransportSelectionModal
           visible={transportModalVisible}
-          onClose={() => setTransportModalVisible(false)}
+          onClose={handleTransportModalClose}
           onConfirm={handleTransportConfirm}
         />
 
