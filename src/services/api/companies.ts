@@ -176,7 +176,7 @@ export const companiesApi = {
    * GET /companies?userId=:userId
    */
   async getUserCompanies(userId: string): Promise<Company[]> {
-    const response = await apiClient.get<CompaniesResponse>(`/companies?userId=${userId}`);
+    const response = await apiClient.get<CompaniesResponse>(`/companies?userId=${userId}&limit=1000`);
     return response.data;
   },
 
