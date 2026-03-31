@@ -76,13 +76,6 @@ const menuCategories: MenuCategory[] = [
         route: MAIN_ROUTES.DASHBOARD,
         requiredPermissions: ['dashboard.read'],
       },
-      {
-        id: 'dashboard-widget',
-        icon: 'apps-outline',
-        label: 'Dashboard Widget',
-        route: MAIN_ROUTES.DASHBOARD_WIDGET,
-        requiredPermissions: ['dashboard.read'],
-      },
     ],
   },
   // Inicio
