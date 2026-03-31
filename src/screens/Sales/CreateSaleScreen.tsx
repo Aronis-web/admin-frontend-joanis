@@ -8,8 +8,11 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/store/auth';
 import { salesApi } from '@/services/api/sales';
@@ -19,40 +22,26 @@ import { priceProfilesApi } from '@/services/api/price-profiles';
 import { inventoryApi } from '@/services/api/inventory';
 import { CustomerAutocomplete } from '@/components/Bizlinks/CustomerAutocomplete';
 import { ProductAutocomplete } from '@/components/Bizlinks/ProductAutocomplete';
-import { Customer, CustomerType } from '@/types/customers';
-import { Product, ProductSalePrice } from '@/services/api/products';
+import { Customer } from '@/types/customers';
+import { Product } from '@/services/api/products';
 import { StockItemResponse } from '@/services/api/inventory';
 import { Warehouse } from '@/types/warehouses';
 import { PaymentMethod, Company } from '@/types/companies';
 import { PriceProfile } from '@/types/price-profiles';
 import { SaleType, DocumentType, CreateSaleItemRequest } from '@/types/sales';
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 import logger from '@/utils/logger';
 
-// Catálogo 07 - Tipo de Afectación del IGV
 const CODIGO_AFECTACION_IGV = {
-  GRAVADO_ONEROSA: '10', // Gravado - Operación Onerosa (con IGV)
-  GRAVADO_RETIRO_PREMIO: '11', // Gravado - Retiro por premio
-  GRAVADO_RETIRO_DONACION: '12', // Gravado - Retiro por donación
-  GRAVADO_RETIRO: '13', // Gravado - Retiro
-  GRAVADO_RETIRO_PUBLICIDAD: '14', // Gravado - Retiro por publicidad
-  GRAVADO_BONIFICACIONES: '15', // Gravado - Bonificaciones
-  GRAVADO_RETIRO_TRABAJADORES: '16', // Gravado - Retiro por entrega a trabajadores
-  GRAVADO_IVAP: '17', // Gravado - IVAP
-  EXONERADO_ONEROSA: '20', // Exonerado - Operación Onerosa (sin IGV - exonerado)
-  EXONERADO_TRANSFERENCIA_GRATUITA: '21', // Exonerado - Transferencia gratuita
+  GRAVADO_ONEROSA: '10',
+  EXONERADO_ONEROSA: '20',
+  GRAVADO_BONIFICACIONES: '15',
 };
 
 const AFECTACION_IGV_OPTIONS = [
-  { value: '10', label: 'Gravado - Operación Onerosa (con IGV)', shortLabel: 'Gravado (IGV)' },
-  { value: '20', label: 'Exonerado - Operación Onerosa (sin IGV)', shortLabel: 'Exonerado' },
-  { value: '15', label: 'Gravado - Bonificaciones', shortLabel: 'Bonificación' },
-  { value: '21', label: 'Exonerado - Transferencia gratuita', shortLabel: 'Gratuito' },
-  { value: '11', label: 'Gravado - Retiro por premio', shortLabel: 'Premio' },
-  { value: '12', label: 'Gravado - Retiro por donación', shortLabel: 'Donación' },
-  { value: '13', label: 'Gravado - Retiro', shortLabel: 'Retiro' },
-  { value: '14', label: 'Gravado - Retiro por publicidad', shortLabel: 'Publicidad' },
-  { value: '16', label: 'Gravado - Retiro por entrega a trabajadores', shortLabel: 'Trabajadores' },
-  { value: '17', label: 'Gravado - IVAP', shortLabel: 'IVAP' },
+  { value: '10', label: 'Gravado (IGV)', icon: 'checkmark-circle' },
+  { value: '20', label: 'Exonerado', icon: 'remove-circle' },
+  { value: '15', label: 'Bonificación', icon: 'gift' },
 ];
 
 interface SaleItem {
@@ -65,13 +54,15 @@ interface SaleItem {
   warehouseId?: string;
   warehouseName?: string;
   selectedPresentationId?: string;
-  codigoAfectacionIgv: string; // Catálogo 07 - Tipo de Afectación del IGV
+  codigoAfectacionIgv: string;
   notes?: string;
 }
 
 export const CreateSaleScreen: React.FC = () => {
   const navigation = useNavigation();
   const { currentCompany, currentSite } = useAuthStore();
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
 
   // State
   const [saleType, setSaleType] = useState<SaleType>(SaleType.B2C);
@@ -83,8 +74,6 @@ export const CreateSaleScreen: React.FC = () => {
   const [selectedPriceProfile, setSelectedPriceProfile] = useState<PriceProfile | null>(null);
   const [items, setItems] = useState<SaleItem[]>([]);
   const [notes, setNotes] = useState('');
-
-
 
   // Loading states
   const [loading, setLoading] = useState(false);
@@ -99,26 +88,22 @@ export const CreateSaleScreen: React.FC = () => {
   const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
 
-  // Load warehouses
   useEffect(() => {
     if (currentSite?.id) {
       loadWarehouses();
     }
   }, [currentSite?.id]);
 
-  // Load payment methods
   useEffect(() => {
     if (currentCompany?.id) {
       loadPaymentMethods();
     }
   }, [currentCompany?.id]);
 
-  // Load price profiles
   useEffect(() => {
     loadPriceProfiles();
   }, []);
 
-  // Load companies for B2B
   useEffect(() => {
     if (saleType === SaleType.B2B) {
       loadCompanies();
@@ -127,19 +112,15 @@ export const CreateSaleScreen: React.FC = () => {
 
   const loadWarehouses = async () => {
     if (!currentSite?.id) return;
-
     setLoadingWarehouses(true);
     try {
       const response = await warehousesApi.getWarehouses(currentCompany?.id, currentSite.id);
       setWarehouses(response);
-
-      // Auto-select first warehouse
       if (response.length > 0 && !selectedWarehouse) {
         setSelectedWarehouse(response[0]);
       }
     } catch (error) {
       logger.error('Error cargando almacenes:', error);
-      Alert.alert('Error', 'No se pudieron cargar los almacenes');
     } finally {
       setLoadingWarehouses(false);
     }
@@ -147,19 +128,15 @@ export const CreateSaleScreen: React.FC = () => {
 
   const loadPaymentMethods = async () => {
     if (!currentCompany?.id) return;
-
     setLoadingPaymentMethods(true);
     try {
       const data = await companiesApi.getPaymentMethods(currentCompany.id);
       setPaymentMethods(data);
-
-      // Auto-select first payment method
       if (data.length > 0 && !selectedPaymentMethod) {
         setSelectedPaymentMethod(data[0]);
       }
     } catch (error) {
       logger.error('Error cargando métodos de pago:', error);
-      Alert.alert('Error', 'No se pudieron cargar los métodos de pago');
     } finally {
       setLoadingPaymentMethods(false);
     }
@@ -172,7 +149,6 @@ export const CreateSaleScreen: React.FC = () => {
       setPriceProfiles(profiles);
     } catch (error) {
       logger.error('Error cargando perfiles de precio:', error);
-      // No mostrar alerta, es opcional
     } finally {
       setLoadingPriceProfiles(false);
     }
@@ -185,7 +161,6 @@ export const CreateSaleScreen: React.FC = () => {
       setCompanies(data);
     } catch (error) {
       logger.error('Error cargando empresas:', error);
-      Alert.alert('Error', 'No se pudieron cargar las empresas');
     } finally {
       setLoadingCompanies(false);
     }
@@ -197,64 +172,41 @@ export const CreateSaleScreen: React.FC = () => {
 
   const handleSelectProduct = useCallback(async (product: Product) => {
     try {
-      // Obtener stock del producto en todos los almacenes
       const stockResponse = await inventoryApi.getStockByProductWithAreas(product.id);
 
       if (!stockResponse || stockResponse.length === 0) {
-        Alert.alert(
-          'Sin Stock',
-          'Este producto no tiene stock disponible en ningún almacén.'
-        );
+        Alert.alert('Sin Stock', 'Este producto no tiene stock disponible.');
         return;
       }
 
-      // Filtrar solo almacenes del sitio actual si hay sitio seleccionado
       let filteredStock = stockResponse;
       if (currentSite?.id) {
-        filteredStock = stockResponse.filter(
-          (s) => s.warehouse?.siteId === currentSite.id
-        );
-
+        filteredStock = stockResponse.filter((s) => s.warehouse?.siteId === currentSite.id);
         if (filteredStock.length === 0) {
-          Alert.alert(
-            'Sin Stock',
-            'Este producto no tiene stock disponible en los almacenes de esta sede.'
-          );
+          Alert.alert('Sin Stock', 'No hay stock disponible en esta sede.');
           return;
         }
       }
 
-      // Encontrar el almacén con mayor stock disponible
-      const warehouseWithMostStock = filteredStock.reduce((prev, current) => {
-        return (current.availableQuantityBase > prev.availableQuantityBase) ? current : prev;
-      });
+      const warehouseWithMostStock = filteredStock.reduce((prev, current) =>
+        current.availableQuantityBase > prev.availableQuantityBase ? current : prev
+      );
 
       const totalStock = filteredStock.reduce((sum, s) => sum + s.availableQuantityBase, 0);
 
-      // Obtener precio de venta según el perfil seleccionado
       let unitPriceCents = product.costCents || 0;
-
       if (selectedPriceProfile && product.salePrices && product.salePrices.length > 0) {
-        // Buscar el precio de venta para el perfil seleccionado
         const salePrice = product.salePrices.find(
           (sp) => sp.profileId === selectedPriceProfile.id && !sp.presentationId
         );
-
         if (salePrice) {
           unitPriceCents = salePrice.priceCents;
         } else {
-          // Calcular precio basado en el factor del perfil
           const factor = typeof selectedPriceProfile.factorToCost === 'string'
             ? parseFloat(selectedPriceProfile.factorToCost)
             : selectedPriceProfile.factorToCost;
           unitPriceCents = Math.round(product.costCents * factor);
         }
-      }
-
-      // Auto-seleccionar el almacén deducido
-      const deducedWarehouse = warehouses.find(w => w.id === warehouseWithMostStock.warehouseId);
-      if (deducedWarehouse && !selectedWarehouse) {
-        setSelectedWarehouse(deducedWarehouse);
       }
 
       const newItem: SaleItem = {
@@ -266,29 +218,24 @@ export const CreateSaleScreen: React.FC = () => {
         availableStock: totalStock,
         warehouseId: warehouseWithMostStock.warehouseId,
         warehouseName: warehouseWithMostStock.warehouse?.name || 'Almacén',
-        codigoAfectacionIgv: CODIGO_AFECTACION_IGV.GRAVADO_ONEROSA, // Por defecto: Gravado - Operación Onerosa
+        codigoAfectacionIgv: CODIGO_AFECTACION_IGV.GRAVADO_ONEROSA,
         notes: '',
       };
 
       setItems([...items, newItem]);
     } catch (error) {
-      logger.error('Error al obtener stock del producto:', error);
+      logger.error('Error al obtener stock:', error);
       Alert.alert('Error', 'No se pudo obtener el stock del producto');
     }
-  }, [currentSite?.id, selectedPriceProfile, selectedWarehouse, warehouses, items]);
+  }, [currentSite?.id, selectedPriceProfile, items]);
 
   const handleUpdateQuantity = (index: number, quantity: number) => {
     const newItems = [...items];
     const item = newItems[index];
-
     if (quantity > item.availableStock) {
-      Alert.alert(
-        'Stock Insuficiente',
-        `Solo hay ${item.availableStock} unidades disponibles`
-      );
+      Alert.alert('Stock Insuficiente', `Solo hay ${item.availableStock} unidades disponibles`);
       return;
     }
-
     newItems[index].quantity = quantity;
     setItems(newItems);
   };
@@ -311,15 +258,8 @@ export const CreateSaleScreen: React.FC = () => {
     setItems(newItems);
   };
 
-  const handleUpdateItemNotes = (index: number, notes: string) => {
-    const newItems = [...items];
-    newItems[index].notes = notes;
-    setItems(newItems);
-  };
-
   const handleRemoveItem = (index: number) => {
-    const newItems = items.filter((_, i) => i !== index);
-    setItems(newItems);
+    setItems(items.filter((_, i) => i !== index));
   };
 
   const calculateTotals = () => {
@@ -331,7 +271,6 @@ export const CreateSaleScreen: React.FC = () => {
       const itemSubtotal = item.quantity * item.unitPriceCents;
       const itemDiscount = item.quantity * item.discountCents;
       const itemTotal = itemSubtotal - itemDiscount;
-
       subtotal += itemSubtotal;
       discount += itemDiscount;
       total += itemTotal;
@@ -341,44 +280,33 @@ export const CreateSaleScreen: React.FC = () => {
   };
 
   const handleCreateSale = async () => {
-    // Validaciones
     if (saleType === SaleType.B2C && !selectedCustomer) {
       Alert.alert('Error', 'Debe seleccionar un cliente');
       return;
     }
-
     if (saleType === SaleType.B2B && !selectedCompany) {
       Alert.alert('Error', 'Debe seleccionar una empresa');
       return;
     }
-
     if (items.length === 0) {
       Alert.alert('Error', 'Debe agregar al menos un producto');
       return;
     }
-
     if (!currentSite?.id) {
       Alert.alert('Error', 'No se ha seleccionado una sede');
       return;
     }
 
-    // Verificar que todos los productos tengan almacén asignado
     const itemsWithoutWarehouse = items.filter(item => !item.warehouseId);
     if (itemsWithoutWarehouse.length > 0) {
       Alert.alert('Error', 'Algunos productos no tienen almacén asignado');
       return;
     }
 
-    // Obtener el almacén del primer producto (todos deberían estar en el mismo almacén)
     const warehouseId = items[0].warehouseId;
-
-    // Verificar que todos los productos estén en el mismo almacén
     const differentWarehouse = items.find(item => item.warehouseId !== warehouseId);
     if (differentWarehouse) {
-      Alert.alert(
-        'Error',
-        'Todos los productos deben estar en el mismo almacén. Por favor, selecciona productos del mismo almacén.'
-      );
+      Alert.alert('Error', 'Todos los productos deben estar en el mismo almacén.');
       return;
     }
 
@@ -399,31 +327,19 @@ export const CreateSaleScreen: React.FC = () => {
         customerId: saleType === SaleType.B2C ? selectedCustomer?.id : undefined,
         companyId: saleType === SaleType.B2B ? selectedCompany?.id : undefined,
         siteId: currentSite.id,
-        warehouseId: warehouseId!, // Usar el almacén deducido de los productos
+        warehouseId: warehouseId!,
         items: saleItems,
         paymentMethodId: selectedPaymentMethod?.id,
         notes: notes.trim() || undefined,
       };
 
-      logger.info('📝 Creando venta:', saleData);
-
       const sale = await salesApi.createSale(saleData);
 
-      logger.info('✅ Venta creada exitosamente:', sale);
-
-      Alert.alert(
-        'Éxito',
-        `Venta ${sale.code} creada exitosamente`,
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+      Alert.alert('Éxito', `Venta ${sale.code} creada exitosamente`, [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
     } catch (error: any) {
       logger.error('❌ Error creando venta:', error);
-
       const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido';
       Alert.alert('Error', `No se pudo crear la venta: ${errorMessage}`);
     } finally {
@@ -434,57 +350,56 @@ export const CreateSaleScreen: React.FC = () => {
   const totals = calculateTotals();
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Volver</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <LinearGradient
+        colors={[colors.primary[900], colors.primary[800]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
           </TouchableOpacity>
-          <Text style={styles.title}>Nueva Venta</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Nueva Venta</Text>
+            <Text style={styles.headerSubtitle}>Crear venta independiente</Text>
+          </View>
         </View>
+      </LinearGradient>
 
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Sale Type */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tipo de Venta</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="pricetag-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Tipo de Venta</Text>
+          </View>
           <View style={styles.typeButtons}>
             <TouchableOpacity
-              style={[
-                styles.typeButton,
-                saleType === SaleType.B2C && styles.typeButtonActive,
-              ]}
-              onPress={() => {
-                setSaleType(SaleType.B2C);
-                setSelectedCustomer(null);
-                setSelectedCompany(null);
-              }}
+              style={[styles.typeButton, saleType === SaleType.B2C && styles.typeButtonActive]}
+              onPress={() => { setSaleType(SaleType.B2C); setSelectedCustomer(null); setSelectedCompany(null); }}
             >
-              <Text
-                style={[
-                  styles.typeButtonText,
-                  saleType === SaleType.B2C && styles.typeButtonTextActive,
-                ]}
-              >
+              <Ionicons
+                name="person-outline"
+                size={24}
+                color={saleType === SaleType.B2C ? colors.neutral[0] : colors.neutral[600]}
+              />
+              <Text style={[styles.typeButtonText, saleType === SaleType.B2C && styles.typeButtonTextActive]}>
                 B2C - Cliente
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.typeButton,
-                saleType === SaleType.B2B && styles.typeButtonActive,
-              ]}
-              onPress={() => {
-                setSaleType(SaleType.B2B);
-                setSelectedCustomer(null);
-                setSelectedCompany(null);
-              }}
+              style={[styles.typeButton, saleType === SaleType.B2B && styles.typeButtonActive]}
+              onPress={() => { setSaleType(SaleType.B2B); setSelectedCustomer(null); setSelectedCompany(null); }}
             >
-              <Text
-                style={[
-                  styles.typeButtonText,
-                  saleType === SaleType.B2B && styles.typeButtonTextActive,
-                ]}
-              >
+              <Ionicons
+                name="business-outline"
+                size={24}
+                color={saleType === SaleType.B2B ? colors.neutral[0] : colors.neutral[600]}
+              />
+              <Text style={[styles.typeButtonText, saleType === SaleType.B2B && styles.typeButtonTextActive]}>
                 B2B - Empresa
               </Text>
             </TouchableOpacity>
@@ -493,335 +408,231 @@ export const CreateSaleScreen: React.FC = () => {
 
         {/* Document Type */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tipo de Documento</Text>
-          <Text style={styles.sectionHint}>
-            Selecciona el tipo de documento a generar para esta venta
-          </Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="document-text-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Tipo de Documento</Text>
+          </View>
           <View style={styles.documentTypeButtons}>
-            <TouchableOpacity
-              style={[
-                styles.documentTypeButton,
-                documentType === DocumentType.BOLETA && styles.documentTypeButtonActive,
-              ]}
-              onPress={() => setDocumentType(DocumentType.BOLETA)}
-            >
-              <Text
-                style={[
-                  styles.documentTypeButtonText,
-                  documentType === DocumentType.BOLETA && styles.documentTypeButtonTextActive,
-                ]}
+            {[
+              { type: DocumentType.BOLETA, icon: 'receipt-outline', label: 'Boleta', hint: 'Documento tributario' },
+              { type: DocumentType.FACTURA, icon: 'document-outline', label: 'Factura', hint: 'Documento tributario' },
+              { type: DocumentType.NOTA_VENTA, icon: 'create-outline', label: 'Nota de Venta', hint: 'Control interno' },
+            ].map((doc) => (
+              <TouchableOpacity
+                key={doc.type}
+                style={[styles.documentTypeButton, documentType === doc.type && styles.documentTypeButtonActive]}
+                onPress={() => setDocumentType(doc.type)}
               >
-                📄 Boleta
-              </Text>
-              <Text
-                style={[
-                  styles.documentTypeButtonHint,
-                  documentType === DocumentType.BOLETA && styles.documentTypeButtonHintActive,
-                ]}
-              >
-                Documento tributario
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.documentTypeButton,
-                documentType === DocumentType.FACTURA && styles.documentTypeButtonActive,
-              ]}
-              onPress={() => setDocumentType(DocumentType.FACTURA)}
-            >
-              <Text
-                style={[
-                  styles.documentTypeButtonText,
-                  documentType === DocumentType.FACTURA && styles.documentTypeButtonTextActive,
-                ]}
-              >
-                📋 Factura
-              </Text>
-              <Text
-                style={[
-                  styles.documentTypeButtonHint,
-                  documentType === DocumentType.FACTURA && styles.documentTypeButtonHintActive,
-                ]}
-              >
-                Documento tributario
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.documentTypeButton,
-                documentType === DocumentType.NOTA_VENTA && styles.documentTypeButtonActive,
-              ]}
-              onPress={() => setDocumentType(DocumentType.NOTA_VENTA)}
-            >
-              <Text
-                style={[
-                  styles.documentTypeButtonText,
-                  documentType === DocumentType.NOTA_VENTA && styles.documentTypeButtonTextActive,
-                ]}
-              >
-                📝 Nota de Venta
-              </Text>
-              <Text
-                style={[
-                  styles.documentTypeButtonHint,
-                  documentType === DocumentType.NOTA_VENTA && styles.documentTypeButtonHintActive,
-                ]}
-              >
-                Solo control interno
-              </Text>
-            </TouchableOpacity>
+                <Ionicons
+                  name={doc.icon as any}
+                  size={24}
+                  color={documentType === doc.type ? colors.neutral[0] : colors.neutral[500]}
+                />
+                <Text style={[styles.documentTypeText, documentType === doc.type && styles.documentTypeTextActive]}>
+                  {doc.label}
+                </Text>
+                <Text style={[styles.documentTypeHint, documentType === doc.type && styles.documentTypeHintActive]}>
+                  {doc.hint}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        {/* Customer/Company Selection */}
+        {/* Customer Selection */}
         {saleType === SaleType.B2C && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Cliente</Text>
-            <Text style={styles.sectionHint}>
-              {documentType === DocumentType.BOLETA
-                ? 'Buscar persona natural (DNI, CE, Pasaporte)'
-                : documentType === DocumentType.FACTURA
-                ? 'Buscar empresa (RUC)'
-                : 'Buscar cliente'}
-            </Text>
-            <CustomerAutocomplete
-              onSelectCustomer={handleSelectCustomer}
-              placeholder={
-                documentType === DocumentType.BOLETA
-                  ? 'Buscar cliente por nombre o DNI...'
-                  : documentType === DocumentType.FACTURA
-                  ? 'Buscar empresa por razón social o RUC...'
-                  : 'Buscar cliente...'
-              }
-              documentTypeFilter={
-                documentType === DocumentType.BOLETA
-                  ? 'DNI'
-                  : documentType === DocumentType.FACTURA
-                  ? 'RUC'
-                  : 'ALL'
-              }
-            />
+            <View style={styles.sectionHeader}>
+              <Ionicons name="person-outline" size={20} color={colors.neutral[600]} />
+              <Text style={styles.sectionTitle}>Cliente</Text>
+            </View>
+            {selectedCustomer ? (
+              <View style={styles.selectedCard}>
+                <View style={styles.selectedCardIcon}>
+                  <Ionicons name="person" size={24} color={colors.success[600]} />
+                </View>
+                <View style={styles.selectedCardContent}>
+                  <Text style={styles.selectedCardTitle}>{selectedCustomer.fullName}</Text>
+                  <Text style={styles.selectedCardSubtitle}>{selectedCustomer.documentNumber}</Text>
+                </View>
+                <TouchableOpacity style={styles.removeButton} onPress={() => setSelectedCustomer(null)}>
+                  <Ionicons name="close" size={20} color={colors.neutral[0]} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <CustomerAutocomplete
+                onSelectCustomer={handleSelectCustomer}
+                placeholder="Buscar cliente por nombre o DNI..."
+                documentTypeFilter={documentType === DocumentType.BOLETA ? 'DNI' : documentType === DocumentType.FACTURA ? 'RUC' : 'ALL'}
+              />
+            )}
           </View>
         )}
 
+        {/* Company Selection for B2B */}
         {saleType === SaleType.B2B && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Empresa</Text>
-            <Text style={styles.sectionHint}>
-              Selecciona una empresa configurada en el sistema
-            </Text>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="business-outline" size={20} color={colors.neutral[600]} />
+              <Text style={styles.sectionTitle}>Empresa</Text>
+            </View>
             {loadingCompanies ? (
-              <ActivityIndicator size="small" color="#007bff" />
+              <ActivityIndicator size="small" color={colors.accent[500]} />
             ) : (
               <View style={styles.pickerContainer}>
-                {companies.length === 0 ? (
-                  <View style={styles.emptyCompanies}>
-                    <Text style={styles.emptyCompaniesText}>
-                      No hay empresas disponibles
-                    </Text>
-                  </View>
-                ) : (
-                  companies.map((company) => (
-                    <TouchableOpacity
-                      key={company.id}
-                      style={[
-                        styles.pickerItem,
-                        selectedCompany?.id === company.id && styles.pickerItemActive,
-                      ]}
-                      onPress={() => setSelectedCompany(company)}
-                    >
-                      <View style={styles.pickerItemContent}>
-                        <View style={styles.companyItemInfo}>
-                          <Text
-                            style={[
-                              styles.pickerItemText,
-                              selectedCompany?.id === company.id && styles.pickerItemTextActive,
-                            ]}
-                          >
-                            {company.name}
-                          </Text>
-                          {company.ruc && (
-                            <Text
-                              style={[
-                                styles.pickerItemSubtext,
-                                selectedCompany?.id === company.id && styles.pickerItemSubtextActive,
-                              ]}
-                            >
-                              RUC: {company.ruc}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))
-                )}
+                {companies.map((company) => (
+                  <TouchableOpacity
+                    key={company.id}
+                    style={[styles.pickerItem, selectedCompany?.id === company.id && styles.pickerItemActive]}
+                    onPress={() => setSelectedCompany(company)}
+                  >
+                    <View style={styles.pickerItemIcon}>
+                      <Ionicons
+                        name="business"
+                        size={20}
+                        color={selectedCompany?.id === company.id ? colors.neutral[0] : colors.neutral[500]}
+                      />
+                    </View>
+                    <View style={styles.pickerItemContent}>
+                      <Text style={[styles.pickerItemText, selectedCompany?.id === company.id && styles.pickerItemTextActive]}>
+                        {company.name}
+                      </Text>
+                      {company.ruc && (
+                        <Text style={[styles.pickerItemSubtext, selectedCompany?.id === company.id && styles.pickerItemSubtextActive]}>
+                          RUC: {company.ruc}
+                        </Text>
+                      )}
+                    </View>
+                    {selectedCompany?.id === company.id && (
+                      <Ionicons name="checkmark-circle" size={24} color={colors.neutral[0]} />
+                    )}
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
           </View>
         )}
 
-        {/* Payment Method Selection */}
+        {/* Payment Method */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Método de Pago (Opcional)</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="wallet-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Método de Pago</Text>
+            <Text style={styles.optionalTag}>Opcional</Text>
+          </View>
           {loadingPaymentMethods ? (
-            <ActivityIndicator size="small" color="#007bff" />
+            <ActivityIndicator size="small" color={colors.accent[500]} />
           ) : (
-            <View style={styles.pickerContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.pickerItem,
-                  !selectedPaymentMethod && styles.pickerItemActive,
-                ]}
-                onPress={() => setSelectedPaymentMethod(null)}
-              >
-                <Text
-                  style={[
-                    styles.pickerItemText,
-                    !selectedPaymentMethod && styles.pickerItemTextActive,
-                  ]}
-                >
-                  Sin método de pago
-                </Text>
-              </TouchableOpacity>
-              {paymentMethods.map((method) => (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.horizontalPicker}>
                 <TouchableOpacity
-                  key={method.id}
-                  style={[
-                    styles.pickerItem,
-                    selectedPaymentMethod?.id === method.id && styles.pickerItemActive,
-                  ]}
-                  onPress={() => setSelectedPaymentMethod(method)}
+                  style={[styles.chipButton, !selectedPaymentMethod && styles.chipButtonActive]}
+                  onPress={() => setSelectedPaymentMethod(null)}
                 >
-                  <Text
-                    style={[
-                      styles.pickerItemText,
-                      selectedPaymentMethod?.id === method.id && styles.pickerItemTextActive,
-                    ]}
-                  >
-                    {method.name}
+                  <Text style={[styles.chipButtonText, !selectedPaymentMethod && styles.chipButtonTextActive]}>
+                    Sin método
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+                {paymentMethods.map((method) => (
+                  <TouchableOpacity
+                    key={method.id}
+                    style={[styles.chipButton, selectedPaymentMethod?.id === method.id && styles.chipButtonActive]}
+                    onPress={() => setSelectedPaymentMethod(method)}
+                  >
+                    <Text style={[styles.chipButtonText, selectedPaymentMethod?.id === method.id && styles.chipButtonTextActive]}>
+                      {method.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
           )}
         </View>
 
-        {/* Price Profile Selection */}
+        {/* Price Profile */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Perfil de Precio de Venta (Opcional)</Text>
-          <Text style={styles.sectionHint}>
-            Selecciona un perfil para aplicar precios automáticamente a los productos
-          </Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="pricetags-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Perfil de Precio</Text>
+            <Text style={styles.optionalTag}>Opcional</Text>
+          </View>
           {loadingPriceProfiles ? (
-            <ActivityIndicator size="small" color="#007bff" />
+            <ActivityIndicator size="small" color={colors.accent[500]} />
           ) : (
-            <View style={styles.pickerContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.pickerItem,
-                  !selectedPriceProfile && styles.pickerItemActive,
-                ]}
-                onPress={() => setSelectedPriceProfile(null)}
-              >
-                <Text
-                  style={[
-                    styles.pickerItemText,
-                    !selectedPriceProfile && styles.pickerItemTextActive,
-                  ]}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.horizontalPicker}>
+                <TouchableOpacity
+                  style={[styles.chipButton, !selectedPriceProfile && styles.chipButtonActive]}
+                  onPress={() => setSelectedPriceProfile(null)}
                 >
-                  Sin perfil (usar costo)
-                </Text>
-              </TouchableOpacity>
-              {priceProfiles.map((profile) => {
-                const factor = typeof profile.factorToCost === 'string'
-                  ? parseFloat(profile.factorToCost)
-                  : profile.factorToCost;
-                const margin = ((factor - 1) * 100).toFixed(0);
-                return (
-                  <TouchableOpacity
-                    key={profile.id}
-                    style={[
-                      styles.pickerItem,
-                      selectedPriceProfile?.id === profile.id && styles.pickerItemActive,
-                    ]}
-                    onPress={() => setSelectedPriceProfile(profile)}
-                  >
-                    <View style={styles.pickerItemContent}>
-                      <Text
-                        style={[
-                          styles.pickerItemText,
-                          selectedPriceProfile?.id === profile.id && styles.pickerItemTextActive,
-                        ]}
-                      >
-                        {profile.name}
+                  <Text style={[styles.chipButtonText, !selectedPriceProfile && styles.chipButtonTextActive]}>
+                    Usar costo
+                  </Text>
+                </TouchableOpacity>
+                {priceProfiles.map((profile) => {
+                  const factor = typeof profile.factorToCost === 'string' ? parseFloat(profile.factorToCost) : profile.factorToCost;
+                  const margin = ((factor - 1) * 100).toFixed(0);
+                  return (
+                    <TouchableOpacity
+                      key={profile.id}
+                      style={[styles.chipButton, selectedPriceProfile?.id === profile.id && styles.chipButtonActive]}
+                      onPress={() => setSelectedPriceProfile(profile)}
+                    >
+                      <Text style={[styles.chipButtonText, selectedPriceProfile?.id === profile.id && styles.chipButtonTextActive]}>
+                        {profile.name} (+{margin}%)
                       </Text>
-                      <Text
-                        style={[
-                          styles.pickerItemSubtext,
-                          selectedPriceProfile?.id === profile.id && styles.pickerItemSubtextActive,
-                        ]}
-                      >
-                        +{margin}% margen
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
           )}
         </View>
 
         {/* Products */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Productos ({items.length})</Text>
-          <Text style={styles.sectionHint}>
-            Busca y agrega productos a la venta
-          </Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="cube-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Productos ({items.length})</Text>
+          </View>
 
-          {/* Product Autocomplete - Always visible */}
           <ProductAutocomplete
             onSelectProduct={handleSelectProduct}
-            placeholder="Buscar producto por nombre, SKU o código de barras..."
+            placeholder="Buscar producto por nombre, SKU..."
             excludeProductIds={items.map((item) => item.product.id)}
           />
 
           {items.length === 0 ? (
             <View style={styles.emptyProducts}>
-              <Text style={styles.emptyProductsText}>
-                No hay productos agregados
-              </Text>
-              <Text style={styles.emptyProductsHint}>
-                Usa el buscador de arriba para agregar productos
-              </Text>
+              <Ionicons name="cube-outline" size={48} color={colors.neutral[300]} />
+              <Text style={styles.emptyProductsText}>No hay productos agregados</Text>
+              <Text style={styles.emptyProductsHint}>Usa el buscador para agregar productos</Text>
             </View>
           ) : (
             <View style={styles.productsList}>
               {items.map((item, index) => (
-                <View key={`${item.product.id}-${index}`} style={styles.productItem}>
+                <View key={`${item.product.id}-${index}`} style={styles.productCard}>
                   <View style={styles.productHeader}>
                     <View style={styles.productHeaderLeft}>
-                      <Text style={styles.productName} numberOfLines={2}>
-                        {item.product.title}
-                      </Text>
-                      <Text style={styles.productSku}>SKU: {item.product.sku}</Text>
-                      {item.warehouseName && (
-                        <Text style={styles.productWarehouse}>
-                          📦 {item.warehouseName}
-                        </Text>
-                      )}
+                      <Text style={styles.productName} numberOfLines={2}>{item.product.title}</Text>
+                      <View style={styles.productMeta}>
+                        <Text style={styles.productSku}>SKU: {item.product.sku}</Text>
+                        {item.warehouseName && (
+                          <View style={styles.warehouseBadge}>
+                            <Ionicons name="cube" size={12} color={colors.accent[600]} />
+                            <Text style={styles.warehouseText}>{item.warehouseName}</Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => handleRemoveItem(index)}
-                      style={styles.removeProductButton}
-                    >
-                      <Text style={styles.removeProductButtonText}>✕</Text>
+                    <TouchableOpacity style={styles.removeProductButton} onPress={() => handleRemoveItem(index)}>
+                      <Ionicons name="trash-outline" size={18} color={colors.danger[500]} />
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.stockInfo}>
-                    <Text style={styles.productStock}>
-                      Stock disponible: {item.availableStock} unidades
-                    </Text>
+                    <Ionicons name="layers-outline" size={14} color={colors.success[600]} />
+                    <Text style={styles.stockText}>Stock disponible: {item.availableStock} uds.</Text>
                   </View>
 
                   <View style={styles.productInputs}>
@@ -830,85 +641,55 @@ export const CreateSaleScreen: React.FC = () => {
                       <TextInput
                         style={styles.input}
                         value={item.quantity.toString()}
-                        onChangeText={(text) => {
-                          const qty = parseInt(text) || 0;
-                          handleUpdateQuantity(index, qty);
-                        }}
+                        onChangeText={(text) => handleUpdateQuantity(index, parseInt(text) || 0)}
                         keyboardType="numeric"
                       />
                     </View>
-
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Precio Unit. (S/)</Text>
+                      <Text style={styles.inputLabel}>Precio (S/)</Text>
                       <TextInput
                         style={styles.input}
                         value={(item.unitPriceCents / 100).toFixed(2)}
-                        onChangeText={(text) => {
-                          const price = parseFloat(text) || 0;
-                          handleUpdatePrice(index, Math.round(price * 100));
-                        }}
+                        onChangeText={(text) => handleUpdatePrice(index, Math.round((parseFloat(text) || 0) * 100))}
                         keyboardType="decimal-pad"
                       />
                     </View>
-
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Descuento (S/)</Text>
+                      <Text style={styles.inputLabel}>Desc. (S/)</Text>
                       <TextInput
                         style={styles.input}
                         value={(item.discountCents / 100).toFixed(2)}
-                        onChangeText={(text) => {
-                          const discount = parseFloat(text) || 0;
-                          handleUpdateDiscount(index, Math.round(discount * 100));
-                        }}
+                        onChangeText={(text) => handleUpdateDiscount(index, Math.round((parseFloat(text) || 0) * 100))}
                         keyboardType="decimal-pad"
                       />
                     </View>
                   </View>
 
-                  {/* Tipo de Afectación IGV */}
-                  <View style={styles.afectacionIgvSection}>
-                    <Text style={styles.afectacionIgvLabel}>Tipo de Operación (IGV):</Text>
-                    <View style={styles.afectacionIgvButtons}>
+                  {/* IGV Type */}
+                  <View style={styles.igvSection}>
+                    <Text style={styles.igvLabel}>Tipo IGV:</Text>
+                    <View style={styles.igvButtons}>
                       {AFECTACION_IGV_OPTIONS.map((option) => (
                         <TouchableOpacity
                           key={option.value}
-                          style={[
-                            styles.afectacionIgvButton,
-                            item.codigoAfectacionIgv === option.value && styles.afectacionIgvButtonActive,
-                          ]}
+                          style={[styles.igvButton, item.codigoAfectacionIgv === option.value && styles.igvButtonActive]}
                           onPress={() => handleUpdateCodigoAfectacionIgv(index, option.value)}
                         >
-                          <Text
-                            style={[
-                              styles.afectacionIgvButtonText,
-                              item.codigoAfectacionIgv === option.value && styles.afectacionIgvButtonTextActive,
-                            ]}
-                          >
-                            {option.shortLabel}
+                          <Ionicons
+                            name={option.icon as any}
+                            size={14}
+                            color={item.codigoAfectacionIgv === option.value ? colors.neutral[0] : colors.neutral[500]}
+                          />
+                          <Text style={[styles.igvButtonText, item.codigoAfectacionIgv === option.value && styles.igvButtonTextActive]}>
+                            {option.label}
                           </Text>
                         </TouchableOpacity>
                       ))}
                     </View>
-                    <Text style={styles.afectacionIgvHint}>
-                      {AFECTACION_IGV_OPTIONS.find(o => o.value === item.codigoAfectacionIgv)?.label || 'Selecciona el tipo de operación'}
-                    </Text>
-                  </View>
-
-                  {/* Notas del producto */}
-                  <View style={styles.itemNotesSection}>
-                    <Text style={styles.inputLabel}>Notas del producto (Opcional)</Text>
-                    <TextInput
-                      style={styles.itemNotesInput}
-                      value={item.notes || ''}
-                      onChangeText={(text) => handleUpdateItemNotes(index, text)}
-                      placeholder="Ej: Gravado - Operación Onerosa"
-                      placeholderTextColor="#999"
-                      multiline
-                    />
                   </View>
 
                   <View style={styles.productTotal}>
-                    <Text style={styles.productTotalLabel}>Subtotal:</Text>
+                    <Text style={styles.productTotalLabel}>Subtotal</Text>
                     <Text style={styles.productTotalValue}>
                       S/ {((item.quantity * item.unitPriceCents - item.quantity * item.discountCents) / 100).toFixed(2)}
                     </Text>
@@ -921,13 +702,17 @@ export const CreateSaleScreen: React.FC = () => {
 
         {/* Notes */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notas (Opcional)</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="chatbox-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Notas</Text>
+            <Text style={styles.optionalTag}>Opcional</Text>
+          </View>
           <TextInput
             style={styles.notesInput}
             value={notes}
             onChangeText={setNotes}
             placeholder="Agregar notas sobre la venta..."
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.neutral[400]}
             multiline
             numberOfLines={3}
           />
@@ -935,17 +720,19 @@ export const CreateSaleScreen: React.FC = () => {
 
         {/* Totals */}
         {items.length > 0 && (
-          <View style={styles.totalsSection}>
+          <View style={styles.totalsCard}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Subtotal:</Text>
+              <Text style={styles.totalLabel}>Subtotal</Text>
               <Text style={styles.totalValue}>S/ {(totals.subtotal / 100).toFixed(2)}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Descuento:</Text>
-              <Text style={styles.totalValue}>- S/ {(totals.discount / 100).toFixed(2)}</Text>
+              <Text style={styles.totalLabel}>Descuento</Text>
+              <Text style={[styles.totalValue, { color: colors.danger[500] }]}>
+                -S/ {(totals.discount / 100).toFixed(2)}
+              </Text>
             </View>
-            <View style={[styles.totalRow, styles.totalRowFinal]}>
-              <Text style={styles.totalLabelFinal}>Total:</Text>
+            <View style={styles.totalRowFinal}>
+              <Text style={styles.totalLabelFinal}>Total</Text>
               <Text style={styles.totalValueFinal}>S/ {(totals.total / 100).toFixed(2)}</Text>
             </View>
           </View>
@@ -958,131 +745,167 @@ export const CreateSaleScreen: React.FC = () => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={colors.neutral[0]} />
           ) : (
-            <Text style={styles.createButtonText}>Crear Venta</Text>
+            <>
+              <Ionicons name="checkmark-circle" size={22} color={colors.neutral[0]} />
+              <Text style={styles.createButtonText}>Crear Venta</Text>
+            </>
           )}
         </TouchableOpacity>
-      </ScrollView>
 
-    </View>
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.secondary,
+  },
+  headerGradient: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[2],
+    paddingBottom: spacing[4],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: spacing[0.5],
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  header: {
-    marginBottom: 20,
-  },
-  backButton: {
-    marginBottom: 12,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#007bff',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+    padding: spacing[4],
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing[5],
   },
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: spacing[2],
+    marginBottom: spacing[3],
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.neutral[700],
+    flex: 1,
   },
-  sectionHint: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 12,
-    fontStyle: 'italic',
+  optionalTag: {
+    fontSize: 11,
+    color: colors.neutral[400],
+    fontWeight: '500',
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
+    borderRadius: borderRadius.sm,
   },
   typeButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   typeButton: {
     flex: 1,
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing[4],
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.surface.primary,
+    borderWidth: 2,
+    borderColor: colors.neutral[200],
+    gap: spacing[2],
+    ...shadows.sm,
   },
   typeButtonActive: {
-    borderColor: '#007bff',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
   },
   typeButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#666',
+    color: colors.neutral[600],
   },
   typeButtonTextActive: {
-    color: '#007bff',
+    color: colors.neutral[0],
   },
   documentTypeButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[2],
   },
   documentTypeButton: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
     alignItems: 'center',
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface.primary,
+    borderWidth: 2,
+    borderColor: colors.neutral[200],
+    gap: spacing[1],
   },
   documentTypeButtonActive: {
-    borderColor: '#10B981',
-    backgroundColor: '#ECFDF5',
+    backgroundColor: colors.success[500],
+    borderColor: colors.success[500],
   },
-  documentTypeButtonText: {
-    fontSize: 14,
+  documentTypeText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#666',
-    marginBottom: 4,
+    color: colors.neutral[600],
   },
-  documentTypeButtonTextActive: {
-    color: '#10B981',
+  documentTypeTextActive: {
+    color: colors.neutral[0],
   },
-  documentTypeButtonHint: {
-    fontSize: 11,
-    color: '#999',
-    textAlign: 'center',
+  documentTypeHint: {
+    fontSize: 10,
+    color: colors.neutral[400],
   },
-  documentTypeButtonHintActive: {
-    color: '#059669',
+  documentTypeHintActive: {
+    color: 'rgba(255,255,255,0.8)',
   },
   selectedCard: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#10B981',
+    alignItems: 'center',
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    borderWidth: 2,
+    borderColor: colors.success[300],
+    ...shadows.sm,
+  },
+  selectedCardIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.success[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
   },
   selectedCardContent: {
     flex: 1,
@@ -1090,325 +913,336 @@ const styles = StyleSheet.create({
   selectedCardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: colors.neutral[800],
   },
   selectedCardSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  selectedCardDetail: {
     fontSize: 13,
-    color: '#999',
+    color: colors.neutral[500],
+    marginTop: spacing[0.5],
   },
   removeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.danger[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
-  removeButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  selectButton: {
-    backgroundColor: '#007bff',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  selectButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   pickerContainer: {
-    gap: 8,
+    gap: spacing[2],
   },
   pickerItem: {
-    padding: 12,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface.primary,
     borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
+    borderColor: colors.neutral[200],
+    gap: spacing[3],
   },
   pickerItemActive: {
-    borderColor: '#007bff',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
+  },
+  pickerItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.neutral[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerItemContent: {
+    flex: 1,
   },
   pickerItemText: {
     fontSize: 15,
-    color: '#666',
+    fontWeight: '500',
+    color: colors.neutral[700],
   },
   pickerItemTextActive: {
-    color: '#007bff',
-    fontWeight: '600',
-  },
-  pickerItemContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
+    color: colors.neutral[0],
   },
   pickerItemSubtext: {
     fontSize: 12,
-    color: '#999',
+    color: colors.neutral[500],
+    marginTop: spacing[0.5],
   },
   pickerItemSubtextActive: {
-    color: '#007bff',
+    color: 'rgba(255,255,255,0.7)',
   },
-  companyItemInfo: {
-    flex: 1,
+  horizontalPicker: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    paddingRight: spacing[4],
   },
-  emptyCompanies: {
-    padding: 24,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 8,
+  chipButton: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2.5],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface.primary,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
+    borderColor: colors.neutral[200],
   },
-  emptyCompaniesText: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
+  chipButtonActive: {
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
+  },
+  chipButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.neutral[600],
+  },
+  chipButtonTextActive: {
+    color: colors.neutral[0],
   },
   emptyProducts: {
-    padding: 40,
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    padding: spacing[10],
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    borderWidth: 2,
+    borderColor: colors.neutral[200],
     borderStyle: 'dashed',
-    marginTop: 16,
+    marginTop: spacing[3],
   },
   emptyProductsText: {
     fontSize: 16,
-    color: '#999',
-    marginBottom: 8,
+    fontWeight: '600',
+    color: colors.neutral[500],
+    marginTop: spacing[3],
   },
   emptyProductsHint: {
     fontSize: 13,
-    color: '#bbb',
-    fontStyle: 'italic',
+    color: colors.neutral[400],
+    marginTop: spacing[1],
   },
   productsList: {
-    gap: 12,
-    marginTop: 16,
+    gap: spacing[3],
+    marginTop: spacing[3],
   },
-  productItem: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
+  productCard: {
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.neutral[200],
+    ...shadows.sm,
   },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   productHeaderLeft: {
     flex: 1,
-    gap: 4,
+    marginRight: spacing[3],
   },
   productName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#333',
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
+  },
+  productMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  productSku: {
+    fontSize: 12,
+    color: colors.neutral[500],
+  },
+  warehouseBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent[50],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
+    gap: spacing[1],
+  },
+  warehouseText: {
+    fontSize: 11,
+    color: colors.accent[700],
+    fontWeight: '500',
   },
   removeProductButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#EF4444',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.danger[50],
     justifyContent: 'center',
     alignItems: 'center',
   },
-  removeProductButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  productSku: {
-    fontSize: 13,
-    color: '#666',
-  },
-  productWarehouse: {
-    fontSize: 12,
-    color: '#3B82F6',
-    fontWeight: '500',
-  },
   stockInfo: {
-    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1.5],
+    marginBottom: spacing[3],
+    backgroundColor: colors.success[50],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.md,
   },
-  productStock: {
+  stockText: {
     fontSize: 13,
-    color: '#10B981',
+    color: colors.success[700],
     fontWeight: '500',
   },
   productInputs: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
+    gap: spacing[2],
+    marginBottom: spacing[3],
   },
   inputGroup: {
     flex: 1,
   },
   inputLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
+    fontSize: 11,
+    color: colors.neutral[500],
+    fontWeight: '500',
+    marginBottom: spacing[1],
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 6,
-    padding: 8,
+    borderColor: colors.neutral[200],
+    borderRadius: borderRadius.md,
+    padding: spacing[2.5],
     fontSize: 14,
-    backgroundColor: '#fff',
+    backgroundColor: colors.neutral[50],
+    color: colors.neutral[800],
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  igvSection: {
+    marginBottom: spacing[3],
+  },
+  igvLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.neutral[500],
+    marginBottom: spacing[2],
+  },
+  igvButtons: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  igvButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.neutral[100],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    gap: spacing[1],
+  },
+  igvButtonActive: {
+    backgroundColor: colors.success[500],
+    borderColor: colors.success[500],
+  },
+  igvButtonText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: colors.neutral[600],
+  },
+  igvButtonTextActive: {
+    color: colors.neutral[0],
   },
   productTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 12,
+    alignItems: 'center',
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: colors.neutral[100],
   },
   productTotalLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.neutral[500],
   },
   productTotalValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  afectacionIgvSection: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  afectacionIgvLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  afectacionIgvButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-  afectacionIgvButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
-  },
-  afectacionIgvButtonActive: {
-    borderColor: '#10B981',
-    backgroundColor: '#ECFDF5',
-  },
-  afectacionIgvButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#666',
-  },
-  afectacionIgvButtonTextActive: {
-    color: '#10B981',
-    fontWeight: '600',
-  },
-  afectacionIgvHint: {
-    fontSize: 11,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  itemNotesSection: {
-    marginTop: 12,
-  },
-  itemNotesInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 6,
-    padding: 8,
-    fontSize: 13,
-    backgroundColor: '#fff',
-    minHeight: 40,
-    textAlignVertical: 'top',
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.success[600],
   },
   notesInput: {
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    fontSize: 14,
+    color: colors.neutral[800],
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    backgroundColor: '#fff',
+    borderColor: colors.neutral[200],
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  totalsSection: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 24,
+  totalsCard: {
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[5],
+    marginBottom: spacing[5],
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.neutral[200],
+    ...shadows.sm,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   totalLabel: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: 14,
+    color: colors.neutral[500],
   },
   totalValue: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: colors.neutral[700],
   },
   totalRowFinal: {
-    paddingTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: spacing[3],
+    marginTop: spacing[2],
     borderTopWidth: 2,
-    borderTopColor: '#ddd',
-    marginTop: 4,
+    borderTopColor: colors.neutral[200],
   },
   totalLabelFinal: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: colors.neutral[800],
   },
   totalValueFinal: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#10B981',
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.success[600],
   },
   createButton: {
-    backgroundColor: '#10B981',
-    padding: 16,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.success[500],
+    padding: spacing[4],
+    borderRadius: borderRadius.xl,
+    gap: spacing[2],
+    ...shadows.md,
   },
   createButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: colors.neutral[300],
   },
   createButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  bottomSpacer: {
+    height: spacing[10],
   },
 });

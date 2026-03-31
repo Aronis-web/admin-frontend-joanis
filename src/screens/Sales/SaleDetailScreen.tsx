@@ -8,9 +8,13 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
-  Linking,
   Platform,
+  useWindowDimensions,
+  Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { salesApi } from '@/services/api/sales';
 import {
@@ -27,6 +31,7 @@ import {
 } from '@/types/sales';
 import { useAuthStore } from '@/store/auth';
 import { config } from '@/utils/config';
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 import logger from '@/utils/logger';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -44,6 +49,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const route = useRoute();
   const { saleId } = route.params as { saleId: string };
   const { token, currentCompany, currentSite } = useAuthStore();
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
 
   // State
   const [sale, setSale] = useState<Sale | null>(null);
@@ -54,6 +61,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [creditNotes, setCreditNotes] = useState<any[]>([]);
   const [debitNotes, setDebitNotes] = useState<any[]>([]);
+  const [showCreditNoteModal, setShowCreditNoteModal] = useState(false);
+  const [showDebitNoteModal, setShowDebitNoteModal] = useState(false);
 
   // Load sale
   const loadSale = async (isRefresh: boolean = false) => {
@@ -72,9 +81,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
 
       setSale(data);
       logger.info('📊 Venta cargada:', data);
-      logger.info('📄 Documentos en venta:', data.documents);
 
-      // Extraer notas de crédito y débito de los documentos
       if (data.documents && Array.isArray(data.documents)) {
         const creditNotesList = data.documents.filter((doc: any) =>
           doc.documentType?.code === '07' || doc.documentType?.name?.toLowerCase().includes('crédito')
@@ -86,10 +93,6 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         setCreditNotes(creditNotesList);
         setDebitNotes(debitNotesList);
 
-        logger.info('📝 Notas de crédito encontradas:', creditNotesList.length);
-        logger.info('📝 Notas de débito encontradas:', debitNotesList.length);
-
-        // Guardar documentos para el botón de descarga
         setSaleDocuments({
           documents: data.documents,
           allDocuments: data.documents,
@@ -97,10 +100,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       } else {
         setCreditNotes([]);
         setDebitNotes([]);
-        logger.info('📝 No hay documentos en la venta');
       }
 
-      // También intentar cargar documentos del endpoint separado (por compatibilidad)
       loadSaleDocuments();
     } catch (error) {
       logger.error('Error cargando venta:', error);
@@ -112,20 +113,13 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     }
   };
 
-  // Load sale documents (endpoint separado - por compatibilidad)
   const loadSaleDocuments = async () => {
     setLoadingDocuments(true);
     try {
       const docs = await salesApi.getSaleDocuments(saleId);
-      logger.info('📄 Documentos del endpoint separado:', docs);
-
-      // El backend devuelve allDocuments en lugar de documents
       const allDocs = docs?.allDocuments || docs?.documents || [];
-      logger.info('📄 Documentos adicionales encontrados:', allDocs.length);
 
-      // Solo actualizar si hay documentos adicionales que no estaban en la venta
       if (allDocs.length > 0) {
-        // Actualizar documentos
         setSaleDocuments((prev: any) => ({
           ...prev,
           ...docs,
@@ -133,31 +127,16 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
           allDocuments: allDocs,
         }));
 
-        // Solo actualizar notas si vienen en el endpoint separado y no las teníamos
         if (docs?.creditNotes && Array.isArray(docs.creditNotes) && docs.creditNotes.length > 0) {
-          setCreditNotes((prev) => {
-            if (prev.length === 0) {
-              logger.info('📝 Actualizando notas de crédito desde endpoint separado:', docs.creditNotes.length);
-              return docs.creditNotes;
-            }
-            return prev;
-          });
+          setCreditNotes((prev) => prev.length === 0 ? docs.creditNotes : prev);
         }
 
         if (docs?.debitNotes && Array.isArray(docs.debitNotes) && docs.debitNotes.length > 0) {
-          setDebitNotes((prev) => {
-            if (prev.length === 0) {
-              logger.info('📝 Actualizando notas de débito desde endpoint separado:', docs.debitNotes.length);
-              return docs.debitNotes;
-            }
-            return prev;
-          });
+          setDebitNotes((prev) => prev.length === 0 ? docs.debitNotes : prev);
         }
       }
     } catch (error: any) {
-      logger.error('❌ Error cargando documentos del endpoint separado:', error);
-      // No mostrar error al usuario, solo loggearlo
-      // Esto permite que la app continúe funcionando aunque no haya documentos
+      logger.error('❌ Error cargando documentos:', error);
     } finally {
       setLoadingDocuments(false);
     }
@@ -204,87 +183,97 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     }
   };
 
-  const handleDownloadCreditNote = async (creditNote: any) => {
-    if (!creditNote || !creditNote.id) {
-      Alert.alert('Error', 'No se encontró el ID de la nota de crédito');
+  const handleDownloadDocument = async () => {
+    if (!saleDocuments || !saleDocuments.documents || saleDocuments.documents.length === 0) {
+      Alert.alert('Error', 'No hay documentos disponibles para descargar');
       return;
     }
 
-    logger.info('📥 Descargando nota de crédito:', creditNote);
-    await handleDownloadNoteDocument(creditNote.id, creditNote.documentNumber || 'Nota-Credito');
-  };
+    const document = saleDocuments.documents[0];
+    setLoadingDocuments(true);
 
-  const handleDownloadDebitNote = async (debitNote: any) => {
-    if (!debitNote || !debitNote.id) {
-      Alert.alert('Error', 'No se encontró el ID de la nota de débito');
-      return;
+    try {
+      if (Platform.OS === 'web') {
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${document.id}/pdf`;
+        window.open(pdfUrl, '_blank');
+      } else {
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${document.id}/pdf`;
+
+        const fileName = `${document.documentNumber}.pdf`;
+        const fileUri = FileSystem.documentDirectory + fileName;
+
+        const headers: Record<string, string> = {
+          'X-App-Id': config.APP_ID,
+        };
+
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (currentCompany?.id) headers['X-Company-Id'] = currentCompany.id;
+        if (currentSite?.id) headers['X-Site-Id'] = currentSite.id;
+
+        const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri, { headers });
+
+        if (downloadResult.status !== 200) {
+          throw new Error(`Error del servidor: ${downloadResult.status}`);
+        }
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `${sale?.documentType} ${document.documentNumber}`,
+          });
+        } else {
+          Alert.alert('Éxito', `PDF guardado en: ${downloadResult.uri}`);
+        }
+      }
+    } catch (error: any) {
+      logger.error('❌ Error al descargar documento:', error);
+      Alert.alert('Error', error.message || 'Error al descargar el documento');
+    } finally {
+      setLoadingDocuments(false);
     }
-
-    logger.info('📥 Descargando nota de débito:', debitNote);
-    await handleDownloadNoteDocument(debitNote.id, debitNote.documentNumber || 'Nota-Debito');
   };
 
-  const handleCreateCreditNote = () => {
-    if (!sale?.id) return;
+  const handleDownloadNoteDocument = async (documentId: string, documentNumber: string) => {
+    setLoadingDocuments(true);
+    try {
+      if (Platform.OS === 'web') {
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${documentId}/pdf`;
+        window.open(pdfUrl, '_blank');
+      } else {
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${documentId}/pdf`;
 
-    Alert.alert(
-      'Crear Nota de Crédito',
-      'Selecciona el tipo de devolución:',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Devolución Total',
-          onPress: () => {
-            Alert.alert(
-              'Devolución Total',
-              '¿Confirmas la devolución total de esta venta?',
-              [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                  text: 'Confirmar',
-                  onPress: async () => {
-                    await createCreditNote({
-                      motivoNota: '06',
-                      sustentoNota: 'Devolución total de mercadería',
-                      observaciones: 'Devolución total solicitada por el cliente',
-                    });
-                  },
-                },
-              ]
-            );
-          },
-        },
-        {
-          text: 'Devolución 50%',
-          onPress: () => {
-            Alert.alert(
-              'Devolución Parcial',
-              '¿Confirmas la devolución del 50% de esta venta?',
-              [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                  text: 'Confirmar',
-                  onPress: async () => {
-                    await createCreditNote({
-                      motivoNota: '07',
-                      sustentoNota: 'Devolución parcial de mercadería',
-                      porcentajeDevolucion: 50,
-                      observaciones: 'Devolución del 50% de los productos',
-                    });
-                  },
-                },
-              ]
-            );
-          },
-        },
-      ]
-    );
+        const fileName = `${documentNumber}.pdf`;
+        const fileUri = FileSystem.documentDirectory + fileName;
+
+        const headers: Record<string, string> = { 'X-App-Id': config.APP_ID };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (currentCompany?.id) headers['X-Company-Id'] = currentCompany.id;
+        if (currentSite?.id) headers['X-Site-Id'] = currentSite.id;
+
+        const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri, { headers });
+
+        if (downloadResult.status !== 200) {
+          throw new Error(`Error del servidor: ${downloadResult.status}`);
+        }
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: documentNumber,
+          });
+        }
+      }
+    } catch (error: any) {
+      logger.error('❌ Error al descargar nota:', error);
+      Alert.alert('Error', error.message || 'Error al descargar la nota');
+    } finally {
+      setLoadingDocuments(false);
+    }
   };
-
-
 
   const createCreditNote = async (data: CreateCreditNoteRequest) => {
     if (!sale?.id) return;
@@ -292,15 +281,11 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     setLoadingDocuments(true);
     try {
       const result = await salesApi.createCreditNote(sale.id, data);
+      setShowCreditNoteModal(false);
       Alert.alert(
         'Éxito',
-        `Nota de crédito creada: ${result.documentNumber}\nEstado: ${result.status}`,
-        [
-          {
-            text: 'OK',
-            onPress: () => loadSale(true),
-          },
-        ]
+        `Nota de crédito creada: ${result.documentNumber}`,
+        [{ text: 'OK', onPress: () => loadSale(true) }]
       );
     } catch (error: any) {
       logger.error('Error creando nota de crédito:', error);
@@ -310,59 +295,16 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     }
   };
 
-  const handleCreateDebitNote = () => {
-    if (!sale?.id) return;
-
-    Alert.alert(
-      'Crear Nota de Débito',
-      'Selecciona el monto del cargo adicional:',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'S/ 50.00',
-          onPress: () => confirmDebitNote(50, 'Intereses por mora'),
-        },
-        {
-          text: 'S/ 100.00',
-          onPress: () => confirmDebitNote(100, 'Penalidad por retraso'),
-        },
-        {
-          text: 'S/ 200.00',
-          onPress: () => confirmDebitNote(200, 'Cargo adicional'),
-        },
-      ]
-    );
-  };
-
-  const confirmDebitNote = (monto: number, motivo: string) => {
-    Alert.alert(
-      'Confirmar Nota de Débito',
-      `¿Confirmas crear una nota de débito por S/ ${monto.toFixed(2)}?\nMotivo: ${motivo}`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: async () => {
-            await createDebitNote(monto, motivo);
-          },
-        },
-      ]
-    );
-  };
-
   const createDebitNote = async (monto: number, sustentoNota: string) => {
     if (!sale?.id) return;
 
     setLoadingDocuments(true);
     try {
-      const valorUnitario = monto / 1.18; // Sin IGV
-      const precioVentaUnitario = monto; // Con IGV
+      const valorUnitario = monto / 1.18;
+      const precioVentaUnitario = monto;
 
       const data: CreateDebitNoteRequest = {
-        motivoNota: '01', // Intereses por mora
+        motivoNota: '01',
         sustentoNota,
         items: [
           {
@@ -378,15 +320,11 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       };
 
       const result = await salesApi.createDebitNote(sale.id, data);
+      setShowDebitNoteModal(false);
       Alert.alert(
         'Éxito',
-        `Nota de débito creada: ${result.documentNumber}\nEstado: ${result.status}`,
-        [
-          {
-            text: 'OK',
-            onPress: () => loadSale(true),
-          },
-        ]
+        `Nota de débito creada: ${result.documentNumber}`,
+        [{ text: 'OK', onPress: () => loadSale(true) }]
       );
     } catch (error: any) {
       logger.error('Error creando nota de débito:', error);
@@ -396,206 +334,30 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     }
   };
 
-  const handleDownloadNoteDocument = async (documentId: string, documentNumber: string) => {
-    setLoadingDocuments(true);
-    try {
-      logger.info('📥 Descargando nota:', documentNumber);
-
-      if (Platform.OS === 'web') {
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${documentId}/pdf`;
-        window.open(pdfUrl, '_blank');
-      } else {
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${documentId}/pdf`;
-
-        const fileName = `${documentNumber}.pdf`;
-        const fileUri = FileSystem.documentDirectory + fileName;
-
-        const headers: Record<string, string> = {
-          'X-App-Id': config.APP_ID,
-        };
-
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        if (currentCompany?.id) {
-          headers['X-Company-Id'] = currentCompany.id;
-        }
-        if (currentSite?.id) {
-          headers['X-Site-Id'] = currentSite.id;
-        }
-
-        const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri, {
-          headers,
-        });
-
-        if (downloadResult.status !== 200) {
-          throw new Error(`Error del servidor: ${downloadResult.status}`);
-        }
-
-        const fileInfo = await FileSystem.getInfoAsync(downloadResult.uri);
-        if (fileInfo.exists && fileInfo.size === 0) {
-          throw new Error('El archivo descargado está vacío');
-        }
-
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(downloadResult.uri, {
-            mimeType: 'application/pdf',
-            dialogTitle: documentNumber,
-          });
-        } else {
-          Alert.alert('Éxito', `PDF guardado en: ${downloadResult.uri}`);
-        }
-      }
-
-      logger.info('✅ Nota descargada exitosamente');
-    } catch (error: any) {
-      logger.error('❌ Error al descargar nota:', error);
-      Alert.alert('Error', error.message || 'Error al descargar la nota');
-    } finally {
-      setLoadingDocuments(false);
-    }
-  };
-
-  const handleDownloadDocument = async () => {
-    if (!saleDocuments || !saleDocuments.documents || saleDocuments.documents.length === 0) {
-      Alert.alert('Error', 'No hay documentos disponibles para descargar');
-      return;
-    }
-
-    const document = saleDocuments.documents[0];
-    setLoadingDocuments(true);
-
-    try {
-      logger.info('📥 Descargando documento:', document.documentNumber);
-
-      if (Platform.OS === 'web') {
-        // En web, usar el endpoint directo que devuelve el blob
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${document.id}/pdf`;
-
-        // Abrir en nueva pestaña
-        window.open(pdfUrl, '_blank');
-      } else {
-        // En móvil, descargar usando el endpoint directo con autenticación
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${document.id}/pdf`;
-
-        logger.info('🌐 URL de descarga:', pdfUrl);
-
-        const fileName = `${document.documentNumber}.pdf`;
-        const fileUri = FileSystem.documentDirectory + fileName;
-
-        // Incluir headers de autenticación
-        const headers: Record<string, string> = {
-          'X-App-Id': config.APP_ID,
-        };
-
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        if (currentCompany?.id) {
-          headers['X-Company-Id'] = currentCompany.id;
-        }
-        if (currentSite?.id) {
-          headers['X-Site-Id'] = currentSite.id;
-        }
-
-        logger.info('📤 Headers:', Object.keys(headers));
-
-        const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri, {
-          headers,
-        });
-
-        logger.info('📦 Download result:', {
-          uri: downloadResult.uri,
-          status: downloadResult.status,
-        });
-
-        // Verificar que el archivo se descargó correctamente
-        if (downloadResult.status !== 200) {
-          throw new Error(`Error del servidor: ${downloadResult.status}`);
-        }
-
-        // Verificar el tamaño del archivo
-        const fileInfo = await FileSystem.getInfoAsync(downloadResult.uri);
-        logger.info('📄 File info:', fileInfo);
-
-        if (fileInfo.exists && fileInfo.size === 0) {
-          throw new Error('El archivo descargado está vacío');
-        }
-
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(downloadResult.uri, {
-            mimeType: 'application/pdf',
-            dialogTitle: `${sale?.documentType} ${document.documentNumber}`,
-          });
-        } else {
-          Alert.alert('Éxito', `PDF guardado en: ${downloadResult.uri}`);
-        }
-      }
-
-      logger.info('✅ Documento descargado exitosamente');
-    } catch (error: any) {
-      logger.error('❌ Error al descargar documento:', error);
-      Alert.alert('Error', error.message || 'Error al descargar el documento');
-    } finally {
-      setLoadingDocuments(false);
-    }
-  };
-
   const getStatusColor = (status: SaleStatus) => {
     switch (status) {
-      case SaleStatus.CONFIRMED:
-        return '#10B981';
-      case SaleStatus.COMPLETED:
-        return '#3B82F6';
-      case SaleStatus.CANCELLED:
-        return '#EF4444';
-      case SaleStatus.DRAFT:
-        return '#F59E0B';
-      default:
-        return '#6B7280';
+      case SaleStatus.CONFIRMED: return colors.success[500];
+      case SaleStatus.COMPLETED: return colors.accent[500];
+      case SaleStatus.CANCELLED: return colors.danger[500];
+      case SaleStatus.DRAFT: return colors.warning[500];
+      default: return colors.neutral[500];
     }
   };
 
   const getPaymentStatusColor = (status: PaymentStatus) => {
     switch (status) {
-      case PaymentStatus.PAID:
-        return '#10B981';
-      case PaymentStatus.PARTIAL:
-        return '#F59E0B';
-      case PaymentStatus.PENDING:
-        return '#6B7280';
-      case PaymentStatus.OVERDUE:
-        return '#EF4444';
-      default:
-        return '#6B7280';
-    }
-  };
-
-  const getDocumentStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT':
-        return '#F59E0B'; // Naranja
-      case 'SENT_TO_SUNAT':
-        return '#3B82F6'; // Azul
-      case 'ACCEPTED':
-        return '#10B981'; // Verde
-      case 'REJECTED':
-        return '#EF4444'; // Rojo
-      case 'CANCELLED':
-        return '#6B7280'; // Gris
-      default:
-        return '#6B7280';
+      case PaymentStatus.PAID: return colors.success[500];
+      case PaymentStatus.PARTIAL: return colors.warning[500];
+      case PaymentStatus.PENDING: return colors.neutral[500];
+      case PaymentStatus.OVERDUE: return colors.danger[500];
+      default: return colors.neutral[500];
     }
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
+        <ActivityIndicator size="large" color={colors.accent[500]} />
         <Text style={styles.loadingText}>Cargando venta...</Text>
       </View>
     );
@@ -604,7 +366,11 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   if (!sale) {
     return (
       <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle-outline" size={64} color={colors.danger[400]} />
         <Text style={styles.errorText}>No se encontró la venta</Text>
+        <TouchableOpacity style={styles.backButtonError} onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonErrorText}>Volver</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -612,61 +378,97 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const customerName = sale.customerSnapshot?.fullName || sale.companySnapshot?.razonSocial || 'Sin cliente';
   const documentNumber = sale.customerSnapshot?.documentNumber || sale.companySnapshot?.ruc || '';
 
-  // Debug logs para ver el estado de los documentos
-  logger.info('🔍 Render - saleDocuments:', saleDocuments);
-  logger.info('🔍 Render - tiene saleDocuments:', !!saleDocuments);
-  logger.info('🔍 Render - tiene documents array:', !!saleDocuments?.documents);
-  logger.info('🔍 Render - documents length:', saleDocuments?.documents?.length);
-  logger.info('🔍 Render - condición botón:', !!(saleDocuments && saleDocuments.documents && saleDocuments.documents.length > 0));
-
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <LinearGradient
+        colors={[colors.primary[900], colors.primary[800]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Volver</Text>
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
           </TouchableOpacity>
-          <Text style={styles.title}>{sale.code}</Text>
-          <View style={styles.badges}>
-            <View style={[styles.badge, { backgroundColor: getStatusColor(sale.status) }]}>
-              <Text style={styles.badgeText}>{SaleStatusLabels[sale.status]}</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerCode}>{sale.code}</Text>
+            <View style={styles.headerBadges}>
+              <View style={[styles.headerBadge, { backgroundColor: getStatusColor(sale.status) }]}>
+                <Text style={styles.headerBadgeText}>{SaleStatusLabels[sale.status]}</Text>
+              </View>
+              <View style={[styles.headerBadge, { backgroundColor: colors.accent[500] }]}>
+                <Text style={styles.headerBadgeText}>{SaleTypeLabels[sale.saleType]}</Text>
+              </View>
             </View>
-            <View style={[styles.badge, { backgroundColor: '#3B82F6' }]}>
-              <Text style={styles.badgeText}>{SaleTypeLabels[sale.saleType]}</Text>
-            </View>
+          </View>
+          <View style={styles.headerActions}>
+            {sale.status !== SaleStatus.CANCELLED && saleDocuments?.documents?.length > 0 && (
+              <TouchableOpacity
+                style={styles.headerActionButton}
+                onPress={handleDownloadDocument}
+                disabled={loadingDocuments}
+              >
+                <Ionicons name="download-outline" size={22} color={colors.neutral[0]} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
+        {/* Summary */}
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Total</Text>
+            <Text style={styles.summaryValue}>S/ {(sale.totalCents / 100).toFixed(2)}</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Pagado</Text>
+            <Text style={[styles.summaryValue, { color: colors.success[300] }]}>
+              S/ {(sale.paidAmountCents / 100).toFixed(2)}
+            </Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Saldo</Text>
+            <Text style={[styles.summaryValue, { color: sale.balanceCents > 0 ? colors.danger[300] : colors.success[300] }]}>
+              S/ {(sale.balanceCents / 100).toFixed(2)}
+            </Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.accent[500]]} />}
+      >
         {/* Customer Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Información del Cliente</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="person-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Cliente</Text>
+          </View>
           <View style={styles.card}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Nombre:</Text>
+              <Text style={styles.infoLabel}>Nombre</Text>
               <Text style={styles.infoValue}>{customerName}</Text>
             </View>
             {documentNumber && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Documento:</Text>
+                <Text style={styles.infoLabel}>Documento</Text>
                 <Text style={styles.infoValue}>{documentNumber}</Text>
               </View>
             )}
             {sale.customerSnapshot?.email && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Email:</Text>
+                <Text style={styles.infoLabel}>Email</Text>
                 <Text style={styles.infoValue}>{sale.customerSnapshot.email}</Text>
               </View>
             )}
             {sale.customerSnapshot?.phone && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Teléfono:</Text>
+                <Text style={styles.infoLabel}>Teléfono</Text>
                 <Text style={styles.infoValue}>{sale.customerSnapshot.phone}</Text>
               </View>
             )}
@@ -675,14 +477,17 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
 
         {/* Sale Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Información de la Venta</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="information-circle-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Información de la Venta</Text>
+          </View>
           <View style={styles.card}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Fecha:</Text>
+              <Text style={styles.infoLabel}>Fecha</Text>
               <Text style={styles.infoValue}>
                 {new Date(sale.saleDate).toLocaleDateString('es-PE', {
                   day: '2-digit',
-                  month: '2-digit',
+                  month: 'long',
                   year: 'numeric',
                   hour: '2-digit',
                   minute: '2-digit',
@@ -690,25 +495,27 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
               </Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Estado de Procesamiento:</Text>
-              <View style={[styles.processingBadge, { backgroundColor: '#3B82F6' }]}>
-                <Text style={styles.processingBadgeText}>
+              <Text style={styles.infoLabel}>Procesamiento</Text>
+              <View style={[styles.processingBadge, { backgroundColor: colors.accent[50] }]}>
+                <Text style={[styles.processingBadgeText, { color: colors.accent[700] }]}>
                   {ProcessingStatusLabels[sale.processingStatus]}
                 </Text>
               </View>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Stock Validado:</Text>
-              <Text style={styles.infoValue}>{sale.isStockValidated ? '✓ Sí' : '✗ No'}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Stock Actualizado:</Text>
-              <Text style={styles.infoValue}>{sale.isStockUpdated ? '✓ Sí' : '✗ No'}</Text>
+              <Text style={styles.infoLabel}>Stock Validado</Text>
+              <View style={styles.checkContainer}>
+                <Ionicons
+                  name={sale.isStockValidated ? "checkmark-circle" : "close-circle"}
+                  size={20}
+                  color={sale.isStockValidated ? colors.success[500] : colors.danger[500]}
+                />
+              </View>
             </View>
             {sale.notes && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Notas:</Text>
-                <Text style={styles.infoValue}>{sale.notes}</Text>
+              <View style={styles.notesContainer}>
+                <Text style={styles.notesLabel}>Notas</Text>
+                <Text style={styles.notesText}>{sale.notes}</Text>
               </View>
             )}
           </View>
@@ -716,7 +523,10 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
 
         {/* Products */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Productos ({sale.itemCount})</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="cube-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Productos ({sale.itemCount})</Text>
+          </View>
           {sale.items && sale.items.length > 0 ? (
             <View style={styles.productsContainer}>
               {sale.items.map((item, index) => (
@@ -732,20 +542,20 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                   <Text style={styles.productSku}>SKU: {item.productSnapshot.sku}</Text>
                   <View style={styles.productDetails}>
                     <View style={styles.productDetailItem}>
-                      <Text style={styles.productDetailLabel}>Cantidad:</Text>
+                      <Text style={styles.productDetailLabel}>Cant.:</Text>
                       <Text style={styles.productDetailValue}>{item.quantity}</Text>
                     </View>
                     <View style={styles.productDetailItem}>
-                      <Text style={styles.productDetailLabel}>Precio Unit.:</Text>
+                      <Text style={styles.productDetailLabel}>P.Unit.:</Text>
                       <Text style={styles.productDetailValue}>
                         S/ {(item.unitPriceCents / 100).toFixed(2)}
                       </Text>
                     </View>
                     {item.discountCents > 0 && (
                       <View style={styles.productDetailItem}>
-                        <Text style={styles.productDetailLabel}>Descuento:</Text>
-                        <Text style={styles.productDetailValue}>
-                          - S/ {(item.discountCents / 100).toFixed(2)}
+                        <Text style={[styles.productDetailLabel, { color: colors.danger[500] }]}>Desc.:</Text>
+                        <Text style={[styles.productDetailValue, { color: colors.danger[500] }]}>
+                          -S/ {(item.discountCents / 100).toFixed(2)}
                         </Text>
                       </View>
                     )}
@@ -754,56 +564,71 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
               ))}
             </View>
           ) : (
-            <Text style={styles.emptyText}>No hay productos</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No hay productos</Text>
+            </View>
           )}
         </View>
 
         {/* Totals */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Totales</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="calculator-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Totales</Text>
+          </View>
           <View style={styles.card}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Subtotal:</Text>
+              <Text style={styles.totalLabel}>Subtotal</Text>
               <Text style={styles.totalValue}>S/ {(sale.subtotalCents / 100).toFixed(2)}</Text>
             </View>
             {sale.discountCents > 0 && (
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Descuento:</Text>
-                <Text style={styles.totalValue}>- S/ {(sale.discountCents / 100).toFixed(2)}</Text>
+                <Text style={styles.totalLabel}>Descuento</Text>
+                <Text style={[styles.totalValue, { color: colors.danger[500] }]}>
+                  -S/ {(sale.discountCents / 100).toFixed(2)}
+                </Text>
               </View>
             )}
-            <View style={[styles.totalRow, styles.totalRowFinal]}>
-              <Text style={styles.totalLabelFinal}>Total:</Text>
+            <View style={styles.totalRowFinal}>
+              <Text style={styles.totalLabelFinal}>Total</Text>
               <Text style={styles.totalValueFinal}>S/ {(sale.totalCents / 100).toFixed(2)}</Text>
             </View>
           </View>
         </View>
 
-        {/* Payment Info */}
+        {/* Payment Status */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Estado de Pago</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="wallet-outline" size={20} color={colors.neutral[600]} />
+            <Text style={styles.sectionTitle}>Estado de Pago</Text>
+          </View>
           <View style={styles.card}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Estado:</Text>
-              <View style={[styles.paymentBadge, { backgroundColor: getPaymentStatusColor(sale.paymentStatus) }]}>
-                <Text style={styles.paymentBadgeText}>{PaymentStatusLabels[sale.paymentStatus]}</Text>
+              <Text style={styles.infoLabel}>Estado</Text>
+              <View style={[styles.paymentStatusBadge, { backgroundColor: getPaymentStatusColor(sale.paymentStatus) + '15' }]}>
+                <View style={[styles.paymentStatusDot, { backgroundColor: getPaymentStatusColor(sale.paymentStatus) }]} />
+                <Text style={[styles.paymentStatusText, { color: getPaymentStatusColor(sale.paymentStatus) }]}>
+                  {PaymentStatusLabels[sale.paymentStatus]}
+                </Text>
               </View>
             </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total:</Text>
-              <Text style={styles.totalValue}>S/ {(sale.totalCents / 100).toFixed(2)}</Text>
-            </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Pagado:</Text>
-              <Text style={[styles.totalValue, { color: '#10B981' }]}>
-                S/ {(sale.paidAmountCents / 100).toFixed(2)}
-              </Text>
-            </View>
-            <View style={[styles.totalRow, styles.totalRowFinal]}>
-              <Text style={styles.totalLabelFinal}>Saldo:</Text>
-              <Text style={[styles.totalValueFinal, { color: sale.balanceCents > 0 ? '#EF4444' : '#10B981' }]}>
-                S/ {(sale.balanceCents / 100).toFixed(2)}
-              </Text>
+            <View style={styles.paymentSummary}>
+              <View style={styles.paymentSummaryItem}>
+                <Text style={styles.paymentSummaryLabel}>Total</Text>
+                <Text style={styles.paymentSummaryValue}>S/ {(sale.totalCents / 100).toFixed(2)}</Text>
+              </View>
+              <View style={styles.paymentSummaryItem}>
+                <Text style={styles.paymentSummaryLabel}>Pagado</Text>
+                <Text style={[styles.paymentSummaryValue, { color: colors.success[600] }]}>
+                  S/ {(sale.paidAmountCents / 100).toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.paymentSummaryItem}>
+                <Text style={styles.paymentSummaryLabel}>Saldo</Text>
+                <Text style={[styles.paymentSummaryValue, { color: sale.balanceCents > 0 ? colors.danger[600] : colors.success[600] }]}>
+                  S/ {(sale.balanceCents / 100).toFixed(2)}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -811,30 +636,27 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         {/* Payments */}
         {sale.payments && sale.payments.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pagos Registrados ({sale.payments.length})</Text>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="cash-outline" size={20} color={colors.neutral[600]} />
+              <Text style={styles.sectionTitle}>Pagos ({sale.payments.length})</Text>
+            </View>
             <View style={styles.paymentsContainer}>
               {sale.payments.map((payment) => (
                 <View key={payment.id} style={styles.paymentCard}>
                   <View style={styles.paymentHeader}>
-                    <Text style={styles.paymentAmount}>
-                      S/ {(payment.amountCents / 100).toFixed(2)}
-                    </Text>
+                    <Text style={styles.paymentAmount}>S/ {(payment.amountCents / 100).toFixed(2)}</Text>
                     <Text style={styles.paymentDate}>
                       {new Date(payment.createdAt).toLocaleDateString('es-PE')}
                     </Text>
                   </View>
                   {payment.paymentMethod && (
-                    <Text style={styles.paymentMethod}>
-                      Método: {payment.paymentMethod.name}
-                    </Text>
+                    <View style={styles.paymentMethodContainer}>
+                      <Ionicons name="card-outline" size={14} color={colors.neutral[500]} />
+                      <Text style={styles.paymentMethod}>{payment.paymentMethod.name}</Text>
+                    </View>
                   )}
                   {payment.referenceNumber && (
-                    <Text style={styles.paymentReference}>
-                      Ref: {payment.referenceNumber}
-                    </Text>
-                  )}
-                  {payment.notes && (
-                    <Text style={styles.paymentNotes}>{payment.notes}</Text>
+                    <Text style={styles.paymentReference}>Ref: {payment.referenceNumber}</Text>
                   )}
                 </View>
               ))}
@@ -842,119 +664,34 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
           </View>
         )}
 
-        {/* Documents Section */}
-        {saleDocuments && saleDocuments.documents && saleDocuments.documents.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Documentos</Text>
-            <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Tipo de Documento:</Text>
-                <Text style={styles.infoValue}>{sale.documentType}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Número:</Text>
-                <Text style={styles.infoValue}>{saleDocuments.documents[0].documentNumber}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Estado:</Text>
-                <Text style={styles.infoValue}>{saleDocuments.documents[0].status}</Text>
-              </View>
-              {saleDocuments.documentGeneratedAt && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Generado:</Text>
-                  <Text style={styles.infoValue}>
-                    {new Date(saleDocuments.documentGeneratedAt).toLocaleDateString('es-PE', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* Credit Notes Section */}
+        {/* Credit Notes */}
         {creditNotes.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notas de Crédito ({creditNotes.length})</Text>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="document-text-outline" size={20} color={colors.warning[600]} />
+              <Text style={styles.sectionTitle}>Notas de Crédito ({creditNotes.length})</Text>
+            </View>
             {creditNotes.map((note, index) => (
               <View key={note.id || index} style={styles.noteCard}>
                 <View style={styles.noteHeader}>
                   <Text style={styles.noteNumber}>{note.documentNumber}</Text>
-                  <Text style={[styles.noteStatus, { color: getDocumentStatusColor(note.status) }]}>
-                    {note.status}
+                  <View style={[styles.noteStatusBadge, { backgroundColor: colors.warning[100] }]}>
+                    <Text style={[styles.noteStatusText, { color: colors.warning[700] }]}>{note.status}</Text>
+                  </View>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Monto</Text>
+                  <Text style={[styles.infoValue, { color: colors.warning[600] }]}>
+                    S/ {(note.totalCents / 100).toFixed(2)}
                   </Text>
                 </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Monto:</Text>
-                  <Text style={styles.infoValue}>S/ {(note.totalCents / 100).toFixed(2)}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Motivo:</Text>
-                  <Text style={styles.infoValue}>{note.creditNoteReason}</Text>
-                </View>
-                {note.notes && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Observaciones:</Text>
-                    <Text style={styles.infoValue}>{note.notes}</Text>
-                  </View>
-                )}
                 <TouchableOpacity
                   style={styles.downloadNoteButton}
                   onPress={() => handleDownloadNoteDocument(note.id, note.documentNumber)}
                   disabled={loadingDocuments}
                 >
-                  {loadingDocuments ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.downloadNoteButtonText}>📄 Descargar PDF</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Debit Notes Section */}
-        {debitNotes.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notas de Débito ({debitNotes.length})</Text>
-            {debitNotes.map((note, index) => (
-              <View key={note.id || index} style={styles.noteCard}>
-                <View style={styles.noteHeader}>
-                  <Text style={styles.noteNumber}>{note.documentNumber}</Text>
-                  <Text style={[styles.noteStatus, { color: getDocumentStatusColor(note.status) }]}>
-                    {note.status}
-                  </Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Monto:</Text>
-                  <Text style={styles.infoValue}>S/ {(note.totalCents / 100).toFixed(2)}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Motivo:</Text>
-                  <Text style={styles.infoValue}>{note.debitNoteReason}</Text>
-                </View>
-                {note.notes && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Observaciones:</Text>
-                    <Text style={styles.infoValue}>{note.notes}</Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={styles.downloadNoteButton}
-                  onPress={() => handleDownloadNoteDocument(note.id, note.documentNumber)}
-                  disabled={loadingDocuments}
-                >
-                  {loadingDocuments ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.downloadNoteButtonText}>📄 Descargar PDF</Text>
-                  )}
+                  <Ionicons name="download-outline" size={18} color={colors.neutral[0]} />
+                  <Text style={styles.downloadNoteButtonText}>Descargar PDF</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -964,445 +701,644 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         {/* Actions */}
         {sale.status !== SaleStatus.CANCELLED && (
           <View style={styles.actionsSection}>
-            {/* Download Document Button - Mostrar siempre que haya documentos, sin importar el estado */}
-            {saleDocuments && saleDocuments.documents && saleDocuments.documents.length > 0 && (
-              <TouchableOpacity
-                style={styles.downloadButton}
-                onPress={handleDownloadDocument}
-                disabled={loadingDocuments}
-              >
-                {loadingDocuments ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Text style={styles.downloadButtonText}>📄 Descargar {sale.documentType === DocumentType.BOLETA ? 'Boleta' : sale.documentType === DocumentType.FACTURA ? 'Factura' : 'Documento'}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-
             {sale.balanceCents > 0 && (
-              <TouchableOpacity
-                style={styles.paymentButton}
-                onPress={handleRegisterPayment}
-              >
-                <Text style={styles.paymentButtonText}>Registrar Pago</Text>
+              <TouchableOpacity style={styles.actionButton} onPress={handleRegisterPayment}>
+                <Ionicons name="add-circle-outline" size={20} color={colors.neutral[0]} />
+                <Text style={styles.actionButtonText}>Registrar Pago</Text>
               </TouchableOpacity>
             )}
 
-            {/* Botones de Notas de Crédito y Débito - Solo para ventas confirmadas con documento tributario */}
             {sale.status === SaleStatus.CONFIRMED && (sale.documentType === DocumentType.BOLETA || sale.documentType === DocumentType.FACTURA) && (
               <>
-                {/* Botón de Nota de Crédito - Cambia según si existe o no */}
-                {creditNotes.length > 0 ? (
-                  <TouchableOpacity
-                    style={styles.downloadButton}
-                    onPress={() => handleDownloadCreditNote(creditNotes[0])}
-                    disabled={loadingDocuments}
-                  >
-                    {loadingDocuments ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={styles.downloadButtonText}>📄 Descargar Nota de Crédito</Text>
-                    )}
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.creditNoteButton}
-                    onPress={handleCreateCreditNote}
-                    disabled={loadingDocuments}
-                  >
-                    {loadingDocuments ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={styles.creditNoteButtonText}>📝 Crear Nota de Crédito</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: colors.warning[500] }]}
+                  onPress={() => setShowCreditNoteModal(true)}
+                >
+                  <Ionicons name="document-text-outline" size={20} color={colors.neutral[0]} />
+                  <Text style={styles.actionButtonText}>Nota de Crédito</Text>
+                </TouchableOpacity>
 
-                {/* Botón de Nota de Débito - Cambia según si existe o no */}
-                {debitNotes.length > 0 ? (
-                  <TouchableOpacity
-                    style={styles.downloadButton}
-                    onPress={() => handleDownloadDebitNote(debitNotes[0])}
-                    disabled={loadingDocuments}
-                  >
-                    {loadingDocuments ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={styles.downloadButtonText}>📄 Descargar Nota de Débito</Text>
-                    )}
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.debitNoteButton}
-                    onPress={handleCreateDebitNote}
-                    disabled={loadingDocuments}
-                  >
-                    {loadingDocuments ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={styles.debitNoteButtonText}>📝 Crear Nota de Débito</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: colors.info[500] }]}
+                  onPress={() => setShowDebitNoteModal(true)}
+                >
+                  <Ionicons name="add-outline" size={20} color={colors.neutral[0]} />
+                  <Text style={styles.actionButtonText}>Nota de Débito</Text>
+                </TouchableOpacity>
               </>
             )}
 
             {sale.status === SaleStatus.CONFIRMED && (
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.actionButton, { backgroundColor: colors.danger[500] }]}
                 onPress={handleCancelSale}
                 disabled={cancelling}
               >
                 {cancelling ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={colors.neutral[0]} />
                 ) : (
-                  <Text style={styles.cancelButtonText}>Cancelar Venta</Text>
+                  <>
+                    <Ionicons name="close-circle-outline" size={20} color={colors.neutral[0]} />
+                    <Text style={styles.actionButtonText}>Cancelar Venta</Text>
+                  </>
                 )}
               </TouchableOpacity>
             )}
           </View>
         )}
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
-    </View>
+
+      {/* Credit Note Modal */}
+      <Modal visible={showCreditNoteModal} transparent animationType="slide" onRequestClose={() => setShowCreditNoteModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Crear Nota de Crédito</Text>
+              <TouchableOpacity onPress={() => setShowCreditNoteModal(false)}>
+                <Ionicons name="close" size={24} color={colors.neutral[500]} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              <Text style={styles.modalDescription}>Selecciona el tipo de devolución:</Text>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => createCreditNote({
+                  motivoNota: '06',
+                  sustentoNota: 'Devolución total de mercadería',
+                  observaciones: 'Devolución total solicitada por el cliente',
+                })}
+              >
+                <View style={styles.modalOptionIcon}>
+                  <Ionicons name="return-down-back" size={24} color={colors.warning[600]} />
+                </View>
+                <View style={styles.modalOptionContent}>
+                  <Text style={styles.modalOptionTitle}>Devolución Total</Text>
+                  <Text style={styles.modalOptionSubtitle}>100% del monto de la venta</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => createCreditNote({
+                  motivoNota: '07',
+                  sustentoNota: 'Devolución parcial de mercadería',
+                  porcentajeDevolucion: 50,
+                  observaciones: 'Devolución del 50% de los productos',
+                })}
+              >
+                <View style={styles.modalOptionIcon}>
+                  <Ionicons name="git-branch-outline" size={24} color={colors.warning[600]} />
+                </View>
+                <View style={styles.modalOptionContent}>
+                  <Text style={styles.modalOptionTitle}>Devolución 50%</Text>
+                  <Text style={styles.modalOptionSubtitle}>Devolución parcial de la venta</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Debit Note Modal */}
+      <Modal visible={showDebitNoteModal} transparent animationType="slide" onRequestClose={() => setShowDebitNoteModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Crear Nota de Débito</Text>
+              <TouchableOpacity onPress={() => setShowDebitNoteModal(false)}>
+                <Ionicons name="close" size={24} color={colors.neutral[500]} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              <Text style={styles.modalDescription}>Selecciona el monto del cargo:</Text>
+              {[50, 100, 200].map((monto) => (
+                <TouchableOpacity
+                  key={monto}
+                  style={styles.modalOption}
+                  onPress={() => createDebitNote(monto, 'Cargo adicional')}
+                >
+                  <View style={[styles.modalOptionIcon, { backgroundColor: colors.info[100] }]}>
+                    <Text style={[styles.modalOptionIconText, { color: colors.info[700] }]}>+</Text>
+                  </View>
+                  <View style={styles.modalOptionContent}>
+                    <Text style={styles.modalOptionTitle}>S/ {monto.toFixed(2)}</Text>
+                    <Text style={styles.modalOptionSubtitle}>Cargo adicional</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
+    backgroundColor: colors.background.secondary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.secondary,
+    gap: spacing[4],
   },
   loadingText: {
-    marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: colors.neutral[500],
+    fontWeight: '500',
   },
   errorText: {
-    fontSize: 16,
-    color: '#EF4444',
+    fontSize: 18,
+    color: colors.danger[600],
+    fontWeight: '600',
+    marginTop: spacing[4],
   },
-  header: {
-    marginBottom: 24,
+  backButtonError: {
+    marginTop: spacing[4],
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.accent[500],
+    borderRadius: borderRadius.lg,
+  },
+  backButtonErrorText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.neutral[0],
+  },
+  headerGradient: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[2],
+    paddingBottom: spacing[4],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[4],
   },
   backButton: {
-    marginBottom: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
   },
-  backButtonText: {
-    fontSize: 16,
-    color: '#007bff',
+  headerTitleContainer: {
+    flex: 1,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+  headerCode: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    marginBottom: spacing[2],
   },
-  badges: {
+  headerBadges: {
     flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
+    gap: spacing[2],
   },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+  headerBadge: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
   },
-  badgeText: {
-    fontSize: 13,
+  headerBadgeText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.neutral[0],
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  headerActionButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  summaryContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    marginBottom: spacing[1],
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  summaryDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: spacing[3],
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: spacing[4],
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing[5],
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    marginBottom: spacing[3],
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.neutral[700],
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.neutral[200],
+    ...shadows.sm,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    paddingVertical: spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[100],
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 14,
-    color: '#333',
+    color: colors.neutral[800],
+    fontWeight: '600',
     flex: 1,
     textAlign: 'right',
   },
   processingBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
   },
   processingBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
+  },
+  checkContainer: {},
+  notesContainer: {
+    paddingTop: spacing[3],
+    marginTop: spacing[2],
+  },
+  notesLabel: {
+    fontSize: 13,
+    color: colors.neutral[500],
+    fontWeight: '500',
+    marginBottom: spacing[1],
+  },
+  notesText: {
+    fontSize: 14,
+    color: colors.neutral[700],
+    lineHeight: 20,
   },
   productsContainer: {
-    gap: 12,
+    gap: spacing[3],
   },
   productCard: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.neutral[200],
+    ...shadows.sm,
   },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   productName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#333',
+    color: colors.neutral[800],
     flex: 1,
+    marginRight: spacing[3],
   },
   productPrice: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#10B981',
-    marginLeft: 12,
+    fontWeight: '700',
+    color: colors.success[600],
   },
   productSku: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 8,
+    fontSize: 12,
+    color: colors.neutral[500],
+    marginBottom: spacing[3],
   },
   productDetails: {
     flexDirection: 'row',
-    gap: 16,
+    gap: spacing[4],
     flexWrap: 'wrap',
   },
   productDetailItem: {
     flexDirection: 'row',
-    gap: 4,
+    gap: spacing[1],
   },
   productDetailLabel: {
     fontSize: 13,
-    color: '#666',
+    color: colors.neutral[500],
   },
   productDetailValue: {
     fontSize: 13,
-    color: '#333',
+    color: colors.neutral[700],
     fontWeight: '600',
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    paddingVertical: spacing[2],
   },
   totalLabel: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: 14,
+    color: colors.neutral[500],
   },
   totalValue: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: colors.neutral[700],
   },
   totalRowFinal: {
-    paddingTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: spacing[3],
+    marginTop: spacing[2],
     borderTopWidth: 2,
-    borderTopColor: '#ddd',
-    marginTop: 4,
+    borderTopColor: colors.neutral[200],
   },
   totalLabelFinal: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.neutral[800],
   },
   totalValueFinal: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#10B981',
+    fontWeight: '700',
+    color: colors.success[600],
   },
-  paymentBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  paymentStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
+    gap: spacing[1.5],
+  },
+  paymentStatusDot: {
+    width: 8,
+    height: 8,
     borderRadius: 4,
   },
-  paymentBadgeText: {
-    fontSize: 12,
+  paymentStatusText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#fff',
+  },
+  paymentSummary: {
+    flexDirection: 'row',
+    marginTop: spacing[4],
+    paddingTop: spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[100],
+  },
+  paymentSummaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  paymentSummaryLabel: {
+    fontSize: 11,
+    color: colors.neutral[500],
+    fontWeight: '500',
+    marginBottom: spacing[1],
+  },
+  paymentSummaryValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.neutral[800],
   },
   paymentsContainer: {
-    gap: 12,
+    gap: spacing[3],
   },
   paymentCard: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.neutral[200],
+    ...shadows.sm,
   },
   paymentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   paymentAmount: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#10B981',
+    fontWeight: '700',
+    color: colors.success[600],
   },
   paymentDate: {
     fontSize: 13,
-    color: '#666',
+    color: colors.neutral[500],
+  },
+  paymentMethodContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1.5],
   },
   paymentMethod: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+    fontSize: 13,
+    color: colors.neutral[600],
   },
   paymentReference: {
-    fontSize: 13,
-    color: '#999',
-    marginBottom: 4,
+    fontSize: 12,
+    color: colors.neutral[400],
+    marginTop: spacing[1],
   },
-  paymentNotes: {
-    fontSize: 13,
-    color: '#666',
-    fontStyle: 'italic',
+  emptyContainer: {
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[8],
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
   },
   emptyText: {
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
-    padding: 20,
-  },
-  actionsSection: {
-    gap: 12,
-    marginTop: 8,
-  },
-  downloadButton: {
-    backgroundColor: '#3B82F6',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  downloadButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  paymentButton: {
-    backgroundColor: '#10B981',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  paymentButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  cancelButton: {
-    backgroundColor: '#EF4444',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  creditNoteButton: {
-    backgroundColor: '#F59E0B',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  creditNoteButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  debitNoteButton: {
-    backgroundColor: '#8B5CF6',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  debitNoteButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    color: colors.neutral[400],
   },
   noteCard: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.warning[200],
+    ...shadows.sm,
   },
   noteHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 12,
+    marginBottom: spacing[3],
+    paddingBottom: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[100],
   },
   noteNumber: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontWeight: '700',
+    color: colors.neutral[800],
   },
-  noteStatus: {
-    fontSize: 12,
+  noteStatusBadge: {
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
+  },
+  noteStatusText: {
+    fontSize: 11,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
   downloadNoteButton: {
-    backgroundColor: '#3B82F6',
-    padding: 12,
-    borderRadius: 6,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    justifyContent: 'center',
+    backgroundColor: colors.accent[500],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[3],
+    gap: spacing[2],
   },
   downloadNoteButtonText: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+    color: colors.neutral[0],
+  },
+  actionsSection: {
+    gap: spacing[3],
+    marginTop: spacing[4],
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.success[500],
+    padding: spacing[4],
+    borderRadius: borderRadius.xl,
+    gap: spacing[2],
+    ...shadows.sm,
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.neutral[0],
+  },
+  bottomSpacer: {
+    height: spacing[10],
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay.medium,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.surface.primary,
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing[5],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[200],
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.neutral[800],
+  },
+  modalBody: {
+    padding: spacing[5],
+  },
+  modalDescription: {
+    fontSize: 15,
+    color: colors.neutral[600],
+    marginBottom: spacing[4],
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing[4],
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing[3],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+  },
+  modalOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.warning[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[4],
+  },
+  modalOptionIconText: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  modalOptionContent: {
+    flex: 1,
+  },
+  modalOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.neutral[800],
+    marginBottom: spacing[0.5],
+  },
+  modalOptionSubtitle: {
+    fontSize: 13,
+    color: colors.neutral[500],
   },
 });
