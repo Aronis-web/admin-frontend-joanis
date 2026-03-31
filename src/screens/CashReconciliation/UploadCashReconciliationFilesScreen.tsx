@@ -1,4 +1,11 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * UploadCashReconciliationFilesScreen.tsx
+ *
+ * Pantalla para subir archivos de cuadre de caja.
+ * Rediseñada con el sistema de diseño global.
+ */
+
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,9 +14,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { Picker } from '@react-native-picker/picker';
 import { config } from '@/utils/config';
@@ -17,6 +26,13 @@ import { useAuthStore } from '@/store/auth';
 import { sitesApi } from '@/services/api/sites';
 import { Site } from '@/types/sites';
 import { MAIN_ROUTES } from '@/constants/routes';
+
+// Design System Imports
+import { colors } from '@/design-system/tokens/colors';
+import { spacing, borderRadius } from '@/design-system/tokens/spacing';
+import { shadows } from '@/design-system/tokens/shadows';
+import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
+import { durations } from '@/design-system/tokens/animations';
 
 type Props = NativeStackScreenProps<any, 'UploadCashReconciliationFiles'>;
 
@@ -27,8 +43,109 @@ interface ReportTypeOption {
   label: string;
   description: string;
   color: string;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
 }
+
+// ============================================================================
+// Animated Card Component
+// ============================================================================
+
+interface AnimatedCardProps {
+  children: React.ReactNode;
+  delay?: number;
+  style?: any;
+}
+
+const AnimatedCard: React.FC<AnimatedCardProps> = ({ children, delay = 0, style }) => {
+  const translateY = useRef(new Animated.Value(30)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: durations.normal,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: durations.normal,
+        delay,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[{ transform: [{ translateY }], opacity }, style]}>
+      {children}
+    </Animated.View>
+  );
+};
+
+// ============================================================================
+// Report Type Card Component
+// ============================================================================
+
+interface ReportTypeCardProps {
+  type: ReportTypeOption;
+  isSelected: boolean;
+  onPress: () => void;
+}
+
+const ReportTypeCard: React.FC<ReportTypeCardProps> = ({ type, isSelected, onPress }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.97,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      friction: 3,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      <Animated.View
+        style={[
+          styles.reportTypeCard,
+          isSelected && styles.reportTypeCardSelected,
+          { transform: [{ scale }] },
+        ]}
+      >
+        <View style={[styles.reportTypeIcon, { backgroundColor: type.color }]}>
+          <Ionicons name={type.icon} size={28} color={colors.neutral[0]} />
+        </View>
+        <View style={styles.reportTypeContent}>
+          <Text style={styles.reportTypeLabel}>{type.label}</Text>
+          <Text style={styles.reportTypeDescription}>{type.description}</Text>
+        </View>
+        {isSelected && (
+          <View style={styles.checkmark}>
+            <Ionicons name="checkmark" size={18} color={colors.neutral[0]} />
+          </View>
+        )}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -45,22 +162,22 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       id: 'ventas',
       label: 'Ventas',
       description: 'Reporte de ventas del sistema',
-      color: '#10B981',
-      icon: '💰',
+      color: colors.success[600],
+      icon: 'cash-outline',
     },
     {
       id: 'izipay',
       label: 'Izipay',
       description: 'Reporte de transacciones Izipay',
-      color: '#3B82F6',
-      icon: '💳',
+      color: colors.accent[600],
+      icon: 'card-outline',
     },
     {
       id: 'prosegur',
       label: 'Prosegur',
       description: 'Reporte de recaudación Prosegur',
-      color: '#F59E0B',
-      icon: '🏦',
+      color: colors.warning[600],
+      icon: 'business-outline',
     },
   ];
 
@@ -75,21 +192,16 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
   }, [selectedReportType, currentCompany]);
 
   const loadSedes = async () => {
-    if (!currentCompany) {
-      console.warn('⚠️ No hay empresa seleccionada');
-      return;
-    }
+    if (!currentCompany) return;
 
     setIsLoadingSedes(true);
     try {
-      console.log('📍 Cargando sedes para empresa:', currentCompany.id);
       const response = await sitesApi.getSites({
         companyId: currentCompany.id,
         isActive: true,
         limit: 100,
       });
       setSedes(response.data);
-      console.log('✅ Sedes cargadas:', response.data.length);
     } catch (error) {
       console.error('❌ Error al cargar sedes:', error);
       Alert.alert('Error', 'No se pudieron cargar las sedes');
@@ -100,18 +212,15 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 
   const handleSelectFile = async () => {
     try {
-      // Determinar tipos de archivo permitidos según el tipo de reporte
       let allowedTypes: string | string[];
 
       if (selectedReportType === 'prosegur') {
-        // Prosegur acepta Excel o ZIP
         allowedTypes = [
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-          'application/zip', // .zip
-          'application/x-zip-compressed', // .zip (alternativo)
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/zip',
+          'application/x-zip-compressed',
         ];
       } else {
-        // Ventas e Izipay solo aceptan Excel
         allowedTypes = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       }
 
@@ -120,15 +229,10 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         copyToCacheDirectory: true,
       });
 
-      if (result.canceled) {
-        return;
-      }
+      if (result.canceled) return;
 
       if (result.assets && result.assets.length > 0) {
-        const file = result.assets[0];
-        setSelectedFile(file);
-        console.log('📄 Archivo seleccionado:', file.name);
-        console.log('📋 Tipo MIME:', file.mimeType);
+        setSelectedFile(result.assets[0]);
       }
     } catch (error) {
       console.error('❌ Error al seleccionar archivo:', error);
@@ -137,17 +241,11 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      Alert.alert('Error', 'Por favor selecciona un archivo');
+    if (!selectedFile || !selectedReportType) {
+      Alert.alert('Error', 'Por favor selecciona un tipo de reporte y un archivo');
       return;
     }
 
-    if (!selectedReportType) {
-      Alert.alert('Error', 'Por favor selecciona el tipo de reporte');
-      return;
-    }
-
-    // Validar sede solo para tipo "ventas"
     if (selectedReportType === 'ventas' && !selectedSede) {
       Alert.alert('Error', 'Por favor selecciona una sede');
       return;
@@ -158,38 +256,18 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
     try {
       const formData = new FormData();
 
-      // Agregar el archivo
       formData.append('file', {
         uri: selectedFile.uri,
         type: selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         name: selectedFile.name,
       } as any);
 
-      // Agregar el tipo de reporte
       formData.append('tipo_reporte', selectedReportType);
 
-      // CASO 1: VENTAS - Requiere sede_id
       if (selectedReportType === 'ventas') {
         formData.append('sede_id', selectedSede);
-        console.log('📤 [VENTAS] Subiendo archivo:', selectedFile.name);
-        console.log('🏢 [VENTAS] Sede seleccionada:', selectedSede);
-      }
-      // CASO 2: IZIPAY - NO requiere sede_id (se detecta automáticamente)
-      else if (selectedReportType === 'izipay') {
-        console.log('📤 [IZIPAY] Subiendo archivo:', selectedFile.name);
-        console.log('💳 [IZIPAY] Las sedes se detectarán automáticamente por código de comercio');
-      }
-      // CASO 3: PROSEGUR - NO requiere sede_id (pendiente de implementación)
-      else if (selectedReportType === 'prosegur') {
-        console.log('📤 [PROSEGUR] Subiendo archivo:', selectedFile.name);
-        console.log('🏦 [PROSEGUR] Procesamiento pendiente de implementación');
       }
 
-      console.log('⏱️ [CASH-RECONCILIATION] Usando timeout ilimitado para procesamiento de cuadre de caja');
-      console.log('📊 [CASH-RECONCILIATION] El procesamiento puede tardar varios minutos, por favor espere...');
-
-      // Crear un AbortController sin timeout para permitir procesamiento largo
-      // No se establece timeout ya que el procesamiento puede tardar varios minutos
       const response = await fetch(`${config.API_URL}/cash-reconciliation/upload`, {
         method: 'POST',
         headers: {
@@ -198,7 +276,6 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
           'X-App-Version': config.APP_VERSION,
         },
         body: formData,
-        // No se establece signal para evitar timeout - el procesamiento puede tardar varios minutos
       });
 
       const result = await response.json();
@@ -206,45 +283,26 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       if (response.ok) {
         const data = result.data || result;
 
-        // Construir mensaje según el tipo de reporte
         let message = '✅ Archivo procesado exitosamente\n\n';
+        message += `📊 Total de registros: ${data.total_registros || 0}\n`;
+        message += `✨ Registros nuevos: ${data.registros_nuevos || 0}\n`;
+        message += `🔄 Registros duplicados: ${data.registros_duplicados || 0}\n`;
+        message += `❌ Registros con error: ${data.registros_con_error || 0}`;
 
-        if (selectedReportType === 'ventas') {
-          message += `📊 Total de registros: ${data.total_registros || 0}\n` +
-            `✨ Registros nuevos: ${data.registros_nuevos || 0}\n` +
-            `🔄 Registros duplicados: ${data.registros_duplicados || 0}\n` +
-            `❌ Registros con error: ${data.registros_con_error || 0}`;
-        } else if (selectedReportType === 'izipay') {
-          message += `📊 Total de transacciones: ${data.total_registros || 0}\n` +
-            `✨ Transacciones nuevas: ${data.registros_nuevos || 0}\n` +
-            `🔄 Transacciones duplicadas: ${data.registros_duplicados || 0}\n` +
-            `❌ Transacciones con error: ${data.registros_con_error || 0}\n\n`;
-
-          if (data.sedes_procesadas && data.sedes_procesadas.length > 0) {
-            message += `🏢 Sedes procesadas:\n${data.sedes_procesadas.map((s: string) => `  • ${s}`).join('\n')}`;
-          }
-        } else if (selectedReportType === 'prosegur') {
-          message += `📊 Total de registros: ${data.total_registros || 0}\n` +
-            `✨ Registros nuevos: ${data.registros_nuevos || 0}\n` +
-            `🔄 Registros duplicados: ${data.registros_duplicados || 0}\n` +
-            `❌ Registros con error: ${data.registros_con_error || 0}`;
+        if (selectedReportType === 'izipay' && data.sedes_procesadas?.length > 0) {
+          message += `\n\n🏢 Sedes procesadas:\n${data.sedes_procesadas.map((s: string) => `  • ${s}`).join('\n')}`;
         }
 
-        Alert.alert(
-          'Éxito',
-          message,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setSelectedFile(null);
-                setSelectedReportType(null);
-                setSelectedSede('');
-              },
+        Alert.alert('Éxito', message, [
+          {
+            text: 'OK',
+            onPress: () => {
+              setSelectedFile(null);
+              setSelectedReportType(null);
+              setSelectedSede('');
             },
-          ]
-        );
-        console.log('✅ Respuesta del servidor:', result);
+          },
+        ]);
       } else {
         throw new Error(result.message || 'Error al procesar el archivo');
       }
@@ -256,484 +314,505 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
     }
   };
 
+  const getStepNumber = (baseStep: number): number => {
+    if (selectedReportType === 'ventas') {
+      return baseStep;
+    }
+    return baseStep > 1 ? baseStep - 1 : baseStep;
+  };
+
+  const canUpload = selectedFile && selectedReportType && (selectedReportType !== 'ventas' || selectedSede);
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
+          <Ionicons name="arrow-back" size={24} color={colors.neutral[700]} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Subir Archivos</Text>
-        <View style={styles.placeholder} />
+        <TouchableOpacity
+          onPress={() => navigation.navigate(MAIN_ROUTES.UPLOADED_FILES_LIST as any)}
+          style={styles.historyButton}
+        >
+          <Ionicons name="time-outline" size={24} color={colors.accent[600]} />
+        </TouchableOpacity>
       </View>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1. Seleccionar Tipo de Reporte</Text>
-          <View style={styles.reportTypesContainer}>
-            {reportTypes.map((type) => (
-              <TouchableOpacity
-                key={type.id}
-                style={[
-                  styles.reportTypeCard,
-                  selectedReportType === type.id && styles.reportTypeCardSelected,
-                  { borderColor: type.color },
-                ]}
-                onPress={() => setSelectedReportType(type.id)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.reportTypeIcon, { backgroundColor: type.color }]}>
-                  <Text style={styles.reportTypeEmoji}>{type.icon}</Text>
-                </View>
-                <View style={styles.reportTypeContent}>
-                  <Text style={styles.reportTypeLabel}>{type.label}</Text>
-                  <Text style={styles.reportTypeDescription}>{type.description}</Text>
-                </View>
-                {selectedReportType === type.id && (
-                  <View style={styles.checkmark}>
-                    <Text style={styles.checkmarkText}>✓</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Selector de Sede - Solo para Ventas */}
-        {selectedReportType === 'ventas' && (
+        {/* Step 1: Select Report Type */}
+        <AnimatedCard delay={0}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>2. Seleccionar Sede</Text>
-            {isLoadingSedes ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator color="#10B981" size="small" />
-                <Text style={styles.loadingText}>Cargando sedes...</Text>
+            <View style={styles.sectionHeader}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepNumber}>1</Text>
               </View>
-            ) : sedes.length > 0 ? (
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedSede}
-                  onValueChange={(value) => setSelectedSede(value)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecciona una sede" value="" />
-                  {sedes.map((sede) => (
-                    <Picker.Item
-                      key={sede.id}
-                      label={`${sede.name} (${sede.code})`}
-                      value={sede.id}
-                    />
-                  ))}
-                </Picker>
+              <Text style={styles.sectionTitle}>Tipo de Reporte</Text>
+            </View>
+            <View style={styles.reportTypesContainer}>
+              {reportTypes.map((type) => (
+                <ReportTypeCard
+                  key={type.id}
+                  type={type}
+                  isSelected={selectedReportType === type.id}
+                  onPress={() => setSelectedReportType(type.id)}
+                />
+              ))}
+            </View>
+          </View>
+        </AnimatedCard>
+
+        {/* Step 2: Select Sede (only for Ventas) */}
+        {selectedReportType === 'ventas' && (
+          <AnimatedCard delay={100}>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.stepBadge}>
+                  <Text style={styles.stepNumber}>2</Text>
+                </View>
+                <Text style={styles.sectionTitle}>Seleccionar Sede</Text>
               </View>
-            ) : (
-              <View style={styles.noSedesContainer}>
-                <Text style={styles.noSedesText}>
-                  ⚠️ No hay sedes disponibles para esta empresa
+              {isLoadingSedes ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color={colors.primary[600]} size="small" />
+                  <Text style={styles.loadingText}>Cargando sedes...</Text>
+                </View>
+              ) : sedes.length > 0 ? (
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={selectedSede}
+                    onValueChange={(value) => setSelectedSede(value)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Selecciona una sede" value="" />
+                    {sedes.map((sede) => (
+                      <Picker.Item
+                        key={sede.id}
+                        label={`${sede.name} (${sede.code})`}
+                        value={sede.id}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              ) : (
+                <View style={styles.warningContainer}>
+                  <Ionicons name="warning-outline" size={24} color={colors.warning[600]} />
+                  <Text style={styles.warningText}>No hay sedes disponibles</Text>
+                </View>
+              )}
+            </View>
+          </AnimatedCard>
+        )}
+
+        {/* Step 3: Select File */}
+        <AnimatedCard delay={selectedReportType === 'ventas' ? 200 : 100}>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepNumber}>{getStepNumber(selectedReportType === 'ventas' ? 3 : 2)}</Text>
+              </View>
+              <Text style={styles.sectionTitle}>
+                Seleccionar Archivo {selectedReportType === 'prosegur' ? '(Excel o ZIP)' : 'Excel'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.selectFileButton, selectedFile && styles.selectFileButtonSelected]}
+              onPress={handleSelectFile}
+              activeOpacity={0.7}
+            >
+              <View style={styles.selectFileIconContainer}>
+                <Ionicons
+                  name={selectedFile ? 'document-attach' : 'cloud-upload-outline'}
+                  size={32}
+                  color={selectedFile ? colors.success[600] : colors.neutral[400]}
+                />
+              </View>
+              <Text style={[styles.selectFileText, selectedFile && styles.selectFileTextSelected]}>
+                {selectedFile ? selectedFile.name : 'Toca para seleccionar archivo'}
+              </Text>
+              {selectedFile && (
+                <Text style={styles.selectFileSize}>
+                  {(selectedFile.size! / 1024).toFixed(2)} KB
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </AnimatedCard>
+
+        {/* Step 4: Upload */}
+        <AnimatedCard delay={selectedReportType === 'ventas' ? 300 : 200}>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepNumber}>{getStepNumber(selectedReportType === 'ventas' ? 4 : 3)}</Text>
+              </View>
+              <Text style={styles.sectionTitle}>Subir y Procesar</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.uploadButton, (!canUpload || isUploading) && styles.uploadButtonDisabled]}
+              onPress={handleUpload}
+              disabled={!canUpload || isUploading}
+              activeOpacity={0.8}
+            >
+              {isUploading ? (
+                <>
+                  <ActivityIndicator color={colors.neutral[0]} size="small" />
+                  <Text style={styles.uploadButtonText}>Procesando...</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="cloud-upload" size={24} color={colors.neutral[0]} />
+                  <Text style={styles.uploadButtonText}>Subir y Procesar</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {isUploading && (
+              <View style={styles.processingWarning}>
+                <Ionicons name="time-outline" size={24} color={colors.warning[700]} />
+                <Text style={styles.processingWarningText}>
+                  El procesamiento puede tardar varios minutos.{'\n'}
+                  No cierres esta pantalla.
                 </Text>
               </View>
             )}
           </View>
-        )}
+        </AnimatedCard>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {selectedReportType === 'ventas'
-              ? '3. Seleccionar Archivo'
-              : selectedReportType === 'prosegur'
-              ? '2. Seleccionar Archivo (Excel o ZIP)'
-              : '2. Seleccionar Archivo Excel'}
-          </Text>
-          <TouchableOpacity
-            style={styles.selectFileButton}
-            onPress={handleSelectFile}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.selectFileIcon}>📁</Text>
-            <Text style={styles.selectFileText}>
-              {selectedFile
-                ? selectedFile.name
-                : selectedReportType === 'prosegur'
-                ? 'Seleccionar archivo .xlsx o .zip'
-                : 'Seleccionar archivo .xlsx'}
-            </Text>
-          </TouchableOpacity>
-
-          {selectedFile && (
-            <View style={styles.fileInfo}>
-              <Text style={styles.fileInfoLabel}>Archivo seleccionado:</Text>
-              <Text style={styles.fileInfoValue}>{selectedFile.name}</Text>
-              <Text style={styles.fileInfoSize}>
-                {(selectedFile.size! / 1024).toFixed(2)} KB
-              </Text>
+        {/* Info Section */}
+        <AnimatedCard delay={selectedReportType === 'ventas' ? 400 : 300}>
+          <View style={styles.infoSection}>
+            <View style={styles.infoHeader}>
+              <Ionicons name="information-circle" size={24} color={colors.info[600]} />
+              <Text style={styles.infoTitle}>Información</Text>
             </View>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {selectedReportType === 'ventas' ? '4. Subir y Procesar' : '3. Subir y Procesar'}
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.uploadButton,
-              (!selectedFile ||
-               !selectedReportType ||
-               (selectedReportType === 'ventas' && !selectedSede) ||
-               isUploading) &&
-                styles.uploadButtonDisabled,
-            ]}
-            onPress={handleUpload}
-            disabled={
-              !selectedFile ||
-              !selectedReportType ||
-              (selectedReportType === 'ventas' && !selectedSede) ||
-              isUploading
-            }
-            activeOpacity={0.7}
-          >
-            {isUploading ? (
-              <>
-                <ActivityIndicator color="#FFFFFF" size="small" />
-                <Text style={styles.uploadButtonText}>Procesando archivo...</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.uploadButtonIcon}>📤</Text>
-                <Text style={styles.uploadButtonText}>Subir y Procesar Archivo</Text>
-              </>
+            {selectedReportType === 'ventas' && (
+              <Text style={styles.infoText}>
+                • Debes seleccionar una sede específica{'\n'}
+                • El archivo debe contener el reporte de ventas del sistema{'\n'}
+                • Se excluyen: Notas de Crédito y ventas anuladas{'\n'}
+                • Se detectarán duplicados automáticamente
+              </Text>
             )}
-          </TouchableOpacity>
-
-          {isUploading && (
-            <View style={styles.processingWarning}>
-              <Text style={styles.processingWarningIcon}>⏳</Text>
-              <Text style={styles.processingWarningText}>
-                El procesamiento puede tardar varios minutos dependiendo del tamaño del archivo.{'\n'}
-                Por favor, no cierre esta pantalla hasta que termine.
+            {selectedReportType === 'izipay' && (
+              <Text style={styles.infoText}>
+                • NO requiere seleccionar sede (se detecta automáticamente){'\n'}
+                • Las sedes se asignan según el código de comercio{'\n'}
+                • Solo se procesan transacciones tipo "COMPRA"{'\n'}
+                • Se excluyen: Comisiones, devoluciones y ajustes
               </Text>
-            </View>
-          )}
-        </View>
+            )}
+            {selectedReportType === 'prosegur' && (
+              <Text style={styles.infoText}>
+                • Acepta archivos Excel (.xlsx) o ZIP (.zip){'\n'}
+                • Si es ZIP, se procesará el primer Excel encontrado{'\n'}
+                • El sistema extrae y procesa automáticamente{'\n'}
+                • Se detecta automáticamente el tipo de archivo
+              </Text>
+            )}
+            {!selectedReportType && (
+              <Text style={styles.infoText}>
+                • Selecciona un tipo de reporte para ver información específica{'\n'}
+                • El archivo debe estar en formato Excel (.xlsx){'\n'}
+                • Se validarán los datos antes de insertarlos{'\n'}
+                • Recibirás un resumen al finalizar
+              </Text>
+            )}
+          </View>
+        </AnimatedCard>
 
-        <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>ℹ️ Información</Text>
-          {selectedReportType === 'ventas' && (
-            <Text style={styles.infoText}>
-              📊 VENTAS{'\n'}
-              • Debes seleccionar una sede específica{'\n'}
-              • El archivo debe contener el reporte de ventas del sistema{'\n'}
-              • Se validarán campos: ID, Serie, Correlativo, Fecha, Total, Método de pago{'\n'}
-              • Se excluyen automáticamente: Notas de Crédito y ventas anuladas{'\n'}
-              • El sistema detectará duplicados por: sede + sale_id + fuente + fecha
-            </Text>
-          )}
-          {selectedReportType === 'izipay' && (
-            <Text style={styles.infoText}>
-              💳 IZIPAY{'\n'}
-              • NO requiere seleccionar sede (se detecta automáticamente){'\n'}
-              • El archivo debe ser CSV dentro de Excel con delimitador ";" (punto y coma){'\n'}
-              • Las sedes se asignan según el código de comercio{'\n'}
-              • Solo se procesan transacciones tipo "COMPRA" con importe mayor a 0{'\n'}
-              • Se excluyen: Comisiones, devoluciones y ajustes
-            </Text>
-          )}
-          {selectedReportType === 'prosegur' && (
-            <Text style={styles.infoText}>
-              🏦 PROSEGUR{'\n'}
-              • Acepta archivos Excel (.xlsx) o ZIP (.zip){'\n'}
-              • Si es ZIP, se procesará el primer Excel encontrado{'\n'}
-              • El archivo debe contener el reporte de recaudación Prosegur{'\n'}
-              • Se detecta automáticamente el tipo de archivo (Excel o ZIP){'\n'}
-              • El sistema extrae y procesa el contenido automáticamente
-            </Text>
-          )}
-          {!selectedReportType && (
-            <Text style={styles.infoText}>
-              • Selecciona un tipo de reporte para ver información específica{'\n'}
-              • El archivo debe estar en formato Excel (.xlsx){'\n'}
-              • El sistema detectará automáticamente duplicados{'\n'}
-              • Se validarán los datos antes de insertarlos en la base de datos{'\n'}
-              • Recibirás un resumen del procesamiento al finalizar
-            </Text>
-          )}
-        </View>
-
-        {/* Botón para ver archivos subidos */}
-        <View style={styles.section}>
+        {/* View Files Button */}
+        <AnimatedCard delay={selectedReportType === 'ventas' ? 500 : 400}>
           <TouchableOpacity
             style={styles.viewFilesButton}
             onPress={() => navigation.navigate(MAIN_ROUTES.UPLOADED_FILES_LIST as any)}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
-            <Text style={styles.viewFilesButtonIcon}>📋</Text>
+            <Ionicons name="folder-open-outline" size={24} color={colors.neutral[0]} />
             <Text style={styles.viewFilesButtonText}>Ver Archivos Subidos</Text>
           </TouchableOpacity>
-        </View>
+        </AnimatedCard>
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
   );
 };
 
+// ============================================================================
+// Styles
+// ============================================================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.neutral[100],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.neutral[0],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
+    ...shadows.sm,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backButtonText: {
-    fontSize: 24,
-    color: '#374151',
-    fontWeight: '600',
-  },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[900],
   },
-  placeholder: {
+  historyButton: {
     width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.accent[50],
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
   },
   section: {
-    padding: 16,
+    backgroundColor: colors.neutral[0],
+    marginHorizontal: spacing[4],
+    marginTop: spacing[4],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    ...shadows.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[4],
+    gap: spacing[3],
+  },
+  stepBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary[900],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepNumber: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[0],
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[900],
   },
   reportTypesContainer: {
-    gap: 12,
+    gap: spacing[3],
   },
   reportTypeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: colors.neutral[200],
   },
   reportTypeCardSelected: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.success[50],
+    borderColor: colors.success[500],
   },
   reportTypeIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 56,
+    height: 56,
+    borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  reportTypeEmoji: {
-    fontSize: 24,
+    marginRight: spacing[4],
   },
   reportTypeContent: {
     flex: 1,
   },
   reportTypeLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[900],
+    marginBottom: spacing[1],
   },
   reportTypeDescription: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: fontSizes.sm,
+    color: colors.neutral[500],
   },
   checkmark: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success[500],
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  checkmarkText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  selectFileButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    borderStyle: 'dashed',
-  },
-  selectFileIcon: {
-    fontSize: 24,
-    marginRight: 8,
-  },
-  selectFileText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  fileInfo: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  fileInfoLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6366F1',
-    marginBottom: 4,
-  },
-  fileInfoValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  fileInfoSize: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10B981',
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-  },
-  uploadButtonDisabled: {
-    backgroundColor: '#D1D5DB',
-  },
-  uploadButtonIcon: {
-    fontSize: 20,
-  },
-  uploadButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  infoSection: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: '#FFFBEB',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  infoTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#92400E',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 13,
-    color: '#78350F',
-    lineHeight: 20,
   },
   pickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.md,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: colors.neutral[200],
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: colors.neutral[900],
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    gap: 8,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.md,
+    padding: spacing[4],
+    gap: spacing[3],
   },
   loadingText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontSize: fontSizes.sm,
+    color: colors.neutral[500],
   },
-  noSedesContainer: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    padding: 16,
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.md,
+    padding: spacing[4],
+    gap: spacing[3],
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: colors.warning[200],
   },
-  noSedesText: {
-    fontSize: 14,
-    color: '#92400E',
+  warningText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: colors.warning[700],
+  },
+  selectFileButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing[6],
+    borderWidth: 2,
+    borderColor: colors.neutral[300],
+    borderStyle: 'dashed',
+  },
+  selectFileButtonSelected: {
+    backgroundColor: colors.success[50],
+    borderColor: colors.success[400],
+    borderStyle: 'solid',
+  },
+  selectFileIconContainer: {
+    marginBottom: spacing[3],
+  },
+  selectFileText: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.medium,
+    color: colors.neutral[500],
     textAlign: 'center',
+  },
+  selectFileTextSelected: {
+    color: colors.success[700],
+  },
+  selectFileSize: {
+    fontSize: fontSizes.sm,
+    color: colors.neutral[400],
+    marginTop: spacing[2],
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.success[600],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    gap: spacing[3],
+    ...shadows.md,
+  },
+  uploadButtonDisabled: {
+    backgroundColor: colors.neutral[300],
+    ...shadows.none,
+  },
+  uploadButtonText: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[0],
+  },
+  processingWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.md,
+    padding: spacing[4],
+    marginTop: spacing[4],
+    gap: spacing[3],
+    borderWidth: 1,
+    borderColor: colors.warning[200],
+  },
+  processingWarningText: {
+    flex: 1,
+    fontSize: fontSizes.sm,
+    color: colors.warning[700],
+    fontWeight: fontWeights.medium,
+    lineHeight: 20,
+  },
+  infoSection: {
+    backgroundColor: colors.info[50],
+    marginHorizontal: spacing[4],
+    marginTop: spacing[4],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    borderWidth: 1,
+    borderColor: colors.info[200],
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[3],
+    gap: spacing[2],
+  },
+  infoTitle: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
+    color: colors.info[800],
+  },
+  infoText: {
+    fontSize: fontSizes.sm,
+    color: colors.info[700],
+    lineHeight: 22,
   },
   viewFilesButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366F1',
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-  },
-  viewFilesButtonIcon: {
-    fontSize: 20,
+    backgroundColor: colors.accent[600],
+    marginHorizontal: spacing[4],
+    marginTop: spacing[4],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    gap: spacing[3],
+    ...shadows.md,
   },
   viewFilesButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[0],
   },
-  processingWarning: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  processingWarningIcon: {
-    fontSize: 24,
-    marginTop: 2,
-  },
-  processingWarningText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#92400E',
-    lineHeight: 20,
-    fontWeight: '500',
+  bottomSpacer: {
+    height: spacing[8],
   },
 });

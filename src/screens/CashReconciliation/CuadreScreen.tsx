@@ -1,4 +1,11 @@
-import React, { useState, useCallback } from 'react';
+/**
+ * CuadreScreen.tsx
+ *
+ * Pantalla principal de Cuadre de Caja.
+ * Rediseñada con el sistema de diseño global.
+ */
+
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,10 +16,11 @@ import {
   Alert,
   RefreshControl,
   Platform,
-  Linking,
+  Animated,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { sitesApi } from '@/services/api/sites';
@@ -23,7 +31,143 @@ import * as Sharing from 'expo-sharing';
 import { config } from '@/utils/config';
 import { authService } from '@/services/AuthService';
 
+// Design System Imports
+import { colors } from '@/design-system/tokens/colors';
+import { spacing, borderRadius } from '@/design-system/tokens/spacing';
+import { shadows } from '@/design-system/tokens/shadows';
+import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
+import { durations } from '@/design-system/tokens/animations';
+
 type Props = NativeStackScreenProps<any, 'Cuadre'>;
+
+// ============================================================================
+// Animated Card Component
+// ============================================================================
+
+interface AnimatedCardProps {
+  children: React.ReactNode;
+  delay?: number;
+  style?: any;
+}
+
+const AnimatedCard: React.FC<AnimatedCardProps> = ({ children, delay = 0, style }) => {
+  const translateY = useRef(new Animated.Value(30)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: durations.normal,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: durations.normal,
+        delay,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[{ transform: [{ translateY }], opacity }, style]}>
+      {children}
+    </Animated.View>
+  );
+};
+
+// ============================================================================
+// Data Card Component
+// ============================================================================
+
+interface DataCardProps {
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  children: React.ReactNode;
+  delay?: number;
+  variant?: 'default' | 'success' | 'warning' | 'danger';
+}
+
+const DataCard: React.FC<DataCardProps> = ({
+  title,
+  icon,
+  iconColor,
+  children,
+  delay = 0,
+  variant = 'default',
+}) => {
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'success':
+        return { backgroundColor: colors.success[50], borderColor: colors.success[300] };
+      case 'warning':
+        return { backgroundColor: colors.warning[50], borderColor: colors.warning[300] };
+      case 'danger':
+        return { backgroundColor: colors.danger[50], borderColor: colors.danger[300] };
+      default:
+        return { backgroundColor: colors.neutral[0], borderColor: 'transparent' };
+    }
+  };
+
+  const variantStyles = getVariantStyles();
+
+  return (
+    <AnimatedCard delay={delay}>
+      <View style={[styles.dataCard, { backgroundColor: variantStyles.backgroundColor, borderColor: variantStyles.borderColor, borderWidth: variant !== 'default' ? 1 : 0 }]}>
+        <View style={styles.dataCardHeader}>
+          <View style={[styles.dataCardIcon, { backgroundColor: iconColor + '20' }]}>
+            <Ionicons name={icon} size={20} color={iconColor} />
+          </View>
+          <Text style={styles.dataCardTitle}>{title}</Text>
+        </View>
+        {children}
+      </View>
+    </AnimatedCard>
+  );
+};
+
+// ============================================================================
+// Data Row Component
+// ============================================================================
+
+interface DataRowProps {
+  label: string;
+  value: string;
+  valueColor?: string;
+  isBold?: boolean;
+  isTotal?: boolean;
+}
+
+const DataRow: React.FC<DataRowProps> = ({ label, value, valueColor, isBold, isTotal }) => (
+  <View style={[styles.dataRow, isTotal && styles.dataRowTotal]}>
+    <Text style={[styles.dataLabel, isBold && styles.dataLabelBold]}>{label}</Text>
+    <Text style={[styles.dataValue, isBold && styles.dataValueBold, valueColor && { color: valueColor }]}>
+      {value}
+    </Text>
+  </View>
+);
+
+// ============================================================================
+// Quick Filter Button Component
+// ============================================================================
+
+interface QuickFilterButtonProps {
+  label: string;
+  onPress: () => void;
+}
+
+const QuickFilterButton: React.FC<QuickFilterButtonProps> = ({ label, onPress }) => (
+  <TouchableOpacity style={styles.quickFilterButton} onPress={onPress} activeOpacity={0.7}>
+    <Text style={styles.quickFilterText}>{label}</Text>
+  </TouchableOpacity>
+);
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -36,6 +180,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSedes, setIsLoadingSedes] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   // Filter states
   const [selectedSede, setSelectedSede] = useState<string>('');
@@ -46,8 +191,16 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
-  // Load sedes on mount
-  React.useEffect(() => {
+  // Animation
+  const headerScale = useRef(new Animated.Value(0.95)).current;
+  const headerOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(headerScale, { toValue: 1, friction: 8, useNativeDriver: true }),
+      Animated.timing(headerOpacity, { toValue: 1, duration: durations.normal, useNativeDriver: true }),
+    ]).start();
+
     loadSedes();
   }, []);
 
@@ -58,13 +211,11 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       setSedes(response.data || []);
     } catch (error) {
       console.error('Error loading sedes:', error);
-      Alert.alert('Error', 'No se pudieron cargar las sedes');
     } finally {
       setIsLoadingSedes(false);
     }
   };
 
-  // Format date to YYYY-MM-DD
   const formatDate = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -72,7 +223,11 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     return `${year}-${month}-${day}`;
   };
 
-  // Quick filter functions
+  const formatDisplayDate = (date: Date): string => {
+    return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  // Quick filters
   const setToday = () => {
     const today = new Date();
     setFechaInicio(today);
@@ -101,39 +256,31 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     setFechaFin(today);
   };
 
-  // Load cuadre data
-  const loadCuadre = useCallback(
-    async (isRefresh: boolean = false) => {
-      try {
-        if (isRefresh) {
-          setIsRefreshing(true);
-        } else {
-          setIsLoading(true);
-        }
-
-        const params = {
-          fecha_inicio: formatDate(fechaInicio),
-          fecha_fin: formatDate(fechaFin),
-          ...(selectedSede && { sede_id: selectedSede }),
-        };
-
-        const data = await cashReconciliationApi.getCuadreCaja(params);
-        setCuadreData(data as CuadreCajaResponse);
-      } catch (error: any) {
-        console.error('Error loading cuadre:', error);
-        Alert.alert(
-          'Error',
-          error?.message || 'No se pudo cargar el cuadre de caja'
-        );
-      } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+  const loadCuadre = useCallback(async (isRefresh: boolean = false) => {
+    try {
+      if (isRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
       }
-    },
-    [fechaInicio, fechaFin, selectedSede]
-  );
 
-  // Format currency
+      const params = {
+        fecha_inicio: formatDate(fechaInicio),
+        fecha_fin: formatDate(fechaFin),
+        ...(selectedSede && { sede_id: selectedSede }),
+      };
+
+      const data = await cashReconciliationApi.getCuadreCaja(params);
+      setCuadreData(data as CuadreCajaResponse);
+    } catch (error: any) {
+      console.error('Error loading cuadre:', error);
+      Alert.alert('Error', error?.message || 'No se pudo cargar el cuadre de caja');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [fechaInicio, fechaFin, selectedSede]);
+
   const formatCurrency = (amount: number): string => {
     return `S/ ${amount.toLocaleString('es-PE', {
       minimumFractionDigits: 2,
@@ -141,22 +288,21 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     })}`;
   };
 
-  // Generate PDF from backend
   const generatePDF = async () => {
     if (!cuadreData) {
       Alert.alert('Error', 'No hay datos para generar el PDF');
       return;
     }
 
+    setIsDownloadingPDF(true);
+
     try {
-      // Obtener token de autenticación
       const token = authService.getAccessToken();
       if (!token) {
         Alert.alert('Error', 'No hay sesión activa');
         return;
       }
 
-      // Construir parámetros de query
       const params = new URLSearchParams({
         fecha_inicio: formatDate(fechaInicio),
         fecha_fin: formatDate(fechaFin),
@@ -169,7 +315,6 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       const url = `${config.API_URL}/cash-reconciliation/cuadre-caja/pdf?${params.toString()}`;
 
       if (Platform.OS === 'web') {
-        // En web, usar fetch y crear un blob URL
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -179,16 +324,13 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
           },
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
         window.open(blobUrl, '_blank');
         Alert.alert('Éxito', 'PDF descargado correctamente');
       } else {
-        // En móvil, descargar y compartir el archivo
         const timestamp = Date.now();
         const fileName = `cuadre-caja-${formatDate(fechaInicio)}-${formatDate(fechaFin)}-${timestamp}.pdf`;
         const fileUri = `${FileSystem.documentDirectory}${fileName}`;
@@ -201,7 +343,6 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
         });
 
         if (downloadResult.status === 200) {
-          // Compartir el archivo descargado
           await Sharing.shareAsync(downloadResult.uri, {
             mimeType: 'application/pdf',
             dialogTitle: 'Cuadre de Caja',
@@ -215,51 +356,32 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     } catch (error) {
       console.error('Error downloading PDF:', error);
       Alert.alert('Error', 'No se pudo descargar el PDF');
+    } finally {
+      setIsDownloadingPDF(false);
     }
   };
 
-  // Get severity color (used for UI display)
-  const getSeverityColor = (severidad: string): string => {
-    switch (severidad) {
-      case 'ninguna':
-        return '#10B981';
-      case 'baja':
-        return '#F59E0B';
-      case 'media':
-        return '#F97316';
-      case 'alta':
-        return '#EF4444';
-      case 'critica':
-        return '#DC2626';
-      default:
-        return '#6B7280';
-    }
+  const getSeverityInfo = (severidad: string) => {
+    const severities: Record<string, { label: string; color: string; bgColor: string; icon: keyof typeof Ionicons.glyphMap }> = {
+      ninguna: { label: 'Sin Discrepancias', color: colors.success[700], bgColor: colors.success[100], icon: 'checkmark-circle' },
+      baja: { label: 'Discrepancia Baja', color: colors.warning[700], bgColor: colors.warning[100], icon: 'alert-circle' },
+      media: { label: 'Discrepancia Media', color: colors.warning[800], bgColor: colors.warning[200], icon: 'alert-circle' },
+      alta: { label: 'Discrepancia Alta', color: colors.danger[700], bgColor: colors.danger[100], icon: 'warning' },
+      critica: { label: 'Discrepancia Crítica', color: colors.danger[800], bgColor: colors.danger[200], icon: 'warning' },
+    };
+    return severities[severidad] || { label: severidad, color: colors.neutral[600], bgColor: colors.neutral[100], icon: 'help-circle' as keyof typeof Ionicons.glyphMap };
   };
 
-  // Get severity label (used for UI display)
-  const getSeverityLabel = (severidad: string): string => {
-    switch (severidad) {
-      case 'ninguna':
-        return 'Sin Discrepancias';
-      case 'baja':
-        return 'Discrepancia Baja';
-      case 'media':
-        return 'Discrepancia Media';
-      case 'alta':
-        return 'Discrepancia Alta';
-      case 'critica':
-        return 'Discrepancia Crítica';
-      default:
-        return severidad;
-    }
-  };
+  const diferencia = cuadreData
+    ? cuadreData.izipay.bruto + cuadreData.prosegur.depositos + (cuadreData.notas_credito.total * -1) - cuadreData.ventas.total
+    : 0;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
+          <Ionicons name="arrow-back" size={24} color={colors.neutral[700]} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Cuadre de Caja</Text>
         <View style={styles.placeholder} />
@@ -269,354 +391,240 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={() => loadCuadre(true)} />
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => cuadreData && loadCuadre(true)}
+            colors={[colors.primary[600]]}
+          />
         }
       >
         {/* Filters Section */}
-        <View style={styles.filtersContainer}>
-          <Text style={styles.sectionTitle}>Filtros</Text>
+        <AnimatedCard delay={0}>
+          <View style={styles.filtersCard}>
+            <View style={styles.filtersHeader}>
+              <Ionicons name="filter" size={20} color={colors.primary[600]} />
+              <Text style={styles.filtersTitle}>Filtros</Text>
+            </View>
 
-          {/* Quick Filters */}
-          <View style={styles.quickFiltersContainer}>
-            <TouchableOpacity style={styles.quickFilterButton} onPress={setToday}>
-              <Text style={styles.quickFilterText}>Hoy</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickFilterButton} onPress={setYesterday}>
-              <Text style={styles.quickFilterText}>Ayer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickFilterButton} onPress={setThisWeek}>
-              <Text style={styles.quickFilterText}>Esta Semana</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickFilterButton} onPress={setThisMonth}>
-              <Text style={styles.quickFilterText}>Este Mes</Text>
+            {/* Quick Filters */}
+            <View style={styles.quickFiltersContainer}>
+              <QuickFilterButton label="Hoy" onPress={setToday} />
+              <QuickFilterButton label="Ayer" onPress={setYesterday} />
+              <QuickFilterButton label="Esta Semana" onPress={setThisWeek} />
+              <QuickFilterButton label="Este Mes" onPress={setThisMonth} />
+            </View>
+
+            {/* Date Range */}
+            <View style={styles.dateRangeContainer}>
+              <View style={styles.datePickerWrapper}>
+                <Text style={styles.dateLabel}>Desde</Text>
+                <DatePickerButton
+                  label=""
+                  value={formatDisplayDate(fechaInicio)}
+                  onPress={() => setShowStartDatePicker(true)}
+                />
+              </View>
+              <View style={styles.datePickerWrapper}>
+                <Text style={styles.dateLabel}>Hasta</Text>
+                <DatePickerButton
+                  label=""
+                  value={formatDisplayDate(fechaFin)}
+                  onPress={() => setShowEndDatePicker(true)}
+                />
+              </View>
+            </View>
+
+            {/* Sede Selector */}
+            <View style={styles.sedeContainer}>
+              <Text style={styles.sedeLabel}>Sede</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={selectedSede}
+                  onValueChange={setSelectedSede}
+                  style={styles.picker}
+                  enabled={!isLoadingSedes}
+                >
+                  <Picker.Item label="Todas las sedes" value="" />
+                  {sedes.map((sede) => (
+                    <Picker.Item
+                      key={sede.id}
+                      label={`${sede.code} - ${sede.name}`}
+                      value={sede.id}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            {/* Generate Button */}
+            <TouchableOpacity
+              style={[styles.generateButton, isLoading && styles.generateButtonDisabled]}
+              onPress={() => loadCuadre(false)}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={colors.neutral[0]} size="small" />
+              ) : (
+                <>
+                  <Ionicons name="analytics" size={22} color={colors.neutral[0]} />
+                  <Text style={styles.generateButtonText}>Generar Cuadre</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
-
-          {/* Date Range */}
-          <View style={styles.dateRangeContainer}>
-            <View style={styles.datePickerWrapper}>
-              <DatePickerButton
-                label="Fecha Inicio"
-                value={formatDate(fechaInicio)}
-                onPress={() => setShowStartDatePicker(true)}
-              />
-            </View>
-            <View style={styles.datePickerWrapper}>
-              <DatePickerButton
-                label="Fecha Fin"
-                value={formatDate(fechaFin)}
-                onPress={() => setShowEndDatePicker(true)}
-              />
-            </View>
-          </View>
-
-          {/* Sede Selector */}
-          <View style={styles.pickerContainer}>
-            <Text style={styles.label}>Sede</Text>
-            <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={selectedSede}
-                onValueChange={setSelectedSede}
-                style={styles.picker}
-                enabled={!isLoadingSedes}
-              >
-                <Picker.Item label="Todas las sedes" value="" />
-                {sedes.map((sede) => (
-                  <Picker.Item
-                    key={sede.id}
-                    label={`${sede.code} - ${sede.name}`}
-                    value={sede.id}
-                  />
-                ))}
-              </Picker>
-            </View>
-          </View>
-
-          {/* Generate Button */}
-          <TouchableOpacity
-            style={[styles.generateButton, isLoading && styles.generateButtonDisabled]}
-            onPress={() => loadCuadre(false)}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.generateButtonText}>Generar Cuadre</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        </AnimatedCard>
 
         {/* Results Section */}
         {cuadreData && (
-          <View style={styles.resultsContainer}>
+          <>
             {/* Severity Badge */}
-            <View
-              style={[
-                styles.severityBadge,
-                { backgroundColor: getSeverityColor(cuadreData.cuadre.severidad) },
-              ]}
-            >
-              <Text style={styles.severityText}>
-                {getSeverityLabel(cuadreData.cuadre.severidad)}
-              </Text>
-            </View>
+            <AnimatedCard delay={100}>
+              <View style={[styles.severityBadge, { backgroundColor: getSeverityInfo(cuadreData.cuadre.severidad).bgColor }]}>
+                <Ionicons
+                  name={getSeverityInfo(cuadreData.cuadre.severidad).icon}
+                  size={24}
+                  color={getSeverityInfo(cuadreData.cuadre.severidad).color}
+                />
+                <Text style={[styles.severityText, { color: getSeverityInfo(cuadreData.cuadre.severidad).color }]}>
+                  {getSeverityInfo(cuadreData.cuadre.severidad).label}
+                </Text>
+              </View>
+            </AnimatedCard>
 
-            {/* Ventas Section */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>💰 Ventas</Text>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Efectivo:</Text>
-                <Text style={styles.cardValue}>
-                  {formatCurrency(cuadreData.ventas.efectivo)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Tarjeta:</Text>
-                <Text style={styles.cardValue}>
-                  {formatCurrency(cuadreData.ventas.tarjeta)}
-                </Text>
-              </View>
-              <View style={[styles.cardRow, styles.cardRowTotal]}>
-                <Text style={styles.cardLabelBold}>Total:</Text>
-                <Text style={styles.cardValueBold}>
-                  {formatCurrency(cuadreData.ventas.total)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Operaciones:</Text>
-                <Text style={styles.cardValue}>
-                  {cuadreData.ventas.cantidad_operaciones}
-                </Text>
-              </View>
-            </View>
+            {/* Ventas Card */}
+            <DataCard title="Ventas" icon="cash-outline" iconColor={colors.success[600]} delay={200}>
+              <DataRow label="Efectivo" value={formatCurrency(cuadreData.ventas.efectivo)} />
+              <DataRow label="Tarjeta" value={formatCurrency(cuadreData.ventas.tarjeta)} />
+              <DataRow label="Total" value={formatCurrency(cuadreData.ventas.total)} isBold isTotal />
+              <DataRow label="Operaciones" value={cuadreData.ventas.cantidad_operaciones.toString()} />
+            </DataCard>
 
-            {/* Notas de Crédito Section */}
-            <View style={[styles.card, styles.notasCreditoCard]}>
-              <Text style={styles.cardTitle}>📝 Notas de Crédito (Anulaciones)</Text>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Efectivo:</Text>
-                <Text style={[styles.cardValue, styles.negativeValue]}>
-                  {formatCurrency(cuadreData.notas_credito.efectivo)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Tarjeta:</Text>
-                <Text style={[styles.cardValue, styles.negativeValue]}>
-                  {formatCurrency(cuadreData.notas_credito.tarjeta)}
-                </Text>
-              </View>
-              <View style={[styles.cardRow, styles.cardRowTotal]}>
-                <Text style={styles.cardLabelBold}>Total:</Text>
-                <Text style={[styles.cardValueBold, styles.negativeValue]}>
-                  {formatCurrency(cuadreData.notas_credito.total)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Cantidad:</Text>
-                <Text style={styles.cardValue}>
-                  {cuadreData.notas_credito.cantidad}
-                </Text>
-              </View>
-            </View>
+            {/* Notas de Crédito Card */}
+            <DataCard title="Notas de Crédito" icon="document-text-outline" iconColor={colors.danger[600]} delay={300} variant="danger">
+              <DataRow label="Efectivo" value={formatCurrency(cuadreData.notas_credito.efectivo)} valueColor={colors.danger[600]} />
+              <DataRow label="Tarjeta" value={formatCurrency(cuadreData.notas_credito.tarjeta)} valueColor={colors.danger[600]} />
+              <DataRow label="Total" value={formatCurrency(cuadreData.notas_credito.total)} isBold isTotal valueColor={colors.danger[600]} />
+              <DataRow label="Cantidad" value={cuadreData.notas_credito.cantidad.toString()} />
+            </DataCard>
 
-            {/* Izipay Section */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>💳 Izipay</Text>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Bruto:</Text>
-                <Text style={styles.cardValue}>
-                  {formatCurrency(cuadreData.izipay.bruto)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Comisiones:</Text>
-                <Text style={[styles.cardValue, styles.negativeValue]}>
-                  -{formatCurrency(cuadreData.izipay.comisiones)}
-                </Text>
-              </View>
-              <View style={[styles.cardRow, styles.cardRowTotal]}>
-                <Text style={styles.cardLabelBold}>Neto:</Text>
-                <Text style={styles.cardValueBold}>
-                  {formatCurrency(cuadreData.izipay.neto)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Operaciones:</Text>
-                <Text style={styles.cardValue}>
-                  {cuadreData.izipay.cantidad_operaciones}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Matcheadas:</Text>
-                <Text style={styles.cardValue}>
-                  {cuadreData.izipay.transacciones_matcheadas}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>% Comisión Promedio:</Text>
-                <Text style={styles.cardValue}>
-                  {cuadreData.izipay.porcentaje_comision_promedio.toFixed(2)}%
-                </Text>
-              </View>
-            </View>
+            {/* Izipay Card */}
+            <DataCard title="Izipay" icon="card-outline" iconColor={colors.accent[600]} delay={400}>
+              <DataRow label="Bruto" value={formatCurrency(cuadreData.izipay.bruto)} />
+              <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={colors.danger[600]} />
+              <DataRow label="Neto" value={formatCurrency(cuadreData.izipay.neto)} isBold isTotal />
+              <DataRow label="Operaciones" value={cuadreData.izipay.cantidad_operaciones.toString()} />
+              <DataRow label="Matcheadas" value={cuadreData.izipay.transacciones_matcheadas.toString()} />
+              <DataRow label="% Comisión Prom." value={`${cuadreData.izipay.porcentaje_comision_promedio.toFixed(2)}%`} />
+            </DataCard>
 
-            {/* Prosegur Section */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>🏦 Prosegur</Text>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Depósitos:</Text>
-                <Text style={styles.cardValue}>
-                  {formatCurrency(cuadreData.prosegur.depositos)}
-                </Text>
-              </View>
-              <View style={[styles.cardRow, styles.cardRowTotal]}>
-                <Text style={styles.cardLabelBold}>Balance:</Text>
-                <Text style={styles.cardValueBold}>
-                  {formatCurrency(cuadreData.prosegur.balances)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Operaciones:</Text>
-                <Text style={styles.cardValue}>
-                  {cuadreData.prosegur.cantidad_operaciones}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Depósitos:</Text>
-                <Text style={styles.cardValue}>
-                  {cuadreData.prosegur.cantidad_depositos}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Recogidas:</Text>
-                <Text style={styles.cardValue}>
-                  {cuadreData.prosegur.cantidad_recogidas}
-                </Text>
-              </View>
-            </View>
+            {/* Prosegur Card */}
+            <DataCard title="Prosegur" icon="business-outline" iconColor={colors.warning[600]} delay={500}>
+              <DataRow label="Depósitos" value={formatCurrency(cuadreData.prosegur.depositos)} />
+              <DataRow label="Balance" value={formatCurrency(cuadreData.prosegur.balances)} isBold isTotal />
+              <DataRow label="Operaciones" value={cuadreData.prosegur.cantidad_operaciones.toString()} />
+              <DataRow label="Depósitos (#)" value={cuadreData.prosegur.cantidad_depositos.toString()} />
+              <DataRow label="Recogidas" value={cuadreData.prosegur.cantidad_recogidas.toString()} />
+            </DataCard>
 
-            {/* Totales Section */}
-            <View style={[styles.card, styles.totalesCard]}>
-              <Text style={styles.cardTitle}>💵 Resumen de Totales</Text>
+            {/* Resumen Card */}
+            <DataCard title="Resumen de Totales" icon="calculator-outline" iconColor={colors.info[600]} delay={600} variant="success">
+              <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
+              <DataRow label="Notas de Crédito" value={formatCurrency(cuadreData.notas_credito.total)} valueColor={colors.danger[600]} />
+              <DataRow label="Izipay (Bruto)" value={formatCurrency(cuadreData.izipay.bruto)} />
+              <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={colors.danger[600]} />
+              <DataRow label="Prosegur" value={formatCurrency(cuadreData.prosegur.depositos)} />
+              <DataRow
+                label="Diferencia"
+                value={formatCurrency(diferencia)}
+                isBold
+                isTotal
+                valueColor={diferencia !== 0 ? colors.warning[600] : colors.success[600]}
+              />
+              <DataRow
+                label="Total a Ingresar"
+                value={formatCurrency(cuadreData.prosegur.depositos + cuadreData.izipay.neto)}
+                isBold
+                isTotal
+              />
+            </DataCard>
 
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Total Ventas:</Text>
-                <Text style={styles.cardValue}>
-                  {formatCurrency(cuadreData.ventas.total)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Total Notas de Crédito:</Text>
-                <Text style={[styles.cardValue, styles.negativeValue]}>
-                  {formatCurrency(cuadreData.notas_credito.total)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Total Izipay (Bruto):</Text>
-                <Text style={styles.cardValue}>
-                  {formatCurrency(cuadreData.izipay.bruto)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Total Comisiones:</Text>
-                <Text style={[styles.cardValue, styles.negativeValue]}>
-                  -{formatCurrency(cuadreData.izipay.comisiones)}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Total Prosegur:</Text>
-                <Text style={styles.cardValue}>
-                  {formatCurrency(cuadreData.prosegur.depositos)}
-                </Text>
-              </View>
-
-              <View style={[styles.cardRow, styles.cardRowTotal]}>
-                <Text style={styles.cardLabel}>Diferencia:</Text>
-                <Text
-                  style={[
-                    styles.cardValue,
-                    (cuadreData.izipay.bruto + cuadreData.prosegur.depositos + (cuadreData.notas_credito.total * -1) - cuadreData.ventas.total) !== 0 && styles.warningValue,
-                  ]}
-                >
-                  {formatCurrency(
-                    cuadreData.izipay.bruto +
-                    cuadreData.prosegur.depositos +
-                    (cuadreData.notas_credito.total * -1) -
-                    cuadreData.ventas.total
-                  )}
-                </Text>
-              </View>
-
-              <View style={[styles.cardRow, styles.cardRowTotal]}>
-                <Text style={styles.cardLabelBold}>Total a Ingresar:</Text>
-                <Text style={styles.cardValueBold}>
-                  {formatCurrency(cuadreData.prosegur.depositos + cuadreData.izipay.neto)}
-                </Text>
-              </View>
-            </View>
-
-            {/* Operaciones Section */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>🔢 Operaciones</Text>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Ventas:</Text>
-                <Text style={styles.cardValue}>{cuadreData.operaciones.ventas}</Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Izipay:</Text>
-                <Text style={styles.cardValue}>{cuadreData.operaciones.izipay}</Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Prosegur:</Text>
-                <Text style={styles.cardValue}>{cuadreData.operaciones.prosegur}</Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>Coinciden:</Text>
-                <Text
-                  style={[
-                    styles.cardValue,
-                    cuadreData.operaciones.coinciden
-                      ? styles.successValue
-                      : styles.warningValue,
-                  ]}
-                >
-                  {cuadreData.operaciones.coinciden ? '✓ Sí' : '✗ No'}
-                </Text>
-              </View>
-            </View>
+            {/* Operaciones Card */}
+            <DataCard title="Operaciones" icon="git-compare-outline" iconColor={colors.primary[600]} delay={700}>
+              <DataRow label="Ventas" value={cuadreData.operaciones.ventas.toString()} />
+              <DataRow label="Izipay" value={cuadreData.operaciones.izipay.toString()} />
+              <DataRow label="Prosegur" value={cuadreData.operaciones.prosegur.toString()} />
+              <DataRow
+                label="Coinciden"
+                value={cuadreData.operaciones.coinciden ? '✓ Sí' : '✗ No'}
+                valueColor={cuadreData.operaciones.coinciden ? colors.success[600] : colors.warning[600]}
+                isBold
+              />
+            </DataCard>
 
             {/* Metadata */}
-            <View style={styles.metadataContainer}>
-              <Text style={styles.metadataText}>
-                Generado: {new Date(cuadreData.generado_en).toLocaleString('es-PE')}
-              </Text>
-              <Text style={styles.metadataText}>
-                Periodo: {cuadreData.fecha_inicio} al {cuadreData.fecha_fin}
-              </Text>
-              {cuadreData.sedes.length > 0 && (
-                <Text style={styles.metadataText}>
-                  Sedes: {cuadreData.sedes.map((s) => s.code).join(', ')}
-                </Text>
-              )}
-            </View>
+            <AnimatedCard delay={800}>
+              <View style={styles.metadataContainer}>
+                <View style={styles.metadataRow}>
+                  <Ionicons name="time-outline" size={16} color={colors.neutral[500]} />
+                  <Text style={styles.metadataText}>
+                    Generado: {new Date(cuadreData.generado_en).toLocaleString('es-PE')}
+                  </Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Ionicons name="calendar-outline" size={16} color={colors.neutral[500]} />
+                  <Text style={styles.metadataText}>
+                    Periodo: {cuadreData.fecha_inicio} al {cuadreData.fecha_fin}
+                  </Text>
+                </View>
+                {cuadreData.sedes.length > 0 && (
+                  <View style={styles.metadataRow}>
+                    <Ionicons name="location-outline" size={16} color={colors.neutral[500]} />
+                    <Text style={styles.metadataText}>
+                      Sedes: {cuadreData.sedes.map((s) => s.code).join(', ')}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </AnimatedCard>
 
             {/* PDF Download Button */}
-            <TouchableOpacity onPress={generatePDF} style={styles.pdfDownloadButton}>
-              <Text style={styles.pdfDownloadButtonIcon}>📄</Text>
-              <Text style={styles.pdfDownloadButtonText}>Descargar PDF</Text>
-            </TouchableOpacity>
-          </View>
+            <AnimatedCard delay={900}>
+              <TouchableOpacity
+                style={[styles.pdfButton, isDownloadingPDF && styles.pdfButtonDisabled]}
+                onPress={generatePDF}
+                disabled={isDownloadingPDF}
+                activeOpacity={0.8}
+              >
+                {isDownloadingPDF ? (
+                  <ActivityIndicator color={colors.neutral[0]} size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="document-text" size={24} color={colors.neutral[0]} />
+                    <Text style={styles.pdfButtonText}>Descargar PDF</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </AnimatedCard>
+          </>
         )}
 
         {/* Empty State */}
         {!cuadreData && !isLoading && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateIcon}>📊</Text>
-            <Text style={styles.emptyStateText}>
-              Selecciona un rango de fechas y genera el cuadre
-            </Text>
-          </View>
+          <AnimatedCard delay={100}>
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="analytics-outline" size={64} color={colors.neutral[300]} />
+              </View>
+              <Text style={styles.emptyTitle}>Sin datos</Text>
+              <Text style={styles.emptyText}>
+                Selecciona un rango de fechas y genera el cuadre
+              </Text>
+            </View>
+          </AnimatedCard>
         )}
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
 
       {/* Date Pickers */}
@@ -643,251 +651,280 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
+// ============================================================================
+// Styles
+// ============================================================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.neutral[100],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.neutral[0],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
+    ...shadows.sm,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backButtonText: {
-    fontSize: 24,
-    color: '#374151',
-    fontWeight: '600',
-  },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[900],
   },
   placeholder: {
     width: 40,
   },
-  pdfDownloadButton: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  pdfDownloadButtonIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  pdfDownloadButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
   content: {
     flex: 1,
   },
-  filtersContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+
+  // Filters Card
+  filtersCard: {
+    backgroundColor: colors.neutral[0],
+    marginHorizontal: spacing[4],
+    marginTop: spacing[4],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    ...shadows.sm,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 16,
+  filtersHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[4],
+    gap: spacing[2],
+  },
+  filtersTitle: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[900],
   },
   quickFiltersContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+    gap: spacing[2],
+    marginBottom: spacing[4],
   },
   quickFilterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.full,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: colors.primary[200],
   },
   quickFilterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4F46E5',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: colors.primary[700],
   },
   dateRangeContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: spacing[3],
+    marginBottom: spacing[4],
   },
   datePickerWrapper: {
     flex: 1,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+  dateLabel: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: colors.neutral[600],
+    marginBottom: spacing[2],
+  },
+  sedeContainer: {
+    marginBottom: spacing[4],
+  },
+  sedeLabel: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: colors.neutral[600],
+    marginBottom: spacing[2],
   },
   pickerContainer: {
-    marginBottom: 16,
-  },
-  pickerWrapper: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.neutral[200],
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: colors.neutral[900],
   },
   generateButton: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 14,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.primary[600],
+    paddingVertical: spacing[4],
+    borderRadius: borderRadius.lg,
+    gap: spacing[3],
+    ...shadows.md,
   },
   generateButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: colors.neutral[300],
   },
   generateButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[0],
   },
-  resultsContainer: {
-    padding: 16,
-  },
+
+  // Severity Badge
   severityBadge: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
+    marginHorizontal: spacing[4],
+    marginTop: spacing[4],
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[5],
+    borderRadius: borderRadius.lg,
+    gap: spacing[3],
   },
   severityText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+
+  // Data Card
+  dataCard: {
+    backgroundColor: colors.neutral[0],
+    marginHorizontal: spacing[4],
+    marginTop: spacing[4],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    ...shadows.sm,
   },
-  totalesCard: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 2,
-    borderColor: '#10B981',
+  dataCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[4],
+    gap: spacing[3],
   },
-  notasCreditoCard: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
+  dataCardIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
+  dataCardTitle: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[900],
   },
-  cardRow: {
+  dataRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: spacing[2],
   },
-  cardRowTotal: {
+  dataRowTotal: {
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    marginTop: 8,
-    paddingTop: 12,
+    borderTopColor: colors.neutral[200],
+    marginTop: spacing[2],
+    paddingTop: spacing[3],
   },
-  cardLabel: {
-    fontSize: 14,
-    color: '#6B7280',
+  dataLabel: {
+    fontSize: fontSizes.sm,
+    color: colors.neutral[600],
   },
-  cardLabelBold: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1F2937',
+  dataLabelBold: {
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[800],
   },
-  cardValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
+  dataValue: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: colors.neutral[900],
   },
-  cardValueBold: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
+  dataValueBold: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.bold,
   },
-  negativeValue: {
-    color: '#EF4444',
-  },
-  warningValue: {
-    color: '#F59E0B',
-    fontWeight: '700',
-  },
-  successValue: {
-    color: '#10B981',
-    fontWeight: '700',
-  },
+
+  // Metadata
   metadataContainer: {
-    backgroundColor: '#F9FAFB',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
+    backgroundColor: colors.neutral[50],
+    marginHorizontal: spacing[4],
+    marginTop: spacing[4],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    gap: spacing[2],
+  },
+  metadataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
   },
   metadataText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
+    fontSize: fontSizes.sm,
+    color: colors.neutral[600],
   },
-  emptyState: {
+
+  // PDF Button
+  pdfButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    backgroundColor: colors.accent[600],
+    marginHorizontal: spacing[4],
+    marginTop: spacing[4],
+    paddingVertical: spacing[4],
+    borderRadius: borderRadius.lg,
+    gap: spacing[3],
+    ...shadows.md,
   },
-  emptyStateIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+  pdfButtonDisabled: {
+    backgroundColor: colors.neutral[300],
   },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#6B7280',
+  pdfButtonText: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[0],
+  },
+
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing[16],
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.neutral[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing[4],
+  },
+  emptyTitle: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[700],
+    marginBottom: spacing[2],
+  },
+  emptyText: {
+    fontSize: fontSizes.sm,
+    color: colors.neutral[500],
     textAlign: 'center',
+  },
+
+  bottomSpacer: {
+    height: spacing[8],
   },
 });
