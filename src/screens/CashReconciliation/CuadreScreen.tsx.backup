@@ -21,12 +21,12 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { DateRangePicker } from '@/components/DateRangePicker';
+// TEMP: Commenting out DatePicker to debug
+// import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { sitesApi } from '@/services/api/sites';
-import { companiesApi } from '@/services/api/companies';
 import { cashReconciliationApi, CuadreCajaResponse } from '@/services/api/cash-reconciliation';
 import { Site } from '@/types/sites';
-import { CompanyType } from '@/types/companies';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { config } from '@/utils/config';
@@ -176,7 +176,6 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   // Data states
   const [cuadreData, setCuadreData] = useState<CuadreCajaResponse | null>(null);
   const [sedes, setSedes] = useState<Site[]>([]);
-  const [companyTypeMap, setCompanyTypeMap] = useState<Map<string, CompanyType>>(new Map());
 
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
@@ -191,11 +190,13 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   // Sede selection states
   const [showInternas, setShowInternas] = useState(true);
   const [showExternas, setShowExternas] = useState(true);
-  const [sedesExpanded, setSedesExpanded] = useState(false);
+  const [internasExpanded, setInternasExpanded] = useState(false);
+  const [externasExpanded, setExternasExpanded] = useState(false);
   const [selectedSedeIds, setSelectedSedeIds] = useState<Set<string>>(new Set());
 
-  // Date picker state
-  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  // Date picker states
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   // Animation
   const headerScale = useRef(new Animated.Value(0.95)).current;
@@ -213,23 +214,8 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   const loadSedes = async () => {
     try {
       setIsLoadingSedes(true);
-
-      // Load sedes and companies in parallel
-      const [sedesResponse, companiesResponse] = await Promise.all([
-        sitesApi.getSites({ limit: 100 }),
-        companiesApi.getCompanies({ limit: 100 }),
-      ]);
-
-      const loadedSedes = sedesResponse.data || [];
-      const companies = companiesResponse.data || [];
-
-      // Create a map of companyId -> companyType
-      const typeMap = new Map<string, CompanyType>();
-      companies.forEach((company) => {
-        typeMap.set(company.id, company.companyType);
-      });
-
-      setCompanyTypeMap(typeMap);
+      const response = await sitesApi.getSites({ limit: 100 });
+      const loadedSedes = response.data || [];
       setSedes(loadedSedes);
       // Select all sedes by default
       setSelectedSedeIds(new Set(loadedSedes.map((s) => s.id)));
@@ -240,34 +226,20 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  // Filter sedes by company type using the companyTypeMap
+  // Filter sedes by company type (with safe fallback)
+  // If company data is not loaded, treat all sedes as "internas" by default
   const sedesInternas = sedes.filter((s) => {
-    const companyType = companyTypeMap.get(s.companyId);
-    // If no company type found, treat as internal by default
-    return !companyType || companyType === CompanyType.INTERNAL;
+    if (!s.company || !s.company.companyType) return true; // No company info = treat as internal
+    return s.company.companyType === 'INTERNAL';
   });
   const sedesExternas = sedes.filter((s) => {
-    const companyType = companyTypeMap.get(s.companyId);
-    return companyType === CompanyType.EXTERNAL;
+    if (!s.company || !s.company.companyType) return false; // No company info = not external
+    return s.company.companyType === 'EXTERNAL';
   });
 
-  // Helper function to check if a sede is external
-  const isSedeExternal = (sede: Site): boolean => {
-    const companyType = companyTypeMap.get(sede.companyId);
-    return companyType === CompanyType.EXTERNAL;
-  };
-
-  // Compute visible sedes based on toggle selection
-  const visibleSedes = showInternas && showExternas
-    ? sedes
-    : showInternas
-      ? sedesInternas
-      : showExternas
-        ? sedesExternas
-        : [];
-
-  // Check if all visible sedes are selected
-  const allVisibleSelected = visibleSedes.length > 0 && visibleSedes.every((s) => selectedSedeIds.has(s.id));
+  // Check if all sedes of a type are selected
+  const allInternasSelected = sedesInternas.length > 0 && sedesInternas.every((s) => selectedSedeIds.has(s.id));
+  const allExternasSelected = sedesExternas.length > 0 && sedesExternas.every((s) => selectedSedeIds.has(s.id));
 
   // Toggle individual sede selection
   const toggleSedeSelection = (sedeId: string) => {
@@ -282,16 +254,30 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     });
   };
 
-  // Toggle all visible sedes
-  const toggleAllVisible = () => {
+  // Toggle all sedes of a type
+  const toggleAllInternas = () => {
     setSelectedSedeIds((prev) => {
       const newSet = new Set(prev);
-      if (allVisibleSelected) {
-        // Deselect all visible
-        visibleSedes.forEach((s) => newSet.delete(s.id));
+      if (allInternasSelected) {
+        // Deselect all internas
+        sedesInternas.forEach((s) => newSet.delete(s.id));
       } else {
-        // Select all visible
-        visibleSedes.forEach((s) => newSet.add(s.id));
+        // Select all internas
+        sedesInternas.forEach((s) => newSet.add(s.id));
+      }
+      return newSet;
+    });
+  };
+
+  const toggleAllExternas = () => {
+    setSelectedSedeIds((prev) => {
+      const newSet = new Set(prev);
+      if (allExternasSelected) {
+        // Deselect all externas
+        sedesExternas.forEach((s) => newSet.delete(s.id));
+      } else {
+        // Select all externas
+        sedesExternas.forEach((s) => newSet.add(s.id));
       }
       return newSet;
     });
@@ -306,6 +292,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
         sedesInternas.forEach((s) => newSet.delete(s.id));
         return newSet;
       });
+      setInternasExpanded(false);
     } else {
       // Selecting - add all internas to selection
       setSelectedSedeIds((prev) => {
@@ -325,6 +312,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
         sedesExternas.forEach((s) => newSet.delete(s.id));
         return newSet;
       });
+      setExternasExpanded(false);
     } else {
       // Selecting - add all externas to selection
       setSelectedSedeIds((prev) => {
@@ -387,31 +375,17 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       // Convert Set to array of selected sede IDs
       const sedeIdsArray = Array.from(selectedSedeIds);
 
-      // Validate at least one sede is selected
-      if (sedeIdsArray.length === 0) {
-        Alert.alert('Error', 'Debes seleccionar al menos una sede');
-        return;
-      }
-
       const params: any = {
         fecha_inicio: formatDate(fechaInicio),
         fecha_fin: formatDate(fechaFin),
       };
 
-      // Only add sede filter if not all sedes are selected
-      if (sedeIdsArray.length < sedes.length) {
-        if (sedeIdsArray.length === 1) {
-          // Single sede - use sede_id
-          params.sede_id = sedeIdsArray[0];
-        } else {
-          // Multiple sedes - use sede_ids as comma-separated string
-          params.sede_ids = sedeIdsArray.join(',');
-        }
+      // Only add sede_ids if not all sedes are selected
+      if (sedeIdsArray.length > 0 && sedeIdsArray.length < sedes.length) {
+        params.sede_ids = sedeIdsArray.join(',');
+      } else if (sedeIdsArray.length === 1) {
+        params.sede_id = sedeIdsArray[0];
       }
-      // If all sedes selected, don't send filter (backend returns all)
-
-      console.log('📊 [Cuadre] Enviando petición con params:', JSON.stringify(params, null, 2));
-      console.log('📊 [Cuadre] Sedes seleccionadas:', sedeIdsArray.length, 'de', sedes.length);
 
       const data = await cashReconciliationApi.getCuadreCaja(params);
       setCuadreData(data as CuadreCajaResponse);
@@ -451,18 +425,13 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
         fecha_fin: formatDate(fechaFin),
       });
 
-      // Add sede filter if specific sedes are selected (not all)
+      // Add sede_ids if specific sedes are selected
       const sedeIdsArray = Array.from(selectedSedeIds);
       if (sedeIdsArray.length > 0 && sedeIdsArray.length < sedes.length) {
-        if (sedeIdsArray.length === 1) {
-          // Single sede - use sede_id
-          params.append('sede_id', sedeIdsArray[0]);
-        } else {
-          // Multiple sedes - use sede_ids as comma-separated string
-          params.append('sede_ids', sedeIdsArray.join(','));
-        }
+        params.append('sede_ids', sedeIdsArray.join(','));
+      } else if (sedeIdsArray.length === 1) {
+        params.append('sede_id', sedeIdsArray[0]);
       }
-      // If all sedes selected, don't send filter (backend returns all)
 
       const url = `${config.API_URL}/cash-reconciliation/cuadre-caja/pdf?${params.toString()}`;
 
@@ -524,16 +493,8 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     return severities[severidad] || { label: severidad, color: colors.neutral[600], bgColor: colors.neutral[100], icon: 'help-circle' as keyof typeof Ionicons.glyphMap };
   };
 
-  // Determine if we're showing only external sedes (no Izipay/Prosegur data)
-  const isOnlyExternas = showExternas && !showInternas;
-
   const diferencia = cuadreData
     ? cuadreData.izipay.bruto + cuadreData.prosegur.depositos + (cuadreData.notas_credito.total * -1) - cuadreData.ventas.total
-    : 0;
-
-  // Estimated payment for external sedes (Ventas neto - comisión franquicia)
-  const estimacionPago = cuadreData
-    ? (cuadreData.ventas.total - cuadreData.notas_credito.total) / 1.15
     : 0;
 
   return (
@@ -574,22 +535,28 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               <QuickFilterButton label="Este Mes" onPress={setThisMonth} />
             </View>
 
-            {/* Date Range - Unified Selector */}
+            {/* Date Range */}
             <View style={styles.dateRangeContainer}>
-              <TouchableOpacity
-                style={styles.dateRangeButton}
-                onPress={() => setShowDateRangePicker(true)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="calendar-outline" size={22} color={colors.primary[600]} />
-                <View style={styles.dateRangeTextContainer}>
-                  <Text style={styles.dateRangeLabel}>Periodo</Text>
-                  <Text style={styles.dateRangeValue}>
-                    {formatDisplayDate(fechaInicio)} — {formatDisplayDate(fechaFin)}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
-              </TouchableOpacity>
+              <View style={styles.datePickerWrapper}>
+                <Text style={styles.dateLabel}>Desde</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowStartDatePicker(true)}
+                >
+                  <Ionicons name="calendar-outline" size={20} color={colors.neutral[500]} />
+                  <Text style={styles.dateButtonText}>{formatDisplayDate(fechaInicio)}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.datePickerWrapper}>
+                <Text style={styles.dateLabel}>Hasta</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowEndDatePicker(true)}
+                >
+                  <Ionicons name="calendar-outline" size={20} color={colors.neutral[500]} />
+                  <Text style={styles.dateButtonText}>{formatDisplayDate(fechaFin)}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Sede Selector */}
@@ -630,7 +597,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                     {showExternas && <Ionicons name="checkmark" size={14} color={colors.neutral[0]} />}
                   </View>
                   <View style={styles.sedeToggleContent}>
-                    <Ionicons name="storefront" size={18} color={showExternas ? colors.accent[600] : colors.neutral[400]} />
+                    <Ionicons name="storefront" size={18} color={showExternas ? colors.secondary[600] : colors.neutral[400]} />
                     <Text style={[styles.sedeToggleText, showExternas && styles.sedeToggleTextActive]}>
                       Sedes Externas
                     </Text>
@@ -639,81 +606,103 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
-              {/* Unified Collapsible Sedes List */}
-              {(showInternas || showExternas) && visibleSedes.length > 0 && (
+              {/* Internas Collapsible List */}
+              {showInternas && sedesInternas.length > 0 && (
                 <View style={styles.sedeListContainer}>
                   <TouchableOpacity
                     style={styles.sedeListHeader}
-                    onPress={() => setSedesExpanded(!sedesExpanded)}
+                    onPress={() => setInternasExpanded(!internasExpanded)}
                     activeOpacity={0.7}
                   >
                     <View style={styles.sedeListHeaderLeft}>
                       <Ionicons
-                        name={sedesExpanded ? 'chevron-down' : 'chevron-forward'}
+                        name={internasExpanded ? 'chevron-down' : 'chevron-forward'}
                         size={18}
                         color={colors.primary[600]}
                       />
-                      <Text style={styles.sedeListHeaderText}>
-                        {showInternas && showExternas
-                          ? 'Todas las Sedes'
-                          : showInternas
-                            ? 'Sedes Internas'
-                            : 'Sedes Externas'}
-                      </Text>
-                      <Text style={styles.sedeListHeaderCount}>({visibleSedes.length})</Text>
+                      <Text style={styles.sedeListHeaderText}>Sedes Internas</Text>
                     </View>
                     <TouchableOpacity
                       style={styles.selectAllButton}
-                      onPress={toggleAllVisible}
+                      onPress={toggleAllInternas}
                       activeOpacity={0.7}
                     >
-                      <View style={[styles.checkbox, allVisibleSelected && styles.checkboxChecked]}>
-                        {allVisibleSelected && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
+                      <View style={[styles.checkbox, allInternasSelected && styles.checkboxChecked]}>
+                        {allInternasSelected && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
                       </View>
                       <Text style={styles.selectAllText}>Todas</Text>
                     </TouchableOpacity>
                   </TouchableOpacity>
 
-                  {sedesExpanded && (
+                  {internasExpanded && (
                     <View style={styles.sedeListItems}>
-                      {visibleSedes.map((sede) => {
-                        const isExternal = isSedeExternal(sede);
-                        return (
-                          <TouchableOpacity
-                            key={sede.id}
-                            style={styles.sedeListItem}
-                            onPress={() => toggleSedeSelection(sede.id)}
-                            activeOpacity={0.7}
-                          >
-                            <View style={[
-                              styles.checkbox,
-                              isExternal && styles.checkboxExternas,
-                              selectedSedeIds.has(sede.id) && (isExternal ? styles.checkboxExternasChecked : styles.checkboxChecked)
-                            ]}>
-                              {selectedSedeIds.has(sede.id) && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
-                            </View>
-                            <View style={styles.sedeListItemInfo}>
-                              <View style={styles.sedeListItemHeader}>
-                                <Text style={styles.sedeListItemCode}>{sede.code}</Text>
-                                {showInternas && showExternas && (
-                                  <View style={[
-                                    styles.sedeTypeBadge,
-                                    isExternal ? styles.sedeTypeBadgeExternal : styles.sedeTypeBadgeInternal
-                                  ]}>
-                                    <Text style={[
-                                      styles.sedeTypeBadgeText,
-                                      isExternal ? styles.sedeTypeBadgeTextExternal : styles.sedeTypeBadgeTextInternal
-                                    ]}>
-                                      {isExternal ? 'EXT' : 'INT'}
-                                    </Text>
-                                  </View>
-                                )}
-                              </View>
-                              <Text style={styles.sedeListItemName}>{sede.name}</Text>
-                            </View>
-                          </TouchableOpacity>
-                        );
-                      })}
+                      {sedesInternas.map((sede) => (
+                        <TouchableOpacity
+                          key={sede.id}
+                          style={styles.sedeListItem}
+                          onPress={() => toggleSedeSelection(sede.id)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={[styles.checkbox, selectedSedeIds.has(sede.id) && styles.checkboxChecked]}>
+                            {selectedSedeIds.has(sede.id) && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
+                          </View>
+                          <View style={styles.sedeListItemInfo}>
+                            <Text style={styles.sedeListItemCode}>{sede.code}</Text>
+                            <Text style={styles.sedeListItemName}>{sede.name}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Externas Collapsible List */}
+              {showExternas && sedesExternas.length > 0 && (
+                <View style={[styles.sedeListContainer, styles.sedeListContainerExternas]}>
+                  <TouchableOpacity
+                    style={styles.sedeListHeader}
+                    onPress={() => setExternasExpanded(!externasExpanded)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.sedeListHeaderLeft}>
+                      <Ionicons
+                        name={externasExpanded ? 'chevron-down' : 'chevron-forward'}
+                        size={18}
+                        color={colors.secondary[600]}
+                      />
+                      <Text style={[styles.sedeListHeaderText, { color: colors.secondary[700] }]}>Sedes Externas</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.selectAllButton}
+                      onPress={toggleAllExternas}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.checkbox, styles.checkboxExternas, allExternasSelected && styles.checkboxExternasChecked]}>
+                        {allExternasSelected && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
+                      </View>
+                      <Text style={styles.selectAllText}>Todas</Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+
+                  {externasExpanded && (
+                    <View style={styles.sedeListItems}>
+                      {sedesExternas.map((sede) => (
+                        <TouchableOpacity
+                          key={sede.id}
+                          style={styles.sedeListItem}
+                          onPress={() => toggleSedeSelection(sede.id)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={[styles.checkbox, styles.checkboxExternas, selectedSedeIds.has(sede.id) && styles.checkboxExternasChecked]}>
+                            {selectedSedeIds.has(sede.id) && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
+                          </View>
+                          <View style={styles.sedeListItemInfo}>
+                            <Text style={styles.sedeListItemCode}>{sede.code}</Text>
+                            <Text style={styles.sedeListItemName}>{sede.name}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
                     </View>
                   )}
                 </View>
@@ -750,21 +739,19 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
         {/* Results Section */}
         {cuadreData && (
           <>
-            {/* Severity Badge - Only for internal sedes */}
-            {!isOnlyExternas && (
-              <AnimatedCard delay={100}>
-                <View style={[styles.severityBadge, { backgroundColor: getSeverityInfo(cuadreData.cuadre.severidad).bgColor }]}>
-                  <Ionicons
-                    name={getSeverityInfo(cuadreData.cuadre.severidad).icon}
-                    size={24}
-                    color={getSeverityInfo(cuadreData.cuadre.severidad).color}
-                  />
-                  <Text style={[styles.severityText, { color: getSeverityInfo(cuadreData.cuadre.severidad).color }]}>
-                    {getSeverityInfo(cuadreData.cuadre.severidad).label}
-                  </Text>
-                </View>
-              </AnimatedCard>
-            )}
+            {/* Severity Badge */}
+            <AnimatedCard delay={100}>
+              <View style={[styles.severityBadge, { backgroundColor: getSeverityInfo(cuadreData.cuadre.severidad).bgColor }]}>
+                <Ionicons
+                  name={getSeverityInfo(cuadreData.cuadre.severidad).icon}
+                  size={24}
+                  color={getSeverityInfo(cuadreData.cuadre.severidad).color}
+                />
+                <Text style={[styles.severityText, { color: getSeverityInfo(cuadreData.cuadre.severidad).color }]}>
+                  {getSeverityInfo(cuadreData.cuadre.severidad).label}
+                </Text>
+              </View>
+            </AnimatedCard>
 
             {/* Ventas Card */}
             <DataCard title="Ventas" icon="cash-outline" iconColor={colors.success[600]} delay={200}>
@@ -782,97 +769,59 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               <DataRow label="Cantidad" value={cuadreData.notas_credito.cantidad.toString()} />
             </DataCard>
 
-            {/* Izipay Card - Only for internal sedes */}
-            {!isOnlyExternas && (
-              <DataCard title="Izipay" icon="card-outline" iconColor={colors.accent[600]} delay={400}>
-                <DataRow label="Bruto" value={formatCurrency(cuadreData.izipay.bruto)} />
-                <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={colors.danger[600]} />
-                <DataRow label="Neto" value={formatCurrency(cuadreData.izipay.neto)} isBold isTotal />
-                <DataRow label="Operaciones" value={cuadreData.izipay.cantidad_operaciones.toString()} />
-                <DataRow label="Matcheadas" value={cuadreData.izipay.transacciones_matcheadas.toString()} />
-                <DataRow label="% Comisión Prom." value={`${cuadreData.izipay.porcentaje_comision_promedio.toFixed(2)}%`} />
-              </DataCard>
-            )}
+            {/* Izipay Card */}
+            <DataCard title="Izipay" icon="card-outline" iconColor={colors.accent[600]} delay={400}>
+              <DataRow label="Bruto" value={formatCurrency(cuadreData.izipay.bruto)} />
+              <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={colors.danger[600]} />
+              <DataRow label="Neto" value={formatCurrency(cuadreData.izipay.neto)} isBold isTotal />
+              <DataRow label="Operaciones" value={cuadreData.izipay.cantidad_operaciones.toString()} />
+              <DataRow label="Matcheadas" value={cuadreData.izipay.transacciones_matcheadas.toString()} />
+              <DataRow label="% Comisión Prom." value={`${cuadreData.izipay.porcentaje_comision_promedio.toFixed(2)}%`} />
+            </DataCard>
 
-            {/* Prosegur Card - Only for internal sedes */}
-            {!isOnlyExternas && (
-              <DataCard title="Prosegur" icon="business-outline" iconColor={colors.warning[600]} delay={500}>
-                <DataRow label="Depósitos" value={formatCurrency(cuadreData.prosegur.depositos)} />
-                <DataRow label="Balance" value={formatCurrency(cuadreData.prosegur.balances)} isBold isTotal />
-                <DataRow label="Operaciones" value={cuadreData.prosegur.cantidad_operaciones.toString()} />
-                <DataRow label="Depósitos (#)" value={cuadreData.prosegur.cantidad_depositos.toString()} />
-                <DataRow label="Recogidas" value={cuadreData.prosegur.cantidad_recogidas.toString()} />
-              </DataCard>
-            )}
+            {/* Prosegur Card */}
+            <DataCard title="Prosegur" icon="business-outline" iconColor={colors.warning[600]} delay={500}>
+              <DataRow label="Depósitos" value={formatCurrency(cuadreData.prosegur.depositos)} />
+              <DataRow label="Balance" value={formatCurrency(cuadreData.prosegur.balances)} isBold isTotal />
+              <DataRow label="Operaciones" value={cuadreData.prosegur.cantidad_operaciones.toString()} />
+              <DataRow label="Depósitos (#)" value={cuadreData.prosegur.cantidad_depositos.toString()} />
+              <DataRow label="Recogidas" value={cuadreData.prosegur.cantidad_recogidas.toString()} />
+            </DataCard>
 
-            {/* Estimación de Pago Card - Only for external sedes */}
-            {isOnlyExternas && (
-              <DataCard title="Estimación de Pago" icon="wallet-outline" iconColor={colors.success[600]} delay={400} variant="success">
-                <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
-                <DataRow label="Notas de Crédito" value={`-${formatCurrency(cuadreData.notas_credito.total)}`} valueColor={colors.danger[600]} />
-                <DataRow label="Ventas Netas" value={formatCurrency(cuadreData.ventas.total - cuadreData.notas_credito.total)} isBold />
-                <DataRow label="Comisión Franquicia (15%)" value={`-${formatCurrency((cuadreData.ventas.total - cuadreData.notas_credito.total) - estimacionPago)}`} valueColor={colors.neutral[500]} />
-                <DataRow
-                  label="Estimación a Pagar"
-                  value={formatCurrency(estimacionPago)}
-                  isBold
-                  isTotal
-                  valueColor={colors.success[700]}
-                />
-              </DataCard>
-            )}
+            {/* Resumen Card */}
+            <DataCard title="Resumen de Totales" icon="calculator-outline" iconColor={colors.info[600]} delay={600} variant="success">
+              <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
+              <DataRow label="Notas de Crédito" value={formatCurrency(cuadreData.notas_credito.total)} valueColor={colors.danger[600]} />
+              <DataRow label="Izipay (Bruto)" value={formatCurrency(cuadreData.izipay.bruto)} />
+              <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={colors.danger[600]} />
+              <DataRow label="Prosegur" value={formatCurrency(cuadreData.prosegur.depositos)} />
+              <DataRow
+                label="Diferencia"
+                value={formatCurrency(diferencia)}
+                isBold
+                isTotal
+                valueColor={diferencia !== 0 ? colors.warning[600] : colors.success[600]}
+              />
+              <DataRow
+                label="Total a Ingresar"
+                value={formatCurrency(cuadreData.prosegur.depositos + cuadreData.izipay.neto)}
+                isBold
+                isTotal
+              />
+            </DataCard>
 
-            {/* Resumen Card - Different content for internal vs external */}
-            {!isOnlyExternas ? (
-              <DataCard title="Resumen de Totales" icon="calculator-outline" iconColor={colors.info[600]} delay={600} variant="success">
-                <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
-                <DataRow label="Notas de Crédito" value={formatCurrency(cuadreData.notas_credito.total)} valueColor={colors.danger[600]} />
-                <DataRow label="Izipay (Bruto)" value={formatCurrency(cuadreData.izipay.bruto)} />
-                <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={colors.danger[600]} />
-                <DataRow label="Prosegur" value={formatCurrency(cuadreData.prosegur.depositos)} />
-                <DataRow
-                  label="Diferencia"
-                  value={formatCurrency(diferencia)}
-                  isBold
-                  isTotal
-                  valueColor={diferencia !== 0 ? colors.warning[600] : colors.success[600]}
-                />
-                <DataRow
-                  label="Total a Ingresar"
-                  value={formatCurrency(cuadreData.prosegur.depositos + cuadreData.izipay.neto)}
-                  isBold
-                  isTotal
-                />
-              </DataCard>
-            ) : (
-              <DataCard title="Resumen Sedes Externas" icon="calculator-outline" iconColor={colors.info[600]} delay={500} variant="success">
-                <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
-                <DataRow label="Notas de Crédito" value={`-${formatCurrency(cuadreData.notas_credito.total)}`} valueColor={colors.danger[600]} />
-                <DataRow label="Ventas Netas" value={formatCurrency(cuadreData.ventas.total - cuadreData.notas_credito.total)} isBold />
-                <DataRow
-                  label="Estimación a Pagar"
-                  value={formatCurrency(estimacionPago)}
-                  isBold
-                  isTotal
-                  valueColor={colors.success[700]}
-                />
-              </DataCard>
-            )}
-
-            {/* Operaciones Card - Only for internal sedes */}
-            {!isOnlyExternas && (
-              <DataCard title="Operaciones" icon="git-compare-outline" iconColor={colors.primary[600]} delay={700}>
-                <DataRow label="Ventas" value={cuadreData.operaciones.ventas.toString()} />
-                <DataRow label="Izipay" value={cuadreData.operaciones.izipay.toString()} />
-                <DataRow label="Prosegur" value={cuadreData.operaciones.prosegur.toString()} />
-                <DataRow
-                  label="Coinciden"
-                  value={cuadreData.operaciones.coinciden ? '✓ Sí' : '✗ No'}
-                  valueColor={cuadreData.operaciones.coinciden ? colors.success[600] : colors.warning[600]}
-                  isBold
-                />
-              </DataCard>
-            )}
+            {/* Operaciones Card */}
+            <DataCard title="Operaciones" icon="git-compare-outline" iconColor={colors.primary[600]} delay={700}>
+              <DataRow label="Ventas" value={cuadreData.operaciones.ventas.toString()} />
+              <DataRow label="Izipay" value={cuadreData.operaciones.izipay.toString()} />
+              <DataRow label="Prosegur" value={cuadreData.operaciones.prosegur.toString()} />
+              <DataRow
+                label="Coinciden"
+                value={cuadreData.operaciones.coinciden ? '✓ Sí' : '✗ No'}
+                valueColor={cuadreData.operaciones.coinciden ? colors.success[600] : colors.warning[600]}
+                isBold
+              />
+            </DataCard>
 
             {/* Metadata */}
             <AnimatedCard delay={800}>
@@ -939,18 +888,34 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Date Range Picker */}
-      <DateRangePicker
-        visible={showDateRangePicker}
-        startDate={fechaInicio}
-        endDate={fechaFin}
-        onConfirm={(start, end) => {
-          setFechaInicio(start);
-          setFechaFin(end);
-          setShowDateRangePicker(false);
-        }}
-        onCancel={() => setShowDateRangePicker(false)}
-      />
+      {/* Date Pickers */}
+      {showStartDatePicker && (
+        <DateTimePicker
+          value={fechaInicio}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowStartDatePicker(false);
+            if (event.type === 'set' && selectedDate) {
+              setFechaInicio(selectedDate);
+            }
+          }}
+        />
+      )}
+
+      {showEndDatePicker && (
+        <DateTimePicker
+          value={fechaFin}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowEndDatePicker(false);
+            if (event.type === 'set' && selectedDate) {
+              setFechaFin(selectedDate);
+            }
+          }}
+        />
+      )}
     </View>
   );
 };
@@ -1035,32 +1000,34 @@ const styles = StyleSheet.create({
     color: colors.primary[700],
   },
   dateRangeContainer: {
+    flexDirection: 'row',
+    gap: spacing[3],
     marginBottom: spacing[4],
   },
-  dateRangeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    gap: spacing[3],
-  },
-  dateRangeTextContainer: {
+  datePickerWrapper: {
     flex: 1,
   },
-  dateRangeLabel: {
-    fontSize: fontSizes.xs,
+  dateLabel: {
+    fontSize: fontSizes.sm,
     fontWeight: fontWeights.medium,
-    color: colors.primary[600],
-    marginBottom: 2,
+    color: colors.neutral[600],
+    marginBottom: spacing[2],
   },
-  dateRangeValue: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[3],
+    gap: spacing[2],
+  },
+  dateButtonText: {
+    fontSize: fontSizes.sm,
+    color: colors.neutral[800],
+    flex: 1,
   },
   sedeContainer: {
     marginBottom: spacing[4],
@@ -1138,8 +1105,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   sedeListContainerExternas: {
-    backgroundColor: colors.accent[50],
-    borderColor: colors.accent[200],
+    backgroundColor: colors.secondary[50],
+    borderColor: colors.secondary[200],
   },
   sedeListHeader: {
     flexDirection: 'row',
@@ -1158,11 +1125,6 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
     color: colors.primary[700],
-  },
-  sedeListHeaderCount: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[500],
   },
   selectAllButton: {
     flexDirection: 'row',
@@ -1193,11 +1155,11 @@ const styles = StyleSheet.create({
     borderColor: colors.primary[600],
   },
   checkboxExternas: {
-    borderColor: colors.accent[400],
+    borderColor: colors.secondary[400],
   },
   checkboxExternasChecked: {
-    backgroundColor: colors.accent[600],
-    borderColor: colors.accent[600],
+    backgroundColor: colors.secondary[600],
+    borderColor: colors.secondary[600],
   },
 
   // Sede List Items
@@ -1217,10 +1179,6 @@ const styles = StyleSheet.create({
   },
   sedeListItemInfo: {
     flex: 1,
-    flexDirection: 'column',
-    gap: spacing[1],
-  },
-  sedeListItemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
@@ -1235,29 +1193,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
   },
   sedeListItemName: {
+    flex: 1,
     fontSize: fontSizes.sm,
     color: colors.neutral[600],
-  },
-  sedeTypeBadge: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  sedeTypeBadgeInternal: {
-    backgroundColor: colors.primary[100],
-  },
-  sedeTypeBadgeExternal: {
-    backgroundColor: colors.accent[100],
-  },
-  sedeTypeBadgeText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
-  },
-  sedeTypeBadgeTextInternal: {
-    color: colors.primary[700],
-  },
-  sedeTypeBadgeTextExternal: {
-    color: colors.accent[700],
   },
 
   // Selected Summary

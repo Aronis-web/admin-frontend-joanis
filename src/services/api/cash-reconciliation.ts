@@ -114,6 +114,7 @@ export interface CuadreCajaParams {
   fecha_inicio: string;
   fecha_fin: string;
   sede_id?: string;
+  sede_ids?: string; // Comma-separated list of sede IDs
   sede_code?: string;
   agrupar_por_sede?: boolean;
 }
@@ -196,6 +197,10 @@ class CashReconciliationApi {
 
     if (params.sede_id) {
       queryParams.sede_id = params.sede_id;
+    }
+
+    if (params.sede_ids) {
+      queryParams.sede_ids = params.sede_ids;
     }
 
     if (params.sede_code) {

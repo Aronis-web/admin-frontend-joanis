@@ -38,6 +38,9 @@ import { EditPurchaseProductScreen } from '@/screens/Purchases/EditPurchaseProdu
 import { ValidatePurchaseProductScreen } from '@/screens/Purchases/ValidatePurchaseProductScreen';
 import { AssignDebtScreen } from '@/screens/Purchases/AssignDebtScreen';
 
+// CuadreScreen (eager loaded temporarily to debug lazy loading issue)
+import { CuadreScreen } from '@/screens/CashReconciliation/CuadreScreen';
+
 // ============================================
 // LAZY LOADED - Heavy screens (loaded on demand)
 // ============================================
@@ -151,7 +154,8 @@ const ReviewDocumentsMenuScreen = lazyLoad(() => import('@/screens/CashReconcili
 const ReviewSalesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewSalesScreen })), 'Cargando ventas...');
 const ReviewIzipayScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewIzipayScreen })), 'Cargando Izipay...');
 const ReviewProsegurScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewProsegurScreen })), 'Cargando Prosegur...');
-const CuadreScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CuadreScreen })), 'Cargando cuadre...');
+// CuadreScreen is now eager loaded above to debug lazy loading issue
+// const CuadreScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CuadreScreen })), 'Cargando cuadre...');
 
 // Emission Points Screens - Lazy Loaded
 const EmissionPointsScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointsScreen })), 'Cargando puntos de emisión...');
