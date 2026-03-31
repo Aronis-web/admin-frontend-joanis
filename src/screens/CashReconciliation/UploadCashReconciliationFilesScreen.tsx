@@ -281,28 +281,42 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       const result = await response.json();
 
       if (response.ok) {
-        const data = result.data || result;
+        // Mensaje de procesamiento en segundo plano
+        const reportTypeLabels = {
+          ventas: 'Ventas',
+          izipay: 'Izipay',
+          prosegur: 'Prosegur',
+        };
 
-        let message = '✅ Archivo procesado exitosamente\n\n';
-        message += `📊 Total de registros: ${data.total_registros || 0}\n`;
-        message += `✨ Registros nuevos: ${data.registros_nuevos || 0}\n`;
-        message += `🔄 Registros duplicados: ${data.registros_duplicados || 0}\n`;
-        message += `❌ Registros con error: ${data.registros_con_error || 0}`;
+        const reportLabel = reportTypeLabels[selectedReportType];
 
-        if (selectedReportType === 'izipay' && data.sedes_procesadas?.length > 0) {
-          message += `\n\n🏢 Sedes procesadas:\n${data.sedes_procesadas.map((s: string) => `  • ${s}`).join('\n')}`;
-        }
-
-        Alert.alert('Éxito', message, [
-          {
-            text: 'OK',
-            onPress: () => {
-              setSelectedFile(null);
-              setSelectedReportType(null);
-              setSelectedSede('');
+        Alert.alert(
+          '✅ Archivo Recibido',
+          `El archivo de ${reportLabel} se ha recibido correctamente y se está procesando en segundo plano.\n\n` +
+          `📂 Archivo: ${selectedFile.name}\n\n` +
+          `⏳ El procesamiento puede tardar varios minutos dependiendo del tamaño del archivo.\n\n` +
+          `📊 Podrás revisar los resultados más tarde en la sección de "Archivos Subidos" o "Cuadre de Caja".`,
+          [
+            {
+              text: 'Ver Archivos Subidos',
+              onPress: () => {
+                setSelectedFile(null);
+                setSelectedReportType(null);
+                setSelectedSede('');
+                navigation.navigate(MAIN_ROUTES.UPLOADED_FILES_LIST as any);
+              },
             },
-          },
-        ]);
+            {
+              text: 'OK',
+              style: 'cancel',
+              onPress: () => {
+                setSelectedFile(null);
+                setSelectedReportType(null);
+                setSelectedSede('');
+              },
+            },
+          ]
+        );
       } else {
         throw new Error(result.message || 'Error al procesar el archivo');
       }
