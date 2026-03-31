@@ -98,7 +98,8 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       console.log('🔍 AppId:', appId);
 
       // Get user scopes from the scopes API instead of user_company_site
-      const userScopesResponse = await scopesApi.getUserResolvedScopes(user.id, appId, { limit: 100 });
+      // Usamos un límite alto para asegurar que se traigan todas las sedes disponibles
+      const userScopesResponse = await scopesApi.getUserResolvedScopes(user.id, appId, { limit: 1000 });
 
       console.log('📦 Respuesta de scopes (tipo):', typeof userScopesResponse);
       console.log('📦 Respuesta de scopes (es array):', Array.isArray(userScopesResponse));

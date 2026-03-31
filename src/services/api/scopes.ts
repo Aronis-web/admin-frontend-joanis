@@ -538,7 +538,7 @@ export const scopesApi = {
    */
   async getHighestAccessLevel(userId: string, appId: string): Promise<ResolvedScope | null> {
     try {
-      const scopes = await this.getUserResolvedScopes(userId, appId, { limit: 100 });
+      const scopes = await this.getUserResolvedScopes(userId, appId, { limit: 1000 });
 
       if (scopes.length === 0) {
         return null;
