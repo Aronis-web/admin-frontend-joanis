@@ -29,7 +29,6 @@ export type AuthStackParamList = {
 export type MainStackParamList = {
   // Dashboard
   Dashboard: undefined;
-  DashboardWidget: undefined;
   Home: undefined;
 
   // Products & Inventory
