@@ -56,7 +56,6 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
   const [saleDocuments, setSaleDocuments] = useState<any>(null);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [creditNotes, setCreditNotes] = useState<any[]>([]);
@@ -150,32 +149,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     loadSale(true);
   };
 
-  const handleCancelSale = () => {
-    Alert.alert(
-      'Cancelar Venta',
-      '¿Está seguro que desea cancelar esta venta?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Sí, Cancelar',
-          style: 'destructive',
-          onPress: async () => {
-            setCancelling(true);
-            try {
-              await salesApi.cancelSale(saleId);
-              Alert.alert('Éxito', 'Venta cancelada exitosamente');
-              loadSale(true);
-            } catch (error) {
-              logger.error('Error cancelando venta:', error);
-              Alert.alert('Error', 'No se pudo cancelar la venta');
-            } finally {
-              setCancelling(false);
-            }
-          },
-        },
-      ]
-    );
-  };
+
 
   const handleRegisterPayment = () => {
     if (sale?.id) {
@@ -728,22 +702,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
               </>
             )}
 
-            {sale.status === SaleStatus.CONFIRMED && (
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.danger[500] }]}
-                onPress={handleCancelSale}
-                disabled={cancelling}
-              >
-                {cancelling ? (
-                  <ActivityIndicator size="small" color={colors.neutral[0]} />
-                ) : (
-                  <>
-                    <Ionicons name="close-circle-outline" size={20} color={colors.neutral[0]} />
-                    <Text style={styles.actionButtonText}>Cancelar Venta</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
+
           </View>
         )}
 
