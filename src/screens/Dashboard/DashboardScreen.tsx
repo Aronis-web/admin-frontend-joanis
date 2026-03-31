@@ -19,7 +19,7 @@ import { useScreenTracking } from '@/hooks/useScreenTracking';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/constants/permissions';
 import { apiClient } from '@/services/api';
-import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import { DateRangePicker } from '@/components/DateRangePicker';
 import Svg, { Line, Text as SvgText, Circle, Polyline, Path } from 'react-native-svg';
 import { cashReconciliationApi, ResumenDiarioResponse } from '@/services/api/cash-reconciliation';
 import { companiesApi } from '@/services/api/companies';
@@ -87,9 +87,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const [selectedFilter, setSelectedFilter] = useState<DateFilter>('today');
   const [customStartDate, setCustomStartDate] = useState<Date>(new Date());
   const [customEndDate, setCustomEndDate] = useState<Date>(new Date());
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
 
   const [purchasesSummary, setPurchasesSummary] = useState<PurchasesSummary | null>(null);
   const [purchasesGrouped, setPurchasesGrouped] = useState<PurchasesGroupedSummary | null>(null);
@@ -387,10 +385,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     setRefreshing(false);
   };
 
-  const handleCustomDateApply = () => {
-    setShowCustomDateModal(false);
-    setSelectedFilter('custom');
-  };
+
 
   const downloadAccountsReceivableReport = async () => {
     try {
@@ -546,7 +541,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       ]}
       onPress={() => {
         if (filter === 'custom') {
-          setShowCustomDateModal(true);
+          setShowDateRangePicker(true);
         } else {
           setSelectedFilter(filter);
         }
@@ -1210,101 +1205,19 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         </View>
       </ScrollView>
 
-      {/* Custom Date Range Modal */}
-      <Modal
-        visible={showCustomDateModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowCustomDateModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>📅 Rango Personalizado</Text>
-              <TouchableOpacity onPress={() => setShowCustomDateModal(false)}>
-                <Text style={styles.modalCloseButton}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalBody}>
-              <Text style={styles.dateLabel}>Fecha de Inicio</Text>
-              <TouchableOpacity
-                style={styles.reportDateInput}
-                onPress={() => setShowStartDatePicker(true)}
-              >
-                <Text style={styles.reportDateInputText}>
-                  {customStartDate.toLocaleDateString('es-PE', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </Text>
-                <Text style={styles.reportDateInputIcon}>📅</Text>
-              </TouchableOpacity>
-
-              <Text style={[styles.dateLabel, { marginTop: 16 }]}>Fecha de Fin</Text>
-              <TouchableOpacity
-                style={styles.reportDateInput}
-                onPress={() => setShowEndDatePicker(true)}
-              >
-                <Text style={styles.reportDateInputText}>
-                  {customEndDate.toLocaleDateString('es-PE', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </Text>
-                <Text style={styles.reportDateInputIcon}>📅</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={() => setShowCustomDateModal(false)}
-              >
-                <Text style={styles.modalCancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalApplyButton}
-                onPress={handleCustomDateApply}
-              >
-                <Text style={styles.modalApplyButtonText}>Aplicar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Date Pickers */}
-      <DatePicker
-        visible={showStartDatePicker}
-        date={customStartDate}
-        onConfirm={(date) => {
-          setCustomStartDate(date);
-          setShowStartDatePicker(false);
-          // Si la fecha de inicio es mayor que la fecha de fin, ajustar la fecha de fin
-          if (date > customEndDate) {
-            setCustomEndDate(date);
-          }
+      {/* Date Range Picker */}
+      <DateRangePicker
+        visible={showDateRangePicker}
+        startDate={customStartDate}
+        endDate={customEndDate}
+        onConfirm={(start, end) => {
+          setCustomStartDate(start);
+          setCustomEndDate(end);
+          setShowDateRangePicker(false);
+          setSelectedFilter('custom');
         }}
-        onCancel={() => setShowStartDatePicker(false)}
-        title="Fecha de Inicio"
-      />
-
-      <DatePicker
-        visible={showEndDatePicker}
-        date={customEndDate}
-        onConfirm={(date) => {
-          setCustomEndDate(date);
-          setShowEndDatePicker(false);
-          // Si la fecha de fin es menor que la fecha de inicio, ajustar la fecha de inicio
-          if (date < customStartDate) {
-            setCustomStartDate(date);
-          }
-        }}
-        onCancel={() => setShowEndDatePicker(false)}
-        title="Fecha de Fin"
+        onCancel={() => setShowDateRangePicker(false)}
+        title="Rango Personalizado"
       />
 
       {/* Sede Selection Modal */}

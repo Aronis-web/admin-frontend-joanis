@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DateRangePicker } from '@/components/DateRangePicker';
 import { Picker } from '@react-native-picker/picker';
 
 import { colors } from '@/design-system/tokens/colors';
@@ -104,11 +104,7 @@ export const ReviewIzipayScreen: React.FC<Props> = ({ navigation }) => {
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
-  const [showFromDatePicker, setShowFromDatePicker] = useState(false);
-  const [showToDatePicker, setShowToDatePicker] = useState(false);
-  const [tempFromDate, setTempFromDate] = useState(new Date());
-  const [tempToDate, setTempToDate] = useState(new Date());
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
 
   // Sedes
   const [sedes, setSedes] = useState<Site[]>([]);
@@ -544,75 +540,21 @@ export const ReviewIzipayScreen: React.FC<Props> = ({ navigation }) => {
             <ScrollView style={styles.modalBody}>
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Rango de Fechas</Text>
-                <View style={styles.dateInputsRow}>
-                  <View style={styles.dateInputContainer}>
-                    <Text style={styles.dateInputLabel}>Desde</Text>
-                    <TouchableOpacity
-                      style={styles.dateInput}
-                      onPress={() => {
-                        if (fechaInicio) {
-                          const [year, month, day] = fechaInicio.split('-');
-                          setTempFromDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
-                        }
-                        setShowFromDatePicker(true);
-                      }}
-                    >
-                      <Text style={styles.dateInputText}>{fechaInicio || 'Seleccionar'}</Text>
-                      <Text style={styles.dateInputIcon}>📅</Text>
-                    </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.dateRangeButton}
+                  onPress={() => setShowDateRangePicker(true)}
+                >
+                  <Text style={styles.dateRangeIcon}>📅</Text>
+                  <View style={styles.dateRangeTextContainer}>
+                    <Text style={styles.dateRangeLabel}>Periodo</Text>
+                    <Text style={styles.dateRangeValue}>
+                      {fechaInicio && fechaFin
+                        ? `${fechaInicio} — ${fechaFin}`
+                        : 'Seleccionar rango'}
+                    </Text>
                   </View>
-                  <View style={styles.dateInputContainer}>
-                    <Text style={styles.dateInputLabel}>Hasta</Text>
-                    <TouchableOpacity
-                      style={styles.dateInput}
-                      onPress={() => {
-                        if (fechaFin) {
-                          const [year, month, day] = fechaFin.split('-');
-                          setTempToDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
-                        }
-                        setShowToDatePicker(true);
-                      }}
-                    >
-                      <Text style={styles.dateInputText}>{fechaFin || 'Seleccionar'}</Text>
-                      <Text style={styles.dateInputIcon}>📅</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {showFromDatePicker && (
-                  <DateTimePicker
-                    value={tempFromDate}
-                    mode="date"
-                    display="default"
-                    onChange={(event, selectedDate) => {
-                      setShowFromDatePicker(false);
-                      if (event.type === 'set' && selectedDate) {
-                        const year = selectedDate.getFullYear();
-                        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                        const day = String(selectedDate.getDate()).padStart(2, '0');
-                        setFechaInicio(`${year}-${month}-${day}`);
-                        setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
-                      }
-                    }}
-                  />
-                )}
-                {showToDatePicker && (
-                  <DateTimePicker
-                    value={tempToDate}
-                    mode="date"
-                    display="default"
-                    onChange={(event, selectedDate) => {
-                      setShowToDatePicker(false);
-                      if (event.type === 'set' && selectedDate) {
-                        const year = selectedDate.getFullYear();
-                        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                        const day = String(selectedDate.getDate()).padStart(2, '0');
-                        setFechaFin(`${year}-${month}-${day}`);
-                        setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
-                      }
-                    }}
-                  />
-                )}
+                  <Text style={styles.dateRangeChevron}>›</Text>
+                </TouchableOpacity>
                 <View style={styles.dateHintContainer}>
                   <Text style={styles.dateHintIcon}>💡</Text>
                   <Text style={styles.dateHint}>Máximo 90 días de diferencia</Text>
@@ -640,6 +582,26 @@ export const ReviewIzipayScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Date Range Picker */}
+      <DateRangePicker
+        visible={showDateRangePicker}
+        startDate={fechaInicio ? new Date(fechaInicio + 'T12:00:00') : new Date()}
+        endDate={fechaFin ? new Date(fechaFin + 'T12:00:00') : new Date()}
+        onConfirm={(start, end) => {
+          const formatDate = (d: Date) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+          };
+          setFechaInicio(formatDate(start));
+          setFechaFin(formatDate(end));
+          setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+          setShowDateRangePicker(false);
+        }}
+        onCancel={() => setShowDateRangePicker(false)}
+      />
     </View>
   );
 };
@@ -1123,36 +1085,36 @@ const styles = StyleSheet.create({
     color: colors.neutral[700],
     marginBottom: spacing[3],
   },
-  dateInputsRow: {
+  dateRangeButton: {
     flexDirection: 'row',
-    gap: spacing[3],
-  },
-  dateInputContainer: {
-    flex: 1,
-  },
-  dateInputLabel: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
-  },
-  dateInput: {
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.neutral[300],
     borderRadius: borderRadius.lg,
     padding: spacing[3],
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: colors.neutral[50],
+    gap: spacing[3],
   },
-  dateInputText: {
+  dateRangeIcon: {
+    fontSize: fontSizes.xl,
+  },
+  dateRangeTextContainer: {
+    flex: 1,
+  },
+  dateRangeLabel: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
+  },
+  dateRangeValue: {
     fontSize: fontSizes.sm,
-    color: colors.neutral[700],
-    fontWeight: fontWeights.medium,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[800],
   },
-  dateInputIcon: {
-    fontSize: fontSizes.base,
+  dateRangeChevron: {
+    fontSize: fontSizes.xl,
+    color: colors.neutral[400],
   },
   dateHintContainer: {
     flexDirection: 'row',
