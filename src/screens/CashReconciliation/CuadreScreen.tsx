@@ -420,7 +420,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.dateLabel}>Desde</Text>
                 <DatePickerButton
                   label=""
-                  value={formatDisplayDate(fechaInicio)}
+                  value={formatDate(fechaInicio)}
                   onPress={() => setShowStartDatePicker(true)}
                 />
               </View>
@@ -428,7 +428,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.dateLabel}>Hasta</Text>
                 <DatePickerButton
                   label=""
-                  value={formatDisplayDate(fechaFin)}
+                  value={formatDate(fechaFin)}
                   onPress={() => setShowEndDatePicker(true)}
                 />
               </View>
