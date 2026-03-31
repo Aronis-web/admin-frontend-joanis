@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+/**
+ * ReviewSalesScreen.tsx
+ * Pantalla para revisar ventas con filtros avanzados
+ * Rediseñado con sistema de diseño global
+ */
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,11 +15,19 @@ import {
   Alert,
   RefreshControl,
   Modal,
+  Animated,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
+
+import { colors } from '@/design-system/tokens/colors';
+import { spacing, borderRadius } from '@/design-system/tokens/spacing';
+import { shadows } from '@/design-system/tokens/shadows';
+import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
+import { durations } from '@/design-system/tokens/animations';
+
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
 import { sitesApi } from '@/services/api/sites';
@@ -64,6 +77,10 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { token } = useAuthStore();
 
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
   // Data states
   const [sales, setSales] = useState<Sale[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -97,6 +114,21 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
   const [sedes, setSedes] = useState<Site[]>([]);
   const [isLoadingSedes, setIsLoadingSedes] = useState(false);
 
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: durations.normal,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: durations.normal,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   // Initialize with yesterday's date
   useEffect(() => {
     const yesterdayRange = getDateRangeByFilter(QUICK_DATE_FILTERS.YESTERDAY);
@@ -127,7 +159,6 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
   const loadSales = useCallback(
     async (page: number = 1, isRefresh: boolean = false) => {
       try {
-        // ⚠️ VALIDACIÓN: Fechas obligatorias para evitar escaneo de particiones
         if (!fechaInicio || !fechaFin) {
           Alert.alert(
             'Fechas Requeridas',
@@ -136,7 +167,6 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
           return;
         }
 
-        // ⚠️ VALIDACIÓN: Rango máximo de 90 días
         const validation = validateDateRange(fechaInicio, fechaFin, 90);
         if (!validation.valid) {
           Alert.alert('Rango de Fechas Inválido', validation.message || 'El rango de fechas no es válido');
@@ -152,8 +182,6 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('limit', pagination.limit.toString());
-
-        // ⚠️ CRÍTICO: Fechas SIEMPRE presentes
         params.append('fecha_inicio', fechaInicio);
         params.append('fecha_fin', fechaFin);
 
@@ -193,14 +221,12 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
     [token, searchQuery, selectedSede, selectedTipoPago, selectedTipoDocumento, fechaInicio, fechaFin, pagination.limit]
   );
 
-  // Initial load - wait for dates to be set
   useEffect(() => {
     if (fechaInicio && fechaFin) {
       loadSales(1);
     }
   }, [fechaInicio, fechaFin]);
 
-  // Handle quick filter selection
   const handleQuickFilterSelect = (filter: QuickDateFilter) => {
     setSelectedQuickFilter(filter);
     const range = getDateRangeByFilter(filter);
@@ -210,19 +236,16 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  // Apply filters
   const handleApplyFilters = () => {
     loadSales(1);
     setShowFilters(false);
   };
 
-  // Clear filters
   const handleClearFilters = () => {
     setSearchQuery('');
     setSelectedSede('');
     setSelectedTipoPago('');
     setSelectedTipoDocumento('');
-    // Reset to yesterday
     setSelectedQuickFilter(QUICK_DATE_FILTERS.YESTERDAY);
     const yesterdayRange = getDateRangeByFilter(QUICK_DATE_FILTERS.YESTERDAY);
     if (yesterdayRange) {
@@ -231,7 +254,6 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  // Pagination
   const handleNextPage = () => {
     if (pagination.page < pagination.total_pages) {
       loadSales(pagination.page + 1);
@@ -248,14 +270,54 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
     loadSales(pagination.page, true);
   };
 
-  // Render sale item
-  const renderSaleItem = (sale: Sale) => (
-    <View key={sale.id} style={styles.saleCard}>
+  const getDocumentTypeColor = (type: string) => {
+    switch (type) {
+      case 'B':
+        return colors.success[500];
+      case 'F':
+        return colors.primary[500];
+      case 'NC':
+        return colors.danger[500];
+      case 'ND':
+        return colors.warning[500];
+      default:
+        return colors.neutral[500];
+    }
+  };
+
+  const getDocumentTypeBgColor = (type: string) => {
+    switch (type) {
+      case 'B':
+        return colors.success[50];
+      case 'F':
+        return colors.primary[50];
+      case 'NC':
+        return colors.danger[50];
+      case 'ND':
+        return colors.warning[50];
+      default:
+        return colors.neutral[100];
+    }
+  };
+
+  const renderSaleItem = (sale: Sale, index: number) => (
+    <Animated.View
+      key={sale.id}
+      style={[
+        styles.saleCard,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
       <View style={styles.saleHeader}>
         <View style={styles.saleIdContainer}>
           <Text style={styles.saleId}>{sale.sale_id}</Text>
-          <View style={[styles.badge, { backgroundColor: getDocumentTypeColor(sale.tipo_documento) }]}>
-            <Text style={styles.badgeText}>{sale.tipo_documento}</Text>
+          <View style={[styles.badge, { backgroundColor: getDocumentTypeBgColor(sale.tipo_documento) }]}>
+            <Text style={[styles.badgeText, { color: getDocumentTypeColor(sale.tipo_documento) }]}>
+              {sale.tipo_documento}
+            </Text>
           </View>
         </View>
         <Text style={styles.saleAmount}>S/ {sale.monto.toFixed(2)}</Text>
@@ -263,56 +325,46 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.saleDetails}>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Fecha:</Text>
-          <Text style={styles.detailValue}>
-            {sale.fecha_venta} {sale.hora_venta}
-          </Text>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>📅 Fecha</Text>
+            <Text style={styles.detailValue}>{sale.fecha_venta} {sale.hora_venta}</Text>
+          </View>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Cliente:</Text>
-          <Text style={styles.detailValue}>{sale.cliente}</Text>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>👤 Cliente</Text>
+            <Text style={styles.detailValue} numberOfLines={1}>{sale.cliente}</Text>
+          </View>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Tipo Pago:</Text>
-          <Text style={styles.detailValue}>{sale.tipo_pago}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Sede:</Text>
-          <Text style={styles.detailValue}>
-            {sale.sede.code} - {sale.sede.name}
-          </Text>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>💳 Tipo Pago</Text>
+            <Text style={styles.detailValue}>{sale.tipo_pago}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>🏢 Sede</Text>
+            <Text style={styles.detailValue}>{sale.sede.code}</Text>
+          </View>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
-
-  const getDocumentTypeColor = (type: string) => {
-    switch (type) {
-      case 'B':
-        return '#10B981';
-      case 'F':
-        return '#3B82F6';
-      case 'NC':
-        return '#EF4444';
-      case 'ND':
-        return '#F59E0B';
-      default:
-        return '#6B7280';
-    }
-  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Revisar Ventas</Text>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Revisar Ventas</Text>
+          <Text style={styles.headerSubtitle}>💰 Consulta de ventas</Text>
+        </View>
         <TouchableOpacity onPress={() => setShowFilters(!showFilters)} style={styles.filterButton}>
           <Text style={styles.filterButtonText}>⚙️</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* Quick Date Filters */}
       <ScrollView
@@ -341,7 +393,6 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         ))}
-        {/* Custom Date Button */}
         <TouchableOpacity
           style={[
             styles.quickFilterChip,
@@ -363,41 +414,49 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Stats Bar */}
       <View style={styles.statsBar}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Total Registros</Text>
-          <Text style={styles.statValue}>{pagination.total}</Text>
+        <View style={styles.statCard}>
+          <Text style={styles.statIcon}>📊</Text>
+          <View>
+            <Text style={styles.statLabel}>Registros</Text>
+            <Text style={styles.statValue}>{pagination.total}</Text>
+          </View>
         </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Monto Total</Text>
-          <Text style={styles.statValue}>S/ {stats.total_monto.toFixed(2)}</Text>
+        <View style={styles.statCard}>
+          <Text style={styles.statIcon}>💵</Text>
+          <View>
+            <Text style={styles.statLabel}>Monto Total</Text>
+            <Text style={[styles.statValue, styles.successText]}>S/ {stats.total_monto.toFixed(2)}</Text>
+          </View>
         </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Promedio</Text>
-          <Text style={styles.statValue}>S/ {stats.promedio_monto.toFixed(2)}</Text>
+        <View style={styles.statCard}>
+          <Text style={styles.statIcon}>📈</Text>
+          <View>
+            <Text style={styles.statLabel}>Promedio</Text>
+            <Text style={styles.statValue}>S/ {stats.promedio_monto.toFixed(2)}</Text>
+          </View>
         </View>
       </View>
 
       {/* Filters Panel */}
       {showFilters && (
         <ScrollView style={styles.filtersPanel} showsVerticalScrollIndicator={false}>
-          <Text style={styles.filterTitle}>Filtros de Búsqueda</Text>
+          <View style={styles.filterHeader}>
+            <Text style={styles.filterTitle}>🔍 Filtros de Búsqueda</Text>
+          </View>
 
-          {/* Search */}
           <View style={styles.filterGroup}>
             <Text style={styles.filterLabel}>Búsqueda General</Text>
             <TextInput
               style={styles.input}
               placeholder="ID, serie, número, cliente..."
+              placeholderTextColor={colors.neutral[400]}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
 
-          {/* Sede */}
           <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Sede</Text>
+            <Text style={styles.filterLabel}>🏢 Sede</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedSede}
@@ -412,9 +471,8 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Tipo Pago */}
           <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Tipo de Pago</Text>
+            <Text style={styles.filterLabel}>💳 Tipo de Pago</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedTipoPago}
@@ -432,9 +490,8 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Tipo Documento */}
           <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Tipo de Documento</Text>
+            <Text style={styles.filterLabel}>📄 Tipo de Documento</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedTipoDocumento}
@@ -450,44 +507,12 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Fecha Inicio */}
-          <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Fecha Inicio (YYYY-MM-DD) *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="2026-01-01"
-              value={fechaInicio}
-              onChangeText={(text) => {
-                setFechaInicio(text);
-                setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
-              }}
-            />
-          </View>
-
-          {/* Fecha Fin */}
-          <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Fecha Fin (YYYY-MM-DD) *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="2026-01-31"
-              value={fechaFin}
-              onChangeText={(text) => {
-                setFechaFin(text);
-                setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
-              }}
-            />
-            <Text style={styles.filterHint}>
-              ⚠️ Obligatorio. Máximo 90 días de rango.
-            </Text>
-          </View>
-
-          {/* Filter Actions */}
           <View style={styles.filterActions}>
             <TouchableOpacity style={styles.clearButton} onPress={handleClearFilters}>
-              <Text style={styles.clearButtonText}>Limpiar</Text>
+              <Text style={styles.clearButtonText}>🗑️ Limpiar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
-              <Text style={styles.applyButtonText}>Aplicar Filtros</Text>
+              <Text style={styles.applyButtonText}>✓ Aplicar</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -497,21 +522,23 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.success[500]]} />}
       >
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#10B981" />
+            <ActivityIndicator size="large" color={colors.success[500]} />
             <Text style={styles.loadingText}>Cargando ventas...</Text>
           </View>
         ) : sales.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📭</Text>
+            <View style={styles.emptyIconContainer}>
+              <Text style={styles.emptyIcon}>📭</Text>
+            </View>
             <Text style={styles.emptyText}>No se encontraron ventas</Text>
             <Text style={styles.emptySubtext}>Intenta ajustar los filtros de búsqueda</Text>
           </View>
         ) : (
-          <View style={styles.salesList}>{sales.map(renderSaleItem)}</View>
+          <View style={styles.salesList}>{sales.map((sale, index) => renderSaleItem(sale, index))}</View>
         )}
       </ScrollView>
 
@@ -523,20 +550,23 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handlePreviousPage}
             disabled={pagination.page === 1}
           >
-            <Text style={styles.paginationButtonText}>← Anterior</Text>
+            <Text style={[styles.paginationButtonText, pagination.page === 1 && styles.paginationButtonTextDisabled]}>
+              ← Anterior
+            </Text>
           </TouchableOpacity>
-          <Text style={styles.paginationInfo}>
-            Página {pagination.page} de {pagination.total_pages}
-          </Text>
+          <View style={styles.paginationInfoContainer}>
+            <Text style={styles.paginationInfo}>
+              {pagination.page} / {pagination.total_pages}
+            </Text>
+          </View>
           <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page === pagination.total_pages && styles.paginationButtonDisabled,
-            ]}
+            style={[styles.paginationButton, pagination.page === pagination.total_pages && styles.paginationButtonDisabled]}
             onPress={handleNextPage}
             disabled={pagination.page === pagination.total_pages}
           >
-            <Text style={styles.paginationButtonText}>Siguiente →</Text>
+            <Text style={[styles.paginationButtonText, pagination.page === pagination.total_pages && styles.paginationButtonTextDisabled]}>
+              Siguiente →
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -552,14 +582,14 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>📅 Fecha Personalizada</Text>
-              <TouchableOpacity onPress={() => setShowCustomDateModal(false)}>
+              <TouchableOpacity onPress={() => setShowCustomDateModal(false)} style={styles.modalCloseButton}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalBody}>
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Rango de Fechas *</Text>
+                <Text style={styles.filterSectionTitle}>Rango de Fechas</Text>
                 <View style={styles.dateInputsRow}>
                   <View style={styles.dateInputContainer}>
                     <Text style={styles.dateInputLabel}>Desde</Text>
@@ -573,9 +603,7 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
                         setShowFromDatePicker(true);
                       }}
                     >
-                      <Text style={styles.dateInputText}>
-                        {fechaInicio || 'Seleccionar fecha'}
-                      </Text>
+                      <Text style={styles.dateInputText}>{fechaInicio || 'Seleccionar'}</Text>
                       <Text style={styles.dateInputIcon}>📅</Text>
                     </TouchableOpacity>
                   </View>
@@ -591,15 +619,12 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
                         setShowToDatePicker(true);
                       }}
                     >
-                      <Text style={styles.dateInputText}>
-                        {fechaFin || 'Seleccionar fecha'}
-                      </Text>
+                      <Text style={styles.dateInputText}>{fechaFin || 'Seleccionar'}</Text>
                       <Text style={styles.dateInputIcon}>📅</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
-                {/* DatePickers */}
                 {showFromDatePicker && (
                   <DateTimePicker
                     value={tempFromDate}
@@ -634,9 +659,10 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
                     }}
                   />
                 )}
-                <Text style={styles.dateHint}>
-                  💡 Máximo 90 días de diferencia
-                </Text>
+                <View style={styles.dateHintContainer}>
+                  <Text style={styles.dateHintIcon}>💡</Text>
+                  <Text style={styles.dateHint}>Máximo 90 días de diferencia</Text>
+                </View>
               </View>
             </ScrollView>
 
@@ -667,146 +693,204 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.neutral[50],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.neutral[0],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
+    ...shadows.sm,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
-    fontSize: 24,
-    color: '#374151',
-    fontWeight: '600',
+    fontSize: fontSizes['2xl'],
+    color: colors.neutral[700],
+    fontWeight: fontWeights.semibold,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[900],
+  },
+  headerSubtitle: {
+    fontSize: fontSizes.xs,
+    color: colors.neutral[500],
+    marginTop: 2,
   },
   filterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   filterButtonText: {
-    fontSize: 20,
+    fontSize: fontSizes.xl,
+  },
+  quickFiltersContainer: {
+    backgroundColor: colors.neutral[0],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[200],
+    maxHeight: 50,
+  },
+  quickFiltersContent: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    gap: spacing[2],
+    flexDirection: 'row',
+  },
+  quickFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    borderWidth: 1,
+    borderColor: 'transparent',
+    gap: spacing[1],
+  },
+  quickFilterChipActive: {
+    backgroundColor: colors.success[50],
+    borderColor: colors.success[500],
+  },
+  quickFilterIcon: {
+    fontSize: fontSizes.xs,
+  },
+  quickFilterText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[600],
+  },
+  quickFilterTextActive: {
+    color: colors.success[700],
   },
   statsBar: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: colors.neutral[0],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
+    gap: spacing[2],
   },
-  statItem: {
+  statCard: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing[2],
+    gap: spacing[2],
+  },
+  statIcon: {
+    fontSize: fontSizes.lg,
   },
   statLabel: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginBottom: 4,
+    fontSize: 9,
+    color: colors.neutral[500],
+    textTransform: 'uppercase',
+    fontWeight: fontWeights.medium,
   },
   statValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[900],
   },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 8,
+  successText: {
+    color: colors.success[600],
   },
   filtersPanel: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[0],
     maxHeight: 400,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderBottomColor: colors.neutral[200],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+  },
+  filterHeader: {
+    marginBottom: spacing[4],
   },
   filterTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 16,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[900],
   },
   filterGroup: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[700],
+    marginBottom: spacing[2],
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.neutral[50],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1F2937',
+    borderColor: colors.neutral[200],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    fontSize: fontSizes.sm,
+    color: colors.neutral[900],
   },
   pickerContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.neutral[50],
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
+    borderColor: colors.neutral[200],
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: colors.neutral[900],
   },
   filterActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    gap: spacing[3],
+    marginTop: spacing[2],
   },
   clearButton: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: colors.neutral[100],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   clearButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[700],
   },
   applyButton: {
     flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: colors.success[500],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
   },
   applyButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[0],
   },
   content: {
     flex: 1,
@@ -815,169 +899,142 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: spacing[6] * 3,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#6B7280',
+    marginTop: spacing[3],
+    fontSize: fontSizes.sm,
+    color: colors.neutral[500],
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: spacing[6] * 3,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing[4],
   },
   emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 40,
   },
   emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[700],
+    marginBottom: spacing[2],
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: fontSizes.sm,
+    color: colors.neutral[500],
   },
   salesList: {
-    padding: 16,
+    padding: spacing[4],
+    gap: spacing[3],
   },
   saleCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    ...shadows.md,
   },
   saleHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 12,
+    marginBottom: spacing[3],
+    paddingBottom: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.neutral[100],
   },
   saleIdContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   saleId: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[900],
   },
   badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
   },
   badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
   },
   saleAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#10B981',
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold,
+    color: colors.success[600],
   },
   saleDetails: {
-    gap: 8,
+    gap: spacing[2],
   },
   detailRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: spacing[4],
+  },
+  detailItem: {
+    flex: 1,
   },
   detailLabel: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontSize: fontSizes.xs,
+    color: colors.neutral[500],
+    marginBottom: 2,
   },
   detailValue: {
-    fontSize: 13,
-    color: '#1F2937',
-    fontWeight: '600',
+    fontSize: fontSizes.sm,
+    color: colors.neutral[800],
+    fontWeight: fontWeights.medium,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.neutral[0],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.neutral[200],
+    ...shadows.sm,
   },
   paginationButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#10B981',
-    borderRadius: 8,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    backgroundColor: colors.success[500],
+    borderRadius: borderRadius.lg,
   },
   paginationButtonDisabled: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.neutral[200],
   },
   paginationButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[0],
+  },
+  paginationButtonTextDisabled: {
+    color: colors.neutral[400],
+  },
+  paginationInfoContainer: {
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
   },
   paginationInfo: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '600',
-  },
-  quickFiltersContainer: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    maxHeight: 32,
-  },
-  quickFiltersContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 1,
-    gap: 4,
-  },
-  quickFilterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: 'transparent',
-    gap: 2,
-  },
-  quickFilterChipActive: {
-    backgroundColor: '#DBEAFE',
-    borderColor: '#10B981',
-  },
-  quickFilterIcon: {
-    fontSize: 11,
-  },
-  quickFilterText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  quickFilterTextActive: {
-    color: '#10B981',
-  },
-  filterHint: {
-    fontSize: 12,
-    color: '#EF4444',
-    marginTop: 4,
-    fontStyle: 'italic',
+    fontSize: fontSizes.sm,
+    color: colors.neutral[700],
+    fontWeight: fontWeights.semibold,
   },
   // Modal styles
   modalOverlay: {
@@ -987,109 +1044,127 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
     width: '90%',
     maxWidth: 500,
-    minHeight: 350,
+    ...shadows.xl,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.neutral[200],
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[900],
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalClose: {
-    fontSize: 24,
-    color: '#6B7280',
-    fontWeight: '600',
+    fontSize: fontSizes.lg,
+    color: colors.neutral[600],
+    fontWeight: fontWeights.semibold,
   },
   modalBody: {
-    padding: 20,
+    padding: spacing[5],
   },
   filterSection: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   filterSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 12,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[700],
+    marginBottom: spacing[3],
   },
   dateInputsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   dateInputContainer: {
     flex: 1,
   },
   dateInputLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 6,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[500],
+    marginBottom: spacing[2],
   },
   dateInput: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 14,
-    minHeight: 50,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[50],
   },
   dateInputText: {
-    fontSize: 16,
-    color: '#1F2937',
-    flex: 1,
+    fontSize: fontSizes.sm,
+    color: colors.neutral[700],
+    fontWeight: fontWeights.medium,
   },
   dateInputIcon: {
-    fontSize: 20,
-    marginLeft: 8,
+    fontSize: fontSizes.base,
+  },
+  dateHintContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing[3],
+    padding: spacing[3],
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.lg,
+    gap: spacing[2],
+  },
+  dateHintIcon: {
+    fontSize: fontSizes.base,
   },
   dateHint: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 8,
+    fontSize: fontSizes.xs,
+    color: colors.warning[700],
+    fontWeight: fontWeights.medium,
   },
   modalFooter: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    padding: 20,
+    gap: spacing[3],
+    padding: spacing[5],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.neutral[200],
   },
   modalButtonSecondary: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
+    flex: 1,
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+    backgroundColor: colors.neutral[100],
   },
   modalButtonSecondaryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[700],
   },
   modalButtonPrimary: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#10B981',
+    flex: 1,
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+    backgroundColor: colors.success[500],
   },
   modalButtonPrimaryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[0],
   },
 });
