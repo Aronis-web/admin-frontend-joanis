@@ -14,12 +14,15 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '@/design-system/tokens/colors';
 import { spacing, borderRadius } from '@/design-system/tokens/spacing';
 import { shadows } from '@/design-system/tokens/shadows';
 import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
 import { durations } from '@/design-system/tokens/animations';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 
 type Props = NativeStackScreenProps<any, 'ReviewDocumentsMenu'>;
 
@@ -144,26 +147,30 @@ export const ReviewDocumentsMenuScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <Animated.View
-        style={[
-          styles.header,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Revisar Documentos</Text>
-          <Text style={styles.headerSubtitle}>Consulta información del sistema</Text>
-        </View>
-        <View style={styles.placeholder} />
-      </Animated.View>
+    <ScreenLayout navigation={navigation as any}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
+              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="document-text-outline" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={styles.titleGradient}>Revisar Documentos</Text>
+              </View>
+              <Text style={styles.subtitleGradient}>Consulta información del sistema</Text>
+            </View>
+          </View>
+        </LinearGradient>
 
       {/* Menu Options */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -210,7 +217,8 @@ export const ReviewDocumentsMenuScreen: React.FC<Props> = ({ navigation }) => {
           </Animated.View>
         </View>
       </ScrollView>
-    </View>
+      </View>
+    </ScreenLayout>
   );
 };
 
@@ -218,6 +226,54 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutral[50],
+  },
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  backButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  titleGradient: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
+  },
+  subtitleGradient: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginLeft: spacing[12],
   },
   header: {
     flexDirection: 'row',
@@ -242,10 +298,6 @@ const styles = StyleSheet.create({
     fontSize: fontSizes['2xl'],
     color: colors.neutral[700],
     fontWeight: fontWeights.semibold,
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
   },
   headerTitle: {
     fontSize: fontSizes.xl,

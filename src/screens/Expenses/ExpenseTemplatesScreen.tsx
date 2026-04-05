@@ -8,8 +8,10 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { MAIN_ROUTES } from '@/constants/routes';
@@ -21,9 +23,11 @@ import { AddButton } from '@/components/Navigation/AddButton';
 import { ExpenseReportModal } from '@/components/Expenses/ExpenseReportModal';
 import { ExpenseTemplateBulkUploadModal } from '@/components/Expenses/ExpenseTemplateBulkUploadModal';
 import { ExpenseTemplatesFAB } from '@/components/Expenses/ExpenseTemplatesFAB';
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
 export const ExpenseTemplatesScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -253,27 +257,66 @@ export const ExpenseTemplatesScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Gastos Recurrentes</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#DC2626" />
-          <Text style={styles.loadingText}>Cargando plantillas...</Text>
-        </View>
-      </SafeAreaView>
+      <ScreenLayout navigation={navigation as any}>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <LinearGradient
+            colors={[colors.primary[900], colors.primary[800]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+            <View style={styles.headerTop}>
+              <View style={styles.headerTitleContainer}>
+                <View style={styles.headerIconRow}>
+                  <View style={styles.headerIconContainer}>
+                    <Ionicons name="repeat-outline" size={22} color={colors.neutral[0]} />
+                  </View>
+                  <Text style={styles.titleGradient}>Gastos Recurrentes</Text>
+                </View>
+                <Text style={styles.subtitleGradient}>Plantillas de gastos automáticos</Text>
+              </View>
+            </View>
+          </LinearGradient>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary[900]} />
+            <Text style={styles.loadingText}>Cargando plantillas...</Text>
+          </View>
+        </SafeAreaView>
+      </ScreenLayout>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Gastos Recurrentes</Text>
-      </View>
+    <ScreenLayout navigation={navigation as any}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="repeat-outline" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={styles.titleGradient}>Gastos Recurrentes</Text>
+              </View>
+              <Text style={styles.subtitleGradient}>Plantillas de gastos automáticos</Text>
+            </View>
+            <View style={styles.statsHeaderContainer}>
+              <View style={styles.statHeaderItem}>
+                <Text style={styles.statHeaderValue}>{pagination.total}</Text>
+                <Text style={styles.statHeaderLabel}>Total</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
 
-      {/* Filter Tabs */}
-      <View style={styles.filterContainer}>
+        {/* Filter Tabs */}
+        <View style={styles.filterContainer}>
         <TouchableOpacity
           style={[styles.filterTab, !showInactive && styles.filterTabActive]}
           onPress={() => setShowInactive(false)}
@@ -383,7 +426,8 @@ export const ExpenseTemplatesScreen: React.FC = () => {
         onClose={() => setBulkUploadModalVisible(false)}
         onSuccess={handleBulkUploadSuccess}
       />
-    </SafeAreaView>
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
@@ -391,6 +435,67 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  titleGradient: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
+  },
+  subtitleGradient: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginLeft: spacing[12],
+  },
+  statsHeaderContainer: {
+    alignItems: 'flex-end',
+  },
+  statHeaderItem: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+  },
+  statHeaderValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  statHeaderLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    textTransform: 'uppercase',
   },
   header: {
     paddingHorizontal: 20,

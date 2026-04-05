@@ -13,8 +13,12 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '@/store/auth';
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/constants/permissions';
 import { accountsReceivableService } from '@/services/api/accounts-receivable';
@@ -722,43 +726,55 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
     (selectedSiteId ? 1 : 0);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={[styles.backIcon, isTablet && styles.backIconTablet]}>←</Text>
-          </TouchableOpacity>
-          <View>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-              Cuentas por Cobrar
-            </Text>
-            <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-              {pagination.total} registros
-            </Text>
+    <ScreenLayout navigation={navigation}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
+              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="cash-outline" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={[styles.titleGradient, isTablet && styles.titleTabletGradient]}>Cuentas por Cobrar</Text>
+              </View>
+              <Text style={styles.subtitleGradient}>Gestión de cuentas pendientes</Text>
+            </View>
+            <View style={styles.statsHeaderContainer}>
+              <View style={styles.statHeaderItem}>
+                <Text style={styles.statHeaderValue}>{pagination.total}</Text>
+                <Text style={styles.statHeaderLabel}>Total</Text>
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
 
-      {/* Search Bar */}
-      <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-          placeholder="Buscar por código, deudor, RUC, documento..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchButton}>
-            <Text style={styles.clearSearchButtonText}>✕</Text>
-          </TouchableOpacity>
-        )}
-        {searchQuery !== debouncedSearchQuery && (
-          <ActivityIndicator size="small" color="#667eea" style={styles.searchLoader} />
-        )}
-      </View>
+          {/* Search Bar */}
+          <View style={styles.searchContainerGradient}>
+            <View style={styles.searchInputContainerGradient}>
+              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIconGradient} />
+              <TextInput
+                style={[styles.searchInputGradient, isTablet && styles.searchInputTabletGradient]}
+                placeholder="Buscar por código, deudor, RUC..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholderTextColor={colors.neutral[400]}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButtonGradient}>
+                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </LinearGradient>
 
       {/* Quick Date Filters */}
       <ScrollView
@@ -1144,7 +1160,8 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
@@ -1152,6 +1169,107 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: spacing[4],
+  },
+  backButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  titleGradient: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
+  },
+  titleTabletGradient: {
+    fontSize: 28,
+  },
+  subtitleGradient: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginLeft: spacing[12],
+  },
+  statsHeaderContainer: {
+    alignItems: 'flex-end',
+  },
+  statHeaderItem: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+  },
+  statHeaderValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  statHeaderLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+  },
+  searchContainerGradient: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  searchInputContainerGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[3],
+  },
+  searchIconGradient: {
+    marginRight: spacing[2],
+  },
+  searchInputGradient: {
+    flex: 1,
+    paddingVertical: spacing[3],
+    fontSize: 15,
+    color: colors.neutral[800],
+  },
+  searchInputTabletGradient: {
+    fontSize: 16,
+    paddingVertical: 14,
+  },
+  clearButtonGradient: {
+    padding: spacing[1],
   },
   header: {
     flexDirection: 'row',

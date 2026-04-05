@@ -33,6 +33,8 @@ import { spacing, borderRadius } from '@/design-system/tokens/spacing';
 import { shadows } from '@/design-system/tokens/shadows';
 import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
 import { durations } from '@/design-system/tokens/animations';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 
 type Props = NativeStackScreenProps<any, 'UploadCashReconciliationFiles'>;
 
@@ -338,20 +340,36 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
   const canUpload = selectedFile && selectedReportType && (selectedReportType !== 'ventas' || selectedSede);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.neutral[700]} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Subir Archivos</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate(MAIN_ROUTES.UPLOADED_FILES_LIST as any)}
-          style={styles.historyButton}
+    <ScreenLayout navigation={navigation as any}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
         >
-          <Ionicons name="time-outline" size={24} color={colors.accent[600]} />
-        </TouchableOpacity>
-      </View>
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
+              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="cloud-upload-outline" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={styles.titleGradient}>Subir Archivos</Text>
+              </View>
+              <Text style={styles.subtitleGradient}>Carga archivos de cuadre de caja</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate(MAIN_ROUTES.UPLOADED_FILES_LIST as any)}
+              style={styles.historyButtonGradient}
+            >
+              <Ionicons name="time-outline" size={24} color={colors.neutral[0]} />
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -550,7 +568,8 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </View>
+      </View>
+    </ScreenLayout>
   );
 };
 
@@ -562,6 +581,62 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutral[100],
+  },
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  backButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  titleGradient: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
+  },
+  subtitleGradient: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginLeft: spacing[12],
+  },
+  historyButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
