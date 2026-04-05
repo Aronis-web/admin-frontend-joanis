@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth';
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useTenantStore } from '@/store/tenant';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { StockAdjustmentModal } from '@/components/Inventory/StockAdjustmentModal';
@@ -371,37 +372,40 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
   if (isLoading && !stockResponseV2) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
-        >
-          <View style={styles.headerTop}>
-            <View style={styles.headerTitleContainer}>
-              <View style={styles.headerIconRow}>
-                <View style={styles.headerIconContainer}>
-                  <Ionicons name="stats-chart" size={22} color={colors.neutral[0]} />
+      <ScreenLayout navigation={navigation}>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <LinearGradient
+            colors={[colors.primary[900], colors.primary[800]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+            <View style={styles.headerTop}>
+              <View style={styles.headerTitleContainer}>
+                <View style={styles.headerIconRow}>
+                  <View style={styles.headerIconContainer}>
+                    <Ionicons name="stats-chart" size={22} color={colors.neutral[0]} />
+                  </View>
+                  <Text style={styles.title}>Inventario</Text>
                 </View>
-                <Text style={styles.title}>Inventario</Text>
+                <Text style={styles.subtitle}>Control de stock por ubicación</Text>
               </View>
-              <Text style={styles.subtitle}>Control de stock por ubicación</Text>
             </View>
+          </LinearGradient>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary[900]} />
+            <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
+              Cargando inventario...
+            </Text>
           </View>
-        </LinearGradient>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[900]} />
-          <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
-            Cargando inventario...
-          </Text>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </ScreenLayout>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <ScreenLayout navigation={navigation}>
+      <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header con gradiente */}
       <LinearGradient
         colors={[colors.primary[900], colors.primary[800]]}
@@ -981,7 +985,8 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
         onClose={() => setIsProductBulkUploadV2ModalVisible(false)}
         onSuccess={handleProductBulkUploadV2Success}
       />
-    </SafeAreaView>
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 

@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProductFormModal } from '@/components/Inventory/ProductFormModal';
 import { ProductPhotosModal } from '@/components/Photos';
 import { ProductPriceProfilesModal } from '@/components/Inventory/ProductPriceProfilesModal';
@@ -430,37 +431,40 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   // Loading state
   if (isLoading && !productsResponse) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
-        >
-          <View style={styles.headerTop}>
-            <View style={styles.headerTitleContainer}>
-              <View style={styles.headerIconRow}>
-                <View style={styles.headerIconContainer}>
-                  <Ionicons name="cube" size={22} color={colors.neutral[0]} />
+      <ScreenLayout navigation={navigation}>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <LinearGradient
+            colors={[colors.primary[900], colors.primary[800]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+            <View style={styles.headerTop}>
+              <View style={styles.headerTitleContainer}>
+                <View style={styles.headerIconRow}>
+                  <View style={styles.headerIconContainer}>
+                    <Ionicons name="cube" size={22} color={colors.neutral[0]} />
+                  </View>
+                  <Text style={[styles.title, isTablet && styles.titleTablet]}>Productos</Text>
                 </View>
-                <Text style={[styles.title, isTablet && styles.titleTablet]}>Productos</Text>
+                <Text style={styles.subtitle}>Catálogo de productos</Text>
               </View>
-              <Text style={styles.subtitle}>Catálogo de productos</Text>
             </View>
+          </LinearGradient>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary[900]} />
+            <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
+              Cargando productos...
+            </Text>
           </View>
-        </LinearGradient>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[900]} />
-          <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
-            Cargando productos...
-          </Text>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </ScreenLayout>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <ScreenLayout navigation={navigation}>
+      <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header con gradiente */}
       <LinearGradient
         colors={[colors.primary[900], colors.primary[800]]}
@@ -806,7 +810,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         onSuccess={handleProductSuccess}
         mode="products"
       />
-    </SafeAreaView>
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
