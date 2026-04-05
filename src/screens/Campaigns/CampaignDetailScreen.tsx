@@ -399,8 +399,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   // Load stock items for quick add functionality
   const loadStockItems = useCallback(async () => {
     try {
-      const stockResponse = await inventoryApi.getAllStock({});
-      const stockItemsData: StockItem[] = stockResponse.map((item) => ({
+      const stockResponse: any = await inventoryApi.getAllStock({});
+      // El API puede devolver un array o un objeto paginado { data: [...], total, page, limit }
+      const stockArray = Array.isArray(stockResponse) ? stockResponse : (stockResponse?.data || []);
+      const stockItemsData: StockItem[] = stockArray.map((item: any) => ({
         id: `${item.productId}-${item.warehouseId}-${item.areaId || 'no-area'}`,
         productId: item.productId,
         warehouseId: item.warehouseId,

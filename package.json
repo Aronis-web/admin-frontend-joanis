@@ -4,7 +4,7 @@
   "version": "1.0.5",
   "description": "Panel de Administración ERP - Sistema de gestión empresarial",
   "author": "Aronis Web",
-  "main": "electron/main.js",
+  "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -13,6 +13,8 @@
     "web:serve": "npx serve web-build -p 8082",
     "electron:run": "npm run build:web:quick && concurrently \"npm run web:serve\" \"wait-on http://localhost:8082 && electron electron/main.js\"",
     "electron:dev": "cross-env NODE_ENV=development npm run build:web:quick && concurrently \"npm run web:serve\" \"wait-on http://localhost:8082 && electron electron/main.js\"",
+    "electron:debug": "electron electron/main.js --devtools",
+    "electron:start": "electron electron/main.js",
     "build:web": "npx expo export --platform web --output-dir web-build && node fix-html-for-electron.js",
     "build:web:quick": "npx expo export --platform web --output-dir web-build && node fix-html-for-electron.js",
     "build:electron": "npm run build:web && electron-builder --config electron-builder.json",

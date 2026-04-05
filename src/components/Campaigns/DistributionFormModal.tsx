@@ -738,13 +738,36 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       '🔄 [RECALC] Recalculando distribuciones con nueva cantidad:',
       newTotalQuantity,
       'Modo:',
-      distributionMode
+      distributionMode,
+      'Tipo distribución:',
+      selectedDistributionType
     );
 
     try {
       // Obtener participantes frescos de la campaña
       const campaignData = await campaignsService.getCampaign(campaignId);
-      const participants = campaignData.participants || [];
+      let participants = campaignData.participants || [];
+
+      // Filtrar participantes según el tipo de distribución seleccionado
+      if (selectedDistributionType === DistributionType.INTERNAL_ONLY ||
+          selectedDistributionType === DistributionType.INTERNAL_EQUAL) {
+        // Solo sedes internas
+        participants = participants.filter(p => p.siteId && !p.companyId);
+        logger.debug('🏛️ [RECALC] Filtrado a sedes internas:', participants.length);
+      } else if (selectedDistributionType === DistributionType.EXTERNAL_ONLY) {
+        // Solo empresas externas
+        participants = participants.filter(p => p.companyId && !p.siteId);
+        logger.debug('🏢 [RECALC] Filtrado a empresas externas:', participants.length);
+      } else if (selectedDistributionType === DistributionType.CUSTOM) {
+        // Solo participantes seleccionados
+        participants = participants.filter(p => selectedParticipants.has(p.id));
+        logger.debug('🎯 [RECALC] Filtrado a participantes seleccionados:', participants.length);
+      }
+
+      if (participants.length === 0) {
+        Alert.alert('Error', 'No hay participantes disponibles para el tipo de distribución seleccionado');
+        return;
+      }
 
       // Calcular distribución usando solo el monto esperado
       const participantsWithAdjustedAmount = participants.map((participant) => {
@@ -974,7 +997,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       logger.error('❌ [RECALC] Error recalculando distribuciones:', error);
       Alert.alert('Error', 'No se pudo recalcular las distribuciones');
     }
-  }, [adjustedDistribution, editableDistributions, globalRoundingFactor, campaignId, distributionMode, selectedPresentationId]);
+  }, [adjustedDistribution, editableDistributions, globalRoundingFactor, campaignId, distributionMode, selectedPresentationId, selectedDistributionType, selectedParticipants]);
 
   const handleGlobalRoundingFactorChange = useCallback(
     async (newFactor: number) => {

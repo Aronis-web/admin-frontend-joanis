@@ -12,7 +12,10 @@ const { autoUpdater } = require('electron-updater');
 
 console.log('[ELECTRON] ✅ electron-updater cargado');
 
-const isDev = process.env.NODE_ENV === 'development';
+// Detectar modo desarrollo: por variable de entorno O si la app no está empaquetada
+// También se puede forzar con el argumento --devtools
+const forceDevTools = process.argv.includes('--devtools');
+let isDev = process.env.NODE_ENV === 'development' || forceDevTools;
 let isPackaged = false; // Se inicializará en app.whenReady()
 
 console.log('[ELECTRON] 🎯 isDev:', isDev);
@@ -500,6 +503,11 @@ function setupAutoUpdater() {
 app.on('ready', async () => {
   // Inicializar isPackaged ahora que app está listo
   isPackaged = app.isPackaged;
+
+  // Si no está empaquetada, estamos en desarrollo - forzar isDev
+  if (!isPackaged) {
+    isDev = true;
+  }
 
   console.log('[ELECTRON] 🚀 App ready event triggered');
   console.log('[ELECTRON] 📦 Is packaged:', isPackaged);

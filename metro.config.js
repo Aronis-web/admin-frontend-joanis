@@ -7,18 +7,21 @@ const config = getDefaultConfig(__dirname);
 // Ensure proper module resolution
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
-// Exclude electron folder from the bundle (it's only for desktop builds)
+// Exclude test files from bundle
 config.resolver.blockList = [
-  /electron\/.*/,
   /.*\.test\.(js|ts|tsx)$/,
 ];
 
-// Don't resolve these Node.js modules in the web bundle
+// Handle Node.js and Electron modules that shouldn't be in web bundle
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Block electron-related modules from being bundled
-  if (moduleName === 'electron' ||
-      moduleName === 'electron-updater' ||
-      moduleName.startsWith('electron/')) {
+  // Return empty module for electron-specific packages
+  const electronModules = [
+    'electron',
+    'electron-updater',
+    'express',
+  ];
+
+  if (electronModules.includes(moduleName)) {
     return {
       type: 'empty',
     };

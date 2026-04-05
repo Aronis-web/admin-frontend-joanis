@@ -122,17 +122,19 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
         // Load stock items separately
         try {
-          const stockResponse = await inventoryApi.getAllStock({});
+          const stockResponse: any = await inventoryApi.getAllStock({});
+          // El API puede devolver un array o un objeto paginado { data: [...], total, page, limit }
+          const stockArray = Array.isArray(stockResponse) ? stockResponse : (stockResponse?.data || []);
           console.log('📦 Stock items loaded:', {
-            count: stockResponse.length,
-            sample: stockResponse.slice(0, 3).map((item) => ({
+            count: stockArray.length,
+            sample: stockArray.slice(0, 3).map((item: any) => ({
               productId: item.productId,
               productSku: item.product?.sku,
               quantityBase: item.quantityBase,
             })),
           });
           // Convert StockItemResponse to StockItem format
-          const stockItemsData: StockItem[] = stockResponse.map((item) => ({
+          const stockItemsData: StockItem[] = stockArray.map((item: any) => ({
             id: `${item.productId}-${item.warehouseId}-${item.areaId || 'no-area'}`,
             productId: item.productId,
             warehouseId: item.warehouseId,

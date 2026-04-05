@@ -12,6 +12,7 @@ import {
   StatusBar,
   Platform,
   ViewStyle,
+  NativeModules,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,22 @@ import { colors } from '../../tokens/colors';
 import { spacing, iconSizes, zIndex } from '../../tokens/spacing';
 import { shadows } from '../../tokens/shadows';
 import { activeOpacity } from '../../tokens/animations';
+
+/**
+ * Función para recargar la aplicación
+ * En web usa location.reload(), en nativo usa DevSettings
+ */
+const handleReload = () => {
+  if (Platform.OS === 'web') {
+    window.location.reload();
+  } else {
+    // En desarrollo nativo, usar DevSettings para recargar
+    const { DevSettings } = NativeModules;
+    if (DevSettings?.reload) {
+      DevSettings.reload();
+    }
+  }
+};
 
 export interface ScreenHeaderAction {
   icon: keyof typeof Ionicons.glyphMap;
@@ -154,8 +171,12 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
             )}
           </View>
 
-          {/* Title Section */}
-          <View style={[styles.titleSection, centerTitle && styles.titleCentered]}>
+          {/* Title Section - Tocable para recargar (botón disimulado) */}
+          <TouchableOpacity
+            style={[styles.titleSection, centerTitle && styles.titleCentered]}
+            onPress={handleReload}
+            activeOpacity={1}
+          >
             <Title size="large" numberOfLines={1}>
               {title}
             </Title>
@@ -169,7 +190,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                 {subtitle}
               </Text>
             )}
-          </View>
+          </TouchableOpacity>
 
           {/* Right Section */}
           <View style={styles.rightSection}>
@@ -257,7 +278,12 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
         </View>
       </View>
 
-      <View style={styles.largeTitleSection}>
+      {/* Title Section - Tocable para recargar (botón disimulado) */}
+      <TouchableOpacity
+        style={styles.largeTitleSection}
+        onPress={handleReload}
+        activeOpacity={1}
+      >
         <Text variant="displaySmall" color="primary">
           {title}
         </Text>
@@ -266,7 +292,7 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
             {subtitle}
           </Text>
         )}
-      </View>
+      </TouchableOpacity>
 
       {children}
     </View>
