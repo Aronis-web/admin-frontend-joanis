@@ -11,6 +11,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { campaignsService } from '@/services/api';
 import {
@@ -26,6 +28,8 @@ import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import logger from '@/utils/logger';
 import { useCampaigns } from '@/hooks/api/useCampaigns';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
+import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { Pagination } from '@/design-system/components';
 
 interface CampaignsScreenProps {
   navigation: any;
@@ -318,8 +322,26 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   if (isLoading && !campaignsResponse) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="megaphone" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Campañas</Text>
+              </View>
+              <Text style={styles.headerSubtitle}>Gestión de campañas de distribución</Text>
+            </View>
+          </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={colors.primary[900]} />
           <Text style={styles.loadingText}>Cargando campañas...</Text>
         </View>
       </SafeAreaView>
@@ -329,15 +351,33 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>Campañas</Text>
-            <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-              Gestión de campañas de distribución
-            </Text>
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="megaphone" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Campañas</Text>
+              </View>
+              <Text style={styles.headerSubtitle}>Gestión de campañas de distribución</Text>
+            </View>
+
+            {/* Stats */}
+            <View style={styles.statsHeaderContainer}>
+              <View style={styles.statHeaderItem}>
+                <Text style={styles.statHeaderValue}>{pagination.total}</Text>
+                <Text style={styles.statHeaderLabel}>Total</Text>
+              </View>
+            </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Status Filter */}
         {renderStatusFilter()}
@@ -364,52 +404,14 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
 
         {/* Pagination Controls */}
         {pagination.total > 0 && (
-          <View style={styles.paginationContainer}>
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                pagination.page === 1 && styles.paginationButtonDisabled,
-              ]}
-              onPress={handlePreviousPage}
-              disabled={pagination.page === 1}
-            >
-              <Text
-                style={[
-                  styles.paginationButtonText,
-                  pagination.page === 1 && styles.paginationButtonTextDisabled,
-                ]}
-              >
-                ← Anterior
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.paginationInfo}>
-              <Text style={styles.paginationText}>
-                Pág. {pagination.page}/{pagination.totalPages}
-              </Text>
-              <Text style={styles.paginationSubtext}>
-                {campaigns.length} de {pagination.total}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-              ]}
-              onPress={handleNextPage}
-              disabled={pagination.page >= pagination.totalPages}
-            >
-              <Text
-                style={[
-                  styles.paginationButtonText,
-                  pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-                ]}
-              >
-                Siguiente →
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <Pagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            itemsPerPage={pagination.limit}
+            onPageChange={setPage}
+            loading={isLoading}
+          />
         )}
       </SafeAreaView>
       <ProtectedFAB
@@ -425,7 +427,71 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
+  },
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
+  },
+  headerTitleTablet: {
+    fontSize: 28,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginLeft: spacing[12],
+  },
+  statsHeaderContainer: {
+    alignItems: 'flex-end',
+  },
+  statHeaderItem: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+  },
+  statHeaderValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  statHeaderLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    textTransform: 'uppercase',
   },
   loadingContainer: {
     flex: 1,
@@ -435,87 +501,57 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#64748B',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    marginTop: 4,
-  },
-  subtitleTablet: {
-    fontSize: 16,
+    color: colors.neutral[500],
   },
   filterWrapper: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   filterContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    gap: spacing[2],
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    marginRight: 8,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    marginRight: spacing[2],
   },
   filterButtonTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[2.5],
   },
   filterButtonActive: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.primary[900],
   },
   filterButtonText: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   filterButtonTextTablet: {
     fontSize: 16,
   },
   filterButtonTextActive: {
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing[4],
   },
   scrollContentTablet: {
-    padding: 32,
+    padding: spacing[8],
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[3],
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -523,38 +559,38 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardTablet: {
-    padding: 24,
-    marginBottom: 16,
+    padding: spacing[6],
+    marginBottom: spacing[4],
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing[3],
     flex: 1,
   },
   cardCode: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   cardCodeTablet: {
     fontSize: 20,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
     borderWidth: 1,
   },
   statusBadgeTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: spacing[3.5],
+    paddingVertical: spacing[1.5],
   },
   statusText: {
     fontSize: 12,
@@ -564,21 +600,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   cardBody: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   campaignName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
   },
   campaignNameTablet: {
     fontSize: 22,
   },
   campaignDescription: {
     fontSize: 14,
-    color: '#64748B',
-    marginBottom: 12,
+    color: colors.neutral[500],
+    marginBottom: spacing[3],
     lineHeight: 20,
   },
   campaignDescriptionTablet: {
@@ -588,11 +624,11 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 12,
+    paddingVertical: spacing[3],
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 12,
+    borderColor: colors.neutral[200],
+    marginBottom: spacing[3],
   },
   statItem: {
     alignItems: 'center',
@@ -600,31 +636,31 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#6366F1',
-    marginBottom: 4,
+    color: colors.accent[600],
+    marginBottom: spacing[1],
   },
   statValueTablet: {
     fontSize: 22,
   },
   statLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.neutral[500],
   },
   statLabelTablet: {
     fontSize: 14,
   },
   datesRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: spacing[4],
   },
   dateItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing[1.5],
   },
   dateLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   dateLabelTablet: {
@@ -632,7 +668,7 @@ const styles = StyleSheet.create({
   },
   dateValue: {
     fontSize: 13,
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   dateValueTablet: {
     fontSize: 15,
@@ -641,20 +677,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.neutral[200],
   },
   footerText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   footerTextTablet: {
     fontSize: 14,
   },
   arrowIcon: {
     fontSize: 24,
-    color: '#CBD5E1',
+    color: colors.neutral[300],
     fontWeight: 'bold',
   },
   arrowIconTablet: {
@@ -664,67 +700,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: spacing[16],
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 8,
+    color: colors.neutral[500],
+    marginBottom: spacing[2],
   },
   emptyTextTablet: {
     fontSize: 22,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: colors.neutral[400],
   },
   emptySubtextTablet: {
     fontSize: 16,
-  },
-  paginationContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 60,
-  },
-  paginationInfo: {
-    alignItems: 'center',
-    minWidth: 100,
-  },
-  paginationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  paginationSubtext: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  paginationButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#6366F1',
-    minWidth: 110,
-    alignItems: 'center',
-  },
-  paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
-  },
-  paginationButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  paginationButtonTextDisabled: {
-    color: '#94A3B8',
   },
 });

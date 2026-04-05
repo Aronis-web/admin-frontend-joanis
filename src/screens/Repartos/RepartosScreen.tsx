@@ -51,11 +51,12 @@ import {
   StatusBadge,
   Chip,
   ChipGroup,
-  ScreenHeader,
   EmptyState,
   Pagination,
   Divider,
 } from '@/design-system/components';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 interface RepartosScreenProps {
   navigation: any;
@@ -488,7 +489,24 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   if (isLoading && !isRefetching) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Repartos" />
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="git-branch" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Repartos</Text>
+              </View>
+              <Text style={styles.headerSubtitle}>Distribución de campañas</Text>
+            </View>
+          </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary[900]} />
           <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
@@ -502,11 +520,33 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   return (
     <ScreenLayout navigation={navigation}>
       <View style={styles.container}>
-        {/* Header */}
-        <ScreenHeader
-          title="Repartos"
-          subtitle="Selecciona una campaña para ver sus repartos"
-        />
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="git-branch" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Repartos</Text>
+              </View>
+              <Text style={styles.headerSubtitle}>Distribución de campañas</Text>
+            </View>
+
+            {/* Stats */}
+            <View style={styles.statsHeaderContainer}>
+              <View style={styles.statHeaderItem}>
+                <Text style={styles.statHeaderValue}>{paginationData.total}</Text>
+                <Text style={styles.statHeaderLabel}>Campañas</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
 
         {/* Filters */}
         <View style={styles.filtersContainer}>
@@ -630,6 +670,71 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.secondary,
+  },
+
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
+  },
+  headerTitleTablet: {
+    fontSize: 28,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginLeft: spacing[12],
+  },
+  statsHeaderContainer: {
+    alignItems: 'flex-end',
+  },
+  statHeaderItem: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+  },
+  statHeaderValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  statHeaderLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    textTransform: 'uppercase',
   },
 
   loadingContainer: {

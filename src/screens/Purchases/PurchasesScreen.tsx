@@ -13,8 +13,10 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   Platform,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePurchases } from '@/hooks/api';
@@ -465,6 +467,24 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   if (isLoading && !isRefetching) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="cart" size={22} color={colors.neutral[0]} />
+                </View>
+                <Title size="large" style={styles.headerTitle}>Compras</Title>
+              </View>
+              <Body style={styles.headerSubtitle}>Gestión de compras y validación</Body>
+            </View>
+          </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary[900]} />
           <Body color="secondary" style={styles.loadingText}>Cargando compras...</Body>
@@ -476,28 +496,52 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Title size="large">Compras</Title>
-            <Body color="secondary">
-              Gestión de compras y validación de productos
-            </Body>
-          </View>
-        </View>
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="cart" size={22} color={colors.neutral[0]} />
+                </View>
+                <Title size="large" style={styles.headerTitle}>Compras</Title>
+              </View>
+              <Body style={styles.headerSubtitle}>Gestión de compras y validación</Body>
+            </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <SearchBarWithAutocomplete
-            value={searchTerm}
-            onChangeText={setSearchTerm}
-            placeholder="Buscar por código, proveedor, productos..."
-            onClear={() => setSearchTerm('')}
-            onSuggestionSelect={handleSuggestionSelect}
-            minChars={2}
-            maxSuggestions={10}
-          />
-        </View>
+            {/* Stats */}
+            <View style={styles.statsHeaderContainer}>
+              <View style={styles.statHeaderItem}>
+                <Label style={styles.statHeaderValue}>{pagination.total}</Label>
+                <Caption style={styles.statHeaderLabel}>Total</Caption>
+              </View>
+            </View>
+          </View>
+
+          {/* Search Bar */}
+          <View style={styles.searchInputWrapper}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+              <TextInput
+                style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                placeholder="Buscar por código, proveedor, productos..."
+                placeholderTextColor={colors.neutral[400]}
+              />
+              {searchTerm.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchTerm('')} style={styles.clearButton}>
+                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </LinearGradient>
 
         {/* Status Filter */}
         <StatusFilter
@@ -683,6 +727,91 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.secondary,
   },
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing[4],
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  headerTitle: {
+    color: colors.neutral[0],
+  },
+  headerSubtitle: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginLeft: spacing[12],
+  },
+  statsHeaderContainer: {
+    alignItems: 'flex-end',
+  },
+  statHeaderItem: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+  },
+  statHeaderValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  statHeaderLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+  },
+  searchInputWrapper: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[3],
+  },
+  searchIcon: {
+    marginRight: spacing[2],
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: spacing[3],
+    fontSize: 15,
+    color: colors.neutral[800],
+  },
+  searchInputTablet: {
+    fontSize: 16,
+    paddingVertical: spacing[3.5],
+  },
+  clearButton: {
+    padding: spacing[1],
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -690,20 +819,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: spacing[4],
-  },
-  header: {
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  searchContainer: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
   },
   statusFilter: {
     backgroundColor: colors.surface.primary,

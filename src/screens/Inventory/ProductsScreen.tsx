@@ -17,8 +17,11 @@ import {
   Modal,
   Image,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
@@ -53,8 +56,6 @@ import {
   IconButton,
   Chip,
   ChipGroup,
-  ScreenHeader,
-  SearchBar,
   EmptyState,
   Pagination,
   Divider,
@@ -430,10 +431,24 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   if (isLoading && !productsResponse) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <ScreenHeader
-          title="Productos"
-          onBack={() => navigation.goBack()}
-        />
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="cube" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={[styles.title, isTablet && styles.titleTablet]}>Productos</Text>
+              </View>
+              <Text style={styles.subtitle}>Catálogo de productos</Text>
+            </View>
+          </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary[900]} />
           <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
@@ -446,38 +461,104 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <ScreenHeader
-        title="Productos"
-        onBack={() => navigation.goBack()}
-      />
+      {/* Header con gradiente */}
+      <LinearGradient
+        colors={[colors.primary[900], colors.primary[800]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerTop}>
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.headerIconRow}>
+              <View style={styles.headerIconContainer}>
+                <Ionicons name="cube" size={22} color={colors.neutral[0]} />
+              </View>
+              <Text style={[styles.title, isTablet && styles.titleTablet]}>Productos</Text>
+            </View>
+            <Text style={styles.subtitle}>Catálogo de productos</Text>
+          </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchSection}>
-        <SearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder={
-            searchType === 'correlative'
-              ? 'Buscar por #correlativo...'
-              : searchType === 'sku'
-                ? 'Buscar por SKU...'
-                : 'Buscar por nombre, SKU o #correlativo...'
-          }
-          loading={searchQuery !== debouncedSearchQuery}
-          onClear={() => setSearchQuery('')}
-        />
-      </View>
+          {/* Stats */}
+          <View style={styles.statsHeaderContainer}>
+            <View style={styles.statHeaderItem}>
+              <Text style={styles.statHeaderValue}>{pagination.total}</Text>
+              <Text style={styles.statHeaderLabel}>Total</Text>
+            </View>
+          </View>
+        </View>
 
-      {/* Search Type Filter */}
-      <View style={styles.filterSection}>
-        <Label size="small" color="secondary" style={styles.filterLabel}>Buscar por:</Label>
-        <ChipGroup
-          options={searchTypeOptions}
-          selected={[searchType]}
-          onChange={(selected) => setSearchType((selected[0] || 'all') as any)}
-          size="small"
-        />
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder={
+                searchType === 'correlative'
+                  ? 'Buscar por #correlativo...'
+                  : searchType === 'sku'
+                    ? 'Buscar por SKU...'
+                    : 'Buscar por nombre, SKU o #correlativo...'
+              }
+              placeholderTextColor={colors.neutral[400]}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* Quick Filters - Search Type */}
+      <View style={styles.quickFiltersContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.quickFiltersContent}
+        >
+          {searchTypeOptions.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.filterChip,
+                searchType === option.value && styles.filterChipActive,
+              ]}
+              onPress={() => setSearchType(option.value as any)}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.filterChipText,
+                searchType === option.value && styles.filterChipTextActive,
+              ]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          <View style={styles.filterDivider} />
+          {statusOptions.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.filterChip,
+                statusFilter === option.value && styles.filterChipActive,
+              ]}
+              onPress={() => setStatusFilter(option.value)}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.filterChipText,
+                statusFilter === option.value && styles.filterChipTextActive,
+              ]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Duplicate SKUs Warning */}
@@ -492,37 +573,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           </View>
         </View>
       )}
-
-      {/* Status Filter */}
-      <View style={styles.filterSection}>
-        <Label size="small" color="secondary" style={styles.filterLabel}>Estado:</Label>
-        <ChipGroup
-          options={statusOptions}
-          selected={[statusFilter]}
-          onChange={(selected) => setStatusFilter(selected[0] || 'all')}
-          size="small"
-        />
-      </View>
-
-      {/* Stats Cards */}
-      <View style={styles.statsContainer}>
-        <View style={[styles.statCard, { backgroundColor: colors.accent[50] }]}>
-          <Text variant="numericMedium" color="primary">{filteredProducts.length}</Text>
-          <Caption color="tertiary">Total</Caption>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.success[50] }]}>
-          <Text variant="numericMedium" color="primary">
-            {filteredProducts.filter((p) => p.status === 'active').length}
-          </Text>
-          <Caption color="tertiary">Activos</Caption>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.warning[50] }]}>
-          <Text variant="numericMedium" color="primary">
-            {filteredProducts.filter((p) => p.status === 'draft' || p.status === 'preliminary').length}
-          </Text>
-          <Caption color="tertiary">Pendientes</Caption>
-        </View>
-      </View>
 
       {/* Products List */}
       <FlatList
@@ -766,6 +816,140 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.secondary,
   },
 
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing[4],
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
+  },
+  titleTablet: {
+    fontSize: 28,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginLeft: spacing[12],
+  },
+  statsHeaderContainer: {
+    alignItems: 'flex-end',
+  },
+  statHeaderItem: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+  },
+  statHeaderValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  statHeaderLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[3],
+  },
+  searchIcon: {
+    marginRight: spacing[2],
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: spacing[3],
+    fontSize: 15,
+    color: colors.neutral[800],
+  },
+  searchInputTablet: {
+    fontSize: 16,
+    paddingVertical: spacing[3.5],
+  },
+  clearButton: {
+    padding: spacing[1],
+  },
+  quickFiltersContainer: {
+    backgroundColor: colors.surface.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[200],
+  },
+  quickFiltersContent: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    gap: spacing[2],
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.neutral[600],
+  },
+  filterChipTextActive: {
+    color: colors.neutral[0],
+  },
+  filterDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: colors.neutral[200],
+    marginHorizontal: spacing[2],
+  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -774,24 +958,6 @@ const styles = StyleSheet.create({
 
   loadingText: {
     marginTop: spacing[4],
-  },
-
-  // Search & Filters
-  searchSection: {
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingTop: spacing[3],
-    paddingBottom: spacing[2],
-  },
-
-  filterSection: {
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[3],
-  },
-
-  filterLabel: {
-    marginBottom: spacing[2],
   },
 
   // Warning Banner
@@ -813,22 +979,6 @@ const styles = StyleSheet.create({
 
   warningContent: {
     flex: 1,
-  },
-
-  // Stats
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    gap: spacing[2],
-  },
-
-  statCard: {
-    flex: 1,
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
   },
 
   // List
