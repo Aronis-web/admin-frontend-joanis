@@ -10,9 +10,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Platform,
   ViewStyle,
-  NativeModules,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,22 +20,6 @@ import { colors } from '../../tokens/colors';
 import { spacing, iconSizes, zIndex } from '../../tokens/spacing';
 import { shadows } from '../../tokens/shadows';
 import { activeOpacity } from '../../tokens/animations';
-
-/**
- * Función para recargar la aplicación
- * En web usa location.reload(), en nativo usa DevSettings
- */
-const handleReload = () => {
-  if (Platform.OS === 'web') {
-    window.location.reload();
-  } else {
-    // En desarrollo nativo, usar DevSettings para recargar
-    const { DevSettings } = NativeModules;
-    if (DevSettings?.reload) {
-      DevSettings.reload();
-    }
-  }
-};
 
 export interface ScreenHeaderAction {
   icon: keyof typeof Ionicons.glyphMap;
@@ -190,19 +172,6 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 
           {/* Right Section */}
           <View style={styles.rightSection}>
-            {/* Botón de recarga disimulado */}
-            <TouchableOpacity
-              style={styles.reloadButton}
-              onPress={handleReload}
-              activeOpacity={activeOpacity.medium}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons
-                name="refresh"
-                size={iconSizes.md}
-                color={colors.icon.tertiary}
-              />
-            </TouchableOpacity>
             {rightContent}
             {actions.map((action, index) => (
               <View key={index} style={styles.actionContainer}>
@@ -274,19 +243,6 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
           </TouchableOpacity>
         )}
         <View style={styles.largeActions}>
-          {/* Botón de recarga disimulado */}
-          <TouchableOpacity
-            style={styles.reloadButton}
-            onPress={handleReload}
-            activeOpacity={activeOpacity.medium}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons
-              name="refresh"
-              size={iconSizes.md}
-              color={colors.icon.tertiary}
-            />
-          </TouchableOpacity>
           {actions.map((action, index) => (
             <IconButton
               key={index}
@@ -347,12 +303,6 @@ const styles = StyleSheet.create({
   menuButton: {
     padding: spacing[2],
     marginLeft: -spacing[2],
-  },
-
-  reloadButton: {
-    padding: spacing[2],
-    marginRight: spacing[1],
-    opacity: 0.6,
   },
 
   titleSection: {
