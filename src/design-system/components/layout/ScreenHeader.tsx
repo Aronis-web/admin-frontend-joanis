@@ -169,14 +169,23 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                 />
               </TouchableOpacity>
             )}
+            {/* Botón de recarga disimulado */}
+            <TouchableOpacity
+              style={styles.reloadButton}
+              onPress={handleReload}
+              activeOpacity={activeOpacity.medium}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons
+                name="refresh"
+                size={iconSizes.sm}
+                color={colors.icon.tertiary}
+              />
+            </TouchableOpacity>
           </View>
 
-          {/* Title Section - Tocable para recargar (botón disimulado) */}
-          <TouchableOpacity
-            style={[styles.titleSection, centerTitle && styles.titleCentered]}
-            onPress={handleReload}
-            activeOpacity={1}
-          >
+          {/* Title Section */}
+          <View style={[styles.titleSection, centerTitle && styles.titleCentered]}>
             <Title size="large" numberOfLines={1}>
               {title}
             </Title>
@@ -190,7 +199,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                 {subtitle}
               </Text>
             )}
-          </TouchableOpacity>
+          </View>
 
           {/* Right Section */}
           <View style={styles.rightSection}>
@@ -264,6 +273,19 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
             />
           </TouchableOpacity>
         )}
+        {/* Botón de recarga disimulado */}
+        <TouchableOpacity
+          style={styles.reloadButton}
+          onPress={handleReload}
+          activeOpacity={activeOpacity.medium}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons
+            name="refresh"
+            size={iconSizes.sm}
+            color={colors.icon.tertiary}
+          />
+        </TouchableOpacity>
         <View style={styles.largeActions}>
           {actions.map((action, index) => (
             <IconButton
@@ -278,12 +300,8 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
         </View>
       </View>
 
-      {/* Title Section - Tocable para recargar (botón disimulado) */}
-      <TouchableOpacity
-        style={styles.largeTitleSection}
-        onPress={handleReload}
-        activeOpacity={1}
-      >
+      {/* Title Section */}
+      <View style={styles.largeTitleSection}>
         <Text variant="displaySmall" color="primary">
           {title}
         </Text>
@@ -292,7 +310,7 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
             {subtitle}
           </Text>
         )}
-      </TouchableOpacity>
+      </View>
 
       {children}
     </View>
@@ -329,6 +347,12 @@ const styles = StyleSheet.create({
   menuButton: {
     padding: spacing[2],
     marginLeft: -spacing[2],
+  },
+
+  reloadButton: {
+    padding: spacing[1],
+    marginLeft: spacing[1],
+    opacity: 0.5,
   },
 
   titleSection: {
