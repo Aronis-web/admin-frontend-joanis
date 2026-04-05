@@ -61,7 +61,7 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPr
 
   return (
     <View style={styles.wrapper}>
-      {/* Botón de recarga (arriba del menú) */}
+      {/* Botón de recarga (a la izquierda del menú) */}
       <Animated.View
         style={[
           styles.reloadContainer,
@@ -98,10 +98,11 @@ const styles = StyleSheet.create({
     bottom: spacing[5],
     right: spacing[5],
     zIndex: 1000,
+    flexDirection: 'row',
     alignItems: 'center',
   },
   reloadContainer: {
-    marginBottom: spacing[2],
+    marginRight: spacing[2],
     elevation: 6,
     shadowColor: '#000',
     shadowOffset: {
