@@ -1,28 +1,33 @@
 {
-  "appId": "com.erpaio.app",
+  "appId": "com.erpaio.admin",
   "productName": "ERP-aio",
-  "forceCodeSigning": false,
   "directories": {
     "buildResources": "electron/build",
     "output": "dist"
   },
   "files": [
     "electron/**/*",
-    "electron-main.js",
-    "package.json"
+    "package.json",
+    "node_modules/**/*",
+    "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+    "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+    "!node_modules/*.d.ts",
+    "!node_modules/.bin",
+    "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+    "!.editorconfig",
+    "!**/._*",
+    "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+    "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+    "!**/{appveyor.yml,.travis.yml,circle.yml}",
+    "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
   ],
   "extraResources": [
     {
       "from": "web-build",
       "to": "web-build",
-      "filter": [
-        "**/*"
-      ]
+      "filter": ["**/*"]
     }
   ],
-  "extraMetadata": {
-    "main": "electron-main.js"
-  },
   "win": {
     "target": [
       "nsis"
@@ -45,14 +50,28 @@
     "category": "Office"
   },
   "nsis": {
-    "oneClick": false,
-    "allowToChangeInstallationDirectory": true,
+    "oneClick": true,
+    "perMachine": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": false,
     "createDesktopShortcut": true,
-    "createStartMenuShortcut": true
+    "createStartMenuShortcut": true,
+    "differentialPackage": true,
+    "deleteAppDataOnUninstall": false,
+    "runAfterFinish": true,
+    "warningsAsErrors": false,
+    "displayLanguageSelector": false,
+    "installerLanguages": ["en_US"],
+    "include": "electron/build/installer.nsh",
+    "guid": "b2c3d4e5-f6a7-8901-bcde-f23456789012"
   },
   "publish": {
     "provider": "github",
-    "owner": "your-github-username",
-    "repo": "admin-frontend-joanis"
+    "owner": "Aronis-web",
+    "repo": "admin-frontend-joanis",
+    "private": false
+  },
+  "extraMetadata": {
+    "main": "electron/main.js"
   }
 }
