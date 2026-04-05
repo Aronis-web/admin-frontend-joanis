@@ -169,19 +169,6 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                 />
               </TouchableOpacity>
             )}
-            {/* Botón de recarga disimulado */}
-            <TouchableOpacity
-              style={styles.reloadButton}
-              onPress={handleReload}
-              activeOpacity={activeOpacity.medium}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons
-                name="refresh"
-                size={iconSizes.sm}
-                color={colors.icon.tertiary}
-              />
-            </TouchableOpacity>
           </View>
 
           {/* Title Section */}
@@ -203,6 +190,19 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 
           {/* Right Section */}
           <View style={styles.rightSection}>
+            {/* Botón de recarga disimulado */}
+            <TouchableOpacity
+              style={styles.reloadButton}
+              onPress={handleReload}
+              activeOpacity={activeOpacity.medium}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons
+                name="refresh"
+                size={iconSizes.md}
+                color={colors.icon.tertiary}
+              />
+            </TouchableOpacity>
             {rightContent}
             {actions.map((action, index) => (
               <View key={index} style={styles.actionContainer}>
@@ -273,20 +273,20 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
             />
           </TouchableOpacity>
         )}
-        {/* Botón de recarga disimulado */}
-        <TouchableOpacity
-          style={styles.reloadButton}
-          onPress={handleReload}
-          activeOpacity={activeOpacity.medium}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons
-            name="refresh"
-            size={iconSizes.sm}
-            color={colors.icon.tertiary}
-          />
-        </TouchableOpacity>
         <View style={styles.largeActions}>
+          {/* Botón de recarga disimulado */}
+          <TouchableOpacity
+            style={styles.reloadButton}
+            onPress={handleReload}
+            activeOpacity={activeOpacity.medium}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons
+              name="refresh"
+              size={iconSizes.md}
+              color={colors.icon.tertiary}
+            />
+          </TouchableOpacity>
           {actions.map((action, index) => (
             <IconButton
               key={index}
@@ -350,9 +350,9 @@ const styles = StyleSheet.create({
   },
 
   reloadButton: {
-    padding: spacing[1],
-    marginLeft: spacing[1],
-    opacity: 0.5,
+    padding: spacing[2],
+    marginRight: spacing[1],
+    opacity: 0.6,
   },
 
   titleSection: {
