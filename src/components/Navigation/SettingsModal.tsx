@@ -21,7 +21,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Constants from 'expo-constants';
+
+// Importar versión directamente desde package.json
+// @ts-ignore
+import packageJson from '../../../package.json';
 
 // Design System
 import {
@@ -142,20 +145,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
   const [appVersion, setAppVersion] = useState<string>('');
   const [latestReleaseUrl, setLatestReleaseUrl] = useState<string | null>(null);
 
-  // Obtener versión de la app
+  // Obtener versión de la app - usar package.json como fuente principal
   useEffect(() => {
     const getVersion = async () => {
+      // La versión del package.json es la fuente más confiable
+      const pkgVersion = packageJson.version || '1.0.0';
+
       const electronAPI = getElectronAPI();
       if (electronAPI) {
         try {
           const info = await electronAPI.getAppVersion();
-          setAppVersion(info.version);
+          // Usar la versión de Electron si está disponible, sino usar package.json
+          setAppVersion(info.version || pkgVersion);
         } catch (error) {
           console.error('Error getting app version:', error);
-          setAppVersion(Constants.expoConfig?.version || '1.0.0');
+          setAppVersion(pkgVersion);
         }
       } else {
-        setAppVersion(Constants.expoConfig?.version || '1.0.0');
+        setAppVersion(pkgVersion);
       }
     };
 
