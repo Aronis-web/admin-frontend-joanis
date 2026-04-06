@@ -16,6 +16,8 @@ import {
   Switch,
   ActivityIndicator,
   Platform,
+  Alert,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,7 +35,6 @@ import {
 import {
   Text,
   Title,
-  Body,
   Caption,
   Divider,
   IconButton,
@@ -41,6 +42,10 @@ import {
 
 // Store
 import { useThemeStore } from '@/store/theme';
+
+// Configuración de GitHub para actualizaciones
+const GITHUB_OWNER = 'Aronis-web';
+const GITHUB_REPO = 'admin-frontend-joanis';
 
 // ============================================
 // TYPES
@@ -107,6 +112,22 @@ const SettingsCard: React.FC<SettingsCardProps> = ({ title, icon, children }) =>
 };
 
 // ============================================
+// HELPER: Comparar versiones semánticas
+// ============================================
+const compareVersions = (v1: string, v2: string): number => {
+  const parts1 = v1.replace(/^v/, '').split('.').map(Number);
+  const parts2 = v2.replace(/^v/, '').split('.').map(Number);
+
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const p1 = parts1[i] || 0;
+    const p2 = parts2[i] || 0;
+    if (p1 > p2) return 1;
+    if (p1 < p2) return -1;
+  }
+  return 0;
+};
+
+// ============================================
 // SETTINGS MODAL COMPONENT
 // ============================================
 export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
@@ -119,6 +140,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [appVersion, setAppVersion] = useState<string>('');
+  const [latestReleaseUrl, setLatestReleaseUrl] = useState<string | null>(null);
 
   // Obtener versión de la app
   useEffect(() => {
@@ -139,6 +161,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
     if (visible) {
       getVersion();
+      // Resetear estado al abrir
+      setUpdateInfo(null);
     }
   }, [visible]);
 
@@ -161,24 +185,86 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
     });
   }, []);
 
-  // Verificar actualizaciones
-  const checkForUpdates = useCallback(async () => {
-    const electronAPI = getElectronAPI();
-    if (!electronAPI) {
-      setUpdateInfo({
+  // Manejar toggle de modo oscuro
+  const handleToggleDarkMode = useCallback(() => {
+    toggleMode();
+    const newMode = !isDarkMode;
+    Alert.alert(
+      newMode ? '🌙 Modo Oscuro' : '☀️ Modo Claro',
+      newMode
+        ? 'Modo oscuro activado. Los cambios visuales se aplicarán gradualmente a toda la app.'
+        : 'Modo claro activado.',
+      [{ text: 'OK' }]
+    );
+  }, [isDarkMode, toggleMode]);
+
+  // Verificar actualizaciones via GitHub API
+  const checkForUpdatesViaGitHub = useCallback(async (): Promise<UpdateInfo> => {
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`,
+        {
+          headers: {
+            Accept: 'application/vnd.github.v3+json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return {
+            updateAvailable: false,
+            currentVersion: appVersion,
+            message: 'No hay releases publicados en GitHub',
+          };
+        }
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const release = await response.json();
+      const latestVersion = release.tag_name.replace(/^v/, '');
+      const currentVersion = appVersion.replace(/^v/, '');
+
+      const updateAvailable = compareVersions(latestVersion, currentVersion) > 0;
+
+      if (updateAvailable) {
+        setLatestReleaseUrl(release.html_url);
+      }
+
+      return {
+        updateAvailable,
+        currentVersion: appVersion,
+        latestVersion,
+        releaseDate: release.published_at,
+      };
+    } catch (error: any) {
+      console.error('Error checking GitHub releases:', error);
+      return {
         updateAvailable: false,
         currentVersion: appVersion,
-        message: 'Las actualizaciones solo están disponibles en la versión de escritorio',
-      });
-      return;
+        error: error.message || 'Error al verificar actualizaciones en GitHub',
+      };
     }
+  }, [appVersion]);
 
+  // Verificar actualizaciones
+  const checkForUpdates = useCallback(async () => {
     setIsCheckingUpdate(true);
     setUpdateInfo(null);
+    setLatestReleaseUrl(null);
 
     try {
-      const result = await electronAPI.checkForUpdates();
-      setUpdateInfo(result);
+      const electronAPI = getElectronAPI();
+
+      if (electronAPI) {
+        // En Electron, usar el sistema de auto-update
+        const result = await electronAPI.checkForUpdates();
+        setUpdateInfo(result);
+      } else {
+        // En otras plataformas, verificar via GitHub API
+        const result = await checkForUpdatesViaGitHub();
+        setUpdateInfo(result);
+      }
     } catch (error: any) {
       setUpdateInfo({
         updateAvailable: false,
@@ -188,7 +274,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
     } finally {
       setIsCheckingUpdate(false);
     }
-  }, [appVersion]);
+  }, [appVersion, checkForUpdatesViaGitHub]);
 
   // Descargar actualización
   const downloadUpdate = useCallback(async () => {
@@ -217,6 +303,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       console.error('Error installing update:', error);
     }
   }, []);
+
+  // Abrir página de releases en GitHub
+  const openGitHubRelease = useCallback(() => {
+    const url = latestReleaseUrl || `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
+    Linking.openURL(url).catch((err) => {
+      console.error('Error opening URL:', err);
+      Alert.alert('Error', 'No se pudo abrir el enlace');
+    });
+  }, [latestReleaseUrl]);
 
   // Formatear bytes
   const formatBytes = (bytes: number): string => {
@@ -283,7 +378,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 </View>
                 <Switch
                   value={isDarkMode}
-                  onValueChange={toggleMode}
+                  onValueChange={handleToggleDarkMode}
                   trackColor={{ false: colors.neutral[200], true: colors.primary[500] }}
                   thumbColor={isDarkMode ? colors.neutral[0] : colors.neutral[400]}
                 />
@@ -371,8 +466,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                         </View>
                       </View>
 
-                      {/* Progreso de descarga */}
-                      {isDownloading && downloadProgress && (
+                      {/* Progreso de descarga (solo Electron) */}
+                      {isElectron() && isDownloading && downloadProgress && (
                         <View style={styles.downloadProgress}>
                           <View style={styles.progressBarContainer}>
                             <View
@@ -394,31 +489,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                       )}
 
                       {/* Botones de acción */}
-                      {!updateInfo.updateDownloaded ? (
-                        <TouchableOpacity
-                          style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
-                          onPress={downloadUpdate}
-                          disabled={isDownloading}
-                          activeOpacity={activeOpacity.medium}
-                        >
-                          {isDownloading ? (
-                            <ActivityIndicator size="small" color={colors.neutral[0]} />
-                          ) : (
-                            <Ionicons name="download-outline" size={iconSizes.sm} color={colors.neutral[0]} />
-                          )}
-                          <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
-                            {isDownloading ? 'Descargando...' : 'Descargar Actualización'}
-                          </Text>
-                        </TouchableOpacity>
+                      {isElectron() ? (
+                        // En Electron: descargar e instalar
+                        !updateInfo.updateDownloaded ? (
+                          <TouchableOpacity
+                            style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
+                            onPress={downloadUpdate}
+                            disabled={isDownloading}
+                            activeOpacity={activeOpacity.medium}
+                          >
+                            {isDownloading ? (
+                              <ActivityIndicator size="small" color={colors.neutral[0]} />
+                            ) : (
+                              <Ionicons name="download-outline" size={iconSizes.sm} color={colors.neutral[0]} />
+                            )}
+                            <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                              {isDownloading ? 'Descargando...' : 'Descargar Actualización'}
+                            </Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.installButton}
+                            onPress={installUpdate}
+                            activeOpacity={activeOpacity.medium}
+                          >
+                            <Ionicons name="rocket-outline" size={iconSizes.sm} color={colors.neutral[0]} />
+                            <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                              Instalar y Reiniciar
+                            </Text>
+                          </TouchableOpacity>
+                        )
                       ) : (
+                        // En otras plataformas: abrir GitHub
                         <TouchableOpacity
-                          style={styles.installButton}
-                          onPress={installUpdate}
+                          style={styles.downloadButton}
+                          onPress={openGitHubRelease}
                           activeOpacity={activeOpacity.medium}
                         >
-                          <Ionicons name="rocket-outline" size={iconSizes.sm} color={colors.neutral[0]} />
+                          <Ionicons name="logo-github" size={iconSizes.sm} color={colors.neutral[0]} />
                           <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
-                            Instalar y Reiniciar
+                            Ver en GitHub
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -438,14 +548,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
               )}
 
               {/* Info adicional */}
-              {!isElectron() && (
-                <View style={styles.webNotice}>
-                  <Ionicons name="desktop-outline" size={iconSizes.sm} color={colors.info[500]} />
-                  <Caption color="secondary" style={styles.webNoticeText}>
-                    Las actualizaciones automáticas solo están disponibles en la versión de escritorio.
-                  </Caption>
-                </View>
-              )}
+              <View style={styles.webNotice}>
+                <Ionicons name="information-circle-outline" size={iconSizes.sm} color={colors.info[500]} />
+                <Caption color="secondary" style={styles.webNoticeText}>
+                  {isElectron()
+                    ? 'Las actualizaciones se descargan e instalan automáticamente.'
+                    : 'Verifica si hay nuevas versiones disponibles en GitHub.'}
+                </Caption>
+              </View>
             </SettingsCard>
 
             {/* Info del sistema */}
