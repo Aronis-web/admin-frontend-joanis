@@ -49,6 +49,7 @@ import { useThemeStore } from '@/store/theme';
 // Configuración de GitHub para actualizaciones
 const GITHUB_OWNER = 'Aronis-web';
 const GITHUB_REPO = 'admin-frontend-joanis';
+const GITHUB_TOKEN = process.env.EXPO_PUBLIC_GITHUB_TOKEN || '';
 
 // ============================================
 // TYPES
@@ -208,13 +209,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
   // Verificar actualizaciones via GitHub API
   const checkForUpdatesViaGitHub = useCallback(async (): Promise<UpdateInfo> => {
     try {
+      // Configurar headers con autenticación si hay token disponible
+      const headers: Record<string, string> = {
+        Accept: 'application/vnd.github.v3+json',
+      };
+
+      if (GITHUB_TOKEN) {
+        headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
+      }
+
       const response = await fetch(
         `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`,
-        {
-          headers: {
-            Accept: 'application/vnd.github.v3+json',
-          },
-        }
+        { headers }
       );
 
       if (!response.ok) {
