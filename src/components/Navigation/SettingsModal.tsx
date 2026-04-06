@@ -138,38 +138,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
   const insets = useSafeAreaInsets();
   const { isDarkMode, toggleMode } = useThemeStore();
 
+  // Obtener versión directamente de package.json (siempre disponible)
+  const appVersion = packageJson.version || '1.0.0';
+
   // Estado para actualizaciones
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
-  const [appVersion, setAppVersion] = useState<string>('');
   const [latestReleaseUrl, setLatestReleaseUrl] = useState<string | null>(null);
 
-  // Obtener versión de la app - usar package.json como fuente principal
+  // Resetear estado al abrir el modal
   useEffect(() => {
-    const getVersion = async () => {
-      // La versión del package.json es la fuente más confiable
-      const pkgVersion = packageJson.version || '1.0.0';
-
-      const electronAPI = getElectronAPI();
-      if (electronAPI) {
-        try {
-          const info = await electronAPI.getAppVersion();
-          // Usar la versión de Electron si está disponible, sino usar package.json
-          setAppVersion(info.version || pkgVersion);
-        } catch (error) {
-          console.error('Error getting app version:', error);
-          setAppVersion(pkgVersion);
-        }
-      } else {
-        setAppVersion(pkgVersion);
-      }
-    };
-
     if (visible) {
-      getVersion();
-      // Resetear estado al abrir
       setUpdateInfo(null);
     }
   }, [visible]);
