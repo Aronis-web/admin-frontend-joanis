@@ -450,7 +450,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         // En móvil, descargar y compartir el archivo
         const timestamp = Date.now();
         const fileName = `cuentas-por-cobrar-${formatDate(reportDate)}-${timestamp}.pdf`;
-        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
         const downloadResult = await FileSystem.downloadAsync(url, fileUri, {
           headers: {

@@ -176,7 +176,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${document.id}/pdf`;
 
         const fileName = `${document.documentNumber}.pdf`;
-        const fileUri = FileSystem.documentDirectory + fileName;
+        const fileUri = FileSystem.cacheDirectory + fileName;
 
         const headers: Record<string, string> = {
           'X-App-Id': config.APP_ID,
@@ -221,7 +221,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${documentId}/pdf`;
 
         const fileName = `${documentNumber}.pdf`;
-        const fileUri = FileSystem.documentDirectory + fileName;
+        const fileUri = FileSystem.cacheDirectory + fileName;
 
         const headers: Record<string, string> = { 'X-App-Id': config.APP_ID };
         if (token) headers['Authorization'] = `Bearer ${token}`;

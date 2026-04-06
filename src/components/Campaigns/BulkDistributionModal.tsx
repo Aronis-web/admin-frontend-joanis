@@ -69,7 +69,7 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
       } else {
         // Mobile: Save to file system and share
         const fileName = `distribucion-masiva-${campaignCode}.xlsx`;
-        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
         // Convert blob to base64
         const reader = new FileReader();

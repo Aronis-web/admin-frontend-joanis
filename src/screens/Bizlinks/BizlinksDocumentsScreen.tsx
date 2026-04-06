@@ -256,7 +256,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         console.log('🌐 URL de descarga:', pdfUrl);
 
         const fileName = `${document.serieNumero}.pdf`;
-        const fileUri = FileSystem.documentDirectory + fileName;
+        const fileUri = FileSystem.cacheDirectory + fileName;
 
         // Incluir headers de autenticación
         const headers: Record<string, string> = {
@@ -333,7 +333,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
       } else {
         // En móvil, descargar y compartir con autenticación
         const fileName = `${document.serieNumero}.xml`;
-        const fileUri = FileSystem.documentDirectory + fileName;
+        const fileUri = FileSystem.cacheDirectory + fileName;
 
         // Incluir headers de autenticación
         const headers: Record<string, string> = {

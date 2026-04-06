@@ -158,7 +158,7 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
         });
 
         // Save to file system
-        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
         await FileSystem.writeAsStringAsync(fileUri, base64Data, {
           encoding: FileSystem.EncodingType.Base64,
         });

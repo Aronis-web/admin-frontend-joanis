@@ -203,7 +203,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
 
       // Guardar archivo
       const fileName = `${retencion.serieNumero}.pdf`;
-      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
       // Convertir blob a base64
       const reader = new FileReader();
@@ -263,7 +263,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       const blob = await bizlinksApi.downloadRetencionXML(retencion.id);
 
       const fileName = `${retencion.serieNumero}.xml`;
-      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
       const reader = new FileReader();
       reader.readAsDataURL(blob);

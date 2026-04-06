@@ -487,7 +487,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       } else {
         const timestamp = Date.now();
         const fileName = `cuadre-caja-${formatDate(fechaInicio)}-${formatDate(fechaFin)}-${timestamp}.pdf`;
-        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
         const downloadResult = await FileSystem.downloadAsync(url, fileUri, {
           headers: {
