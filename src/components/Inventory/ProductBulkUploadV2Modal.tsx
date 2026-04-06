@@ -240,12 +240,24 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
       const formData = new FormData();
 
       // Check if we're on web
-      const isWeb = typeof document !== 'undefined';
+      const isWeb = Platform.OS === 'web';
 
       if (isWeb) {
         // For web, use the original File object if available
-        const fileToUpload = (file as any).file || file;
-        formData.append('file', fileToUpload as any);
+        console.log('📤 [Web] Preparing file upload...');
+        if ((file as any).file) {
+          console.log('✅ Using File object');
+          formData.append('file', (file as any).file);
+        } else {
+          // Fallback: fetch the blob from URI and create a File
+          console.log('⚠️ No File object, fetching from URI...');
+          const response = await fetch(file.uri);
+          const blob = await response.blob();
+          const fileToUpload = new File([blob], file.name || 'productos.xlsx', {
+            type: file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          });
+          formData.append('file', fileToUpload);
+        }
       } else {
         // For mobile, create a file object from URI
         const fileToUpload = {

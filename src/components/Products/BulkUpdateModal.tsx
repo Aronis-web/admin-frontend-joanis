@@ -156,8 +156,20 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
       let fileToUpload: any;
 
       if (Platform.OS === 'web') {
-        // Web: Use the original File object if available, otherwise fall back to the asset
-        fileToUpload = selectedFile.file || selectedFile;
+        // Web: Use the original File object if available
+        console.log('📤 [Web] Preparing file upload...');
+        if ((selectedFile as any).file) {
+          fileToUpload = (selectedFile as any).file;
+          console.log('✅ Using File object');
+        } else {
+          // Fallback: fetch the blob from URI and create a File
+          console.log('⚠️ No File object, fetching from URI...');
+          const response = await fetch(selectedFile.uri);
+          const blob = await response.blob();
+          fileToUpload = new File([blob], selectedFile.name, {
+            type: selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          });
+        }
       } else {
         // Mobile: Create file object from URI
         fileToUpload = {

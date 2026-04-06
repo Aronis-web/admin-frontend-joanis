@@ -9,17 +9,22 @@ import * as ImagePicker from 'expo-image-picker';
 import { isElectron } from './platform';
 
 /**
+ * Asset type for document picker
+ */
+export interface DocumentPickerAsset {
+  uri: string;
+  name: string;
+  size?: number;
+  mimeType?: string;
+  file?: File; // Original File object for web uploads
+}
+
+/**
  * Result type for document picker
  */
 export interface DocumentPickerResult {
   canceled: boolean;
-  assets?: Array<{
-    uri: string;
-    name: string;
-    size?: number;
-    mimeType?: string;
-    file?: File; // Original File object for web uploads
-  }>;
+  assets?: DocumentPickerAsset[];
 }
 
 /**

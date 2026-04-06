@@ -136,7 +136,19 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
 
       if (Platform.OS === 'web') {
         // Web: Use the original File object if available
-        fileToUpload = (file as any).file || file;
+        logger.info('📤 [Web] Preparing file upload...');
+        if ((file as any).file) {
+          fileToUpload = (file as any).file;
+          logger.info('✅ Using File object');
+        } else {
+          // Fallback: fetch the blob from URI and create a File
+          logger.info('⚠️ No File object, fetching from URI...');
+          const fetchResponse = await fetch(file.uri);
+          const blob = await fetchResponse.blob();
+          fileToUpload = new File([blob], file.name, {
+            type: file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          });
+        }
       } else {
         // Mobile: Use file metadata object (React Native FormData format)
         fileToUpload = {
@@ -146,7 +158,7 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
         };
       }
 
-      logger.info('📦 Archivo preparado para upload:', Platform.OS === 'web' ? 'File object' : fileToUpload);
+      logger.info('📦 Archivo preparado para upload');
 
       const response = await campaignsService.uploadBulkDistribution(campaignId, fileToUpload);
 

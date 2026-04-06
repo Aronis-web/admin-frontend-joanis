@@ -20,7 +20,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { getDocumentAsync } from '@/utils/filePicker';
+import { getDocumentAsync, DocumentPickerAsset } from '@/utils/filePicker';
 import { Picker } from '@react-native-picker/picker';
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
@@ -153,7 +153,7 @@ const ReportTypeCard: React.FC<ReportTypeCardProps> = ({ type, isSelected, onPre
 export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { token, currentCompany } = useAuthStore();
-  const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [selectedFile, setSelectedFile] = useState<DocumentPickerAsset | null>(null);
   const [selectedReportType, setSelectedReportType] = useState<ReportType | null>(null);
   const [selectedSede, setSelectedSede] = useState<string>('');
   const [sedes, setSedes] = useState<Site[]>([]);
@@ -261,8 +261,24 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 
       if (Platform.OS === 'web') {
         // Web: Use the original File object if available
-        const fileToUpload = (selectedFile as any).file || selectedFile;
-        formData.append('file', fileToUpload as any);
+        console.log('📤 [Web] Preparing file upload...');
+        console.log('📄 selectedFile:', selectedFile);
+        console.log('📄 selectedFile.file:', selectedFile.file);
+
+        if (selectedFile.file) {
+          // Use the preserved File object
+          console.log('✅ Using File object:', selectedFile.file.name, selectedFile.file.type);
+          formData.append('file', selectedFile.file);
+        } else {
+          // Fallback: fetch the blob from URI and create a File
+          console.log('⚠️ No File object, fetching from URI...');
+          const response = await fetch(selectedFile.uri);
+          const blob = await response.blob();
+          const file = new File([blob], selectedFile.name, {
+            type: selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          });
+          formData.append('file', file);
+        }
       } else {
         // Mobile: Use file metadata object
         formData.append('file', {

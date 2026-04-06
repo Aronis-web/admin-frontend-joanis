@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getDocumentAsync } from '@/utils/filePicker';
+import { getDocumentAsync, DocumentPickerAsset } from '@/utils/filePicker';
 import { expensesService } from '@/services/api/expenses';
 import { useAuthStore } from '@/store/auth';
 import { colors, spacing, borderRadius } from '@/design-system/tokens';
@@ -29,7 +29,7 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
   const { currentCompany } = useAuthStore();
   const [downloading, setDownloading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [selectedFile, setSelectedFile] = useState<DocumentPickerAsset | null>(null);
 
   const handleDownloadFormat = async () => {
     try {
@@ -105,18 +105,27 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
       setUploading(true);
       console.log('📤 Subiendo archivo:', selectedFile.name);
 
-      let blob: Blob;
+      let fileToUpload: Blob | File;
 
-      if (Platform.OS === 'web' && (selectedFile as any).file) {
-        // Web: Use the original File object directly
-        blob = (selectedFile as any).file;
+      if (Platform.OS === 'web') {
+        console.log('📤 [Web] Preparing file upload...');
+        if ((selectedFile as any).file) {
+          // Use the preserved File object
+          fileToUpload = (selectedFile as any).file;
+          console.log('✅ Using File object');
+        } else {
+          // Fallback: fetch the blob from URI
+          console.log('⚠️ No File object, fetching from URI...');
+          const response = await fetch(selectedFile.uri);
+          fileToUpload = await response.blob();
+        }
       } else {
-        // Mobile or fallback: Fetch the file and convert to blob
+        // Mobile: Fetch the file and convert to blob
         const response = await fetch(selectedFile.uri);
-        blob = await response.blob();
+        fileToUpload = await response.blob();
       }
 
-      const result = await expensesService.uploadBulkExpenses(blob, currentCompany.id);
+      const result = await expensesService.uploadBulkExpenses(fileToUpload, currentCompany.id);
 
       Alert.alert(
         'Éxito',
