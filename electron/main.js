@@ -35,6 +35,15 @@ if (process.platform === 'win32') {
   autoUpdater.forceDevUpdateConfig = false;
 }
 
+// Token de GitHub para repositorios privados
+// IMPORTANTE: Este token permite acceder a los releases del repositorio privado
+const GITHUB_TOKEN = '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';
+autoUpdater.requestHeaders = {
+  Authorization: `token ${GITHUB_TOKEN}`
+};
+
+console.log('[ELECTRON] ✅ Auto-updater configurado para repositorio privado');
+
 // Variable para almacenar el estado de la actualización
 let updateInfo = null;
 let updateDownloaded = false;

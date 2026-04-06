@@ -69,7 +69,7 @@
     "provider": "github",
     "owner": "Aronis-web",
     "repo": "admin-frontend-joanis",
-    "private": false
+    "private": true
   },
   "extraMetadata": {
     "main": "electron/main.js"
