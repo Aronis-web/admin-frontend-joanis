@@ -207,15 +207,33 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       console.log('✅ [UPLOAD] User ID:', user.id);
       console.log('📤 [UPLOAD] Uploading stock update file:', file.name);
 
-      // In React Native, we need to pass the file metadata directly to FormData
-      // Don't convert to blob - use the file object with uri, type, and name
-      const fileToUpload = {
-        uri: file.uri,
-        type: file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        name: file.name,
-      };
+      let fileToUpload: any;
 
-      console.log('📦 [UPLOAD] File object prepared for upload:', JSON.stringify(fileToUpload, null, 2));
+      if (Platform.OS === 'web') {
+        // Web: Use the original File object if available
+        console.log('📤 [Web] Preparing file upload...');
+        if (file.file) {
+          fileToUpload = file.file;
+          console.log('✅ Using File object');
+        } else {
+          // Fallback: fetch the blob from URI and create a File
+          console.log('⚠️ No File object, fetching from URI...');
+          const response = await fetch(file.uri);
+          const blob = await response.blob();
+          fileToUpload = new File([blob], file.name, {
+            type: file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          });
+        }
+      } else {
+        // Mobile: Use file metadata object
+        fileToUpload = {
+          uri: file.uri,
+          type: file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          name: file.name,
+        };
+      }
+
+      console.log('📦 [UPLOAD] File object prepared for upload');
 
       // Upload to API
       console.log('🚀 [UPLOAD] Calling inventoryApi.uploadStockUpdate...');

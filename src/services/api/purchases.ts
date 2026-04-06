@@ -295,21 +295,36 @@ class PurchasesService {
    * @param provider - OCR provider to use ('openai' or 'gemini')
    */
   async scanDocuments(
-    files: Array<{ uri: string; filename: string; mimeType: string }>,
+    files: Array<{ uri: string; filename: string; mimeType: string; file?: File }>,
     observaciones?: string,
     provider: 'openai' | 'gemini' = 'openai'
   ): Promise<OcrScanResponse> {
     const formData = new FormData();
+    const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
 
-    // Append all files - React Native format
-    // Each file must have: uri, type, and name
-    files.forEach((file) => {
-      formData.append('files', {
-        uri: file.uri,
-        type: file.mimeType,
-        name: file.filename,
-      } as any);
-    });
+    // Append all files
+    for (const file of files) {
+      if (isWeb) {
+        // Web: Use File object if available, or fetch from blob URL
+        let fileToUpload: File | Blob;
+        if (file.file) {
+          fileToUpload = file.file;
+        } else {
+          // Fetch blob from URI and create File
+          const response = await fetch(file.uri);
+          const blob = await response.blob();
+          fileToUpload = new File([blob], file.filename, { type: file.mimeType });
+        }
+        formData.append('files', fileToUpload);
+      } else {
+        // Mobile: Use uri, type, name object
+        formData.append('files', {
+          uri: file.uri,
+          type: file.mimeType,
+          name: file.filename,
+        } as any);
+      }
+    }
 
     // Append observations if provided
     if (observaciones && observaciones.trim()) {
@@ -335,7 +350,7 @@ class PurchasesService {
    * @param provider - OCR provider to use ('openai' or 'gemini')
    */
   async scanDocumentsSequentially(
-    files: Array<{ uri: string; filename: string; mimeType: string }>,
+    files: Array<{ uri: string; filename: string; mimeType: string; file?: File }>,
     observaciones?: string,
     onProgress?: (current: number, total: number, filename: string) => void,
     provider: 'openai' | 'gemini' = 'openai'
@@ -344,6 +359,7 @@ class PurchasesService {
     let totalEstimado = 0;
     let archivosProcessados = 0;
     const observacionesArray: string[] = [];
+    const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
 
     // Select endpoint based on provider
     const endpoint = provider === 'gemini'
@@ -361,11 +377,26 @@ class PurchasesService {
       try {
         // Scan single file
         const formData = new FormData();
-        formData.append('files', {
-          uri: file.uri,
-          type: file.mimeType,
-          name: file.filename,
-        } as any);
+
+        if (isWeb) {
+          // Web: Use File object if available, or fetch from blob URL
+          let fileToUpload: File | Blob;
+          if (file.file) {
+            fileToUpload = file.file;
+          } else {
+            const response = await fetch(file.uri);
+            const blob = await response.blob();
+            fileToUpload = new File([blob], file.filename, { type: file.mimeType });
+          }
+          formData.append('files', fileToUpload);
+        } else {
+          // Mobile: Use uri, type, name object
+          formData.append('files', {
+            uri: file.uri,
+            type: file.mimeType,
+            name: file.filename,
+          } as any);
+        }
 
         if (observaciones && observaciones.trim()) {
           formData.append('observaciones', observaciones);

@@ -136,7 +136,13 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
 
       const file = result.assets?.[0];
       if (!file) return;
-      await uploadFile(file.uri, file.name, file.mimeType || 'application/octet-stream');
+
+      // For web, pass the File object; for mobile, pass URI
+      if (Platform.OS === 'web' && (file as any).file) {
+        await uploadFile((file as any).file, file.name, file.mimeType || 'application/octet-stream', true);
+      } else {
+        await uploadFile(file.uri, file.name, file.mimeType || 'application/octet-stream', false);
+      }
     } catch (error) {
       console.error('Error picking file:', error);
       Alert.alert('Error', 'No se pudo seleccionar el archivo');
@@ -192,15 +198,16 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
     }
   };
 
-  const uploadFile = async (uri: string, filename: string, mimeType: string) => {
+  const uploadFile = async (uriOrFile: string | File, filename: string, mimeType: string, isWebFile: boolean = false) => {
     try {
       setUploading(true);
 
       const response = await filesApi.uploadSupplierDebtFile(
-        uri,
+        uriOrFile,
         filename,
         supplierId,
-        mimeType
+        mimeType,
+        isWebFile
       );
 
       // El backend retorna { success, url, path, category }

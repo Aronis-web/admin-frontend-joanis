@@ -434,21 +434,32 @@ export const filesApi = {
    * The backend accepts path as attachmentFileId for supplier debts
    */
   uploadSupplierDebtFile: async (
-    fileUri: string,
+    fileUriOrFile: string | File,
     filename: string,
     supplierId: string,
-    mimeType: string = 'image/jpeg'
+    mimeType: string = 'image/jpeg',
+    isWebFile: boolean = false
   ): Promise<{ success: boolean; url: string; path: string; category: string }> => {
     console.log('📎 Uploading supplier debt file...');
     console.log('📎 Supplier ID:', supplierId);
     console.log('📎 Filename:', filename);
+    console.log('📎 Is web file:', isWebFile);
 
     const formData = new FormData();
-    formData.append('file', {
-      uri: fileUri,
-      type: mimeType,
-      name: filename,
-    } as any);
+
+    if (isWebFile && fileUriOrFile instanceof File) {
+      // Web: Use File object directly
+      console.log('📎 Using File object for web upload');
+      formData.append('file', fileUriOrFile);
+    } else {
+      // Mobile: Use uri, type, name object
+      formData.append('file', {
+        uri: fileUriOrFile as string,
+        type: mimeType,
+        name: filename,
+      } as any);
+    }
+
     formData.append('filename', filename);
     formData.append('category', 'supplier-debts');
     formData.append('subfolder', supplierId);
