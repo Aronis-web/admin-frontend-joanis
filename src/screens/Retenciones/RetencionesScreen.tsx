@@ -9,17 +9,20 @@ import {
   Alert,
   ActivityIndicator,
   useWindowDimensions,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuthStore } from '@/store/auth';
 import { bizlinksApi } from '@/services/api/bizlinks';
 import { Retencion, GetRetencionesParams } from '@/types/bizlinks';
 import { formatDateToString } from '@/utils/dateHelpers';
-import { SearchBar } from '@/components/common/SearchBar';
 import { useDebounce } from '@/hooks/useDebounce';
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 
 type Props = NativeStackScreenProps<any, 'Retenciones'>;
 
@@ -304,54 +307,91 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Retenciones</Text>
-          <TouchableOpacity onPress={handleCreateRetencion} style={styles.addButton}>
-            <Ionicons name="add-circle" size={28} color="#8B5CF6" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Search Bar */}
-        <SearchBar
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-          placeholder="Buscar por RUC del proveedor..."
-        />
-
-        {/* Status Filter */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterContainer}
-          contentContainerStyle={styles.filterContent}
+    <ScreenLayout navigation={navigation as any}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
         >
-          {['ALL', 'QUEUED', 'SENDING', 'SENT', 'ACCEPTED', 'REJECTED', 'ERROR'].map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.filterButton,
-                selectedStatus === status && styles.filterButtonActive,
-              ]}
-              onPress={() => setSelectedStatus(status)}
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  selectedStatus === status && styles.filterButtonTextActive,
-                ]}
-              >
-                {status === 'ALL' ? 'Todos' : STATUS_LABELS[status] || status}
-              </Text>
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
+              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="receipt" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
+                  Retenciones
+                </Text>
+              </View>
+              <Text style={styles.headerSubtitle}>
+                Gestión de retenciones electrónicas
+              </Text>
+            </View>
+
+            {/* Stats */}
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{retenciones.length}</Text>
+                <Text style={styles.statLabel}>Total</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+              <TextInput
+                style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                placeholder="Buscar por RUC del proveedor..."
+                placeholderTextColor={colors.neutral[400]}
+              />
+              {searchTerm.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchTerm('')} style={styles.clearButton}>
+                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* Quick Filters - Estado */}
+        <View style={styles.quickFiltersContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickFiltersContent}
+          >
+            {['ALL', 'QUEUED', 'SENDING', 'SENT', 'ACCEPTED', 'REJECTED', 'ERROR'].map((status) => (
+              <TouchableOpacity
+                key={status}
+                style={[
+                  styles.filterChip,
+                  selectedStatus === status && styles.filterChipActive,
+                ]}
+                onPress={() => setSelectedStatus(status)}
+              >
+                <View style={[styles.filterDot, { backgroundColor: STATUS_COLORS[status] || colors.neutral[400] }]} />
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    selectedStatus === status && styles.filterChipTextActive,
+                  ]}
+                >
+                  {status === 'ALL' ? 'Todos' : STATUS_LABELS[status] || status}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
       {/* Content */}
       <ScrollView
@@ -375,107 +415,203 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </ScrollView>
 
-      {/* Floating Action Button */}
-      {!loading && retenciones.length > 0 && (
-        <TouchableOpacity style={styles.fab} onPress={handleCreateRetencion}>
-          <Ionicons name="add" size={28} color="#FFFFFF" />
-        </TouchableOpacity>
-      )}
-    </SafeAreaView>
+        {/* Floating Action Button */}
+        {!loading && retenciones.length > 0 && (
+          <TouchableOpacity style={styles.fab} onPress={handleCreateRetencion}>
+            <Ionicons name="add" size={28} color={colors.neutral[0]} />
+          </TouchableOpacity>
+        )}
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background.secondary,
   },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
   },
   headerTop: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
+    alignItems: 'flex-start',
+    marginBottom: spacing[4],
   },
-  backButton: {
-    padding: 8,
+  backButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
   },
   headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
+  },
+  headerTitleTablet: {
+    fontSize: 28,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginLeft: spacing[12],
+  },
+  statsContainer: {
+    alignItems: 'flex-end',
+  },
+  statItem: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+  },
+  statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: colors.neutral[0],
+  },
+  statLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  searchInputContainer: {
     flex: 1,
-    textAlign: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[3],
   },
-  addButton: {
-    padding: 8,
+  searchIcon: {
+    marginRight: spacing[2],
   },
-  filterContainer: {
-    marginTop: 12,
+  searchInput: {
+    flex: 1,
+    paddingVertical: spacing[3],
+    fontSize: 15,
+    color: colors.neutral[800],
   },
-  filterContent: {
-    paddingRight: 16,
+  searchInputTablet: {
+    fontSize: 16,
+    paddingVertical: spacing[3.5],
   },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    marginRight: 8,
+  clearButton: {
+    padding: spacing[1],
   },
-  filterButtonActive: {
-    backgroundColor: '#8B5CF6',
+  // Quick filters
+  quickFiltersContainer: {
+    backgroundColor: colors.surface.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[200],
   },
-  filterButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+  quickFiltersContent: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    gap: spacing[2],
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    gap: spacing[1.5],
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.neutral[600],
+  },
+  filterChipTextActive: {
+    color: colors.neutral[0],
+  },
+  filterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    padding: spacing[4],
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: spacing[16],
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
+    fontWeight: '500',
   },
   list: {
-    gap: 12,
+    gap: spacing[3],
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
+    marginBottom: spacing[3],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    ...shadows.sm,
+    overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: spacing[4],
+    paddingBottom: spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[100],
+    backgroundColor: colors.neutral[50],
   },
   cardHeaderLeft: {
     flexDirection: 'row',
@@ -483,15 +619,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   documentTypeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 12,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
+    marginRight: spacing[3],
   },
   documentTypeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   cardHeaderInfo: {
     flex: 1,
@@ -499,88 +635,92 @@ const styles = StyleSheet.create({
   serieNumero: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   fechaEmision: {
     fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
+    color: colors.neutral[500],
+    marginTop: spacing[0.5],
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   cardBody: {
-    gap: 8,
-    marginBottom: 12,
+    padding: spacing[4],
+    gap: spacing[2],
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   infoLabel: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 13,
-    color: '#1F2937',
+    color: colors.neutral[800],
     fontWeight: '600',
     flex: 1,
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 12,
+    padding: spacing[4],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.neutral[100],
+    backgroundColor: colors.neutral[50],
   },
   amountContainer: {
     flex: 1,
   },
   amountLabel: {
     fontSize: 11,
-    color: '#6B7280',
-    marginBottom: 2,
+    color: colors.neutral[500],
+    marginBottom: spacing[0.5],
   },
   amountValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   sunatMessage: {
-    marginTop: 12,
-    padding: 8,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 6,
+    marginTop: spacing[3],
+    padding: spacing[2],
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.warning[200],
   },
   sunatMessageText: {
     fontSize: 11,
-    color: '#92400E',
+    color: colors.warning[700],
   },
   reversedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    borderRadius: 6,
-    padding: 8,
-    marginTop: 8,
-    marginBottom: 8,
-    gap: 8,
+    backgroundColor: colors.danger[50],
+    borderRadius: borderRadius.md,
+    padding: spacing[2],
+    marginTop: spacing[2],
+    marginBottom: spacing[2],
+    gap: spacing[2],
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: colors.danger[200],
   },
   reversedBannerText: {
     fontSize: 12,
-    color: '#DC2626',
+    color: colors.danger[600],
     fontWeight: '600',
     flex: 1,
   },
@@ -588,49 +728,45 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: spacing[16],
   },
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 16,
+    color: colors.neutral[700],
+    marginTop: spacing[4],
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#6B7280',
-    marginTop: 8,
+    color: colors.neutral[500],
+    marginTop: spacing[2],
     textAlign: 'center',
   },
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#8B5CF6',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 24,
-    gap: 8,
+    backgroundColor: colors.primary[600],
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[6],
+    gap: spacing[2],
   },
   emptyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   fab: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
+    right: spacing[5],
+    bottom: spacing[5],
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#8B5CF6',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[600],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
+    ...shadows.lg,
   },
 });

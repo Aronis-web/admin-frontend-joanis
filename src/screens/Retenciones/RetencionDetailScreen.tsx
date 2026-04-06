@@ -14,12 +14,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { bizlinksApi } from '@/services/api/bizlinks';
 import { Retencion } from '@/types/bizlinks';
 import { formatDateToString } from '@/utils/dateHelpers';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 
 type Props = NativeStackScreenProps<any, 'RetencionDetail'>;
 
@@ -359,12 +362,14 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8B5CF6" />
-          <Text style={styles.loadingText}>Cargando retención...</Text>
-        </View>
-      </SafeAreaView>
+      <ScreenLayout navigation={navigation as any}>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary[600]} />
+            <Text style={styles.loadingText}>Cargando retención...</Text>
+          </View>
+        </SafeAreaView>
+      </ScreenLayout>
     );
   }
 
@@ -376,60 +381,77 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const statusLabel = STATUS_LABELS[retencion.status] || retencion.status;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalle de Retención</Text>
-        <TouchableOpacity
-          onPress={handleRefresh}
-          style={styles.refreshButton}
-          disabled={refreshing}
+    <ScreenLayout navigation={navigation as any}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
         >
-          <Ionicons
-            name="refresh"
-            size={24}
-            color={refreshing ? '#9CA3AF' : '#8B5CF6'}
-          />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {/* Status Card */}
-        <View style={styles.card}>
-          <View style={styles.statusHeader}>
-            <View style={[styles.statusBadge, { backgroundColor: retencion.isReversed ? '#EF4444' : statusColor }]}>
-              <Text style={styles.statusText}>{retencion.isReversed ? 'ANULADA' : statusLabel}</Text>
-            </View>
-            <Text style={styles.serieNumero}>{retencion.serieNumero}</Text>
-          </View>
-          {retencion.messageSunat && (
-            <View style={styles.sunatMessage}>
-              <Text style={styles.sunatMessageText}>
-                {retencion.messageSunat.codigo}: {retencion.messageSunat.mensaje}
-              </Text>
-            </View>
-          )}
-          {retencion.isReversed && (
-            <View style={styles.reversedAlert}>
-              <Ionicons name="warning" size={24} color="#EF4444" />
-              <View style={styles.reversedAlertContent}>
-                <Text style={styles.reversedAlertTitle}>⚠️ RETENCIÓN ANULADA</Text>
-                <Text style={styles.reversedAlertText}>
-                  Revertida por: {retencion.reversedBySerieNumero}
-                </Text>
-                <Text style={styles.reversedAlertText}>
-                  Motivo: {retencion.reversalReason}
-                </Text>
-                <Text style={styles.reversedAlertText}>
-                  Fecha de anulación: {formatDateToString(new Date(retencion.reversedAt!))}
-                </Text>
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
+              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="receipt" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={styles.headerTitle}>{retencion.serieNumero}</Text>
               </View>
+              <Text style={styles.headerSubtitle}>Detalle de Retención</Text>
+            </View>
+            <View style={styles.headerActions}>
+              <View style={[styles.statusBadgeHeader, { backgroundColor: retencion.isReversed ? colors.danger[500] : statusColor }]}>
+                <Text style={styles.statusTextHeader}>{retencion.isReversed ? 'ANULADA' : statusLabel}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleRefresh}
+                style={styles.refreshButtonHeader}
+                disabled={refreshing}
+              >
+                <Ionicons
+                  name="refresh"
+                  size={20}
+                  color={colors.neutral[0]}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          {/* Status Card - Mensaje SUNAT */}
+          {(retencion.messageSunat || retencion.isReversed) && (
+            <View style={styles.card}>
+              {retencion.messageSunat && (
+                <View style={styles.sunatMessage}>
+                  <Text style={styles.sunatMessageText}>
+                    {retencion.messageSunat.codigo}: {retencion.messageSunat.mensaje}
+                  </Text>
+                </View>
+              )}
+              {retencion.isReversed && (
+                <View style={styles.reversedAlert}>
+                  <Ionicons name="warning" size={24} color={colors.danger[500]} />
+                  <View style={styles.reversedAlertContent}>
+                    <Text style={styles.reversedAlertTitle}>⚠️ RETENCIÓN ANULADA</Text>
+                    <Text style={styles.reversedAlertText}>
+                      Revertida por: {retencion.reversedBySerieNumero}
+                    </Text>
+                    <Text style={styles.reversedAlertText}>
+                      Motivo: {retencion.reversalReason}
+                    </Text>
+                    <Text style={styles.reversedAlertText}>
+                      Fecha de anulación: {formatDateToString(new Date(retencion.reversedAt!))}
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           )}
-        </View>
 
         {/* Información General */}
         <View style={styles.card}>
@@ -444,7 +466,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Régimen</Text>
               <Text style={styles.infoValue}>
-                {REGIMEN_LABELS[retencion.regimenRetencion] || retencion.regimenRetencion}
+                {retencion.regimenRetencion ? (REGIMEN_LABELS[retencion.regimenRetencion] || retencion.regimenRetencion) : '-'}
               </Text>
             </View>
             <View style={styles.infoItem}>
@@ -678,15 +700,16 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
             </View>
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background.secondary,
   },
   loadingContainer: {
     flex: 1,
@@ -694,160 +717,210 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing[3],
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
+    fontWeight: '500',
   },
-  header: {
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[5],
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  backButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    marginBottom: spacing[1],
   },
-  backButton: {
-    padding: 8,
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
-    flex: 1,
-    textAlign: 'center',
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
   },
-  refreshButton: {
-    padding: 8,
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginLeft: spacing[12],
+  },
+  headerActions: {
+    alignItems: 'flex-end',
+    gap: spacing[2],
+  },
+  statusBadgeHeader: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
+  },
+  statusTextHeader: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.neutral[0],
+    textTransform: 'uppercase',
+  },
+  refreshButtonHeader: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    padding: spacing[4],
+    paddingBottom: spacing[10],
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    ...shadows.sm,
   },
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   serieNumero: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   sunatMessage: {
-    padding: 12,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
+    padding: spacing[3],
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.warning[200],
   },
   sunatMessageText: {
     fontSize: 12,
-    color: '#92400E',
+    color: colors.warning[700],
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
+    color: colors.neutral[800],
+    marginBottom: spacing[3],
   },
   infoGrid: {
-    gap: 12,
+    gap: spacing[3],
   },
   infoItem: {
-    gap: 4,
+    gap: spacing[1],
   },
   infoLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 14,
-    color: '#1F2937',
+    color: colors.neutral[800],
     fontWeight: '600',
   },
   totalesContainer: {
-    gap: 8,
+    gap: spacing[2],
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing[2],
   },
   totalRowFinal: {
     borderTopWidth: 2,
-    borderTopColor: '#E5E7EB',
-    marginTop: 8,
-    paddingTop: 12,
+    borderTopColor: colors.neutral[200],
+    marginTop: spacing[2],
+    paddingTop: spacing[3],
   },
   totalLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.neutral[500],
     fontWeight: '500',
   },
   totalValue: {
     fontSize: 14,
-    color: '#1F2937',
+    color: colors.neutral[800],
     fontWeight: '600',
   },
   totalLabelFinal: {
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.neutral[800],
     fontWeight: '700',
   },
   totalValueFinal: {
     fontSize: 18,
-    color: '#10B981',
+    color: colors.success[600],
     fontWeight: '700',
   },
   itemCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginBottom: spacing[2],
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   itemNumero: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937',
+    color: colors.neutral[800],
   },
   itemFecha: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   itemBody: {
-    gap: 4,
+    gap: spacing[1],
   },
   itemRow: {
     flexDirection: 'row',
@@ -856,37 +929,40 @@ const styles = StyleSheet.create({
   },
   itemLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.neutral[500],
   },
   itemValue: {
     fontSize: 12,
-    color: '#1F2937',
+    color: colors.neutral[800],
     fontWeight: '600',
   },
   itemLabelBold: {
     fontSize: 13,
-    color: '#1F2937',
+    color: colors.neutral[800],
     fontWeight: '700',
   },
   itemValueBold: {
     fontSize: 13,
-    color: '#10B981',
+    color: colors.success[600],
     fontWeight: '700',
   },
   observaciones: {
     fontSize: 14,
-    color: '#4B5563',
+    color: colors.neutral[600],
     lineHeight: 20,
   },
   actionsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[4],
+    marginBottom: spacing[4],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    ...shadows.sm,
   },
   actionsGrid: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
     flexWrap: 'wrap',
   },
   actionButton: {
@@ -894,12 +970,12 @@ const styles = StyleSheet.create({
     minWidth: 100,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    padding: spacing[4],
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 8,
+    borderColor: colors.neutral[200],
+    gap: spacing[2],
   },
   actionButtonDisabled: {
     opacity: 0.5,
@@ -907,53 +983,53 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1F2937',
+    color: colors.neutral[700],
   },
   reversedAlert: {
     flexDirection: 'row',
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
+    backgroundColor: colors.danger[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginTop: spacing[3],
     borderWidth: 1,
-    borderColor: '#FEE2E2',
-    gap: 12,
+    borderColor: colors.danger[200],
+    gap: spacing[3],
   },
   reversedAlertContent: {
     flex: 1,
-    gap: 4,
+    gap: spacing[1],
   },
   reversedAlertTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#DC2626',
-    marginBottom: 4,
+    color: colors.danger[600],
+    marginBottom: spacing[1],
   },
   reversedAlertText: {
     fontSize: 12,
-    color: '#991B1B',
+    color: colors.danger[700],
     lineHeight: 16,
   },
   anularButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EF4444',
-    borderRadius: 8,
-    padding: 16,
-    gap: 8,
-    marginTop: 8,
+    backgroundColor: colors.danger[500],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    gap: spacing[2],
+    marginTop: spacing[2],
   },
   anularButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   anularWarning: {
     fontSize: 12,
-    color: '#DC2626',
+    color: colors.danger[600],
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: spacing[2],
     fontStyle: 'italic',
   },
   modalOverlay: {
@@ -961,87 +1037,83 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing[4],
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing[6],
     width: '100%',
     maxWidth: 500,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
+    ...shadows.xl,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
     textAlign: 'center',
   },
   modalSubtitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8B5CF6',
-    marginBottom: 16,
+    color: colors.primary[600],
+    marginBottom: spacing[4],
     textAlign: 'center',
   },
   modalWarning: {
     fontSize: 13,
-    color: '#DC2626',
-    backgroundColor: '#FEF2F2',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
+    color: colors.danger[600],
+    backgroundColor: colors.danger[50],
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[4],
     textAlign: 'center',
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: colors.danger[200],
   },
   modalLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    color: colors.neutral[700],
+    marginBottom: spacing[2],
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.neutral[300],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
     fontSize: 14,
-    color: '#1F2937',
+    color: colors.neutral[800],
     minHeight: 100,
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   modalButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   modalButtonCancel: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-    padding: 14,
+    backgroundColor: colors.neutral[100],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3.5],
     alignItems: 'center',
   },
   modalButtonCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.neutral[600],
   },
   modalButtonConfirm: {
     flex: 1,
-    backgroundColor: '#EF4444',
-    borderRadius: 8,
-    padding: 14,
+    backgroundColor: colors.danger[500],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3.5],
     alignItems: 'center',
   },
   modalButtonConfirmText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
 });

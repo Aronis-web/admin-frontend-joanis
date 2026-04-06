@@ -11,10 +11,12 @@ import {
   useWindowDimensions,
   Linking,
   Platform,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useBizlinksDocuments } from '../../hooks/useBizlinks';
 import {
@@ -26,13 +28,14 @@ import {
 import { useAuthStore } from '../../store/auth';
 import { BizlinksDocumentsFAB } from '@/components/Bizlinks';
 import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
-import { SearchBar } from '@/components/common/SearchBar';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatDateToString } from '@/utils/dateHelpers';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { config } from '@/utils/config';
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 
 type Props = NativeStackScreenProps<any, 'BizlinksDocuments'>;
 
@@ -531,131 +534,177 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando comprobantes...</Text>
-        </View>
-      </SafeAreaView>
+      <ScreenLayout navigation={navigation as any}>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary[600]} />
+            <Text style={styles.loadingText}>Cargando comprobantes...</Text>
+          </View>
+        </SafeAreaView>
+      </ScreenLayout>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <View>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>
-            Comprobantes Electrónicos
-          </Text>
-          <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-            Gestión de facturación electrónica SUNAT
-          </Text>
-        </View>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <SearchBar
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-          placeholder="Buscar por serie-número..."
-          onClear={() => setSearchTerm('')}
-        />
-      </View>
-
-      {/* Filtro por Tipo de Documento */}
-      <StatusFilter
-        statuses={documentTypeOptions}
-        selectedStatus={selectedDocumentType}
-        onStatusChange={(status) => {
-          setSelectedDocumentType(status);
-          setPage(1);
-        }}
-        style={styles.statusFilter}
-      />
-
-      {/* Filtro por Estado SUNAT */}
-      <StatusFilter
-        statuses={statusOptions}
-        selectedStatus={selectedStatus}
-        onStatusChange={(status) => {
-          setSelectedStatus(status);
-          setPage(1);
-        }}
-        style={styles.statusFilter}
-      />
-
-      {/* Date Filters Toggle */}
-      <View style={styles.dateFilterToggleContainer}>
-        <TouchableOpacity
-          style={styles.dateFilterToggle}
-          onPress={() => setShowDateFilters(!showDateFilters)}
-          activeOpacity={0.7}
+    <ScreenLayout navigation={navigation as any}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={[colors.primary[900], colors.primary[800]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
         >
-          <Ionicons
-            name={showDateFilters ? 'calendar' : 'calendar-outline'}
-            size={20}
-            color="#6366F1"
-          />
-          <Text style={styles.dateFilterToggleText}>
-            {showDateFilters ? 'Ocultar Filtros de Fecha' : 'Filtrar por Fecha'}
-          </Text>
-          <Ionicons
-            name={showDateFilters ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color="#6366F1"
-          />
-        </TouchableOpacity>
-        {(startDate || endDate) && (
-          <TouchableOpacity
-            style={styles.clearDateButton}
-            onPress={handleClearDateFilters}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="close-circle" size={20} color="#EF4444" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Date Filters Panel */}
-      {showDateFilters && (
-        <View style={styles.dateFiltersPanel}>
-          <View style={styles.dateRangePickers}>
-            <View style={styles.datePickerWrapper}>
-              <DatePickerButton
-                label="Fecha Inicial"
-                value={startDate}
-                onPress={() => setShowStartDatePicker(true)}
-                placeholder="Seleccionar fecha inicial"
-                icon="calendar-outline"
-              />
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="document-text" size={22} color={colors.neutral[0]} />
+                </View>
+                <Text style={[styles.title, isTablet && styles.titleTablet]}>
+                  Comprobantes
+                </Text>
+              </View>
+              <Text style={styles.subtitle}>
+                Facturación electrónica SUNAT
+              </Text>
             </View>
-            <View style={styles.datePickerWrapper}>
-              <DatePickerButton
-                label="Fecha Final"
-                value={endDate}
-                onPress={() => setShowEndDatePicker(true)}
-                placeholder="Seleccionar fecha final"
-                icon="calendar-outline"
-              />
+
+            {/* Stats */}
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{pagination.total}</Text>
+                <Text style={styles.statLabel}>Total</Text>
+              </View>
             </View>
           </View>
 
-          {(startDate || endDate) && (
-            <View style={styles.activeFiltersInfo}>
-              <Ionicons name="information-circle" size={16} color="#6366F1" />
-              <Text style={styles.activeFiltersText}>
-                {startDate && endDate
-                  ? `Mostrando desde ${startDate} hasta ${endDate}`
-                  : startDate
-                  ? `Mostrando desde ${startDate}`
-                  : `Mostrando hasta ${endDate}`}
-              </Text>
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+              <TextInput
+                style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                placeholder="Buscar por serie-número..."
+                placeholderTextColor={colors.neutral[400]}
+              />
+              {searchTerm.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchTerm('')} style={styles.clearButton}>
+                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                </TouchableOpacity>
+              )}
             </View>
-          )}
+            <TouchableOpacity
+              style={[styles.dateFilterButton, showDateFilters && styles.dateFilterButtonActive]}
+              onPress={() => setShowDateFilters(!showDateFilters)}
+            >
+              <Ionicons
+                name="calendar"
+                size={20}
+                color={showDateFilters ? colors.neutral[0] : colors.neutral[600]}
+              />
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+
+        {/* Quick Filters - Tipo de Documento */}
+        <View style={styles.quickFiltersContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickFiltersContent}
+          >
+            {documentTypeOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.filterChip,
+                  selectedDocumentType === option.value && styles.filterChipActive,
+                ]}
+                onPress={() => {
+                  setSelectedDocumentType(option.value);
+                  setPage(1);
+                }}
+              >
+                <View style={[styles.filterDot, { backgroundColor: option.color }]} />
+                <Text style={[
+                  styles.filterChipText,
+                  selectedDocumentType === option.value && styles.filterChipTextActive,
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
-      )}
+
+        {/* Quick Filters - Estado SUNAT */}
+        <View style={styles.quickFiltersContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickFiltersContent}
+          >
+            {statusOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.filterChip,
+                  selectedStatus === option.value && styles.filterChipActive,
+                ]}
+                onPress={() => {
+                  setSelectedStatus(option.value);
+                  setPage(1);
+                }}
+              >
+                <View style={[styles.filterDot, { backgroundColor: option.color }]} />
+                <Text style={[
+                  styles.filterChipText,
+                  selectedStatus === option.value && styles.filterChipTextActive,
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Date Filters Panel */}
+        {showDateFilters && (
+          <View style={styles.dateFiltersPanel}>
+            <View style={styles.dateRangePickers}>
+              <View style={styles.datePickerWrapper}>
+                <DatePickerButton
+                  label="Fecha Inicial"
+                  value={startDate}
+                  onPress={() => setShowStartDatePicker(true)}
+                  placeholder="Seleccionar"
+                  icon="calendar-outline"
+                />
+              </View>
+              <View style={styles.datePickerWrapper}>
+                <DatePickerButton
+                  label="Fecha Final"
+                  value={endDate}
+                  onPress={() => setShowEndDatePicker(true)}
+                  placeholder="Seleccionar"
+                  icon="calendar-outline"
+                />
+              </View>
+              {(startDate || endDate) && (
+                <TouchableOpacity
+                  style={styles.clearDateButton}
+                  onPress={handleClearDateFilters}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close-circle" size={24} color={colors.danger[500]} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
 
       {/* Documents List */}
       <ScrollView
@@ -730,33 +779,34 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       )}
 
-      {/* Floating Action Button with Document Type Selection */}
-      <BizlinksDocumentsFAB onDocumentTypeSelect={handleDocumentTypeSelect} />
+        {/* Floating Action Button with Document Type Selection */}
+        <BizlinksDocumentsFAB onDocumentTypeSelect={handleDocumentTypeSelect} />
 
-      {/* Date Pickers */}
-      <DatePicker
-        visible={showStartDatePicker}
-        date={startDate ? new Date(startDate) : new Date()}
-        onConfirm={handleStartDateConfirm}
-        onCancel={() => setShowStartDatePicker(false)}
-        title="Seleccionar Fecha Inicial"
-      />
+        {/* Date Pickers */}
+        <DatePicker
+          visible={showStartDatePicker}
+          date={startDate ? new Date(startDate) : new Date()}
+          onConfirm={handleStartDateConfirm}
+          onCancel={() => setShowStartDatePicker(false)}
+          title="Seleccionar Fecha Inicial"
+        />
 
-      <DatePicker
-        visible={showEndDatePicker}
-        date={endDate ? new Date(endDate) : new Date()}
-        onConfirm={handleEndDateConfirm}
-        onCancel={() => setShowEndDatePicker(false)}
-        title="Seleccionar Fecha Final"
-      />
-    </SafeAreaView>
+        <DatePicker
+          visible={showEndDatePicker}
+          date={endDate ? new Date(endDate) : new Date()}
+          onConfirm={handleEndDateConfirm}
+          onCancel={() => setShowEndDatePicker(false)}
+          title="Seleccionar Fecha Final"
+        />
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background.secondary,
   },
   loadingContainer: {
     flex: 1,
@@ -764,148 +814,219 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: spacing[4],
     fontSize: 16,
-    color: '#64748B',
+    color: colors.neutral[500],
+    fontWeight: '500',
   },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+  // Header con gradiente
+  headerGradient: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
   },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing[4],
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: colors.neutral[0],
+    letterSpacing: 0.3,
   },
   titleTablet: {
     fontSize: 28,
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    marginLeft: spacing[12],
   },
-  subtitleTablet: {
-    fontSize: 16,
+  statsContainer: {
+    alignItems: 'flex-end',
+  },
+  statItem: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  statLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    textTransform: 'uppercase',
   },
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  statusFilter: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  dateFilterToggleContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    gap: spacing[2],
   },
-  dateFilterToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  searchInputContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[3],
   },
-  dateFilterToggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6366F1',
+  searchIcon: {
+    marginRight: spacing[2],
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: spacing[3],
+    fontSize: 15,
+    color: colors.neutral[800],
+  },
+  searchInputTablet: {
+    fontSize: 16,
+    paddingVertical: spacing[3.5],
+  },
+  clearButton: {
+    padding: spacing[1],
+  },
+  dateFilterButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateFilterButtonActive: {
+    backgroundColor: colors.accent[500],
+  },
+  // Quick filters
+  quickFiltersContainer: {
+    backgroundColor: colors.surface.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[200],
+  },
+  quickFiltersContent: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    gap: spacing[2],
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    gap: spacing[1.5],
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary[900],
+    borderColor: colors.primary[900],
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.neutral[600],
+  },
+  filterChipTextActive: {
+    color: colors.neutral[0],
+  },
+  filterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   clearDateButton: {
-    padding: 4,
+    padding: spacing[2],
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dateFiltersPanel: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: colors.surface.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.neutral[200],
   },
   dateRangePickers: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
+    alignItems: 'center',
   },
   datePickerWrapper: {
-    flex: 1,
-  },
-  activeFiltersInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  activeFiltersText: {
-    fontSize: 12,
-    color: '#4F46E5',
-    fontWeight: '600',
     flex: 1,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 24,
+    padding: spacing[4],
   },
   contentContainerTablet: {
-    padding: 32,
+    padding: spacing[6],
     maxWidth: 1200,
     alignSelf: 'center',
     width: '100%',
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius['2xl'],
+    marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: colors.neutral[200],
+    ...shadows.sm,
+    overflow: 'hidden',
   },
   cardTablet: {
-    padding: 24,
-    borderRadius: 18,
+    borderRadius: borderRadius['2xl'],
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    padding: spacing[4],
+    paddingBottom: spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[100],
+    backgroundColor: colors.neutral[50],
   },
   cardHeaderLeft: {
     flex: 1,
-    gap: 8,
+    gap: spacing[2],
   },
   documentTypeBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
     borderWidth: 1,
   },
   documentTypeText: {
@@ -916,15 +1037,15 @@ const styles = StyleSheet.create({
   serieNumero: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: colors.neutral[800],
   },
   serieNumeroTablet: {
     fontSize: 20,
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1.5],
+    borderRadius: borderRadius.full,
     borderWidth: 1,
   },
   statusText: {
@@ -933,8 +1054,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   cardBody: {
-    gap: 8,
-    marginBottom: 16,
+    padding: spacing[4],
+    gap: spacing[2],
   },
   infoRow: {
     flexDirection: 'row',
@@ -942,7 +1063,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: colors.neutral[500],
     fontWeight: '500',
     width: 80,
   },
@@ -953,14 +1074,14 @@ const styles = StyleSheet.create({
   infoValue: {
     flex: 1,
     fontSize: 14,
-    color: '#1E293B',
+    color: colors.neutral[800],
     fontWeight: '600',
   },
   infoValueTablet: {
     fontSize: 16,
   },
   totalAmount: {
-    color: '#10B981',
+    color: colors.success[600],
     fontSize: 16,
     fontWeight: '700',
   },
@@ -968,21 +1089,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
+    padding: spacing[4],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.neutral[100],
+    backgroundColor: colors.neutral[50],
   },
   cardActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing[2],
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    gap: spacing[1],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
     minWidth: 40,
     justifyContent: 'center',
   },
@@ -990,61 +1113,84 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   refreshButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.primary[600],
   },
   pdfButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.danger[500],
   },
   xmlButton: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: colors.warning[500],
   },
   actionButtonText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 80,
+    paddingVertical: spacing[20],
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing[4],
   },
   emptyIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   emptyIconTablet: {
     fontSize: 80,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#64748B',
-    marginBottom: 8,
+    fontSize: 18,
+    color: colors.neutral[700],
+    marginBottom: spacing[2],
     fontWeight: '600',
   },
   emptyTextTablet: {
-    fontSize: 18,
+    fontSize: 20,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: colors.neutral[500],
+    textAlign: 'center',
   },
   emptySubtextTablet: {
     fontSize: 16,
+  },
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary[600],
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.lg,
+    marginTop: spacing[5],
+    gap: spacing[2],
+  },
+  emptyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.neutral[0],
   },
   bottomSpacer: {
     height: 100,
   },
   paginationContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: colors.primary[900],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
+    gap: spacing[4],
     marginBottom: 60,
   },
   paginationInfo: {
@@ -1054,30 +1200,33 @@ const styles = StyleSheet.create({
   paginationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.neutral[0],
   },
   paginationSubtext: {
     fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: spacing[0.5],
   },
   paginationButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#6366F1',
-    minWidth: 110,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    minWidth: 110,
+    justifyContent: 'center',
+    gap: spacing[1],
   },
   paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
   },
   paginationButtonTextDisabled: {
-    color: '#94A3B8',
+    color: 'rgba(255, 255, 255, 0.3)',
   },
 });

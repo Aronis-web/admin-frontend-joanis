@@ -42,6 +42,9 @@ import {
   IconButton,
 } from '@/design-system/components';
 
+// Settings Modal
+import { SettingsModal } from './SettingsModal';
+
 // ============================================
 // MENU CONFIGURATION
 // ============================================
@@ -450,6 +453,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
   const [slideAnim] = useState(new Animated.Value(side === 'left' ? -300 : 300));
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubItems, setExpandedSubItems] = useState<Set<string>>(new Set());
+  const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
   const navigation = useNavigation();
   const { logout, user } = useAuthStore();
   const { selectedSite } = useTenantStore();
@@ -579,7 +583,15 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <Title size="large">Menú</Title>
-              <IconButton icon="close" onPress={onClose} variant="ghost" size="medium" />
+              <View style={styles.headerActions}>
+                <IconButton
+                  icon="settings-outline"
+                  onPress={() => setIsSettingsModalVisible(true)}
+                  variant="ghost"
+                  size="medium"
+                />
+                <IconButton icon="close" onPress={onClose} variant="ghost" size="medium" />
+              </View>
             </View>
 
             {/* User Info */}
@@ -748,6 +760,12 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
             </TouchableOpacity>
           </View>
         </Animated.View>
+
+        {/* Settings Modal */}
+        <SettingsModal
+          visible={isSettingsModalVisible}
+          onClose={() => setIsSettingsModalVisible(false)}
+        />
       </View>
     </Modal>
   );
@@ -784,6 +802,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: spacing[4],
+  },
+
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
   },
 
   userInfo: {
