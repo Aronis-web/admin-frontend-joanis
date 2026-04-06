@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
+import { getDocumentAsync } from '@/utils/filePicker';
 import { expensesService } from '@/services/api/expenses';
 import { useAuthStore } from '@/store/auth';
 import { colors, spacing, borderRadius } from '@/design-system/tokens';
@@ -68,7 +68,7 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
 
   const handleSelectFile = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
+      const result = await getDocumentAsync({
         type: [
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'application/vnd.ms-excel',
@@ -105,9 +105,17 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
       setUploading(true);
       console.log('📤 Subiendo archivo:', selectedFile.name);
 
-      // Fetch the file and convert to blob
-      const response = await fetch(selectedFile.uri);
-      const blob = await response.blob();
+      let blob: Blob;
+
+      if (Platform.OS === 'web' && (selectedFile as any).file) {
+        // Web: Use the original File object directly
+        blob = (selectedFile as any).file;
+      } else {
+        // Mobile or fallback: Fetch the file and convert to blob
+        const response = await fetch(selectedFile.uri);
+        blob = await response.blob();
+      }
+
       const result = await expensesService.uploadBulkExpenses(blob, currentCompany.id);
 
       Alert.alert(

@@ -15,11 +15,12 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
+import { getDocumentAsync } from '@/utils/filePicker';
 import { Picker } from '@react-native-picker/picker';
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
@@ -226,7 +227,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         allowedTypes = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       }
 
-      const result = await DocumentPicker.getDocumentAsync({
+      const result = await getDocumentAsync({
         type: allowedTypes,
         copyToCacheDirectory: true,
       });
@@ -258,11 +259,18 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
     try {
       const formData = new FormData();
 
-      formData.append('file', {
-        uri: selectedFile.uri,
-        type: selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        name: selectedFile.name,
-      } as any);
+      if (Platform.OS === 'web') {
+        // Web: Use the original File object if available
+        const fileToUpload = (selectedFile as any).file || selectedFile;
+        formData.append('file', fileToUpload as any);
+      } else {
+        // Mobile: Use file metadata object
+        formData.append('file', {
+          uri: selectedFile.uri,
+          type: selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          name: selectedFile.name,
+        } as any);
+      }
 
       formData.append('tipo_reporte', selectedReportType);
 

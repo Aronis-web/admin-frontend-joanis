@@ -482,7 +482,17 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
+
+        // Create a download link instead of opening in new tab
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `cuadre-caja-${formatDate(fechaInicio)}-${formatDate(fechaFin)}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up blob URL after download
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
         Alert.alert('Éxito', 'PDF descargado correctamente');
       } else {
         const timestamp = Date.now();

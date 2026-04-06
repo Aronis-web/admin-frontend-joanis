@@ -1,8 +1,9 @@
 /**
  * File and Image Picker utilities for cross-platform support
- * Provides alternatives for expo-document-picker and expo-image-picker in Electron
+ * Provides alternatives for expo-document-picker and expo-image-picker in Electron/Web
  */
 
+import { Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { isElectron } from './platform';
@@ -17,6 +18,7 @@ export interface DocumentPickerResult {
     name: string;
     size?: number;
     mimeType?: string;
+    file?: File; // Original File object for web uploads
   }>;
 }
 
@@ -38,6 +40,7 @@ export interface ImagePickerResult {
 
 /**
  * Pick a document using native file input (for Electron/Web)
+ * Preserves the original File object for FormData uploads
  */
 const pickDocumentWeb = (acceptedTypes: string[]): Promise<DocumentPickerResult> => {
   return new Promise((resolve) => {
@@ -54,23 +57,19 @@ const pickDocumentWeb = (acceptedTypes: string[]): Promise<DocumentPickerResult>
         return;
       }
 
-      // Convert file to data URL
-      const reader = new FileReader();
-      reader.onload = () => {
-        resolve({
-          canceled: false,
-          assets: [{
-            uri: reader.result as string,
-            name: file.name,
-            size: file.size,
-            mimeType: file.type,
-          }],
-        });
-      };
-      reader.onerror = () => {
-        resolve({ canceled: true });
-      };
-      reader.readAsDataURL(file);
+      // Create a blob URL for the file (more efficient than data URL)
+      const blobUrl = URL.createObjectURL(file);
+
+      resolve({
+        canceled: false,
+        assets: [{
+          uri: blobUrl,
+          name: file.name,
+          size: file.size,
+          mimeType: file.type,
+          file: file, // Preserve original File object for FormData uploads
+        }],
+      });
     };
 
     input.oncancel = () => {
@@ -213,15 +212,16 @@ const launchCameraWeb = (): Promise<ImagePickerResult> => {
 
 /**
  * Cross-platform document picker
- * Uses native HTML5 file input for Electron/Web, expo-document-picker for mobile
+ * Uses native HTML5 file input for Web/Electron, expo-document-picker for mobile
  */
 export const getDocumentAsync = async (options?: {
   type?: string | string[];
   copyToCacheDirectory?: boolean;
   multiple?: boolean;
 }): Promise<DocumentPickerResult> => {
-  if (isElectron()) {
-    console.log('🖥️ Using Electron/Web document picker');
+  // Use web file picker for ALL web platforms (browser and Electron)
+  if (Platform.OS === 'web') {
+    console.log('🌐 Using Web/Electron document picker');
 
     // Convert MIME types to file extensions for accept attribute
     let acceptedTypes: string[] = [];
@@ -257,7 +257,7 @@ export const getDocumentAsync = async (options?: {
 
 /**
  * Cross-platform image library picker
- * Uses native HTML5 file input for Electron/Web, expo-image-picker for mobile
+ * Uses native HTML5 file input for Web/Electron, expo-image-picker for mobile
  */
 export const launchImageLibraryAsync = async (options?: {
   mediaTypes?: any;
@@ -266,8 +266,9 @@ export const launchImageLibraryAsync = async (options?: {
   quality?: number;
   allowsMultipleSelection?: boolean;
 }): Promise<ImagePickerResult> => {
-  if (isElectron()) {
-    console.log('🖥️ Using Electron/Web image picker');
+  // Use web file picker for ALL web platforms (browser and Electron)
+  if (Platform.OS === 'web') {
+    console.log('🌐 Using Web/Electron image picker');
     return pickImageWeb({
       allowsMultipleSelection: options?.allowsMultipleSelection,
       quality: options?.quality,
@@ -288,7 +289,7 @@ export const launchImageLibraryAsync = async (options?: {
 
 /**
  * Cross-platform camera launcher
- * Uses native HTML5 media capture for Electron/Web, expo-image-picker for mobile
+ * Uses native HTML5 media capture for Web/Electron, expo-image-picker for mobile
  */
 export const launchCameraAsync = async (options?: {
   mediaTypes?: any;
@@ -296,8 +297,9 @@ export const launchCameraAsync = async (options?: {
   aspect?: [number, number];
   quality?: number;
 }): Promise<ImagePickerResult> => {
-  if (isElectron()) {
-    console.log('🖥️ Using Electron/Web camera');
+  // Use web camera for ALL web platforms (browser and Electron)
+  if (Platform.OS === 'web') {
+    console.log('🌐 Using Web/Electron camera');
     return launchCameraWeb();
   } else {
     // Use expo-image-picker for mobile
@@ -315,10 +317,10 @@ export const launchCameraAsync = async (options?: {
 
 /**
  * Request media library permissions
- * Always returns granted for Electron/Web (no permissions needed)
+ * Always returns granted for Web/Electron (no permissions needed)
  */
 export const requestMediaLibraryPermissionsAsync = async (): Promise<{ status: string }> => {
-  if (isElectron()) {
+  if (Platform.OS === 'web') {
     // No permissions needed for web/Electron
     return { status: 'granted' };
   } else {
@@ -329,10 +331,10 @@ export const requestMediaLibraryPermissionsAsync = async (): Promise<{ status: s
 
 /**
  * Request camera permissions
- * Always returns granted for Electron/Web (browser will handle permissions)
+ * Always returns granted for Web/Electron (browser will handle permissions)
  */
 export const requestCameraPermissionsAsync = async (): Promise<{ status: string }> => {
-  if (isElectron()) {
+  if (Platform.OS === 'web') {
     // Browser will handle camera permissions
     return { status: 'granted' };
   } else {

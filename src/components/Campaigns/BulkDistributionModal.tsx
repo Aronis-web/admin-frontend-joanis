@@ -10,7 +10,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
+import { getDocumentAsync } from '@/utils/filePicker';
 import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -111,7 +111,7 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
     try {
       logger.info('📤 Seleccionando archivo para subir...');
 
-      const result = await DocumentPicker.getDocumentAsync({
+      const result = await getDocumentAsync({
         type: [
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'application/vnd.ms-excel',
@@ -135,9 +135,8 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
       let fileToUpload: any;
 
       if (Platform.OS === 'web') {
-        // Web: Convert to blob
-        const fetchResponse = await fetch(file.uri);
-        fileToUpload = await fetchResponse.blob();
+        // Web: Use the original File object if available
+        fileToUpload = (file as any).file || file;
       } else {
         // Mobile: Use file metadata object (React Native FormData format)
         fileToUpload = {
@@ -147,7 +146,7 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
         };
       }
 
-      logger.info('📦 Archivo preparado para upload:', Platform.OS === 'web' ? 'blob' : fileToUpload);
+      logger.info('📦 Archivo preparado para upload:', Platform.OS === 'web' ? 'File object' : fileToUpload);
 
       const response = await campaignsService.uploadBulkDistribution(campaignId, fileToUpload);
 

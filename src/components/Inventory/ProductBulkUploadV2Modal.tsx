@@ -243,8 +243,9 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
       const isWeb = typeof document !== 'undefined';
 
       if (isWeb) {
-        // For web, file is already a File object
-        formData.append('file', file as any);
+        // For web, use the original File object if available
+        const fileToUpload = (file as any).file || file;
+        formData.append('file', fileToUpload as any);
       } else {
         // For mobile, create a file object from URI
         const fileToUpload = {

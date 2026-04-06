@@ -428,7 +428,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       const url = `${config.API_URL}/accounts-receivable/reports/daily/pdf?${params.toString()}`;
 
       if (Platform.OS === 'web') {
-        // En web, usar fetch y crear un blob URL
+        // En web, usar fetch y crear un link de descarga
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -444,7 +444,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
+
+        // Create a download link instead of opening in new tab
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `cuentas-por-cobrar-${formatDate(reportDate)}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up blob URL after download
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
         Alert.alert('Éxito', 'Reporte descargado correctamente');
       } else {
         // En móvil, descargar y compartir el archivo

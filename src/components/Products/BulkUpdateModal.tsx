@@ -156,8 +156,8 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
       let fileToUpload: any;
 
       if (Platform.OS === 'web') {
-        // Web: Use the file directly
-        fileToUpload = selectedFile;
+        // Web: Use the original File object if available, otherwise fall back to the asset
+        fileToUpload = selectedFile.file || selectedFile;
       } else {
         // Mobile: Create file object from URI
         fileToUpload = {
