@@ -244,6 +244,11 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
   };
 
   const handleUpload = async () => {
+    console.log('🚀 [Upload] handleUpload called');
+    console.log('📄 selectedFile:', selectedFile);
+    console.log('📋 selectedReportType:', selectedReportType);
+    console.log('🏢 selectedSede:', selectedSede);
+
     if (!selectedFile || !selectedReportType) {
       Alert.alert('Error', 'Por favor selecciona un tipo de reporte y un archivo');
       return;
@@ -255,6 +260,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
     }
 
     setIsUploading(true);
+    console.log('⏳ [Upload] Starting upload process...');
 
     try {
       const formData = new FormData();
@@ -267,17 +273,27 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 
         if (selectedFile.file) {
           // Use the preserved File object
-          console.log('✅ Using File object:', selectedFile.file.name, selectedFile.file.type);
+          console.log('✅ Using File object:', selectedFile.file.name, selectedFile.file.type, selectedFile.file.size);
           formData.append('file', selectedFile.file);
         } else {
           // Fallback: fetch the blob from URI and create a File
-          console.log('⚠️ No File object, fetching from URI...');
-          const response = await fetch(selectedFile.uri);
-          const blob = await response.blob();
-          const file = new File([blob], selectedFile.name, {
-            type: selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          });
-          formData.append('file', file);
+          console.log('⚠️ No File object, fetching from URI:', selectedFile.uri);
+          try {
+            const blobResponse = await fetch(selectedFile.uri);
+            if (!blobResponse.ok) {
+              throw new Error(`Failed to fetch blob: ${blobResponse.status}`);
+            }
+            const blob = await blobResponse.blob();
+            console.log('📦 Blob created:', blob.size, 'bytes, type:', blob.type);
+            const file = new File([blob], selectedFile.name, {
+              type: selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            console.log('📁 File created:', file.name, file.type, file.size);
+            formData.append('file', file);
+          } catch (blobError: any) {
+            console.error('❌ Error fetching blob:', blobError);
+            throw new Error(`Error preparando archivo: ${blobError.message}`);
+          }
         }
       } else {
         // Mobile: Use file metadata object
@@ -294,7 +310,11 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         formData.append('sede_id', selectedSede);
       }
 
-      const response = await fetch(`${config.API_URL}/cash-reconciliation/upload`, {
+      const uploadUrl = `${config.API_URL}/cash-reconciliation/upload`;
+      console.log('🌐 [Upload] Sending to:', uploadUrl);
+      console.log('🔑 [Upload] Token present:', !!token);
+
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -304,7 +324,18 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         body: formData,
       });
 
-      const result = await response.json();
+      console.log('📥 [Upload] Response status:', response.status);
+
+      const responseText = await response.text();
+      console.log('📄 [Upload] Response text:', responseText.substring(0, 500));
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ [Upload] Failed to parse JSON:', parseError);
+        throw new Error(`Error del servidor: ${responseText.substring(0, 200)}`);
+      }
 
       if (response.ok) {
         // Mensaje de procesamiento en segundo plano
