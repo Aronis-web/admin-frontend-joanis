@@ -310,6 +310,25 @@ ipcMain.handle('check-for-updates', async () => {
     };
   } catch (error) {
     console.error('[UPDATE] Error al verificar actualizaciones:', error);
+
+    // Manejar error 404 (no hay releases) de forma amigable
+    if (error.message && (error.message.includes('404') || error.message.includes('Not Found') || error.message.includes('no published releases'))) {
+      return {
+        updateAvailable: false,
+        currentVersion: app.getVersion(),
+        message: 'No hay releases publicados en GitHub aún. ¡Ya tienes la versión más reciente!'
+      };
+    }
+
+    // Manejar errores de conexión
+    if (error.message && (error.message.includes('net::') || error.message.includes('ENOTFOUND') || error.message.includes('ETIMEDOUT'))) {
+      return {
+        updateAvailable: false,
+        currentVersion: app.getVersion(),
+        message: 'No se pudo conectar al servidor. Verifica tu conexión a internet.'
+      };
+    }
+
     return {
       updateAvailable: false,
       currentVersion: app.getVersion(),
@@ -402,6 +421,25 @@ function setupAutoUpdater() {
   // Error al verificar actualizaciones
   autoUpdater.on('error', (err) => {
     console.error('Error en auto-updater:', err);
+
+    // Ignorar errores 404 (no hay releases publicados) - es normal en proyectos nuevos
+    if (err.message && (err.message.includes('404') || err.message.includes('Not Found') || err.message.includes('no published releases'))) {
+      console.log('[UPDATE] No hay releases publicados en GitHub - esto es normal para la primera versión');
+      // Enviar estado "sin actualizaciones" al renderer en lugar de error
+      if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('update-status', {
+          status: 'no-releases',
+          message: 'No hay releases publicados aún'
+        });
+      }
+      return;
+    }
+
+    // Ignorar errores de conexión silenciosamente
+    if (err.message && (err.message.includes('net::') || err.message.includes('ENOTFOUND') || err.message.includes('ETIMEDOUT'))) {
+      console.log('[UPDATE] Error de conexión al verificar actualizaciones - ignorando silenciosamente');
+      return;
+    }
 
     // Mostrar error al usuario solo si es un error crítico durante la descarga
     if (err.message && err.message.includes('download')) {
