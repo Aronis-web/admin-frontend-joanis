@@ -1,42 +1,58 @@
+!include LogicLib.nsh
+!include WinMessages.nsh
+
+Var SplashHwnd
+
+!macro customHeader
+  !system "echo !define NSIS_PACKEDVERSION 1 > ${BUILD_RESOURCES_DIR}\packed.nsh"
+!macroend
+
+; Para oneClick, usamos customInit que se ejecuta muy temprano
 !macro customInit
-  ; Cerrar la aplicación si está ejecutándose
-  DetailPrint "Cerrando ERP-aio si está en ejecución..."
+  SetShellVarContext current
 
-  ; Intentar cerrar múltiples veces para asegurar que se cierre
-  nsExec::Exec 'taskkill /F /IM ERP-aio.exe /T'
+  ; Crear ventana de splash/espera
+  Banner::show /NOUNLOAD /set 76,1,,1,1 "Actualizando ERP-aio..." "Por favor espere mientras se instala la actualización..."
+
+  ; Cerrar proceso ERP-aio.exe de forma agresiva
+  nsExec::ExecToStack 'taskkill /F /IM "ERP-aio.exe" /T'
   Pop $0
-  Sleep 1000
+  Pop $1
 
-  nsExec::Exec 'taskkill /F /IM electron.exe /T'
+  ; También cerrar procesos relacionados
+  nsExec::ExecToStack 'taskkill /F /IM "electron.exe" /T'
   Pop $0
-  Sleep 1000
+  Pop $1
 
-  ; Segundo intento
-  nsExec::Exec 'taskkill /F /IM ERP-aio.exe /T'
-  Pop $0
-  Sleep 1000
+  ; Esperar 3 segundos para asegurar que los procesos se cierren
+  Sleep 3000
 
-  nsExec::Exec 'taskkill /F /IM electron.exe /T'
-  Pop $0
-  Sleep 2000
+  ; Verificar si el directorio existe y renombrarlo
+  IfFileExists "$INSTDIR\*.*" 0 dir_not_exists
+    ; Renombrar directorio antiguo
+    Rename "$INSTDIR" "$INSTDIR.old"
+    IfFileExists "$INSTDIR.old\*.*" 0 rename_failed
+      ; Programar eliminación al reiniciar
+      Delete /REBOOTOK "$INSTDIR.old\*.*"
+      RMDir /r /REBOOTOK "$INSTDIR.old"
+      Goto dir_done
 
-  DetailPrint "Preparando instalación..."
+    rename_failed:
+      ; Intentar eliminar directamente
+      Delete /REBOOTOK "$INSTDIR\*.*"
+      RMDir /r /REBOOTOK "$INSTDIR"
+      Goto dir_done
+
+  dir_not_exists:
+
+  dir_done:
 !macroend
 
 !macro customInstall
-  ; Después de instalar, limpiar archivos antiguos si existen
-  DetailPrint "Limpiando archivos antiguos..."
+  SetShellVarContext current
 
-  ; Eliminar instalaciones antiguas en otras ubicaciones
-  ${If} ${FileExists} "$LOCALAPPDATA\Programs\ERP-aio\ERP-aio.exe"
-    ${If} "$INSTDIR" != "$LOCALAPPDATA\Programs\ERP-aio"
-      RMDir /r "$LOCALAPPDATA\Programs\ERP-aio"
-    ${EndIf}
-  ${EndIf}
+  ; Cerrar el banner de espera
+  Banner::destroy
 
-  ${If} ${FileExists} "$PROGRAMFILES\ERP-aio\ERP-aio.exe"
-    ${If} "$INSTDIR" != "$PROGRAMFILES\ERP-aio"
-      RMDir /r "$PROGRAMFILES\ERP-aio"
-    ${EndIf}
-  ${EndIf}
+  ; Instalación completada - la app se abrirá automáticamente (runAfterFinish: true)
 !macroend

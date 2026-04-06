@@ -10,9 +10,8 @@ import {
   TextInput,
   Platform,
 } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { productsApi } from '@/services/api/products';
+import { saveAndShareExcel } from '@/utils/fileDownload';
 import logger from '@/utils/logger';
 import { getDocumentAsync } from '@/utils/filePicker';
 
@@ -101,66 +100,16 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
 
       const response = await productsApi.downloadBulkUpdateFormat(filters);
 
-      // Generate filename with current date
-      const today = new Date().toISOString().split('T')[0];
-      const filename = `productos_actualizacion_${today}.xlsx`;
+      // Generate filename with timestamp
+      const timestamp = new Date().getTime();
+      const fileName = `productos_actualizacion_${timestamp}.xlsx`;
 
-      if (Platform.OS === 'web') {
-        // Web: Create download link
-        const blobUrl = URL.createObjectURL(response);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      await saveAndShareExcel(response, fileName, 'Formato de Actualización');
 
-        // Clean up the blob URL after a short delay
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-
-        Alert.alert(
-          'Éxito',
-          'Formato descargado correctamente. Modifica el archivo y súbelo para actualizar los productos.'
-        );
-      } else {
-        // Mobile: Use new FileSystem API (same as CampaignDetailScreen)
-        const timestamp = new Date().getTime();
-        const fileName = `productos_actualizacion_${timestamp}.xlsx`;
-        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
-
-        // Convert blob to array buffer using FileReader
-        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = reject;
-          reader.readAsArrayBuffer(response);
-        });
-
-        // Write to file
-        await file.create();
-        const writer = file.writableStream().getWriter();
-        await writer.write(new Uint8Array(arrayBuffer));
-        await writer.close();
-
-        logger.info('✅ Archivo guardado exitosamente:', file.uri);
-
-        // Share the file
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(file.uri, {
-            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            dialogTitle: 'Formato de Actualización',
-            UTI: 'org.openxmlformats.spreadsheetml.sheet',
-          });
-        } else {
-          Alert.alert('Éxito', `Archivo guardado en: ${file.uri}`);
-        }
-
-        Alert.alert(
-          'Éxito',
-          'Formato descargado correctamente. Modifica el archivo y súbelo para actualizar los productos.'
-        );
-      }
+      Alert.alert(
+        'Éxito',
+        'Formato descargado correctamente. Modifica el archivo y súbelo para actualizar los productos.'
+      );
     } catch (error: any) {
       logger.error('❌ Error descargando formato:', error);
       Alert.alert(

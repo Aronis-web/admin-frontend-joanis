@@ -18,8 +18,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { saveAndShareFile } from '@/utils/fileDownload';
 import { repartosService } from '@/services/api';
 import {
   Campaign,
@@ -302,39 +301,19 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         logger.warn('⚠️ No se pudo registrar la descarga:', error);
       }
 
+      const timestamp = new Date().getTime();
+      const fileName = `hojas-reparto-${selectedCampaign.code}-${timestamp}.${extension}`;
+
+      await saveAndShareFile({
+        blob,
+        fileName,
+        mimeType,
+        dialogTitle: `Hojas de Reparto - ${selectedCampaign.name}`,
+        UTI: uti,
+      });
+
       if (Platform.OS === 'web') {
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `hojas-reparto-${selectedCampaign.code}.${extension}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
         Alert.alert('Éxito', `Las hojas de reparto se están descargando`);
-      } else {
-        const timestamp = new Date().getTime();
-        const fileName = `hojas-reparto-${selectedCampaign.code}-${timestamp}.${extension}`;
-        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
-
-        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = reject;
-          reader.readAsArrayBuffer(blob);
-        });
-
-        await file.create();
-        const writer = file.writableStream().getWriter();
-        await writer.write(new Uint8Array(arrayBuffer));
-        await writer.close();
-
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(file.uri, { mimeType, dialogTitle: `Hojas de Reparto - ${selectedCampaign.name}`, UTI: uti });
-        } else {
-          Alert.alert('Éxito', `Archivo guardado en: ${file.uri}`);
-        }
       }
     } catch (error: any) {
       logger.error('Error exporting distribution sheets:', error);

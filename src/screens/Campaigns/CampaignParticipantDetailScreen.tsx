@@ -13,8 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { saveAndSharePdf } from '@/utils/fileDownload';
 import { campaignsService } from '@/services/api';
 import { CampaignParticipant } from '@/types/campaigns';
 import { ParticipantTotalsDetail } from '@/types/participant-totals';
@@ -114,51 +113,13 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
       logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
       logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
+      const timestamp = new Date().getTime();
+      const fileName = `reporte-totales-participante-${totalsData.participantName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
+
+      await saveAndSharePdf(pdfBlob, fileName, `Reporte de Totales - ${totalsData.participantName}`);
+
       if (Platform.OS === 'web') {
-        // For web, create a download link using blob URL
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `reporte-totales-participante-${totalsData.participantName}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up the blob URL after a short delay
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-
         Alert.alert('Éxito', 'El reporte se está descargando');
-      } else {
-        // For mobile (iOS/Android), save to file system and share
-        const timestamp = new Date().getTime();
-        const fileName = `reporte-totales-participante-${timestamp}.pdf`;
-        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
-
-        // Convert blob to array buffer using FileReader
-        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = reject;
-          reader.readAsArrayBuffer(pdfBlob);
-        });
-
-        // Write to file
-        await file.create();
-        const writer = file.writableStream().getWriter();
-        await writer.write(new Uint8Array(arrayBuffer));
-        await writer.close();
-
-        // Share the file
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(file.uri, {
-            mimeType: 'application/pdf',
-            dialogTitle: `Reporte de Totales - ${totalsData.participantName}`,
-            UTI: 'com.adobe.pdf',
-          });
-        } else {
-          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
-        }
       }
     } catch (error: any) {
       logger.error('Error downloading report:', error);

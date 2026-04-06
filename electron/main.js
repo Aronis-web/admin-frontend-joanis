@@ -366,7 +366,13 @@ ipcMain.handle('download-update', async () => {
 ipcMain.handle('install-update', async () => {
   if (updateDownloaded) {
     console.log('[UPDATE] Instalando actualización...');
-    autoUpdater.quitAndInstall(false, true);
+
+    // Llamar quitAndInstall directamente - NSIS se encarga de todo
+    // isSilent=false (mostrar progreso), isForceRunAfter=true (reabrir app)
+    setImmediate(() => {
+      autoUpdater.quitAndInstall(false, true);
+    });
+
     return { success: true };
   }
   return { success: false, message: 'No hay actualización descargada' };
@@ -385,11 +391,12 @@ function setupAutoUpdater() {
   console.log('Configurando auto-updater...');
 
   // Cuando hay una actualización disponible
+  // NO mostrar dialog - todo se maneja desde el frontend con el modal
   autoUpdater.on('update-available', (info) => {
     console.log('Actualización disponible:', info.version);
     updateInfo = info;
 
-    // Enviar evento al renderer
+    // Solo enviar evento al renderer - el frontend maneja el modal
     if (mainWindow && mainWindow.webContents) {
       mainWindow.webContents.send('update-status', {
         status: 'available',
@@ -397,29 +404,6 @@ function setupAutoUpdater() {
         releaseDate: info.releaseDate
       });
     }
-
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Actualización Disponible',
-      message: `Nueva versión ${info.version} disponible`,
-      detail: '¿Deseas descargar e instalar la actualización ahora?',
-      buttons: ['Descargar', 'Más tarde'],
-      defaultId: 0,
-      cancelId: 1
-    }).then((result) => {
-      if (result.response === 0) {
-        // Usuario eligió descargar
-        autoUpdater.downloadUpdate();
-
-        // Mostrar progreso de descarga
-        dialog.showMessageBox(mainWindow, {
-          type: 'info',
-          title: 'Descargando Actualización',
-          message: 'La actualización se está descargando en segundo plano...',
-          buttons: ['OK']
-        });
-      }
-    });
   });
 
   // Cuando NO hay actualizaciones disponibles
@@ -434,7 +418,6 @@ function setupAutoUpdater() {
     // Ignorar errores 404 (no hay releases publicados) - es normal en proyectos nuevos
     if (err.message && (err.message.includes('404') || err.message.includes('Not Found') || err.message.includes('no published releases'))) {
       console.log('[UPDATE] No hay releases publicados en GitHub - esto es normal para la primera versión');
-      // Enviar estado "sin actualizaciones" al renderer en lugar de error
       if (mainWindow && mainWindow.webContents) {
         mainWindow.webContents.send('update-status', {
           status: 'no-releases',
@@ -450,14 +433,11 @@ function setupAutoUpdater() {
       return;
     }
 
-    // Mostrar error al usuario solo si es un error crítico durante la descarga
-    if (err.message && err.message.includes('download')) {
-      dialog.showMessageBox(mainWindow, {
-        type: 'error',
-        title: 'Error de Actualización',
-        message: 'No se pudo descargar la actualización',
-        detail: 'Por favor, intenta nuevamente más tarde o descarga la actualización manualmente desde GitHub.',
-        buttons: ['OK']
+    // Enviar error al renderer para que lo maneje el frontend
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('update-status', {
+        status: 'error',
+        message: err.message
       });
     }
   });
@@ -479,54 +459,18 @@ function setupAutoUpdater() {
   });
 
   // Actualización descargada y lista para instalar
+  // NO mostrar dialog - todo se maneja desde el frontend con el modal
   autoUpdater.on('update-downloaded', (info) => {
     console.log('Actualización descargada:', info.version);
     updateDownloaded = true;
 
-    // Enviar evento al renderer
+    // Solo enviar evento al renderer - el frontend maneja el modal
     if (mainWindow && mainWindow.webContents) {
       mainWindow.webContents.send('update-status', {
         status: 'downloaded',
         version: info.version
       });
     }
-
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Actualización Lista',
-      message: 'La actualización ha sido descargada',
-      detail: 'La aplicación se cerrará e instalará la actualización automáticamente.',
-      buttons: ['Instalar Ahora', 'Instalar al Cerrar'],
-      defaultId: 0,
-      cancelId: 1
-    }).then((result) => {
-      if (result.response === 0) {
-        console.log('Usuario eligió instalar ahora');
-
-        // Cerrar el servidor HTTP primero
-        if (server) {
-          server.close(() => {
-            console.log('Servidor HTTP cerrado');
-          });
-        }
-
-        // Cerrar todas las ventanas
-        if (mainWindow) {
-          mainWindow.removeAllListeners('close');
-          mainWindow.close();
-        }
-
-        // Esperar un momento para asegurar que todo se cierre
-        setTimeout(() => {
-          console.log('Instalando actualización...');
-          // isSilent = false (mostrar instalador), isForceRunAfter = true (ejecutar después)
-          autoUpdater.quitAndInstall(false, true);
-        }, 500);
-      } else {
-        console.log('Usuario eligió instalar al cerrar');
-        // Si elige "Más tarde", se instalará al cerrar la app (autoInstallOnAppQuit = true)
-      }
-    });
   });
 
   // Verificar actualizaciones al iniciar (después de 3 segundos)
@@ -568,13 +512,17 @@ app.on('ready', async () => {
 
   console.log = (...args) => {
     const message = args.join(' ') + '\n';
-    logStream.write(`[LOG] ${new Date().toISOString()} - ${message}`);
+    if (logStream && !logStream.destroyed) {
+      logStream.write(`[LOG] ${new Date().toISOString()} - ${message}`);
+    }
     originalLog.apply(console, args);
   };
 
   console.error = (...args) => {
     const message = args.join(' ') + '\n';
-    logStream.write(`[ERROR] ${new Date().toISOString()} - ${message}`);
+    if (logStream && !logStream.destroyed) {
+      logStream.write(`[ERROR] ${new Date().toISOString()} - ${message}`);
+    }
     originalError.apply(console, args);
   };
 
@@ -603,9 +551,8 @@ app.on('window-all-closed', () => {
 
   // Cerrar el stream de logs
   if (logStream) {
-    logStream.end(() => {
-      console.log('Stream de logs cerrado');
-    });
+    logStream.end();
+    logStream = null;
   }
 
   // On macOS, keep app running until user quits explicitly
@@ -634,6 +581,7 @@ app.on('before-quit', (event) => {
   // Cerrar el stream de logs
   if (logStream) {
     logStream.end();
+    logStream = null;
   }
 });
 

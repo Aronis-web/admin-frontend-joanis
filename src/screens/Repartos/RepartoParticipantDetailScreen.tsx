@@ -23,8 +23,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { saveAndSharePdf } from '@/utils/fileDownload';
 import { campaignsService, repartosService, productsApi } from '@/services/api';
 import { CampaignParticipant, ParticipantType } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -583,51 +582,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
       logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
+      const timestamp = new Date().getTime();
+      const fileName = `reporte-totales-${participantName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
+
+      await saveAndSharePdf(pdfBlob, fileName, `Reporte de Totales - ${participantName}`);
+
       if (Platform.OS === 'web') {
-        // For web, create a download link using blob URL
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `reporte-totales-${participantName.replace(/\s+/g, '-')}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up the blob URL after a short delay
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-
         Alert.alert('Éxito', `El reporte de ${participantName} se está descargando`);
-      } else {
-        // For mobile (iOS/Android), save to file system and share
-        const timestamp = new Date().getTime();
-        const fileName = `reporte-totales-${participantName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
-        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
-
-        // Convert blob to array buffer using FileReader
-        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = reject;
-          reader.readAsArrayBuffer(pdfBlob);
-        });
-
-        // Write to file
-        await file.create();
-        const writer = file.writableStream().getWriter();
-        await writer.write(new Uint8Array(arrayBuffer));
-        await writer.close();
-
-        // Share the file
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(file.uri, {
-            mimeType: 'application/pdf',
-            dialogTitle: `Reporte de Totales - ${participantName}`,
-            UTI: 'com.adobe.pdf',
-          });
-        } else {
-          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
-        }
       }
     } catch (error: any) {
       logger.error('Error downloading participant report:', error);
@@ -920,48 +881,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         campaignId
       );
 
+      const timestamp = new Date().getTime();
+      const fileName = `guia-remision-${remissionGuideInfo.remissionGuideNumber?.replace(/\s+/g, '-')}-${timestamp}.pdf`;
+
+      await saveAndSharePdf(blob, fileName, `Guía de Remisión - ${remissionGuideInfo.remissionGuideNumber}`);
+
       if (Platform.OS === 'web') {
-        // Para web, crear URL del blob y descargar
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `guia-remision-${remissionGuideInfo.remissionGuideNumber?.replace(/\s+/g, '-')}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
         Alert.alert('Éxito', 'La guía de remisión se ha descargado');
-      } else {
-        // Para móvil, descargar y compartir
-        const timestamp = new Date().getTime();
-        const fileName = `guia-remision-${remissionGuideInfo.remissionGuideNumber?.replace(/\s+/g, '-')}-${timestamp}.pdf`;
-        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
-
-        // Convert blob to array buffer
-        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = reject;
-          reader.readAsArrayBuffer(blob);
-        });
-
-        // Write to file
-        await file.create();
-        const writer = file.writableStream().getWriter();
-        await writer.write(new Uint8Array(arrayBuffer));
-        await writer.close();
-
-        // Share the file
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(file.uri, {
-            mimeType: 'application/pdf',
-            dialogTitle: `Guía de Remisión - ${remissionGuideInfo.remissionGuideNumber}`,
-            UTI: 'com.adobe.pdf',
-          });
-        } else {
-          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
-        }
       }
     } catch (error: any) {
       logger.error('Error descargando guía de remisión:', error);

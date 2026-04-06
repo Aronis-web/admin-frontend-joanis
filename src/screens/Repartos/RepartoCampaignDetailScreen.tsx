@@ -19,8 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { saveAndShareFile, saveAndSharePdf } from '@/utils/fileDownload';
 import { campaignsService, repartosService } from '@/services/api';
 import logger from '@/utils/logger';
 import { Campaign, CampaignParticipant, ParticipantType } from '@/types/campaigns';
@@ -248,55 +247,19 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         // Don't fail the download if tracking fails
       }
 
+      const timestamp = new Date().getTime();
+      const fileName = `hojas-reparto-${campaign?.code || campaignId}-${timestamp}.${extension}`;
+
+      await saveAndShareFile({
+        blob,
+        fileName,
+        mimeType,
+        dialogTitle: 'Hojas de Reparto',
+        UTI: uti,
+      });
+
       if (Platform.OS === 'web') {
-        // For web, create a download link using blob URL
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `hojas-reparto-${campaign?.code || campaignId}.${extension}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up the blob URL after a short delay
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-
         Alert.alert('Éxito', `Las hojas de reparto en ${format.toUpperCase()} se están descargando`);
-      } else {
-        // For mobile (iOS/Android), save to file system and share
-        const fileName = `hojas-reparto-${campaign?.code || campaignId}.${extension}`;
-        const file = new FileSystem.File(FileSystem.Paths.cache, fileName);
-
-        // Delete file if it exists
-        if (file.exists) {
-          await file.delete();
-        }
-
-        // Convert blob to array buffer using FileReader
-        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = reject;
-          reader.readAsArrayBuffer(blob);
-        });
-
-        // Write to file
-        await file.create();
-        const writer = file.writableStream().getWriter();
-        await writer.write(new Uint8Array(arrayBuffer));
-        await writer.close();
-
-        // Share the file
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(file.uri, {
-            mimeType,
-            dialogTitle: 'Hojas de Reparto',
-            UTI: uti,
-          });
-        } else {
-          Alert.alert('Éxito', `Archivo guardado en: ${file.uri}`);
-        }
       }
     } catch (error: any) {
       logger.error('Error exporting distribution sheets:', error);
@@ -329,53 +292,22 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         format
       );
 
+      const timestamp = new Date().getTime();
+      const extension = format === 'pdf' ? 'pdf' : 'xlsx';
+      const fileName = `Totales_Venta_${selectedParticipant.name.replace(/\s+/g, '_')}_${timestamp}.${extension}`;
+      const mimeType = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const uti = format === 'pdf' ? 'com.adobe.pdf' : 'org.openxmlformats.spreadsheetml.sheet';
+
+      await saveAndShareFile({
+        blob,
+        fileName,
+        mimeType,
+        dialogTitle: 'Totales Venta',
+        UTI: uti,
+      });
+
       if (Platform.OS === 'web') {
-        // For web, create a download link using blob URL
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        const extension = format === 'pdf' ? 'pdf' : 'xlsx';
-        link.download = `Totales_Venta_${selectedParticipant.name.replace(/\s+/g, '_')}_${new Date().getTime()}.${extension}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up the blob URL after a short delay
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-
         Alert.alert('Éxito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
-      } else {
-        // For mobile (iOS/Android), save to file system and share
-        const timestamp = new Date().getTime();
-        const extension = format === 'pdf' ? 'pdf' : 'xlsx';
-        const fileName = `Totales_Venta_${selectedParticipant.name.replace(/\s+/g, '_')}_${timestamp}.${extension}`;
-        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
-
-        // Convert blob to array buffer using FileReader
-        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = reject;
-          reader.readAsArrayBuffer(blob);
-        });
-
-        // Write to file
-        await file.create();
-        const writer = file.writableStream().getWriter();
-        await writer.write(new Uint8Array(arrayBuffer));
-        await writer.close();
-
-        // Share the file
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(file.uri, {
-            mimeType: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            dialogTitle: 'Totales Venta',
-            UTI: format === 'pdf' ? 'com.adobe.pdf' : 'org.openxmlformats.spreadsheetml.sheet',
-          });
-        } else {
-          Alert.alert('Éxito', `Archivo guardado en: ${file.uri}`);
-        }
       }
     } catch (error: any) {
       logger.error('Error descargando reporte de validación:', error);
@@ -410,51 +342,13 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
       logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
+      const timestamp = new Date().getTime();
+      const fileName = `reporte-totales-general-${campaign?.code || campaignId}-${timestamp}.pdf`;
+
+      await saveAndSharePdf(pdfBlob, fileName, 'Reporte General de Totales');
+
       if (Platform.OS === 'web') {
-        // For web, create a download link using blob URL
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `reporte-totales-general-${campaign?.code || campaignId}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up the blob URL after a short delay
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-
         Alert.alert('Éxito', 'El reporte general de totales se está descargando');
-      } else {
-        // For mobile (iOS/Android), save to file system and share
-        const timestamp = new Date().getTime();
-        const fileName = `reporte-totales-general-${campaign?.code || campaignId}-${timestamp}.pdf`;
-        const file = new FileSystem.File(FileSystem.Paths.document, fileName);
-
-        // Convert blob to array buffer using FileReader
-        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = reject;
-          reader.readAsArrayBuffer(pdfBlob);
-        });
-
-        // Write to file
-        await file.create();
-        const writer = file.writableStream().getWriter();
-        await writer.write(new Uint8Array(arrayBuffer));
-        await writer.close();
-
-        // Share the file
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(file.uri, {
-            mimeType: 'application/pdf',
-            dialogTitle: 'Reporte General de Totales',
-            UTI: 'com.adobe.pdf',
-          });
-        } else {
-          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
-        }
       }
     } catch (error: any) {
       logger.error('Error downloading general report:', error);

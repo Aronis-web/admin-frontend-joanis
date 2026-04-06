@@ -38,8 +38,7 @@ import { useScreenTracking } from '@/hooks/useScreenTracking';
 import { formatDateToString } from '@/utils/dateHelpers';
 import { useDebounce } from '@/hooks/useDebounce';
 import { purchasesService } from '@/services/api';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { saveAndSharePdf } from '@/utils/fileDownload';
 import { logger } from '@/utils/logger';
 import { CircularProgress } from '@/components/Repartos';
 import type { PurchaseValidationProgressResponse } from '@/types/purchases';
@@ -264,43 +263,13 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
         logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
         logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
+        const timestamp = new Date().getTime();
+        const fileName = `reporte-compra-${purchase.code}-${timestamp}.pdf`;
+
+        await saveAndSharePdf(pdfBlob, fileName, `Reporte de Compra - ${purchase.code}`);
+
         if (Platform.OS === 'web') {
-          const blobUrl = URL.createObjectURL(pdfBlob);
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.download = `reporte-compra-${purchase.code}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
           Alert.alert('Éxito', 'El reporte se está descargando');
-        } else {
-          const timestamp = new Date().getTime();
-          const fileName = `reporte-compra-${purchase.code}-${timestamp}.pdf`;
-          const file = new FileSystem.File(FileSystem.Paths.document, fileName);
-
-          const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as ArrayBuffer);
-            reader.onerror = reject;
-            reader.readAsArrayBuffer(pdfBlob);
-          });
-
-          await file.create();
-          const writer = file.writableStream().getWriter();
-          await writer.write(new Uint8Array(arrayBuffer));
-          await writer.close();
-
-          const canShare = await Sharing.isAvailableAsync();
-          if (canShare) {
-            await Sharing.shareAsync(file.uri, {
-              mimeType: 'application/pdf',
-              dialogTitle: `Reporte de Compra - ${purchase.code}`,
-              UTI: 'com.adobe.pdf',
-            });
-          } else {
-            Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
-          }
         }
       } catch (error: any) {
         logger.error('Error downloading report:', error);
