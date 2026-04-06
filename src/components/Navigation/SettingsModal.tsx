@@ -257,20 +257,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       const electronAPI = getElectronAPI();
 
       if (electronAPI) {
-        // En Electron, usar el sistema de auto-update
+        // En Electron, intentar usar el sistema de auto-update
         const result = await electronAPI.checkForUpdates();
-        setUpdateInfo(result);
+
+        // Si Electron está en modo desarrollo, usar GitHub API como fallback
+        if (result.message && result.message.includes('modo desarrollo')) {
+          console.log('Electron en modo desarrollo, usando GitHub API...');
+          const githubResult = await checkForUpdatesViaGitHub();
+          setUpdateInfo(githubResult);
+        } else {
+          setUpdateInfo(result);
+        }
       } else {
         // En otras plataformas, verificar via GitHub API
         const result = await checkForUpdatesViaGitHub();
         setUpdateInfo(result);
       }
     } catch (error: any) {
-      setUpdateInfo({
-        updateAvailable: false,
-        currentVersion: appVersion,
-        error: error.message || 'Error al verificar actualizaciones',
-      });
+      // Si hay error con Electron, intentar con GitHub
+      console.log('Error con Electron, intentando con GitHub API...', error);
+      try {
+        const githubResult = await checkForUpdatesViaGitHub();
+        setUpdateInfo(githubResult);
+      } catch (githubError: any) {
+        setUpdateInfo({
+          updateAvailable: false,
+          currentVersion: appVersion,
+          error: githubError.message || 'Error al verificar actualizaciones',
+        });
+      }
     } finally {
       setIsCheckingUpdate(false);
     }
