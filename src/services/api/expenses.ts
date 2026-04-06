@@ -503,11 +503,8 @@ class ExpensesService {
     const formData = new FormData();
     formData.append('file', file as any);
 
-    return apiClient.post(`${this.templatesPath}/bulk-upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // Don't set Content-Type manually - apiClient will handle it with proper boundary
+    return apiClient.post(`${this.templatesPath}/bulk-upload`, formData);
   }
 
   /**
@@ -890,11 +887,8 @@ class ExpensesService {
     formData.append('file', file);
     formData.append('companyId', companyId);
 
-    return apiClient.post(`${this.basePath}/bulk-upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // Don't set Content-Type manually - apiClient will handle it with proper boundary
+    return apiClient.post(`${this.basePath}/bulk-upload`, formData);
   }
 }
 

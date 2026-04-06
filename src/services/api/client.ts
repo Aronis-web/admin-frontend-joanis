@@ -371,9 +371,14 @@ class ApiClient {
       Expires: '0',
     };
 
-    // Merge custom headers if provided
+    // Merge custom headers if provided (but filter out Content-Type for FormData)
     if (requestConfig?.headers) {
       Object.entries(requestConfig.headers).forEach(([key, value]) => {
+        // Skip Content-Type - fetch will set it automatically with proper boundary for FormData
+        if (key.toLowerCase() === 'content-type') {
+          logger.debug('⚠️ [FETCH] Skipping Content-Type header - will be set automatically for FormData');
+          return;
+        }
         if (value !== null && value !== undefined) {
           headers[key] = String(value);
         }

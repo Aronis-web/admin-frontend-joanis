@@ -1,7 +1,7 @@
 {
   "name": "ERP-aio",
   "private": true,
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "Panel de Administración ERP - Sistema de gestión empresarial",
   "author": "Aronis Web",
   "main": "node_modules/expo/AppEntry.js",
