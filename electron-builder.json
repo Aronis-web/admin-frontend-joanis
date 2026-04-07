@@ -68,8 +68,7 @@
   "publish": {
     "provider": "github",
     "owner": "Aronis-web",
-    "repo": "admin-frontend-joanis",
-    "private": true
+    "repo": "admin-frontend-joanis"
   },
   "extraMetadata": {
     "main": "electron/main.js"
