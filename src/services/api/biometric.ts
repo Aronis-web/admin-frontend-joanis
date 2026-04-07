@@ -39,6 +39,25 @@ export interface RegisterBiometricResponse {
   message: string;
 }
 
+export interface RegisterFromVideoRequest {
+  entityType: 'user';
+  userId: string;
+  metadata?: Record<string, any>;
+}
+
+export interface RegisterFromVideoResponse {
+  success: boolean;
+  entityId: string;
+  biometricProfileId: string;
+  qualityScore: number;
+  livenessScore: number;
+  framesExtracted: number;
+  framesUsed: number;
+  videoDurationSeconds: number;
+  processingTimeMs: number;
+  message: string;
+}
+
 export interface VerifyBiometricRequest {
   entityType: string;
   entityId: string;
@@ -121,6 +140,38 @@ export const biometricApi = {
 
     return apiClient.post<RegisterBiometricResponse>(
       '/biometric-verification/register',
+      formData
+    );
+  },
+
+  /**
+   * Registrar perfil biométrico desde video
+   * POST /api/biometric-verification/register-from-video
+   */
+  async registerFromVideo(
+    video: { uri: string; type: string; name: string },
+    request: RegisterFromVideoRequest
+  ): Promise<RegisterFromVideoResponse> {
+    const formData = new FormData();
+
+    // Agregar video como archivo
+    formData.append('video', {
+      uri: video.uri,
+      type: video.type,
+      name: video.name,
+    } as any);
+
+    // Agregar datos del request
+    formData.append('entityType', request.entityType);
+    formData.append('userId', request.userId);
+
+    // Metadata como JSON si existe
+    if (request.metadata) {
+      formData.append('metadata', JSON.stringify(request.metadata));
+    }
+
+    return apiClient.post<RegisterFromVideoResponse>(
+      '/biometric-verification/register-from-video',
       formData
     );
   },

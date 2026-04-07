@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,257 +10,335 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '@/design-system/tokens';
-import { FaceCaptureCamera } from '@/components/FaceRecognition/FaceCaptureCamera';
-import { biometricApi } from '@/services/api/biometric';
+import { VideoCaptureCamera } from '@/components/FaceRecognition/VideoCaptureCamera';
+import { biometricApi, RegisterFromVideoResponse } from '@/services/api/biometric';
+import { usersApi, User } from '@/services/api/users';
 
-// UUID validation regex
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type Step = 'search' | 'camera' | 'processing' | 'result';
 
-// Simple UUID v4 generator
-const generateUUID = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-};
+interface VideoCaptureResult {
+  uri: string;
+  type: string;
+  name: string;
+}
 
 export const RegisterFaceScreen: React.FC = () => {
-  const [step, setStep] = useState<'form' | 'camera' | 'processing'>('form');
-  const [entityType, setEntityType] = useState('employee');
-  const [entityId, setEntityId] = useState('');
-  const [name, setName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState<Step>('search');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [registerResult, setRegisterResult] = useState<RegisterFromVideoResponse | null>(null);
 
-  const handleStartCapture = () => {
-    if (!entityId.trim()) {
-      Alert.alert('Error', 'Por favor ingresa un ID');
+  // Buscar usuarios
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim()) {
+      Alert.alert('Error', 'Ingresa un término de búsqueda');
       return;
     }
 
-    // Validate UUID format
-    if (!UUID_REGEX.test(entityId.trim())) {
+    setIsSearching(true);
+    try {
+      const response = await usersApi.getUsers({
+        search: searchQuery.trim(),
+        limit: 20,
+      });
+      setSearchResults(response.data);
+
+      if (response.data.length === 0) {
+        Alert.alert('Sin resultados', 'No se encontraron usuarios con ese criterio');
+      }
+    } catch (error: any) {
+      console.error('Error buscando usuarios:', error);
       Alert.alert(
         'Error',
-        'El ID debe ser un UUID válido. Usa el botón "Generar UUID" para crear uno automáticamente.'
+        error.response?.data?.message || error.message || 'Error al buscar usuarios'
       );
-      return;
+    } finally {
+      setIsSearching(false);
     }
+  }, [searchQuery]);
 
+  // Seleccionar usuario y pasar a captura de video
+  const handleSelectUser = useCallback((user: User) => {
+    setSelectedUser(user);
     setStep('camera');
-  };
+  }, []);
 
-  const handleGenerateUUID = () => {
-    const newUUID = generateUUID();
-    setEntityId(newUUID);
-  };
+  // Cuando se completa la grabación del video
+  const handleVideoComplete = useCallback(async (video: VideoCaptureResult) => {
+    if (!selectedUser) return;
 
-  const handleCaptureComplete = async (frames: string[]) => {
     setStep('processing');
-    setIsLoading(true);
+    setIsProcessing(true);
 
     try {
-      const response = await biometricApi.registerBiometric(frames, {
-        entityType,
-        entityId: entityId.trim(),
+      console.log('📤 Enviando video para registro...', {
+        userId: selectedUser.id,
+        videoUri: video.uri,
+      });
+
+      const response = await biometricApi.registerFromVideo(video, {
+        entityType: 'user',
+        userId: selectedUser.id,
         metadata: {
-          name: name.trim() || undefined,
           registeredAt: new Date().toISOString(),
-          useCase: 'face_registration',
+          userName: selectedUser.username || selectedUser.email,
         },
       });
 
-      setIsLoading(false);
+      setIsProcessing(false);
 
       if (response.success) {
-        Alert.alert(
-          'Éxito',
-          `Rostro registrado correctamente\n\n` +
-          `ID Perfil: ${response.biometricProfileId}\n` +
-          `Calidad: ${response.qualityScore.toFixed(1)}%\n` +
-          `Liveness: ${response.livenessScore.toFixed(1)}%`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                // Resetear formulario
-                setEntityId('');
-                setName('');
-                setStep('form');
-              },
-            },
-          ]
-        );
+        setRegisterResult(response);
+        setStep('result');
       } else {
         Alert.alert('Error', response.message || 'No se pudo registrar el rostro');
-        setStep('form');
+        setStep('search');
       }
     } catch (error: any) {
-      setIsLoading(false);
+      setIsProcessing(false);
       console.error('Error registrando rostro:', error);
       Alert.alert(
         'Error',
         error.response?.data?.message || error.message || 'Error al registrar el rostro'
       );
-      setStep('form');
+      setStep('search');
     }
-  };
+  }, [selectedUser]);
 
-  const handleCancel = () => {
-    setStep('form');
-  };
+  // Cancelar captura de video
+  const handleCancelCapture = useCallback(() => {
+    setStep('search');
+  }, []);
 
+  // Reiniciar todo el proceso
+  const handleReset = useCallback(() => {
+    setStep('search');
+    setSearchQuery('');
+    setSearchResults([]);
+    setSelectedUser(null);
+    setRegisterResult(null);
+  }, []);
+
+  // Renderizar item de usuario
+  const renderUserItem = useCallback(({ item }: { item: User }) => {
+    const displayName = item.first_name && item.last_name
+      ? `${item.first_name} ${item.last_name}`
+      : item.username || item.email;
+
+    return (
+      <TouchableOpacity
+        style={styles.userItem}
+        onPress={() => handleSelectUser(item)}
+      >
+        <View style={styles.userAvatar}>
+          <MaterialIcons name="person" size={28} color={colors.primary[500]} />
+        </View>
+        <View style={styles.userInfo}>
+          <Text style={styles.userName}>{displayName}</Text>
+          <Text style={styles.userEmail}>{item.email}</Text>
+          {item.document_number && (
+            <Text style={styles.userDocument}>Doc: {item.document_number}</Text>
+          )}
+        </View>
+        <MaterialIcons name="chevron-right" size={24} color={colors.neutral[400]} />
+      </TouchableOpacity>
+    );
+  }, [handleSelectUser]);
+
+  // Pantalla de captura de video
   if (step === 'camera') {
     return (
       <SafeAreaView style={styles.cameraContainer} edges={['top']}>
-        <FaceCaptureCamera
-          onCaptureComplete={handleCaptureComplete}
-          onCancel={handleCancel}
-          targetFrames={100}
+        <VideoCaptureCamera
+          onCaptureComplete={handleVideoComplete}
+          onCancel={handleCancelCapture}
         />
       </SafeAreaView>
     );
   }
 
+  // Pantalla de procesamiento
   if (step === 'processing') {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.processingContainer}>
           <ActivityIndicator size="large" color={colors.primary[500]} />
-          <Text style={styles.processingText}>Procesando rostro...</Text>
-          <Text style={styles.processingSubtext}>Esto puede tomar unos segundos</Text>
+          <Text style={styles.processingText}>Procesando video...</Text>
+          <Text style={styles.processingSubtext}>
+            Extrayendo frames y registrando rostro
+          </Text>
+          <Text style={styles.processingSubtext}>
+            Esto puede tomar unos segundos
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  // Pantalla de resultado exitoso
+  if (step === 'result' && registerResult) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView contentContainerStyle={styles.resultContainer}>
+          <View style={styles.successIcon}>
+            <MaterialIcons name="check-circle" size={80} color={colors.success[500]} />
+          </View>
+
+          <Text style={styles.resultTitle}>¡Rostro Registrado!</Text>
+          <Text style={styles.resultSubtitle}>
+            El perfil biométrico se ha creado correctamente
+          </Text>
+
+          <View style={styles.resultCard}>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>Usuario</Text>
+              <Text style={styles.resultValue}>
+                {selectedUser?.username || selectedUser?.email}
+              </Text>
+            </View>
+            <View style={styles.resultDivider} />
+
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>ID Perfil</Text>
+              <Text style={styles.resultValueSmall} numberOfLines={1}>
+                {registerResult.biometricProfileId}
+              </Text>
+            </View>
+            <View style={styles.resultDivider} />
+
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>Calidad</Text>
+              <Text style={[styles.resultValue, { color: colors.success[500] }]}>
+                {(registerResult.qualityScore * 100).toFixed(1)}%
+              </Text>
+            </View>
+            <View style={styles.resultDivider} />
+
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>Liveness</Text>
+              <Text style={[styles.resultValue, { color: colors.success[500] }]}>
+                {(registerResult.livenessScore * 100).toFixed(1)}%
+              </Text>
+            </View>
+            <View style={styles.resultDivider} />
+
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>Frames extraídos</Text>
+              <Text style={styles.resultValue}>{registerResult.framesExtracted}</Text>
+            </View>
+            <View style={styles.resultDivider} />
+
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>Frames usados</Text>
+              <Text style={styles.resultValue}>{registerResult.framesUsed}</Text>
+            </View>
+            <View style={styles.resultDivider} />
+
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>Duración video</Text>
+              <Text style={styles.resultValue}>
+                {registerResult.videoDurationSeconds.toFixed(2)}s
+              </Text>
+            </View>
+            <View style={styles.resultDivider} />
+
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>Tiempo proceso</Text>
+              <Text style={styles.resultValue}>{registerResult.processingTimeMs}ms</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
+            <MaterialIcons name="add" size={24} color={colors.neutral[0]} />
+            <Text style={styles.resetButtonText}>Registrar Otro Usuario</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Pantalla principal: búsqueda de usuario
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.header}>
-            <MaterialIcons name="face" size={64} color={colors.primary[500]} />
-            <Text style={styles.title}>Registrar Rostro</Text>
-            <Text style={styles.subtitle}>
-              Captura el rostro de una persona para registrarlo en el sistema
-            </Text>
+        <View style={styles.header}>
+          <MaterialIcons name="face" size={48} color={colors.primary[500]} />
+          <Text style={styles.title}>Registrar Rostro</Text>
+          <Text style={styles.subtitle}>
+            Busca un usuario para registrar su rostro
+          </Text>
+        </View>
+
+        {/* Barra de búsqueda */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputContainer}>
+            <MaterialIcons name="search" size={24} color={colors.neutral[400]} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por nombre, email o documento..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <MaterialIcons name="close" size={20} color={colors.neutral[400]} />
+              </TouchableOpacity>
+            )}
           </View>
+          <TouchableOpacity
+            style={[styles.searchButton, isSearching && styles.searchButtonDisabled]}
+            onPress={handleSearch}
+            disabled={isSearching}
+          >
+            {isSearching ? (
+              <ActivityIndicator size="small" color={colors.neutral[0]} />
+            ) : (
+              <MaterialIcons name="search" size={24} color={colors.neutral[0]} />
+            )}
+          </TouchableOpacity>
+        </View>
 
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Tipo de Entidad</Text>
-              <View style={styles.pickerContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.pickerOption,
-                    entityType === 'employee' && styles.pickerOptionSelected,
-                  ]}
-                  onPress={() => setEntityType('employee')}
-                >
-                  <Text
-                    style={[
-                      styles.pickerOptionText,
-                      entityType === 'employee' && styles.pickerOptionTextSelected,
-                    ]}
-                  >
-                    Empleado
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.pickerOption,
-                    entityType === 'user' && styles.pickerOptionSelected,
-                  ]}
-                  onPress={() => setEntityType('user')}
-                >
-                  <Text
-                    style={[
-                      styles.pickerOptionText,
-                      entityType === 'user' && styles.pickerOptionTextSelected,
-                    ]}
-                  >
-                    Usuario
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.pickerOption,
-                    entityType === 'visitor' && styles.pickerOptionSelected,
-                  ]}
-                  onPress={() => setEntityType('visitor')}
-                >
-                  <Text
-                    style={[
-                      styles.pickerOptionText,
-                      entityType === 'visitor' && styles.pickerOptionTextSelected,
-                    ]}
-                  >
-                    Visitante
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                ID (UUID) <Text style={styles.required}>*</Text>
+        {/* Lista de resultados */}
+        <FlatList
+          data={searchResults}
+          keyExtractor={(item) => item.id}
+          renderItem={renderUserItem}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="person-search" size={64} color={colors.neutral[300]} />
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'Sin resultados' : 'Busca un usuario para comenzar'}
               </Text>
-              <View style={styles.inputWithButton}>
-                <TextInput
-                  style={styles.inputFlex}
-                  placeholder="Ej: 550e8400-e29b-41d4-a716-446655440000"
-                  value={entityId}
-                  onChangeText={setEntityId}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity style={styles.generateButton} onPress={handleGenerateUUID}>
-                  <MaterialIcons name="refresh" size={20} color={colors.primary[500]} />
-                  <Text style={styles.generateButtonText}>Generar</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.helperText}>El ID debe ser un UUID válido</Text>
             </View>
+          }
+        />
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nombre (Opcional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Nombre de la persona"
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.captureButton, !entityId.trim() && styles.captureButtonDisabled]}
-              onPress={handleStartCapture}
-              disabled={!entityId.trim()}
-            >
-              <MaterialIcons name="camera-alt" size={24} color={colors.neutral[0]} />
-              <Text style={styles.captureButtonText}>Iniciar Captura</Text>
-            </TouchableOpacity>
+        {/* Consejos */}
+        <View style={styles.infoBox}>
+          <MaterialIcons name="info-outline" size={20} color={colors.primary[500]} />
+          <View style={styles.infoContent}>
+            <Text style={styles.infoTitle}>Consejos:</Text>
+            <Text style={styles.infoText}>• Buena iluminación</Text>
+            <Text style={styles.infoText}>• Mirar a la cámara</Text>
+            <Text style={styles.infoText}>• Sin lentes oscuros</Text>
           </View>
-
-          <View style={styles.infoBox}>
-            <MaterialIcons name="info-outline" size={24} color={colors.primary[500]} />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Consejos para una buena captura:</Text>
-              <Text style={styles.infoText}>• Asegúrate de tener buena iluminación</Text>
-              <Text style={styles.infoText}>• Mira directamente a la cámara</Text>
-              <Text style={styles.infoText}>• Mantén el rostro dentro del marco</Text>
-              <Text style={styles.infoText}>• No uses lentes oscuros o gorras</Text>
-            </View>
-          </View>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -278,156 +356,135 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  scrollContent: {
-    padding: spacing[5],
-  },
   header: {
     alignItems: 'center',
-    marginBottom: spacing[8],
+    paddingVertical: spacing[5],
+    paddingHorizontal: spacing[5],
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.neutral[800],
-    marginTop: spacing[4],
+    marginTop: spacing[3],
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.neutral[500],
     textAlign: 'center',
-    marginTop: spacing[2],
+    marginTop: spacing[1],
   },
-  form: {
+  // Search
+  searchContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing[5],
+    gap: spacing[3],
+    marginBottom: spacing[4],
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[5],
-    marginBottom: spacing[5],
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing[3],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    gap: spacing[2],
   },
-  inputGroup: {
-    marginBottom: spacing[5],
+  searchInput: {
+    flex: 1,
+    paddingVertical: spacing[3],
+    fontSize: 16,
+    color: colors.neutral[800],
   },
-  label: {
+  searchButton: {
+    backgroundColor: colors.primary[500],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchButtonDisabled: {
+    backgroundColor: colors.primary[300],
+  },
+  // User list
+  listContent: {
+    paddingHorizontal: spacing[5],
+    flexGrow: 1,
+  },
+  userItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    marginBottom: spacing[3],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+  },
+  userAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing[3],
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.neutral[800],
-    marginBottom: spacing[2],
   },
-  required: {
-    color: colors.danger[500],
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    fontSize: 16,
-    backgroundColor: colors.surface.primary,
-  },
-  inputWithButton: {
-    flexDirection: 'row',
-    gap: spacing[2.5],
-    alignItems: 'center',
-  },
-  inputFlex: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
+  userEmail: {
     fontSize: 14,
-    backgroundColor: colors.surface.primary,
+    color: colors.neutral[500],
+    marginTop: spacing[0.5],
   },
-  generateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary[500],
-    backgroundColor: colors.surface.primary,
-  },
-  generateButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-  helperText: {
+  userDocument: {
     fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
+    color: colors.neutral[400],
+    marginTop: spacing[0.5],
   },
-  pickerContainer: {
-    flexDirection: 'row',
-    gap: spacing[2.5],
-  },
-  pickerOption: {
+  emptyContainer: {
     flex: 1,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-  },
-  pickerOptionSelected: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  pickerOptionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  pickerOptionTextSelected: {
-    color: colors.neutral[0],
-  },
-  captureButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[4],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[2.5],
-    gap: spacing[2.5],
+    paddingVertical: spacing[10],
   },
-  captureButtonDisabled: {
-    backgroundColor: colors.neutral[300],
+  emptyText: {
+    fontSize: 16,
+    color: colors.neutral[400],
+    marginTop: spacing[4],
+    textAlign: 'center',
   },
-  captureButtonText: {
-    color: colors.neutral[0],
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  // Info box
   infoBox: {
     flexDirection: 'row',
     backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    gap: spacing[3],
+    borderRadius: borderRadius.lg,
+    padding: spacing[3],
+    marginHorizontal: spacing[5],
+    marginBottom: spacing[4],
+    gap: spacing[2],
   },
   infoContent: {
     flex: 1,
   },
   infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary[500],
-    marginBottom: spacing[2],
-  },
-  infoText: {
     fontSize: 14,
-    color: colors.neutral[600],
+    fontWeight: '600',
+    color: colors.primary[600],
     marginBottom: spacing[1],
   },
+  infoText: {
+    fontSize: 12,
+    color: colors.neutral[600],
+  },
+  // Processing
   processingContainer: {
     flex: 1,
     alignItems: 'center',
@@ -441,8 +498,79 @@ const styles = StyleSheet.create({
     marginTop: spacing[5],
   },
   processingSubtext: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.neutral[500],
     marginTop: spacing[2],
+    textAlign: 'center',
+  },
+  // Result
+  resultContainer: {
+    padding: spacing[5],
+    alignItems: 'center',
+  },
+  successIcon: {
+    marginBottom: spacing[4],
+  },
+  resultTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
+  },
+  resultSubtitle: {
+    fontSize: 16,
+    color: colors.neutral[500],
+    textAlign: 'center',
+    marginBottom: spacing[6],
+  },
+  resultCard: {
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    padding: spacing[5],
+    width: '100%',
+    marginBottom: spacing[6],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+  },
+  resultRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+  },
+  resultDivider: {
+    height: 1,
+    backgroundColor: colors.neutral[100],
+  },
+  resultLabel: {
+    fontSize: 14,
+    color: colors.neutral[500],
+  },
+  resultValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.neutral[800],
+  },
+  resultValueSmall: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.neutral[600],
+    maxWidth: '60%',
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary[500],
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[6],
+    borderRadius: borderRadius.lg,
+    gap: spacing[2],
+    width: '100%',
+  },
+  resetButtonText: {
+    color: colors.neutral[0],
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
