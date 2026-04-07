@@ -227,48 +227,50 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.cameraContainer}>
+        {/* CameraView sin children - expo-camera no soporta children */}
         <CameraView
           ref={cameraRef}
           style={styles.camera}
           facing={facing}
           mode="video"
-        >
-          {/* Botón para cambiar cámara (solo si no está grabando) */}
-          {!isRecording && (
-            <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
-              <MaterialIcons name="flip-camera-ios" size={32} color="#fff" />
-            </TouchableOpacity>
-          )}
+        />
 
-          {/* Indicador de grabación */}
-          {isRecording && (
-            <View style={styles.recordingIndicator}>
-              <Animated.View
-                style={[
-                  styles.recordingDot,
-                  { transform: [{ scale: pulseAnim }] },
-                ]}
-              />
-              <Text style={styles.recordingText}>REC</Text>
-              <Text style={styles.countdownText}>{countdown}s</Text>
-            </View>
-          )}
+        {/* Overlay elements con posicionamiento absoluto */}
+        {/* Botón para cambiar cámara (solo si no está grabando) */}
+        {!isRecording && (
+          <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
+            <MaterialIcons name="flip-camera-ios" size={32} color="#fff" />
+          </TouchableOpacity>
+        )}
 
-          {/* Guía visual para el rostro */}
-          <View style={styles.guideOverlay}>
-            <View
+        {/* Indicador de grabación */}
+        {isRecording && (
+          <View style={styles.recordingIndicator}>
+            <Animated.View
               style={[
-                styles.faceGuide,
-                { borderColor: isRecording ? colors.danger[500] : colors.primary[500] },
+                styles.recordingDot,
+                { transform: [{ scale: pulseAnim }] },
               ]}
-            >
-              <View style={[styles.corner, styles.cornerTopLeft, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
-              <View style={[styles.corner, styles.cornerTopRight, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
-              <View style={[styles.corner, styles.cornerBottomLeft, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
-              <View style={[styles.corner, styles.cornerBottomRight, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
-            </View>
+            />
+            <Text style={styles.recordingText}>REC</Text>
+            <Text style={styles.countdownText}>{countdown}s</Text>
           </View>
-        </CameraView>
+        )}
+
+        {/* Guía visual para el rostro */}
+        <View style={styles.guideOverlay}>
+          <View
+            style={[
+              styles.faceGuide,
+              { borderColor: isRecording ? colors.danger[500] : colors.primary[500] },
+            ]}
+          >
+            <View style={[styles.corner, styles.cornerTopLeft, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
+            <View style={[styles.corner, styles.cornerTopRight, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
+            <View style={[styles.corner, styles.cornerBottomLeft, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
+            <View style={[styles.corner, styles.cornerBottomRight, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
+          </View>
+        </View>
 
         {/* Barra de progreso */}
         {isRecording && (

@@ -154,12 +154,30 @@ export const biometricApi = {
   ): Promise<RegisterFromVideoResponse> {
     const formData = new FormData();
 
-    // Agregar video como archivo
-    formData.append('video', {
+    // Determinar el tipo MIME correcto basado en la extensión
+    let mimeType = video.type;
+    if (video.uri.endsWith('.mp4')) {
+      mimeType = 'video/mp4';
+    } else if (video.uri.endsWith('.webm')) {
+      mimeType = 'video/webm';
+    } else if (video.uri.endsWith('.mov')) {
+      mimeType = 'video/quicktime';
+    }
+
+    // Agregar video como archivo (formato React Native)
+    const videoFile = {
       uri: video.uri,
-      type: video.type,
-      name: video.name,
-    } as any);
+      type: mimeType,
+      name: video.name || 'registro.mp4',
+    } as any;
+
+    console.log('📹 Video file to upload:', {
+      uri: video.uri,
+      type: mimeType,
+      name: videoFile.name,
+    });
+
+    formData.append('video', videoFile);
 
     // Agregar datos del request
     formData.append('entityType', request.entityType);
@@ -169,6 +187,8 @@ export const biometricApi = {
     if (request.metadata) {
       formData.append('metadata', JSON.stringify(request.metadata));
     }
+
+    console.log('📤 Sending FormData with video to register-from-video endpoint');
 
     return apiClient.post<RegisterFromVideoResponse>(
       '/biometric-verification/register-from-video',
