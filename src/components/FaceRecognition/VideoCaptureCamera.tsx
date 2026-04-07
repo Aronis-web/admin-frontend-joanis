@@ -9,7 +9,7 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
@@ -33,7 +33,8 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
   onCaptureComplete,
   onCancel,
 }) => {
-  const [permission, requestPermission] = useCameraPermissions();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
   const [isRecording, setIsRecording] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [facing, setFacing] = useState<'front' | 'back'>('front');
@@ -44,12 +45,18 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  // Solicitar permisos de cámara al montar
+  // Solicitar permisos de cámara y micrófono al montar
   useEffect(() => {
-    if (!permission) {
-      requestPermission();
-    }
-  }, [permission, requestPermission]);
+    const requestPermissions = async () => {
+      if (!cameraPermission?.granted) {
+        await requestCameraPermission();
+      }
+      if (!microphonePermission?.granted) {
+        await requestMicrophonePermission();
+      }
+    };
+    requestPermissions();
+  }, [cameraPermission, microphonePermission, requestCameraPermission, requestMicrophonePermission]);
 
   // Limpiar intervalos al desmontar
   useEffect(() => {
@@ -179,21 +186,35 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
     }
   }, [isRecording, onCancel, stopRecording]);
 
-  if (!permission) {
+  if (!cameraPermission || !microphonePermission) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={colors.primary[500]} />
-        <Text style={styles.loadingText}>Solicitando permisos de cámara...</Text>
+        <Text style={styles.loadingText}>Solicitando permisos...</Text>
       </View>
     );
   }
 
-  if (!permission.granted) {
+  if (!cameraPermission.granted || !microphonePermission.granted) {
+    const handleRequestPermissions = async () => {
+      if (!cameraPermission.granted) {
+        await requestCameraPermission();
+      }
+      if (!microphonePermission.granted) {
+        await requestMicrophonePermission();
+      }
+    };
+
     return (
       <View style={styles.container}>
         <MaterialIcons name="videocam-off" size={64} color={colors.neutral[400]} />
-        <Text style={styles.errorText}>No se otorgaron permisos de cámara</Text>
-        <TouchableOpacity style={styles.button} onPress={requestPermission}>
+        <Text style={styles.errorText}>
+          Se requieren permisos de cámara y micrófono para grabar video
+        </Text>
+        <Text style={styles.permissionStatus}>
+          Cámara: {cameraPermission.granted ? '✅' : '❌'} | Micrófono: {microphonePermission.granted ? '✅' : '❌'}
+        </Text>
+        <TouchableOpacity style={styles.button} onPress={handleRequestPermissions}>
           <Text style={styles.buttonText}>Solicitar Permisos</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onCancel}>
@@ -490,6 +511,13 @@ const styles = StyleSheet.create({
     color: colors.neutral[0],
     fontSize: 16,
     marginTop: spacing[5],
+    marginBottom: spacing[3],
+    textAlign: 'center',
+    paddingHorizontal: spacing[5],
+  },
+  permissionStatus: {
+    color: colors.neutral[300],
+    fontSize: 14,
     marginBottom: spacing[5],
     textAlign: 'center',
   },
