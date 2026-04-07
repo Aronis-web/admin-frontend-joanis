@@ -17,6 +17,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAMERA_SIZE = SCREEN_WIDTH * 0.9;
 
 const RECORDING_DURATION = 5000; // 5 segundos
+const MAX_VIDEO_DURATION_SECONDS = 5; // Máximo permitido por el backend
 
 interface VideoCaptureResult {
   uri: string;
@@ -40,6 +41,7 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
   const [facing, setFacing] = useState<'front' | 'back'>('front');
   const cameraRef = useRef<CameraView>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Animaciones
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -62,6 +64,7 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
   useEffect(() => {
     return () => {
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
     };
   }, []);
 
@@ -98,7 +101,7 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
 
     try {
       setIsRecording(true);
-      setCountdown(5);
+      setCountdown(MAX_VIDEO_DURATION_SECONDS);
 
       // Iniciar animación de progreso
       Animated.timing(progressAnim, {
@@ -120,12 +123,31 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
         });
       }, 1000);
 
-      console.log('🎥 Iniciando grabación de video...');
+      console.log('🎥 Iniciando grabación de video (max ' + MAX_VIDEO_DURATION_SECONDS + 's)...');
 
-      // Grabar video
+      // Timer de seguridad para detener la grabación después de 5 segundos
+      // Esto es necesario porque maxDuration puede no funcionar en todos los dispositivos
+      stopTimerRef.current = setTimeout(() => {
+        console.log('⏱️ Timer de seguridad: Deteniendo grabación...');
+        if (cameraRef.current) {
+          try {
+            cameraRef.current.stopRecording();
+          } catch (e) {
+            console.log('Error en stopRecording del timer:', e);
+          }
+        }
+      }, RECORDING_DURATION);
+
+      // Grabar video con maxDuration como respaldo
       const video = await cameraRef.current.recordAsync({
-        maxDuration: 5,
+        maxDuration: MAX_VIDEO_DURATION_SECONDS,
       });
+
+      // Limpiar timer si el video terminó antes
+      if (stopTimerRef.current) {
+        clearTimeout(stopTimerRef.current);
+        stopTimerRef.current = null;
+      }
 
       console.log('🎥 Video grabado:', video?.uri);
 
@@ -143,6 +165,11 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
       }
     } catch (error) {
       console.error('Error grabando video:', error);
+      // Limpiar timer en caso de error
+      if (stopTimerRef.current) {
+        clearTimeout(stopTimerRef.current);
+        stopTimerRef.current = null;
+      }
       Alert.alert('Error', 'No se pudo grabar el video');
       setIsRecording(false);
       progressAnim.setValue(0);
