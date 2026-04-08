@@ -165,6 +165,9 @@ export const MAIN_ROUTES = {
   // Organization
   ORGANIZATION_CHART: 'OrganizationChart',
 
+  // Treasury
+  TREASURY_UPLOAD_FILES: 'TreasuryUploadFiles',
+
   // Cash Reconciliation
   CASH_RECONCILIATION_MENU: 'CashReconciliationMenu',
   UPLOAD_CASH_RECONCILIATION_FILES: 'UploadCashReconciliationFiles',
@@ -360,6 +363,9 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Organization
   ORGANIZATION_CHART: 'organization.positions.company.read',
+
+  // Treasury
+  TREASURY_UPLOAD_FILES: 'treasury.upload',
 
   // Cash Reconciliation
   CASH_RECONCILIATION_MENU: 'cash_reconciliation.read',

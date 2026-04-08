@@ -341,6 +341,9 @@ export type MainStackParamList = {
   // Organization
   OrganizationChart: undefined;
 
+  // Treasury
+  TreasuryUploadFiles: undefined;
+
   // Cash Reconciliation
   CashReconciliationMenu: undefined;
   UploadCashReconciliationFiles: undefined;

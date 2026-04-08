@@ -145,6 +145,9 @@ const VerifyFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then
 // Organization Screens - Lazy Loaded
 const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').then(m => ({ default: m.OrganizationChartScreen })), 'Cargando organigrama...');
 
+// Treasury Screens - Lazy Loaded
+const TreasuryUploadFilesScreen = lazyLoad(() => import('@/screens/Treasury').then(m => ({ default: m.TreasuryUploadFilesScreen })), 'Cargando tesorería...');
+
 // Cash Reconciliation Screens - Lazy Loaded
 const CashReconciliationMenuScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CashReconciliationMenuScreen })), 'Cargando cuadre de caja...');
 const UploadCashReconciliationFilesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.UploadCashReconciliationFilesScreen })), 'Cargando subir archivos...');
@@ -1101,6 +1104,15 @@ const MainStack = React.memo(() => {
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
+
+      {/* Treasury Screens */}
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.TREASURY_UPLOAD_FILES}
+        component={TreasuryUploadFilesScreen}
+        options={{
+          title: 'Subir Archivos - Tesorería',
+        }}
+      />
 
       {/* Cash Reconciliation Screens */}
       <MainStackNavigator.Screen

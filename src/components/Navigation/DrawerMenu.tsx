@@ -139,7 +139,7 @@ const menuCategories: MenuCategory[] = [
             id: 'tesoreria-upload-files',
             icon: 'cloud-upload-outline',
             label: 'Subir archivos',
-            // route: pendiente - pantalla en blanco por ahora
+            route: MAIN_ROUTES.TREASURY_UPLOAD_FILES,
           },
         ],
       },
