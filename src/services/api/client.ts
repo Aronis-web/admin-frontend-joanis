@@ -333,7 +333,7 @@ class ApiClient {
       logger.debug('📦 Using fetch for FormData upload to bypass axios Content-Type issues');
       // Check if this is an OCR request to use unlimited timeout
       const isOcrRequest = url.includes('/ocr/scan');
-      return this.postFormDataWithFetch<T>(url, data, config, isOcrRequest);
+      return this.formDataWithFetch<T>(url, data, 'POST', config, isOcrRequest);
     }
 
     const response: AxiosResponse<T> = await this.client.post(url, data, config);
@@ -343,14 +343,16 @@ class ApiClient {
   /**
    * Upload FormData using fetch instead of axios
    * This bypasses axios's Content-Type handling issues in React Native
+   * Supports POST and PUT methods
    */
-  private async postFormDataWithFetch<T = any>(
+  private async formDataWithFetch<T = any>(
     url: string,
     formData: FormData,
+    method: 'POST' | 'PUT' = 'POST',
     requestConfig?: AxiosRequestConfig,
     isOcrRequest: boolean = false
   ): Promise<T> {
-    logger.debug('🔍 [FETCH] postFormDataWithFetch called');
+    logger.debug(`🔍 [FETCH] formDataWithFetch called with method: ${method}`);
     logger.debug('🔍 [FETCH] URL:', url);
     logger.debug('🔍 [FETCH] isOcrRequest:', isOcrRequest);
 
@@ -430,7 +432,7 @@ class ApiClient {
       // For OCR requests: No timeout - OCR processing can take several minutes or hours
       // For other requests: Use default fetch behavior
       const fetchOptions: RequestInit = {
-        method: 'POST',
+        method: method,
         headers,
         body: formData,
       };
@@ -483,6 +485,20 @@ class ApiClient {
   }
 
   async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const isFormData = data instanceof FormData;
+    logger.debug('📤 PUT Request:', {
+      url,
+      hasData: !!data,
+      isFormData,
+      dataType: data?.constructor?.name,
+    });
+
+    // For FormData in React Native, use fetch directly to avoid axios Content-Type issues
+    if (isFormData) {
+      logger.debug('📦 Using fetch for FormData PUT to bypass axios Content-Type issues');
+      return this.formDataWithFetch<T>(url, data, 'PUT', config);
+    }
+
     const response: AxiosResponse<T> = await this.client.put(url, data, config);
     return response.data;
   }

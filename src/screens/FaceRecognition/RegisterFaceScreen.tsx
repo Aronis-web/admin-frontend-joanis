@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,12 +14,22 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRoute, RouteProp } from '@react-navigation/native';
 import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { VideoCaptureCamera } from '@/components/FaceRecognition/VideoCaptureCamera';
-import { biometricApi, RegisterFromVideoResponse } from '@/services/api/biometric';
+import { biometricApi, RegisterFromVideoResponse, UpdateFromVideoResponse } from '@/services/api/biometric';
 import { usersApi, User } from '@/services/api/users';
 
 type Step = 'search' | 'camera' | 'processing' | 'result';
+type Mode = 'register' | 'update';
+
+type RouteParams = {
+  RegisterFace: {
+    userId?: string;
+    userName?: string;
+    mode?: Mode;
+  };
+};
 
 interface VideoCaptureResult {
   uri: string;
@@ -28,13 +38,35 @@ interface VideoCaptureResult {
 }
 
 export const RegisterFaceScreen: React.FC = () => {
-  const [step, setStep] = useState<Step>('search');
+  const route = useRoute<RouteProp<RouteParams, 'RegisterFace'>>();
+  const { userId: initialUserId, userName: initialUserName, mode: initialMode } = route.params || {};
+  const [step, setStep] = useState<Step>(initialUserId ? 'camera' : 'search');
+  const [mode, setMode] = useState<Mode>(initialMode || 'register');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(
+    initialUserId ? { id: initialUserId, email: initialUserName || '', createdAt: '', updatedAt: '', status: 'active' } as User : null
+  );
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [registerResult, setRegisterResult] = useState<RegisterFromVideoResponse | null>(null);
+  const [registerResult, setRegisterResult] = useState<RegisterFromVideoResponse | UpdateFromVideoResponse | null>(null);
+
+  // Load user details if we have an initial userId
+  useEffect(() => {
+    if (initialUserId) {
+      loadUserDetails(initialUserId);
+    }
+  }, [initialUserId]);
+
+  const loadUserDetails = async (userId: string) => {
+    try {
+      const userDetails = await usersApi.getUserById(userId);
+      setSelectedUser(userDetails);
+    } catch (error) {
+      console.error('Error loading user details:', error);
+      // Keep the minimal user info we already have
+    }
+  };
 
   // Buscar usuarios
   const handleSearch = useCallback(async () => {
@@ -79,19 +111,35 @@ export const RegisterFaceScreen: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      console.log('📤 Enviando video para registro...', {
+      const isUpdate = mode === 'update';
+      console.log(`📤 Enviando video para ${isUpdate ? 'actualización' : 'registro'}...`, {
         userId: selectedUser.id,
         videoUri: video.uri,
+        mode,
       });
 
-      const response = await biometricApi.registerFromVideo(video, {
-        entityType: 'user',
-        userId: selectedUser.id,
-        metadata: {
-          registeredAt: new Date().toISOString(),
-          userName: selectedUser.username || selectedUser.email,
-        },
-      });
+      let response: RegisterFromVideoResponse | UpdateFromVideoResponse;
+
+      if (isUpdate) {
+        response = await biometricApi.updateFromVideo(video, {
+          entityType: 'user',
+          userId: selectedUser.id,
+          replaceExisting: true,
+          metadata: {
+            updatedAt: new Date().toISOString(),
+            userName: selectedUser.username || selectedUser.email,
+          },
+        });
+      } else {
+        response = await biometricApi.registerFromVideo(video, {
+          entityType: 'user',
+          userId: selectedUser.id,
+          metadata: {
+            registeredAt: new Date().toISOString(),
+            userName: selectedUser.username || selectedUser.email,
+          },
+        });
+      }
 
       setIsProcessing(false);
 
@@ -99,19 +147,19 @@ export const RegisterFaceScreen: React.FC = () => {
         setRegisterResult(response);
         setStep('result');
       } else {
-        Alert.alert('Error', response.message || 'No se pudo registrar el rostro');
+        Alert.alert('Error', response.message || `No se pudo ${isUpdate ? 'actualizar' : 'registrar'} el rostro`);
         setStep('search');
       }
     } catch (error: any) {
       setIsProcessing(false);
-      console.error('Error registrando rostro:', error);
+      console.error(`Error ${mode === 'update' ? 'actualizando' : 'registrando'} rostro:`, error);
       Alert.alert(
         'Error',
-        error.response?.data?.message || error.message || 'Error al registrar el rostro'
+        error.response?.data?.message || error.message || `Error al ${mode === 'update' ? 'actualizar' : 'registrar'} el rostro`
       );
       setStep('search');
     }
-  }, [selectedUser]);
+  }, [selectedUser, mode]);
 
   // Cancelar captura de video
   const handleCancelCapture = useCallback(() => {
@@ -121,11 +169,18 @@ export const RegisterFaceScreen: React.FC = () => {
   // Reiniciar todo el proceso
   const handleReset = useCallback(() => {
     setStep('search');
+    setMode('register');
     setSearchQuery('');
     setSearchResults([]);
     setSelectedUser(null);
     setRegisterResult(null);
   }, []);
+
+  // Get title based on mode
+  const getTitle = () => mode === 'update' ? 'Actualizar Rostro' : 'Registrar Rostro';
+  const getSubtitle = () => mode === 'update'
+    ? 'Actualiza la biometría facial del usuario'
+    : 'Busca un usuario para registrar su rostro';
 
   // Renderizar item de usuario
   const renderUserItem = useCallback(({ item }: { item: User }) => {
@@ -173,7 +228,7 @@ export const RegisterFaceScreen: React.FC = () => {
           <ActivityIndicator size="large" color={colors.primary[500]} />
           <Text style={styles.processingText}>Procesando video...</Text>
           <Text style={styles.processingSubtext}>
-            Extrayendo frames y registrando rostro
+            {mode === 'update' ? 'Actualizando perfil biométrico' : 'Extrayendo frames y registrando rostro'}
           </Text>
           <Text style={styles.processingSubtext}>
             Esto puede tomar unos segundos
@@ -192,9 +247,13 @@ export const RegisterFaceScreen: React.FC = () => {
             <MaterialIcons name="check-circle" size={80} color={colors.success[500]} />
           </View>
 
-          <Text style={styles.resultTitle}>¡Rostro Registrado!</Text>
+          <Text style={styles.resultTitle}>
+            {mode === 'update' ? '¡Rostro Actualizado!' : '¡Rostro Registrado!'}
+          </Text>
           <Text style={styles.resultSubtitle}>
-            El perfil biométrico se ha creado correctamente
+            {mode === 'update'
+              ? 'El perfil biométrico se ha actualizado correctamente'
+              : 'El perfil biométrico se ha creado correctamente'}
           </Text>
 
           <View style={styles.resultCard}>
@@ -274,10 +333,8 @@ export const RegisterFaceScreen: React.FC = () => {
       >
         <View style={styles.header}>
           <MaterialIcons name="face" size={48} color={colors.primary[500]} />
-          <Text style={styles.title}>Registrar Rostro</Text>
-          <Text style={styles.subtitle}>
-            Busca un usuario para registrar su rostro
-          </Text>
+          <Text style={styles.title}>{getTitle()}</Text>
+          <Text style={styles.subtitle}>{getSubtitle()}</Text>
         </View>
 
         {/* Barra de búsqueda */}

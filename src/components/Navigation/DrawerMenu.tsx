@@ -95,6 +95,98 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // Finanzas
+  {
+    id: 'finances',
+    title: 'Finanzas',
+    icon: 'wallet-outline',
+    items: [
+      {
+        id: 'cash-reconciliation',
+        icon: 'calculator-outline',
+        label: 'Cuadre de Caja',
+        requiredPermissions: ['cash_reconciliation.read'],
+        subItems: [
+          {
+            id: 'upload-cash-files',
+            icon: 'cloud-upload-outline',
+            label: 'Subir Archivos',
+            route: MAIN_ROUTES.UPLOAD_CASH_RECONCILIATION_FILES,
+            requiredPermissions: ['cash_reconciliation.upload'],
+          },
+          {
+            id: 'review-documents',
+            icon: 'document-text-outline',
+            label: 'Revisar Documentos',
+            route: MAIN_ROUTES.REVIEW_DOCUMENTS_MENU,
+            requiredPermissions: ['cash_reconciliation.read'],
+          },
+          {
+            id: 'cuadre',
+            icon: 'checkmark-done-outline',
+            label: 'Cuadre',
+            route: MAIN_ROUTES.CUADRE,
+            requiredPermissions: ['cash_reconciliation.read'],
+          },
+        ],
+      },
+      {
+        id: 'tesoreria',
+        icon: 'briefcase-outline',
+        label: 'Tesorería',
+        subItems: [
+          {
+            id: 'tesoreria-upload-files',
+            icon: 'cloud-upload-outline',
+            label: 'Subir archivos',
+            // route: pendiente - pantalla en blanco por ahora
+          },
+        ],
+      },
+      {
+        id: 'cuentas-por',
+        icon: 'swap-vertical-outline',
+        label: 'Cuentas por',
+        subItems: [
+          {
+            id: 'accounts-receivable',
+            icon: 'trending-up-outline',
+            label: 'Cuentas por Cobrar',
+            route: MAIN_ROUTES.ACCOUNTS_RECEIVABLE,
+            requiredPermissions: ['accounts-receivable.read', 'accounts-receivable.read-own-company', 'accounts-receivable.read-all'],
+          },
+          {
+            id: 'accounts-payable',
+            icon: 'trending-down-outline',
+            label: 'Cuentas por Pagar',
+            route: MAIN_ROUTES.ACCOUNTS_PAYABLE,
+            requiredPermissions: ['accounts-payable.read', 'accounts-payable.read-own-company', 'accounts-payable.read-all'],
+          },
+        ],
+      },
+      {
+        id: 'gastos-category',
+        icon: 'receipt-outline',
+        label: 'Gastos',
+        subItems: [
+          {
+            id: 'expenses-templates',
+            icon: 'repeat-outline',
+            label: 'Gastos Recurrentes',
+            route: MAIN_ROUTES.EXPENSE_TEMPLATES,
+            requiredPermissions: ['expenses.templates.read'],
+          },
+          {
+            id: 'expenses-list',
+            icon: 'receipt-outline',
+            label: 'Gastos',
+            route: MAIN_ROUTES.EXPENSES,
+            requiredPermissions: ['expenses.read'],
+          },
+        ],
+      },
+    ],
+  },
   // Inventario
   {
     id: 'inventory',
@@ -202,71 +294,6 @@ const menuCategories: MenuCategory[] = [
         label: 'Recepciones',
         route: MAIN_ROUTES.RECEPTIONS,
         requiredPermissions: ['transfers.receive', 'transfers.validate', 'transfers.complete'],
-      },
-    ],
-  },
-  // Finanzas
-  {
-    id: 'finances',
-    title: 'Finanzas',
-    icon: 'wallet-outline',
-    items: [
-      {
-        id: 'accounts-payable',
-        icon: 'trending-down-outline',
-        label: 'Cuentas por Pagar',
-        route: MAIN_ROUTES.ACCOUNTS_PAYABLE,
-        requiredPermissions: ['accounts-payable.read', 'accounts-payable.read-own-company', 'accounts-payable.read-all'],
-      },
-      {
-        id: 'accounts-receivable',
-        icon: 'trending-up-outline',
-        label: 'Cuentas por Cobrar',
-        route: MAIN_ROUTES.ACCOUNTS_RECEIVABLE,
-        requiredPermissions: ['accounts-receivable.read', 'accounts-receivable.read-own-company', 'accounts-receivable.read-all'],
-      },
-      {
-        id: 'expenses-list',
-        icon: 'receipt-outline',
-        label: 'Lista de Gastos',
-        route: MAIN_ROUTES.EXPENSES,
-        requiredPermissions: ['expenses.read'],
-      },
-      {
-        id: 'expenses-templates',
-        icon: 'repeat-outline',
-        label: 'Gastos Recurrentes',
-        route: MAIN_ROUTES.EXPENSE_TEMPLATES,
-        requiredPermissions: ['expenses.templates.read'],
-      },
-      {
-        id: 'cash-reconciliation',
-        icon: 'calculator-outline',
-        label: 'Cuadre de Caja',
-        requiredPermissions: ['cash_reconciliation.read'],
-        subItems: [
-          {
-            id: 'upload-cash-files',
-            icon: 'cloud-upload-outline',
-            label: 'Subir Archivos',
-            route: MAIN_ROUTES.UPLOAD_CASH_RECONCILIATION_FILES,
-            requiredPermissions: ['cash_reconciliation.upload'],
-          },
-          {
-            id: 'review-documents',
-            icon: 'document-text-outline',
-            label: 'Revisar Documentos',
-            route: MAIN_ROUTES.REVIEW_DOCUMENTS_MENU,
-            requiredPermissions: ['cash_reconciliation.read'],
-          },
-          {
-            id: 'cuadre',
-            icon: 'checkmark-done-outline',
-            label: 'Cuadre',
-            route: MAIN_ROUTES.CUADRE,
-            requiredPermissions: ['cash_reconciliation.read'],
-          },
-        ],
       },
     ],
   },

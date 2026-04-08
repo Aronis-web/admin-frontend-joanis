@@ -58,6 +58,46 @@ export interface RegisterFromVideoResponse {
   message: string;
 }
 
+export interface UpdateFromVideoRequest {
+  entityType: 'user';
+  userId: string;
+  replaceExisting?: boolean;
+  metadata?: Record<string, any>;
+}
+
+export interface UpdateFromVideoResponse {
+  success: boolean;
+  entityId: string;
+  biometricProfileId: string;
+  qualityScore: number;
+  livenessScore: number;
+  framesExtracted: number;
+  framesUsed: number;
+  videoDurationSeconds: number;
+  processingTimeMs: number;
+  message: string;
+}
+
+export interface VerifyFromVideoRequest {
+  entityType: 'user';
+  userId: string;
+  metadata?: Record<string, any>;
+}
+
+export interface VerifyFromVideoResponse {
+  success: boolean;
+  verified: boolean;
+  entityId: string;
+  similarityScore: number;
+  confidence: number;
+  threshold: number;
+  framesExtracted: number;
+  framesAnalyzed: number;
+  videoDurationSeconds: number;
+  processingTimeMs: number;
+  message: string;
+}
+
 export interface VerifyBiometricRequest {
   entityType: string;
   entityId: string;
@@ -192,6 +232,111 @@ export const biometricApi = {
 
     return apiClient.post<RegisterFromVideoResponse>(
       '/biometric-verification/register-from-video',
+      formData
+    );
+  },
+
+  /**
+   * Actualizar perfil biométrico desde video
+   * PUT /api/biometric-verification/update-from-video
+   */
+  async updateFromVideo(
+    video: { uri: string; type: string; name: string },
+    request: UpdateFromVideoRequest
+  ): Promise<UpdateFromVideoResponse> {
+    const formData = new FormData();
+
+    // Determinar el tipo MIME correcto basado en la extensión
+    let mimeType = video.type;
+    if (video.uri.endsWith('.mp4')) {
+      mimeType = 'video/mp4';
+    } else if (video.uri.endsWith('.webm')) {
+      mimeType = 'video/webm';
+    } else if (video.uri.endsWith('.mov')) {
+      mimeType = 'video/quicktime';
+    }
+
+    // Agregar video como archivo (formato React Native)
+    const videoFile = {
+      uri: video.uri,
+      type: mimeType,
+      name: video.name || 'actualizacion.mp4',
+    } as any;
+
+    console.log('📹 Video file to upload for update:', {
+      uri: video.uri,
+      type: mimeType,
+      name: videoFile.name,
+    });
+
+    formData.append('video', videoFile);
+
+    // Agregar datos del request
+    formData.append('entityType', request.entityType);
+    formData.append('userId', request.userId);
+    formData.append('replaceExisting', (request.replaceExisting ?? true).toString());
+
+    // Metadata como JSON si existe
+    if (request.metadata) {
+      formData.append('metadata', JSON.stringify(request.metadata));
+    }
+
+    console.log('📤 Sending FormData with video to update-from-video endpoint');
+
+    return apiClient.put<UpdateFromVideoResponse>(
+      '/biometric-verification/update-from-video',
+      formData
+    );
+  },
+
+  /**
+   * Verificar identidad desde video
+   * POST /api/biometric-verification/verify-from-video
+   */
+  async verifyFromVideo(
+    video: { uri: string; type: string; name: string },
+    request: VerifyFromVideoRequest
+  ): Promise<VerifyFromVideoResponse> {
+    const formData = new FormData();
+
+    // Determinar el tipo MIME correcto basado en la extensión
+    let mimeType = video.type;
+    if (video.uri.endsWith('.mp4')) {
+      mimeType = 'video/mp4';
+    } else if (video.uri.endsWith('.webm')) {
+      mimeType = 'video/webm';
+    } else if (video.uri.endsWith('.mov')) {
+      mimeType = 'video/quicktime';
+    }
+
+    // Agregar video como archivo (formato React Native)
+    const videoFile = {
+      uri: video.uri,
+      type: mimeType,
+      name: video.name || 'verificacion.mp4',
+    } as any;
+
+    console.log('📹 Video file to upload for verification:', {
+      uri: video.uri,
+      type: mimeType,
+      name: videoFile.name,
+    });
+
+    formData.append('video', videoFile);
+
+    // Agregar datos del request
+    formData.append('entityType', request.entityType);
+    formData.append('userId', request.userId);
+
+    // Metadata como JSON si existe
+    if (request.metadata) {
+      formData.append('metadata', JSON.stringify(request.metadata));
+    }
+
+    console.log('📤 Sending FormData with video to verify-from-video endpoint');
+
+    return apiClient.post<VerifyFromVideoResponse>(
+      '/biometric-verification/verify-from-video',
       formData
     );
   },

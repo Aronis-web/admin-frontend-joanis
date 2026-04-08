@@ -16,8 +16,8 @@ import { colors, spacing, borderRadius } from '@/design-system/tokens';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAMERA_SIZE = SCREEN_WIDTH * 0.9;
 
-const RECORDING_DURATION = 4500; // 4.5 segundos (con margen de seguridad)
-const MAX_VIDEO_DURATION_SECONDS = 4; // 4 segundos para tener margen
+const RECORDING_DURATION = 10000; // 10 segundos
+const MAX_VIDEO_DURATION_SECONDS = 10; // 10 segundos
 
 interface VideoCaptureResult {
   uri: string;
@@ -101,7 +101,7 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
 
     try {
       setIsRecording(true);
-      setCountdown(5);
+      setCountdown(10);
 
       // Iniciar animación de progreso
       Animated.timing(progressAnim, {
@@ -345,7 +345,7 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
         <Text style={styles.instructionsDescription}>
           {isRecording
             ? 'Mantén tu rostro dentro del marco y mira a la cámara'
-            : 'Se grabará un video de 5 segundos para el registro facial'}
+            : 'Se grabará un video de 10 segundos para el registro facial'}
         </Text>
       </View>
 

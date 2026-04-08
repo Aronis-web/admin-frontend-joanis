@@ -15,6 +15,9 @@ interface UserDetailModalProps {
   user: User | null;
   onClose: () => void;
   onEdit: (user: User) => void;
+  onRegisterBiometric?: (user: User) => void;
+  onUpdateBiometric?: (user: User) => void;
+  onVerifyBiometric?: (user: User) => void;
 }
 
 export const UserDetailModal: React.FC<UserDetailModalProps> = ({
@@ -22,6 +25,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   user,
   onClose,
   onEdit,
+  onRegisterBiometric,
+  onUpdateBiometric,
+  onVerifyBiometric,
 }) => {
   const [showScopesModal, setShowScopesModal] = useState(false);
 
@@ -258,6 +264,59 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 )}
               </>
             )}
+
+            {/* Biometric Section */}
+            {renderSection(
+              'Biometría Facial',
+              <View style={styles.biometricContainer}>
+                <View style={styles.biometricStatus}>
+                  <Text style={styles.biometricIcon}>
+                    {user.has_biometric ? '🔐' : '🔓'}
+                  </Text>
+                  <View style={styles.biometricInfo}>
+                    <Text style={styles.biometricLabel}>Estado</Text>
+                    <Text style={[
+                      styles.biometricValue,
+                      { color: user.has_biometric ? colors.success[600] : colors.neutral[500] }
+                    ]}>
+                      {user.has_biometric ? 'Registrado' : 'Sin registrar'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.biometricActions}>
+                  {user.has_biometric ? (
+                    <>
+                      {onUpdateBiometric && (
+                        <TouchableOpacity
+                          style={[styles.biometricButton, styles.biometricUpdateButton]}
+                          onPress={() => onUpdateBiometric(user)}
+                        >
+                          <Text style={styles.biometricButtonText}>✏️ Editar</Text>
+                        </TouchableOpacity>
+                      )}
+                      {onVerifyBiometric && (
+                        <TouchableOpacity
+                          style={[styles.biometricButton, styles.biometricVerifyButton]}
+                          onPress={() => onVerifyBiometric(user)}
+                        >
+                          <Text style={styles.biometricButtonText}>✅ Validar</Text>
+                        </TouchableOpacity>
+                      )}
+                    </>
+                  ) : (
+                    onRegisterBiometric && (
+                      <TouchableOpacity
+                        style={[styles.biometricButton, styles.biometricRegisterButton]}
+                        onPress={() => onRegisterBiometric(user)}
+                      >
+                        <Text style={styles.biometricButtonText}>📷 Registrar Biometría</Text>
+                      </TouchableOpacity>
+                    )
+                  )}
+                </View>
+              </View>
+            )}
           </ScrollView>
 
           {/* Actions */}
@@ -483,6 +542,59 @@ const styles = StyleSheet.create({
   },
   editButtonText: {
     fontSize: 15,
+    fontWeight: '600',
+    color: colors.neutral[0],
+  },
+  // Biometric styles
+  biometricContainer: {
+    gap: spacing[4],
+  },
+  biometricStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  biometricIcon: {
+    fontSize: 32,
+  },
+  biometricInfo: {
+    flex: 1,
+  },
+  biometricLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.neutral[500],
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing[1],
+  },
+  biometricValue: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  biometricActions: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  biometricButton: {
+    flex: 1,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  biometricRegisterButton: {
+    backgroundColor: colors.primary[500],
+  },
+  biometricUpdateButton: {
+    backgroundColor: colors.accent[600],
+  },
+  biometricVerifyButton: {
+    backgroundColor: colors.success[500],
+  },
+  biometricButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.neutral[0],
   },

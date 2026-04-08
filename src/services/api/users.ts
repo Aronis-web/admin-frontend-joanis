@@ -10,6 +10,7 @@ export interface User {
   first_name?: string;
   last_name?: string;
   is_active?: boolean;
+  has_biometric?: boolean;
   roles?: Array<{ id: string; name: string }>;
   permissions?: Array<{ key: string; name: string }>;
   createdAt: string;
