@@ -407,16 +407,18 @@ class ApiClient {
     const effectiveWarehouseId = selectedWarehouse?.id || this.tenantContext.warehouseId;
     const effectiveUserId = user?.id || this.tenantContext.userId;
 
-    if (effectiveUserId) {
+    // Solo añadir headers de tenant context si no fueron proporcionados en requestConfig
+    // Esto permite que las llamadas individuales sobreescriban el contexto del tenant
+    if (effectiveUserId && !headers['X-User-Id']) {
       headers['X-User-Id'] = effectiveUserId;
     }
-    if (effectiveCompanyId) {
+    if (effectiveCompanyId && !headers['X-Company-Id']) {
       headers['X-Company-Id'] = effectiveCompanyId;
     }
-    if (effectiveSiteId) {
+    if (effectiveSiteId && !headers['X-Site-Id']) {
       headers['X-Site-Id'] = effectiveSiteId;
     }
-    if (effectiveWarehouseId) {
+    if (effectiveWarehouseId && !headers['X-Warehouse-Id']) {
       headers['X-Warehouse-Id'] = effectiveWarehouseId;
     }
 

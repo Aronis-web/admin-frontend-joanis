@@ -321,11 +321,17 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
         } as any);
       }
 
-      formData.append('companyId', selectedCompanyId);
+      // El companyId se envía automáticamente en el header X-Company-Id
+      // No lo añadimos al FormData para evitar duplicación
 
       const result = await apiClient.post<BulkUploadResponse>(
         '/treasury/transactions/upload-bulk',
-        formData
+        formData,
+        {
+          headers: {
+            'X-Company-Id': selectedCompanyId, // Usar el ID seleccionado por el usuario
+          },
+        }
       );
 
       setUploadResult(result);
