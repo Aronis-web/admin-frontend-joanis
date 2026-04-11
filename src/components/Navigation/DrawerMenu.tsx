@@ -136,10 +136,18 @@ const menuCategories: MenuCategory[] = [
         label: 'Tesorería',
         subItems: [
           {
+            id: 'tesoreria-operaciones',
+            icon: 'swap-horizontal-outline',
+            label: 'Operaciones Bancarias',
+            route: MAIN_ROUTES.BANK_OPERATIONS,
+            requiredPermissions: ['treasury.transactions.read'],
+          },
+          {
             id: 'tesoreria-upload-files',
             icon: 'cloud-upload-outline',
             label: 'Subir archivos',
             route: MAIN_ROUTES.TREASURY_UPLOAD_FILES,
+            requiredPermissions: ['treasury.transactions.upload'],
           },
         ],
       },
