@@ -92,6 +92,15 @@ export interface TransactionAssignment {
 }
 
 /**
+ * Transfer Type
+ */
+export enum TransferType {
+  INTERNAL_SAME_BANK = 'INTERNAL_SAME_BANK',
+  INTERNAL_OTHER_BANK = 'INTERNAL_OTHER_BANK',
+  EXTERNAL = 'EXTERNAL',
+}
+
+/**
  * Bank Transaction
  */
 export interface BankTransaction {
@@ -109,7 +118,23 @@ export interface BankTransaction {
   batchNumber?: string;
   createdAt?: string;
   updatedAt?: string;
+  // New fields
+  bankCode?: string;
+  bankName?: string;
+  accountAlias?: string;
+  accountNumber?: string;
+  transferType?: TransferType;
+  isOwnCompanyTransfer?: boolean;
 }
+
+/**
+ * Labels for Transfer Type
+ */
+export const TRANSFER_TYPE_LABELS: Record<TransferType, string> = {
+  [TransferType.INTERNAL_SAME_BANK]: 'Interno mismo banco',
+  [TransferType.INTERNAL_OTHER_BANK]: 'Interno otro banco',
+  [TransferType.EXTERNAL]: 'Externo',
+};
 
 /**
  * Query Parameters for Bank Transactions

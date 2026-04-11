@@ -31,6 +31,7 @@ import {
   BankTransaction,
   TransactionDirection,
   AssignmentStatus,
+  TransferType,
   QueryBankTransactionsParams,
   MOVEMENT_TYPE_LABELS,
   DIRECTION_LABELS,
@@ -38,6 +39,7 @@ import {
   ASSIGNMENT_STATUS_LABELS,
   ASSIGNMENT_STATUS_COLORS,
   ASSIGNMENT_STATUS_ICONS,
+  TRANSFER_TYPE_LABELS,
 } from '@/types/treasury';
 
 type Props = NativeStackScreenProps<any, 'BankOperations'>;
@@ -308,6 +310,12 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
     const statusLabel = ASSIGNMENT_STATUS_LABELS[item.assignmentStatus];
     const movementLabel = MOVEMENT_TYPE_LABELS[item.movementType] || item.movementType;
     const isIncome = item.direction === TransactionDirection.INGRESO;
+    const transferTypeLabel = item.transferType ? TRANSFER_TYPE_LABELS[item.transferType as TransferType] : null;
+
+    // Get bank info from new fields or fallback to bankAccount
+    const displayBankName = item.bankName || item.bankAccount?.bankName;
+    const displayAccountNumber = item.accountNumber || item.bankAccount?.accountNumber;
+    const displayAccountAlias = item.accountAlias;
 
     return (
       <TouchableOpacity
@@ -332,11 +340,46 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.statusIcon}>{statusIcon}</Text>
               <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
             </View>
+            {/* Own Company Transfer Badge */}
+            {item.isOwnCompanyTransfer && (
+              <View style={[styles.ownTransferBadge]}>
+                <Ionicons name="repeat" size={12} color={colors.info[600]} />
+                <Text style={styles.ownTransferText}>Propio</Text>
+              </View>
+            )}
           </View>
           <Text style={[styles.cardAmount, { color: directionColor }]}>
             {isIncome ? '+' : '-'} {formatCurrency(item.amountCents, item.bankAccount?.currency || 'PEN')}
           </Text>
         </View>
+
+        {/* Bank Info Row */}
+        <View style={styles.bankInfoRow}>
+          {item.bankCode && (
+            <View style={styles.bankCodeBadge}>
+              <Ionicons name="business" size={12} color={colors.primary[700]} />
+              <Text style={styles.bankCodeText}>{item.bankCode}</Text>
+            </View>
+          )}
+          {displayAccountAlias && (
+            <Text style={styles.accountAliasText} numberOfLines={1}>
+              {displayAccountAlias}
+            </Text>
+          )}
+          {transferTypeLabel && (
+            <View style={styles.transferTypeBadge}>
+              <Text style={styles.transferTypeText}>{transferTypeLabel}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Account Number */}
+        {displayAccountNumber && (
+          <View style={styles.accountNumberRow}>
+            <Ionicons name="card-outline" size={14} color={colors.neutral[400]} />
+            <Text style={styles.accountNumberText}>{displayAccountNumber}</Text>
+          </View>
+        )}
 
         {/* Movement Type */}
         <View style={styles.movementTypeContainer}>
@@ -361,27 +404,37 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        {/* Footer: Date & Bank Account */}
+        {/* Footer: Date & Bank Name */}
         <View style={styles.cardFooter}>
           <View style={styles.dateContainer}>
             <Ionicons name="calendar-outline" size={14} color={colors.neutral[400]} />
             <Text style={styles.dateText}>{formatDate(item.transactionDate)}</Text>
           </View>
-          {item.bankAccount && (
+          {displayBankName && (
             <View style={styles.bankAccountContainer}>
               <Ionicons name="business-outline" size={14} color={colors.neutral[400]} />
               <Text style={styles.bankAccountText} numberOfLines={1}>
-                {item.bankAccount.bankName} - ****{item.bankAccount.accountNumber.slice(-4)}
+                {displayBankName}
               </Text>
             </View>
           )}
         </View>
 
-        {/* Operation Number */}
-        {item.operationNumber && (
+        {/* Operation Number & Batch Number */}
+        {(item.operationNumber || item.batchNumber) && (
           <View style={styles.operationNumberContainer}>
-            <Text style={styles.operationNumberLabel}>Nro. Op:</Text>
-            <Text style={styles.operationNumberValue}>{item.operationNumber}</Text>
+            {item.operationNumber && (
+              <View style={styles.operationItem}>
+                <Text style={styles.operationNumberLabel}>Nro. Op:</Text>
+                <Text style={styles.operationNumberValue}>{item.operationNumber}</Text>
+              </View>
+            )}
+            {item.batchNumber && (
+              <View style={styles.operationItem}>
+                <Text style={styles.operationNumberLabel}>Lote:</Text>
+                <Text style={styles.operationNumberValue}>{item.batchNumber}</Text>
+              </View>
+            )}
           </View>
         )}
       </TouchableOpacity>
@@ -1271,11 +1324,17 @@ const styles = StyleSheet.create({
   operationNumberContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
+    flexWrap: 'wrap',
+    gap: spacing[3],
     marginTop: spacing[2],
     paddingTop: spacing[2],
     borderTopWidth: 1,
     borderTopColor: colors.neutral[100],
+  },
+  operationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
   },
   operationNumberLabel: {
     fontSize: 11,
@@ -1283,6 +1342,77 @@ const styles = StyleSheet.create({
   },
   operationNumberValue: {
     fontSize: 11,
+    color: colors.neutral[600],
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+
+  // New fields styles
+  ownTransferBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.info[100],
+    gap: spacing[1],
+  },
+  ownTransferText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.info[700],
+  },
+  bankInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+    marginBottom: spacing[2],
+  },
+  bankCodeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary[50],
+    borderWidth: 1,
+    borderColor: colors.primary[200],
+    gap: spacing[1],
+  },
+  bankCodeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary[700],
+  },
+  accountAliasText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.neutral[700],
+    flex: 1,
+  },
+  transferTypeBadge: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.warning[100],
+  },
+  transferTypeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.warning[700],
+  },
+  accountNumberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginBottom: spacing[2],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.md,
+  },
+  accountNumberText: {
+    fontSize: 12,
     color: colors.neutral[600],
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
