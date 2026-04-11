@@ -343,6 +343,7 @@ export type MainStackParamList = {
 
   // Treasury
   TreasuryUploadFiles: undefined;
+  BankOperations: undefined;
 
   // Cash Reconciliation
   CashReconciliationMenu: undefined;

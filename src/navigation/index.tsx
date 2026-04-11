@@ -147,6 +147,7 @@ const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').
 
 // Treasury Screens - Lazy Loaded
 const TreasuryUploadFilesScreen = lazyLoad(() => import('@/screens/Treasury').then(m => ({ default: m.TreasuryUploadFilesScreen })), 'Cargando tesorería...');
+const BankOperationsScreen = lazyLoad(() => import('@/screens/Treasury').then(m => ({ default: m.BankOperationsScreen })), 'Cargando operaciones bancarias...');
 
 // Cash Reconciliation Screens - Lazy Loaded
 const CashReconciliationMenuScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CashReconciliationMenuScreen })), 'Cargando cuadre de caja...');
@@ -1111,6 +1112,13 @@ const MainStack = React.memo(() => {
         component={TreasuryUploadFilesScreen}
         options={{
           title: 'Subir Archivos - Tesorería',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BANK_OPERATIONS}
+        component={BankOperationsScreen}
+        options={{
+          title: 'Operaciones Bancarias',
         }}
       />
 
