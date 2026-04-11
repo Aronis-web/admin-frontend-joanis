@@ -49,6 +49,7 @@
     "icon": "electron/build/icon.png",
     "category": "Office"
   },
+  "compression": "normal",
   "nsis": {
     "oneClick": true,
     "perMachine": false,
