@@ -366,7 +366,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   ORGANIZATION_CHART: 'organization.positions.company.read',
 
   // Treasury
-  TREASURY_UPLOAD_FILES: 'treasury.upload',
+  TREASURY_UPLOAD_FILES: 'treasury.transactions.upload',
   BANK_OPERATIONS: 'treasury.transactions.read',
 
   // Cash Reconciliation

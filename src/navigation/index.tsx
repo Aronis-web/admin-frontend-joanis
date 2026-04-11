@@ -1109,18 +1109,36 @@ const MainStack = React.memo(() => {
       {/* Treasury Screens */}
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.TREASURY_UPLOAD_FILES}
-        component={TreasuryUploadFilesScreen}
         options={{
           title: 'Subir Archivos - Tesorería',
         }}
-      />
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'treasury.transactions.upload',
+            ]}
+          >
+            <TreasuryUploadFilesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.BANK_OPERATIONS}
-        component={BankOperationsScreen}
         options={{
           title: 'Operaciones Bancarias',
         }}
-      />
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'treasury.transactions.read',
+            ]}
+          >
+            <BankOperationsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
 
       {/* Cash Reconciliation Screens */}
       <MainStackNavigator.Screen
