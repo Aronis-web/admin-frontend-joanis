@@ -10,9 +10,26 @@ webpack.config.js
 .expo/
 .expo-shared/
 *.log
+*.tsbuildinfo
+
+# Excluir node_modules (EAS lo regenera)
+node_modules/
+
+# Excluir android build artifacts
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+ios/
 
 # Excluir configuraciones de package managers que pueden causar problemas
 .npmrc
 .yarnrc
 .yarnrc.yml
 .pnpmfile.cjs
+
+# Excluir archivos grandes innecesarios
+*.apk
+*.aab
+*.ipa
+.git/
