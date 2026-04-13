@@ -1,7 +1,7 @@
 /**
  * Servicio API para verificar y descargar actualizaciones de la app
  */
-import apiClient from '../apiClient';
+import apiClient from './client';
 
 // ============================================
 // TYPES
