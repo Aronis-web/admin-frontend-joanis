@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 import { useAuthStore } from '@/store/auth';
 import { config } from '@/utils/config';
 import { authService } from '@/services/AuthService';
@@ -170,70 +171,110 @@ export function useActivityTracker(options: ActivityTrackerOptions = {}): void {
     }
 
     isTracking.current = true;
-    log('Starting activity tracking');
+    log('Starting activity tracking on platform:', Platform.OS);
 
-    // Eventos a escuchar para detectar actividad del usuario
-    const activityEvents = [
-      'mousedown',
-      'mousemove',
-      'keydown',
-      'scroll',
-      'touchstart',
-      'click',
-      'wheel',
-    ];
-
-    // Throttle para eventos frecuentes (mousemove, scroll)
     let throttleTimeout: ReturnType<typeof setTimeout> | null = null;
-    const throttledHandler = () => {
-      if (throttleTimeout) return;
-      throttleTimeout = setTimeout(() => {
-        throttleTimeout = null;
-        handleUserActivity();
-      }, 1000); // Máximo 1 update por segundo
-    };
 
-    // Agregar listeners
-    activityEvents.forEach((event) => {
-      if (event === 'mousemove' || event === 'scroll' || event === 'wheel') {
-        window.addEventListener(event, throttledHandler, { passive: true });
-      } else {
-        window.addEventListener(event, handleUserActivity, { passive: true });
-      }
-    });
+    // Para plataformas móviles (Android/iOS), usar AppState
+    // Para web/Electron, usar window events
+    const isWeb = Platform.OS === 'web';
 
-    // Inicializar timestamps
-    lastUserActivity.current = Date.now();
-    updateLastApiCall();
+    if (isWeb && typeof window !== 'undefined') {
+      // Eventos a escuchar para detectar actividad del usuario (solo web)
+      const activityEvents = [
+        'mousedown',
+        'mousemove',
+        'keydown',
+        'scroll',
+        'touchstart',
+        'click',
+        'wheel',
+      ];
 
-    // Intervalo de verificación
-    const intervalId = setInterval(checkAndSendHeartbeat, opts.checkIntervalMs);
+      // Throttle para eventos frecuentes (mousemove, scroll)
+      const throttledHandler = () => {
+        if (throttleTimeout) return;
+        throttleTimeout = setTimeout(() => {
+          throttleTimeout = null;
+          handleUserActivity();
+        }, 1000); // Máximo 1 update por segundo
+      };
 
-    log('Activity tracking initialized', {
-      checkInterval: Math.round(opts.checkIntervalMs / 1000) + 's',
-      apiIdleThreshold: Math.round(opts.apiIdleThresholdMs / 1000) + 's',
-      userIdleThreshold: Math.round(opts.userIdleThresholdMs / 1000) + 's',
-    });
-
-    // Cleanup
-    return () => {
-      log('Stopping activity tracking');
-      isTracking.current = false;
-
+      // Agregar listeners
       activityEvents.forEach((event) => {
         if (event === 'mousemove' || event === 'scroll' || event === 'wheel') {
-          window.removeEventListener(event, throttledHandler);
+          window.addEventListener(event, throttledHandler, { passive: true });
         } else {
-          window.removeEventListener(event, handleUserActivity);
+          window.addEventListener(event, handleUserActivity, { passive: true });
         }
       });
 
-      if (throttleTimeout) {
-        clearTimeout(throttleTimeout);
-      }
+      // Cleanup para web
+      const cleanupWeb = () => {
+        activityEvents.forEach((event) => {
+          if (event === 'mousemove' || event === 'scroll' || event === 'wheel') {
+            window.removeEventListener(event, throttledHandler);
+          } else {
+            window.removeEventListener(event, handleUserActivity);
+          }
+        });
+        if (throttleTimeout) {
+          clearTimeout(throttleTimeout);
+        }
+      };
 
-      clearInterval(intervalId);
-    };
+      // Inicializar timestamps
+      lastUserActivity.current = Date.now();
+      updateLastApiCall();
+
+      // Intervalo de verificación
+      const intervalId = setInterval(checkAndSendHeartbeat, opts.checkIntervalMs);
+
+      log('Activity tracking initialized (web)', {
+        checkInterval: Math.round(opts.checkIntervalMs / 1000) + 's',
+        apiIdleThreshold: Math.round(opts.apiIdleThresholdMs / 1000) + 's',
+        userIdleThreshold: Math.round(opts.userIdleThresholdMs / 1000) + 's',
+      });
+
+      return () => {
+        log('Stopping activity tracking (web)');
+        isTracking.current = false;
+        cleanupWeb();
+        clearInterval(intervalId);
+      };
+    } else {
+      // Para móviles (Android/iOS), usar AppState para detectar actividad
+      // Cuando la app está en foreground, asumimos que el usuario está activo
+      const handleAppStateChange = (nextAppState: AppStateStatus) => {
+        if (nextAppState === 'active') {
+          log('App came to foreground - updating activity');
+          handleUserActivity();
+        }
+      };
+
+      const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+      // Inicializar timestamps
+      lastUserActivity.current = Date.now();
+      updateLastApiCall();
+
+      // Intervalo de verificación
+      const intervalId = setInterval(checkAndSendHeartbeat, opts.checkIntervalMs);
+
+      log('Activity tracking initialized (mobile)', {
+        platform: Platform.OS,
+        checkInterval: Math.round(opts.checkIntervalMs / 1000) + 's',
+        apiIdleThreshold: Math.round(opts.apiIdleThresholdMs / 1000) + 's',
+        userIdleThreshold: Math.round(opts.userIdleThresholdMs / 1000) + 's',
+      });
+
+      return () => {
+        log('Stopping activity tracking (mobile)');
+        isTracking.current = false;
+        subscription.remove();
+        clearInterval(intervalId);
+      };
+    }
   }, [isAuthenticated, handleUserActivity, checkAndSendHeartbeat, opts.checkIntervalMs, log]);
 }
 
