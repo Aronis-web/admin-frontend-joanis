@@ -815,6 +815,7 @@ const styles = StyleSheet.create({
     width: '95%',
     maxWidth: 500,
     maxHeight: '90%',
+    minHeight: Platform.OS === 'android' ? '70%' : undefined,
     backgroundColor: colors.surface.primary,
     borderRadius: borderRadius.xl,
     ...shadows.xl,
