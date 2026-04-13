@@ -19,6 +19,7 @@ import { QueryProvider } from '@/providers/QueryProvider';
 // Sentry has been removed - import commented out
 // import { initSentry } from '@/config/sentry';
 import { useSessionWarning } from '@/hooks/useSessionWarning';
+import { useActivityTracker } from '@/hooks/useActivityTracker';
 
 export const App = () => {
   const [fontsLoaded] = useFonts({
@@ -33,6 +34,15 @@ export const App = () => {
 
   // Enable session expiration warnings
   useSessionWarning();
+
+  // 🆕 Enable activity tracking for inactivity-based session expiration
+  // Solo envía heartbeat cuando el usuario está activo pero no hace API calls
+  useActivityTracker({
+    checkIntervalMs: 5 * 60 * 1000,      // Verificar cada 5 minutos
+    apiIdleThresholdMs: 10 * 60 * 1000,  // Heartbeat si no hay API calls en 10 min
+    userIdleThresholdMs: 15 * 60 * 1000, // No enviar heartbeat si usuario inactivo 15+ min
+    debug: __DEV__, // Solo logging en desarrollo
+  });
 
   useEffect(() => {
     const initialize = async () => {

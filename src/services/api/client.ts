@@ -5,6 +5,7 @@ import { useTenantStore } from '@/store/tenant';
 import { authService } from '@/services/AuthService';
 import { TenantContext } from '@/types/companies';
 import logger from '@/utils/logger';
+import { updateLastApiCall } from '@/hooks/useActivityTracker';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -178,6 +179,10 @@ class ApiClient {
       (response) => {
         // Reset refresh counter on successful response
         this.refreshAttempts = 0;
+
+        // 🆕 Actualizar timestamp de última actividad API (para expiración por inactividad)
+        // Esto evita heartbeats innecesarios cuando el usuario ya está haciendo API calls
+        updateLastApiCall();
 
         logger.apiResponse(
           response.config.method?.toUpperCase() || 'GET',
