@@ -273,6 +273,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
   // Verificar actualizaciones via Backend (para Android)
   const checkForUpdatesViaBackend = useCallback(async (): Promise<UpdateInfo> => {
+    console.log('🔍 [BACKEND_CHECK] Iniciando verificación de actualizaciones...');
+    console.log('🔍 [BACKEND_CHECK] App ID: erp-aio');
+    console.log('🔍 [BACKEND_CHECK] Platform: android');
+    console.log('🔍 [BACKEND_CHECK] Current Version:', appVersion);
+
     try {
       const response: CheckUpdateResponse = await appUpdatesApi.checkForUpdates(
         'erp-aio',
@@ -280,7 +285,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         appVersion
       );
 
-      return {
+      console.log('✅ [BACKEND_CHECK] Respuesta del servidor:', JSON.stringify(response, null, 2));
+      console.log('✅ [BACKEND_CHECK] updateAvailable:', response.updateAvailable);
+      console.log('✅ [BACKEND_CHECK] latestVersion:', response.latestVersion);
+      console.log('✅ [BACKEND_CHECK] downloadUrl:', response.downloadUrl);
+      console.log('✅ [BACKEND_CHECK] fileName:', response.fileName);
+      console.log('✅ [BACKEND_CHECK] fileSize:', response.fileSize);
+
+      const updateInfo: UpdateInfo = {
         updateAvailable: response.updateAvailable,
         currentVersion: appVersion,
         latestVersion: response.latestVersion,
@@ -292,9 +304,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         fileSize: response.fileSize,
         changelog: response.changelog,
         isMandatory: response.isMandatory,
-      } as UpdateInfo;
+      };
+
+      console.log('📦 [BACKEND_CHECK] UpdateInfo construido:', JSON.stringify(updateInfo, null, 2));
+      return updateInfo;
     } catch (error: any) {
-      console.error('Error checking updates via backend:', error);
+      console.error('❌ [BACKEND_CHECK] Error:', error.message);
+      console.error('❌ [BACKEND_CHECK] Error completo:', error);
       return {
         updateAvailable: false,
         currentVersion: appVersion,
@@ -382,8 +398,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
   // Descargar e instalar APK (Android)
   const downloadAndInstallApk = useCallback(async () => {
+    console.log('🚀 [APK_UPDATE] Iniciando proceso de actualización...');
+    console.log('🔍 [APK_UPDATE] updateInfo completo:', JSON.stringify(updateInfo, null, 2));
+
     if (!updateInfo?.downloadUrl || !updateInfo?.latestVersion) {
-      Alert.alert('Error', 'No hay información de descarga disponible');
+      console.error('❌ [APK_UPDATE] Faltan datos:', {
+        downloadUrl: updateInfo?.downloadUrl,
+        latestVersion: updateInfo?.latestVersion,
+      });
+      Alert.alert('Error', `No hay información de descarga disponible.\n\nDetalles:\n- URL: ${updateInfo?.downloadUrl || 'NO DISPONIBLE'}\n- Versión: ${updateInfo?.latestVersion || 'NO DISPONIBLE'}`);
       return;
     }
 
@@ -394,16 +417,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       const fileName = updateInfo.fileName || `erp-aio-v${updateInfo.latestVersion}.apk`;
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
-      console.log('📥 Iniciando descarga del APK:', updateInfo.downloadUrl);
-      console.log('📁 Guardando en:', fileUri);
+      console.log('📥 [APK_UPDATE] Iniciando descarga del APK...');
+      console.log('📥 [APK_UPDATE] URL:', updateInfo.downloadUrl);
+      console.log('📁 [APK_UPDATE] Destino:', fileUri);
+      console.log('📁 [APK_UPDATE] Cache Directory:', FileSystem.cacheDirectory);
+      console.log('📦 [APK_UPDATE] Tamaño esperado:', updateInfo.fileSize, 'bytes');
 
       // Descargar el archivo con progreso
+      console.log('⏳ [APK_UPDATE] Creando downloadResumable...');
       const downloadResumable = FileSystem.createDownloadResumable(
         updateInfo.downloadUrl,
         fileUri,
         {},
         (progress) => {
           const percent = (progress.totalBytesWritten / progress.totalBytesExpectedToWrite) * 100;
+          console.log(`📊 [APK_UPDATE] Progreso: ${percent.toFixed(1)}% (${progress.totalBytesWritten}/${progress.totalBytesExpectedToWrite})`);
           setDownloadProgress({
             percent,
             bytesPerSecond: 0,
@@ -413,42 +441,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         }
       );
 
+      console.log('⏳ [APK_UPDATE] Iniciando downloadAsync...');
       const result = await downloadResumable.downloadAsync();
+      console.log('📦 [APK_UPDATE] Resultado descarga:', JSON.stringify(result, null, 2));
 
       if (!result?.uri) {
-        throw new Error('La descarga no se completó correctamente');
+        console.error('❌ [APK_UPDATE] Descarga falló - result.uri es null/undefined');
+        throw new Error('La descarga no se completó correctamente - URI vacío');
       }
 
-      console.log('✅ APK descargado:', result.uri);
+      console.log('✅ [APK_UPDATE] APK descargado exitosamente:', result.uri);
+      console.log('✅ [APK_UPDATE] Status HTTP:', result.status);
+      console.log('✅ [APK_UPDATE] Headers:', JSON.stringify(result.headers, null, 2));
       setDownloadProgress((prev) => prev ? { ...prev, percent: 100 } : null);
 
       // Intentar abrir el APK para instalación
       try {
-        // Obtener URI de contenido para compartir/abrir
+        console.log('🔄 [APK_UPDATE] Obteniendo content URI...');
         const contentUri = await FileSystem.getContentUriAsync(result.uri);
-        console.log('📁 Content URI:', contentUri);
+        console.log('📁 [APK_UPDATE] Content URI obtenido:', contentUri);
 
-        // Método 1: Intentar abrir con Linking (funciona en algunos dispositivos)
+        // Método 1: Intentar abrir con Linking
+        console.log('🔗 [APK_UPDATE] Verificando si se puede abrir con Linking...');
         const canOpen = await Linking.canOpenURL(contentUri);
-        if (canOpen) {
-          await Linking.openURL(contentUri);
-          console.log('📲 APK abierto con Linking');
-        } else {
-          throw new Error('No se puede abrir con Linking');
-        }
-      } catch (linkingError) {
-        console.log('⚠️ No se pudo abrir con Linking, intentando con Sharing...', linkingError);
+        console.log('🔗 [APK_UPDATE] canOpenURL resultado:', canOpen);
 
-        // Método 2: Usar Sharing como fallback (siempre funciona)
+        if (canOpen) {
+          console.log('🔗 [APK_UPDATE] Abriendo con Linking.openURL...');
+          await Linking.openURL(contentUri);
+          console.log('📲 [APK_UPDATE] APK abierto exitosamente con Linking');
+        } else {
+          console.log('⚠️ [APK_UPDATE] Linking.canOpenURL retornó false');
+          throw new Error('No se puede abrir con Linking - canOpenURL=false');
+        }
+      } catch (linkingError: any) {
+        console.log('⚠️ [APK_UPDATE] Error con Linking:', linkingError.message);
+        console.log('⚠️ [APK_UPDATE] Stack:', linkingError.stack);
+        console.log('🔄 [APK_UPDATE] Intentando con Sharing...');
+
+        // Método 2: Usar Sharing como fallback
         const isAvailable = await Sharing.isAvailableAsync();
+        console.log('📤 [APK_UPDATE] Sharing disponible:', isAvailable);
+
         if (isAvailable) {
+          console.log('📤 [APK_UPDATE] Compartiendo APK...');
           await Sharing.shareAsync(result.uri, {
             mimeType: 'application/vnd.android.package-archive',
             dialogTitle: 'Instalar actualización ERP-aio',
           });
-          console.log('📲 APK compartido para instalación');
+          console.log('📲 [APK_UPDATE] APK compartido para instalación');
         } else {
-          // Mostrar instrucciones manuales
+          console.log('❌ [APK_UPDATE] Sharing no disponible, mostrando instrucciones manuales');
           Alert.alert(
             '📥 Descarga completada',
             `El APK v${updateInfo.latestVersion} se ha descargado.\n\nPara instalar:\n1. Abre el administrador de archivos\n2. Ve a la carpeta de descargas\n3. Toca el archivo ${fileName}`,
@@ -458,15 +501,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       }
 
       // Marcar como descargado
+      console.log('✅ [APK_UPDATE] Proceso completado, marcando como descargado');
       setUpdateInfo((prev) => prev ? { ...prev, updateDownloaded: true } : null);
     } catch (error: any) {
-      console.error('❌ Error descargando APK:', error);
+      console.error('❌ [APK_UPDATE] ERROR GENERAL:', error.message);
+      console.error('❌ [APK_UPDATE] Error completo:', error);
+      console.error('❌ [APK_UPDATE] Stack:', error.stack);
       Alert.alert(
         'Error de descarga',
-        error.message || 'No se pudo descargar la actualización. Verifica tu conexión a internet.',
+        `${error.message || 'Error desconocido'}\n\nRevisa los logs para más detalles.`,
         [{ text: 'OK' }]
       );
     } finally {
+      console.log('🏁 [APK_UPDATE] Finalizando proceso (finally)');
       setIsDownloading(false);
     }
   }, [updateInfo]);
