@@ -423,12 +423,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       console.log('📁 [APK_UPDATE] Cache Directory:', FileSystem.cacheDirectory);
       console.log('📦 [APK_UPDATE] Tamaño esperado:', updateInfo.fileSize, 'bytes');
 
+      // Configurar headers requeridos por el backend
+      const downloadHeaders: Record<string, string> = {
+        'X-App-Id': config.APP_ID || 'erp-aio',
+        'x-app-id': config.APP_ID || 'erp-aio',
+        'X-App-Version': config.APP_VERSION || appVersion,
+      };
+
+      console.log('📋 [APK_UPDATE] Headers para descarga:', JSON.stringify(downloadHeaders, null, 2));
+
       // Descargar el archivo con progreso
       console.log('⏳ [APK_UPDATE] Creando downloadResumable...');
       const downloadResumable = FileSystem.createDownloadResumable(
         updateInfo.downloadUrl,
         fileUri,
-        {},
+        { headers: downloadHeaders },
         (progress) => {
           const percent = (progress.totalBytesWritten / progress.totalBytesExpectedToWrite) * 100;
           console.log(`📊 [APK_UPDATE] Progreso: ${percent.toFixed(1)}% (${progress.totalBytesWritten}/${progress.totalBytesExpectedToWrite})`);
