@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { config } from '@/utils/config';
-import { useAuthStore } from '@/store/auth';
 import { filesApi } from '@/services/api/files';
 import { colors, spacing, borderRadius } from '@/design-system/tokens';
 
@@ -76,22 +75,14 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
     try {
       console.log('🖼️ Loading image from signed URL:', url);
 
-      // Get the JWT token from auth store
-      const token = useAuthStore.getState().token;
-
-      // El backend requiere el header X-App-Id y Authorization para archivos privados
+      // NOTE: The /files/private endpoint uses @Public() decorator and validates via signed URL token in query string
+      // Authorization header is NOT needed - the JWT token is embedded in the signed URL
+      // Only X-App-Id is required for request identification
       const headers: Record<string, string> = {
         'X-App-Id': config.APP_ID,
+        'X-App-Version': config.APP_VERSION,
         Accept: 'image/*',
       };
-
-      // Add Authorization header if token is available
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        console.log('🔑 Adding Authorization header with JWT token');
-      }
-
-      headers['X-App-Version'] = config.APP_VERSION;
 
       const response = await fetch(url, {
         method: 'GET',

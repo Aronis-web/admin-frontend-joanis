@@ -44,7 +44,7 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
   onOperationUpdated,
 }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null); // Changed: use fileId instead of URL
   const [selectedFileName, setSelectedFileName] = useState<string>('');
   const [files, setFiles] = useState<BalanceOperationFile[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -67,27 +67,9 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
     try {
       const fetchedFiles = await filesApi.getBalanceOperationFiles(operation.id);
       console.log('✅ Files loaded:', fetchedFiles);
-
-      // Get signed URLs for each file if not already present
-      const filesWithSignedUrls = await Promise.all(
-        (fetchedFiles || []).map(async (file) => {
-          if (file.signedUrl) {
-            return file;
-          }
-
-          try {
-            // Use the file's filePath to get a signed URL
-            const signedUrl = await filesApi.getPrivateFileUrl(file.filePath);
-            console.log('🔗 Got signed URL for file:', file.originalName);
-            return { ...file, signedUrl };
-          } catch (error) {
-            console.error('❌ Error getting signed URL for file:', file.originalName, error);
-            return file;
-          }
-        })
-      );
-
-      setFiles(filesWithSignedUrls);
+      // NOTE: No longer pre-fetching signed URLs - they will be generated on-demand when user clicks
+      // This prevents signed URL expiration issues when user stays on screen for long periods
+      setFiles(fetchedFiles || []);
     } catch (error) {
       console.error('❌ Error loading files:', error);
       setFiles([]);
@@ -128,24 +110,32 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
     });
   };
 
-  const handleViewImage = (fileUrl: string, fileName: string) => {
-    setSelectedImageUrl(fileUrl);
+  // Changed: Now receives filePath (fileId) instead of pre-generated URL
+  const handleViewImage = (filePath: string, fileName: string) => {
+    console.log('🖼️ Opening image viewer with fileId:', filePath);
+    setSelectedFileId(filePath); // Store fileId, not URL - ImageViewerModal will generate fresh signed URL
     setSelectedFileName(fileName);
     setImageViewerVisible(true);
   };
 
-  const handleDownloadFile = async (fileUrl: string, fileName: string) => {
+  // Changed: Generate fresh signed URL on-demand when downloading
+  const handleDownloadFile = async (filePath: string, fileName: string) => {
     try {
+      console.log('📥 Generating fresh signed URL for download:', filePath);
+      // Generate fresh signed URL on-demand to avoid expiration issues
+      const freshSignedUrl = await filesApi.getPrivateFileUrl(filePath);
+      console.log('✅ Fresh signed URL generated for download');
+
       // For web, open in new tab
       if (Platform.OS === 'web') {
-        window.open(fileUrl, '_blank');
+        window.open(freshSignedUrl, '_blank');
         return;
       }
 
       // For mobile, try to open with system handler
-      const supported = await Linking.canOpenURL(fileUrl);
+      const supported = await Linking.canOpenURL(freshSignedUrl);
       if (supported) {
-        await Linking.openURL(fileUrl);
+        await Linking.openURL(freshSignedUrl);
       } else {
         Alert.alert('Error', 'No se puede abrir este tipo de archivo');
       }
@@ -337,16 +327,12 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
                   <View style={styles.filesContainer}>
                     {files.map((file) => {
                       const isImage = isImageFile(file.mimeType);
-                      // Use signedUrl if available, otherwise construct URL
-                      const fileUrl =
-                        file.signedUrl || `${config.API_URL}/balance-files/${file.id}`;
 
                       console.log('📎 Rendering file:', {
                         fileName: file.originalName,
                         mimeType: file.mimeType,
                         isImage,
-                        fileUrl,
-                        hasSignedUrl: !!file.signedUrl,
+                        filePath: file.filePath, // Using filePath for on-demand signed URL generation
                       });
 
                       return (
@@ -354,10 +340,12 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
                           key={file.id}
                           style={styles.fileCard}
                           onPress={() => {
+                            // Pass filePath instead of pre-generated URL
+                            // Signed URL will be generated on-demand to avoid expiration issues
                             if (isImage) {
-                              handleViewImage(fileUrl, file.originalName);
+                              handleViewImage(file.filePath, file.originalName);
                             } else {
-                              handleDownloadFile(fileUrl, file.originalName);
+                              handleDownloadFile(file.filePath, file.originalName);
                             }
                           }}
                         >
@@ -431,14 +419,14 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
         </View>
       </Modal>
 
-      {/* Image Viewer Modal */}
+      {/* Image Viewer Modal - Using fileId for on-demand signed URL generation */}
       <ImageViewerModal
         visible={imageViewerVisible}
-        imageUrl={selectedImageUrl}
+        fileId={selectedFileId}
         fileName={selectedFileName}
         onClose={() => {
           setImageViewerVisible(false);
-          setSelectedImageUrl(null);
+          setSelectedFileId(null);
           setSelectedFileName('');
         }}
       />
