@@ -266,34 +266,59 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       const formData = new FormData();
 
       if (Platform.OS === 'web') {
-        // Web: Use the original File object if available
-        console.log('📤 [Web] Preparing file upload...');
+        // Web/Electron: Need to read file content into memory before sending
+        // In Electron, File objects can lose their content after selection
+        console.log('📤 [Web/Electron] Preparing file upload...');
         console.log('📄 selectedFile:', selectedFile);
         console.log('📄 selectedFile.file:', selectedFile.file);
+        console.log('📄 selectedFile.uri:', selectedFile.uri);
 
-        if (selectedFile.file) {
-          // Use the preserved File object
-          console.log('✅ Using File object:', selectedFile.file.name, selectedFile.file.type, selectedFile.file.size);
-          formData.append('file', selectedFile.file);
-        } else {
-          // Fallback: fetch the blob from URI and create a File
-          console.log('⚠️ No File object, fetching from URI:', selectedFile.uri);
-          try {
+        try {
+          let fileToUpload: File;
+
+          if (selectedFile.file) {
+            // Read the File object into an ArrayBuffer to ensure content is loaded
+            // This fixes issues in Electron where File objects may lose content
+            console.log('📖 Reading File object into memory...');
+            const arrayBuffer = await selectedFile.file.arrayBuffer();
+            console.log('📦 ArrayBuffer size:', arrayBuffer.byteLength, 'bytes');
+
+            if (arrayBuffer.byteLength === 0) {
+              throw new Error('El archivo esta vacio o no se pudo leer');
+            }
+
+            const blob = new Blob([arrayBuffer], { type: selectedFile.file.type || selectedFile.mimeType });
+            fileToUpload = new File([blob], selectedFile.file.name || selectedFile.name, {
+              type: selectedFile.file.type || selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            console.log('✅ File recreated:', fileToUpload.name, fileToUpload.type, fileToUpload.size);
+          } else if (selectedFile.uri) {
+            // Fallback: fetch the blob from URI
+            console.log('⚠️ No File object, fetching from URI:', selectedFile.uri);
             const blobResponse = await fetch(selectedFile.uri);
             if (!blobResponse.ok) {
               throw new Error(`Failed to fetch blob: ${blobResponse.status}`);
             }
             const blob = await blobResponse.blob();
             console.log('📦 Blob created:', blob.size, 'bytes, type:', blob.type);
-            const file = new File([blob], selectedFile.name, {
-              type: selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+            if (blob.size === 0) {
+              throw new Error('El archivo esta vacio o no se pudo leer desde URI');
+            }
+
+            fileToUpload = new File([blob], selectedFile.name, {
+              type: selectedFile.mimeType || blob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             });
-            console.log('📁 File created:', file.name, file.type, file.size);
-            formData.append('file', file);
-          } catch (blobError: any) {
-            console.error('❌ Error fetching blob:', blobError);
-            throw new Error(`Error preparando archivo: ${blobError.message}`);
+            console.log('📁 File created from URI:', fileToUpload.name, fileToUpload.type, fileToUpload.size);
+          } else {
+            throw new Error('No se encontro el archivo para subir');
           }
+
+          formData.append('file', fileToUpload);
+          console.log('✅ File appended to FormData');
+        } catch (fileError: any) {
+          console.error('❌ Error preparing file:', fileError);
+          throw new Error(`Error preparando archivo: ${fileError.message}`);
         }
       } else {
         // Mobile: Use file metadata object

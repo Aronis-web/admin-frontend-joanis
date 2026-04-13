@@ -243,6 +243,12 @@ export const getDocumentAsync = async (options?: {
         if (type === 'application/pdf') {
           return '.pdf';
         }
+        if (type === 'application/zip' || type === 'application/x-zip-compressed' || type === 'application/x-zip') {
+          return '.zip';
+        }
+        if (type === 'text/csv' || type === 'application/csv') {
+          return '.csv';
+        }
         if (type.startsWith('image/')) {
           return 'image/*';
         }
