@@ -4,6 +4,11 @@
  * Modal con configuraciones de la aplicación:
  * - Modo oscuro
  * - Información de versión y actualizaciones
+ *
+ * Soporta actualizaciones en:
+ * - Electron (desktop): Auto-update nativo
+ * - Android: Descarga APK desde servidor propio
+ * - Web: Link a GitHub releases
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -21,10 +26,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 // Importar versión directamente desde package.json
 // @ts-ignore
 import packageJson from '../../../package.json';
+
+// API de actualizaciones
+import { appUpdatesApi, CheckUpdateResponse } from '@/services/api/app-updates';
+import { config } from '@/utils/config';
 
 // Design System
 import {
@@ -67,6 +78,12 @@ interface UpdateInfo {
   updateDownloaded?: boolean;
   message?: string;
   error?: string;
+  // Campos adicionales para Android
+  downloadUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  changelog?: string;
+  isMandatory?: boolean;
 }
 
 interface DownloadProgress {
@@ -83,11 +100,24 @@ const isElectron = (): boolean => {
   return typeof window !== 'undefined' && !!(window as any).electronAPI;
 };
 
+const isAndroid = (): boolean => {
+  return Platform.OS === 'android';
+};
+
 const getElectronAPI = () => {
   if (isElectron()) {
     return (window as any).electronAPI;
   }
   return null;
+};
+
+// Obtener nombre de plataforma para mostrar
+const getPlatformName = (): string => {
+  if (isElectron()) return 'Desktop (Electron)';
+  if (Platform.OS === 'android') return 'Android';
+  if (Platform.OS === 'ios') return 'iOS';
+  if (Platform.OS === 'web') return 'Web';
+  return Platform.OS;
 };
 
 // ============================================
@@ -241,6 +271,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
     }
   }, [appVersion]);
 
+  // Verificar actualizaciones via Backend (para Android)
+  const checkForUpdatesViaBackend = useCallback(async (): Promise<UpdateInfo> => {
+    try {
+      const response: CheckUpdateResponse = await appUpdatesApi.checkForUpdates(
+        'erp-aio',
+        'android',
+        appVersion
+      );
+
+      return {
+        updateAvailable: response.updateAvailable,
+        currentVersion: appVersion,
+        latestVersion: response.latestVersion,
+        releaseDate: response.releaseDate,
+        message: response.message,
+        // Datos adicionales para Android
+        downloadUrl: response.downloadUrl,
+        fileName: response.fileName,
+        fileSize: response.fileSize,
+        changelog: response.changelog,
+        isMandatory: response.isMandatory,
+      } as UpdateInfo;
+    } catch (error: any) {
+      console.error('Error checking updates via backend:', error);
+      return {
+        updateAvailable: false,
+        currentVersion: appVersion,
+        error: error.message || 'Error al verificar actualizaciones',
+      };
+    }
+  }, [appVersion]);
+
   // Verificar actualizaciones
   const checkForUpdates = useCallback(async () => {
     setIsCheckingUpdate(true);
@@ -262,14 +324,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         } else {
           setUpdateInfo(result);
         }
+      } else if (isAndroid()) {
+        // En Android, usar el backend propio
+        console.log('📱 Android: Verificando actualizaciones via backend...');
+        const backendResult = await checkForUpdatesViaBackend();
+        setUpdateInfo(backendResult);
       } else {
-        // En otras plataformas, verificar via GitHub API
+        // En otras plataformas (Web, iOS), verificar via GitHub API
         const result = await checkForUpdatesViaGitHub();
         setUpdateInfo(result);
       }
     } catch (error: any) {
-      // Si hay error con Electron, intentar con GitHub
-      console.log('Error con Electron, intentando con GitHub API...', error);
+      // Si hay error, intentar con GitHub como fallback
+      console.log('Error verificando actualizaciones, intentando con GitHub API...', error);
       try {
         const githubResult = await checkForUpdatesViaGitHub();
         setUpdateInfo(githubResult);
@@ -283,9 +350,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
     } finally {
       setIsCheckingUpdate(false);
     }
-  }, [appVersion, checkForUpdatesViaGitHub]);
+  }, [appVersion, checkForUpdatesViaGitHub, checkForUpdatesViaBackend]);
 
-  // Descargar actualización
+  // Descargar actualización (Electron)
   const downloadUpdate = useCallback(async () => {
     const electronAPI = getElectronAPI();
     if (!electronAPI) return;
@@ -301,7 +368,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
     }
   }, []);
 
-  // Instalar actualización
+  // Instalar actualización (Electron)
   const installUpdate = useCallback(async () => {
     const electronAPI = getElectronAPI();
     if (!electronAPI) return;
@@ -312,6 +379,97 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       console.error('Error installing update:', error);
     }
   }, []);
+
+  // Descargar e instalar APK (Android)
+  const downloadAndInstallApk = useCallback(async () => {
+    if (!updateInfo?.downloadUrl || !updateInfo?.latestVersion) {
+      Alert.alert('Error', 'No hay información de descarga disponible');
+      return;
+    }
+
+    setIsDownloading(true);
+    setDownloadProgress({ percent: 0, bytesPerSecond: 0, transferred: 0, total: updateInfo.fileSize || 0 });
+
+    try {
+      const fileName = updateInfo.fileName || `erp-aio-v${updateInfo.latestVersion}.apk`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+
+      console.log('📥 Iniciando descarga del APK:', updateInfo.downloadUrl);
+      console.log('📁 Guardando en:', fileUri);
+
+      // Descargar el archivo con progreso
+      const downloadResumable = FileSystem.createDownloadResumable(
+        updateInfo.downloadUrl,
+        fileUri,
+        {},
+        (progress) => {
+          const percent = (progress.totalBytesWritten / progress.totalBytesExpectedToWrite) * 100;
+          setDownloadProgress({
+            percent,
+            bytesPerSecond: 0,
+            transferred: progress.totalBytesWritten,
+            total: progress.totalBytesExpectedToWrite,
+          });
+        }
+      );
+
+      const result = await downloadResumable.downloadAsync();
+
+      if (!result?.uri) {
+        throw new Error('La descarga no se completó correctamente');
+      }
+
+      console.log('✅ APK descargado:', result.uri);
+      setDownloadProgress((prev) => prev ? { ...prev, percent: 100 } : null);
+
+      // Intentar abrir el APK para instalación
+      try {
+        // Obtener URI de contenido para compartir/abrir
+        const contentUri = await FileSystem.getContentUriAsync(result.uri);
+        console.log('📁 Content URI:', contentUri);
+
+        // Método 1: Intentar abrir con Linking (funciona en algunos dispositivos)
+        const canOpen = await Linking.canOpenURL(contentUri);
+        if (canOpen) {
+          await Linking.openURL(contentUri);
+          console.log('📲 APK abierto con Linking');
+        } else {
+          throw new Error('No se puede abrir con Linking');
+        }
+      } catch (linkingError) {
+        console.log('⚠️ No se pudo abrir con Linking, intentando con Sharing...', linkingError);
+
+        // Método 2: Usar Sharing como fallback (siempre funciona)
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(result.uri, {
+            mimeType: 'application/vnd.android.package-archive',
+            dialogTitle: 'Instalar actualización ERP-aio',
+          });
+          console.log('📲 APK compartido para instalación');
+        } else {
+          // Mostrar instrucciones manuales
+          Alert.alert(
+            '📥 Descarga completada',
+            `El APK v${updateInfo.latestVersion} se ha descargado.\n\nPara instalar:\n1. Abre el administrador de archivos\n2. Ve a la carpeta de descargas\n3. Toca el archivo ${fileName}`,
+            [{ text: 'Entendido' }]
+          );
+        }
+      }
+
+      // Marcar como descargado
+      setUpdateInfo((prev) => prev ? { ...prev, updateDownloaded: true } : null);
+    } catch (error: any) {
+      console.error('❌ Error descargando APK:', error);
+      Alert.alert(
+        'Error de descarga',
+        error.message || 'No se pudo descargar la actualización. Verifica tu conexión a internet.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [updateInfo]);
 
   // Abrir página de releases en GitHub
   const openGitHubRelease = useCallback(() => {
@@ -417,7 +575,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                     Plataforma:
                   </Text>
                   <Text variant="bodyMedium" color="primary">
-                    {isElectron() ? 'Desktop (Electron)' : Platform.OS === 'web' ? 'Web' : Platform.OS}
+                    {getPlatformName()}
                   </Text>
                 </View>
               </View>
@@ -475,8 +633,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                         </View>
                       </View>
 
-                      {/* Progreso de descarga (solo Electron) */}
-                      {isElectron() && isDownloading && downloadProgress && (
+                      {/* Changelog (si está disponible) */}
+                      {updateInfo.changelog && (
+                        <View style={styles.changelogContainer}>
+                          <Text variant="labelSmall" color="secondary" style={styles.changelogTitle}>
+                            Novedades:
+                          </Text>
+                          <Text variant="bodySmall" color="tertiary" style={styles.changelogText}>
+                            {updateInfo.changelog}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Progreso de descarga (Electron y Android) */}
+                      {(isElectron() || isAndroid()) && isDownloading && downloadProgress && (
                         <View style={styles.downloadProgress}>
                           <View style={styles.progressBarContainer}>
                             <View
@@ -499,7 +669,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
                       {/* Botones de acción */}
                       {isElectron() ? (
-                        // En Electron: descargar e instalar
+                        // En Electron: descargar e instalar automáticamente
                         !updateInfo.updateDownloaded ? (
                           <TouchableOpacity
                             style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
@@ -528,8 +698,51 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                             </Text>
                           </TouchableOpacity>
                         )
+                      ) : isAndroid() ? (
+                        // En Android: descargar APK e instalar manualmente
+                        !updateInfo.updateDownloaded ? (
+                          <View>
+                            <TouchableOpacity
+                              style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
+                              onPress={downloadAndInstallApk}
+                              disabled={isDownloading}
+                              activeOpacity={activeOpacity.medium}
+                            >
+                              {isDownloading ? (
+                                <ActivityIndicator size="small" color={colors.neutral[0]} />
+                              ) : (
+                                <Ionicons name="download-outline" size={iconSizes.sm} color={colors.neutral[0]} />
+                              )}
+                              <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                                {isDownloading ? 'Descargando APK...' : 'Descargar e Instalar'}
+                              </Text>
+                            </TouchableOpacity>
+                            {updateInfo.fileSize && (
+                              <Caption color="tertiary" style={styles.fileSizeText}>
+                                Tamaño: {formatBytes(updateInfo.fileSize)}
+                              </Caption>
+                            )}
+                          </View>
+                        ) : (
+                          <View style={styles.downloadedContainer}>
+                            <Ionicons name="checkmark-circle" size={iconSizes.md} color={colors.success[500]} />
+                            <Text variant="bodySmall" color="success" style={styles.downloadedText}>
+                              APK descargado. El instalador debería abrirse automáticamente.
+                            </Text>
+                            <TouchableOpacity
+                              style={styles.retryButton}
+                              onPress={downloadAndInstallApk}
+                              activeOpacity={activeOpacity.medium}
+                            >
+                              <Ionicons name="refresh-outline" size={iconSizes.sm} color={colors.primary[600]} />
+                              <Text variant="buttonSmall" color={colors.primary[600]} style={styles.retryButtonText}>
+                                Descargar de nuevo
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )
                       ) : (
-                        // En otras plataformas: abrir GitHub
+                        // En otras plataformas (Web, iOS): abrir GitHub
                         <TouchableOpacity
                           style={styles.downloadButton}
                           onPress={openGitHubRelease}
@@ -562,7 +775,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 <Caption color="secondary" style={styles.webNoticeText}>
                   {isElectron()
                     ? 'Las actualizaciones se descargan e instalan automáticamente.'
-                    : 'Verifica si hay nuevas versiones disponibles en GitHub.'}
+                    : isAndroid()
+                      ? 'Las actualizaciones se descargan desde el servidor. Asegúrate de permitir instalación de apps de fuentes desconocidas.'
+                      : 'Verifica si hay nuevas versiones disponibles en GitHub.'}
                 </Caption>
               </View>
             </SettingsCard>
@@ -849,6 +1064,56 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.success[200],
+  },
+
+  // Changelog
+  changelogContainer: {
+    marginBottom: spacing[3],
+    paddingTop: spacing[2],
+    borderTopWidth: 1,
+    borderTopColor: colors.success[200],
+  },
+
+  changelogTitle: {
+    marginBottom: spacing[1],
+  },
+
+  changelogText: {
+    lineHeight: 18,
+  },
+
+  // File size text
+  fileSizeText: {
+    textAlign: 'center',
+    marginTop: spacing[2],
+  },
+
+  // Downloaded container
+  downloadedContainer: {
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+
+  downloadedText: {
+    textAlign: 'center',
+  },
+
+  // Retry button
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary[300],
+    marginTop: spacing[2],
+    gap: spacing[1],
+  },
+
+  retryButtonText: {
+    marginLeft: spacing[1],
   },
 
   // Web Notice
