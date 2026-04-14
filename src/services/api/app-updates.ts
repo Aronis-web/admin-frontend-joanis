@@ -74,9 +74,14 @@ export const appUpdatesApi = {
 
   /**
    * Obtener URL de descarga directa
+   * Nota: El endpoint de descarga NO usa el prefijo /api
    */
   getDownloadUrl: (appId: AppId, platform: Platform, version: string): string => {
-    const baseUrl = apiClient.defaults?.baseURL || '';
+    let baseUrl = apiClient.defaults?.baseURL || '';
+    // Remover el sufijo /api si existe, ya que el endpoint de descarga no lo usa
+    if (baseUrl.endsWith('/api')) {
+      baseUrl = baseUrl.slice(0, -4);
+    }
     return `${baseUrl}/app-updates/download/${appId}/${platform}/${version}`;
   },
 
