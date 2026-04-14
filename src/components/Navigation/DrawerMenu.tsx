@@ -474,7 +474,7 @@ const menuCategories: MenuCategory[] = [
             icon: 'cloud-upload-outline',
             label: 'Versiones de App',
             route: MAIN_ROUTES.APP_VERSIONS,
-            requiredPermissions: ['apps.manage'],
+            requiredPermissions: ['apps.manage', 'apps.read'],
           },
         ],
       },
