@@ -186,25 +186,32 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 
   // Cargar sedes cuando se selecciona "ventas"
   useEffect(() => {
-    if (selectedReportType === 'ventas' && currentCompany) {
+    if (selectedReportType === 'ventas') {
       loadSedes();
     } else {
       setSedes([]);
       setSelectedSede('');
     }
-  }, [selectedReportType, currentCompany]);
+  }, [selectedReportType]);
 
   const loadSedes = async () => {
-    if (!currentCompany) return;
-
     setIsLoadingSedes(true);
     try {
+      // Cargar todas las sedes de todas las empresas (sin filtrar por companyId)
       const response = await sitesApi.getSites({
-        companyId: currentCompany.id,
         isActive: true,
-        limit: 100,
+        limit: 500,
       });
-      setSedes(response.data);
+      // Ordenar por nombre de empresa y luego por nombre de sede
+      const sortedSedes = response.data.sort((a, b) => {
+        const companyA = a.company?.name || '';
+        const companyB = b.company?.name || '';
+        if (companyA !== companyB) {
+          return companyA.localeCompare(companyB);
+        }
+        return a.name.localeCompare(b.name);
+      });
+      setSedes(sortedSedes);
     } catch (error) {
       console.error('❌ Error al cargar sedes:', error);
       Alert.alert('Error', 'No se pudieron cargar las sedes');
@@ -501,7 +508,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
                     {sedes.map((sede) => (
                       <Picker.Item
                         key={sede.id}
-                        label={`${sede.name} (${sede.code})`}
+                        label={`${sede.name} (${sede.code})${sede.company?.name ? ` - ${sede.company.name}` : ''}`}
                         value={sede.id}
                       />
                     ))}
@@ -602,6 +609,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
             {selectedReportType === 'ventas' && (
               <Text style={styles.infoText}>
                 • Debes seleccionar una sede específica{'\n'}
+                • Puedes seleccionar sedes de todas las empresas{'\n'}
                 • El archivo debe contener el reporte de ventas del sistema{'\n'}
                 • Se excluyen: Notas de Crédito y ventas anuladas{'\n'}
                 • Se detectarán duplicados automáticamente
