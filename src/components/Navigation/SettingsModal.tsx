@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 // Importar versión directamente desde package.json
 // @ts-ignore
@@ -482,42 +483,54 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         const contentUri = await FileSystem.getContentUriAsync(result.uri);
         console.log('📁 [APK_UPDATE] Content URI obtenido:', contentUri);
 
-        // Método 1: Intentar abrir con Linking
-        console.log('🔗 [APK_UPDATE] Verificando si se puede abrir con Linking...');
-        const canOpen = await Linking.canOpenURL(contentUri);
-        console.log('🔗 [APK_UPDATE] canOpenURL resultado:', canOpen);
+        // Método 1: Usar IntentLauncher para abrir el instalador de Android
+        console.log('🚀 [APK_UPDATE] Abriendo con IntentLauncher...');
+        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+          data: contentUri,
+          flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+          type: 'application/vnd.android.package-archive',
+        });
+        console.log('📲 [APK_UPDATE] Instalador de APK abierto exitosamente');
+      } catch (intentError: any) {
+        console.log('⚠️ [APK_UPDATE] Error con IntentLauncher:', intentError.message);
+        console.log('⚠️ [APK_UPDATE] Stack:', intentError.stack);
 
-        if (canOpen) {
-          console.log('🔗 [APK_UPDATE] Abriendo con Linking.openURL...');
-          await Linking.openURL(contentUri);
-          console.log('📲 [APK_UPDATE] APK abierto exitosamente con Linking');
-        } else {
-          console.log('⚠️ [APK_UPDATE] Linking.canOpenURL retornó false');
-          throw new Error('No se puede abrir con Linking - canOpenURL=false');
-        }
-      } catch (linkingError: any) {
-        console.log('⚠️ [APK_UPDATE] Error con Linking:', linkingError.message);
-        console.log('⚠️ [APK_UPDATE] Stack:', linkingError.stack);
-        console.log('🔄 [APK_UPDATE] Intentando con Sharing...');
+        // Método 2: Intentar con Linking como fallback
+        try {
+          console.log('🔗 [APK_UPDATE] Intentando con Linking...');
+          const contentUri = await FileSystem.getContentUriAsync(result.uri);
+          const canOpen = await Linking.canOpenURL(contentUri);
+          console.log('🔗 [APK_UPDATE] canOpenURL resultado:', canOpen);
 
-        // Método 2: Usar Sharing como fallback
-        const isAvailable = await Sharing.isAvailableAsync();
-        console.log('📤 [APK_UPDATE] Sharing disponible:', isAvailable);
+          if (canOpen) {
+            await Linking.openURL(contentUri);
+            console.log('📲 [APK_UPDATE] APK abierto con Linking');
+          } else {
+            throw new Error('canOpenURL retornó false');
+          }
+        } catch (linkingError: any) {
+          console.log('⚠️ [APK_UPDATE] Error con Linking:', linkingError.message);
+          console.log('🔄 [APK_UPDATE] Intentando con Sharing...');
 
-        if (isAvailable) {
-          console.log('📤 [APK_UPDATE] Compartiendo APK...');
-          await Sharing.shareAsync(result.uri, {
-            mimeType: 'application/vnd.android.package-archive',
-            dialogTitle: 'Instalar actualización ERP-aio',
-          });
-          console.log('📲 [APK_UPDATE] APK compartido para instalación');
-        } else {
-          console.log('❌ [APK_UPDATE] Sharing no disponible, mostrando instrucciones manuales');
-          Alert.alert(
-            '📥 Descarga completada',
-            `El APK v${updateInfo.latestVersion} se ha descargado.\n\nPara instalar:\n1. Abre el administrador de archivos\n2. Ve a la carpeta de descargas\n3. Toca el archivo ${fileName}`,
-            [{ text: 'Entendido' }]
-          );
+          // Método 3: Usar Sharing como último recurso
+          const isAvailable = await Sharing.isAvailableAsync();
+          console.log('📤 [APK_UPDATE] Sharing disponible:', isAvailable);
+
+          if (isAvailable) {
+            console.log('📤 [APK_UPDATE] Compartiendo APK...');
+            await Sharing.shareAsync(result.uri, {
+              mimeType: 'application/vnd.android.package-archive',
+              dialogTitle: 'Instalar actualización ERP-aio',
+            });
+            console.log('📲 [APK_UPDATE] APK compartido para instalación');
+          } else {
+            console.log('❌ [APK_UPDATE] Sharing no disponible, mostrando instrucciones manuales');
+            Alert.alert(
+              '📥 Descarga completada',
+              `El APK v${updateInfo.latestVersion} se ha descargado.\n\nPara instalar:\n1. Abre el administrador de archivos\n2. Ve a la carpeta de descargas\n3. Toca el archivo ${fileName}`,
+              [{ text: 'Entendido' }]
+            );
+          }
         }
       }
 
