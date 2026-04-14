@@ -330,7 +330,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['apps.manage']}>
+          <ProtectedRoute requiredPermissions={['apps.manage', 'apps.read']} requireAll={false}>
             <AppVersionsScreen {...props} />
           </ProtectedRoute>
         )}
