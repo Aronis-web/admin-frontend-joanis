@@ -2,6 +2,7 @@
  * Servicio API para verificar y descargar actualizaciones de la app
  */
 import apiClient from './client';
+import { config } from '@/utils/config';
 
 // ============================================
 // TYPES
@@ -77,7 +78,7 @@ export const appUpdatesApi = {
    * Nota: El endpoint de descarga NO usa el prefijo /api
    */
   getDownloadUrl: (appId: AppId, platform: Platform, version: string): string => {
-    let baseUrl = apiClient.defaults?.baseURL || '';
+    let baseUrl = config.API_URL || '';
     // Remover el sufijo /api si existe, ya que el endpoint de descarga no lo usa
     if (baseUrl.endsWith('/api')) {
       baseUrl = baseUrl.slice(0, -4);
