@@ -96,6 +96,17 @@ interface DownloadProgress {
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
+
+/**
+ * Corrige la URL de descarga removiendo /api del path si existe
+ * El endpoint de descarga de actualizaciones NO usa el prefijo /api
+ */
+const fixDownloadUrl = (url: string | undefined): string | undefined => {
+  if (!url) return url;
+  // Reemplazar /api/app-updates/ con /app-updates/
+  return url.replace('/api/app-updates/', '/app-updates/');
+};
+
 const isElectron = (): boolean => {
   return typeof window !== 'undefined' && !!(window as any).electronAPI;
 };
@@ -299,7 +310,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         releaseDate: response.releaseDate,
         message: response.message,
         // Datos adicionales para Android
-        downloadUrl: response.downloadUrl,
+        // Nota: fixDownloadUrl remueve /api del path ya que el endpoint de descarga no lo usa
+        downloadUrl: fixDownloadUrl(response.downloadUrl),
         fileName: response.fileName,
         fileSize: response.fileSize,
         changelog: response.changelog,
