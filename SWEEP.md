@@ -57,46 +57,88 @@ npm run build:electron:win
 **Build local usando Gradle** (evita límites de EAS Build):
 
 ```powershell
-# Variables
-$PROJECT = "C:/Users/aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis"
+# ===== PASO 1: Variables de configuración =====
+$PROJECT = "C:/Users/Aaron/IdeaProjects/admin-frontend-joanis"
 $BUILD_DIR = "C:\erp"
-$OUTPUT_DIR = "C:\Users\aaron\OneDrive\Desktop\apps Erp aio"
+$OUTPUT_DIR = "C:\Users\Aaron\OneDrive\Desktop\apps Erp aio"
 
-# 1. Obtener versión del app.json
+# Configurar JAVA_HOME y ANDROID_HOME (CRÍTICO)
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"  # Java 21
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:GRADLE_USER_HOME = "C:\gradle_cache"  # Cache limpio
+$env:GRADLE_OPTS = "-Xmx4g -XX:MaxMetaspaceSize=1g"  # Aumentar memoria
+
+Write-Host "JAVA_HOME: $env:JAVA_HOME" -ForegroundColor Green
+Write-Host "ANDROID_HOME: $env:ANDROID_HOME" -ForegroundColor Green
+Write-Host "GRADLE_OPTS: $env:GRADLE_OPTS" -ForegroundColor Green
+
+# ===== PASO 2: Obtener versión del app.json =====
 $appJson = Get-Content "$PROJECT\app.json" | ConvertFrom-Json
 $VERSION = $appJson.expo.version
+Write-Host "Versión detectada: $VERSION" -ForegroundColor Cyan
 
-# 2. Limpiar y copiar proyecto a ruta corta (evita límite de 250 caracteres de CMake)
+# ===== PASO 3: Limpiar directorios =====
+Write-Host "Limpiando directorios..." -ForegroundColor Yellow
 Remove-Item -Recurse -Force $BUILD_DIR -ErrorAction SilentlyContinue
-Copy-Item -Recurse $PROJECT $BUILD_DIR
+Remove-Item -Recurse -Force "C:\gradle_cache" -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path "C:\gradle_cache" -Force | Out-Null
 
-# 3. Limpiar y regenerar android en ruta corta
+# ===== PASO 4: Copiar proyecto con robocopy (evita paths largos) =====
+Write-Host "Copiando proyecto con robocopy..." -ForegroundColor Yellow
+# Excluir node_modules, android, .git (se regenerarán)
+robocopy $PROJECT $BUILD_DIR /E /XD node_modules android .git /NFL /NDL /NJH /NJS /NC /NS /NP
+
+# ===== PASO 5: Instalar dependencias =====
 Set-Location $BUILD_DIR
-Remove-Item -Recurse -Force node_modules, android -ErrorAction SilentlyContinue
+Write-Host "Instalando dependencias..." -ForegroundColor Yellow
 npm install
-npx expo prebuild --platform android
 
-# 4. Compilar APK
+# ===== PASO 6: Generar proyecto Android con prebuild =====
+Write-Host "Generando proyecto Android..." -ForegroundColor Yellow
+npx expo prebuild --platform android --clean
+
+# ===== PASO 7: Crear local.properties con SDK path =====
+Write-Host "Creando local.properties..." -ForegroundColor Yellow
+"sdk.dir=$($env:ANDROID_HOME -replace '\\', '/')" | Out-File -FilePath "$BUILD_DIR\android\local.properties" -Encoding UTF8
+
+# ===== PASO 8: Compilar APK con Gradle =====
 Set-Location "$BUILD_DIR\android"
-./gradlew assembleRelease
+Write-Host "Compilando APK (puede tardar 5-10 minutos)..." -ForegroundColor Yellow
+./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
 
-# 5. Copiar APK con versión en el nombre
-Copy-Item "$BUILD_DIR\android\app\build\outputs\apk\release\app-release.apk" "$OUTPUT_DIR\ERP-aio-v$VERSION.apk"
+# ===== PASO 9: Copiar APK a carpeta de salida =====
+$APK_SOURCE = "$BUILD_DIR\android\app\build\outputs\apk\release\app-release.apk"
+if (Test-Path $APK_SOURCE) {
+    $size = (Get-Item $APK_SOURCE).Length / 1MB
+    Write-Host "APK generado! Tamaño: $([math]::Round($size, 2)) MB" -ForegroundColor Green
+    Copy-Item $APK_SOURCE "$OUTPUT_DIR\ERP-aio-v$VERSION.apk" -Force
+    Write-Host "APK copiado a: $OUTPUT_DIR\ERP-aio-v$VERSION.apk" -ForegroundColor Green
+} else {
+    Write-Host "ERROR: APK no encontrado" -ForegroundColor Red
+}
 
-# 6. Volver al proyecto original
+# ===== PASO 10: Volver al proyecto original =====
 Set-Location $PROJECT
-
-Write-Host "APK generado: $OUTPUT_DIR\ERP-aio-v$VERSION.apk"
+Write-Host "Proceso completado!" -ForegroundColor Green
 ```
 
-**Carpeta de salida:** `C:\Users\aaron\OneDrive\Desktop\apps Erp aio\`
-**Formato del archivo:** `ERP-aio-v{VERSION}.apk` (ej: `ERP-aio-v1.0.2.apk`)
+**Carpeta de salida:** `C:\Users\Aaron\OneDrive\Desktop\apps Erp aio\`
+**Formato del archivo:** `ERP-aio-v{VERSION}.apk` (ej: `ERP-aio-v1.0.31.apk`)
 
-**Notas:**
-- Se usa ruta corta `C:\erp` para evitar errores de CMake con paths largos (límite 250 caracteres)
-- El build local toma ~5-10 minutos dependiendo del hardware
-- Requiere Android SDK instalado (`ANDROID_HOME` configurado)
-- La versión se extrae automáticamente de `app.json`
+**Requisitos previos:**
+- ✅ Android Studio instalado (para Java 21 JBR)
+- ✅ Android SDK configurado en `%LOCALAPPDATA%\Android\Sdk`
+- ✅ Variables de entorno: `JAVA_HOME`, `ANDROID_HOME`, `GRADLE_USER_HOME`, `GRADLE_OPTS`
+
+**Notas importantes:**
+- **Java 21 requerido**: No usar Java 25 (incompatible con Gradle/React Native)
+- **Ruta corta `C:\erp`**: Evita errores de CMake con paths largos (límite 250 caracteres)
+- **Robocopy**: Maneja mejor paths largos que `Copy-Item`
+- **Cache limpio**: Usar `C:\gradle_cache` evita corrupción de cache
+- **Memoria aumentada**: `-Xmx4g` evita errores de OutOfMemoryError
+- **Sin daemon**: `--no-daemon` previene problemas de memoria persistentes
+- **Solo arm64-v8a**: Reduce tiempo de compilación (soporta 95% de dispositivos Android modernos)
+- **Tiempo estimado**: 5-10 minutos en la primera compilación, 2-3 minutos en subsiguientes
 
 #### Generar APK con EAS Build (Nube - Límite mensual)
 
