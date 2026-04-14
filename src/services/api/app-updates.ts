@@ -3,6 +3,7 @@
  */
 import apiClient from './client';
 import { config } from '@/utils/config';
+import { DocumentPickerAsset } from '@/utils/filePicker';
 
 // ============================================
 // TYPES
@@ -92,6 +93,60 @@ export const appUpdatesApi = {
   listReleases: async (appId: AppId, platform?: Platform): Promise<AppRelease[]> => {
     const params = platform ? { platform } : {};
     return apiClient.get<AppRelease[]>(`/app-updates/releases/${appId}`, { params });
+  },
+
+  /**
+   * Subir nueva versión de APK/EXE
+   * POST /api/app-updates/releases/{appId}/{platform}/{version}/upload
+   * Si la versión no existe, la crea automáticamente
+   */
+  uploadRelease: async (
+    appId: AppId,
+    platform: Platform,
+    version: string,
+    file: DocumentPickerAsset,
+    onProgress?: (progress: number) => void
+  ): Promise<AppRelease> => {
+    const formData = new FormData();
+
+    // Create the file object for FormData
+    const fileUri = file.uri;
+    const fileName = file.name || `app-${version}.${platform === 'android' ? 'apk' : 'exe'}`;
+    const mimeType = file.mimeType || 'application/octet-stream';
+
+    // Append file to FormData
+    formData.append('file', {
+      uri: fileUri,
+      name: fileName,
+      type: mimeType,
+    } as any);
+
+    // Simulate progress since we can't track real progress with fetch
+    if (onProgress) {
+      onProgress(10);
+    }
+
+    try {
+      if (onProgress) {
+        onProgress(30);
+      }
+
+      const response = await apiClient.post<AppRelease>(
+        `/app-updates/releases/${appId}/${platform}/${version}/upload`,
+        formData
+      );
+
+      if (onProgress) {
+        onProgress(100);
+      }
+
+      return response;
+    } catch (error) {
+      if (onProgress) {
+        onProgress(0);
+      }
+      throw error;
+    }
   },
 };
 

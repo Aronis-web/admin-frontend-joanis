@@ -469,6 +469,13 @@ const menuCategories: MenuCategory[] = [
             route: MAIN_ROUTES.SERIES_CONFIG,
             requiredPermissions: ['cash_reconciliation.config'],
           },
+          {
+            id: 'app-versions',
+            icon: 'cloud-upload-outline',
+            label: 'Versiones de App',
+            route: MAIN_ROUTES.APP_VERSIONS,
+            requiredPermissions: ['apps.manage'],
+          },
         ],
       },
     ],

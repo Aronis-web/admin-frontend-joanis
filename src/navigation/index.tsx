@@ -51,6 +51,7 @@ const CompanyDetailScreen = lazyLoad(() => import('@/screens/Companies/CompanyDe
 const RolesPermissionsScreen = lazyLoad(() => import('@/screens/Roles/RolesPermissionsScreen').then(m => ({ default: m.RolesPermissionsScreen })));
 const UsersScreen = lazyLoad(() => import('@/screens/Users/UsersScreen').then(m => ({ default: m.UsersScreen })));
 const AppsScreen = lazyLoad(() => import('@/screens/Apps/AppsScreen').then(m => ({ default: m.AppsScreen })));
+const AppVersionsScreen = lazyLoad(() => import('@/screens/AppVersions').then(m => ({ default: m.AppVersionsScreen })), 'Cargando versiones...');
 const SitesScreen = lazyLoad(() => import('@/screens/Sites/SitesScreen').then(m => ({ default: m.SitesScreen })));
 const WarehousesScreen = lazyLoad(() => import('@/screens/Warehouses').then(m => ({ default: m.WarehousesScreen })));
 const WarehouseAreasScreen = lazyLoad(() => import('@/screens/Warehouses').then(m => ({ default: m.WarehouseAreasScreen })));
@@ -319,6 +320,18 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['apps.read']}>
             <AppsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.APP_VERSIONS}
+        options={{
+          title: 'Versiones de App',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['apps.manage']}>
+            <AppVersionsScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

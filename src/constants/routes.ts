@@ -111,6 +111,7 @@ export const MAIN_ROUTES = {
 
   // Configuration
   APPS: 'Apps',
+  APP_VERSIONS: 'AppVersions',
   PRICE_PROFILES: 'PriceProfiles',
   PRESENTATIONS: 'Presentations',
 
@@ -311,6 +312,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Configuration
   APPS: 'apps.manage',
+  APP_VERSIONS: 'apps.manage',
   PRICE_PROFILES: 'price_profiles.read',
   PRESENTATIONS: 'presentations.read',
 
