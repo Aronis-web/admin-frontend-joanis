@@ -36,7 +36,7 @@ interface CompanyDetailScreenProps {
   };
 }
 
-type TabType = 'info' | 'sites' | 'payments';
+type TabType = 'info' | 'sites' | 'payments' | 'bank-accounts';
 
 export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ navigation, route }) => {
   const { companyId } = route.params;
@@ -562,6 +562,36 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
     </View>
   );
 
+  const renderBankAccountsTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.bankAccountsContainer}>
+        <View style={styles.bankAccountsHeader}>
+          <Text style={styles.bankAccountsIcon}>🏦</Text>
+          <Text style={styles.bankAccountsTitle}>Cuentas Bancarias</Text>
+        </View>
+        <Text style={styles.bankAccountsDescription}>
+          Gestiona las cuentas bancarias de la empresa para pagos, transferencias y control de saldos.
+        </Text>
+        <View style={styles.bankAccountsFeatures}>
+          <Text style={styles.bankAccountsFeature}>✓ Múltiples bancos y monedas</Text>
+          <Text style={styles.bankAccountsFeature}>✓ Control de saldos</Text>
+          <Text style={styles.bankAccountsFeature}>✓ CCI para transferencias interbancarias</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.bankAccountsButton}
+          onPress={() =>
+            navigation.navigate('BankAccounts', {
+              companyId: companyId,
+              companyName: company?.alias || company?.name || '',
+            })
+          }
+        >
+          <Text style={styles.bankAccountsButtonText}>🏦 Gestionar Cuentas Bancarias</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -608,12 +638,21 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
             💳 Pagos ({paymentMethods.length})
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'bank-accounts' && styles.activeTab]}
+          onPress={() => setActiveTab('bank-accounts')}
+        >
+          <Text style={[styles.tabText, activeTab === 'bank-accounts' && styles.activeTabText]}>
+            🏦 Cuentas
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tab Content */}
       {activeTab === 'info' && renderInfoTab()}
       {activeTab === 'sites' && renderSitesTab()}
       {activeTab === 'payments' && renderPaymentsTab()}
+      {activeTab === 'bank-accounts' && renderBankAccountsTab()}
 
       {/* Edit Company Modal */}
       <Modal visible={showEditCompanyModal} animationType="slide" transparent>
@@ -1453,6 +1492,64 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#10B981',
+  },
+  // Bank Accounts Tab Styles
+  bankAccountsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  bankAccountsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  bankAccountsIcon: {
+    fontSize: 48,
+    marginRight: 12,
+  },
+  bankAccountsTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  bankAccountsDescription: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  bankAccountsFeatures: {
+    alignSelf: 'stretch',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  bankAccountsFeature: {
+    fontSize: 14,
+    color: '#0369A1',
+    marginBottom: 8,
+  },
+  bankAccountsButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  bankAccountsButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

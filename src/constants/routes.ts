@@ -170,6 +170,10 @@ export const MAIN_ROUTES = {
   TREASURY_UPLOAD_FILES: 'TreasuryUploadFiles',
   BANK_OPERATIONS: 'BankOperations',
 
+  // Bank Accounts
+  BANK_ACCOUNTS: 'BankAccounts',
+  BANK_ACCOUNT_FORM: 'BankAccountForm',
+
   // Cash Reconciliation
   CASH_RECONCILIATION_MENU: 'CashReconciliationMenu',
   UPLOAD_CASH_RECONCILIATION_FILES: 'UploadCashReconciliationFiles',
@@ -370,6 +374,10 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Treasury
   TREASURY_UPLOAD_FILES: 'treasury.transactions.upload',
   BANK_OPERATIONS: 'treasury.transactions.read',
+
+  // Bank Accounts
+  BANK_ACCOUNTS: 'treasury.bank-accounts.read',
+  BANK_ACCOUNT_FORM: 'treasury.bank-accounts.read',
 
   // Cash Reconciliation
   CASH_RECONCILIATION_MENU: 'cash_reconciliation.read',

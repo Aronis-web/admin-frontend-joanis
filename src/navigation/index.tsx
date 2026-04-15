@@ -150,6 +150,10 @@ const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').
 const TreasuryUploadFilesScreen = lazyLoad(() => import('@/screens/Treasury').then(m => ({ default: m.TreasuryUploadFilesScreen })), 'Cargando tesorería...');
 const BankOperationsScreen = lazyLoad(() => import('@/screens/Treasury').then(m => ({ default: m.BankOperationsScreen })), 'Cargando operaciones bancarias...');
 
+// Bank Accounts Screens - Lazy Loaded
+const BankAccountsScreen = lazyLoad(() => import('@/screens/BankAccounts').then(m => ({ default: m.BankAccountsScreen })), 'Cargando cuentas bancarias...');
+const BankAccountFormScreen = lazyLoad(() => import('@/screens/BankAccounts').then(m => ({ default: m.BankAccountFormScreen })), 'Cargando formulario...');
+
 // Cash Reconciliation Screens - Lazy Loaded
 const CashReconciliationMenuScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CashReconciliationMenuScreen })), 'Cargando cuadre de caja...');
 const UploadCashReconciliationFilesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.UploadCashReconciliationFilesScreen })), 'Cargando subir archivos...');
@@ -1152,6 +1156,22 @@ const MainStack = React.memo(() => {
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
+
+      {/* Bank Accounts Screens */}
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BANK_ACCOUNTS}
+        component={BankAccountsScreen}
+        options={{
+          title: 'Cuentas Bancarias',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.BANK_ACCOUNT_FORM}
+        component={BankAccountFormScreen}
+        options={{
+          title: 'Cuenta Bancaria',
+        }}
+      />
 
       {/* Cash Reconciliation Screens */}
       <MainStackNavigator.Screen

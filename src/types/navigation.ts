@@ -141,6 +141,10 @@ export type MainStackParamList = {
   AddCampaignParticipant: {
     campaignId: string;
   };
+  EditCampaignParticipant: {
+    campaignId: string;
+    participantId: string;
+  };
   ParticipantDetail: {
     campaignId: string;
     participantId: string;
@@ -182,6 +186,10 @@ export type MainStackParamList = {
     companyId: string;
   };
   Sites: {
+    companyId?: string;
+    companyName?: string;
+  };
+  SiteSelection: {
     companyId?: string;
     companyName?: string;
   };
@@ -311,6 +319,11 @@ export type MainStackParamList = {
   DriverDetail: {
     driverId?: string;
   };
+  Transporters: undefined;
+  TransporterDetail: {
+    transporterId?: string;
+  };
+  CreateTransporter: undefined;
 
   // Balances
   Balances: undefined;
@@ -346,6 +359,18 @@ export type MainStackParamList = {
   TreasuryUploadFiles: undefined;
   BankOperations: undefined;
 
+  // Bank Accounts
+  BankAccounts: {
+    companyId: string;
+    companyName: string;
+  };
+  BankAccountForm: {
+    companyId: string;
+    companyName: string;
+    accountId?: string;
+    mode: 'create' | 'edit' | 'view';
+  };
+
   // Cash Reconciliation
   CashReconciliationMenu: undefined;
   UploadCashReconciliationFiles: undefined;
@@ -355,6 +380,7 @@ export type MainStackParamList = {
   ReviewSales: undefined;
   ReviewIzipay: undefined;
   ReviewProsegur: undefined;
+  Cuadre: undefined;
 
   // Accounts Receivable
   AccountsReceivable: undefined;

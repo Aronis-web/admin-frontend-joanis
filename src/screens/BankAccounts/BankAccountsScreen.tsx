@@ -15,9 +15,7 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
-import { MainStackParamList } from '@/types/navigation';
 import { treasuryApi } from '@/services/api/treasury';
 import {
   BankAccount,
@@ -27,9 +25,17 @@ import {
   BankAccountCurrency,
 } from '@/types/treasury';
 
-type Props = NativeStackScreenProps<MainStackParamList, 'BankAccounts'>;
+interface BankAccountsScreenProps {
+  navigation: any;
+  route: {
+    params: {
+      companyId: string;
+      companyName: string;
+    };
+  };
+}
 
-export const BankAccountsScreen: React.FC<Props> = ({ navigation, route }) => {
+export const BankAccountsScreen: React.FC<BankAccountsScreenProps> = ({ navigation, route }) => {
   const { companyId, companyName } = route.params;
 
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
