@@ -865,6 +865,13 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.bankAccountsSection}>
               <Text style={styles.sedeLabel}>Información Bancaria</Text>
 
+              {/* Debug info - remove later */}
+              {__DEV__ && (
+                <Text style={{ fontSize: 10, color: 'gray', marginBottom: 4 }}>
+                  Debug: includeBankInfo={String(includeBankInfo)}, accounts={bankAccounts.length}, loading={String(isLoadingBankAccounts)}, expanded={String(bankAccountsExpanded)}
+                </Text>
+              )}
+
               {/* Toggle Include Bank Info */}
               <TouchableOpacity
                 style={[
@@ -891,6 +898,11 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               {/* Bank Accounts Selector - Only show when includeBankInfo is true */}
               {includeBankInfo && bankAccounts.length > 0 && (
                 <View style={styles.bankAccountsListContainer}>
+                  {__DEV__ && (
+                    <Text style={{ fontSize: 10, color: 'blue', padding: 4 }}>
+                      ✓ Lista visible - {bankAccounts.length} cuentas - Currencies: {Object.keys(bankAccountsByCurrency).join(', ')}
+                    </Text>
+                  )}
                   <TouchableOpacity
                     style={styles.sedeListHeader}
                     onPress={() => setBankAccountsExpanded(!bankAccountsExpanded)}
