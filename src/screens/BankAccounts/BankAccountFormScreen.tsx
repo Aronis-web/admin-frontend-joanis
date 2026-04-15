@@ -199,6 +199,7 @@ export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ na
         const updateData: UpdateBankAccountRequest = {
           accountNumberCci: formData.accountNumberCci || undefined,
           accountType: formData.accountType,
+          currency: formData.currency,
           alias: formData.alias,
           description: formData.description || undefined,
           isDefault: formData.isDefault,
@@ -430,9 +431,11 @@ export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ na
           {/* Currency */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>
-              Moneda {isCreateMode && <Text style={styles.required}>*</Text>}
+              Moneda {!isViewMode && <Text style={styles.required}>*</Text>}
             </Text>
-            {isCreateMode ? (
+            {isViewMode ? (
+              <Text style={styles.readOnlyValue}>{CURRENCY_LABELS[account?.currency as BankAccountCurrency] || account?.currency}</Text>
+            ) : (
               <>
                 <TouchableOpacity
                   style={styles.selectButton}
@@ -462,8 +465,6 @@ export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ na
                   </View>
                 )}
               </>
-            ) : (
-              <Text style={styles.readOnlyValue}>{CURRENCY_LABELS[account?.currency as BankAccountCurrency] || account?.currency}</Text>
             )}
           </View>
 

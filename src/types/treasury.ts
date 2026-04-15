@@ -343,6 +343,7 @@ export interface CreateBankAccountRequest {
 export interface UpdateBankAccountRequest {
   accountNumberCci?: string;
   accountType?: BankAccountType;
+  currency?: BankAccountCurrency;
   alias?: string;
   description?: string;
   isActive?: boolean;
