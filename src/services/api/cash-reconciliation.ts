@@ -149,6 +149,8 @@ export interface CuadreCajaParams {
   sede_code?: string;
   agrupar_por_sede?: boolean;
   bank_account_ids?: string; // Comma-separated list of bank account IDs (optional)
+  bank_fecha_inicio?: string; // Bank transactions start date (optional, defaults to fecha_inicio)
+  bank_fecha_fin?: string; // Bank transactions end date (optional, defaults to fecha_fin)
 }
 
 // ==================== Resumen Diario Types ====================
@@ -246,6 +248,15 @@ class CashReconciliationApi {
     // Bank account IDs for bank income data (optional)
     if (params.bank_account_ids) {
       queryParams.bank_account_ids = params.bank_account_ids;
+    }
+
+    // Bank date range (optional - defaults to main date range if not provided)
+    if (params.bank_fecha_inicio) {
+      queryParams.bank_fecha_inicio = params.bank_fecha_inicio;
+    }
+
+    if (params.bank_fecha_fin) {
+      queryParams.bank_fecha_fin = params.bank_fecha_fin;
     }
 
     return apiClient.get<CuadreCajaResponse | CuadreAgrupadoResponse>(

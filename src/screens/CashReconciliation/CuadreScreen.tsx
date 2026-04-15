@@ -208,6 +208,11 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   const [isLoadingBankAccounts, setIsLoadingBankAccounts] = useState(false);
   const [bankAccountsExpanded, setBankAccountsExpanded] = useState(false);
 
+  // Bank date states (separate from sales dates)
+  const [bankFechaInicio, setBankFechaInicio] = useState<Date>(new Date());
+  const [bankFechaFin, setBankFechaFin] = useState<Date>(new Date());
+  const [showBankDateRangePicker, setShowBankDateRangePicker] = useState(false);
+
   // Animation
   const headerScale = useRef(new Animated.Value(0.95)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -431,6 +436,40 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     return acc;
   }, {} as Record<string, BankAccount[]>);
 
+  // Bank date quick filters
+  const setBankToday = () => {
+    const today = new Date();
+    setBankFechaInicio(today);
+    setBankFechaFin(today);
+  };
+
+  const setBankYesterday = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    setBankFechaInicio(yesterday);
+    setBankFechaFin(yesterday);
+  };
+
+  const setBankThisWeek = () => {
+    const today = new Date();
+    const firstDay = new Date(today);
+    firstDay.setDate(today.getDate() - today.getDay());
+    setBankFechaInicio(firstDay);
+    setBankFechaFin(today);
+  };
+
+  const setBankThisMonth = () => {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    setBankFechaInicio(firstDay);
+    setBankFechaFin(today);
+  };
+
+  const setBankSameAsSales = () => {
+    setBankFechaInicio(new Date(fechaInicio));
+    setBankFechaFin(new Date(fechaFin));
+  };
+
   const formatDate = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -505,11 +544,14 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       }
       // If all sedes selected, don't send filter (backend returns all)
 
-      // Add bank account IDs if bank info is included
+      // Add bank account IDs and bank dates if bank info is included
       if (includeBankInfo && selectedBankAccountIds.size > 0) {
         const bankAccountIdsArray = Array.from(selectedBankAccountIds);
         params.bank_account_ids = bankAccountIdsArray.join(',');
+        params.bank_fecha_inicio = formatDate(bankFechaInicio);
+        params.bank_fecha_fin = formatDate(bankFechaFin);
         console.log('📊 [Cuadre] Cuentas bancarias seleccionadas:', bankAccountIdsArray.length, 'de', bankAccounts.length);
+        console.log('📊 [Cuadre] Fechas bancarias:', params.bank_fecha_inicio, 'al', params.bank_fecha_fin);
       }
 
       console.log('📊 [Cuadre] Enviando petición con params:', JSON.stringify(params, null, 2));
@@ -524,7 +566,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [fechaInicio, fechaFin, selectedSedeIds, sedes.length, includeBankInfo, selectedBankAccountIds, bankAccounts.length]);
+  }, [fechaInicio, fechaFin, selectedSedeIds, sedes.length, includeBankInfo, selectedBankAccountIds, bankAccounts.length, bankFechaInicio, bankFechaFin]);
 
   const formatCurrency = (amount: number): string => {
     return `S/ ${amount.toLocaleString('es-PE', {
@@ -566,10 +608,12 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       }
       // If all sedes selected, don't send filter (backend returns all)
 
-      // Add bank account IDs if bank info is included
+      // Add bank account IDs and bank dates if bank info is included
       if (includeBankInfo && selectedBankAccountIds.size > 0) {
         const bankAccountIdsArray = Array.from(selectedBankAccountIds);
         params.append('bank_account_ids', bankAccountIdsArray.join(','));
+        params.append('bank_fecha_inicio', formatDate(bankFechaInicio));
+        params.append('bank_fecha_fin', formatDate(bankFechaFin));
       }
 
       const url = `${config.API_URL}/cash-reconciliation/cuadre-caja/pdf?${params.toString()}`;
@@ -894,6 +938,49 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                   <ActivityIndicator size="small" color={colors.info[600]} />
                 )}
               </TouchableOpacity>
+
+              {/* Bank Date Range - Only show when includeBankInfo is true */}
+              {includeBankInfo && (
+                <View style={styles.bankDateSection}>
+                  <Text style={styles.bankDateLabel}>Período de Transacciones Bancarias</Text>
+
+                  {/* Quick Filters for Bank Dates */}
+                  <View style={styles.bankQuickFiltersContainer}>
+                    <TouchableOpacity style={styles.bankQuickFilterButton} onPress={setBankSameAsSales} activeOpacity={0.7}>
+                      <Ionicons name="sync-outline" size={14} color={colors.info[600]} />
+                      <Text style={styles.bankQuickFilterText}>Igual a Ventas</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.bankQuickFilterButton} onPress={setBankToday} activeOpacity={0.7}>
+                      <Text style={styles.bankQuickFilterText}>Hoy</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.bankQuickFilterButton} onPress={setBankYesterday} activeOpacity={0.7}>
+                      <Text style={styles.bankQuickFilterText}>Ayer</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.bankQuickFilterButton} onPress={setBankThisWeek} activeOpacity={0.7}>
+                      <Text style={styles.bankQuickFilterText}>Semana</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.bankQuickFilterButton} onPress={setBankThisMonth} activeOpacity={0.7}>
+                      <Text style={styles.bankQuickFilterText}>Mes</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Bank Date Range Selector */}
+                  <TouchableOpacity
+                    style={styles.bankDateRangeButton}
+                    onPress={() => setShowBankDateRangePicker(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="calendar-outline" size={20} color={colors.info[600]} />
+                    <View style={styles.dateRangeTextContainer}>
+                      <Text style={[styles.dateRangeLabel, { color: colors.info[600] }]}>Período Bancos</Text>
+                      <Text style={styles.dateRangeValue}>
+                        {formatDisplayDate(bankFechaInicio)} — {formatDisplayDate(bankFechaFin)}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.neutral[400]} />
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* Bank Accounts Selector - Only show when includeBankInfo is true */}
               {includeBankInfo && bankAccounts.length > 0 && (
@@ -1305,6 +1392,19 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
           setShowDateRangePicker(false);
         }}
         onCancel={() => setShowDateRangePicker(false)}
+      />
+
+      {/* Bank Date Range Picker */}
+      <DateRangePicker
+        visible={showBankDateRangePicker}
+        startDate={bankFechaInicio}
+        endDate={bankFechaFin}
+        onConfirm={(start, end) => {
+          setBankFechaInicio(start);
+          setBankFechaFin(end);
+          setShowBankDateRangePicker(false);
+        }}
+        onCancel={() => setShowBankDateRangePicker(false)}
       />
       </View>
     </ScreenLayout>
@@ -1870,6 +1970,53 @@ const styles = StyleSheet.create({
   bankToggleCheckActive: {
     backgroundColor: colors.info[600],
     borderColor: colors.info[600],
+  },
+  bankDateSection: {
+    marginBottom: spacing[3],
+    padding: spacing[3],
+    backgroundColor: colors.info[50],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.info[200],
+  },
+  bankDateLabel: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: colors.info[700],
+    marginBottom: spacing[2],
+  },
+  bankQuickFiltersContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+    marginBottom: spacing[3],
+  },
+  bankQuickFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1] + 2,
+    backgroundColor: colors.info[100],
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.info[300],
+    gap: spacing[1],
+  },
+  bankQuickFilterText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.medium,
+    color: colors.info[700],
+  },
+  bankDateRangeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.info[300],
+    paddingVertical: spacing[2] + 2,
+    paddingHorizontal: spacing[3],
+    gap: spacing[2],
   },
   bankAccountsListContainer: {
     backgroundColor: colors.info[50],
