@@ -48,10 +48,31 @@ export const treasuryApi = {
    * GET /treasury/bank-accounts?isActive=true
    */
   getActiveBankAccounts: async (): Promise<BankAccount[]> => {
-    const response = await apiClient.get<BankAccountsResponse>(
-      '/treasury/bank-accounts?isActive=true&limit=100'
-    );
-    return response.data || [];
+    console.log('🏦 [Treasury] Fetching active bank accounts...');
+    console.log('🏦 [Treasury] URL: /treasury/bank-accounts?isActive=true&limit=100');
+
+    try {
+      const response = await apiClient.get<BankAccountsResponse>(
+        '/treasury/bank-accounts?isActive=true&limit=100'
+      );
+
+      console.log('🏦 [Treasury] Raw response:', JSON.stringify(response, null, 2));
+      console.log('🏦 [Treasury] Response type:', typeof response);
+      console.log('🏦 [Treasury] Response.data:', response?.data);
+      console.log('🏦 [Treasury] Is array?:', Array.isArray(response));
+      console.log('🏦 [Treasury] Is data array?:', Array.isArray(response?.data));
+
+      // Handle both cases: response could be the array directly or wrapped in { data: [] }
+      const accounts = Array.isArray(response) ? response : (response?.data || []);
+      console.log('🏦 [Treasury] Final accounts count:', accounts.length);
+
+      return accounts;
+    } catch (error: any) {
+      console.error('🏦 [Treasury] Error fetching bank accounts:', error);
+      console.error('🏦 [Treasury] Error response:', error?.response?.data);
+      console.error('🏦 [Treasury] Error status:', error?.response?.status);
+      throw error;
+    }
   },
 
   /**

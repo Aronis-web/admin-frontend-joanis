@@ -350,17 +350,36 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   // ==================== Bank Accounts Functions ====================
 
   const loadBankAccounts = async () => {
+    console.log('🏦 [CuadreScreen] Starting to load bank accounts...');
     try {
       setIsLoadingBankAccounts(true);
+      console.log('🏦 [CuadreScreen] Calling treasuryApi.getActiveBankAccounts()...');
+
       const accounts = await treasuryApi.getActiveBankAccounts();
-      setBankAccounts(accounts);
+
+      console.log('🏦 [CuadreScreen] Received accounts:', accounts);
+      console.log('🏦 [CuadreScreen] Accounts count:', accounts?.length || 0);
+      console.log('🏦 [CuadreScreen] Accounts type:', typeof accounts);
+      console.log('🏦 [CuadreScreen] Is array:', Array.isArray(accounts));
+
+      if (accounts && accounts.length > 0) {
+        console.log('🏦 [CuadreScreen] First account sample:', JSON.stringify(accounts[0], null, 2));
+      }
+
+      setBankAccounts(accounts || []);
       // Select all accounts by default
-      setSelectedBankAccountIds(new Set(accounts.map((a) => a.id)));
-    } catch (error) {
-      console.error('Error loading bank accounts:', error);
+      const accountIds = (accounts || []).map((a: any) => a.id);
+      console.log('🏦 [CuadreScreen] Account IDs:', accountIds);
+      setSelectedBankAccountIds(new Set(accountIds));
+      console.log('🏦 [CuadreScreen] Bank accounts loaded successfully!');
+    } catch (error: any) {
+      console.error('🏦 [CuadreScreen] Error loading bank accounts:', error);
+      console.error('🏦 [CuadreScreen] Error message:', error?.message);
+      console.error('🏦 [CuadreScreen] Error response:', error?.response?.data);
       Alert.alert('Error', 'No se pudieron cargar las cuentas bancarias');
     } finally {
       setIsLoadingBankAccounts(false);
+      console.log('🏦 [CuadreScreen] Loading finished');
     }
   };
 
