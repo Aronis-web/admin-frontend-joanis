@@ -1079,54 +1079,17 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               </DataCard>
             )}
 
-            {/* Ingresos Bancarios Card - Only when bank info is included */}
+            {/* Ingresos Bancarios Card - Only when bank info is included (simplified - only total) */}
             {cuadreData.ingresos_bancarios && (
               <DataCard title="Ingresos Bancarios" icon="wallet-outline" iconColor={colors.info[600]} delay={550} variant="default">
-                <DataRow label="Total Ingresos" value={formatCurrency(cuadreData.ingresos_bancarios.total_ingresos)} valueColor={colors.success[600]} />
-                <DataRow label="Total Egresos" value={formatCurrency(cuadreData.ingresos_bancarios.total_egresos)} valueColor={colors.danger[600]} />
-                <DataRow label="Balance Neto" value={formatCurrency(cuadreData.ingresos_bancarios.balance_neto)} isBold isTotal valueColor={cuadreData.ingresos_bancarios.balance_neto >= 0 ? colors.success[600] : colors.danger[600]} />
+                <DataRow
+                  label="Total Ingresos"
+                  value={formatCurrency(cuadreData.ingresos_bancarios.total_ingresos)}
+                  valueColor={colors.success[600]}
+                  isBold
+                  isTotal
+                />
                 <DataRow label="Transacciones" value={cuadreData.ingresos_bancarios.cantidad_transacciones.toString()} />
-
-                {/* Detail by account */}
-                {cuadreData.ingresos_bancarios.detalle_por_cuenta.length > 0 && (
-                  <View style={styles.bankAccountsDetailSection}>
-                    <Text style={styles.bankAccountsDetailTitle}>Detalle por Cuenta</Text>
-                    {cuadreData.ingresos_bancarios.detalle_por_cuenta.map((cuenta) => (
-                      <View key={cuenta.cuenta_id} style={styles.bankAccountDetailCard}>
-                        <View style={styles.bankAccountDetailHeader}>
-                          <View style={styles.bankAccountDetailBadge}>
-                            <Text style={styles.bankAccountDetailBadgeText}>{cuenta.banco}</Text>
-                          </View>
-                          <Text style={styles.bankAccountDetailCurrency}>{cuenta.moneda}</Text>
-                        </View>
-                        <Text style={styles.bankAccountDetailAlias}>{cuenta.cuenta_alias}</Text>
-                        <Text style={styles.bankAccountDetailNumber}>{cuenta.numero_cuenta}</Text>
-                        <View style={styles.bankAccountDetailRow}>
-                          <View style={styles.bankAccountDetailItem}>
-                            <Text style={styles.bankAccountDetailLabel}>Ingresos</Text>
-                            <Text style={[styles.bankAccountDetailValue, { color: colors.success[600] }]}>
-                              {formatCurrency(cuenta.total_ingresos)}
-                            </Text>
-                            <Text style={styles.bankAccountDetailCount}>({cuenta.cantidad_ingresos})</Text>
-                          </View>
-                          <View style={styles.bankAccountDetailItem}>
-                            <Text style={styles.bankAccountDetailLabel}>Egresos</Text>
-                            <Text style={[styles.bankAccountDetailValue, { color: colors.danger[600] }]}>
-                              {formatCurrency(cuenta.total_egresos)}
-                            </Text>
-                            <Text style={styles.bankAccountDetailCount}>({cuenta.cantidad_egresos})</Text>
-                          </View>
-                          <View style={styles.bankAccountDetailItem}>
-                            <Text style={styles.bankAccountDetailLabel}>Balance</Text>
-                            <Text style={[styles.bankAccountDetailValue, { color: cuenta.balance_neto >= 0 ? colors.success[700] : colors.danger[700], fontWeight: '700' }]}>
-                              {formatCurrency(cuenta.balance_neto)}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
               </DataCard>
             )}
 
@@ -1168,6 +1131,27 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                   isBold
                   isTotal
                 />
+                {/* Bank income comparison - only when bank info is included */}
+                {cuadreData.ingresos_bancarios && (
+                  <>
+                    <DataRow
+                      label="Total de Ingresos (Bancos)"
+                      value={formatCurrency(cuadreData.ingresos_bancarios.total_ingresos)}
+                      valueColor={colors.info[600]}
+                    />
+                    <DataRow
+                      label="Diferencia con Bancos"
+                      value={formatCurrency((cuadreData.prosegur.depositos + cuadreData.izipay.neto) - cuadreData.ingresos_bancarios.total_ingresos)}
+                      isBold
+                      isTotal
+                      valueColor={
+                        (cuadreData.prosegur.depositos + cuadreData.izipay.neto) - cuadreData.ingresos_bancarios.total_ingresos === 0
+                          ? colors.success[600]
+                          : colors.warning[600]
+                      }
+                    />
+                  </>
+                )}
               </DataCard>
             ) : (
               <DataCard title="Resumen Sedes Externas" icon="calculator-outline" iconColor={colors.info[600]} delay={500} variant="success">
@@ -1243,6 +1227,52 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 )}
               </TouchableOpacity>
             </AnimatedCard>
+
+            {/* Bank Accounts Detail - After PDF button */}
+            {cuadreData.ingresos_bancarios && cuadreData.ingresos_bancarios.detalle_por_cuenta.length > 0 && (
+              <AnimatedCard delay={950}>
+                <View style={styles.bankAccountsDetailContainer}>
+                  <View style={styles.bankAccountsDetailHeader}>
+                    <Ionicons name="wallet-outline" size={20} color={colors.info[600]} />
+                    <Text style={styles.bankAccountsDetailTitle}>Detalle por Cuenta Bancaria</Text>
+                  </View>
+                  {cuadreData.ingresos_bancarios.detalle_por_cuenta.map((cuenta) => (
+                    <View key={cuenta.cuenta_id} style={styles.bankAccountDetailCard}>
+                      <View style={styles.bankAccountDetailHeader}>
+                        <View style={styles.bankAccountDetailBadge}>
+                          <Text style={styles.bankAccountDetailBadgeText}>{cuenta.banco}</Text>
+                        </View>
+                        <Text style={styles.bankAccountDetailCurrency}>{cuenta.moneda}</Text>
+                      </View>
+                      <Text style={styles.bankAccountDetailAlias}>{cuenta.cuenta_alias}</Text>
+                      <Text style={styles.bankAccountDetailNumber}>{cuenta.numero_cuenta}</Text>
+                      <View style={styles.bankAccountDetailRow}>
+                        <View style={styles.bankAccountDetailItem}>
+                          <Text style={styles.bankAccountDetailLabel}>Ingresos</Text>
+                          <Text style={[styles.bankAccountDetailValue, { color: colors.success[600] }]}>
+                            {formatCurrency(cuenta.total_ingresos)}
+                          </Text>
+                          <Text style={styles.bankAccountDetailCount}>({cuenta.cantidad_ingresos})</Text>
+                        </View>
+                        <View style={styles.bankAccountDetailItem}>
+                          <Text style={styles.bankAccountDetailLabel}>Egresos</Text>
+                          <Text style={[styles.bankAccountDetailValue, { color: colors.danger[600] }]}>
+                            {formatCurrency(cuenta.total_egresos)}
+                          </Text>
+                          <Text style={styles.bankAccountDetailCount}>({cuenta.cantidad_egresos})</Text>
+                        </View>
+                        <View style={styles.bankAccountDetailItem}>
+                          <Text style={styles.bankAccountDetailLabel}>Balance</Text>
+                          <Text style={[styles.bankAccountDetailValue, { color: cuenta.balance_neto >= 0 ? colors.success[700] : colors.danger[700], fontWeight: '700' }]}>
+                            {formatCurrency(cuenta.balance_neto)}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </AnimatedCard>
+            )}
           </>
         )}
 
@@ -1948,6 +1978,20 @@ const styles = StyleSheet.create({
 
   // ==================== Bank Accounts Detail (Results) Styles ====================
 
+  bankAccountsDetailContainer: {
+    backgroundColor: colors.neutral[0],
+    marginHorizontal: spacing[4],
+    marginTop: spacing[4],
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
+    ...shadows.sm,
+  },
+  bankAccountsDetailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[4],
+    gap: spacing[2],
+  },
   bankAccountsDetailSection: {
     marginTop: spacing[4],
     paddingTop: spacing[4],
@@ -1955,10 +1999,9 @@ const styles = StyleSheet.create({
     borderTopColor: colors.neutral[200],
   },
   bankAccountsDetailTitle: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes.lg,
     fontWeight: fontWeights.semibold,
-    color: colors.neutral[700],
-    marginBottom: spacing[3],
+    color: colors.info[700],
   },
   bankAccountDetailCard: {
     backgroundColor: colors.info[50],
