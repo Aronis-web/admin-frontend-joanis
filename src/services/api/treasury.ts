@@ -9,12 +9,61 @@ import {
   BankTransaction,
   BankTransactionsResponse,
   QueryBankTransactionsParams,
+  BankAccount,
+  BankAccountsResponse,
+  QueryBankAccountsParams,
 } from '@/types/treasury';
 
 /**
  * Treasury API endpoints
  */
 export const treasuryApi = {
+  // ==================== Bank Accounts ====================
+
+  /**
+   * Get bank accounts with filters and pagination
+   * GET /treasury/bank-accounts
+   */
+  getBankAccounts: async (
+    params: QueryBankAccountsParams = {}
+  ): Promise<BankAccountsResponse> => {
+    const queryParams = new URLSearchParams();
+
+    if (params.companyId) queryParams.append('companyId', params.companyId);
+    if (params.bankId) queryParams.append('bankId', params.bankId);
+    if (params.accountType) queryParams.append('accountType', params.accountType);
+    if (params.currency) queryParams.append('currency', params.currency);
+    if (params.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
+    if (params.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params.limit !== undefined) queryParams.append('limit', params.limit.toString());
+
+    const queryString = queryParams.toString();
+    const url = `/treasury/bank-accounts${queryString ? `?${queryString}` : ''}`;
+
+    return apiClient.get<BankAccountsResponse>(url);
+  },
+
+  /**
+   * Get all active bank accounts (simplified)
+   * GET /treasury/bank-accounts?isActive=true
+   */
+  getActiveBankAccounts: async (): Promise<BankAccount[]> => {
+    const response = await apiClient.get<BankAccountsResponse>(
+      '/treasury/bank-accounts?isActive=true&limit=100'
+    );
+    return response.data || [];
+  },
+
+  /**
+   * Get a single bank account by ID
+   * GET /treasury/bank-accounts/:id
+   */
+  getBankAccountById: async (id: string): Promise<BankAccount> => {
+    return apiClient.get<BankAccount>(`/treasury/bank-accounts/${id}`);
+  },
+
+  // ==================== Bank Transactions ====================
+
   /**
    * Get bank transactions with filters and pagination
    */

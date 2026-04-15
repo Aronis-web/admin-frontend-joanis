@@ -80,6 +80,7 @@ export interface CuadreCajaResponse {
   cuadre: CuadreInfo;
   totales: CuadreTotales;
   operaciones: CuadreOperaciones;
+  ingresos_bancarios?: IngresosBancarios; // Optional - only when bank_account_ids is provided
   generado_en: string;
 }
 
@@ -110,6 +111,36 @@ export interface CuadreAgrupadoResponse {
   generado_en: string;
 }
 
+// ==================== Bank Income Types ====================
+
+export interface IngresosPorTipo {
+  tipo: string;
+  cantidad: number;
+  total: number;
+}
+
+export interface DetalleCuentaBancaria {
+  cuenta_id: string;
+  cuenta_alias: string;
+  numero_cuenta: string;
+  banco: string;
+  moneda: string;
+  total_ingresos: number;
+  cantidad_ingresos: number;
+  total_egresos: number;
+  cantidad_egresos: number;
+  balance_neto: number;
+  detalle_por_tipo: IngresosPorTipo[];
+}
+
+export interface IngresosBancarios {
+  total_ingresos: number;
+  total_egresos: number;
+  balance_neto: number;
+  cantidad_transacciones: number;
+  detalle_por_cuenta: DetalleCuentaBancaria[];
+}
+
 export interface CuadreCajaParams {
   fecha_inicio: string;
   fecha_fin: string;
@@ -117,6 +148,7 @@ export interface CuadreCajaParams {
   sede_ids?: string; // Comma-separated list of sede IDs
   sede_code?: string;
   agrupar_por_sede?: boolean;
+  bank_account_ids?: string; // Comma-separated list of bank account IDs (optional)
 }
 
 // ==================== Resumen Diario Types ====================
@@ -209,6 +241,11 @@ class CashReconciliationApi {
 
     if (params.agrupar_por_sede !== undefined) {
       queryParams.agrupar_por_sede = params.agrupar_por_sede.toString();
+    }
+
+    // Bank account IDs for bank income data (optional)
+    if (params.bank_account_ids) {
+      queryParams.bank_account_ids = params.bank_account_ids;
     }
 
     return apiClient.get<CuadreCajaResponse | CuadreAgrupadoResponse>(

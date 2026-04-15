@@ -24,9 +24,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { sitesApi } from '@/services/api/sites';
 import { companiesApi } from '@/services/api/companies';
-import { cashReconciliationApi, CuadreCajaResponse } from '@/services/api/cash-reconciliation';
+import { cashReconciliationApi, CuadreCajaResponse, IngresosBancarios } from '@/services/api/cash-reconciliation';
+import { treasuryApi } from '@/services/api/treasury';
 import { Site } from '@/types/sites';
 import { CompanyType } from '@/types/companies';
+import { BankAccount } from '@/types/treasury';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { config } from '@/utils/config';
@@ -199,6 +201,13 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   // Date picker state
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
 
+  // Bank accounts states
+  const [includeBankInfo, setIncludeBankInfo] = useState(false);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [selectedBankAccountIds, setSelectedBankAccountIds] = useState<Set<string>>(new Set());
+  const [isLoadingBankAccounts, setIsLoadingBankAccounts] = useState(false);
+  const [bankAccountsExpanded, setBankAccountsExpanded] = useState(false);
+
   // Animation
   const headerScale = useRef(new Animated.Value(0.95)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -338,6 +347,71 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     setShowExternas(!showExternas);
   };
 
+  // ==================== Bank Accounts Functions ====================
+
+  const loadBankAccounts = async () => {
+    try {
+      setIsLoadingBankAccounts(true);
+      const accounts = await treasuryApi.getActiveBankAccounts();
+      setBankAccounts(accounts);
+      // Select all accounts by default
+      setSelectedBankAccountIds(new Set(accounts.map((a) => a.id)));
+    } catch (error) {
+      console.error('Error loading bank accounts:', error);
+      Alert.alert('Error', 'No se pudieron cargar las cuentas bancarias');
+    } finally {
+      setIsLoadingBankAccounts(false);
+    }
+  };
+
+  const handleToggleIncludeBankInfo = () => {
+    const newValue = !includeBankInfo;
+    setIncludeBankInfo(newValue);
+
+    if (newValue && bankAccounts.length === 0) {
+      // Load bank accounts when enabling for the first time
+      loadBankAccounts();
+    }
+  };
+
+  const toggleBankAccountSelection = (accountId: string) => {
+    setSelectedBankAccountIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(accountId)) {
+        newSet.delete(accountId);
+      } else {
+        newSet.add(accountId);
+      }
+      return newSet;
+    });
+  };
+
+  const allBankAccountsSelected = bankAccounts.length > 0 && bankAccounts.every((a) => selectedBankAccountIds.has(a.id));
+
+  const toggleAllBankAccounts = () => {
+    setSelectedBankAccountIds((prev) => {
+      const newSet = new Set(prev);
+      if (allBankAccountsSelected) {
+        // Deselect all
+        bankAccounts.forEach((a) => newSet.delete(a.id));
+      } else {
+        // Select all
+        bankAccounts.forEach((a) => newSet.add(a.id));
+      }
+      return newSet;
+    });
+  };
+
+  // Group bank accounts by currency
+  const bankAccountsByCurrency = bankAccounts.reduce((acc, account) => {
+    const currency = account.currency || 'OTRO';
+    if (!acc[currency]) {
+      acc[currency] = [];
+    }
+    acc[currency].push(account);
+    return acc;
+  }, {} as Record<string, BankAccount[]>);
+
   const formatDate = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -412,6 +486,13 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       }
       // If all sedes selected, don't send filter (backend returns all)
 
+      // Add bank account IDs if bank info is included
+      if (includeBankInfo && selectedBankAccountIds.size > 0) {
+        const bankAccountIdsArray = Array.from(selectedBankAccountIds);
+        params.bank_account_ids = bankAccountIdsArray.join(',');
+        console.log('📊 [Cuadre] Cuentas bancarias seleccionadas:', bankAccountIdsArray.length, 'de', bankAccounts.length);
+      }
+
       console.log('📊 [Cuadre] Enviando petición con params:', JSON.stringify(params, null, 2));
       console.log('📊 [Cuadre] Sedes seleccionadas:', sedeIdsArray.length, 'de', sedes.length);
 
@@ -424,7 +505,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [fechaInicio, fechaFin, selectedSedeIds, sedes.length]);
+  }, [fechaInicio, fechaFin, selectedSedeIds, sedes.length, includeBankInfo, selectedBankAccountIds, bankAccounts.length]);
 
   const formatCurrency = (amount: number): string => {
     return `S/ ${amount.toLocaleString('es-PE', {
@@ -465,6 +546,12 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
       // If all sedes selected, don't send filter (backend returns all)
+
+      // Add bank account IDs if bank info is included
+      if (includeBankInfo && selectedBankAccountIds.size > 0) {
+        const bankAccountIdsArray = Array.from(selectedBankAccountIds);
+        params.append('bank_account_ids', bankAccountIdsArray.join(','));
+      }
 
       const url = `${config.API_URL}/cash-reconciliation/cuadre-caja/pdf?${params.toString()}`;
 
@@ -755,6 +842,135 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             </View>
 
+            {/* Bank Accounts Section */}
+            <View style={styles.bankAccountsSection}>
+              <Text style={styles.sedeLabel}>Información Bancaria</Text>
+
+              {/* Toggle Include Bank Info */}
+              <TouchableOpacity
+                style={[
+                  styles.bankToggleButton,
+                  includeBankInfo && styles.bankToggleButtonActive,
+                ]}
+                onPress={handleToggleIncludeBankInfo}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.sedeToggleCheck, includeBankInfo && styles.bankToggleCheckActive]}>
+                  {includeBankInfo && <Ionicons name="checkmark" size={14} color={colors.neutral[0]} />}
+                </View>
+                <View style={styles.sedeToggleContent}>
+                  <Ionicons name="wallet-outline" size={18} color={includeBankInfo ? colors.info[600] : colors.neutral[400]} />
+                  <Text style={[styles.sedeToggleText, includeBankInfo && styles.sedeToggleTextActive]}>
+                    Incluir información de bancos
+                  </Text>
+                </View>
+                {isLoadingBankAccounts && (
+                  <ActivityIndicator size="small" color={colors.info[600]} />
+                )}
+              </TouchableOpacity>
+
+              {/* Bank Accounts Selector - Only show when includeBankInfo is true */}
+              {includeBankInfo && bankAccounts.length > 0 && (
+                <View style={styles.bankAccountsListContainer}>
+                  <TouchableOpacity
+                    style={styles.sedeListHeader}
+                    onPress={() => setBankAccountsExpanded(!bankAccountsExpanded)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.sedeListHeaderLeft}>
+                      <Ionicons
+                        name={bankAccountsExpanded ? 'chevron-down' : 'chevron-forward'}
+                        size={18}
+                        color={colors.info[600]}
+                      />
+                      <Text style={[styles.sedeListHeaderText, { color: colors.info[700] }]}>
+                        Cuentas Bancarias
+                      </Text>
+                      <Text style={styles.sedeListHeaderCount}>({bankAccounts.length})</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.selectAllButton}
+                      onPress={toggleAllBankAccounts}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.checkbox, styles.checkboxBank, allBankAccountsSelected && styles.checkboxBankChecked]}>
+                        {allBankAccountsSelected && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
+                      </View>
+                      <Text style={styles.selectAllText}>Todas</Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+
+                  {bankAccountsExpanded && (
+                    <View style={styles.sedeListItems}>
+                      {Object.entries(bankAccountsByCurrency).map(([currency, accounts]) => (
+                        <View key={currency}>
+                          {/* Currency Header */}
+                          <View style={styles.currencyHeader}>
+                            <Text style={styles.currencyHeaderText}>
+                              {currency === 'PEN' ? '🇵🇪 Soles (PEN)' : currency === 'USD' ? '🇺🇸 Dólares (USD)' : currency}
+                            </Text>
+                          </View>
+                          {/* Accounts in this currency */}
+                          {accounts.map((account) => (
+                            <TouchableOpacity
+                              key={account.id}
+                              style={styles.bankAccountItem}
+                              onPress={() => toggleBankAccountSelection(account.id)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={[
+                                styles.checkbox,
+                                styles.checkboxBank,
+                                selectedBankAccountIds.has(account.id) && styles.checkboxBankChecked
+                              ]}>
+                                {selectedBankAccountIds.has(account.id) && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
+                              </View>
+                              <View style={styles.bankAccountItemInfo}>
+                                <View style={styles.bankAccountItemHeader}>
+                                  <Text style={styles.bankAccountBankName}>{account.bank?.shortName || 'Banco'}</Text>
+                                  <View style={styles.bankAccountCurrencyBadge}>
+                                    <Text style={styles.bankAccountCurrencyText}>{account.currency}</Text>
+                                  </View>
+                                </View>
+                                <Text style={styles.bankAccountAlias}>{account.alias}</Text>
+                                <Text style={styles.bankAccountNumber}>{account.accountNumber}</Text>
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Selected bank accounts summary */}
+              {includeBankInfo && bankAccounts.length > 0 && (
+                <View style={[styles.selectedSummary, { backgroundColor: colors.info[50] }]}>
+                  <Ionicons name="wallet" size={16} color={colors.info[600]} />
+                  <Text style={[styles.selectedSummaryText, { color: colors.info[700] }]}>
+                    {selectedBankAccountIds.size} de {bankAccounts.length} cuentas seleccionadas
+                  </Text>
+                </View>
+              )}
+
+              {/* Loading state */}
+              {includeBankInfo && isLoadingBankAccounts && (
+                <View style={styles.loadingBankAccounts}>
+                  <ActivityIndicator size="small" color={colors.info[600]} />
+                  <Text style={styles.loadingBankAccountsText}>Cargando cuentas bancarias...</Text>
+                </View>
+              )}
+
+              {/* No accounts message */}
+              {includeBankInfo && !isLoadingBankAccounts && bankAccounts.length === 0 && (
+                <View style={styles.noBankAccountsMessage}>
+                  <Ionicons name="information-circle-outline" size={20} color={colors.warning[600]} />
+                  <Text style={styles.noBankAccountsText}>No hay cuentas bancarias disponibles</Text>
+                </View>
+              )}
+            </View>
+
             {/* Generate Button */}
             <TouchableOpacity
               style={[styles.generateButton, isLoading && styles.generateButtonDisabled]}
@@ -829,6 +1045,57 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 <DataRow label="Operaciones" value={cuadreData.prosegur.cantidad_operaciones.toString()} />
                 <DataRow label="Depósitos (#)" value={cuadreData.prosegur.cantidad_depositos.toString()} />
                 <DataRow label="Recogidas" value={cuadreData.prosegur.cantidad_recogidas.toString()} />
+              </DataCard>
+            )}
+
+            {/* Ingresos Bancarios Card - Only when bank info is included */}
+            {cuadreData.ingresos_bancarios && (
+              <DataCard title="Ingresos Bancarios" icon="wallet-outline" iconColor={colors.info[600]} delay={550} variant="default">
+                <DataRow label="Total Ingresos" value={formatCurrency(cuadreData.ingresos_bancarios.total_ingresos)} valueColor={colors.success[600]} />
+                <DataRow label="Total Egresos" value={formatCurrency(cuadreData.ingresos_bancarios.total_egresos)} valueColor={colors.danger[600]} />
+                <DataRow label="Balance Neto" value={formatCurrency(cuadreData.ingresos_bancarios.balance_neto)} isBold isTotal valueColor={cuadreData.ingresos_bancarios.balance_neto >= 0 ? colors.success[600] : colors.danger[600]} />
+                <DataRow label="Transacciones" value={cuadreData.ingresos_bancarios.cantidad_transacciones.toString()} />
+
+                {/* Detail by account */}
+                {cuadreData.ingresos_bancarios.detalle_por_cuenta.length > 0 && (
+                  <View style={styles.bankAccountsDetailSection}>
+                    <Text style={styles.bankAccountsDetailTitle}>Detalle por Cuenta</Text>
+                    {cuadreData.ingresos_bancarios.detalle_por_cuenta.map((cuenta) => (
+                      <View key={cuenta.cuenta_id} style={styles.bankAccountDetailCard}>
+                        <View style={styles.bankAccountDetailHeader}>
+                          <View style={styles.bankAccountDetailBadge}>
+                            <Text style={styles.bankAccountDetailBadgeText}>{cuenta.banco}</Text>
+                          </View>
+                          <Text style={styles.bankAccountDetailCurrency}>{cuenta.moneda}</Text>
+                        </View>
+                        <Text style={styles.bankAccountDetailAlias}>{cuenta.cuenta_alias}</Text>
+                        <Text style={styles.bankAccountDetailNumber}>{cuenta.numero_cuenta}</Text>
+                        <View style={styles.bankAccountDetailRow}>
+                          <View style={styles.bankAccountDetailItem}>
+                            <Text style={styles.bankAccountDetailLabel}>Ingresos</Text>
+                            <Text style={[styles.bankAccountDetailValue, { color: colors.success[600] }]}>
+                              {formatCurrency(cuenta.total_ingresos)}
+                            </Text>
+                            <Text style={styles.bankAccountDetailCount}>({cuenta.cantidad_ingresos})</Text>
+                          </View>
+                          <View style={styles.bankAccountDetailItem}>
+                            <Text style={styles.bankAccountDetailLabel}>Egresos</Text>
+                            <Text style={[styles.bankAccountDetailValue, { color: colors.danger[600] }]}>
+                              {formatCurrency(cuenta.total_egresos)}
+                            </Text>
+                            <Text style={styles.bankAccountDetailCount}>({cuenta.cantidad_egresos})</Text>
+                          </View>
+                          <View style={styles.bankAccountDetailItem}>
+                            <Text style={styles.bankAccountDetailLabel}>Balance</Text>
+                            <Text style={[styles.bankAccountDetailValue, { color: cuenta.balance_neto >= 0 ? colors.success[700] : colors.danger[700], fontWeight: '700' }]}>
+                              {formatCurrency(cuenta.balance_neto)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </DataCard>
             )}
 
@@ -1134,7 +1401,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   dateRangeValue: {
-    fontSize: fontSizes.md,
+    fontSize: fontSizes.base,
     fontWeight: fontWeights.semibold,
     color: colors.neutral[900],
   },
@@ -1513,5 +1780,220 @@ const styles = StyleSheet.create({
 
   bottomSpacer: {
     height: spacing[8],
+  },
+
+  // ==================== Bank Accounts Styles ====================
+
+  bankAccountsSection: {
+    marginBottom: spacing[4],
+    paddingTop: spacing[4],
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[200],
+  },
+  bankToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.neutral[200],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[3],
+    gap: spacing[2],
+    marginBottom: spacing[3],
+  },
+  bankToggleButtonActive: {
+    backgroundColor: colors.info[50],
+    borderColor: colors.info[300],
+  },
+  bankToggleCheckActive: {
+    backgroundColor: colors.info[600],
+    borderColor: colors.info[600],
+  },
+  bankAccountsListContainer: {
+    backgroundColor: colors.info[50],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.info[200],
+    marginBottom: spacing[3],
+    overflow: 'hidden',
+  },
+  checkboxBank: {
+    borderColor: colors.info[400],
+  },
+  checkboxBankChecked: {
+    backgroundColor: colors.info[600],
+    borderColor: colors.info[600],
+  },
+  currencyHeader: {
+    backgroundColor: colors.info[100],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.info[200],
+  },
+  currencyHeaderText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: colors.info[700],
+    textTransform: 'uppercase',
+  },
+  bankAccountItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[3],
+    gap: spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[100],
+    backgroundColor: colors.neutral[0],
+  },
+  bankAccountItemInfo: {
+    flex: 1,
+    flexDirection: 'column',
+    gap: spacing[1],
+  },
+  bankAccountItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  bankAccountBankName: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colors.info[700],
+    backgroundColor: colors.info[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
+  },
+  bankAccountCurrencyBadge: {
+    backgroundColor: colors.neutral[200],
+    paddingHorizontal: spacing[2],
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  bankAccountCurrencyText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[600],
+  },
+  bankAccountAlias: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: colors.neutral[800],
+  },
+  bankAccountNumber: {
+    fontSize: fontSizes.xs,
+    color: colors.neutral[500],
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  loadingBankAccounts: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.info[50],
+    borderRadius: borderRadius.md,
+  },
+  loadingBankAccountsText: {
+    fontSize: fontSizes.sm,
+    color: colors.info[600],
+  },
+  noBankAccountsMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.warning[50],
+    borderRadius: borderRadius.md,
+  },
+  noBankAccountsText: {
+    fontSize: fontSizes.sm,
+    color: colors.warning[700],
+  },
+
+  // ==================== Bank Accounts Detail (Results) Styles ====================
+
+  bankAccountsDetailSection: {
+    marginTop: spacing[4],
+    paddingTop: spacing[4],
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[200],
+  },
+  bankAccountsDetailTitle: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[700],
+    marginBottom: spacing[3],
+  },
+  bankAccountDetailCard: {
+    backgroundColor: colors.info[50],
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    marginBottom: spacing[2],
+    borderWidth: 1,
+    borderColor: colors.info[200],
+  },
+  bankAccountDetailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing[2],
+  },
+  bankAccountDetailBadge: {
+    backgroundColor: colors.info[600],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
+  },
+  bankAccountDetailBadgeText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[0],
+  },
+  bankAccountDetailCurrency: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: colors.neutral[500],
+    backgroundColor: colors.neutral[200],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.sm,
+  },
+  bankAccountDetailAlias: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.neutral[800],
+  },
+  bankAccountDetailNumber: {
+    fontSize: fontSizes.xs,
+    color: colors.neutral[500],
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginBottom: spacing[2],
+  },
+  bankAccountDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing[2],
+  },
+  bankAccountDetailItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  bankAccountDetailLabel: {
+    fontSize: fontSizes.xs,
+    color: colors.neutral[500],
+    marginBottom: spacing[1],
+  },
+  bankAccountDetailValue: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+  },
+  bankAccountDetailCount: {
+    fontSize: fontSizes.xs,
+    color: colors.neutral[400],
   },
 });

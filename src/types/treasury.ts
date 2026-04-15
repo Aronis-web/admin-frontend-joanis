@@ -245,3 +245,71 @@ export const ASSIGNMENT_STATUS_ICONS: Record<AssignmentStatus, string> = {
   [AssignmentStatus.AUTO_ASSIGNED]: '⚡',
   [AssignmentStatus.IGNORED]: '✗',
 };
+
+// ==================== Bank Account Types ====================
+
+/**
+ * Bank Account Type
+ */
+export type BankAccountType = 'CHECKING' | 'SAVINGS' | 'CREDIT' | 'OTHER';
+
+/**
+ * Bank Info
+ */
+export interface BankInfo {
+  id: string;
+  code: string;
+  name: string;
+  shortName: string;
+}
+
+/**
+ * Bank Account
+ */
+export interface BankAccount {
+  id: string;
+  alias: string;
+  accountNumber: string;
+  cci?: string;
+  accountType: BankAccountType;
+  currency: string;
+  isActive: boolean;
+  bank: BankInfo;
+  companyId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Query Parameters for Bank Accounts
+ */
+export interface QueryBankAccountsParams {
+  companyId?: string;
+  bankId?: string;
+  accountType?: BankAccountType;
+  currency?: string;
+  isActive?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Bank Accounts Response
+ */
+export interface BankAccountsResponse {
+  data: BankAccount[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Labels for Bank Account Type
+ */
+export const BANK_ACCOUNT_TYPE_LABELS: Record<BankAccountType, string> = {
+  CHECKING: 'Cuenta Corriente',
+  SAVINGS: 'Cuenta de Ahorros',
+  CREDIT: 'Línea de Crédito',
+  OTHER: 'Otro',
+};
