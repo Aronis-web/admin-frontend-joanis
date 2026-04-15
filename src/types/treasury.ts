@@ -249,9 +249,24 @@ export const ASSIGNMENT_STATUS_ICONS: Record<AssignmentStatus, string> = {
 // ==================== Bank Account Types ====================
 
 /**
- * Bank Account Type
+ * Bank Account Type - Based on API specification
  */
-export type BankAccountType = 'CHECKING' | 'SAVINGS' | 'CREDIT' | 'OTHER';
+export type BankAccountType =
+  | 'CORRIENTE'
+  | 'AHORROS'
+  | 'MAESTRA'
+  | 'DETRACCIONES'
+  | 'CTS'
+  | 'PLAZO_FIJO'
+  | 'CHECKING'
+  | 'SAVINGS'
+  | 'CREDIT'
+  | 'OTHER';
+
+/**
+ * Bank Account Currency
+ */
+export type BankAccountCurrency = 'PEN' | 'USD';
 
 /**
  * Bank Info
@@ -261,23 +276,95 @@ export interface BankInfo {
   code: string;
   name: string;
   shortName: string;
+  isActive?: boolean;
+  displayOrder?: number;
 }
 
 /**
- * Bank Account
+ * Company Info (simplified for bank account response)
+ */
+export interface CompanyInfoSimple {
+  id: string;
+  name: string;
+}
+
+/**
+ * Bank Account - Full model based on API
  */
 export interface BankAccount {
   id: string;
-  alias: string;
-  accountNumber: string;
-  cci?: string;
-  accountType: BankAccountType;
-  currency: string;
-  isActive: boolean;
-  bank: BankInfo;
+  code: string;
   companyId: string;
+  bankId: string;
+  accountNumber: string;
+  accountNumberCci?: string;
+  accountType: BankAccountType;
+  currency: BankAccountCurrency | string;
+  alias: string;
+  description?: string;
+  currentBalanceCents: number;
+  lastBalanceDate?: string;
+  lastSyncAt?: string;
+  isActive: boolean;
+  isDefault: boolean;
+  color?: string;
+  displayOrder?: number;
+  createdBy?: string;
+  updatedBy?: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string;
+  bank: BankInfo;
+  company?: CompanyInfoSimple;
+  // Legacy fields for compatibility
+  cci?: string;
+}
+
+/**
+ * Create Bank Account Request
+ */
+export interface CreateBankAccountRequest {
+  companyId: string;
+  bankId: string;
+  accountNumber: string;
+  accountNumberCci?: string;
+  accountType: BankAccountType;
+  currency: BankAccountCurrency;
+  alias: string;
+  description?: string;
+  isDefault?: boolean;
+  color?: string;
+  displayOrder?: number;
+}
+
+/**
+ * Update Bank Account Request
+ */
+export interface UpdateBankAccountRequest {
+  accountNumberCci?: string;
+  accountType?: BankAccountType;
+  alias?: string;
+  description?: string;
+  isActive?: boolean;
+  isDefault?: boolean;
+  color?: string;
+  displayOrder?: number;
+}
+
+/**
+ * Bank Accounts Summary Response
+ */
+export interface BankAccountsSummary {
+  totalPEN: number;
+  totalUSD: number;
+  accounts: {
+    id: string;
+    alias: string;
+    bankShortName: string;
+    currency: BankAccountCurrency;
+    balanceCents: number;
+    lastBalanceDate?: string;
+  }[];
 }
 
 /**
@@ -287,8 +374,9 @@ export interface QueryBankAccountsParams {
   companyId?: string;
   bankId?: string;
   accountType?: BankAccountType;
-  currency?: string;
+  currency?: BankAccountCurrency | string;
   isActive?: boolean;
+  includeDeleted?: boolean;
   page?: number;
   limit?: number;
 }
@@ -307,9 +395,47 @@ export interface BankAccountsResponse {
 /**
  * Labels for Bank Account Type
  */
-export const BANK_ACCOUNT_TYPE_LABELS: Record<BankAccountType, string> = {
+export const BANK_ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  // New API types
+  CORRIENTE: 'Cuenta Corriente',
+  AHORROS: 'Cuenta de Ahorros',
+  MAESTRA: 'Cuenta Maestra',
+  DETRACCIONES: 'Cuenta de Detracciones',
+  CTS: 'CTS',
+  PLAZO_FIJO: 'Depósito a Plazo Fijo',
+  // Legacy types
   CHECKING: 'Cuenta Corriente',
   SAVINGS: 'Cuenta de Ahorros',
   CREDIT: 'Línea de Crédito',
   OTHER: 'Otro',
 };
+
+/**
+ * Labels for Currency
+ */
+export const CURRENCY_LABELS: Record<BankAccountCurrency, string> = {
+  PEN: 'Soles (S/)',
+  USD: 'Dólares ($)',
+};
+
+/**
+ * Currency Symbols
+ */
+export const CURRENCY_SYMBOLS: Record<BankAccountCurrency, string> = {
+  PEN: 'S/',
+  USD: '$',
+};
+
+/**
+ * Default colors for bank accounts
+ */
+export const BANK_ACCOUNT_COLORS = [
+  '#3B82F6', // Blue
+  '#10B981', // Green
+  '#F59E0B', // Amber
+  '#EF4444', // Red
+  '#8B5CF6', // Purple
+  '#EC4899', // Pink
+  '#06B6D4', // Cyan
+  '#84CC16', // Lime
+];

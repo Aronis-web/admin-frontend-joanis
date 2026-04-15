@@ -12,6 +12,10 @@ import {
   BankAccount,
   BankAccountsResponse,
   QueryBankAccountsParams,
+  BankInfo,
+  BankAccountsSummary,
+  CreateBankAccountRequest,
+  UpdateBankAccountRequest,
 } from '@/types/treasury';
 
 /**
@@ -26,7 +30,7 @@ export const treasuryApi = {
    */
   getBankAccounts: async (
     params: QueryBankAccountsParams = {}
-  ): Promise<BankAccountsResponse> => {
+  ): Promise<BankAccount[]> => {
     const queryParams = new URLSearchParams();
 
     if (params.companyId) queryParams.append('companyId', params.companyId);
@@ -34,13 +38,17 @@ export const treasuryApi = {
     if (params.accountType) queryParams.append('accountType', params.accountType);
     if (params.currency) queryParams.append('currency', params.currency);
     if (params.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
+    if (params.includeDeleted !== undefined) queryParams.append('includeDeleted', params.includeDeleted.toString());
     if (params.page !== undefined) queryParams.append('page', params.page.toString());
     if (params.limit !== undefined) queryParams.append('limit', params.limit.toString());
 
     const queryString = queryParams.toString();
     const url = `/treasury/bank-accounts${queryString ? `?${queryString}` : ''}`;
 
-    return apiClient.get<BankAccountsResponse>(url);
+    const response = await apiClient.get<BankAccount[] | BankAccountsResponse>(url);
+
+    // Handle both cases: response could be the array directly or wrapped in { data: [] }
+    return Array.isArray(response) ? response : (response?.data || []);
   },
 
   /**
@@ -81,6 +89,52 @@ export const treasuryApi = {
    */
   getBankAccountById: async (id: string): Promise<BankAccount> => {
     return apiClient.get<BankAccount>(`/treasury/bank-accounts/${id}`);
+  },
+
+  /**
+   * Create a new bank account
+   * POST /treasury/bank-accounts
+   */
+  createBankAccount: async (data: CreateBankAccountRequest): Promise<BankAccount> => {
+    console.log('🏦 [Treasury] Creating bank account:', data);
+    return apiClient.post<BankAccount>('/treasury/bank-accounts', data);
+  },
+
+  /**
+   * Update a bank account
+   * PUT /treasury/bank-accounts/:id
+   */
+  updateBankAccount: async (id: string, data: UpdateBankAccountRequest): Promise<BankAccount> => {
+    console.log('🏦 [Treasury] Updating bank account:', id, data);
+    return apiClient.put<BankAccount>(`/treasury/bank-accounts/${id}`, data);
+  },
+
+  /**
+   * Delete a bank account (soft delete)
+   * DELETE /treasury/bank-accounts/:id
+   */
+  deleteBankAccount: async (id: string): Promise<{ message: string }> => {
+    console.log('🏦 [Treasury] Deleting bank account:', id);
+    return apiClient.delete<{ message: string }>(`/treasury/bank-accounts/${id}`);
+  },
+
+  /**
+   * Get available banks list
+   * GET /treasury/bank-accounts/banks
+   */
+  getAvailableBanks: async (): Promise<BankInfo[]> => {
+    console.log('🏦 [Treasury] Fetching available banks...');
+    const response = await apiClient.get<BankInfo[]>('/treasury/bank-accounts/banks');
+    return Array.isArray(response) ? response : [];
+  },
+
+  /**
+   * Get bank accounts summary by company
+   * GET /treasury/bank-accounts/summary/:companyId
+   */
+  getBankAccountsSummary: async (companyId: string): Promise<BankAccountsSummary> => {
+    console.log('🏦 [Treasury] Fetching bank accounts summary for company:', companyId);
+    return apiClient.get<BankAccountsSummary>(`/treasury/bank-accounts/summary/${companyId}`);
   },
 
   // ==================== Bank Transactions ====================

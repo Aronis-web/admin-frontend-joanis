@@ -200,7 +200,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       // Cargar todas las sedes de todas las empresas (sin filtrar por companyId)
       const response = await sitesApi.getSites({
         isActive: true,
-        limit: 500,
+        limit: 100,
       });
       // Ordenar por nombre de empresa y luego por nombre de sede
       const sortedSedes = response.data.sort((a, b) => {
