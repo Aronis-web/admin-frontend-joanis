@@ -7,9 +7,16 @@ import { TransferStatusBadge } from './TransferStatusBadge';
 interface TransferCardProps {
   transfer: Transfer;
   onPress: (transfer: Transfer) => void;
+  onGuidePress?: (transfer: Transfer) => void;
+  isGuideLoading?: boolean;
 }
 
-export const TransferCard: React.FC<TransferCardProps> = ({ transfer, onPress }) => {
+export const TransferCard: React.FC<TransferCardProps> = ({
+  transfer,
+  onPress,
+  onGuidePress,
+  isGuideLoading = false,
+}) => {
   const formatDate = (dateString?: string | null) => {
     if (!dateString) {
       return '-';
@@ -19,6 +26,7 @@ export const TransferCard: React.FC<TransferCardProps> = ({ transfer, onPress })
   };
 
   const itemsCount = transfer.items?.length || 0;
+  const guide = transfer.remissionGuide;
 
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(transfer)} activeOpacity={0.7}>
@@ -69,6 +77,32 @@ export const TransferCard: React.FC<TransferCardProps> = ({ transfer, onPress })
             <Text style={styles.footerValue}>{formatDate(transfer.requestedAt)}</Text>
           </View>
         </View>
+
+        {(guide || onGuidePress) && (
+          <TouchableOpacity
+            style={[
+              styles.guideButton,
+              guide ? styles.downloadGuideButton : styles.createGuideButton,
+              isGuideLoading && styles.guideButtonDisabled,
+            ]}
+            onPress={(event) => {
+              event.stopPropagation();
+              if (!isGuideLoading) {
+                onGuidePress?.(transfer);
+              }
+            }}
+            disabled={isGuideLoading}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.guideButtonText}>
+              {isGuideLoading
+                ? 'Descargando guía...'
+                : guide
+                  ? `Descargar guía ${guide.number || ''}`.trim()
+                  : 'Crear guía de remisión'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -169,6 +203,27 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.neutral[600],
+  },
+  guideButton: {
+    marginTop: spacing[2],
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    alignItems: 'center',
+  },
+  downloadGuideButton: {
+    backgroundColor: colors.accent[600],
+  },
+  createGuideButton: {
+    backgroundColor: colors.warning[500],
+  },
+  guideButtonDisabled: {
+    opacity: 0.7,
+  },
+  guideButtonText: {
+    color: colors.neutral[0],
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
 

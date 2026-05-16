@@ -8,13 +8,14 @@ import {
   GetBizlinksConfigsParams,
   EmitirFacturaDto,
   GetBizlinksDocumentsParams,
+  GetBizlinksDocumentsResponse,
   DownloadArtifactsDto,
   BizlinksTestConnectionResponse,
   CreateRetencionDto,
   Retencion,
   GetRetencionesParams,
   RevertirRetencionDto,
-} from '../../types/bizlinks';
+} from '@/types/bizlinks';
 
 // ============================================
 // BIZLINKS API - Facturación Electrónica
@@ -83,9 +84,9 @@ export const bizlinksApi = {
 
   // ==================== DOCUMENTS ====================
 
-  // Get all documents - GET /bizlinks/documents
-  getDocuments: async (params?: GetBizlinksDocumentsParams): Promise<BizlinksDocument[]> => {
-    return apiClient.get<BizlinksDocument[]>('/bizlinks/documents', { params });
+  // Get all tax documents - GET /api/admin/bizlinks-documents
+  getDocuments: async (params?: GetBizlinksDocumentsParams): Promise<GetBizlinksDocumentsResponse> => {
+    return apiClient.get<GetBizlinksDocumentsResponse>('/admin/bizlinks-documents', { params });
   },
 
   // Get document by ID - GET /bizlinks/documents/:id

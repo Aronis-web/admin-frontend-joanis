@@ -28,6 +28,7 @@ export const downloadWithAuth = async (
   const buildHeaders = (currentToken: string): Record<string, string> => {
     const headers: Record<string, string> = {
       'X-App-Id': config.APP_ID,
+      'x-app-id': config.APP_ID,
       'X-App-Version': config.APP_VERSION,
       Authorization: `Bearer ${currentToken}`,
       'Cache-Control': 'no-cache, no-store, must-revalidate',

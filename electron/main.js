@@ -36,13 +36,16 @@ if (process.platform === 'win32') {
 }
 
 // Token de GitHub para repositorios privados
-// IMPORTANTE: Este token permite acceder a los releases del repositorio privado
-const GITHUB_TOKEN = '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';
-autoUpdater.requestHeaders = {
-  Authorization: `token ${GITHUB_TOKEN}`
-};
-
-console.log('[ELECTRON] ✅ Auto-updater configurado para repositorio privado');
+// IMPORTANTE: Configurar GITHUB_TOKEN en el entorno de ejecución para acceder a releases privados.
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+if (GITHUB_TOKEN) {
+  autoUpdater.requestHeaders = {
+    Authorization: `token ${GITHUB_TOKEN}`
+  };
+  console.log('[ELECTRON] ✅ Auto-updater configurado para repositorio privado');
+} else {
+  console.warn('[ELECTRON] ⚠️ GITHUB_TOKEN no configurado; auto-updater sin autenticación privada');
+}
 
 // Variable para almacenar el estado de la actualización
 let updateInfo = null;
@@ -52,16 +55,26 @@ let updateDownloaded = false;
 function startServer() {
   return new Promise((resolve, reject) => {
     const expressApp = express();
-    // Use process.resourcesPath to get the correct path when packaged
-    const webBuildPath = isPackaged
-      ? path.join(process.resourcesPath, 'web-build')
-      : path.join(__dirname, '../web-build');
+
+    const candidateBuildPaths = isPackaged
+      ? [
+          path.join(process.resourcesPath, 'web-build'),
+          path.join(process.resourcesPath, 'app.asar.unpacked', 'web-build'),
+          path.join(path.dirname(process.execPath), 'resources', 'web-build')
+        ]
+      : [path.join(__dirname, '../web-build')];
+
+    const webBuildPath = candidateBuildPaths.find((candidatePath) => fs.existsSync(candidatePath));
 
     console.log('App is packaged:', isPackaged);
     console.log('__dirname:', __dirname);
     console.log('Resources path:', isPackaged ? process.resourcesPath : 'N/A');
-    console.log('Web build path:', webBuildPath);
-    console.log('Web build exists:', fs.existsSync(webBuildPath));
+    console.log('Web build candidates:', candidateBuildPaths);
+    console.log('Selected web build path:', webBuildPath || 'NOT_FOUND');
+
+    if (!webBuildPath) {
+      return reject(new Error(`No se encontró web-build. Rutas intentadas: ${candidateBuildPaths.join(', ')}`));
+    }
 
     // Serve static files with proper MIME types and CORS
     expressApp.use(express.static(webBuildPath, {
@@ -81,6 +94,17 @@ function startServer() {
         }
       }
     }));
+
+    // SPA fallback: any non-file GET route should return index.html
+    expressApp.use((req, res, next) => {
+      if (req.method !== 'GET') {
+        return next();
+      }
+      if (req.path.includes('.')) {
+        return next();
+      }
+      return res.sendFile(path.join(webBuildPath, 'index.html'));
+    });
 
     server = expressApp.listen(8082, 'localhost', () => {
       console.log('Server running on http://localhost:8082');

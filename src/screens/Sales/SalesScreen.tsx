@@ -16,14 +16,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { salesApi } from '@/services/api/sales';
 import {
   Sale,
   SaleType,
   SaleStatus,
   PaymentStatus,
-  SaleTypeLabels,
   SaleStatusLabels,
   PaymentStatusLabels,
 } from '@/types/sales';
@@ -110,7 +109,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
   };
 
   useEffect(() => {
-    loadSales(page);
+    void loadSales(page);
   }, [page, searchText, filterStatus, filterPaymentStatus, filterSaleType, filterSaleOrigin]);
 
   const lastFetchRef = React.useRef<number>(0);
@@ -122,13 +121,13 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
 
       if (isStale) {
         lastFetchRef.current = now;
-        loadSales(page, true);
+        void loadSales(page, true);
       }
     }, [page])
   );
 
   const handleRefresh = () => {
-    loadSales(1, true);
+    void loadSales(1, true);
   };
 
   const handleSalePress = (sale: Sale) => {
@@ -188,11 +187,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
   const renderSaleCard = useCallback((sale: any) => {
     const customerName = sale.customerName || sale.customerSnapshot?.fullName || sale.companySnapshot?.razonSocial || 'Sin cliente';
     const isIndependent = sale.source === 'INDEPENDIENTE' || !sale.cashRegisterId;
-    const paymentMethodsText = sale.paymentMethods && sale.paymentMethods.length > 0
-      ? sale.paymentMethods.map((pm: any) => pm.methodName).join(', ')
-      : 'Sin pagos';
     const sellerName = sale.cashierSnapshot?.name || sale.sellerSnapshot?.name || null;
-    const cashRegisterName = sale.cashRegisterSnapshot?.name || null;
 
     const getSaleStatusLabel = (status: string) => {
       return SaleStatusLabels[status as SaleStatus] || status;

@@ -319,15 +319,105 @@ export interface EmitirFacturaDto {
   guiaRemision?: string;
 }
 
+export interface BizlinksDocumentArtifact {
+  available: boolean;
+  url?: string;
+  downloadUrl?: string;
+  path?: string;
+  existsOnDisk?: boolean;
+  size?: number;
+  hash?: string;
+}
+
+export interface BizlinksDocumentListItem {
+  id: string;
+  companyId: string;
+  siteId?: string;
+  serie?: string;
+  numero?: string;
+  serieNumero: string;
+  tipo?: {
+    code: string;
+    name: string;
+  };
+  documentType?: BizlinksDocumentType | string;
+  cliente?: string;
+  dniRuc?: string;
+  tipoDocumentoCliente?: string;
+  total?: number;
+  moneda?: string;
+  fecha?: string;
+  fechaEmision?: string;
+  razonSocialAdquiriente?: string;
+  numeroDocumentoAdquiriente?: string;
+  totalVenta?: number;
+  tipoMoneda?: BizlinksCurrency | string;
+  estadoSunat?: {
+    code?: string;
+    statusWs?: string;
+    message?: BizlinksSunatMessage;
+  };
+  status?: string;
+  statusWs?: BizlinksStatusWs | string;
+  statusSunat?: BizlinksStatusSunat | string;
+  messageSunat?: BizlinksSunatMessage;
+  referenceId?: string;
+  referenceType?: string;
+  pdf?: BizlinksDocumentArtifact;
+  xml?: BizlinksDocumentArtifact;
+  cdr?: BizlinksDocumentArtifact;
+  sentAt?: string | null;
+  acceptedAt?: string | null;
+  rejectedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BizlinksDocumentsMeta {
+  total: number;
+  page: number;
+  limit: number;
+  offset: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  sortBy: string;
+  sortOrder: 'ASC' | 'DESC';
+}
+
+export interface GetBizlinksDocumentsResponse {
+  items: BizlinksDocumentListItem[];
+  meta: BizlinksDocumentsMeta;
+  filters?: Record<string, string>;
+}
+
 export interface GetBizlinksDocumentsParams {
   page?: number;
   limit?: number;
+  offset?: number;
   companyId?: string;
   siteId?: string;
-  documentType?: BizlinksDocumentType;
+  documentType?: BizlinksDocumentType | string;
+  status?: string;
+  statusWs?: BizlinksStatusWs | string;
+  statusSunat?: BizlinksStatusSunat | string;
+  serie?: string;
+  numero?: string;
   serieNumero?: string;
-  statusWs?: BizlinksStatusWs;
-  statusSunat?: BizlinksStatusSunat;
+  customerDocument?: string;
+  customerName?: string;
+  search?: string;
+  fromDate?: string;
+  toDate?: string;
+  emissionFrom?: string;
+  emissionTo?: string;
+  minTotal?: number;
+  maxTotal?: number;
+  hasPdf?: boolean;
+  hasXml?: boolean;
+  hasCdr?: boolean;
+  sortBy?: 'createdAt' | 'fecha' | 'serieNumero' | 'documentType' | 'status' | 'statusSunat' | 'total';
+  sortOrder?: 'ASC' | 'DESC';
   startDate?: string;
   endDate?: string;
 }

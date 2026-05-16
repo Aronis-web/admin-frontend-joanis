@@ -169,6 +169,168 @@ export interface BankTransactionsResponse {
 }
 
 /**
+ * Request for automatching transactions by date and sites
+ */
+export interface TransactionsByDateSitesRequest {
+  startDate: string;
+  endDate: string;
+  siteIds: string[];
+}
+
+/**
+ * Transaction returned by automatching endpoint
+ */
+export interface AutoMatchingTransaction {
+  id: string;
+  transactionDate: string;
+  description: string;
+  amountCents: number;
+  direction: TransactionDirection | string;
+  assignmentStatus: AssignmentStatus | string;
+  bankCode?: string;
+  bankName?: string;
+  accountAlias?: string;
+  accountNumber?: string;
+  siteId?: string;
+  targetModule?: string;
+}
+
+/**
+ * Response for automatching transactions by date and sites
+ */
+export interface TransactionsByDateSitesResponse {
+  total: number;
+  data: AutoMatchingTransaction[];
+}
+
+// ==================== Cash Collections (Supervisora) ====================
+
+export type CashCollectionRequestStatus =
+  | 'PENDING'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+export interface CashCollectionRequestInfo {
+  id: string;
+  status: CashCollectionRequestStatus | string;
+  reason?: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface CashCollectionEntityInfo {
+  id: string;
+  code?: string;
+  name: string;
+}
+
+export interface CashCollectionCashInfo {
+  currentCashCents: number;
+  minCashCents: number;
+  maxCashCents: number;
+  maxCollectionCents: number;
+  suggestedCollectionCents: number;
+  isBlocked: boolean;
+}
+
+export interface CashCollectionScanResponse {
+  request: CashCollectionRequestInfo;
+  cashRegister: CashCollectionEntityInfo;
+  site: CashCollectionEntityInfo;
+  cashier: CashCollectionEntityInfo;
+  cashInfo: CashCollectionCashInfo;
+}
+
+export interface StartCashCollectionRequest {
+  amountCents: number;
+  notes?: string;
+}
+
+export interface CompleteCashCollectionRequest {
+  amountCents: number;
+  photo: string;
+  cashierSignature: string;
+  supervisorSignature: string;
+  notes?: string;
+}
+
+export interface CompleteCashCollectionResponse {
+  id: string;
+  collectionNumber: string;
+  amountCents: number;
+  cashRegister: CashCollectionEntityInfo;
+  cashier: CashCollectionEntityInfo;
+  supervisor: CashCollectionEntityInfo;
+  holding: {
+    id: string;
+    holdingNumber: string;
+    expectedDepositBy: string;
+  };
+  completedAt: string;
+}
+
+export interface CashClosureScanResponse {
+  request: CashCollectionRequestInfo;
+  cashRegister: CashCollectionEntityInfo;
+  site: CashCollectionEntityInfo;
+  cashier: CashCollectionEntityInfo;
+  cashInfo: CashCollectionCashInfo;
+}
+
+export interface CollectAndCloseRequest {
+  collectedAmountCents: number;
+  closingCashCountedCents: number;
+  photo: string;
+  cashierSignature: string;
+  supervisorSignature: string;
+  notes?: string;
+}
+
+export interface CollectAndCloseResponse {
+  collection: {
+    id: string;
+    collectionNumber: string;
+    expectedAmountCents?: number;
+    actualAmountCents?: number;
+    differenceAmountCents?: number;
+  };
+  closure: {
+    expectedCashCents?: number;
+    closingCashCountedCents?: number;
+    differenceCashCents?: number;
+    closureReasonStatus?: 'PENDING_REASON' | 'NOT_REQUIRED' | string;
+  };
+  holding?: {
+    id: string;
+    holdingNumber?: string;
+  };
+}
+
+export interface SupervisorCashHolding {
+  id: string;
+  holdingNumber?: string;
+  expectedDepositBy?: string;
+  amountCents?: number;
+  status?: string;
+  collectionNumber?: string;
+  supervisor?: CashCollectionEntityInfo;
+  cashRegister?: CashCollectionEntityInfo;
+  site?: CashCollectionEntityInfo;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DepositSupervisorHoldingRequest {
+  depositType: string;
+  reference: string;
+  depositedAmountCents: number;
+  voucherPhoto: string;
+  notes?: string;
+}
+
+/**
  * Labels for Movement Types
  */
 export const MOVEMENT_TYPE_LABELS: Record<string, string> = {

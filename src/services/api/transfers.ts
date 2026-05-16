@@ -1,13 +1,16 @@
 import { apiClient } from './client';
+import { config } from '@/utils/config';
 import {
   Transfer,
-  TransferReception,
   TransferDiscrepancy,
   StockMovement,
   TransferStatusHistory,
   CreateInternalTransferDto,
   CreateExternalTransferDto,
   ShipTransferDto,
+  GenerateRemissionGuideDto,
+  GenerateRemissionGuideResponse,
+  ValidateItemDto,
   ValidateItemsDto,
   CompleteReceptionDto,
   CancelTransferDto,
@@ -89,6 +92,39 @@ export const transfersApi = {
    */
   getTransferHistory: async (id: string): Promise<TransferStatusHistory[]> => {
     return apiClient.get<TransferStatusHistory[]>(`/transfers/${id}/history`);
+  },
+
+  /**
+   * Download remission guide PDF
+   * GET /api/transfers/:id/remission-guide/pdf
+   */
+  downloadRemissionGuidePdf: async (id: string): Promise<Blob> => {
+    const timestamp = new Date().getTime();
+    const url = `${config.API_URL}/transfers/${id}/remission-guide/pdf?t=${timestamp}`;
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+    return downloadWithAuth(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/pdf',
+      },
+    });
+  },
+
+  /**
+   * Generate remission guide for an external transfer
+   * POST /api/transfers/:id/generate-remission-guide
+   */
+  generateRemissionGuide: async (
+    id: string,
+    data: GenerateRemissionGuideDto
+  ): Promise<GenerateRemissionGuideResponse> => {
+    return apiClient.post<GenerateRemissionGuideResponse>(
+      `/transfers/${id}/generate-remission-guide`,
+      data,
+      {
+        timeout: config.API_TIMEOUT_REMISSION_GUIDE,
+      }
+    );
   },
 
   // ============================================
@@ -201,12 +237,21 @@ export const transfersApi = {
   },
 
   /**
-   * 📥 Validate items received (ENTRADA)
-   * POST /api/transfers/:id/validate-items
-   * Valida los items recibidos (cantidades, condición, etc.)
+   * 📥 Validate single item received (ENTRADA - dynamic)
+   * POST /api/transfers/:id/validate-item
+   * Valida un item recibido y registra stock inmediatamente
    */
-  validateItems: async (id: string, data: ValidateItemsDto): Promise<Transfer> => {
-    return apiClient.post<Transfer>(`/transfers/${id}/validate-items`, data);
+  validateItem: async (id: string, data: ValidateItemDto): Promise<TransferDiscrepancy[]> => {
+    return apiClient.post<TransferDiscrepancy[]>(`/transfers/${id}/validate-item`, data);
+  },
+
+  /**
+   * 📥 Validate items received (ENTRADA - legacy)
+   * POST /api/transfers/:id/validate-items
+   * Compatibilidad para validación masiva
+   */
+  validateItems: async (id: string, data: ValidateItemsDto): Promise<TransferDiscrepancy[]> => {
+    return apiClient.post<TransferDiscrepancy[]>(`/transfers/${id}/validate-items`, data);
   },
 
   /**
@@ -232,12 +277,12 @@ export const transfersApi = {
   },
 
   /**
-   * 📥 Get reception by ID (ENTRADA)
-   * GET /api/receptions/:id
-   * Obtiene los detalles de una recepción específica
+   * 📥 Get reception detail by transfer ID (ENTRADA)
+   * GET /api/receptions/:transferId
+   * Obtiene el detalle completo de una recepción/traslado para validación
    */
-  getReceptionById: async (id: string): Promise<TransferReception> => {
-    return apiClient.get<TransferReception>(`/receptions/${id}`);
+  getReceptionDetail: async (transferId: string): Promise<Transfer> => {
+    return apiClient.get<Transfer>(`/receptions/${transferId}`);
   },
 
   // ============================================

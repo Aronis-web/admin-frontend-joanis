@@ -27,6 +27,7 @@ export const MAIN_ROUTES = {
   PRODUCTS: 'Products',
   STOCK: 'Stock',
   PHOTOS: 'Photos',
+  PHOTO_CAMPAIGN_MANAGEMENT: 'PhotoCampaignManagement',
 
   // Purchases
   PURCHASES: 'Purchases',
@@ -81,6 +82,7 @@ export const MAIN_ROUTES = {
 
   // Sales
   SALES: 'Sales',
+  SESSIONS_MANAGEMENT: 'SessionsManagement',
   CREATE_SALE: 'CreateSale',
   SALE_DETAIL: 'SaleDetail',
   REGISTER_SALE_PAYMENT: 'RegisterSalePayment',
@@ -184,6 +186,7 @@ export const MAIN_ROUTES = {
   REVIEW_IZIPAY: 'ReviewIzipay',
   REVIEW_PROSEGUR: 'ReviewProsegur',
   CUADRE: 'Cuadre',
+  RECAUDO_EFECTIVO: 'RecaudoEfectivo',
 } as const;
 
 /**
@@ -240,7 +243,8 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Products & Inventory
   PRODUCTS: 'products.read',
   STOCK: 'products.read',
-  PHOTOS: 'products.read',
+  PHOTOS: 'photo_campaigns.read',
+  PHOTO_CAMPAIGN_MANAGEMENT: 'photo_campaigns.read',
 
   // Purchases
   PURCHASES: 'purchases.read',
@@ -289,6 +293,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Sales
   SALES: 'sales.read',
+  SESSIONS_MANAGEMENT: 'admin.sessions.management.read',
   CREATE_SALE: 'sales.create',
   SALE_DETAIL: 'sales.read',
   REGISTER_SALE_PAYMENT: 'sales.payment.register',
@@ -388,6 +393,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   REVIEW_IZIPAY: 'cash_reconciliation.read',
   REVIEW_PROSEGUR: 'cash_reconciliation.read',
   CUADRE: 'cash_reconciliation.read',
+  RECAUDO_EFECTIVO: 'admin.collections.scan',
 };
 
 /**

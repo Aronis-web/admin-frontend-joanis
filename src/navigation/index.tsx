@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View } from 'react-native';
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/store/auth';
@@ -58,7 +58,8 @@ const WarehouseAreasScreen = lazyLoad(() => import('@/screens/Warehouses').then(
 const PermissionsDebugScreen = lazyLoad(() => import('@/screens/Debug/PermissionsDebugScreen').then(m => ({ default: m.PermissionsDebugScreen })));
 const ProductsScreen = lazyLoad(() => import('@/screens/Inventory/ProductsScreen').then(m => ({ default: m.ProductsScreen })), 'Cargando productos...');
 const StockScreen = lazyLoad(() => import('@/screens/Inventory/StockScreen').then(m => ({ default: m.StockScreen })), 'Cargando inventario...');
-const PhotosScreen = lazyLoad(() => import('@/screens/Photos/PhotosScreen').then(m => ({ default: m.PhotosScreen })), 'Cargando fotos...');
+const PhotosScreen = lazyLoad(() => import('@/screens/Photos').then(m => ({ default: m.PhotosScreen })), 'Cargando campañas de fotos...');
+const PhotoCampaignManagementScreen = lazyLoad(() => import('@/screens/Photos').then(m => ({ default: m.PhotoCampaignManagementScreen })), 'Cargando gestión de campaña...');
 const PriceProfilesScreen = lazyLoad(() => import('@/screens/PriceProfiles/PriceProfilesScreen').then(m => ({ default: m.PriceProfilesScreen })));
 const PresentationsScreen = lazyLoad(() => import('@/screens/Presentations/PresentationsScreen').then(m => ({ default: m.PresentationsScreen })));
 
@@ -87,6 +88,7 @@ const CustomerDetailScreen = lazyLoad(() => import('@/screens/Customers').then(m
 
 // Sales Screens - Lazy Loaded
 const SalesScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SalesScreen })), 'Cargando ventas...');
+const SessionsManagementScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SessionsManagementScreen })), 'Cargando sesiones...');
 const CreateSaleScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.CreateSaleScreen })));
 const SaleDetailScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SaleDetailScreen })));
 const RegisterSalePaymentScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.RegisterSalePaymentScreen })));
@@ -163,6 +165,7 @@ const ReviewDocumentsMenuScreen = lazyLoad(() => import('@/screens/CashReconcili
 const ReviewSalesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewSalesScreen })), 'Cargando ventas...');
 const ReviewIzipayScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewIzipayScreen })), 'Cargando Izipay...');
 const ReviewProsegurScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewProsegurScreen })), 'Cargando Prosegur...');
+const RecaudoEfectivoScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.RecaudoEfectivoScreen })), 'Cargando recaudo efectivo...');
 // CuadreScreen is now eager loaded above to debug lazy loading issue
 // const CuadreScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CuadreScreen })), 'Cargando cuadre...');
 
@@ -380,12 +383,48 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.PHOTOS}
         options={{
-          title: 'Fotos de Productos',
+          title: 'Campañas de Fotos',
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['products.read']} requireAll={false}>
+          <ProtectedRoute
+            requiredPermissions={[
+              'photo_campaigns.read',
+              'photo_campaigns.create',
+              'photo_campaigns.update',
+              'photo_campaigns.delete',
+              'photo_campaigns.products.read',
+              'photo_campaigns.products.create',
+              'photo_campaigns.products.update',
+              'photo_campaigns.products.delete',
+            ]}
+            requireAll={false}
+          >
             <PhotosScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PHOTO_CAMPAIGN_MANAGEMENT}
+        options={{
+          title: 'Gestión de Campaña de Fotos',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'photo_campaigns.read',
+              'photo_campaigns.create',
+              'photo_campaigns.update',
+              'photo_campaigns.delete',
+              'photo_campaigns.products.read',
+              'photo_campaigns.products.create',
+              'photo_campaigns.products.update',
+              'photo_campaigns.products.delete',
+            ]}
+            requireAll={false}
+          >
+            <PhotoCampaignManagementScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -612,6 +651,18 @@ const MainStack = React.memo(() => {
             ]}
           >
             <SalesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.SESSIONS_MANAGEMENT}
+        options={{
+          title: 'Gestión de Sesiones',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['admin.sessions.management.read']}>
+            <SessionsManagementScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1237,6 +1288,29 @@ const MainStack = React.memo(() => {
           title: 'Cuadre',
         }}
       />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.RECAUDO_EFECTIVO}
+        options={{
+          title: 'Recaudo Efectivo',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              PERMISSIONS.ADMIN.COLLECTIONS.SCAN,
+              PERMISSIONS.ADMIN.COLLECTIONS.PROCESS,
+              PERMISSIONS.ADMIN.COLLECTIONS.READ,
+              PERMISSIONS.ADMIN.COLLECTIONS.CLOSURE_SCAN,
+              PERMISSIONS.ADMIN.COLLECTIONS.CLOSURE_COLLECT_CLOSE,
+              PERMISSIONS.ADMIN.HOLDINGS.READ,
+              PERMISSIONS.ADMIN.HOLDINGS.DEPOSIT,
+            ]}
+            requireAll={false}
+          >
+            <RecaudoEfectivoScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
 
       {/* Emission Points & Series Configuration Screens */}
       <MainStackNavigator.Screen
@@ -1447,7 +1521,7 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.BIZLINKS_DOCUMENTS}
         options={{
-          title: 'Documentos Electrónicos',
+          title: 'Documentos Tributarios',
         }}
       >
         {(props) => (

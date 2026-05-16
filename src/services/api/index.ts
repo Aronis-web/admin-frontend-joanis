@@ -26,6 +26,19 @@ export * from './repartos';
 export * from './transport';
 export * from './users';
 export { salesApi } from './sales';
+export { posSessionsApi } from './pos-sessions';
+export { photoCampaignsApi } from './photo-campaigns';
+export type {
+  PhotoCampaign,
+  PhotoCampaignStatus,
+  PhotoCampaignProductItem,
+  CreatePhotoCampaignRequest,
+  UpdatePhotoCampaignRequest,
+  AddPhotoCampaignProductRequest,
+  UpdatePhotoCampaignProductRequest,
+  ProductPhotoAsset,
+  PhotoType,
+} from '@/types/photo-campaigns';
 
 // Export roles API (avoid GetPermissionsParams conflict with apps)
 export { rolesApi } from './roles';

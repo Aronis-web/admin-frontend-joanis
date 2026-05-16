@@ -181,6 +181,23 @@ export const PERMISSIONS = {
     CANCEL: 'campaigns.cancel',
   },
 
+  // ========== CAMPAÑAS DE FOTOS ==========
+  PHOTO_CAMPAIGNS: {
+    CREATE: 'photo_campaigns.create',
+    READ: 'photo_campaigns.read',
+    UPDATE: 'photo_campaigns.update',
+    DELETE: 'photo_campaigns.delete',
+    ACTIVATE: 'photo_campaigns.activate',
+    CLOSE: 'photo_campaigns.close',
+
+    PRODUCTS: {
+      CREATE: 'photo_campaigns.products.create',
+      READ: 'photo_campaigns.products.read',
+      UPDATE: 'photo_campaigns.products.update',
+      DELETE: 'photo_campaigns.products.delete',
+    },
+  },
+
   // ========== REPARTOS ==========
   REPARTOS: {
     CREATE: 'repartos.create',
@@ -349,6 +366,19 @@ export const PERMISSIONS = {
   ADMIN: {
     TEST: 'admin.test',
     SEED: 'admin.seed',
+
+    COLLECTIONS: {
+      SCAN: 'admin.collections.scan',
+      PROCESS: 'admin.collections.process',
+      READ: 'admin.collections.read',
+      CLOSURE_SCAN: 'admin.closure.scan',
+      CLOSURE_COLLECT_CLOSE: 'admin.closure.collect-close',
+    },
+
+    HOLDINGS: {
+      READ: 'admin.holdings.read',
+      DEPOSIT: 'admin.holdings.deposit',
+    },
   },
 
   // ========== FACTURACIÓN / BILLING ==========

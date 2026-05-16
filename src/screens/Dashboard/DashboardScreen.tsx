@@ -256,10 +256,19 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       setError(null);
 
       const { startDate, endDate } = getDateRange(selectedFilter);
-      console.log('📅 Loading purchases summary:', { startDate, endDate, filter: selectedFilter });
+      console.log('📅 Loading purchases summary:', { startDate, endDate, filter: selectedFilter, sedeId: selectedSedeId });
+
+      const params: any = {
+        fecha_inicio: startDate,
+        fecha_fin: endDate,
+      };
+
+      if (selectedSedeId) {
+        params.sede_id = selectedSedeId;
+      }
 
       const data = await apiClient.get<PurchasesSummary>('/admin/purchases/summary/by-date', {
-        params: { startDate, endDate },
+        params,
       });
 
       console.log('✅ Purchases summary loaded:', data);
@@ -300,10 +309,27 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       }
 
       const groupBy = getGroupBy(selectedFilter);
-      console.log('📊 Loading purchases grouped:', { ...dateRange, groupBy, filter: selectedFilter });
+
+      const params: any = {
+        fecha_inicio: dateRange.startDate,
+        fecha_fin: dateRange.endDate,
+        groupBy,
+      };
+
+      if (selectedSedeId) {
+        params.sede_id = selectedSedeId;
+      }
+
+      console.log('📊 Loading purchases grouped:', {
+        fecha_inicio: params.fecha_inicio,
+        fecha_fin: params.fecha_fin,
+        groupBy: params.groupBy,
+        filter: selectedFilter,
+        sedeId: selectedSedeId,
+      });
 
       const data = await apiClient.get<PurchasesGroupedSummary>('/admin/purchases/summary/grouped', {
-        params: { ...dateRange, groupBy },
+        params,
       });
 
       console.log('✅ Purchases grouped loaded:', data);

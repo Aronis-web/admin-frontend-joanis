@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import { productsApi, Product } from '@/services/api/products';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { Site } from '@/types/sites';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { TransportSelectionModal } from '@/components/Transport';
 import {
   Transfer,
   TransferType,
@@ -37,6 +38,8 @@ import {
   ShipTransferDto,
 } from '@/types/transfers';
 import { logger } from '@/utils/logger';
+import { downloadRemissionGuidePdf } from '@/utils/remissionGuideDownload';
+import { Driver, Transporter, Vehicle } from '@/types/transport';
 
 interface ExternalTransfersScreenProps {
   navigation: any;
@@ -90,6 +93,19 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   // Detail modal states
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Remission guide states
+  const [showTransportModal, setShowTransportModal] = useState(false);
+  const [showBultosModal, setShowBultosModal] = useState(false);
+  const [generatingRemissionGuide, setGeneratingRemissionGuide] = useState(false);
+  const [downloadingGuideId, setDownloadingGuideId] = useState<string | null>(null);
+  const [numeroBultos, setNumeroBultos] = useState('1');
+  const [pendingTransportData, setPendingTransportData] = useState<{
+    vehicle: Vehicle | null;
+    driver: Driver | null;
+    transporter: Transporter | null;
+  } | null>(null);
+  const pendingBultosModalRef = useRef(false);
 
   // Ship modal states
   const [showShipModal, setShowShipModal] = useState(false);
@@ -191,9 +207,121 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     setShowDetailModal(true);
   };
 
+  useEffect(() => {
+    if (!showTransportModal && pendingBultosModalRef.current) {
+      const timer = setTimeout(() => {
+        pendingBultosModalRef.current = false;
+        setShowBultosModal(true);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [showTransportModal]);
+
   const handleCreateTransfer = () => {
     setShowCreateModal(true);
     loadModalData();
+  };
+
+  const handleRemissionGuidePress = async (transfer: Transfer) => {
+    const guide = transfer.remissionGuide;
+
+    if (!guide) {
+      setSelectedTransfer(transfer);
+      setShowTransportModal(true);
+      return;
+    }
+
+    try {
+      setDownloadingGuideId(transfer.id);
+      await downloadRemissionGuidePdf({ transferId: transfer.id, guide });
+    } finally {
+      setDownloadingGuideId(null);
+    }
+  };
+
+  const handleTransportModalClose = useCallback(() => {
+    setShowTransportModal(false);
+    pendingBultosModalRef.current = false;
+  }, []);
+
+  const handleTransportConfirm = useCallback((vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
+    setPendingTransportData({ vehicle, driver, transporter });
+    setNumeroBultos('1');
+    pendingBultosModalRef.current = true;
+    setShowTransportModal(false);
+  }, []);
+
+  const handleGenerateGuideConfirm = async () => {
+    if (!selectedTransfer || !pendingTransportData) {
+      Alert.alert('Error', 'No se encontraron los datos necesarios para generar la guía');
+      return;
+    }
+
+    const bultosNum = parseInt(numeroBultos, 10);
+    if (Number.isNaN(bultosNum) || bultosNum < 1) {
+      Alert.alert('Error', 'La cantidad de bultos debe ser un número mayor a 0');
+      return;
+    }
+
+    const { vehicle, driver, transporter } = pendingTransportData;
+    const isPublicTransport = transporter !== null && !vehicle && !driver;
+
+    let confirmMessage = `¿Deseas generar la guía de remisión para ${selectedTransfer.transferNumber}?\n\n`;
+    if (isPublicTransport) {
+      confirmMessage += `Transporte: Público\nTransportista: ${transporter!.razonSocial}\nRUC: ${transporter!.numeroRuc}\n`;
+    } else {
+      confirmMessage += `Transporte: Privado\nVehículo: ${vehicle!.numeroPlaca} (${vehicle!.marca} ${vehicle!.modelo})\nConductor: ${driver!.nombre} ${driver!.apellido}\nLicencia: ${driver!.numeroLicencia}\n`;
+    }
+    confirmMessage += `Bultos: ${bultosNum}\n\nLa guía quedará anexada al traslado.`;
+
+    setShowBultosModal(false);
+
+    Alert.alert('Generar Guía de Remisión', confirmMessage, [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+        onPress: () => setPendingTransportData(null),
+      },
+      {
+        text: 'Generar',
+        onPress: async () => {
+          try {
+            setGeneratingRemissionGuide(true);
+            const response = await transfersApi.generateRemissionGuide(
+              selectedTransfer.id,
+              isPublicTransport
+                ? {
+                    transporterId: transporter!.id,
+                    numeroBultos: bultosNum,
+                  }
+                : {
+                    vehicleId: vehicle!.id,
+                    driverId: driver!.id,
+                    numeroBultos: bultosNum,
+                  }
+            );
+
+            const updatedTransfer = await transfersApi.getTransferById(selectedTransfer.id);
+            setSelectedTransfer(updatedTransfer);
+            await loadTransfers();
+
+            Alert.alert(
+              'Éxito',
+              response.message || `Guía ${response.remissionGuide.serieNumero || response.remissionGuide.number || ''} generada exitosamente`
+            );
+          } catch (error: any) {
+            logger.error('Error generating remission guide:', error);
+            Alert.alert(
+              'Error',
+              error.response?.data?.message || error.message || 'No se pudo generar la guía de remisión'
+            );
+          } finally {
+            setGeneratingRemissionGuide(false);
+            setPendingTransportData(null);
+          }
+        },
+      },
+    ]);
   };
 
   const loadModalData = async () => {
@@ -663,7 +791,14 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     return (
       <FlatList
         data={filteredTransfers}
-        renderItem={({ item }) => <TransferCard transfer={item} onPress={handleTransferPress} />}
+        renderItem={({ item }) => (
+          <TransferCard
+            transfer={item}
+            onPress={handleTransferPress}
+            onGuidePress={(transfer) => void handleRemissionGuidePress(transfer)}
+            isGuideLoading={downloadingGuideId === item.id}
+          />
+        )}
         keyExtractor={(item) => item.id}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -1051,6 +1186,38 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                 )}
 
                 <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Guía de remisión</Text>
+                  {selectedTransfer.remissionGuide ? (
+                    <>
+                      <Text style={styles.detailValue}>{selectedTransfer.remissionGuide.number}</Text>
+                      <Text style={styles.detailSubvalue}>
+                        Estado: {selectedTransfer.remissionGuide.status}
+                        {selectedTransfer.remissionGuide.isDevelopment ? ' • Desarrollo' : ''}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.detailSubvalue}>Este traslado aún no tiene guía de remisión.</Text>
+                  )}
+                  <TouchableOpacity
+                    disabled={downloadingGuideId === selectedTransfer.id}
+                    style={[
+                      styles.guideActionButton,
+                      selectedTransfer.remissionGuide ? styles.downloadGuideButton : styles.createGuideButton,
+                      downloadingGuideId === selectedTransfer.id && styles.guideActionButtonDisabled,
+                    ]}
+                    onPress={() => void handleRemissionGuidePress(selectedTransfer)}
+                  >
+                    <Text style={styles.guideActionButtonText}>
+                      {downloadingGuideId === selectedTransfer.id
+                        ? 'Descargando guía...'
+                        : selectedTransfer.remissionGuide
+                          ? 'Descargar guía'
+                          : 'Crear guía'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.detailSection}>
                   <Text style={styles.sectionTitle}>Productos</Text>
                   {selectedTransfer.items && selectedTransfer.items.length > 0 && (
                     <TransferItemsList items={selectedTransfer.items} transfer={selectedTransfer} />
@@ -1119,6 +1286,62 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
             )}
           </ScrollView>
         </SafeAreaView>
+      </Modal>
+
+      <TransportSelectionModal
+        visible={showTransportModal}
+        onClose={handleTransportModalClose}
+        onConfirm={handleTransportConfirm}
+      />
+
+      <Modal
+        visible={showBultosModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => {
+          setShowBultosModal(false);
+          setPendingTransportData(null);
+        }}
+      >
+        <View style={styles.shipModalOverlay}>
+          <View style={styles.shipModalContainer}>
+            <Text style={styles.shipModalTitle}>Cantidad de bultos</Text>
+            <Text style={styles.shipModalSubtitle}>
+              Ingresa la cantidad de bultos para la guía de remisión.
+            </Text>
+
+            <Text style={styles.label}>Número de bultos *</Text>
+            <TextInput
+              style={styles.input}
+              value={numeroBultos}
+              onChangeText={setNumeroBultos}
+              keyboardType="numeric"
+              placeholder="Ej: 10"
+              placeholderTextColor="#94A3B8"
+            />
+
+            <View style={styles.shipModalButtons}>
+              <TouchableOpacity
+                style={[styles.shipModalButton, styles.shipModalCancelButton]}
+                onPress={() => {
+                  setShowBultosModal(false);
+                  setPendingTransportData(null);
+                }}
+              >
+                <Text style={styles.shipModalCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.shipModalButton, styles.shipModalConfirmButton]}
+                onPress={handleGenerateGuideConfirm}
+                disabled={generatingRemissionGuide}
+              >
+                <Text style={styles.shipModalConfirmButtonText}>
+                  {generatingRemissionGuide ? 'Generando...' : 'Continuar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Ship Modal */}
@@ -1453,6 +1676,26 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  guideActionButton: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  downloadGuideButton: {
+    backgroundColor: '#6366F1',
+  },
+  createGuideButton: {
+    backgroundColor: '#F59E0B',
+  },
+  guideActionButtonDisabled: {
+    opacity: 0.7,
+  },
+  guideActionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '700',
   },
   infoBox: {

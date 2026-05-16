@@ -186,7 +186,38 @@ export const usersApi = {
    * Update an existing user
    */
   async updateUser(id: string, userData: UpdateUserRequest): Promise<User> {
-    return apiClient.put<User>(`/users/${id}`, userData);
+    const rawRoleIds = (userData as any)?.roleIds;
+
+    const normalizedRoleIds = Array.isArray(rawRoleIds)
+      ? rawRoleIds
+          .filter((roleId) => typeof roleId === 'string')
+          .map((roleId) => roleId.trim())
+          .filter((roleId) => roleId.length > 0)
+      : typeof rawRoleIds === 'string'
+        ? rawRoleIds
+            .split(',')
+            .map((roleId) => roleId.trim())
+            .filter((roleId) => roleId.length > 0)
+        : rawRoleIds && typeof rawRoleIds === 'object'
+          ? Object.values(rawRoleIds)
+              .filter((roleId) => typeof roleId === 'string')
+              .map((roleId) => roleId.trim())
+              .filter((roleId) => roleId.length > 0)
+          : [];
+
+    const normalizedPayload: UpdateUserRequest = {
+      ...userData,
+      roleIds: normalizedRoleIds,
+    };
+
+    console.log('usersApi.updateUser - normalized roleIds:', {
+      rawRoleIds,
+      normalizedRoleIds,
+      isArray: Array.isArray(normalizedPayload.roleIds),
+      size: normalizedRoleIds.length,
+    });
+
+    return apiClient.put<User>(`/users/${id}`, normalizedPayload);
   },
 
   /**

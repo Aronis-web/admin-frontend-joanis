@@ -175,9 +175,30 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       userData.is_active = formData.is_active;
 
       // Send roles (this will replace all existing roles)
-      if (formData.roleIds !== undefined) {
-        userData.roleIds = formData.roleIds;
-      }
+      const rawRoleIds = (formData as any).roleIds;
+      userData.roleIds = Array.isArray(rawRoleIds)
+        ? rawRoleIds
+            .filter((id) => typeof id === 'string')
+            .map((id) => id.trim())
+            .filter((id) => id.length > 0)
+        : typeof rawRoleIds === 'string'
+          ? rawRoleIds
+              .split(',')
+              .map((id) => id.trim())
+              .filter((id) => id.length > 0)
+          : rawRoleIds && typeof rawRoleIds === 'object'
+            ? Object.values(rawRoleIds)
+                .filter((id) => typeof id === 'string')
+                .map((id) => id.trim())
+                .filter((id) => id.length > 0)
+            : [];
+
+      console.log('EditUserModal - roleIds before update:', {
+        rawRoleIds,
+        normalizedRoleIds: userData.roleIds,
+        isArray: Array.isArray(userData.roleIds),
+        size: userData.roleIds.length,
+      });
 
       // Send password if changing
       if (showPasswordFields && password.trim()) {
@@ -266,7 +287,16 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   };
 
   const updateField = (field: keyof UpdateUserRequest, value: string | boolean | string[]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    const normalizedValue =
+      field === 'roleIds'
+        ? Array.isArray(value)
+          ? value
+          : typeof value === 'string' && value.trim()
+            ? [value]
+            : []
+        : value;
+
+    setFormData((prev) => ({ ...prev, [field]: normalizedValue }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -428,6 +458,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               selectedRoleIds={formData.roleIds || []}
               onRolesChange={(roleIds) => updateField('roleIds', roleIds)}
               disabled={loading}
+              singleSelection={false}
             />
 
             <View style={styles.rolesWarning}>

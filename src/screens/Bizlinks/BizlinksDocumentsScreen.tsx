@@ -9,7 +9,6 @@ import {
   Alert,
   ActivityIndicator,
   useWindowDimensions,
-  Linking,
   Platform,
   TextInput,
 } from 'react-native';
@@ -18,28 +17,35 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useBizlinksDocuments } from '../../hooks/useBizlinks';
-import {
-  BizlinksDocument,
-  BizlinksDocumentType,
-  BizlinksStatusSunat,
-  GetBizlinksDocumentsParams,
-} from '../../types/bizlinks';
-import { useAuthStore } from '../../store/auth';
-import { BizlinksDocumentsFAB } from '@/components/Bizlinks';
-import { StatusFilter, StatusOption } from '@/components/common/StatusFilter';
-import { useDebounce } from '@/hooks/useDebounce';
-import { formatDateToString } from '@/utils/dateHelpers';
-import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
-import { config } from '@/utils/config';
+
+import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import { TaxDocumentsFAB } from '@/components/Bizlinks/TaxDocumentsFAB';
+import { TaxDocumentsReportModal } from '@/components/Bizlinks/TaxDocumentsReportModal';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { useBizlinksDocuments } from '@/hooks/useBizlinks';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useAuthStore } from '@/store/auth';
+import {
+  BizlinksDocumentArtifact,
+  BizlinksDocumentListItem,
+  BizlinksDocumentsMeta,
+  GetBizlinksDocumentsParams,
+} from '@/types/bizlinks';
+import { config } from '@/utils/config';
+import { formatDateToString } from '@/utils/dateHelpers';
 import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 
 type Props = NativeStackScreenProps<any, 'BizlinksDocuments'>;
 
-// Mapeo de tipos de documento
+type ArtifactKind = 'pdf' | 'xml' | 'cdr';
+type AvailabilityFilter = 'ALL' | 'WITH_PDF' | 'WITH_XML' | 'WITH_CDR' | 'WITHOUT_PDF';
+
+type PaginationState = BizlinksDocumentsMeta;
+
+const DEFAULT_LIMIT = 20;
+
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   '01': 'Factura',
   '03': 'Boleta',
@@ -52,17 +58,22 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 const DOCUMENT_TYPE_COLORS: Record<string, string> = {
-  '01': '#3B82F6', // Azul - Factura
-  '03': '#10B981', // Verde - Boleta
-  '07': '#F59E0B', // Amarillo - NC
-  '08': '#EF4444', // Rojo - ND
-  '09': '#8B5CF6', // Púrpura - GR
-  '31': '#6366F1', // Índigo - GRT
-  '20': '#EC4899', // Rosa - Retención
-  '40': '#14B8A6', // Teal - Percepción
+  '01': '#3B82F6',
+  '03': '#10B981',
+  '07': '#F59E0B',
+  '08': '#EF4444',
+  '09': '#8B5CF6',
+  '31': '#6366F1',
+  '20': '#EC4899',
+  '40': '#14B8A6',
 };
 
 const STATUS_SUNAT_COLORS: Record<string, string> = {
+  AC_03: '#10B981',
+  RC_05: '#EF4444',
+  PE_02: '#F59E0B',
+  ED_06: '#F97316',
+  SIGNED: '#3B82F6',
   PENDIENTE_ENVIO: '#94A3B8',
   PENDIENTE_RESPUESTA: '#F59E0B',
   ACEPTADO: '#10B981',
@@ -70,113 +81,189 @@ const STATUS_SUNAT_COLORS: Record<string, string> = {
   ANULADO: '#64748B',
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  AC_03: 'Aceptado SUNAT',
+  RC_05: 'Rechazado SUNAT',
+  PE_02: 'Pendiente',
+  ED_06: 'Error envío',
+  SIGNED: 'Firmado',
+  ACCEPTED: 'Aceptado',
+  REJECTED: 'Rechazado',
+  ERROR: 'Error',
+  QUEUED: 'En cola',
+  SENDING: 'Enviando',
+};
+
+const documentTypeOptions = [
+  { value: 'ALL', label: 'Todos', color: '#6366F1' },
+  { value: '01', label: 'Facturas', color: DOCUMENT_TYPE_COLORS['01'] },
+  { value: '03', label: 'Boletas', color: DOCUMENT_TYPE_COLORS['03'] },
+  { value: '07', label: 'N. Crédito', color: DOCUMENT_TYPE_COLORS['07'] },
+  { value: '08', label: 'N. Débito', color: DOCUMENT_TYPE_COLORS['08'] },
+  { value: '09', label: 'Guías', color: DOCUMENT_TYPE_COLORS['09'] },
+];
+
+const sunatStatusOptions = [
+  { value: 'ALL', label: 'Todos', color: '#6366F1' },
+  { value: 'AC_03', label: 'Aceptados', color: STATUS_SUNAT_COLORS.AC_03 },
+  { value: 'RC_05', label: 'Rechazados', color: STATUS_SUNAT_COLORS.RC_05 },
+  { value: 'PE_02', label: 'Pendientes', color: STATUS_SUNAT_COLORS.PE_02 },
+  { value: 'ED_06', label: 'Errores', color: STATUS_SUNAT_COLORS.ED_06 },
+];
+
+const availabilityOptions: { value: AvailabilityFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { value: 'ALL', label: 'Todos', icon: 'albums-outline' },
+  { value: 'WITH_PDF', label: 'Con PDF', icon: 'document-text-outline' },
+  { value: 'WITH_XML', label: 'Con XML', icon: 'code-slash-outline' },
+  { value: 'WITH_CDR', label: 'Con CDR', icon: 'archive-outline' },
+  { value: 'WITHOUT_PDF', label: 'Sin PDF', icon: 'document-outline' },
+];
+
+const sortOptions: {
+  value: NonNullable<GetBizlinksDocumentsParams['sortBy']>;
+  label: string;
+}[] = [
+  { value: 'createdAt', label: 'Registro' },
+  { value: 'fecha', label: 'Emisión' },
+  { value: 'serieNumero', label: 'Serie' },
+  { value: 'total', label: 'Total' },
+];
+
+const initialPagination: PaginationState = {
+  total: 0,
+  page: 1,
+  limit: DEFAULT_LIMIT,
+  offset: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPreviousPage: false,
+  sortBy: 'createdAt',
+  sortOrder: 'DESC',
+};
+
 export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
   const { currentCompany, currentSite, token } = useAuthStore();
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
 
-  // Estados
-  const [selectedDocumentType, setSelectedDocumentType] = useState<string>('ALL');
-  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [selectedDocumentType, setSelectedDocumentType] = useState('ALL');
+  const [selectedStatusSunat, setSelectedStatusSunat] = useState('ALL');
+  const [selectedAvailability, setSelectedAvailability] = useState<AvailabilityFilter>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
-  const [documents, setDocuments] = useState<BizlinksDocument[]>([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
+  const [limit, setLimit] = useState(DEFAULT_LIMIT);
+  const [sortBy, setSortBy] = useState<NonNullable<GetBizlinksDocumentsParams['sortBy']>>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
+  const [documents, setDocuments] = useState<BizlinksDocumentListItem[]>([]);
+  const [pagination, setPagination] = useState<PaginationState>(initialPagination);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [refreshingDocId, setRefreshingDocId] = useState<string | null>(null);
-  const [downloadingDocId, setDownloadingDocId] = useState<string | null>(null);
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
 
-  // Filtros de fecha
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  const [showDateFilters, setShowDateFilters] = useState(false);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [showFromDatePicker, setShowFromDatePicker] = useState(false);
+  const [showToDatePicker, setShowToDatePicker] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showTaxDocumentsReportModal, setShowTaxDocumentsReportModal] = useState(false);
 
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const debouncedSearchTerm = useDebounce(searchTerm.trim(), 500);
+  const { getDocuments } = useBizlinksDocuments();
 
-  const {
-    getDocuments,
-    refreshDocumentStatus,
-    downloadArtifacts,
-  } = useBizlinksDocuments();
+  const activeFiltersCount = useMemo(() => {
+    return [
+      selectedDocumentType !== 'ALL',
+      selectedStatusSunat !== 'ALL',
+      selectedAvailability !== 'ALL',
+      !!debouncedSearchTerm,
+      !!fromDate,
+      !!toDate,
+    ].filter(Boolean).length;
+  }, [debouncedSearchTerm, fromDate, selectedAvailability, selectedDocumentType, selectedStatusSunat, toDate]);
 
-  // Cargar documentos
+  const buildParams = useCallback((): GetBizlinksDocumentsParams => {
+    const params: GetBizlinksDocumentsParams = {
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      companyId: currentCompany?.id,
+      siteId: currentSite?.id,
+    };
+
+    if (selectedDocumentType !== 'ALL') {
+      params.documentType = selectedDocumentType;
+    }
+
+    if (selectedStatusSunat !== 'ALL') {
+      params.statusSunat = selectedStatusSunat;
+    }
+
+    if (debouncedSearchTerm) {
+      params.search = debouncedSearchTerm;
+    }
+
+    if (fromDate) {
+      params.fromDate = fromDate;
+    }
+
+    if (toDate) {
+      params.toDate = toDate;
+    }
+
+    if (selectedAvailability === 'WITH_PDF') {
+      params.hasPdf = true;
+    } else if (selectedAvailability === 'WITHOUT_PDF') {
+      params.hasPdf = false;
+    } else if (selectedAvailability === 'WITH_XML') {
+      params.hasXml = true;
+    } else if (selectedAvailability === 'WITH_CDR') {
+      params.hasCdr = true;
+    }
+
+    return params;
+  }, [
+    currentCompany?.id,
+    currentSite?.id,
+    debouncedSearchTerm,
+    fromDate,
+    limit,
+    page,
+    selectedAvailability,
+    selectedDocumentType,
+    selectedStatusSunat,
+    sortBy,
+    sortOrder,
+    toDate,
+  ]);
+
   const loadDocuments = useCallback(async () => {
     try {
       setLoading(true);
-      const params: GetBizlinksDocumentsParams = {
-        page,
-        limit: 20,
-        companyId: currentCompany?.id,
-        siteId: currentSite?.id,
-      };
-
-      if (selectedDocumentType !== 'ALL') {
-        params.documentType = selectedDocumentType as BizlinksDocumentType;
-      }
-
-      if (selectedStatus !== 'ALL') {
-        params.statusSunat = selectedStatus as BizlinksStatusSunat;
-      }
-
-      if (debouncedSearchTerm) {
-        params.serieNumero = debouncedSearchTerm;
-      }
-
-      if (startDate) {
-        params.startDate = startDate;
-      }
-
-      if (endDate) {
-        params.endDate = endDate;
-      }
-
-      const data = await getDocuments(params);
-
-      // Asumiendo que la API retorna un array o un objeto con data
-      if (Array.isArray(data)) {
-        setDocuments(data);
-        setPagination({
-          page: 1,
-          limit: 20,
-          total: data.length,
-          totalPages: 1,
-        });
-      } else if (data.data) {
-        setDocuments(data.data);
-        setPagination({
-          page: data.page || 1,
-          limit: data.limit || 20,
-          total: data.total || 0,
-          totalPages: Math.ceil((data.total || 0) / (data.limit || 20)),
-        });
-      }
+      const response = await getDocuments(buildParams());
+      setDocuments(response.items || []);
+      setPagination(response.meta || initialPagination);
     } catch (error) {
-      console.error('Error loading documents:', error);
-      Alert.alert('Error', 'No se pudieron cargar los documentos');
+      console.error('Error loading tax documents:', error);
+      Alert.alert('Error', 'No se pudieron cargar los documentos tributarios');
     } finally {
       setLoading(false);
     }
-  }, [page, selectedDocumentType, selectedStatus, debouncedSearchTerm, startDate, endDate, currentCompany, currentSite]);
+  }, [buildParams, getDocuments]);
 
-  // Auto-reload cuando cambian los filtros
   useEffect(() => {
-    loadDocuments();
-  }, [page, selectedDocumentType, selectedStatus, debouncedSearchTerm, startDate, endDate]);
+    void loadDocuments();
+  }, [loadDocuments]);
 
-  // Auto-reload cuando la pantalla obtiene foco
   useFocusEffect(
     useCallback(() => {
-      loadDocuments();
+      void loadDocuments();
     }, [loadDocuments])
   );
+
+  const resetToFirstPage = useCallback(() => {
+    setPage(1);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -186,229 +273,65 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
   }, [loadDocuments]);
 
   const handlePreviousPage = useCallback(() => {
-    if (page > 1) {
-      setPage(page - 1);
+    if (pagination.hasPreviousPage || page > 1) {
+      setPage((current) => Math.max(current - 1, 1));
     }
-  }, [page]);
+  }, [page, pagination.hasPreviousPage]);
 
   const handleNextPage = useCallback(() => {
-    if (page < pagination.totalPages) {
-      setPage(page + 1);
+    if (pagination.hasNextPage || page < pagination.totalPages) {
+      setPage((current) => current + 1);
     }
-  }, [page, pagination.totalPages]);
+  }, [page, pagination.hasNextPage, pagination.totalPages]);
 
-  const handleClearDateFilters = useCallback(() => {
-    setStartDate('');
-    setEndDate('');
+  const handleClearFilters = useCallback(() => {
+    setSelectedDocumentType('ALL');
+    setSelectedStatusSunat('ALL');
+    setSelectedAvailability('ALL');
+    setSearchTerm('');
+    setFromDate('');
+    setToDate('');
     setPage(1);
   }, []);
 
-  const handleStartDateConfirm = useCallback((date: Date) => {
-    const formattedDate = formatDateToString(date);
-    setStartDate(formattedDate);
-    setShowStartDatePicker(false);
+  const handleFromDateConfirm = useCallback((date: Date) => {
+    setFromDate(formatDateToString(date));
+    setShowFromDatePicker(false);
     setPage(1);
   }, []);
 
-  const handleEndDateConfirm = useCallback((date: Date) => {
-    const formattedDate = formatDateToString(date);
-    setEndDate(formattedDate);
-    setShowEndDatePicker(false);
+  const handleToDateConfirm = useCallback((date: Date) => {
+    setToDate(formatDateToString(date));
+    setShowToDatePicker(false);
     setPage(1);
   }, []);
 
-  const handleRefreshDocument = async (document: BizlinksDocument) => {
-    setRefreshingDocId(document.id);
-    try {
-      const updated = await refreshDocumentStatus(document.id);
-      Alert.alert(
-        'Estado actualizado',
-        `Estado SUNAT: ${updated.statusSunat}\n${updated.messageSunat?.mensaje || ''}`
-      );
-      loadDocuments();
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setRefreshingDocId(null);
-    }
+  const getDocumentTypeCode = (document: BizlinksDocumentListItem) => (
+    document.tipo?.code || document.documentType || 'OTRO'
+  );
+
+  const getDocumentTypeName = (document: BizlinksDocumentListItem) => {
+    const code = getDocumentTypeCode(document);
+    return document.tipo?.name || DOCUMENT_TYPE_LABELS[code] || String(code);
   };
 
-  const handleDownloadPDF = async (document: BizlinksDocument, event: any) => {
-    event.stopPropagation();
-    setDownloadingDocId(document.id);
+  const getStatusCode = (document: BizlinksDocumentListItem) => (
+    document.estadoSunat?.code || document.statusSunat || document.status || 'PENDIENTE'
+  );
 
-    try {
-      console.log('📥 Descargando PDF para:', document.serieNumero);
-      console.log('📋 Document ID:', document.id);
-
-      if (Platform.OS === 'web') {
-        // En web, usar el endpoint directo que devuelve el blob
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-        const pdfUrl = `${apiUrl}/bizlinks/documents/${document.id}/pdf`;
-
-        // Abrir en nueva pestaña
-        window.open(pdfUrl, '_blank');
-      } else {
-        // En móvil, descargar usando el endpoint directo con autenticación
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-        const pdfUrl = `${apiUrl}/bizlinks/documents/${document.id}/pdf`;
-
-        console.log('🌐 URL de descarga:', pdfUrl);
-
-        const fileName = `${document.serieNumero}.pdf`;
-        const fileUri = FileSystem.cacheDirectory + fileName;
-
-        // Incluir headers de autenticación
-        const headers: Record<string, string> = {
-          'X-App-Id': config.APP_ID,
-        };
-
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        if (currentCompany?.id) {
-          headers['X-Company-Id'] = currentCompany.id;
-        }
-        if (currentSite?.id) {
-          headers['X-Site-Id'] = currentSite.id;
-        }
-
-        console.log('📤 Headers:', Object.keys(headers));
-
-        const downloadResult = await FileSystem.downloadAsync(pdfUrl, fileUri, {
-          headers,
-        });
-
-        console.log('📦 Download result:', {
-          uri: downloadResult.uri,
-          status: downloadResult.status,
-          headers: downloadResult.headers,
-        });
-
-        // Verificar que el archivo se descargó correctamente
-        if (downloadResult.status !== 200) {
-          throw new Error(`Error del servidor: ${downloadResult.status}`);
-        }
-
-        // Verificar el tamaño del archivo
-        const fileInfo = await FileSystem.getInfoAsync(downloadResult.uri);
-        console.log('📄 File info:', fileInfo);
-
-        if (fileInfo.exists && fileInfo.size === 0) {
-          throw new Error('El archivo descargado está vacío');
-        }
-
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(downloadResult.uri, {
-            mimeType: 'application/pdf',
-            dialogTitle: `Comprobante ${document.serieNumero}`,
-          });
-        } else {
-          Alert.alert('Éxito', `PDF guardado en: ${downloadResult.uri}`);
-        }
-      }
-
-      console.log('✅ PDF descargado exitosamente');
-    } catch (error: any) {
-      console.error('❌ Error al descargar PDF:', error);
-      Alert.alert('Error', error.message || 'Error al descargar PDF');
-    } finally {
-      setDownloadingDocId(null);
-    }
+  const getStatusLabel = (document: BizlinksDocumentListItem) => {
+    const code = String(getStatusCode(document));
+    return STATUS_LABELS[code] || code;
   };
 
-  const handleDownloadXML = async (document: BizlinksDocument, event: any) => {
-    event.stopPropagation();
-    setDownloadingDocId(document.id);
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return '-';
 
-    try {
-      console.log('📥 Descargando XML para:', document.serieNumero);
-
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-      const xmlUrl = `${apiUrl}/bizlinks/documents/${document.id}/xml`;
-
-      if (Platform.OS === 'web') {
-        // En web, abrir en nueva pestaña
-        window.open(xmlUrl, '_blank');
-      } else {
-        // En móvil, descargar y compartir con autenticación
-        const fileName = `${document.serieNumero}.xml`;
-        const fileUri = FileSystem.cacheDirectory + fileName;
-
-        // Incluir headers de autenticación
-        const headers: Record<string, string> = {
-          'X-App-Id': config.APP_ID,
-        };
-
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        if (currentCompany?.id) {
-          headers['X-Company-Id'] = currentCompany.id;
-        }
-        if (currentSite?.id) {
-          headers['X-Site-Id'] = currentSite.id;
-        }
-
-        const downloadResult = await FileSystem.downloadAsync(xmlUrl, fileUri, {
-          headers,
-        });
-
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(downloadResult.uri, {
-            mimeType: 'application/xml',
-            dialogTitle: `XML ${document.serieNumero}`,
-          });
-        } else {
-          Alert.alert('Éxito', `XML guardado en: ${downloadResult.uri}`);
-        }
-      }
-
-      console.log('✅ XML descargado exitosamente');
-    } catch (error: any) {
-      console.error('❌ Error al descargar XML:', error);
-      Alert.alert('Error', error.message || 'Error al descargar XML');
-    } finally {
-      setDownloadingDocId(null);
-    }
-  };
-
-  const handleDocumentPress = (document: BizlinksDocument) => {
-    navigation.navigate('BizlinksDocumentDetail', { documentId: document.id });
-  };
-
-  const handleDocumentTypeSelect = (documentType: BizlinksDocumentType) => {
-    console.log('📄 Tipo de documento seleccionado:', documentType);
-
-    // Navegar a la pantalla de selección de serie
-    navigation.navigate('BizlinksSelectSeries', {
-      documentType,
-      companyId: currentCompany?.id,
-      siteId: currentSite?.id,
-    });
-  };
-
-  // Opciones de filtro por tipo de documento
-  const documentTypeOptions: StatusOption[] = useMemo(() => [
-    { value: 'ALL', label: 'Todos', color: '#6366F1' },
-    { value: '01', label: 'Facturas', color: DOCUMENT_TYPE_COLORS['01'] },
-    { value: '03', label: 'Boletas', color: DOCUMENT_TYPE_COLORS['03'] },
-    { value: '07', label: 'N. Crédito', color: DOCUMENT_TYPE_COLORS['07'] },
-    { value: '08', label: 'N. Débito', color: DOCUMENT_TYPE_COLORS['08'] },
-    { value: '09', label: 'Guías', color: DOCUMENT_TYPE_COLORS['09'] },
-  ], []);
-
-  // Opciones de filtro por estado SUNAT
-  const statusOptions: StatusOption[] = useMemo(() => [
-    { value: 'ALL', label: 'Todos', color: '#6366F1' },
-    { value: 'PENDIENTE_ENVIO', label: 'Pendiente', color: STATUS_SUNAT_COLORS.PENDIENTE_ENVIO },
-    { value: 'ACEPTADO', label: 'Aceptado', color: STATUS_SUNAT_COLORS.ACEPTADO },
-    { value: 'RECHAZADO', label: 'Rechazado', color: STATUS_SUNAT_COLORS.RECHAZADO },
-    { value: 'ANULADO', label: 'Anulado', color: STATUS_SUNAT_COLORS.ANULADO },
-  ], []);
-
-  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) {
+      return dateString;
+    }
+
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
       month: '2-digit',
@@ -416,16 +339,170 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
     });
   };
 
-  const formatCurrency = (amount?: number) => {
-    if (!amount) return 'S/ 0.00';
-    return `S/ ${amount.toFixed(2)}`;
+  const formatCurrency = (amount?: number, currency = 'PEN') => {
+    if (amount === null || amount === undefined) return '-';
+
+    return new Intl.NumberFormat('es-PE', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+    }).format(amount);
   };
 
-  const renderDocumentCard = (document: BizlinksDocument) => {
-    const isRefreshing = refreshingDocId === document.id;
-    const isDownloading = downloadingDocId === document.id;
-    const documentTypeColor = DOCUMENT_TYPE_COLORS[document.documentType] || '#6B7280';
-    const statusColor = STATUS_SUNAT_COLORS[document.statusSunat || 'PENDIENTE_ENVIO'] || '#94A3B8';
+  const buildDownloadUrl = (document: BizlinksDocumentListItem, artifactKind: ArtifactKind) => {
+    const artifact = document[artifactKind] as BizlinksDocumentArtifact | undefined;
+    const candidateUrl = artifact?.downloadUrl || artifact?.url || `/bizlinks/documents/${document.id}/${artifactKind}`;
+
+    if (candidateUrl.startsWith('http')) {
+      return candidateUrl;
+    }
+
+    const baseUrl = config.API_URL.replace(/\/$/, '');
+    const path = candidateUrl.startsWith('/') ? candidateUrl : `/${candidateUrl}`;
+    return `${baseUrl}${path}`;
+  };
+
+  const buildAuthHeaders = () => {
+    const headers: Record<string, string> = {
+      'X-App-Id': config.APP_ID,
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    if (currentCompany?.id) {
+      headers['X-Company-Id'] = currentCompany.id;
+    }
+    if (currentSite?.id) {
+      headers['X-Site-Id'] = currentSite.id;
+    }
+
+    return headers;
+  };
+
+  const handleDownloadArtifact = async (
+    document: BizlinksDocumentListItem,
+    artifactKind: ArtifactKind,
+    mimeType: string,
+    event: any
+  ) => {
+    event.stopPropagation();
+
+    const artifact = document[artifactKind] as BizlinksDocumentArtifact | undefined;
+    if (artifact && !artifact.available) {
+      Alert.alert('Archivo no disponible', `El ${artifactKind.toUpperCase()} aún no está disponible para este documento.`);
+      return;
+    }
+
+    const downloadKey = `${document.id}-${artifactKind}`;
+    setDownloadingKey(downloadKey);
+
+    try {
+      const downloadUrl = buildDownloadUrl(document, artifactKind);
+
+      if (Platform.OS === 'web') {
+        window.open(downloadUrl, '_blank');
+        return;
+      }
+
+      const fileName = `${document.serieNumero || document.id}.${artifactKind}`;
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      const downloadResult = await FileSystem.downloadAsync(downloadUrl, fileUri, {
+        headers: buildAuthHeaders(),
+      });
+
+      if (downloadResult.status < 200 || downloadResult.status >= 300) {
+        Alert.alert('Error', `Error del servidor: ${downloadResult.status}`);
+        return;
+      }
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(downloadResult.uri, {
+          mimeType,
+          dialogTitle: `${artifactKind.toUpperCase()} ${document.serieNumero}`,
+        });
+      } else {
+        Alert.alert('Éxito', `${artifactKind.toUpperCase()} guardado en: ${downloadResult.uri}`);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || `Error al descargar ${artifactKind.toUpperCase()}`);
+    } finally {
+      setDownloadingKey(null);
+    }
+  };
+
+  const handleDocumentPress = (document: BizlinksDocumentListItem) => {
+    navigation.navigate('BizlinksDocumentDetail', { documentId: document.id });
+  };
+
+  const handleOpenTaxDocumentsReport = useCallback(() => {
+    setShowTaxDocumentsReportModal(true);
+  }, []);
+
+  const renderFilterChip = (
+    option: { value: string; label: string; color?: string; icon?: keyof typeof Ionicons.glyphMap },
+    selectedValue: string,
+    onSelect: (value: string) => void
+  ) => (
+    <TouchableOpacity
+      key={option.value}
+      style={[styles.filterChip, selectedValue === option.value && styles.filterChipActive]}
+      onPress={() => {
+        onSelect(option.value);
+        resetToFirstPage();
+      }}
+    >
+      {option.icon ? (
+        <Ionicons
+          name={option.icon}
+          size={14}
+          color={selectedValue === option.value ? colors.neutral[0] : colors.neutral[600]}
+        />
+      ) : (
+        <View style={[styles.filterDot, { backgroundColor: option.color || colors.primary[600] }]} />
+      )}
+      <Text style={[styles.filterChipText, selectedValue === option.value && styles.filterChipTextActive]}>
+        {option.label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderArtifactButton = (
+    document: BizlinksDocumentListItem,
+    artifactKind: ArtifactKind,
+    label: string,
+    icon: keyof typeof Ionicons.glyphMap,
+    buttonStyle: any,
+    mimeType: string
+  ) => {
+    const artifact = document[artifactKind] as BizlinksDocumentArtifact | undefined;
+    const available = artifact?.available || !!artifact?.downloadUrl || !!artifact?.url;
+    const isDownloading = downloadingKey === `${document.id}-${artifactKind}`;
+
+    return (
+      <TouchableOpacity
+        style={[styles.actionButton, buttonStyle, (!available || isDownloading) && styles.actionButtonDisabled]}
+        onPress={(event) => handleDownloadArtifact(document, artifactKind, mimeType, event)}
+        disabled={!available || isDownloading}
+      >
+        {isDownloading ? (
+          <ActivityIndicator size="small" color={colors.neutral[0]} />
+        ) : (
+          <>
+            <Ionicons name={icon} size={16} color={colors.neutral[0]} />
+            <Text style={styles.actionButtonText}>{label}</Text>
+          </>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const renderDocumentCard = (document: BizlinksDocumentListItem) => {
+    const documentTypeCode = String(getDocumentTypeCode(document));
+    const documentTypeColor = DOCUMENT_TYPE_COLORS[documentTypeCode] || '#6B7280';
+    const statusCode = String(getStatusCode(document));
+    const statusColor = STATUS_SUNAT_COLORS[statusCode] || '#64748B';
+    const sunatMessage = document.estadoSunat?.message?.mensaje || document.messageSunat?.mensaje;
 
     return (
       <TouchableOpacity
@@ -434,111 +511,81 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         onPress={() => handleDocumentPress(document)}
         activeOpacity={0.7}
       >
-        {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
-            <View style={[styles.documentTypeBadge, { backgroundColor: documentTypeColor + '20', borderColor: documentTypeColor }]}>
+            <View style={[styles.documentTypeBadge, { backgroundColor: `${documentTypeColor}20`, borderColor: documentTypeColor }]}>
               <Text style={[styles.documentTypeText, { color: documentTypeColor }]}>
-                {DOCUMENT_TYPE_LABELS[document.documentType] || document.documentType}
+                {getDocumentTypeName(document)}
               </Text>
             </View>
             <Text style={[styles.serieNumero, isTablet && styles.serieNumeroTablet]}>
-              {document.serieNumero}
+              {document.serieNumero || `${document.serie || ''}-${document.numero || ''}`}
             </Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor + '20', borderColor: statusColor }]}>
+          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20`, borderColor: statusColor }]}>
             <Text style={[styles.statusText, { color: statusColor }]}>
-              {document.statusSunat || 'Pendiente'}
+              {getStatusLabel(document)}
             </Text>
           </View>
         </View>
 
-        {/* Body */}
         <View style={styles.cardBody}>
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Cliente:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]} numberOfLines={1}>
-              {document.razonSocialAdquiriente}
+              {document.cliente || document.razonSocialAdquiriente || '-'}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>RUC/DNI:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>DNI/RUC:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {document.numeroDocumentoAdquiriente}
+              {document.dniRuc || document.numeroDocumentoAdquiriente || '-'}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Total:</Text>
             <Text style={[styles.infoValue, styles.totalAmount, isTablet && styles.infoValueTablet]}>
-              {formatCurrency(document.totalVenta)}
+              {formatCurrency(document.total ?? document.totalVenta, document.moneda || String(document.tipoMoneda || 'PEN'))}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Fecha:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Emisión:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {formatDate(document.fechaEmision)}
+              {formatDate(document.fecha || document.fechaEmision)}
             </Text>
           </View>
+
+          {!!sunatMessage && (
+            <View style={styles.messageBox}>
+              <Ionicons name="information-circle-outline" size={16} color={colors.neutral[500]} />
+              <Text style={styles.messageText} numberOfLines={2}>{sunatMessage}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Footer - Actions */}
         <View style={styles.cardFooter}>
           <View style={styles.cardActions}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.refreshButton, isRefreshing && styles.actionButtonDisabled]}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleRefreshDocument(document);
-              }}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Ionicons name="refresh" size={16} color="#FFFFFF" />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.pdfButton, isDownloading && styles.actionButtonDisabled]}
-              onPress={(e) => handleDownloadPDF(document, e)}
-              disabled={isDownloading}
-            >
-              {isDownloading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="document-text" size={16} color="#FFFFFF" />
-                  <Text style={styles.actionButtonText}>PDF</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.xmlButton]}
-              onPress={(e) => handleDownloadXML(document, e)}
-            >
-              <Ionicons name="code-slash" size={16} color="#FFFFFF" />
-              <Text style={styles.actionButtonText}>XML</Text>
-            </TouchableOpacity>
+            {renderArtifactButton(document, 'pdf', 'PDF', 'document-text', styles.pdfButton, 'application/pdf')}
+            {renderArtifactButton(document, 'xml', 'XML', 'code-slash', styles.xmlButton, 'application/xml')}
+            {renderArtifactButton(document, 'cdr', 'CDR', 'archive', styles.cdrButton, 'application/zip')}
           </View>
 
-          <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
+          <Ionicons name="chevron-forward" size={20} color={colors.neutral[300]} />
         </View>
       </TouchableOpacity>
     );
   };
 
-  if (loading && !refreshing) {
+  if (loading && !refreshing && documents.length === 0) {
     return (
       <ScreenLayout navigation={navigation as any}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary[600]} />
-            <Text style={styles.loadingText}>Cargando comprobantes...</Text>
+            <Text style={styles.loadingText}>Cargando documentos tributarios...</Text>
           </View>
         </SafeAreaView>
       </ScreenLayout>
@@ -548,7 +595,6 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ScreenLayout navigation={navigation as any}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Header con gradiente */}
         <LinearGradient
           colors={[colors.primary[900], colors.primary[800]]}
           start={{ x: 0, y: 0 }}
@@ -559,18 +605,17 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="document-text" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="documents" size={22} color={colors.neutral[0]} />
                 </View>
                 <Text style={[styles.title, isTablet && styles.titleTablet]}>
-                  Comprobantes
+                  Documentos Tributarios
                 </Text>
               </View>
               <Text style={styles.subtitle}>
-                Facturación electrónica SUNAT
+                Consulta de comprobantes electrónicos SUNAT
               </Text>
             </View>
 
-            {/* Stats */}
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{pagination.total}</Text>
@@ -579,15 +624,17 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchInputContainer}>
               <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
               <TextInput
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 value={searchTerm}
-                onChangeText={setSearchTerm}
-                placeholder="Buscar por serie-número..."
+                onChangeText={(value) => {
+                  setSearchTerm(value);
+                  setPage(1);
+                }}
+                placeholder="Buscar por serie, cliente, DNI/RUC..."
                 placeholderTextColor={colors.neutral[400]}
               />
               {searchTerm.length > 0 && (
@@ -597,207 +644,192 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
               )}
             </View>
             <TouchableOpacity
-              style={[styles.dateFilterButton, showDateFilters && styles.dateFilterButtonActive]}
-              onPress={() => setShowDateFilters(!showDateFilters)}
+              style={[styles.filterButton, showAdvancedFilters && styles.filterButtonActive]}
+              onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}
             >
               <Ionicons
-                name="calendar"
+                name="options"
                 size={20}
-                color={showDateFilters ? colors.neutral[0] : colors.neutral[600]}
+                color={showAdvancedFilters ? colors.neutral[0] : colors.neutral[600]}
               />
+              {activeFiltersCount > 0 && (
+                <View style={styles.filterCounter}>
+                  <Text style={styles.filterCounterText}>{activeFiltersCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </LinearGradient>
 
-        {/* Quick Filters - Tipo de Documento */}
         <View style={styles.quickFiltersContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.quickFiltersContent}
-          >
-            {documentTypeOptions.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.filterChip,
-                  selectedDocumentType === option.value && styles.filterChipActive,
-                ]}
-                onPress={() => {
-                  setSelectedDocumentType(option.value);
-                  setPage(1);
-                }}
-              >
-                <View style={[styles.filterDot, { backgroundColor: option.color }]} />
-                <Text style={[
-                  styles.filterChipText,
-                  selectedDocumentType === option.value && styles.filterChipTextActive,
-                ]}>
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickFiltersContent}>
+            {documentTypeOptions.map((option) => renderFilterChip(option, selectedDocumentType, setSelectedDocumentType))}
           </ScrollView>
         </View>
 
-        {/* Quick Filters - Estado SUNAT */}
         <View style={styles.quickFiltersContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.quickFiltersContent}
-          >
-            {statusOptions.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.filterChip,
-                  selectedStatus === option.value && styles.filterChipActive,
-                ]}
-                onPress={() => {
-                  setSelectedStatus(option.value);
-                  setPage(1);
-                }}
-              >
-                <View style={[styles.filterDot, { backgroundColor: option.color }]} />
-                <Text style={[
-                  styles.filterChipText,
-                  selectedStatus === option.value && styles.filterChipTextActive,
-                ]}>
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickFiltersContent}>
+            {sunatStatusOptions.map((option) => renderFilterChip(option, selectedStatusSunat, setSelectedStatusSunat))}
           </ScrollView>
         </View>
 
-        {/* Date Filters Panel */}
-        {showDateFilters && (
-          <View style={styles.dateFiltersPanel}>
+        {showAdvancedFilters && (
+          <View style={styles.advancedFiltersPanel}>
+            <Text style={styles.filterSectionTitle}>Archivos disponibles</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.availabilityContent}>
+              {availabilityOptions.map((option) => renderFilterChip(option, selectedAvailability, (value) => setSelectedAvailability(value as AvailabilityFilter)))}
+            </ScrollView>
+
             <View style={styles.dateRangePickers}>
               <View style={styles.datePickerWrapper}>
                 <DatePickerButton
-                  label="Fecha Inicial"
-                  value={startDate}
-                  onPress={() => setShowStartDatePicker(true)}
+                  label="Desde creación"
+                  value={fromDate}
+                  onPress={() => setShowFromDatePicker(true)}
                   placeholder="Seleccionar"
                   icon="calendar-outline"
                 />
               </View>
               <View style={styles.datePickerWrapper}>
                 <DatePickerButton
-                  label="Fecha Final"
-                  value={endDate}
-                  onPress={() => setShowEndDatePicker(true)}
+                  label="Hasta creación"
+                  value={toDate}
+                  onPress={() => setShowToDatePicker(true)}
                   placeholder="Seleccionar"
                   icon="calendar-outline"
                 />
               </View>
-              {(startDate || endDate) && (
-                <TouchableOpacity
-                  style={styles.clearDateButton}
-                  onPress={handleClearDateFilters}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="close-circle" size={24} color={colors.danger[500]} />
+            </View>
+
+            <View style={styles.sortRow}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortOptionsContent}>
+                {sortOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.sortChip, sortBy === option.value && styles.sortChipActive]}
+                    onPress={() => {
+                      setSortBy(option.value);
+                      setPage(1);
+                    }}
+                  >
+                    <Text style={[styles.sortChipText, sortBy === option.value && styles.sortChipTextActive]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity
+                style={styles.sortOrderButton}
+                onPress={() => {
+                  setSortOrder((current) => (current === 'DESC' ? 'ASC' : 'DESC'));
+                  setPage(1);
+                }}
+              >
+                <Ionicons name={sortOrder === 'DESC' ? 'arrow-down' : 'arrow-up'} size={16} color={colors.primary[700]} />
+                <Text style={styles.sortOrderText}>{sortOrder}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.advancedFooter}>
+              <TouchableOpacity style={styles.limitButton} onPress={() => setLimit((current) => (current === 20 ? 50 : current === 50 ? 100 : 20))}>
+                <Ionicons name="list-outline" size={16} color={colors.neutral[700]} />
+                <Text style={styles.limitButtonText}>{limit} por página</Text>
+              </TouchableOpacity>
+
+              {activeFiltersCount > 0 && (
+                <TouchableOpacity style={styles.clearFiltersButton} onPress={handleClearFilters}>
+                  <Ionicons name="close-circle" size={18} color={colors.danger[500]} />
+                  <Text style={styles.clearFiltersText}>Limpiar filtros</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
         )}
 
-      {/* Documents List */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-      >
-        {documents.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>📄</Text>
-            <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-              No hay comprobantes registrados
-            </Text>
-            <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-              Emite tu primer comprobante electrónico
-            </Text>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        >
+          {loading && documents.length > 0 && (
+            <View style={styles.inlineLoading}>
+              <ActivityIndicator size="small" color={colors.primary[600]} />
+              <Text style={styles.inlineLoadingText}>Actualizando...</Text>
+            </View>
+          )}
+
+          {documents.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>📄</Text>
+              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+                No hay documentos tributarios
+              </Text>
+              <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
+                Ajusta los filtros o intenta actualizar la consulta
+              </Text>
+            </View>
+          ) : (
+            documents.map(renderDocumentCard)
+          )}
+
+          <View style={styles.bottomSpacer} />
+        </ScrollView>
+
+        {pagination.total > 0 && (
+          <View style={styles.paginationContainer}>
+            <TouchableOpacity
+              style={[styles.paginationButton, !pagination.hasPreviousPage && page === 1 && styles.paginationButtonDisabled]}
+              onPress={handlePreviousPage}
+              disabled={!pagination.hasPreviousPage && page === 1}
+            >
+              <Text style={[styles.paginationButtonText, !pagination.hasPreviousPage && page === 1 && styles.paginationButtonTextDisabled]}>
+                ← Anterior
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.paginationInfo}>
+              <Text style={styles.paginationText}>
+                Pág. {pagination.page}/{pagination.totalPages || 1}
+              </Text>
+              <Text style={styles.paginationSubtext}>
+                {documents.length} de {pagination.total} · {pagination.limit}/pág.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.paginationButton, !pagination.hasNextPage && page >= pagination.totalPages && styles.paginationButtonDisabled]}
+              onPress={handleNextPage}
+              disabled={!pagination.hasNextPage && page >= pagination.totalPages}
+            >
+              <Text style={[styles.paginationButtonText, !pagination.hasNextPage && page >= pagination.totalPages && styles.paginationButtonTextDisabled]}>
+                Siguiente →
+              </Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          documents.map(renderDocumentCard)
         )}
 
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
-
-      {/* Pagination */}
-      {pagination.total > 0 && (
-        <View style={styles.paginationContainer}>
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page === 1 && styles.paginationButtonDisabled,
-            ]}
-            onPress={handlePreviousPage}
-            disabled={pagination.page === 1}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page === 1 && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              ← Anterior
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.paginationInfo}>
-            <Text style={styles.paginationText}>
-              Pág. {pagination.page}/{pagination.totalPages}
-            </Text>
-            <Text style={styles.paginationSubtext}>
-              {documents.length} de {pagination.total}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-            ]}
-            onPress={handleNextPage}
-            disabled={pagination.page >= pagination.totalPages}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              Siguiente →
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-        {/* Floating Action Button with Document Type Selection */}
-        <BizlinksDocumentsFAB onDocumentTypeSelect={handleDocumentTypeSelect} />
-
-        {/* Date Pickers */}
         <DatePicker
-          visible={showStartDatePicker}
-          date={startDate ? new Date(startDate) : new Date()}
-          onConfirm={handleStartDateConfirm}
-          onCancel={() => setShowStartDatePicker(false)}
+          visible={showFromDatePicker}
+          date={fromDate ? new Date(fromDate) : new Date()}
+          onConfirm={handleFromDateConfirm}
+          onCancel={() => setShowFromDatePicker(false)}
           title="Seleccionar Fecha Inicial"
         />
 
         <DatePicker
-          visible={showEndDatePicker}
-          date={endDate ? new Date(endDate) : new Date()}
-          onConfirm={handleEndDateConfirm}
-          onCancel={() => setShowEndDatePicker(false)}
+          visible={showToDatePicker}
+          date={toDate ? new Date(toDate) : new Date()}
+          onConfirm={handleToDateConfirm}
+          onCancel={() => setShowToDatePicker(false)}
           title="Seleccionar Fecha Final"
         />
+
+        <TaxDocumentsReportModal
+          visible={showTaxDocumentsReportModal}
+          onClose={() => setShowTaxDocumentsReportModal(false)}
+        />
+
+        <TaxDocumentsFAB onOpenSalesReport={handleOpenTaxDocumentsReport} />
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -819,7 +851,6 @@ const styles = StyleSheet.create({
     color: colors.neutral[500],
     fontWeight: '500',
   },
-  // Header con gradiente
   headerGradient: {
     paddingHorizontal: spacing[5],
     paddingTop: spacing[4],
@@ -830,6 +861,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: spacing[4],
+    gap: spacing[3],
   },
   headerTitleContainer: {
     flex: 1,
@@ -849,7 +881,8 @@ const styles = StyleSheet.create({
     marginRight: spacing[3],
   },
   title: {
-    fontSize: 24,
+    flex: 1,
+    fontSize: 22,
     fontWeight: '700',
     color: colors.neutral[0],
     letterSpacing: 0.3,
@@ -912,7 +945,7 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: spacing[1],
   },
-  dateFilterButton: {
+  filterButton: {
     width: 48,
     height: 48,
     backgroundColor: colors.neutral[0],
@@ -920,10 +953,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dateFilterButtonActive: {
+  filterButtonActive: {
     backgroundColor: colors.accent[500],
   },
-  // Quick filters
+  filterCounter: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.danger[500],
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  filterCounterText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
   quickFiltersContainer: {
     backgroundColor: colors.surface.primary,
     borderBottomWidth: 1,
@@ -964,17 +1013,24 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  clearDateButton: {
-    padding: spacing[2],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dateFiltersPanel: {
+  advancedFiltersPanel: {
     backgroundColor: colors.surface.primary,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral[200],
+    gap: spacing[3],
+  },
+  filterSectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.neutral[600],
+    textTransform: 'uppercase',
+  },
+  availabilityContent: {
+    gap: spacing[2],
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   dateRangePickers: {
     flexDirection: 'row',
@@ -983,6 +1039,80 @@ const styles = StyleSheet.create({
   },
   datePickerWrapper: {
     flex: 1,
+  },
+  sortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  sortOptionsContent: {
+    gap: spacing[2],
+  },
+  sortChip: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+  },
+  sortChipActive: {
+    backgroundColor: colors.primary[50],
+    borderColor: colors.primary[600],
+  },
+  sortChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.neutral[600],
+  },
+  sortChipTextActive: {
+    color: colors.primary[800],
+  },
+  sortOrderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary[50],
+  },
+  sortOrderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary[700],
+  },
+  advancedFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[3],
+  },
+  limitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1.5],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.neutral[100],
+  },
+  limitButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.neutral[700],
+  },
+  clearFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1.5],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+  },
+  clearFiltersText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.danger[500],
   },
   content: {
     flex: 1,
@@ -995,6 +1125,22 @@ const styles = StyleSheet.create({
     maxWidth: 1200,
     alignSelf: 'center',
     width: '100%',
+  },
+  inlineLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: spacing[2],
+    marginBottom: spacing[3],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface.primary,
+  },
+  inlineLoadingText: {
+    fontSize: 12,
+    color: colors.neutral[600],
+    fontWeight: '600',
   },
   card: {
     backgroundColor: colors.surface.primary,
@@ -1017,6 +1163,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral[100],
     backgroundColor: colors.neutral[50],
+    gap: spacing[3],
   },
   cardHeaderLeft: {
     flex: 1,
@@ -1085,6 +1232,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  messageBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[2],
+    marginTop: spacing[2],
+    padding: spacing[2.5],
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.neutral[50],
+  },
+  messageText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.neutral[600],
+    lineHeight: 17,
+  },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1098,6 +1260,8 @@ const styles = StyleSheet.create({
   cardActions: {
     flexDirection: 'row',
     gap: spacing[2],
+    flexWrap: 'wrap',
+    flex: 1,
   },
   actionButton: {
     flexDirection: 'row',
@@ -1106,20 +1270,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.lg,
-    minWidth: 40,
+    minWidth: 52,
     justifyContent: 'center',
   },
   actionButtonDisabled: {
-    opacity: 0.5,
-  },
-  refreshButton: {
-    backgroundColor: colors.primary[600],
+    opacity: 0.45,
   },
   pdfButton: {
     backgroundColor: colors.danger[500],
   },
   xmlButton: {
     backgroundColor: colors.warning[500],
+  },
+  cdrButton: {
+    backgroundColor: colors.primary[600],
   },
   actionButtonText: {
     fontSize: 11,
@@ -1131,15 +1295,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing[20],
-  },
-  emptyIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing[4],
   },
   emptyIcon: {
     fontSize: 64,
@@ -1165,21 +1320,6 @@ const styles = StyleSheet.create({
   emptySubtextTablet: {
     fontSize: 16,
   },
-  emptyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[600],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[5],
-    gap: spacing[2],
-  },
-  emptyButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
   bottomSpacer: {
     height: 100,
   },
@@ -1191,11 +1331,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing[4],
-    marginBottom: 60,
   },
   paginationInfo: {
     alignItems: 'center',
-    minWidth: 100,
+    minWidth: 120,
   },
   paginationText: {
     fontSize: 14,
@@ -1216,7 +1355,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     minWidth: 110,
     justifyContent: 'center',
-    gap: spacing[1],
   },
   paginationButtonDisabled: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',

@@ -7,3 +7,4 @@ export { ReviewSalesScreen } from './ReviewSalesScreen';
 export { ReviewIzipayScreen } from './ReviewIzipayScreen';
 export { ReviewProsegurScreen } from './ReviewProsegurScreen';
 export { CuadreScreen } from './CuadreScreen';
+export { RecaudoEfectivoScreen } from './RecaudoEfectivoScreen';

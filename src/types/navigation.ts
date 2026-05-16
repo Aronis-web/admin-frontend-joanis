@@ -6,7 +6,6 @@
  */
 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { NavigatorScreenParams } from '@react-navigation/native';
 
 /**
  * Auth Stack Parameter List
@@ -35,6 +34,9 @@ export type MainStackParamList = {
   Products: undefined;
   Stock: undefined;
   Photos: undefined;
+  PhotoCampaignManagement: {
+    campaignId?: string;
+  };
 
   // Purchases
   Purchases: undefined;
@@ -122,6 +124,7 @@ export type MainStackParamList = {
 
   // Sales
   Sales: undefined;
+  SessionsManagement: undefined;
   CreateSale: undefined;
   SaleDetail: {
     saleId: string;
@@ -381,6 +384,7 @@ export type MainStackParamList = {
   ReviewIzipay: undefined;
   ReviewProsegur: undefined;
   Cuadre: undefined;
+  RecaudoEfectivo: undefined;
 
   // Accounts Receivable
   AccountsReceivable: undefined;

@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform,
+
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getDocumentAsync, DocumentPickerAsset } from '@/utils/filePicker';
 import { expensesService } from '@/services/api/expenses';
 import { useAuthStore } from '@/store/auth';
 import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { saveAndShareExcel } from '@/utils/fileDownload';
 
 interface ExpenseBulkUploadModalProps {
   visible: boolean;
@@ -45,15 +46,9 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
       // Download the format file
       const blob = await expensesService.downloadBulkUploadFormat(currentCompany.id);
 
-      // Create a download link (works on web and mobile browsers)
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `formato_gastos_${new Date().getTime()}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const fileName = `formato_gastos_${new Date().getTime()}.xlsx`;
+
+      await saveAndShareExcel(blob, fileName, 'Formato de Carga Masiva de Gastos');
       Alert.alert('Éxito', 'Formato descargado correctamente');
     } catch (error: any) {
       console.error('❌ Error descargando formato:', error);
@@ -107,7 +102,9 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
 
       let fileToUpload: Blob | File;
 
-      if (Platform.OS === 'web') {
+      const isWeb = typeof document !== 'undefined';
+
+      if (isWeb) {
         console.log('📤 [Web] Preparing file upload...');
         if ((selectedFile as any).file) {
           // Use the preserved File object

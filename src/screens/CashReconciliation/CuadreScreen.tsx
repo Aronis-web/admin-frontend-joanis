@@ -22,13 +22,14 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { DateRangePicker } from '@/components/DateRangePicker';
+import { DatePicker } from '@/components/DatePicker';
 import { sitesApi } from '@/services/api/sites';
 import { companiesApi } from '@/services/api/companies';
-import { cashReconciliationApi, CuadreCajaResponse, IngresosBancarios } from '@/services/api/cash-reconciliation';
+import { cashReconciliationApi, CuadreCajaResponse } from '@/services/api/cash-reconciliation';
 import { treasuryApi } from '@/services/api/treasury';
 import { Site } from '@/types/sites';
 import { CompanyType } from '@/types/companies';
-import { BankAccount } from '@/types/treasury';
+import { BankAccount, AutoMatchingTransaction } from '@/types/treasury';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { config } from '@/utils/config';
@@ -207,6 +208,14 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedBankAccountIds, setSelectedBankAccountIds] = useState<Set<string>>(new Set());
   const [isLoadingBankAccounts, setIsLoadingBankAccounts] = useState(false);
   const [bankAccountsExpanded, setBankAccountsExpanded] = useState(false);
+
+  // AutoMatching bank info (optional and independent from normal bank info)
+  const [includeAutoMatchingBankInfo, setIncludeAutoMatchingBankInfo] = useState(false);
+  const [autoMatchingDate, setAutoMatchingDate] = useState<Date>(new Date());
+  const [showAutoMatchingDatePicker, setShowAutoMatchingDatePicker] = useState(false);
+  const [isLoadingAutoMatching, setIsLoadingAutoMatching] = useState(false);
+  const [autoMatchingTransactions, setAutoMatchingTransactions] = useState<AutoMatchingTransaction[]>([]);
+  const [autoMatchingTotalIngresos, setAutoMatchingTotalIngresos] = useState(0);
 
   // Bank date states (separate from sales dates)
   const [bankFechaInicio, setBankFechaInicio] = useState<Date>(new Date());
@@ -398,6 +407,16 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const handleToggleIncludeAutoMatchingBankInfo = () => {
+    const newValue = !includeAutoMatchingBankInfo;
+    setIncludeAutoMatchingBankInfo(newValue);
+
+    if (!newValue) {
+      setAutoMatchingTransactions([]);
+      setAutoMatchingTotalIngresos(0);
+    }
+  };
+
   const toggleBankAccountSelection = (accountId: string) => {
     setSelectedBankAccountIds((prev) => {
       const newSet = new Set(prev);
@@ -510,6 +529,40 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     setFechaFin(today);
   };
 
+  const loadAutoMatchingBankInfo = async (sedeIdsArray: string[]) => {
+    if (!includeAutoMatchingBankInfo) {
+      setAutoMatchingTransactions([]);
+      setAutoMatchingTotalIngresos(0);
+      return;
+    }
+
+    try {
+      setIsLoadingAutoMatching(true);
+
+      const selectedDate = formatDate(autoMatchingDate);
+      const response = await treasuryApi.getTransactionsByDateSites({
+        startDate: selectedDate,
+        endDate: selectedDate,
+        siteIds: sedeIdsArray,
+      });
+
+      const transactions = response?.data || [];
+      const totalIngresos = transactions
+        .filter((tx) => tx.direction === 'INGRESO')
+        .reduce((acc, tx) => acc + (tx.amountCents || 0) / 100, 0);
+
+      setAutoMatchingTransactions(transactions);
+      setAutoMatchingTotalIngresos(totalIngresos);
+    } catch (error: any) {
+      console.error('Error loading automatching bank info:', error);
+      Alert.alert('Error', error?.message || 'No se pudo cargar la información bancaria por automatching');
+      setAutoMatchingTransactions([]);
+      setAutoMatchingTotalIngresos(0);
+    } finally {
+      setIsLoadingAutoMatching(false);
+    }
+  };
+
   const loadCuadre = useCallback(async (isRefresh: boolean = false) => {
     try {
       if (isRefresh) {
@@ -559,6 +612,9 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
       const data = await cashReconciliationApi.getCuadreCaja(params);
       setCuadreData(data as CuadreCajaResponse);
+
+      // Optional automatching bank info (independent endpoint and date selector)
+      await loadAutoMatchingBankInfo(sedeIdsArray);
     } catch (error: any) {
       console.error('Error loading cuadre:', error);
       Alert.alert('Error', error?.message || 'No se pudo cargar el cuadre de caja');
@@ -566,7 +622,19 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [fechaInicio, fechaFin, selectedSedeIds, sedes.length, includeBankInfo, selectedBankAccountIds, bankAccounts.length, bankFechaInicio, bankFechaFin]);
+  }, [
+    fechaInicio,
+    fechaFin,
+    selectedSedeIds,
+    sedes.length,
+    includeBankInfo,
+    selectedBankAccountIds,
+    bankAccounts.length,
+    bankFechaInicio,
+    bankFechaFin,
+    includeAutoMatchingBankInfo,
+    autoMatchingDate,
+  ]);
 
   const formatCurrency = (amount: number): string => {
     return `S/ ${amount.toLocaleString('es-PE', {
@@ -909,6 +977,47 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.bankAccountsSection}>
               <Text style={styles.sedeLabel}>Información Bancaria</Text>
 
+              {/* Optional automatching bank info */}
+              <TouchableOpacity
+                style={[
+                  styles.bankToggleButton,
+                  includeAutoMatchingBankInfo && styles.bankToggleButtonActive,
+                ]}
+                onPress={handleToggleIncludeAutoMatchingBankInfo}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.sedeToggleCheck, includeAutoMatchingBankInfo && styles.bankToggleCheckActive]}>
+                  {includeAutoMatchingBankInfo && <Ionicons name="checkmark" size={14} color={colors.neutral[0]} />}
+                </View>
+                <View style={styles.sedeToggleContent}>
+                  <Ionicons name="git-compare-outline" size={18} color={includeAutoMatchingBankInfo ? colors.info[600] : colors.neutral[400]} />
+                  <Text style={[styles.sedeToggleText, includeAutoMatchingBankInfo && styles.sedeToggleTextActive]}>
+                    Incluir información de bancos (AutoMatching)
+                  </Text>
+                </View>
+                {isLoadingAutoMatching && (
+                  <ActivityIndicator size="small" color={colors.info[600]} />
+                )}
+              </TouchableOpacity>
+
+              {includeAutoMatchingBankInfo && (
+                <View style={styles.bankDateSection}>
+                  <Text style={styles.bankDateLabel}>Fecha AutoMatching</Text>
+                  <TouchableOpacity
+                    style={styles.bankDateRangeButton}
+                    onPress={() => setShowAutoMatchingDatePicker(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="calendar-outline" size={20} color={colors.info[600]} />
+                    <View style={styles.dateRangeTextContainer}>
+                      <Text style={[styles.dateRangeLabel, { color: colors.info[600] }]}>Fecha</Text>
+                      <Text style={styles.dateRangeValue}>{formatDisplayDate(autoMatchingDate)}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.neutral[400]} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {/* Debug info - remove later */}
               {__DEV__ && (
                 <Text style={{ fontSize: 10, color: 'gray', marginBottom: 4 }}>
@@ -1166,7 +1275,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               </DataCard>
             )}
 
-            {/* Ingresos Bancarios Card - Only when bank info is included (simplified - only total) */}
+            {/* Ingresos Bancarios Card - Only when bank info is included (normal) */}
             {cuadreData.ingresos_bancarios && (
               <DataCard title="Ingresos Bancarios" icon="wallet-outline" iconColor={colors.info[600]} delay={550} variant="default">
                 <DataRow
@@ -1177,6 +1286,21 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                   isTotal
                 />
                 <DataRow label="Transacciones" value={cuadreData.ingresos_bancarios.cantidad_transacciones.toString()} />
+              </DataCard>
+            )}
+
+            {/* Ingresos Bancarios AutoMatching Card - Optional */}
+            {includeAutoMatchingBankInfo && (
+              <DataCard title="Ingresos Bancarios (AutoMatching)" icon="git-compare-outline" iconColor={colors.info[600]} delay={575} variant="default">
+                <DataRow
+                  label="Total Ingresos"
+                  value={formatCurrency(autoMatchingTotalIngresos)}
+                  valueColor={colors.success[600]}
+                  isBold
+                  isTotal
+                />
+                <DataRow label="Transacciones" value={autoMatchingTransactions.length.toString()} />
+                <DataRow label="Fecha" value={formatDisplayDate(autoMatchingDate)} />
               </DataCard>
             )}
 
@@ -1233,6 +1357,28 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                       isTotal
                       valueColor={
                         (cuadreData.prosegur.depositos + cuadreData.izipay.neto) - cuadreData.ingresos_bancarios.total_ingresos === 0
+                          ? colors.success[600]
+                          : colors.warning[600]
+                      }
+                    />
+                  </>
+                )}
+
+                {/* AutoMatching comparison - optional */}
+                {includeAutoMatchingBankInfo && (
+                  <>
+                    <DataRow
+                      label="Total de Ingresos (AutoMatching)"
+                      value={formatCurrency(autoMatchingTotalIngresos)}
+                      valueColor={colors.info[600]}
+                    />
+                    <DataRow
+                      label="Diferencia con AutoMatching"
+                      value={formatCurrency((cuadreData.prosegur.depositos + cuadreData.izipay.neto) - autoMatchingTotalIngresos)}
+                      isBold
+                      isTotal
+                      valueColor={
+                        (cuadreData.prosegur.depositos + cuadreData.izipay.neto) - autoMatchingTotalIngresos === 0
                           ? colors.success[600]
                           : colors.warning[600]
                       }
@@ -1405,6 +1551,18 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
           setShowBankDateRangePicker(false);
         }}
         onCancel={() => setShowBankDateRangePicker(false)}
+      />
+
+      {/* AutoMatching single date picker */}
+      <DatePicker
+        visible={showAutoMatchingDatePicker}
+        date={autoMatchingDate}
+        onConfirm={(date) => {
+          setAutoMatchingDate(date);
+          setShowAutoMatchingDatePicker(false);
+        }}
+        onCancel={() => setShowAutoMatchingDatePicker(false)}
+        title="Seleccionar fecha para AutoMatching"
       />
       </View>
     </ScreenLayout>

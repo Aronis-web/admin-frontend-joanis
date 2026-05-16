@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
@@ -14,6 +16,9 @@ import { useAuthStore } from '@/store/auth';
 import { TransferStatusBadge } from '@/components/Transfers/TransferStatusBadge';
 import { TransferItemsList } from '@/components/Transfers/TransferItemsList';
 import { transfersApi } from '@/services/api/transfers';
+import { downloadRemissionGuidePdf } from '@/utils/remissionGuideDownload';
+import { TransportSelectionModal } from '@/components/Transport';
+import { Driver, Transporter, Vehicle } from '@/types/transport';
 import {
   Transfer,
   TransferStatus,
@@ -29,12 +34,33 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [chatBadge] = useState(3);
   const [notificationsBadge] = useState(7);
+  const [showTransportModal, setShowTransportModal] = useState(false);
+  const [showBultosModal, setShowBultosModal] = useState(false);
+  const [generatingRemissionGuide, setGeneratingRemissionGuide] = useState(false);
+  const [downloadingGuide, setDownloadingGuide] = useState(false);
+  const [numeroBultos, setNumeroBultos] = useState('1');
+  const [pendingTransportData, setPendingTransportData] = useState<{
+    vehicle: Vehicle | null;
+    driver: Driver | null;
+    transporter: Transporter | null;
+  } | null>(null);
+  const pendingBultosModalRef = useRef(false);
 
   const transferId = route?.params?.transferId || '';
 
   useEffect(() => {
     loadTransferDetail();
   }, [transferId]);
+
+  useEffect(() => {
+    if (!showTransportModal && pendingBultosModalRef.current) {
+      const timer = setTimeout(() => {
+        pendingBultosModalRef.current = false;
+        setShowBultosModal(true);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [showTransportModal]);
 
   const loadTransferDetail = async () => {
     try {
@@ -74,6 +100,104 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleRemissionGuidePress = async () => {
+    const guide = transfer?.remissionGuide;
+
+    if (!guide) {
+      setShowTransportModal(true);
+      return;
+    }
+
+    try {
+      setDownloadingGuide(true);
+      await downloadRemissionGuidePdf({ transferId: transfer.id, guide });
+    } finally {
+      setDownloadingGuide(false);
+    }
+  };
+
+  const handleTransportModalClose = useCallback(() => {
+    setShowTransportModal(false);
+    pendingBultosModalRef.current = false;
+  }, []);
+
+  const handleTransportConfirm = useCallback((vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
+    setPendingTransportData({ vehicle, driver, transporter });
+    setNumeroBultos('1');
+    pendingBultosModalRef.current = true;
+    setShowTransportModal(false);
+  }, []);
+
+  const handleGenerateGuideConfirm = async () => {
+    if (!transfer || !pendingTransportData) {
+      Alert.alert('Error', 'No se encontraron los datos necesarios para generar la guía');
+      return;
+    }
+
+    const bultosNum = parseInt(numeroBultos, 10);
+    if (Number.isNaN(bultosNum) || bultosNum < 1) {
+      Alert.alert('Error', 'La cantidad de bultos debe ser un número mayor a 0');
+      return;
+    }
+
+    const { vehicle, driver, transporter } = pendingTransportData;
+    const isPublicTransport = transporter !== null && !vehicle && !driver;
+
+    let confirmMessage = `¿Deseas generar la guía de remisión para ${transfer.transferNumber}?\n\n`;
+    if (isPublicTransport) {
+      confirmMessage += `Transporte: Público\nTransportista: ${transporter!.razonSocial}\nRUC: ${transporter!.numeroRuc}\n`;
+    } else {
+      confirmMessage += `Transporte: Privado\nVehículo: ${vehicle!.numeroPlaca} (${vehicle!.marca} ${vehicle!.modelo})\nConductor: ${driver!.nombre} ${driver!.apellido}\nLicencia: ${driver!.numeroLicencia}\n`;
+    }
+    confirmMessage += `Bultos: ${bultosNum}\n\nLa guía quedará anexada al traslado.`;
+
+    setShowBultosModal(false);
+
+    Alert.alert('Generar Guía de Remisión', confirmMessage, [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+        onPress: () => setPendingTransportData(null),
+      },
+      {
+        text: 'Generar',
+        onPress: async () => {
+          try {
+            setGeneratingRemissionGuide(true);
+            const response = await transfersApi.generateRemissionGuide(
+              transfer.id,
+              isPublicTransport
+                ? {
+                    transporterId: transporter!.id,
+                    numeroBultos: bultosNum,
+                  }
+                : {
+                    vehicleId: vehicle!.id,
+                    driverId: driver!.id,
+                    numeroBultos: bultosNum,
+                  }
+            );
+
+            await loadTransferDetail();
+            Alert.alert(
+              'Éxito',
+              response.message || `Guía ${response.remissionGuide.serieNumero || response.remissionGuide.number || ''} generada exitosamente`
+            );
+          } catch (error: any) {
+            console.error('Error generating remission guide:', error);
+            Alert.alert(
+              'Error',
+              error.response?.data?.message || error.message || 'No se pudo generar la guía de remisión'
+            );
+          } finally {
+            setGeneratingRemissionGuide(false);
+            setPendingTransportData(null);
+          }
+        },
+      },
+    ]);
   };
 
   const getStatusIcon = (status: TransferStatus): string => {
@@ -219,6 +343,41 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
           </View>
         </View>
 
+        {/* Remission Guide */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📄 Guía de remisión</Text>
+          <View style={styles.guideCard}>
+            {transfer.remissionGuide ? (
+              <>
+                <Text style={styles.guideNumber}>{transfer.remissionGuide.number}</Text>
+                <Text style={styles.guideMeta}>
+                  Estado: {transfer.remissionGuide.status}
+                  {transfer.remissionGuide.isDevelopment ? ' • Desarrollo' : ''}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.guideMeta}>Este traslado aún no tiene guía de remisión.</Text>
+            )}
+            <TouchableOpacity
+              disabled={downloadingGuide}
+              style={[
+                styles.guideButton,
+                transfer.remissionGuide ? styles.downloadGuideButton : styles.createGuideButton,
+                downloadingGuide && styles.guideButtonDisabled,
+              ]}
+              onPress={() => void handleRemissionGuidePress()}
+            >
+              <Text style={styles.guideButtonText}>
+                {downloadingGuide
+                  ? 'Descargando guía...'
+                  : transfer.remissionGuide
+                    ? 'Descargar guía'
+                    : 'Crear guía'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Items */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📦 Productos ({transfer.items?.length || 0})</Text>
@@ -268,6 +427,62 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
           </View>
         )}
       </ScrollView>
+
+      <TransportSelectionModal
+        visible={showTransportModal}
+        onClose={handleTransportModalClose}
+        onConfirm={handleTransportConfirm}
+      />
+
+      <Modal
+        visible={showBultosModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => {
+          setShowBultosModal(false);
+          setPendingTransportData(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.bultosModalCard}>
+            <Text style={styles.bultosModalTitle}>Cantidad de bultos</Text>
+            <Text style={styles.bultosModalSubtitle}>
+              Ingresa la cantidad de bultos para la guía de remisión.
+            </Text>
+
+            <Text style={styles.inputLabel}>Número de bultos *</Text>
+            <TextInput
+              style={styles.input}
+              value={numeroBultos}
+              onChangeText={setNumeroBultos}
+              keyboardType="numeric"
+              placeholder="Ej: 10"
+              placeholderTextColor="#94A3B8"
+            />
+
+            <View style={styles.bultosModalActions}>
+              <TouchableOpacity
+                style={[styles.bultosModalButton, styles.bultosCancelButton]}
+                onPress={() => {
+                  setShowBultosModal(false);
+                  setPendingTransportData(null);
+                }}
+              >
+                <Text style={styles.bultosCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.bultosModalButton, styles.bultosConfirmButton]}
+                onPress={handleGenerateGuideConfirm}
+                disabled={generatingRemissionGuide}
+              >
+                <Text style={styles.bultosConfirmButtonText}>
+                  {generatingRemissionGuide ? 'Generando...' : 'Continuar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -420,6 +635,110 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#78350F',
     lineHeight: 20,
+  },
+  guideCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  guideNumber: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  guideMeta: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  guideButton: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  downloadGuideButton: {
+    backgroundColor: '#6366F1',
+  },
+  createGuideButton: {
+    backgroundColor: '#F59E0B',
+  },
+  guideButtonDisabled: {
+    opacity: 0.7,
+  },
+  guideButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  bultosModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+  },
+  bultosModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  bultosModalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#334155',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#0F172A',
+  },
+  bultosModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  bultosModalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  bultosCancelButton: {
+    backgroundColor: '#F1F5F9',
+  },
+  bultosConfirmButton: {
+    backgroundColor: '#6366F1',
+  },
+  bultosCancelButtonText: {
+    color: '#475569',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  bultosConfirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   timeline: {
     marginTop: 8,

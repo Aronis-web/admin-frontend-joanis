@@ -97,6 +97,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
         email: formData.email.trim(),
         password: formData.password,
         is_active: formData.is_active,
+        roleIds: Array.isArray(formData.roleIds) ? formData.roleIds : [],
       };
 
       if (formData.first_name?.trim()) {
@@ -107,10 +108,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
         userData.last_name = formData.last_name.trim();
       }
 
-      // Add roles if selected
-      if (formData.roleIds && formData.roleIds.length > 0) {
-        userData.roleIds = formData.roleIds;
-      }
 
       // Add worker profile fields if provided
       if (formData.document_type) {
@@ -206,7 +203,16 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   };
 
   const updateField = (field: keyof CreateUserRequest, value: string | boolean | string[]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    const normalizedValue =
+      field === 'roleIds'
+        ? Array.isArray(value)
+          ? value
+          : typeof value === 'string' && value.trim()
+            ? [value]
+            : []
+        : value;
+
+    setFormData((prev) => ({ ...prev, [field]: normalizedValue }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -295,6 +301,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
               selectedRoleIds={formData.roleIds || []}
               onRolesChange={(roleIds) => updateField('roleIds', roleIds)}
               disabled={loading}
+              singleSelection={false}
             />
 
             {/* Worker Profile Fields */}

@@ -35,7 +35,6 @@ import {
 import {
   Text,
   Title,
-  Body,
   Caption,
   Avatar,
   Divider,
@@ -193,6 +192,7 @@ const menuCategories: MenuCategory[] = [
           },
         ],
       },
+
     ],
   },
   // Inventario
@@ -218,9 +218,9 @@ const menuCategories: MenuCategory[] = [
       {
         id: 'fotos',
         icon: 'camera-outline',
-        label: 'Fotos',
+        label: 'Campañas de Fotos',
         route: MAIN_ROUTES.PHOTOS,
-        requiredPermissions: ['products.read'],
+        requiredPermissions: ['photo_campaigns.read'],
       },
     ],
   },
@@ -251,6 +251,28 @@ const menuCategories: MenuCategory[] = [
         label: 'Ventas',
         route: MAIN_ROUTES.SALES,
         requiredPermissions: ['sales.read', 'sales.create', 'sales.update'],
+      },
+      {
+        id: 'sessions-management',
+        icon: 'time-outline',
+        label: 'Gestión de Sesiones',
+        route: MAIN_ROUTES.SESSIONS_MANAGEMENT,
+        requiredPermissions: ['admin.sessions.management.read'],
+      },
+      {
+        id: 'recaudo-efectivo',
+        icon: 'cash-outline',
+        label: 'Recaudo Efectivo',
+        route: MAIN_ROUTES.RECAUDO_EFECTIVO,
+        requiredPermissions: [
+          'admin.collections.scan',
+          'admin.collections.process',
+          'admin.collections.read',
+          'admin.closure.scan',
+          'admin.closure.collect-close',
+          'admin.holdings.read',
+          'admin.holdings.deposit',
+        ],
       },
     ],
   },
@@ -312,11 +334,11 @@ const menuCategories: MenuCategory[] = [
     icon: 'document-attach-outline',
     items: [
       {
-        id: 'generate-documents',
-        icon: 'create-outline',
-        label: 'Generar Documentos',
+        id: 'tax-documents',
+        icon: 'document-text-outline',
+        label: 'Documentos Tributarios',
         route: MAIN_ROUTES.BIZLINKS_DOCUMENTS,
-        requiredPermissions: ['bizlinks.documents.view', 'bizlinks.documents.send'],
+        requiredPermissions: ['bizlinks.documents.view'],
       },
       {
         id: 'retenciones',
@@ -678,10 +700,12 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
           >
             {visibleCategories.map((category) => {
               const isExpanded = expandedCategories.has(category.id);
-              const isSingleItem = category.items.length === 1;
+              const isSingleDirectItem =
+                category.items.length === 1 &&
+                (!category.items[0].subItems || category.items[0].subItems.length === 0);
 
-              // Single item - render directly
-              if (isSingleItem) {
+              // Single direct item (without subItems) - render directly
+              if (isSingleDirectItem) {
                 const item = category.items[0];
                 return (
                   <TouchableOpacity

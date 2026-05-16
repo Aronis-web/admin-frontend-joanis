@@ -16,6 +16,17 @@ import {
   BankAccountsSummary,
   CreateBankAccountRequest,
   UpdateBankAccountRequest,
+  TransactionsByDateSitesRequest,
+  TransactionsByDateSitesResponse,
+  CashCollectionScanResponse,
+  StartCashCollectionRequest,
+  CompleteCashCollectionRequest,
+  CompleteCashCollectionResponse,
+  CashClosureScanResponse,
+  CollectAndCloseRequest,
+  CollectAndCloseResponse,
+  SupervisorCashHolding,
+  DepositSupervisorHoldingRequest,
 } from '@/types/treasury';
 
 /**
@@ -170,10 +181,94 @@ export const treasuryApi = {
   },
 
   /**
+   * Get transactions by date range and selected sites (automatching)
+   * POST /treasury/transactions/by-date-sites
+   */
+  getTransactionsByDateSites: async (
+    data: TransactionsByDateSitesRequest
+  ): Promise<TransactionsByDateSitesResponse> => {
+    return apiClient.post<TransactionsByDateSitesResponse>(
+      '/treasury/transactions/by-date-sites',
+      data
+    );
+  },
+
+  /**
    * Get a single transaction by ID
    */
   getTransactionById: async (id: string): Promise<BankTransaction> => {
     return apiClient.get<BankTransaction>(`/treasury/transactions/${id}`);
+  },
+
+  // ==================== Cash Collections (Supervisora) ====================
+
+  /**
+   * Scan QR token and get cash register collection request info
+   * GET /admin/collections/scan/:token
+   */
+  scanCollectionToken: async (token: string): Promise<CashCollectionScanResponse> => {
+    return apiClient.get<CashCollectionScanResponse>(`/admin/collections/scan/${encodeURIComponent(token)}`);
+  },
+
+  /**
+   * Scan QR token for final collection + closure
+   * GET /admin/collections/closure/scan/:token
+   */
+  scanClosureToken: async (token: string): Promise<CashClosureScanResponse> => {
+    return apiClient.get<CashClosureScanResponse>(`/admin/collections/closure/scan/${encodeURIComponent(token)}`);
+  },
+
+  /**
+   * Start processing a collection request
+   * POST /admin/collections/:requestId/start
+   */
+  startCollection: async (
+    requestId: string,
+    data: StartCashCollectionRequest
+  ): Promise<{ message?: string; status?: string }> => {
+    return apiClient.post<{ message?: string; status?: string }>(`/admin/collections/${requestId}/start`, data);
+  },
+
+  /**
+   * Complete a collection request with evidence
+   * POST /admin/collections/:requestId/complete
+   */
+  completeCollection: async (
+    requestId: string,
+    data: CompleteCashCollectionRequest
+  ): Promise<CompleteCashCollectionResponse> => {
+    return apiClient.post<CompleteCashCollectionResponse>(`/admin/collections/${requestId}/complete`, data);
+  },
+
+  /**
+   * Perform final collection and closure in one operation
+   * POST /admin/collections/closure/:requestId/collect-and-close
+   */
+  collectAndClose: async (
+    requestId: string,
+    data: CollectAndCloseRequest
+  ): Promise<CollectAndCloseResponse> => {
+    return apiClient.post<CollectAndCloseResponse>(`/admin/collections/closure/${requestId}/collect-and-close`, data);
+  },
+
+  /**
+   * Get pending holdings for current supervisor
+   * GET /admin/holdings/my-pending
+   */
+  getMyPendingHoldings: async (): Promise<SupervisorCashHolding[]> => {
+    const response = await apiClient.get<SupervisorCashHolding[] | { data?: SupervisorCashHolding[] }>('/admin/holdings/my-pending');
+    return Array.isArray(response) ? response : response?.data || [];
+  },
+
+  /**
+   * Register holding deposit
+   * POST /admin/holdings/:holdingId/deposit
+   */
+  depositHolding: async (
+    holdingId: string,
+    data: DepositSupervisorHoldingRequest
+  ): Promise<{ message?: string; status?: string }> => {
+    return apiClient.post<{ message?: string; status?: string }>(`/admin/holdings/${holdingId}/deposit`, data);
   },
 };
 

@@ -45,6 +45,7 @@ export enum MovementType {
 
 export enum ReceptionStatus {
   PENDING = 'PENDING',
+  PARTIAL = 'PARTIAL',
   COMPLETE = 'COMPLETE',
   WITH_DIFFERENCES = 'WITH_DIFFERENCES',
 }
@@ -61,11 +62,31 @@ export enum WarehousePurpose {
 // TRANSFER ENTITIES
 // ============================================
 
+export interface RemissionGuide {
+  id: string;
+  number?: string | null;
+  serieNumero?: string | null;
+  createdAt?: string | null;
+  isDevelopment: boolean;
+  status: string;
+  statusSunat?: string | null;
+  pdfUrl?: string | null;
+  xmlUrl?: string | null;
+  cdrUrl?: string | null;
+}
+
 export interface Transfer {
   id: string;
   transferNumber: string;
   transferType: TransferType;
   status: TransferStatus;
+
+  // Remission guide
+  remissionGuideId?: string | null;
+  remissionGuideNumber?: string | null;
+  remissionGuideCreatedAt?: string | null;
+  isDevGuide?: boolean | null;
+  remissionGuide?: RemissionGuide | null;
 
   // Origin
   originCompanyId: string;
@@ -175,7 +196,14 @@ export interface TransferItem {
   quantityRequested: number;
   quantityShipped?: number | null;
   quantityReceived?: number | null;
+  quantityDamaged?: number | null;
   quantityDifference?: number | null;
+
+  // Validation destination
+  destinationWarehouseId?: string | null;
+  destinationAreaId?: string | null;
+  damagedWarehouseId?: string | null;
+  damagedAreaId?: string | null;
 
   // Notes
   notes?: string | null;
@@ -220,6 +248,7 @@ export interface TransferReception {
     name: string;
     email: string;
   };
+  remissionGuide?: RemissionGuide | null;
   transfer?: Transfer;
   discrepancies?: TransferDiscrepancy[];
 }
@@ -397,12 +426,56 @@ export interface ShipTransferDto {
   shippingNotes?: string;
 }
 
-// Validate Items
+// Generate Remission Guide
+export interface GenerateRemissionGuideDto {
+  driverId?: string;
+  vehicleId?: string;
+  transporterId?: string;
+  numeroBultos?: number;
+}
+
+export interface GenerateRemissionGuideResponse {
+  success: boolean;
+  remissionGuide: RemissionGuide;
+  transfer: {
+    id: string;
+    transferNumber: string;
+  };
+  emissionPoint?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  message: string;
+}
+
+// Validate Item (dynamic)
+export interface ValidateItemDto {
+  receptionId: string;
+  item: {
+    transferItemId: string;
+    quantityReceived: number;
+    quantityDamaged?: number;
+    destinationWarehouseId?: string;
+    destinationAreaId?: string;
+    damagedWarehouseId?: string;
+    damagedAreaId?: string;
+    notes?: string;
+    damageNotes?: string;
+  };
+}
+
+// Validate Items (legacy compatibility)
 export interface ValidateItemsDto {
   receptionId: string;
   items: {
     transferItemId: string;
     quantityReceived: number;
+    quantityDamaged?: number;
+    destinationWarehouseId?: string;
+    destinationAreaId?: string;
+    damagedWarehouseId?: string;
+    damagedAreaId?: string;
     notes?: string;
     damageNotes?: string;
   }[];
@@ -482,11 +555,15 @@ export interface TransferListResponse {
 
 export interface ReceptionListResponse {
   data: TransferReception[];
-  meta: {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages?: number;
+  meta?: {
     total: number;
     page: number;
     limit: number;
-    totalPages: number;
+    totalPages?: number;
   };
 }
 
@@ -599,6 +676,7 @@ export const getResolutionStatusLabel = (status: ResolutionStatus): string => {
 export const getReceptionStatusLabel = (status: ReceptionStatus): string => {
   const labels: Record<ReceptionStatus, string> = {
     [ReceptionStatus.PENDING]: 'Pendiente',
+    [ReceptionStatus.PARTIAL]: 'Parcial',
     [ReceptionStatus.COMPLETE]: 'Completo',
     [ReceptionStatus.WITH_DIFFERENCES]: 'Con Diferencias',
   };

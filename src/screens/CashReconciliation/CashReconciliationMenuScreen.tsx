@@ -42,6 +42,7 @@ export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) =>
       route: 'Cuadre',
       color: '#8B5CF6',
     },
+
   ];
 
   const renderOption = (option: MenuOption) => (
