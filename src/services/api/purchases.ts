@@ -25,6 +25,10 @@ import {
   CheckRecurrenceRequest,
   CheckRecurrenceResponse,
   ValidateProductV2Response,
+  ResolveAndAddEntryRequest,
+  AddPurchaseProductEntryRequest,
+  MultiValidationResponse,
+  ReversePurchaseProductEntryRequest,
 } from '@/types/purchases';
 
 /**
@@ -214,6 +218,58 @@ class PurchasesService {
   ): Promise<ValidateProductV2Response> {
     return apiClient.patch<ValidateProductV2Response>(
       `${this.basePath}/${purchaseId}/products/${productId}/validate-v2`,
+      data
+    );
+  }
+
+  /**
+   * Resolve product identity and add the first physical stock entry.
+   */
+  async resolveAndAddEntry(
+    purchaseId: string,
+    productId: string,
+    data: ResolveAndAddEntryRequest
+  ): Promise<MultiValidationResponse> {
+    return apiClient.patch<MultiValidationResponse>(
+      `${this.basePath}/${purchaseId}/products/${productId}/resolve-and-add-entry`,
+      data
+    );
+  }
+
+  /**
+   * Add an additional physical stock entry after product identity is resolved.
+   */
+  async addPurchaseProductEntry(
+    purchaseId: string,
+    productId: string,
+    data: AddPurchaseProductEntryRequest
+  ): Promise<MultiValidationResponse> {
+    return apiClient.post<MultiValidationResponse>(
+      `${this.basePath}/${purchaseId}/products/${productId}/entries`,
+      data
+    );
+  }
+
+  /**
+   * Close multi-entry validation for a resolved purchase product.
+   */
+  async closeMultiValidation(purchaseId: string, productId: string): Promise<PurchaseProduct> {
+    return apiClient.post<PurchaseProduct>(
+      `${this.basePath}/${purchaseId}/products/${productId}/close-multi-validation`
+    );
+  }
+
+  /**
+   * Reverse a single physical stock entry.
+   */
+  async reversePurchaseProductEntry(
+    purchaseId: string,
+    productId: string,
+    validationId: string,
+    data: ReversePurchaseProductEntryRequest
+  ): Promise<PurchaseProduct> {
+    return apiClient.post<PurchaseProduct>(
+      `${this.basePath}/${purchaseId}/products/${productId}/entries/${validationId}/reverse`,
       data
     );
   }

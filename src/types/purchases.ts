@@ -23,6 +23,8 @@ export enum PurchaseProductStatus {
   CLOSED = 'CLOSED',
 }
 
+export type PurchaseProductResolutionAction = 'MERGE' | 'CREATE_NEW';
+
 /**
  * Presentation History Type
  */
@@ -145,6 +147,10 @@ export interface PurchaseProduct {
   validatedStock?: number;
   validatedPresentationQuantity?: number; // Cantidad de presentaciones (validado)
   validatedLooseUnits?: number; // Unidades sueltas (validado)
+  resolutionAction?: PurchaseProductResolutionAction | null;
+  preliminaryProductId?: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
   warehouseId?: string;
   areaId?: string;
   productPhotos?: string[];
@@ -254,10 +260,26 @@ export interface PurchaseProductValidation {
   presentationId?: string;
   previousPresentationId?: string; // Presentación previa (historial)
   photosAdded: string[];
+  productPhotos?: string[];
   barcodeAdded?: string;
   photoUrl?: string; // URL de la foto de validación
   signatureUrl?: string; // URL de la firma de validación
   notes?: string;
+  validationNotes?: string;
+  isReversed?: boolean;
+  reversedAt?: string;
+  reversedBy?: string;
+  reversalReason?: string;
+  warehouse?: {
+    id: string;
+    code?: string;
+    name: string;
+  };
+  area?: {
+    id: string;
+    code?: string;
+    name?: string;
+  };
   validatedByUser?: {
     id: string;
     name?: string;
@@ -433,14 +455,7 @@ export interface ValidateProductV2Response {
   purchaseProduct: PurchaseProduct;
   product: any; // Product entity
   action: 'MERGED' | 'CREATED_NEW';
-  stockMovement?: {
-    productId: string;
-    warehouseId: string;
-    areaId?: string;
-    quantityAdded: number;
-    previousStock: number;
-    newStock: number;
-  };
+  stockMovement?: PurchaseStockMovement;
   message: string;
   metadata?: {
     isRecurrentProduct: boolean;
@@ -448,6 +463,61 @@ export interface ValidateProductV2Response {
     presentationsCreated?: number;
     validationId?: string;
   };
+}
+
+export interface PurchaseStockMovement {
+  productId: string;
+  warehouseId: string;
+  areaId?: string;
+  quantityAdded: number;
+  previousStock: number;
+  newStock: number;
+}
+
+export type ResolveAndAddEntryRequest = ValidateProductRequest & {
+  recurrenceAction: PurchaseProductResolutionAction;
+  existingProductId?: string;
+};
+
+export type AddPurchaseProductEntryRequest = Pick<
+  ValidateProductRequest,
+  | 'validatedStock'
+  | 'warehouseId'
+  | 'areaId'
+  | 'costCents'
+  | 'validatedPresentationQuantity'
+  | 'validatedLooseUnits'
+  | 'presentations'
+  | 'productPhotos'
+  | 'photoUrl'
+  | 'signatureUrl'
+  | 'validationNotes'
+>;
+
+export interface MultiValidationResponse {
+  success: boolean;
+  purchaseProduct: PurchaseProduct;
+  product: {
+    id: string;
+    title: string;
+    sku?: string;
+    status?: string;
+  };
+  action: 'MERGED' | 'CREATED_NEW' | 'STOCK_ADDED';
+  stockMovement?: PurchaseStockMovement;
+  message: string;
+  metadata?: {
+    validationId?: string;
+    batchId?: string;
+    stockMovementId?: string;
+    totalValidatedStock?: number;
+    isResolved?: boolean;
+    resolutionAction?: PurchaseProductResolutionAction;
+  };
+}
+
+export interface ReversePurchaseProductEntryRequest {
+  reason: string;
 }
 
 /**

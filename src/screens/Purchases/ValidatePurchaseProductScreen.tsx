@@ -97,11 +97,19 @@ interface ValidatedPresentation {
   quantityOfPresentations: number;
 }
 
+const isProductIdentityResolved = (purchaseProduct: PurchaseProduct): boolean => {
+  return !!purchaseProduct.resolutionAction && !!purchaseProduct.resolvedAt && !!purchaseProduct.productId;
+};
+
+const isFirstPhysicalEntry = (purchaseProduct: PurchaseProduct): boolean => {
+  return !isProductIdentityResolved(purchaseProduct);
+};
+
 export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScreenProps> = ({
   navigation,
   route,
 }) => {
-  const { purchaseId, productId } = route.params;
+  const { purchaseId, productId, returnToEntriesModal } = route.params;
   const { currentSite } = useAuthStore();
   const { selectedSite } = useTenantStore();
   const [product, setProduct] = useState<PurchaseProduct | null>(null);
@@ -117,7 +125,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [selectedArea, setSelectedArea] = useState<WarehouseArea | null>(null);
   const [barcode, setBarcode] = useState('');
   const [validationNotes, setValidationNotes] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'g'>('kg');
 
@@ -150,7 +157,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   // UI State
   const [showWarehouseSelector, setShowWarehouseSelector] = useState(false);
   const [showAreaSelector, setShowAreaSelector] = useState(false);
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [loadingAreas, setLoadingAreas] = useState(false);
 
   const { width, height } = useWindowDimensions();
@@ -193,12 +199,16 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setWarehouses(filteredWarehouses);
       setPresentations(presentationsData);
 
+      const isResolvedProduct = isProductIdentityResolved(productData);
+
       // Load editable fields
       setSku(productData.sku || '');
       setName(productData.name || '');
       setCostCents(productData.costCents ? (productData.costCents / 100).toFixed(2) : '');
 
-      if (productData.validatedLooseUnits !== undefined && productData.validatedLooseUnits !== null) {
+      if (isResolvedProduct) {
+        setLooseUnits('0');
+      } else if (productData.validatedLooseUnits !== undefined && productData.validatedLooseUnits !== null) {
         setLooseUnits(productData.validatedLooseUnits.toString());
       } else if (productData.preliminaryLooseUnits !== undefined && productData.preliminaryLooseUnits !== null) {
         setLooseUnits(productData.preliminaryLooseUnits.toString());
@@ -236,7 +246,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           }));
         setValidatedPresentations(preliminaryPresentations);
 
-        if (productData.validatedPresentationQuantity !== undefined && productData.validatedPresentationQuantity > 0) {
+        if (isResolvedProduct) {
+          setValidatedPresentations(preliminaryPresentations.map((p) => ({ ...p, quantityOfPresentations: 0 })));
+          setSelectedPresentationForQuantity(null);
+        } else if (productData.validatedPresentationQuantity !== undefined && productData.validatedPresentationQuantity > 0) {
           if (preliminaryPresentations.length > 0) {
             const firstPresentationId = preliminaryPresentations[0].presentationId;
             setSelectedPresentationForQuantity(firstPresentationId);
@@ -276,21 +289,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       navigation.goBack();
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleStartValidation = async () => {
-    if (product?.status !== PurchaseProductStatus.PRELIMINARY) return;
-
-    setActionLoading(true);
-    try {
-      await purchasesService.startValidation(purchaseId, productId);
-      await loadData();
-      Alert.alert('Éxito', 'Validación iniciada');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'No se pudo iniciar la validación');
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -342,10 +340,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         result.signatureUrl = signatureResponse.url;
       }
 
-      if (productPhotoUri && product?.productId) {
+      if (product && isFirstPhysicalEntry(product) && productPhotoUri) {
         const productPhotoFilename = `producto-${Date.now()}.jpg`;
-        const productPhotoResponse = await filesApi.uploadProductImage(
-          productPhotoUri, product.productId, productPhotoFilename, 'image/jpeg'
+        const productPhotoResponse = await filesApi.uploadByCategory(
+          productPhotoUri, productPhotoFilename, 'PURCHASES_VALIDACIONES_FOTOS', purchaseId, 'image/jpeg'
         );
         result.productPhotoUrl = productPhotoResponse.url;
       }
@@ -356,8 +354,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     }
   };
 
-  const checkRecurrentProducts = async () => {
-    if (!product || !sku.trim()) return false;
+  const openRecurrenceReviewModal = async () => {
+    if (!product || !sku.trim()) return;
+
+    setRecurrenceAction(null);
+    setSelectedExistingProductId(null);
+    setRecurrentCandidates([]);
 
     try {
       const response = await purchasesService.checkRecurrence(purchaseId, productId, {
@@ -365,82 +367,59 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         barcode: barcode.trim() || undefined,
       });
 
-      if (response.hasRecurrentProducts && response.candidates.length > 0) {
-        setRecurrentCandidates(response.candidates);
-        setRecurrenceMessage(response.message || 'Se encontraron productos similares');
-        setShowRecurrenceModal(true);
-        return true;
-      } else {
-        setRecurrenceAction('CREATE_NEW');
-        setSelectedExistingProductId(null);
-        return false;
-      }
+      setRecurrentCandidates(response.candidates || []);
+      setRecurrenceMessage(
+        response.hasRecurrentProducts && response.candidates.length > 0
+          ? response.message || 'Se encontraron productos similares. Confirme si desea fusionar o crear uno nuevo.'
+          : response.message || 'No se encontraron productos recurrentes. Confirme si desea crear un producto nuevo.'
+      );
     } catch (error: any) {
-      setRecurrenceAction('CREATE_NEW');
-      setSelectedExistingProductId(null);
-      return false;
+      setRecurrentCandidates([]);
+      setRecurrenceMessage('No se pudo verificar recurrencia. Revise la decisión y confirme si desea crear un producto nuevo.');
+    } finally {
+      setShowRecurrenceModal(true);
     }
   };
 
-  const handleCloseValidation = async () => {
-    if (!product) return;
-
-    // Validations
-    if (!sku.trim()) { Alert.alert('Error', 'El SKU es obligatorio'); return; }
-    if (!name.trim()) { Alert.alert('Error', 'El nombre es obligatorio'); return; }
-    if (!barcode.trim()) { Alert.alert('Error', 'El código de barras es obligatorio'); return; }
+  const validateEntryForm = (isFirstEntry: boolean): boolean => {
+    if (isFirstEntry && !sku.trim()) { Alert.alert('Error', 'El SKU es obligatorio'); return false; }
+    if (isFirstEntry && !name.trim()) { Alert.alert('Error', 'El nombre es obligatorio'); return false; }
+    if (isFirstEntry && !barcode.trim()) { Alert.alert('Error', 'El código de barras es obligatorio'); return false; }
 
     const costValue = parseFloat(costCents);
-    if (isNaN(costValue) || costValue <= 0) { Alert.alert('Error', 'Debe ingresar un costo válido'); return; }
+    if (isNaN(costValue) || costValue <= 0) { Alert.alert('Error', 'Debe ingresar un costo válido'); return false; }
 
     const looseUnitsValue = parseInt(looseUnits);
-    if (isNaN(looseUnitsValue) || looseUnitsValue < 0) { Alert.alert('Error', 'Debe ingresar unidades sueltas válidas'); return; }
+    if (isNaN(looseUnitsValue) || looseUnitsValue < 0) { Alert.alert('Error', 'Debe ingresar unidades sueltas válidas'); return false; }
+
+    if (calculateTotalStock() < 1) { Alert.alert('Error', 'Debe validar al menos 1 unidad'); return false; }
 
     const weightKg = getWeightInKg();
-    if (weightKg === undefined || weightKg <= 0) { Alert.alert('Error', 'El peso es obligatorio y debe ser mayor a 0'); return; }
+    if (isFirstEntry && (weightKg === undefined || weightKg <= 0)) { Alert.alert('Error', 'El peso es obligatorio y debe ser mayor a 0'); return false; }
 
-    if (!selectedWarehouse) { Alert.alert('Error', 'Debe seleccionar un almacén'); return; }
-    if (!photoUri) { Alert.alert('Error', 'La foto de validación es obligatoria'); return; }
-    if (!productPhotoUri) { Alert.alert('Error', 'La foto del producto es obligatoria'); return; }
-    if (!signatureUri) { Alert.alert('Error', 'La firma de validación es obligatoria'); return; }
+    if (!selectedWarehouse) { Alert.alert('Error', 'Debe seleccionar un almacén'); return false; }
+    if (!selectedArea) { Alert.alert('Error', 'Debe seleccionar un área'); return false; }
+    if (!photoUri) { Alert.alert('Error', 'La foto de validación es obligatoria'); return false; }
+    if (isFirstEntry && !productPhotoUri) { Alert.alert('Error', 'La foto del producto es obligatoria'); return false; }
+    if (!signatureUri) { Alert.alert('Error', 'La firma de validación es obligatoria'); return false; }
 
     if (validatedPresentations.length > 0) {
       for (const pres of validatedPresentations) {
         if (!pres.presentationId || pres.factorToBase <= 0) {
           Alert.alert('Error', 'Todas las presentaciones deben tener un factor válido');
-          return;
+          return false;
         }
       }
     }
 
-    setActionLoading(true);
-    try {
-      const hasRecurrent = await checkRecurrentProducts();
-      if (hasRecurrent) {
-        setActionLoading(false);
-        return;
-      }
-    } catch (error: any) {
-      setActionLoading(false);
-      return;
-    }
-    setActionLoading(false);
-
-    Alert.alert(
-      'Cerrar Validación',
-      '¿Está seguro de cerrar la validación? El producto se activará y se agregará al inventario.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Cerrar Validación', style: 'destructive', onPress: performCloseValidation },
-      ]
-    );
+    return true;
   };
 
-  const performCloseValidation = async () => {
-    if (!product || !selectedWarehouse) return;
+  const buildEntryPayload = async () => {
+    if (!product || !selectedWarehouse || !selectedArea) return null;
 
     const costValue = parseFloat(costCents);
-    const looseUnitsValue = parseInt(looseUnits);
+    const looseUnitsValue = parseInt(looseUnits) || 0;
     const totalStock = calculateTotalStock();
 
     let validatedPresentationQuantity = 0;
@@ -451,81 +430,148 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       if (selectedPres) validatedPresentationQuantity = selectedPres.quantityOfPresentations;
     }
 
-    const warehouseId = selectedWarehouse.id;
+    const uploadedFiles = await uploadValidationFiles();
+
+    return {
+      sku: sku.trim(),
+      name: name.trim(),
+      costCents: Math.round(costValue * 100),
+      preliminaryStock: product.preliminaryStock,
+      validatedStock: totalStock,
+      validatedLooseUnits: looseUnitsValue,
+      validatedPresentationQuantity,
+      warehouseId: selectedWarehouse.id,
+      areaId: selectedArea.id,
+      presentations: validatedPresentations.length > 0 ? validatedPresentations.map((p) => ({
+        presentationId: p.presentationId,
+        factorToBase: Number(p.factorToBase),
+        notes: p.notes.trim() || undefined,
+      })) : undefined,
+      productPhotos: uploadedFiles.productPhotoUrl ? [uploadedFiles.productPhotoUrl] : undefined,
+      barcode: barcode.trim() || undefined,
+      weightKg: getWeightInKg(),
+      photoUrl: uploadedFiles.photoUrl,
+      signatureUrl: uploadedFiles.signatureUrl,
+      validationNotes: validationNotes.trim() || undefined,
+    };
+  };
+
+  const handleSubmitEntry = async () => {
+    if (!product) return;
+
+    const isFirstEntry = isFirstPhysicalEntry(product);
+    if (!validateEntryForm(isFirstEntry)) return;
+
+    if (isFirstEntry) {
+      setActionLoading(true);
+      try {
+        await openRecurrenceReviewModal();
+      } finally {
+        setActionLoading(false);
+      }
+      return;
+    }
+
+    Alert.alert(
+      'Agregar Ingreso',
+      'Se agregará un nuevo ingreso de stock al producto ya resuelto.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Confirmar', style: 'destructive', onPress: performSubmitEntry },
+      ]
+    );
+  };
+
+  const performSubmitEntry = async (forcedResolution?: { action: 'MERGE' | 'CREATE_NEW'; existingProductId?: string }) => {
+    if (!product) return;
 
     setActionLoading(true);
     try {
-      const uploadedFiles = await uploadValidationFiles();
+      const entryPayload = await buildEntryPayload();
+      if (!entryPayload) return;
 
-      const validationData = {
-        sku: sku.trim(),
-        name: name.trim(),
-        costCents: Math.round(costValue * 100),
-        preliminaryStock: product.preliminaryStock,
-        validatedStock: totalStock,
-        validatedLooseUnits: looseUnitsValue,
-        validatedPresentationQuantity: validatedPresentationQuantity,
-        warehouseId: warehouseId,
-        areaId: selectedArea?.id,
-        presentations: validatedPresentations.length > 0 ? validatedPresentations.map((p) => ({
-          presentationId: p.presentationId,
-          factorToBase: Number(p.factorToBase),
-          notes: p.notes.trim() || undefined,
-        })) : undefined,
-        barcode: barcode.trim() || undefined,
-        weightKg: getWeightInKg(),
-        photoUrl: uploadedFiles.photoUrl,
-        signatureUrl: uploadedFiles.signatureUrl,
-        validationNotes: validationNotes.trim() || undefined,
-        recurrenceAction: recurrenceAction || 'CREATE_NEW',
-        existingProductId: selectedExistingProductId || undefined,
-        recurrenceMetadata: recurrentCandidates.length > 0 ? {
-          candidatesReviewed: recurrentCandidates.length,
-          userDecision: recurrenceAction === 'MERGE' ? 'Usuario confirmó producto existente' : 'Usuario creó producto nuevo',
-          matchConfidence: 95,
-        } : undefined,
-      };
+      const isFirstEntry = isFirstPhysicalEntry(product);
+      const resolvedAction = forcedResolution?.action || recurrenceAction || 'CREATE_NEW';
+      const resolvedExistingProductId = resolvedAction === 'MERGE'
+        ? forcedResolution?.existingProductId || selectedExistingProductId || undefined
+        : undefined;
 
-      const response = await purchasesService.validateProductV2(purchaseId, productId, validationData);
-      await purchasesService.closeValidation(purchaseId, productId);
+      if (isFirstEntry && resolvedAction === 'MERGE' && !resolvedExistingProductId) {
+        Alert.alert('Error', 'Debe seleccionar un producto existente para fusionar');
+        return;
+      }
 
-      const successMessage = response.action === 'MERGED'
-        ? `Stock agregado al producto existente: ${response.product.title}. Validación cerrada.`
-        : 'Validación cerrada. Producto nuevo creado y activado.';
-
-      Alert.alert('Éxito', successMessage, [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      const response = isFirstEntry
+        ? await purchasesService.resolveAndAddEntry(purchaseId, productId, {
+          ...entryPayload,
+          recurrenceAction: resolvedAction,
+          ...(resolvedExistingProductId ? { existingProductId: resolvedExistingProductId } : {}),
+          recurrenceMetadata: recurrentCandidates.length > 0 ? {
+            candidatesReviewed: recurrentCandidates.length,
+            userDecision: resolvedAction === 'MERGE' ? 'Usuario confirmó producto existente' : 'Usuario creó producto nuevo',
+            matchConfidence: 95,
+          } : undefined,
+        })
+        : await purchasesService.addPurchaseProductEntry(purchaseId, productId, {
+          validatedStock: entryPayload.validatedStock,
+          warehouseId: entryPayload.warehouseId,
+          areaId: entryPayload.areaId,
+          costCents: entryPayload.costCents,
+          validatedPresentationQuantity: entryPayload.validatedPresentationQuantity,
+          validatedLooseUnits: entryPayload.validatedLooseUnits,
+          presentations: entryPayload.presentations,
+          productPhotos: entryPayload.productPhotos,
+          photoUrl: entryPayload.photoUrl,
+          signatureUrl: entryPayload.signatureUrl,
+          validationNotes: entryPayload.validationNotes,
+        });
 
       setRecurrenceAction(null);
       setSelectedExistingProductId(null);
       setRecurrentCandidates([]);
+      setPhotoUri(undefined);
+      setSignatureUri(undefined);
+      setProductPhotoUri(undefined);
+      setValidationNotes('');
+      setLooseUnits('0');
+      setValidatedPresentations((current) => current.map((presentation) => ({ ...presentation, quantityOfPresentations: 0 })));
+
+      Alert.alert('Éxito', response.message || 'Ingreso registrado correctamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            if (returnToEntriesModal) {
+              navigation.navigate('PurchaseDetail', { purchaseId, reopenEntriesProductId: productId });
+            } else {
+              navigation.goBack();
+            }
+          },
+        },
+      ]);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'No se pudo cerrar la validación');
+      Alert.alert('Error', error.message || 'No se pudo registrar el ingreso');
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleReject = async () => {
-    if (!rejectionReason.trim()) {
-      Alert.alert('Error', 'Debe ingresar la razón de rechazo');
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      await purchasesService.rejectProduct(purchaseId, productId, {
-        rejectionReason: rejectionReason.trim(),
-      });
-      Alert.alert('Éxito', 'Producto rechazado', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'No se pudo rechazar el producto');
-    } finally {
-      setActionLoading(false);
-      setShowRejectDialog(false);
+  const handleCancelEntry = () => {
+    setPhotoUri(undefined);
+    setSignatureUri(undefined);
+    setProductPhotoUri(undefined);
+    setValidationNotes('');
+    setLooseUnits('0');
+    setSelectedPresentationForQuantity(null);
+    setValidatedPresentations((current) => current.map((presentation) => ({ ...presentation, quantityOfPresentations: 0 })));
+    setRecurrenceAction(null);
+    setSelectedExistingProductId(null);
+    setRecurrentCandidates([]);
+    setRecurrenceMessage('');
+    setShowRecurrenceModal(false);
+    if (returnToEntriesModal) {
+      navigation.navigate('PurchaseDetail', { purchaseId, reopenEntriesProductId: productId });
+    } else {
+      navigation.goBack();
     }
   };
 
@@ -533,30 +579,14 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     setRecurrenceAction('MERGE');
     setSelectedExistingProductId(productId);
     setShowRecurrenceModal(false);
-
-    Alert.alert(
-      'Cerrar Validación',
-      '¿Está seguro? El stock se sumará al producto existente.',
-      [
-        { text: 'Cancelar', style: 'cancel', onPress: () => { setRecurrenceAction(null); setSelectedExistingProductId(null); } },
-        { text: 'Cerrar Validación', style: 'destructive', onPress: performCloseValidation },
-      ]
-    );
+    void performSubmitEntry({ action: 'MERGE', existingProductId: productId });
   };
 
   const handleRecurrenceCreateNew = () => {
     setRecurrenceAction('CREATE_NEW');
     setSelectedExistingProductId(null);
     setShowRecurrenceModal(false);
-
-    Alert.alert(
-      'Cerrar Validación',
-      '¿Está seguro? Se creará un nuevo producto.',
-      [
-        { text: 'Cancelar', style: 'cancel', onPress: () => { setRecurrenceAction(null); } },
-        { text: 'Cerrar Validación', style: 'destructive', onPress: performCloseValidation },
-      ]
-    );
+    void performSubmitEntry({ action: 'CREATE_NEW' });
   };
 
   const handleRecurrenceCancel = () => {
@@ -616,9 +646,8 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   };
 
   const canEdit = () => product?.status === PurchaseProductStatus.PRELIMINARY || product?.status === PurchaseProductStatus.IN_VALIDATION;
-  const canStartValidation = () => product?.status === PurchaseProductStatus.PRELIMINARY;
-  const canCloseValidation = () => product?.status === PurchaseProductStatus.IN_VALIDATION;
-  const canReject = () => product?.status === PurchaseProductStatus.PRELIMINARY || product?.status === PurchaseProductStatus.IN_VALIDATION;
+  const canEditIdentity = () => canEdit() && !!product && isFirstPhysicalEntry(product);
+  const canAddEntry = () => product?.status === PurchaseProductStatus.IN_VALIDATION;
 
   const getStatusVariant = (status: PurchaseProductStatus): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
     switch (status) {
@@ -679,6 +708,14 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             <Label color="secondary" style={styles.infoLabel}>Costo Original:</Label>
             <Body style={styles.infoValue}>S/ {(product.costCents / 100).toFixed(2)}</Body>
           </View>
+          <View style={styles.infoRow}>
+            <Label color="secondary" style={styles.infoLabel}>Stock Validado:</Label>
+            <Body style={styles.infoValue}>{product.validatedStock || 0} unidades</Body>
+          </View>
+          <View style={styles.infoRow}>
+            <Label color="secondary" style={styles.infoLabel}>Resolución:</Label>
+            <Body style={styles.infoValue}>{product.resolutionAction ? (product.resolutionAction === 'MERGE' ? 'Fusionado con producto existente' : 'Producto nuevo') : 'Pendiente de resolver'}</Body>
+          </View>
         </Card>
 
         {/* Editable Fields */}
@@ -690,7 +727,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               onChangeText={setSku}
               placeholder="Ej: PROD-001"
               required
-              disabled={!canEdit()}
+              disabled={!canEditIdentity()}
             />
 
             <Input
@@ -699,7 +736,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               onChangeText={setName}
               placeholder="Ej: Producto de ejemplo"
               required
-              disabled={!canEdit()}
+              disabled={!canEditIdentity()}
             />
 
             <Input
@@ -710,7 +747,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               keyboardType="decimal-pad"
               required
               helperText="Costo unitario en soles"
-              disabled={!canEdit()}
+              disabled={!canEditIdentity()}
             />
 
             {/* Weight */}
@@ -724,12 +761,14 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                   placeholder={weightUnit === 'kg' ? '0.500' : '500'}
                   placeholderTextColor={colors.text.placeholder}
                   keyboardType="decimal-pad"
-                  editable={canEdit()}
+                  editable={canEditIdentity()}
                 />
                 <View style={styles.weightUnitContainer}>
                   <TouchableOpacity
                     style={[styles.weightUnitButton, weightUnit === 'kg' && styles.weightUnitButtonActive]}
+                    disabled={!canEditIdentity()}
                     onPress={() => {
+                      if (!canEditIdentity()) return;
                       // Convertir de gramos a kilos al cambiar
                       if (weightUnit === 'g' && weightValue) {
                         const grams = parseFloat(weightValue);
@@ -745,7 +784,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.weightUnitButton, weightUnit === 'g' && styles.weightUnitButtonActive]}
+                    disabled={!canEditIdentity()}
                     onPress={() => {
+                      if (!canEditIdentity()) return;
                       // Convertir de kilos a gramos al cambiar
                       if (weightUnit === 'kg' && weightValue) {
                         const kg = parseFloat(weightValue);
@@ -858,15 +899,15 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Label color="secondary">Presentaciones Validadas (Opcional)</Label>
-                <Button title="+ Agregar" onPress={() => setShowAddPresentation(true)} variant="primary" size="small" />
+                {canEditIdentity() && <Button title="+ Agregar" onPress={() => setShowAddPresentation(true)} variant="primary" size="small" />}
               </View>
-              <Caption color="tertiary">Confirme o edite los factores de conversión.</Caption>
+              <Caption color="tertiary">{isProductIdentityResolved(product) ? 'Las presentaciones ya fueron definidas en el primer ingreso. Solo ingrese cantidades para este ingreso.' : 'Confirme o edite los factores de conversión.'}</Caption>
 
               {validatedPresentations.map((pres, index) => (
                 <Card key={index} variant="outlined" padding="medium" style={styles.presentationCard}>
                   <View style={styles.presentationHeader}>
                     <Title size="small">{pres.presentationName}</Title>
-                    <IconButton icon="trash-outline" onPress={() => handleRemovePresentation(index)} variant="ghost" size="small" />
+                    {canEditIdentity() && <IconButton icon="trash-outline" onPress={() => handleRemovePresentation(index)} variant="ghost" size="small" />}
                   </View>
 
                   <View style={styles.presentationField}>
@@ -875,12 +916,14 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                       style={styles.presentationInput}
                       value={pres.factorToBase.toString()}
                       onChangeText={(text) => {
+                        if (!canEditIdentity()) return;
                         const newPresentations = [...validatedPresentations];
                         newPresentations[index].factorToBase = parseFloat(text) || 0;
                         setValidatedPresentations(newPresentations);
                       }}
                       placeholder="Ej: 24"
                       keyboardType="numeric"
+                      editable={canEditIdentity()}
                     />
                   </View>
 
@@ -889,7 +932,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                       <Label color="secondary">Cantidad:</Label>
                       <TouchableOpacity
                         style={[styles.selectForQuantityButton, selectedPresentationForQuantity === pres.presentationId && styles.selectForQuantityButtonActive]}
+                        disabled={!canEdit()}
                         onPress={() => {
+                          if (!canEdit()) return;
                           if (selectedPresentationForQuantity === pres.presentationId) {
                             setSelectedPresentationForQuantity(null);
                             const newPresentations = [...validatedPresentations];
@@ -944,9 +989,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Label color="secondary">Código de Barras <Label color={colors.danger[500]}>*</Label></Label>
-                <TouchableOpacity style={styles.copyButton} onPress={() => { if (sku.trim()) { setBarcode(sku.trim()); Alert.alert('Copiado', 'SKU copiado'); } }}>
-                  <Caption color={colors.primary[600]}>📋 Copiar SKU</Caption>
-                </TouchableOpacity>
+                {canEditIdentity() && (
+                  <TouchableOpacity style={styles.copyButton} onPress={() => { if (sku.trim()) { setBarcode(sku.trim()); Alert.alert('Copiado', 'SKU copiado'); } }}>
+                    <Caption color={colors.primary[600]}>📋 Copiar SKU</Caption>
+                  </TouchableOpacity>
+                )}
               </View>
               <TextInput
                 style={styles.input}
@@ -954,6 +1001,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 onChangeText={setBarcode}
                 placeholder="Ej: ABC123XYZ"
                 placeholderTextColor={colors.text.placeholder}
+                editable={canEditIdentity()}
               />
             </View>
 
@@ -994,20 +1042,22 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             </View>
 
             {/* Product Photo */}
-            <View style={styles.section}>
-              <Label color="secondary">Foto del Producto (Catálogo) <Label color={colors.danger[500]}>*</Label></Label>
-              {productPhotoUri ? (
-                <View style={styles.capturedContainer}>
-                  <Image source={{ uri: productPhotoUri }} style={styles.capturedPhoto} />
-                  <Button title="🖼️ Cambiar Foto" onPress={() => setShowProductPhotoCapture(true)} variant="secondary" size="small" />
-                </View>
-              ) : (
-                <TouchableOpacity style={styles.captureButton} onPress={() => setShowProductPhotoCapture(true)}>
-                  <Ionicons name="image" size={32} color={colors.primary[600]} />
-                  <Body color={colors.primary[600]}>Tomar Foto del Producto</Body>
-                </TouchableOpacity>
-              )}
-            </View>
+            {isFirstPhysicalEntry(product) && (
+              <View style={styles.section}>
+                <Label color="secondary">Foto del Producto (Catálogo) <Label color={colors.danger[500]}>*</Label></Label>
+                {productPhotoUri ? (
+                  <View style={styles.capturedContainer}>
+                    <Image source={{ uri: productPhotoUri }} style={styles.capturedPhoto} />
+                    <Button title="🖼️ Cambiar Foto" onPress={() => setShowProductPhotoCapture(true)} variant="secondary" size="small" />
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.captureButton} onPress={() => setShowProductPhotoCapture(true)}>
+                    <Ionicons name="image" size={32} color={colors.primary[600]} />
+                    <Body color={colors.primary[600]}>Tomar Foto del Producto</Body>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
 
             {/* Signature */}
             <View style={styles.section}>
@@ -1035,6 +1085,57 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               numberOfLines={4}
             />
           </>
+        )}
+
+        {/* Validation Entries History */}
+        {product.validations && product.validations.length > 0 && (
+          <Card variant="elevated" padding="medium" style={styles.infoCard}>
+            <Title size="small">Historial de Ingresos</Title>
+            <Caption color="tertiary" style={styles.historySubtitle}>Cada ingreso genera una validación, lote y movimiento de stock.</Caption>
+            {product.validations.map((validation, index) => {
+              const isReversed = !!validation.isReversed;
+              return (
+                <View key={validation.id} style={[styles.validationEntry, isReversed && styles.validationEntryReversed]}>
+                  <View style={styles.validationEntryHeader}>
+                    <Body color={isReversed ? colors.danger[600] : 'primary'}>Ingreso #{index + 1}</Body>
+                    <Badge label={isReversed ? 'Anulado' : 'Activo'} variant={isReversed ? 'cancelled' : 'completed'} size="small" />
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Label color="secondary" style={styles.infoLabel}>Stock:</Label>
+                    <Body style={styles.infoValue}>{validation.validatedStock} unidades</Body>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Label color="secondary" style={styles.infoLabel}>Fecha:</Label>
+                    <Body style={styles.infoValue}>{new Date(validation.validatedAt).toLocaleString('es-PE')}</Body>
+                  </View>
+                  {(validation.warehouse || validation.warehouseId) && (
+                    <View style={styles.infoRow}>
+                      <Label color="secondary" style={styles.infoLabel}>Almacén:</Label>
+                      <Body style={styles.infoValue}>{validation.warehouse?.name || validation.warehouseId}</Body>
+                    </View>
+                  )}
+                  {(validation.area || validation.areaId) && (
+                    <View style={styles.infoRow}>
+                      <Label color="secondary" style={styles.infoLabel}>Área:</Label>
+                      <Body style={styles.infoValue}>{validation.area?.name || validation.area?.code || validation.areaId}</Body>
+                    </View>
+                  )}
+                  {(validation.notes || validation.validationNotes) && (
+                    <View style={styles.infoRow}>
+                      <Label color="secondary" style={styles.infoLabel}>Notas:</Label>
+                      <Body style={styles.infoValue}>{validation.validationNotes || validation.notes}</Body>
+                    </View>
+                  )}
+                  {isReversed && validation.reversalReason && (
+                    <View style={styles.infoRow}>
+                      <Label color={colors.danger[600]} style={styles.infoLabel}>Motivo:</Label>
+                      <Body color={colors.danger[600]} style={styles.infoValue}>{validation.reversalReason}</Body>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </Card>
         )}
 
         {/* Validated Product Info */}
@@ -1065,43 +1166,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       </ScrollView>
 
       {/* Action Buttons */}
-      {(canStartValidation() || canEdit() || canCloseValidation() || canReject()) && (
+      {canAddEntry() && (
         <View style={styles.footer}>
-          {canStartValidation() && (
-            <Button title="Iniciar Validación" onPress={handleStartValidation} variant="primary" loading={actionLoading} fullWidth />
-          )}
-          {canEdit() && product.status === PurchaseProductStatus.IN_VALIDATION && (
-            <Button title="Cerrar Validación" onPress={handleCloseValidation} variant="primary" loading={actionLoading} style={styles.footerButton} />
-          )}
-          {canReject() && (
-            <Button title="Rechazar" onPress={() => setShowRejectDialog(true)} variant="danger" disabled={actionLoading} style={styles.footerButton} />
-          )}
+          <Button title="Cancelar" onPress={handleCancelEntry} variant="secondary" disabled={actionLoading} style={styles.footerButton} />
+          <Button title={isProductIdentityResolved(product) ? 'Agregar Ingreso' : 'Registrar Primer Ingreso'} onPress={handleSubmitEntry} variant="primary" loading={actionLoading} style={styles.footerButton} />
         </View>
       )}
-
-      {/* Reject Dialog */}
-      <Modal visible={showRejectDialog} animationType="fade" transparent onRequestClose={() => setShowRejectDialog(false)}>
-        <View style={styles.dialogOverlay}>
-          <View style={styles.dialog}>
-            <Title size="medium">Rechazar Producto</Title>
-            <Body color="secondary">Ingrese la razón del rechazo:</Body>
-            <TextInput
-              style={styles.dialogInput}
-              value={rejectionReason}
-              onChangeText={setRejectionReason}
-              placeholder="Ej: Producto dañado, no cumple especificaciones"
-              placeholderTextColor={colors.text.placeholder}
-              multiline
-              numberOfLines={3}
-              autoFocus
-            />
-            <View style={styles.dialogButtons}>
-              <Button title="Cancelar" onPress={() => { setShowRejectDialog(false); setRejectionReason(''); }} variant="secondary" style={styles.dialogButton} />
-              <Button title="Rechazar" onPress={handleReject} variant="danger" loading={actionLoading} style={styles.dialogButton} />
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Add Presentation Dialog */}
       <Modal visible={showAddPresentation} animationType="fade" transparent onRequestClose={() => setShowAddPresentation(false)}>
@@ -1395,6 +1465,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger[50],
     alignItems: 'center',
     gap: spacing[3],
+  },
+  historySubtitle: {
+    marginTop: spacing[1],
+    marginBottom: spacing[3],
+  },
+  validationEntry: {
+    paddingVertical: spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+    gap: spacing[1],
+  },
+  validationEntryReversed: {
+    backgroundColor: colors.danger[50],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
+    marginTop: spacing[2],
+  },
+  validationEntryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing[2],
   },
   bottomSpacer: {
     height: spacing[20],

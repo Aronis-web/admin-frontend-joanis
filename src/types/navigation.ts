@@ -43,6 +43,7 @@ export type MainStackParamList = {
   CreatePurchase: undefined;
   PurchaseDetail: {
     purchaseId: string;
+    reopenEntriesProductId?: string;
   };
   AddPurchaseProduct: {
     purchaseId: string;
@@ -54,6 +55,7 @@ export type MainStackParamList = {
   ValidatePurchaseProduct: {
     purchaseId: string;
     productId: string;
+    returnToEntriesModal?: boolean;
   };
   AssignDebt: {
     purchaseId: string;

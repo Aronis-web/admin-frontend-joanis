@@ -13,7 +13,6 @@ import {
   RefreshControl,
   useWindowDimensions,
   Modal,
-  TextInput,
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -78,6 +77,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<ExpenseSupplier | null>(null);
   const [updatingSupplier, setUpdatingSupplier] = useState(false);
+  const [showEntriesModal, setShowEntriesModal] = useState(false);
+  const [selectedProductForEntries, setSelectedProductForEntries] = useState<PurchaseProduct | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -110,8 +111,28 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
   useFocusEffect(
     useCallback(() => {
-      loadPurchase();
-    }, [loadPurchase])
+      const reopenEntriesProductId = route.params?.reopenEntriesProductId;
+
+      const refreshAndMaybeOpenEntries = async () => {
+        await loadPurchase();
+
+        if (reopenEntriesProductId) {
+          try {
+            const productsData = await purchasesService.getPurchaseProducts(purchaseId);
+            const productToReopen = productsData.find((product) => product.id === reopenEntriesProductId);
+            if (productToReopen) {
+              setSelectedProductForEntries(productToReopen);
+              setShowEntriesModal(true);
+            }
+            navigation.setParams({ reopenEntriesProductId: undefined });
+          } catch (error) {
+            navigation.setParams({ reopenEntriesProductId: undefined });
+          }
+        }
+      };
+
+      refreshAndMaybeOpenEntries();
+    }, [loadPurchase, navigation, purchaseId, route.params?.reopenEntriesProductId])
   );
 
   const handleRefresh = () => {
@@ -142,6 +163,16 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     setShowInfoModal(false);
     setSelectedProductForInfo(null);
     setProductPhotos([]);
+  };
+
+  const handleOpenEntriesModal = (product: PurchaseProduct) => {
+    setSelectedProductForEntries(product);
+    setShowEntriesModal(true);
+  };
+
+  const handleCloseEntriesModal = () => {
+    setShowEntriesModal(false);
+    setSelectedProductForEntries(null);
   };
 
   const handleOpenEditSupplierModal = () => {
@@ -311,7 +342,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const handleProductPress = (product: PurchaseProduct) => {
-    if (product.status === PurchaseProductStatus.PRELIMINARY || product.status === PurchaseProductStatus.IN_VALIDATION) {
+    if (product.status === PurchaseProductStatus.IN_VALIDATION || product.resolutionAction) {
+      navigation.navigate('ValidatePurchaseProduct', { purchaseId, productId: product.id });
+    } else if (product.status === PurchaseProductStatus.PRELIMINARY) {
       navigation.navigate('EditPurchaseProduct', { purchaseId, productId: product.id });
     } else if (product.status === PurchaseProductStatus.VALIDATED || product.status === PurchaseProductStatus.REJECTED) {
       navigation.navigate('ValidatePurchaseProduct', { purchaseId, productId: product.id });
@@ -470,7 +503,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const renderProductCard = (product: PurchaseProduct) => {
-    const canDelete = product.status === PurchaseProductStatus.PRELIMINARY || product.status === PurchaseProductStatus.IN_VALIDATION;
+    const canDelete = (product.status === PurchaseProductStatus.PRELIMINARY || product.status === PurchaseProductStatus.IN_VALIDATION) && !product.resolutionAction;
     const canValidate = product.status !== PurchaseProductStatus.VALIDATED &&
       product.status !== PurchaseProductStatus.CLOSED &&
       product.status !== PurchaseProductStatus.REJECTED &&
@@ -521,6 +554,18 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                 <Body color={colors.success[600]}>{product.validatedStock}</Body>
               </View>
             )}
+            {product.resolutionAction && (
+              <View style={styles.productRow}>
+                <Label color="secondary">Resolución:</Label>
+                <Body color={colors.primary[600]}>{product.resolutionAction === 'MERGE' ? 'Fusionado' : 'Nuevo producto'}</Body>
+              </View>
+            )}
+            {product.validations && product.validations.length > 0 && (
+              <View style={styles.productRow}>
+                <Label color="secondary">Ingresos:</Label>
+                <Body>{product.validations.filter((validation) => !validation.isReversed).length} activos / {product.validations.length} total</Body>
+              </View>
+            )}
             {product.warehouse && (
               <View style={styles.productRow}>
                 <Label color="secondary">Almacén:</Label>
@@ -538,7 +583,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
           {/* Action hints */}
           {(product.status === PurchaseProductStatus.PRELIMINARY || product.status === PurchaseProductStatus.IN_VALIDATION) && (
-            <Caption color="tertiary" style={styles.actionHint}>✏️ Toca para editar</Caption>
+            <Caption color="tertiary" style={styles.actionHint}>{product.status === PurchaseProductStatus.IN_VALIDATION ? '📦 Toca para gestionar ingresos' : '✏️ Toca para editar'}</Caption>
           )}
           {product.status === PurchaseProductStatus.VALIDATED && (
             <Caption color="tertiary" style={styles.actionHint}>👁️ Toca para ver detalles</Caption>
@@ -548,8 +593,10 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         {/* Action Buttons */}
         {canValidate && (
           <Button
-            title="✓ Validar Producto"
-            onPress={() => handleStartProductValidation(product)}
+            title={product.status === PurchaseProductStatus.IN_VALIDATION ? '📦 Gestionar Ingresos' : '✓ Validar Producto'}
+            onPress={() => product.status === PurchaseProductStatus.IN_VALIDATION
+              ? handleOpenEntriesModal(product)
+              : handleStartProductValidation(product)}
             variant="success"
             size="small"
             fullWidth
@@ -569,7 +616,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           />
         )}
 
-        {product.status === PurchaseProductStatus.VALIDATED && (
+        {product.status === PurchaseProductStatus.VALIDATED && !product.resolutionAction && (
           <Button
             title="🗑️ Eliminar Validaciones"
             onPress={() => handleDeleteProductValidations(product)}
@@ -837,6 +884,22 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         />
       )}
 
+      {/* Entries Management Modal */}
+      {selectedProductForEntries && (
+        <EntriesManagementModal
+          visible={showEntriesModal}
+          product={selectedProductForEntries}
+          onClose={handleCloseEntriesModal}
+          onCreateEntry={() => {
+            const productToOpen = selectedProductForEntries;
+            handleCloseEntriesModal();
+            if (productToOpen) {
+              navigation.navigate('ValidatePurchaseProduct', { purchaseId, productId: productToOpen.id, returnToEntriesModal: true });
+            }
+          }}
+        />
+      )}
+
       {/* Edit Supplier Modal */}
       <EditSupplierModal
         visible={showEditSupplierModal}
@@ -953,12 +1016,27 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, o
             {/* Validation History */}
             {product.validations && product.validations.length > 0 && (
               <Card variant="outlined" padding="medium" style={modalStyles.section}>
-                <Label color="primary" style={modalStyles.sectionTitle}>📸 Historial de Validaciones</Label>
+                <Label color="primary" style={modalStyles.sectionTitle}>📸 Historial de Ingresos</Label>
                 {product.validations.map((validation, index) => (
-                  <View key={validation.id} style={modalStyles.validationItem}>
-                    <Body>Validación #{index + 1}</Body>
+                  <View key={validation.id} style={[modalStyles.validationItem, validation.isReversed && modalStyles.validationItemReversed]}>
+                    <View style={modalStyles.validationHeaderRow}>
+                      <Body>Ingreso #{index + 1}</Body>
+                      <Badge label={validation.isReversed ? 'Anulado' : 'Activo'} variant={validation.isReversed ? 'cancelled' : 'completed'} size="small" />
+                    </View>
                     <InfoRow label="Fecha" value={formatDate(validation.validatedAt)} />
                     <InfoRow label="Stock" value={`${validation.validatedStock} unidades`} />
+                    {(validation.warehouse || validation.warehouseId) && (
+                      <InfoRow label="Almacén" value={validation.warehouse?.name || validation.warehouseId} />
+                    )}
+                    {(validation.area || validation.areaId) && (
+                      <InfoRow label="Área" value={validation.area?.name || validation.area?.code || validation.areaId || 'N/A'} />
+                    )}
+                    {(validation.notes || validation.validationNotes) && (
+                      <InfoRow label="Notas" value={validation.validationNotes || validation.notes || ''} />
+                    )}
+                    {validation.isReversed && validation.reversalReason && (
+                      <InfoRow label="Motivo anulación" value={validation.reversalReason} />
+                    )}
                     {validation.photoUrl && (
                       <Image source={{ uri: validation.photoUrl }} style={modalStyles.validationPhoto} resizeMode="cover" />
                     )}
@@ -987,6 +1065,201 @@ const InfoRow: React.FC<{ label: string; value: string; highlight?: boolean }> =
     <Body color={highlight ? colors.success[700] : 'primary'} style={modalStyles.infoValue}>{value}</Body>
   </View>
 );
+
+// ============================================
+// Entries Management Modal Component
+// ============================================
+type PurchaseProductValidationEntry = NonNullable<PurchaseProduct['validations']>[number];
+
+interface EntriesManagementModalProps {
+  visible: boolean;
+  product: PurchaseProduct;
+  onClose: () => void;
+  onCreateEntry: () => void;
+}
+
+const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
+  visible,
+  product,
+  onClose,
+  onCreateEntry,
+}) => {
+  const [selectedValidationDetail, setSelectedValidationDetail] = useState<PurchaseProductValidationEntry | null>(null);
+  const canCreateEntry = product.status === PurchaseProductStatus.IN_VALIDATION;
+  const activeEntries = product.validations?.filter((validation) => !validation.isReversed) || [];
+  const isResolved = !!product.resolutionAction && !!product.resolvedAt && !!product.productId;
+  const createEntryTitle = isResolved ? 'Agregar Ingreso' : 'Resolver y Registrar Primer Ingreso';
+
+  const getWarehouseName = (validation: PurchaseProductValidationEntry) => {
+    if (validation.warehouse?.name) return validation.warehouse.name;
+    if (validation.changes?.warehouseName) return validation.changes.warehouseName;
+    if (validation.changes?.warehouse?.name) return validation.changes.warehouse.name;
+    if (product.warehouseId && validation.warehouseId === product.warehouseId && product.warehouse?.name) return product.warehouse.name;
+    return 'No disponible';
+  };
+
+  const getAreaName = (validation: PurchaseProductValidationEntry) => {
+    if (validation.area?.name) return validation.area.name;
+    if (validation.area?.code) return validation.area.code;
+    if (validation.changes?.areaName) return validation.changes.areaName;
+    if (validation.changes?.area?.name) return validation.changes.area.name;
+    if (validation.changes?.area?.code) return validation.changes.area.code;
+    if (product.areaId && validation.areaId === product.areaId && (product.area?.name || product.area?.code)) return product.area.name || product.area.code || 'No disponible';
+    return 'No disponible';
+  };
+
+  const getValidationBarcode = (validation: PurchaseProductValidationEntry) => {
+    return validation.barcodeAdded || validation.changes?.barcode || validation.changes?.barcodeAdded || product.barcode || 'No disponible';
+  };
+
+  const getValidationWeight = (validation: PurchaseProductValidationEntry) => {
+    const weightKg = validation.changes?.weightKg ?? validation.changes?.weight ?? product.weightKg;
+    return typeof weightKg === 'number' ? `${(weightKg * 1000).toFixed(0)} g (${weightKg.toFixed(3)} kg)` : 'No disponible';
+  };
+
+  const getValidationPhotos = (validation: PurchaseProductValidationEntry) => {
+    const photos = [
+      ...(validation.productPhotos || []),
+      ...(validation.photosAdded || []),
+      ...(validation.photoUrl ? [validation.photoUrl] : []),
+    ];
+    return Array.from(new Set(photos.filter(Boolean)));
+  };
+
+  const getValidatedByName = (validation: PurchaseProductValidationEntry) => {
+    return validation.validatedByUser?.name || validation.validatedByUser?.email || 'No disponible';
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+      <View style={modalStyles.overlay}>
+        <View style={modalStyles.container}>
+          <View style={modalStyles.header}>
+            <View style={modalStyles.headerTitleContainer}>
+              <Title size="medium">📦 Gestionar Ingresos</Title>
+              <Body color="secondary" numberOfLines={1}>{product.name}</Body>
+            </View>
+            <IconButton icon="close" onPress={onClose} variant="ghost" size="small" />
+          </View>
+
+          <ScrollView style={modalStyles.content} keyboardShouldPersistTaps="handled">
+            <Card variant="outlined" padding="medium" style={modalStyles.section}>
+              <Label color="primary" style={modalStyles.sectionTitle}>Resumen</Label>
+              <InfoRow label="Resolución" value={product.resolutionAction ? (product.resolutionAction === 'MERGE' ? 'Fusionado' : 'Producto nuevo') : isResolved ? 'Resuelto' : 'Pendiente'} />
+              <InfoRow label="Estado" value={PurchaseProductStatusLabels[product.status]} />
+              <InfoRow label="Stock validado" value={`${product.validatedStock || 0} unidades`} highlight />
+              <InfoRow label="Ingresos activos" value={`${activeEntries.length}`} />
+            </Card>
+
+            {canCreateEntry && (
+              <Card variant="outlined" padding="medium" style={modalStyles.section}>
+                <Button title={createEntryTitle} onPress={onCreateEntry} variant="primary" fullWidth />
+              </Card>
+            )}
+
+            <Card variant="outlined" padding="medium" style={modalStyles.section}>
+              <Label color="primary" style={modalStyles.sectionTitle}>Historial de ingresos</Label>
+              {!product.validations || product.validations.length === 0 ? (
+                <Body color="secondary">Aún no hay ingresos registrados.</Body>
+              ) : product.validations.map((validation, index) => (
+                <View key={validation.id} style={[modalStyles.validationItem, validation.isReversed && modalStyles.validationItemReversed]}>
+                  <View style={modalStyles.validationHeaderRow}>
+                    <Body>Ingreso #{index + 1}</Body>
+                    <Badge label={validation.isReversed ? 'Anulado' : 'Activo'} variant={validation.isReversed ? 'cancelled' : 'completed'} size="small" />
+                  </View>
+                  <InfoRow label="Fecha" value={new Date(validation.validatedAt).toLocaleString('es-PE')} />
+                  <InfoRow label="Stock" value={`${validation.validatedStock} unidades`} />
+                  <InfoRow label="Almacén" value={getWarehouseName(validation)} />
+                  <InfoRow label="Área" value={getAreaName(validation)} />
+                  {(validation.notes || validation.validationNotes) && (
+                    <InfoRow label="Notas" value={validation.validationNotes || validation.notes || ''} />
+                  )}
+                  {validation.isReversed && validation.reversalReason && (
+                    <InfoRow label="Motivo" value={validation.reversalReason} />
+                  )}
+                  <Button title="Ver ingreso completo" onPress={() => setSelectedValidationDetail(validation)} variant="outline" size="small" fullWidth style={modalStyles.entryActionButton} />
+                </View>
+              ))}
+            </Card>
+          </ScrollView>
+
+          <View style={modalStyles.footer}>
+            <Button title="Cerrar" onPress={onClose} variant="secondary" fullWidth />
+          </View>
+
+          {selectedValidationDetail && (
+            <Modal visible={!!selectedValidationDetail} animationType="slide" transparent={true} onRequestClose={() => setSelectedValidationDetail(null)}>
+              <View style={modalStyles.overlay}>
+                <View style={modalStyles.container}>
+                  <View style={modalStyles.header}>
+                    <View style={modalStyles.headerTitleContainer}>
+                      <Title size="medium">Detalle del Ingreso</Title>
+                      <Body color="secondary">{new Date(selectedValidationDetail.validatedAt).toLocaleString('es-PE')}</Body>
+                    </View>
+                    <IconButton icon="close" onPress={() => setSelectedValidationDetail(null)} variant="ghost" size="small" />
+                  </View>
+
+                  <ScrollView style={modalStyles.content}>
+                    <Card variant="outlined" padding="medium" style={modalStyles.section}>
+                      <Label color="primary" style={modalStyles.sectionTitle}>Datos principales</Label>
+                      <InfoRow label="Estado" value={selectedValidationDetail.isReversed ? 'Anulado' : 'Activo'} />
+                      <InfoRow label="Stock" value={`${selectedValidationDetail.validatedStock} unidades`} highlight />
+                      <InfoRow label="Almacén" value={getWarehouseName(selectedValidationDetail)} />
+                      <InfoRow label="Área" value={getAreaName(selectedValidationDetail)} />
+                      <InfoRow label="Código barras" value={getValidationBarcode(selectedValidationDetail)} />
+                      <InfoRow label="Peso" value={getValidationWeight(selectedValidationDetail)} />
+                      {(selectedValidationDetail.notes || selectedValidationDetail.validationNotes) && (
+                        <InfoRow label="Notas" value={selectedValidationDetail.validationNotes || selectedValidationDetail.notes || ''} />
+                      )}
+                      {selectedValidationDetail.isReversed && selectedValidationDetail.reversalReason && (
+                        <InfoRow label="Motivo anulación" value={selectedValidationDetail.reversalReason} />
+                      )}
+                    </Card>
+
+                    <Card variant="outlined" padding="medium" style={modalStyles.section}>
+                      <Label color="primary" style={modalStyles.sectionTitle}>Auditoría</Label>
+                      <InfoRow label="Validado por" value={getValidatedByName(selectedValidationDetail)} />
+                      <InfoRow label="Fecha" value={new Date(selectedValidationDetail.validatedAt).toLocaleString('es-PE')} />
+                      {selectedValidationDetail.reversedAt && (
+                        <InfoRow label="Anulado el" value={new Date(selectedValidationDetail.reversedAt).toLocaleString('es-PE')} />
+                      )}
+                    </Card>
+
+                    <Card variant="outlined" padding="medium" style={modalStyles.section}>
+                      <Label color="primary" style={modalStyles.sectionTitle}>Fotos</Label>
+                      {getValidationPhotos(selectedValidationDetail).length === 0 ? (
+                        <Body color="secondary">No hay fotos registradas para este ingreso.</Body>
+                      ) : (
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={modalStyles.photosScroll}>
+                          {getValidationPhotos(selectedValidationDetail).map((photoUrl, photoIndex) => (
+                            <Image key={`${photoUrl}-${photoIndex}`} source={{ uri: photoUrl }} style={modalStyles.photo} resizeMode="cover" />
+                          ))}
+                        </ScrollView>
+                      )}
+                    </Card>
+
+                    <Card variant="outlined" padding="medium" style={modalStyles.section}>
+                      <Label color="primary" style={modalStyles.sectionTitle}>Firma</Label>
+                      {selectedValidationDetail.signatureUrl ? (
+                        <Image source={{ uri: selectedValidationDetail.signatureUrl }} style={modalStyles.signaturePhoto} resizeMode="contain" />
+                      ) : (
+                        <Body color="secondary">No hay firma registrada.</Body>
+                      )}
+                    </Card>
+                  </ScrollView>
+
+                  <View style={modalStyles.footer}>
+                    <Button title="Cerrar detalle" onPress={() => setSelectedValidationDetail(null)} variant="primary" fullWidth />
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 // ============================================
 // Edit Supplier Modal Component
@@ -1277,6 +1550,10 @@ const modalStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
   },
+  headerTitleContainer: {
+    flex: 1,
+    paddingRight: spacing[3],
+  },
   content: {
     padding: spacing[5],
     maxHeight: 500,
@@ -1290,6 +1567,14 @@ const modalStyles = StyleSheet.create({
   validatedCard: {
     backgroundColor: colors.success[50],
     borderColor: colors.success[200],
+  },
+  warningCard: {
+    backgroundColor: colors.warning[50],
+    borderColor: colors.warning[200],
+    gap: spacing[2],
+  },
+  entryActionButton: {
+    marginTop: spacing[3],
   },
   infoRow: {
     flexDirection: 'row',
@@ -1319,6 +1604,17 @@ const modalStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
     gap: spacing[2],
+  },
+  validationItemReversed: {
+    backgroundColor: colors.danger[50],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
+    marginBottom: spacing[2],
+  },
+  validationHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   validationPhoto: {
     width: '100%',

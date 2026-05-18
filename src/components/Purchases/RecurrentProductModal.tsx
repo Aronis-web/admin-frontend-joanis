@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -55,6 +54,13 @@ export const RecurrentProductModal: React.FC<RecurrentProductModalProps> = ({
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
+  const hasCandidates = candidates.length > 0;
+
+  useEffect(() => {
+    if (visible) {
+      setSelectedProductId(null);
+    }
+  }, [visible, candidates.length]);
 
   const formatCurrency = (cents: number) => {
     return `S/ ${(cents / 100).toFixed(2)}`;
@@ -86,7 +92,7 @@ export const RecurrentProductModal: React.FC<RecurrentProductModalProps> = ({
                 <Text style={[styles.headerIcon, isTablet && styles.headerIconTablet]}>🔄</Text>
                 <View style={styles.headerTextContainer}>
                   <Text style={[styles.title, isTablet && styles.titleTablet]}>
-                    Producto Recurrente Detectado
+                    Validación de Recurrencia
                   </Text>
                   {message && (
                     <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
@@ -103,15 +109,29 @@ export const RecurrentProductModal: React.FC<RecurrentProductModalProps> = ({
             {/* Question */}
             <View style={styles.questionContainer}>
               <Text style={[styles.questionText, isTablet && styles.questionTextTablet]}>
-                ¿Es alguno de estos productos?
+                {hasCandidates ? '¿Es alguno de estos productos?' : 'No se encontraron coincidencias'}
               </Text>
               <Text style={[styles.questionHint, isTablet && styles.questionHintTablet]}>
-                Seleccione el producto existente para sumar stock, o cree uno nuevo si es diferente.
+                {hasCandidates
+                  ? 'Seleccione el producto existente para hacer MERGE y sumar stock, o cree uno nuevo si es diferente.'
+                  : 'Revise la información ingresada. Si todo es correcto, confirme la creación de un producto nuevo.'}
               </Text>
             </View>
 
             {/* Candidates List */}
             <ScrollView style={styles.candidatesList} showsVerticalScrollIndicator={true}>
+              {!hasCandidates && (
+                <View style={styles.emptyStateCard}>
+                  <Text style={styles.emptyStateIcon}>🔎</Text>
+                  <Text style={[styles.emptyStateTitle, isTablet && styles.emptyStateTitleTablet]}>
+                    Sin productos recurrentes
+                  </Text>
+                  <Text style={[styles.emptyStateText, isTablet && styles.emptyStateTextTablet]}>
+                    No hay candidatos disponibles para MERGE. Esta revisión funciona como segunda validación antes de crear el producto nuevo y registrar el primer ingreso.
+                  </Text>
+                </View>
+              )}
+
               {candidates.map((candidate) => (
                 <TouchableOpacity
                   key={candidate.productId}
@@ -284,7 +304,7 @@ export const RecurrentProductModal: React.FC<RecurrentProductModalProps> = ({
                     !selectedProductId && styles.confirmButtonTextDisabled,
                   ]}
                 >
-                  ✓ Confirmar y Sumar Stock
+                  ✓ Confirmar MERGE y Sumar Stock
                 </Text>
               </TouchableOpacity>
 
@@ -295,7 +315,7 @@ export const RecurrentProductModal: React.FC<RecurrentProductModalProps> = ({
                 <Text
                   style={[styles.createNewButtonText, isTablet && styles.createNewButtonTextTablet]}
                 >
-                  + Crear Producto Nuevo
+                  {hasCandidates ? '+ Crear Producto Nuevo' : 'Confirmar Producto Nuevo'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -411,6 +431,40 @@ const styles = StyleSheet.create({
   candidatesList: {
     flex: 1,
     padding: spacing[4],
+  },
+  emptyStateCard: {
+    backgroundColor: colors.surface.primary,
+    borderRadius: borderRadius.xl,
+    borderWidth: 2,
+    borderColor: colors.border.default,
+    borderStyle: 'dashed',
+    padding: spacing[6],
+    alignItems: 'center',
+    marginBottom: spacing[3],
+  },
+  emptyStateIcon: {
+    fontSize: 36,
+    marginBottom: spacing[3],
+  },
+  emptyStateTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.neutral[800],
+    marginBottom: spacing[2],
+    textAlign: 'center',
+  },
+  emptyStateTitleTablet: {
+    fontSize: 18,
+  },
+  emptyStateText: {
+    fontSize: 13,
+    color: colors.neutral[600],
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  emptyStateTextTablet: {
+    fontSize: 15,
+    lineHeight: 22,
   },
   candidateCard: {
     flexDirection: 'row',
