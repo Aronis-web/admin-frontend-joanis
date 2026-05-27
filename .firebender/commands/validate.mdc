@@ -1,0 +1,15 @@
+---
+name: validate
+description: Corre typecheck + lint y arregla errores introducidos
+model: default
+mode: write
+---
+
+Ejecuta el siguiente flujo y arregla los errores que aparezcan:
+
+1. `npm run typecheck` — corregir errores de TypeScript.
+2. `npm run lint` — si hay warnings/errors auto-fixables, correr `npm run lint:fix` y luego volver a lintear.
+3. Si quedan errores manuales, corregirlos respetando las convenciones del proyecto (sin reformatear archivos no tocados).
+4. Reporta al final: número de errores corregidos y archivos modificados.
+
+No introduzcas dependencias nuevas. No crees archivos de documentación.

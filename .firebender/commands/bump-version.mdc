@@ -1,0 +1,24 @@
+---
+name: bump-version
+description: Sube el patch en app.json y package.json, hace commit y push
+mode: write
+---
+
+Incrementa la versión (patch) del proyecto en los dos archivos críticos y versiona.
+
+## Pasos
+
+1. Leer la versión actual de `package.json` (`version`) y `app.json` (`expo.version`). Confirmar que coinciden.
+2. Si el usuario no indicó otra cosa, incrementa **patch** (`x.y.Z` → `x.y.Z+1`).
+3. Actualizar ambos archivos al mismo valor exacto.
+4. Si existe `app.json` → `expo.android.versionCode`, incrementarlo en 1.
+5. `git --no-pager diff` para mostrar los cambios.
+6. `git add app.json package.json`
+7. `git commit -m "chore: bump version a vX.Y.Z"`
+8. `git push`
+9. Reporta la versión nueva y el hash del commit.
+
+## Restricciones
+- Si el usuario pide `minor` o `major`, ajusta correspondientemente.
+- No tocar `package-lock.json` manualmente.
+- Si los archivos tienen versiones distintas antes del bump, **detente** y pregúntale al usuario cuál es la correcta.

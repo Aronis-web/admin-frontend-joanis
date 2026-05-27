@@ -1,0 +1,46 @@
+---
+description: Patrones React Query para src/hooks/api/
+globs: "src/hooks/api/**/*.ts"
+---
+
+# Hooks API (React Query v5)
+
+Patrón de referencia: `src/hooks/api/useProducts.ts`.
+
+## Query keys
+
+Definir un objeto `xxxKeys` arriba del archivo:
+
+```ts
+export const fooKeys = {
+  all: ['foos'] as const,
+  lists: () => [...fooKeys.all, 'list'] as const,
+  list: (filters?: FooFilters) => [...fooKeys.lists(), filters] as const,
+  details: () => [...fooKeys.all, 'detail'] as const,
+  detail: (id: string) => [...fooKeys.details(), id] as const,
+};
+```
+
+## Queries
+
+- `useQuery` con `queryKey` derivado del objeto `xxxKeys`.
+- `staleTime` razonable: 3 min para datos volátiles (precios), 5 min para entidades comunes, 10 min para recursos estáticos (imágenes).
+- `gcTime` ≈ 2x `staleTime`.
+- Listas: `refetchOnWindowFocus: false`.
+- Detalles condicionales: `enabled: enabled && !!id`.
+
+## Mutations
+
+- `useMutation` con `mutationFn` que delega al servicio.
+- `onSuccess`:
+  - Invalidar `xxxKeys.lists()` si afecta colecciones.
+  - Usar `queryClient.setQueryData(xxxKeys.detail(id), updated)` para refrescar detalle sin refetch.
+  - `removeQueries` en deletes.
+- `onError`: loguear con `logger.error(...)` de `@/utils/logger`.
+- Comentar el efecto con JSDoc.
+
+## Anti-patrones
+- ❌ Strings sueltos como `queryKey`: siempre vía `xxxKeys`.
+- ❌ Llamar a `fetch`/`axios` desde el hook: usar el servicio en `@/services/api`.
+- ❌ Olvidar invalidar la lista después de un create/update/delete.
+- ❌ `refetchOnWindowFocus: true` en listas grandes (causa cargas innecesarias en Electron/web).

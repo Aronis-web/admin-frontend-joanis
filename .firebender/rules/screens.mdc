@@ -1,0 +1,29 @@
+---
+description: Convenciones para pantallas en src/screens/
+globs: "src/screens/**/*.tsx"
+---
+
+# Pantallas
+
+## Estructura
+- Una carpeta por módulo de negocio: `src/screens/<Modulo>/<NombreScreen>.tsx`.
+- Component por defecto exportado con nombre que termina en `Screen` (ej. `SalesListScreen`).
+- Registrar la ruta en `src/navigation/` (stack correspondiente) y en `src/constants/routes.ts`.
+
+## Datos
+- Obtener datos con hooks de `@/hooks/api/*`. No invocar servicios API directamente desde la pantalla.
+- Manejar `isLoading`, `isError` y empty states con componentes del `design-system` o `components/common`.
+
+## UI
+- Usar componentes del `design-system` y tokens (`@/design-system/tokens/*`). Evitar valores mágicos de color/espaciado.
+- Estilos vía `StyleSheet.create` o el sistema del design-system; no estilos inline largos.
+- Cross-platform: si hay divergencia notable usar `Platform.OS` o archivos `.web.tsx` / `.native.tsx`.
+
+## Permisos y navegación
+- Verificar permisos con las constantes de `@/constants/permissions.ts`.
+- Navegar con `useNavigation()` tipado, nunca con strings sueltos: usar `ROUTES` de `@/constants/routes.ts`.
+
+## Anti-patrones
+- ❌ Lógica de negocio pesada en la pantalla: extraer a hooks o utils.
+- ❌ Llamadas HTTP directas (`axios` / `fetch`).
+- ❌ Mantener estado servidor en `useState` cuando React Query ya lo provee.

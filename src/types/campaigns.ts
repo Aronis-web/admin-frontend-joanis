@@ -45,10 +45,12 @@ export enum ProductStatus {
  * Product Source Type
  * - INVENTORY: Product selected from inventory/catalog
  * - PURCHASE: Product from a validated purchase
+ * - RECEPTION: Product from a transfer reception
  */
 export enum ProductSourceType {
   INVENTORY = 'INVENTORY',
   PURCHASE = 'PURCHASE',
+  RECEPTION = 'RECEPTION',
 }
 
 // ============================================
@@ -140,6 +142,7 @@ export interface CampaignProduct {
   productId: string;
   sourceType: ProductSourceType;
   purchaseId?: string;
+  receptionId?: string;
   distributionType: DistributionType;
   totalQuantityBase: number;
   productStatus: ProductStatus;
@@ -294,6 +297,7 @@ export interface AddProductRequest {
   productStatus: ProductStatus;
   distributionType: DistributionType;
   purchaseId?: string;
+  receptionId?: string;
 }
 
 /**
@@ -351,9 +355,13 @@ export interface DistributionGenerateItem {
   participantId: string;
   quantityBase: number;
   roundingFactor?: number;
+  /** Same as roundingFactor when sending a presentation (kept explicit for backend) */
+  factorToBase?: number;
   presentationId?: string;
   quantityPresentation?: number;
   notes?: string;
+  /** Per-participant breakdown of stock sources (warehouse/area + qty) */
+  sources?: DistributionSource[];
 }
 
 /**
@@ -362,8 +370,12 @@ export interface DistributionGenerateItem {
 export interface GenerateDistributionRequest {
   distributions: DistributionGenerateItem[];
   notes?: string;
-  // Campos para especificar de qué área se toma el stock (a nivel de request, no por item)
+  /**
+   * @deprecated Use `sources` inside each distribution item instead.
+   * Kept for backward compatibility while old callers are migrated.
+   */
   sourceWarehouseId?: string;
+  /** @deprecated Use `sources` inside each distribution item instead. */
   sourceAreaId?: string;
 }
 
@@ -389,9 +401,24 @@ export interface DistributionPreviewItem {
  */
 export interface StockDetailByWarehouse {
   warehouse: string;
+  /** Optional IDs to support filtering by site and building generation sources */
+  warehouseId?: string;
+  siteId?: string;
+  area?: string | null;
+  areaId?: string | null;
   total: number;
   reserved: number;
   available: number;
+}
+
+/**
+ * Source from which the stock is taken for a participant
+ * (used inside DistributionGenerateItem.sources)
+ */
+export interface DistributionSource {
+  warehouseId: string;
+  areaId?: string | null;
+  quantityBase: number;
 }
 
 /**
@@ -467,6 +494,73 @@ export interface DistributionResultResponse {
   factorToBase?: number;
 }
 
+// ============================================
+// Campaign Products Detail (compact endpoint)
+// ============================================
+
+/**
+ * Stock disponible en el site del tenant (vista compacta del endpoint
+ * `GET /admin/campaigns/:id/products-detail`).
+ */
+export interface CampaignProductTenantSiteStock {
+  siteId: string;
+  quantityBase: string;
+  reservedQuantityBase: string;
+  availableQuantityBase: string;
+}
+
+/**
+ * Precio de venta por perfil/presentación devuelto por el endpoint
+ * compacto de productos de campaña.
+ */
+export interface CampaignProductDetailSalePrice {
+  profileId: string;
+  profileName: string;
+  presentationId: string;
+  priceCents: number;
+}
+
+/**
+ * Proveedor / compra origen del producto en la campaña.
+ */
+export interface CampaignProductDetailSupplier {
+  id: string;
+  name: string;
+  purchaseId: string;
+  purchaseCode: string;
+}
+
+/**
+ * Item del endpoint compacto `products-detail` — incluye todos los datos
+ * que necesita la UI de la pestaña de productos en un solo request.
+ */
+export interface CampaignProductDetailItem {
+  campaignProductId: string;
+  productId: string;
+  sku: string;
+  barcode: string | null;
+  title: string;
+  campaignQuantityBase: string;
+  distributedQuantityBase: string;
+  tenantSiteStock: CampaignProductTenantSiteStock | null;
+  costCents: number;
+  currency: string;
+  salePrices: CampaignProductDetailSalePrice[];
+  supplier: CampaignProductDetailSupplier | null;
+  photos: string[];
+  productStatus: string;
+  distributionGenerated: boolean;
+}
+
+/**
+ * Response de `GET /admin/campaigns/:campaignId/products-detail`.
+ */
+export interface CampaignProductsDetailResponse {
+  campaignId: string;
+  campaignStatus: CampaignStatus;
+  items: CampaignProductDetailItem[];
+}
+
 /**
  * Query Campaigns Parameters
  */
@@ -540,6 +634,7 @@ export const ProductStatusLabels: Record<ProductStatus, string> = {
 export const ProductSourceTypeLabels: Record<ProductSourceType, string> = {
   [ProductSourceType.INVENTORY]: 'Desde Inventario',
   [ProductSourceType.PURCHASE]: 'Desde Compra',
+  [ProductSourceType.RECEPTION]: 'Desde Recepción',
 };
 
 /**

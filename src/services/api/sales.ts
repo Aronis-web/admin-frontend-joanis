@@ -26,18 +26,21 @@ export const salesApi = {
 
   /**
    * Get all sales with filters
-   * GET /sales
+   * GET /admin/sales
    */
   getSales: async (params?: QuerySalesParams): Promise<SalesResponse> => {
-    return apiClient.get<SalesResponse>('/sales', { params });
+    return apiClient.get<SalesResponse>('/admin/sales', { params });
   },
 
   /**
    * Get sale by ID
-   * GET /sales/:id
+   * GET /admin/sales/:id
    */
-  getSaleById: async (id: string, params?: { includeItems?: boolean; includeDocuments?: boolean; includePayments?: boolean }): Promise<Sale> => {
-    return apiClient.get<Sale>(`/sales/${id}`, { params });
+  getSaleById: async (
+    id: string,
+    params?: { includeItems?: boolean; includeDocuments?: boolean; includePayments?: boolean }
+  ): Promise<Sale> => {
+    return apiClient.get<Sale>(`/admin/sales/${id}`, { params });
   },
 
   /**
@@ -90,28 +93,36 @@ export const salesApi = {
 
   /**
    * Get sale documents
-   * GET /sales/:id/documents
+   * GET /admin/sales/:id/documents
    */
   getSaleDocuments: async (id: string): Promise<any> => {
-    return apiClient.get<any>(`/sales/${id}/documents`);
+    return apiClient.get<any>(`/admin/sales/${id}/documents`);
   },
 
   /**
    * Download sale document PDF
-   * GET /sales/:saleId/documents/:documentId/pdf
+   * GET /admin/sales/:saleId/documents/:documentId/pdf
    */
   downloadDocumentPDF: async (saleId: string, documentId: string): Promise<Blob> => {
-    return apiClient.get<Blob>(`/sales/${saleId}/documents/${documentId}/pdf`, {
+    return apiClient.get<Blob>(`/admin/sales/${saleId}/documents/${documentId}/pdf`, {
       responseType: 'blob',
     });
   },
 
   /**
-   * Create credit note
-   * POST /sales/:id/credit-note
+   * List sale credit notes from Admin
+   * GET /admin/sales/:saleId/credit-notes
+   */
+  getSaleCreditNotes: async (saleId: string): Promise<any> => {
+    return apiClient.get<any>(`/admin/sales/${saleId}/credit-notes`);
+  },
+
+  /**
+   * Create credit note from Admin
+   * POST /admin/sales/:saleId/credit-note
    */
   createCreditNote: async (saleId: string, data: CreateCreditNoteRequest): Promise<any> => {
-    return apiClient.post<any>(`/sales/${saleId}/credit-note`, data);
+    return apiClient.post<any>(`/admin/sales/${saleId}/credit-note`, data);
   },
 
   /**

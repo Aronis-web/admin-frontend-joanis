@@ -1,0 +1,26 @@
+---
+description: Reglas específicas del módulo Campañas
+globs: "src/screens/Campaigns/**, src/components/Campaigns/**, src/hooks/api/useCampaigns.ts, src/services/api/campaigns.ts, src/types/campaigns.ts"
+---
+
+# Módulo Campañas
+
+## Archivos canónicos
+
+- Servicio: `src/services/api/campaigns.ts` (467 líneas).
+- Hook: `src/hooks/api/useCampaigns.ts` (316 líneas).
+- Tipos: `src/types/campaigns.ts`.
+- Pantalla principal: `src/screens/Campaigns/CampaignDetailScreen.tsx` (**4.404 líneas — usar grep, no leer entero**).
+- Modal pesado: `src/components/Campaigns/DistributionFormModal.tsx` (**2.977 líneas**).
+
+## Avisos
+
+- `CampaignDetailScreen.tsx`, `DistributionFormModal.tsx`, `CampaignProductBannerModal.tsx`, `AddProductScreen.tsx` superan 1500 líneas. Antes de modificar más de 100 líneas en cualquiera de ellos, evalúa proponer `/split-large-file`.
+- Existe `.firebender/plans/mejoras_campaas_71faf043.plan.md` con deudas conocidas: inconsistencias `removeParticipant/deleteParticipant`, firmas de `useDistributionPreview`/`useGenerateDistribution`, tipos `any` en participantes/productos. Si trabajas en hooks, considera saldarlas.
+
+## Convenciones del módulo
+
+- Las pantallas consumen exclusivamente hooks de `useCampaigns.ts`. No llamar `campaignsApi` directo desde la pantalla.
+- Los métodos del servicio deben coincidir con los hooks: si renombras uno, ajusta ambos.
+- `staleTime` para detalles de campaña: 3 min (datos cambian con frecuencia).
+- Optimización clave: reducir refetchs en `CampaignDetailScreen` cuando el usuario navega entre tabs internos.

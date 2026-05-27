@@ -1,0 +1,21 @@
+---
+name: clean-logs
+description: Quita console.log de src/ y deja logger.* donde aplique
+model: default
+mode: write
+---
+
+Limpia los `console.log` / `console.warn` / `console.error` del código de producción.
+
+## Pasos
+
+1. `npm run check-logs` para ver el reporte del script existente (`scripts/remove-console-logs.js`).
+2. Si el script ya hace la limpieza, ejecuta el flujo del proyecto.
+3. Si no, busca con `grep -rn "console\.\(log\|warn\|error\)" src` y para cada match:
+   - Si es código defensivo de error → reemplazar por `logger.error('mensaje', error)` importando `logger` desde `@/utils/logger`.
+   - Si es debug temporal → eliminarlo.
+   - Si está dentro de un test (`__tests__`) o `scripts/` → dejarlo.
+4. Corre `npm run lint` para confirmar.
+5. Reporta cuántos quitaste, cuántos reemplazaste y archivos tocados.
+
+No toques `console.*` en `node_modules`, `dist`, `web-build`, `scripts`.

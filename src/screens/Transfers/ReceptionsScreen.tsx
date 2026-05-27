@@ -786,6 +786,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
           const displayNumber = reception.receptionNumber || transfer?.transferNumber || 'N/A';
           const displayDate = reception.receivedAt || reception.createdAt || new Date().toISOString();
           const guide = reception.remissionGuide || transfer?.remissionGuide;
+          const transferId = reception.transferId || transfer?.id;
 
           const statusConfig =
             reception.status === ReceptionStatus.PENDING
@@ -876,26 +877,26 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                 )}
               </View>
 
-              <TouchableOpacity
-                disabled={downloadingGuideId === transfer.id}
-                style={[
-                  styles.guideActionButton,
-                  guide ? styles.downloadGuideButton : styles.createGuideButton,
-                  downloadingGuideId === transfer.id && styles.guideActionButtonDisabled,
-                ]}
-                onPress={(event) => {
-                  event.stopPropagation();
-                  void handleRemissionGuidePress(reception);
-                }}
-              >
-                <Text style={styles.guideActionButtonText}>
-                  {downloadingGuideId === transfer.id
-                    ? 'Descargando guía...'
-                    : guide
-                      ? `Descargar guía ${guide.number || ''}`.trim()
-                      : 'Crear guía'}
-                </Text>
-              </TouchableOpacity>
+              {guide && transferId && (
+                <TouchableOpacity
+                  disabled={downloadingGuideId === transferId}
+                  style={[
+                    styles.guideActionButton,
+                    styles.downloadGuideButton,
+                    downloadingGuideId === transferId && styles.guideActionButtonDisabled,
+                  ]}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    void handleRemissionGuidePress(reception);
+                  }}
+                >
+                  <Text style={styles.guideActionButtonText}>
+                    {downloadingGuideId === transferId
+                      ? 'Descargando guía...'
+                      : `Descargar guía ${guide.number || ''}`.trim()}
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               {reception.notes && (
                 <View style={styles.receptionNotes}>
@@ -1083,22 +1084,18 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                   ) : (
                     <Text style={styles.guideDetailMeta}>Este traslado aún no tiene guía de remisión.</Text>
                   )}
-                  {selectedTransfer && (
+                  {selectedTransfer?.remissionGuide && (
                     <TouchableOpacity
                       disabled={downloadingGuideId === selectedTransfer.id}
                       style={[
                         styles.guideActionButton,
-                        selectedTransfer.remissionGuide ? styles.downloadGuideButton : styles.createGuideButton,
+                        styles.downloadGuideButton,
                         downloadingGuideId === selectedTransfer.id && styles.guideActionButtonDisabled,
                       ]}
                       onPress={() => void handleRemissionGuidePress(selectedTransfer)}
                     >
                       <Text style={styles.guideActionButtonText}>
-                        {downloadingGuideId === selectedTransfer.id
-                          ? 'Descargando guía...'
-                          : selectedTransfer.remissionGuide
-                            ? 'Descargar guía'
-                            : 'Crear guía'}
+                        {downloadingGuideId === selectedTransfer.id ? 'Descargando guía...' : 'Descargar guía'}
                       </Text>
                     </TouchableOpacity>
                   )}

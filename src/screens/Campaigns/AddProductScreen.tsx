@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
-import { campaignsService, productsApi, purchasesService } from '@/services/api';
+import { campaignsService, productsApi, purchasesService, transfersApi } from '@/services/api';
 import { inventoryApi, StockItem } from '@/services/api/inventory';
 import {
   ProductSourceType,
@@ -25,8 +25,6 @@ import {
   DistributionTypeDescriptions,
 } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { config } from '@/utils/config';
-import { authService } from '@/services/AuthService';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
 
 interface AddProductScreenProps {
@@ -44,12 +42,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   const [products, setProducts] = useState<any[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
+  const [receptions, setReceptions] = useState<any[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [productSearchQuery, setProductSearchQuery] = useState<string>('');
   const [showProductSuggestions, setShowProductSuggestions] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [selectedPurchaseId, setSelectedPurchaseId] = useState<string>('');
+  const [selectedReceptionId, setSelectedReceptionId] = useState<string>('');
   const [purchaseProducts, setPurchaseProducts] = useState<any[]>([]);
   const [selectedPurchaseProducts, setSelectedPurchaseProducts] = useState<
     Array<{
@@ -60,13 +60,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     }>
   >([]);
   const [totalQuantity, setTotalQuantity] = useState('');
-  const [productStatus, setProductStatus] = useState<ProductStatus>(ProductStatus.PRELIMINARY);
   const [distributionType, setDistributionType] = useState<DistributionType>(DistributionType.ALL);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [campaignProducts, setCampaignProducts] = useState<string[]>([]);
   const [campaignPurchases, setCampaignPurchases] = useState<string[]>([]);
+  const [campaignReceptions, setCampaignReceptions] = useState<string[]>([]);
   const [expandedPurchases, setExpandedPurchases] = useState<Set<string>>(new Set());
+  const [expandedReceptions, setExpandedReceptions] = useState<Set<string>>(new Set());
   const { width, height } = useWindowDimensions();
 
   const isTablet = width >= 768 || height >= 768;
@@ -76,16 +77,27 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   const [selectedProductForBanner, setSelectedProductForBanner] = useState<any>(null);
   const [productDetailsForBanner, setProductDetailsForBanner] = useState<any>(null);
 
+  // Load campaign products only once on mount (doesn't change with sourceType)
   useEffect(() => {
-    loadCampaignProducts();
-    loadData();
+    void loadCampaignProducts();
+  }, []);
+
+  // Load source data only when the user changes the source type
+  useEffect(() => {
+    void loadData();
   }, [sourceType]);
 
   useEffect(() => {
     if (selectedPurchaseId) {
-      loadPurchaseProducts();
+      void loadPurchaseProducts();
     }
   }, [selectedPurchaseId]);
+
+  useEffect(() => {
+    if (selectedReceptionId) {
+      void loadReceptionProducts();
+    }
+  }, [selectedReceptionId]);
 
   const loadCampaignProducts = async () => {
     try {
@@ -100,6 +112,13 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           .map((p) => p.purchaseId!)
           .filter((id, index, self) => self.indexOf(id) === index) || [];
       setCampaignPurchases(purchaseIds);
+
+      const receptionIds =
+        campaign.products
+          ?.filter((p: any) => p.sourceType === ProductSourceType.RECEPTION && p.receptionId)
+          .map((p: any) => p.receptionId)
+          .filter((id: string, index: number, self: string[]) => self.indexOf(id) === index) || [];
+      setCampaignReceptions(receptionIds);
     } catch (error) {
       console.error('Error loading campaign products:', error);
     }
@@ -124,7 +143,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         try {
           const stockResponse: any = await inventoryApi.getAllStock({});
           // El API puede devolver un array o un objeto paginado { data: [...], total, page, limit }
-          const stockArray = Array.isArray(stockResponse) ? stockResponse : (stockResponse?.data || []);
+          const stockArray = Array.isArray(stockResponse)
+            ? stockResponse
+            : stockResponse?.data || [];
           console.log('📦 Stock items loaded:', {
             count: stockArray.length,
             sample: stockArray.slice(0, 3).map((item: any) => ({
@@ -139,7 +160,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             productId: item.productId,
             warehouseId: item.warehouseId,
             areaId: item.areaId || undefined,
-            quantityBase: item.quantityBase,
+            quantityBase: parseStockNumber(item.quantityBase) ?? 0,
+            reservedQuantityBase: parseStockNumber(item.reservedQuantityBase),
+            availableQuantityBase: parseStockNumber(item.availableQuantityBase),
             updatedAt: item.updatedAt,
             productTitle: item.product?.title,
             productSku: item.product?.sku,
@@ -152,7 +175,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           // Don't fail the whole operation if stock fails
           setStockItems([]);
         }
-      } else {
+      } else if (sourceType === ProductSourceType.PURCHASE) {
         const response = await purchasesService.getPurchases({
           limit: 100,
         });
@@ -166,6 +189,31 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               p.status === 'CLOSED'
           ) || []
         );
+      } else if (sourceType === ProductSourceType.RECEPTION) {
+        const responses = await Promise.allSettled([
+          transfersApi.getReceptions({ limit: 100 }),
+          transfersApi.getPendingReceptions({ limit: 100 }),
+        ]);
+
+        const loadedReceptions = responses.flatMap((result) => {
+          if (result.status !== 'fulfilled') {
+            console.warn('⚠️ Could not load receptions source:', result.reason);
+            return [];
+          }
+          const response: any = result.value;
+          return Array.isArray(response) ? response : response?.data || [];
+        });
+
+        const uniqueReceptions = loadedReceptions.filter((reception, index, self) => {
+          const id = reception.id || reception.transferId || reception.transfer?.id;
+          return (
+            id &&
+            self.findIndex((item) => (item.id || item.transferId || item.transfer?.id) === id) ===
+              index
+          );
+        });
+
+        setReceptions(uniqueReceptions);
       }
     } catch (error: any) {
       console.error('Error loading data:', error);
@@ -177,14 +225,11 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const loadPurchaseProducts = async () => {
     try {
-      console.log('🛒 Loading purchase products with params:', {
-        purchaseId: selectedPurchaseId,
-        includeProductStatus: 'active,preliminary',
-      });
+      console.log('🛒 Loading purchase products:', { purchaseId: selectedPurchaseId });
 
-      const products = await purchasesService.getPurchaseProducts(selectedPurchaseId, {
-        includeProductStatus: 'active,preliminary', // Include products with active or preliminary status
-      });
+      // No mandamos includeProductStatus para evitar que el backend filtre
+      // productos de compras ya cerradas/agregadas a campañas.
+      const products = await purchasesService.getPurchaseProducts(selectedPurchaseId);
 
       console.log('🛒 Purchase products received from backend:', {
         total: products.length,
@@ -199,16 +244,184 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         })),
       });
 
-      // Include both VALIDATED and PRELIMINARY purchase products
-      const availableProducts = products.filter(
-        (p) => p.status === 'VALIDATED' || p.status === 'PRELIMINARY'
-      );
-      console.log('🛒 Available products (VALIDATED + PRELIMINARY):', availableProducts.length);
+      // Excluimos solo los rechazados. El resto (PRELIMINARY, IN_VALIDATION,
+      // VALIDATED, CLOSED, etc.) son productos que la compra aportó y que
+      // queremos mostrar para agregar a la campaña.
+      // Nota: IN_VALIDATION se mantiene porque productos ya validados con
+      // resolutionAction pueden seguir teniendo ese estado intermedio.
+      const availableProducts = products.filter((p) => p.status !== 'REJECTED');
+      console.log('🛒 Available products after filter:', availableProducts.length);
 
       setPurchaseProducts(availableProducts);
     } catch (error: any) {
       console.error('Error loading purchase products:', error);
       Alert.alert('Error', 'No se pudieron cargar los productos de la compra');
+    }
+  };
+
+  const parseStockNumber = (value: any): number | undefined => {
+    if (value === null || value === undefined || value === '') return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
+  const getTransferItemStock = (item: any): number => {
+    const stockCandidates = [
+      item.quantityReceived,
+      item.receivedQuantity,
+      item.receivedStock,
+      item.validatedStock,
+      item.availableStock,
+      item.availableQuantityBase,
+      item.quantityBase,
+      item.quantityShipped,
+      item.shippedQuantity,
+      item.quantityRequested,
+      item.requestedQuantity,
+      item.quantity,
+      item.totalQuantityBase,
+      item.totalQuantity,
+    ];
+
+    for (const candidate of stockCandidates) {
+      const stock = parseStockNumber(candidate);
+      if (stock !== undefined && stock > 0) {
+        return stock;
+      }
+    }
+
+    return 0;
+  };
+
+  const getStockFromStockResponse = (stockResponse: any): number => {
+    if (Array.isArray(stockResponse)) {
+      return stockResponse.reduce((total, item) => {
+        const availableQuantity = parseStockNumber(item.availableQuantityBase);
+        const quantityBase = parseStockNumber(item.quantityBase);
+        return total + (availableQuantity ?? quantityBase ?? 0);
+      }, 0);
+    }
+
+    if (stockResponse?.data && Array.isArray(stockResponse.data)) {
+      return stockResponse.data.reduce((total: number, item: any) => {
+        const availableStock = parseStockNumber(item.availableStock);
+        const totalStock = parseStockNumber(item.totalStock);
+        const availableQuantity = parseStockNumber(item.availableQuantityBase);
+        const quantityBase = parseStockNumber(item.quantityBase);
+        return total + (availableStock ?? availableQuantity ?? totalStock ?? quantityBase ?? 0);
+      }, 0);
+    }
+
+    const availableStock = parseStockNumber(stockResponse?.availableStock);
+    const totalStock = parseStockNumber(stockResponse?.totalStock);
+    const totalQuantityBase = parseStockNumber(stockResponse?.totalQuantityBase);
+
+    return availableStock ?? totalStock ?? totalQuantityBase ?? 0;
+  };
+
+  const fetchProductsStockBatch = async (productIds: string[]): Promise<Record<string, number>> => {
+    const uniqueProductIds = [...new Set(productIds.filter(Boolean))];
+    const stockByProductId: Record<string, number> = {};
+    const batchSize = 8;
+
+    for (let index = 0; index < uniqueProductIds.length; index += batchSize) {
+      const batch = uniqueProductIds.slice(index, index + batchSize);
+      const results = await Promise.allSettled(
+        batch.map(async (productId) => {
+          try {
+            const response = await inventoryApi.getProductsStock({
+              productId,
+              limit: 1,
+              includeZeroStock: true,
+            });
+            return { productId, stock: getStockFromStockResponse(response) };
+          } catch (productsStockError) {
+            console.warn(
+              '⚠️ products/stock failed, trying stock by product:',
+              productId,
+              productsStockError
+            );
+            const response = await inventoryApi.getAllStock({ productId });
+            return { productId, stock: getStockFromStockResponse(response) };
+          }
+        })
+      );
+
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          stockByProductId[result.value.productId] = result.value.stock;
+        }
+      });
+    }
+
+    return stockByProductId;
+  };
+
+  const loadReceptionProducts = async () => {
+    try {
+      console.log('📥 Loading reception products:', selectedReceptionId);
+      let receptionDetail: any;
+      try {
+        receptionDetail = await transfersApi.getReceptionDetail(selectedReceptionId);
+      } catch (detailError) {
+        console.warn('⚠️ Reception detail failed, trying transfer detail:', detailError);
+        receptionDetail = await transfersApi.getTransferById(selectedReceptionId);
+      }
+
+      const transferItems =
+        receptionDetail.items ||
+        receptionDetail.transfer?.items ||
+        receptionDetail.reception?.items ||
+        receptionDetail.reception?.transfer?.items ||
+        receptionDetail.transferItems ||
+        receptionDetail.products ||
+        [];
+
+      const mappedProducts = transferItems
+        .map((item: any) => {
+          const product = item.product || item.productData || item.inventoryProduct || null;
+          const productId = item.productId || item.product_id || product?.id;
+
+          return {
+            id: item.id || item.transferItemId || productId,
+            productId,
+            product,
+            name: product?.title || product?.name || item.name || item.productName,
+            sku: product?.sku || item.sku || item.productSku,
+            correlativeNumber: product?.correlativeNumber || item.correlativeNumber,
+            receivedStock: getTransferItemStock(item),
+            status: 'VALIDATED',
+          };
+        })
+        .filter((item: any) => item.productId);
+
+      const productsWithoutStock = mappedProducts
+        .filter((product: any) => product.receivedStock <= 0)
+        .map((product: any) => product.productId);
+      const stockByProductId =
+        productsWithoutStock.length > 0 ? await fetchProductsStockBatch(productsWithoutStock) : {};
+
+      const availableProducts = mappedProducts.map((product: any) => ({
+        ...product,
+        receivedStock:
+          product.receivedStock > 0
+            ? product.receivedStock
+            : stockByProductId[product.productId] || 0,
+      }));
+
+      console.log('📥 Available reception products:', {
+        total: availableProducts.length,
+        resolvedWithBatch: Object.keys(stockByProductId).length,
+        sample: availableProducts.slice(0, 5).map((product: any) => ({
+          productId: product.productId,
+          sku: product.sku,
+          receivedStock: product.receivedStock,
+        })),
+      });
+      setPurchaseProducts(availableProducts);
+    } catch (error: any) {
+      console.error('Error loading reception products:', error);
+      Alert.alert('Error', 'No se pudieron cargar los productos de la recepción');
     }
   };
 
@@ -308,6 +521,102 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     }
   };
 
+  const handleAddFromReception = async () => {
+    if (!selectedReceptionId) {
+      Alert.alert('Error', 'Debes seleccionar una recepción');
+      return;
+    }
+
+    if (selectedPurchaseProducts.length === 0) {
+      Alert.alert('Error', 'Debes seleccionar al menos un producto');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await Promise.all(
+        selectedPurchaseProducts.map((product) => {
+          const data: AddProductRequest = {
+            productId: product.productId,
+            sourceType: ProductSourceType.RECEPTION,
+            totalQuantity: product.quantity,
+            productStatus: product.productStatus,
+            distributionType: product.distributionType,
+            receptionId: selectedReceptionId,
+          };
+
+          return campaignsService.addProduct(campaignId, data);
+        })
+      );
+
+      Alert.alert('Éxito', 'Productos agregados desde recepción exitosamente', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (error: any) {
+      console.error('Error adding reception products:', error);
+      Alert.alert('Error', error.response?.data?.message || 'No se pudieron agregar los productos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const buildSelectableProductConfig = (product: any) => {
+    const productStatus =
+      product.product?.status === 'preliminary' || product.status === 'preliminary'
+        ? ProductStatus.PRELIMINARY
+        : ProductStatus.ACTIVE;
+
+    return {
+      productId: product.productId,
+      quantity: getProductStock(product.productId),
+      productStatus,
+      distributionType: DistributionType.ALL,
+    };
+  };
+
+  const getSelectablePurchaseProducts = () =>
+    purchaseProducts.filter(
+      (product) =>
+        !campaignProducts.includes(product.productId) && getProductStock(product.productId) > 0
+    );
+
+  const areAllPurchaseProductsSelected = () => {
+    const selectableProducts = getSelectablePurchaseProducts();
+    return (
+      selectableProducts.length > 0 &&
+      selectableProducts.every((product) =>
+        selectedPurchaseProducts.some((selected) => selected.productId === product.productId)
+      )
+    );
+  };
+
+  const toggleAllPurchaseProducts = () => {
+    const selectableProducts = getSelectablePurchaseProducts();
+    const selectableProductIds = selectableProducts.map((product) => product.productId);
+
+    if (areAllPurchaseProductsSelected()) {
+      setSelectedPurchaseProducts(
+        selectedPurchaseProducts.filter(
+          (selected) => !selectableProductIds.includes(selected.productId)
+        )
+      );
+      return;
+    }
+
+    const selectedOutsideCurrentList = selectedPurchaseProducts.filter(
+      (selected) => !selectableProductIds.includes(selected.productId)
+    );
+
+    setSelectedPurchaseProducts([
+      ...selectedOutsideCurrentList,
+      ...selectableProducts.map(buildSelectableProductConfig),
+    ]);
+  };
+
   const togglePurchaseProduct = (product: any) => {
     const exists = selectedPurchaseProducts.find((p) => p.productId === product.productId);
 
@@ -316,23 +625,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         selectedPurchaseProducts.filter((p) => p.productId !== product.productId)
       );
     } else {
-      // Use the actual product status from the inventory, not hardcoded ACTIVE
-      const productStatus =
-        product.product?.status === 'preliminary'
-          ? ProductStatus.PRELIMINARY
-          : ProductStatus.ACTIVE;
-
-      // Use available stock from inventory instead of purchase stock
-      const availableStock = getProductStock(product.productId);
-
       setSelectedPurchaseProducts([
         ...selectedPurchaseProducts,
-        {
-          productId: product.productId,
-          quantity: availableStock,
-          productStatus: productStatus,
-          distributionType: DistributionType.ALL,
-        },
+        buildSelectableProductConfig(product),
       ]);
     }
   };
@@ -350,17 +645,24 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   };
 
   const getProductStock = (productId: string): number => {
-    // First, try to get stock from purchase products (when adding from purchase)
+    // First, try to get stock from purchase/reception products (when adding from purchase/reception)
     const purchaseProduct = purchaseProducts.find((p) => p.productId === productId);
     if (purchaseProduct) {
-      // Purchase products have preliminaryStock or validatedStock
-      if (typeof purchaseProduct.preliminaryStock === 'number') {
-        console.log('✅ Using preliminaryStock from purchase product:', purchaseProduct.preliminaryStock);
-        return purchaseProduct.preliminaryStock;
-      }
-      if (typeof purchaseProduct.validatedStock === 'number') {
-        console.log('✅ Using validatedStock from purchase product:', purchaseProduct.validatedStock);
-        return purchaseProduct.validatedStock;
+      const stockFields = [
+        { label: 'preliminaryStock', value: purchaseProduct.preliminaryStock },
+        { label: 'validatedStock', value: purchaseProduct.validatedStock },
+        { label: 'receivedStock', value: purchaseProduct.receivedStock },
+        { label: 'availableStock', value: purchaseProduct.availableStock },
+        { label: 'availableQuantityBase', value: purchaseProduct.availableQuantityBase },
+        { label: 'quantityBase', value: purchaseProduct.quantityBase },
+      ];
+
+      for (const field of stockFields) {
+        const parsedStock = parseStockNumber(field.value);
+        if (parsedStock !== undefined) {
+          console.log(`✅ Using ${field.label} from selected source product:`, parsedStock);
+          return parsedStock;
+        }
       }
     }
 
@@ -400,12 +702,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
     const totalStock = productStockItems.reduce((total: number, item: StockItem) => {
       // Use availableQuantityBase (stock disponible) instead of quantityBase (stock total)
-      const quantity =
-        typeof item.availableQuantityBase === 'number'
-          ? item.availableQuantityBase
-          : typeof item.quantityBase === 'string'
-            ? parseFloat(item.quantityBase)
-            : item.quantityBase || 0;
+      const availableQuantity = parseStockNumber(item.availableQuantityBase);
+      const quantityBase = parseStockNumber(item.quantityBase);
+      const quantity = availableQuantity ?? quantityBase ?? 0;
       return total + quantity;
     }, 0);
 
@@ -443,11 +742,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           return acc;
         }, {});
         console.log('📊 Products by status:', statusCounts);
-        console.log('📦 Sample products:', response.results.slice(0, 3).map((p: any) => ({
-          sku: p.sku,
-          title: p.title,
-          status: p.status,
-        })));
+        console.log(
+          '📦 Sample products:',
+          response.results.slice(0, 3).map((p: any) => ({
+            sku: p.sku,
+            title: p.title,
+            status: p.status,
+          }))
+        );
 
         setProducts(response.results);
         setShowProductSuggestions(response.results.length > 0);
@@ -506,7 +808,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
     // Set new timeout for debounced search
     const timeout = setTimeout(() => {
-      searchProducts(text);
+      void searchProducts(text);
     }, 800); // Wait 800ms after user stops typing (aumentado para permitir escribir)
 
     setSearchTimeout(timeout);
@@ -525,7 +827,8 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         productId: product.id,
         campaignId: campaignId,
         totalQuantityBase: 0, // No quantity yet since it's not added to campaign
-        productStatus: product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE,
+        productStatus:
+          product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE,
         distributionGenerated: false,
         product: product,
       };
@@ -573,7 +876,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
           {/* Loading indicator */}
           {isSearching && (
-            <View style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}>
+            <View
+              style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}
+            >
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color="#6366F1" />
                 <Text style={styles.loadingText}>Buscando productos...</Text>
@@ -647,7 +952,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                             {isAlreadyAdded && ' (Ya agregado)'}
                           </Text>
                           {isPreliminary && (
-                            <Text style={[styles.warningText, isTablet && styles.warningTextTablet]}>
+                            <Text
+                              style={[styles.warningText, isTablet && styles.warningTextTablet]}
+                            >
                               ⚠️ Producto por validar Ingreso
                             </Text>
                           )}
@@ -659,7 +966,8 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                                 stock > 0 ? styles.stockAvailable : styles.stockUnavailable,
                               ]}
                             >
-                              {isPreliminary ? 'Stock Preliminar: ' : 'Stock: '}{stock}
+                              {isPreliminary ? 'Stock Preliminar: ' : 'Stock: '}
+                              {stock}
                             </Text>
                             <Text
                               style={[
@@ -688,22 +996,27 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           )}
 
           {/* No products message */}
-          {!isSearching && showProductSuggestions && filteredProducts.length === 0 && productSearchQuery.length >= 2 && (
-            <View
-              style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}
-            >
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  No se encontraron productos con ese criterio de búsqueda
-                </Text>
+          {!isSearching &&
+            showProductSuggestions &&
+            filteredProducts.length === 0 &&
+            productSearchQuery.length >= 2 && (
+              <View
+                style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}
+              >
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
+                    No se encontraron productos con ese criterio de búsqueda
+                  </Text>
+                </View>
               </View>
-            </View>
-          )}
+            )}
 
           {selectedProduct && (
             <View style={[styles.stockInfo, isTablet && styles.stockInfoTablet]}>
               <Text style={[styles.stockLabel, isTablet && styles.stockLabelTablet]}>
-                {selectedProduct.status === 'preliminary' ? 'Stock Preliminar:' : 'Stock Disponible:'}
+                {selectedProduct.status === 'preliminary'
+                  ? 'Stock Preliminar:'
+                  : 'Stock Disponible:'}
               </Text>
               <Text
                 style={[
@@ -819,14 +1132,24 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                       <Text style={styles.purchaseHeaderIcon}>{isExpanded ? '▼' : '▶'}</Text>
                       <View style={styles.purchaseHeaderInfo}>
                         <Text style={styles.purchaseHeaderTitle}>
-                          {purchase.code} - {purchase.guideNumber} - {purchase.supplier?.commercialName}
+                          {purchase.code} - {purchase.guideNumber} -{' '}
+                          {purchase.supplier?.commercialName}
                         </Text>
                         <Text style={styles.purchaseHeaderBadge}>✓ Ya agregada</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
-                  {isExpanded && isSelected && purchaseProducts.length > 0 && (
-                    <View style={styles.purchaseProductsContainer}>{renderPurchaseProducts()}</View>
+                  {isExpanded && isSelected && (
+                    <View style={styles.purchaseProductsContainer}>
+                      {purchaseProducts.length > 0 ? (
+                        renderPurchaseProducts()
+                      ) : (
+                        <View style={styles.emptyContainer}>
+                          <ActivityIndicator size="small" color="#6366F1" />
+                          <Text style={styles.emptyText}>Cargando productos de la compra...</Text>
+                        </View>
+                      )}
+                    </View>
                   )}
                 </View>
               );
@@ -844,6 +1167,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               selectedValue={selectedPurchaseId}
               onValueChange={(value) => {
                 setSelectedPurchaseId(value);
+                setSelectedPurchaseProducts([]);
                 // Collapse all expanded purchases when selecting a new one
                 setExpandedPurchases(new Set());
               }}
@@ -876,74 +1200,247 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     );
   };
 
-  const renderPurchaseProducts = () => {
-    return purchaseProducts.map((product) => {
-      const isSelected = selectedPurchaseProducts.find((p) => p.productId === product.productId);
-      const config = selectedPurchaseProducts.find((p) => p.productId === product.productId);
-      const isAlreadyAdded = campaignProducts.includes(product.productId);
-      const isPreliminary = (product.product?.status as any) === 'preliminary';
+  const getReceptionLabel = (reception: any) => {
+    const transfer = reception.transfer || {};
+    const receptionNumber = reception.receptionNumber || 'Sin número';
+    const transferNumber = transfer.transferNumber || reception.transferId || reception.id;
+    const originSite =
+      transfer.originSite?.name || transfer.originWarehouse?.name || 'Origen no definido';
 
-      return (
-        <View
-          key={product.id}
-          style={[
-            styles.productItem,
-            isPreliminary && styles.productItemPreliminary,
-            isAlreadyAdded && styles.productItemDisabled,
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.productCheckbox}
-            onPress={() => {
-              if (!isAlreadyAdded) {
-                togglePurchaseProduct(product);
-              }
-            }}
-            activeOpacity={isAlreadyAdded ? 1 : 0.7}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                isSelected && styles.checkboxChecked,
-                isAlreadyAdded && styles.checkboxDisabled,
-              ]}
+    return `${receptionNumber} - ${transferNumber} - ${originSite}`;
+  };
+
+  const renderFromReceptionForm = () => {
+    const addedReceptions = receptions.filter((reception) =>
+      campaignReceptions.includes(reception.id)
+    );
+    const notAddedReceptions = receptions.filter(
+      (reception) => !campaignReceptions.includes(reception.id)
+    );
+
+    return (
+      <>
+        {addedReceptions.length > 0 && (
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, isTablet && styles.labelTablet]}>
+              Recepciones Ya Agregadas ({addedReceptions.length})
+            </Text>
+            <Text style={[styles.hint, isTablet && styles.hintTablet]}>
+              Estas recepciones ya tienen productos en la campaña. Puedes expandirlas para agregar
+              más productos.
+            </Text>
+            {addedReceptions.map((reception) => {
+              const transferId = reception.transferId || reception.transfer?.id || reception.id;
+              const isExpanded = expandedReceptions.has(reception.id);
+              const isSelected = selectedReceptionId === transferId;
+
+              return (
+                <View key={reception.id} style={styles.purchaseCard}>
+                  <TouchableOpacity
+                    style={[styles.purchaseHeader, isSelected && styles.purchaseHeaderSelected]}
+                    onPress={() => {
+                      if (isExpanded) {
+                        setExpandedReceptions((prev) => {
+                          const newSet = new Set(prev);
+                          newSet.delete(reception.id);
+                          return newSet;
+                        });
+                        if (selectedReceptionId === transferId) {
+                          setSelectedReceptionId('');
+                        }
+                      } else {
+                        setExpandedReceptions((prev) => new Set(prev).add(reception.id));
+                        setSelectedReceptionId(transferId);
+                      }
+                    }}
+                  >
+                    <View style={styles.purchaseHeaderContent}>
+                      <Text style={styles.purchaseHeaderIcon}>{isExpanded ? '▼' : '▶'}</Text>
+                      <View style={styles.purchaseHeaderInfo}>
+                        <Text style={styles.purchaseHeaderTitle}>
+                          {getReceptionLabel(reception)}
+                        </Text>
+                        <Text style={styles.purchaseHeaderBadge}>✓ Ya agregada</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                  {isExpanded && isSelected && (
+                    <View style={styles.purchaseProductsContainer}>
+                      {purchaseProducts.length > 0 ? (
+                        renderPurchaseProducts()
+                      ) : (
+                        <View style={styles.emptyContainer}>
+                          <ActivityIndicator size="small" color="#6366F1" />
+                          <Text style={styles.emptyText}>
+                            Cargando productos de la recepción...
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        <View style={styles.formGroup}>
+          <Text style={[styles.label, isTablet && styles.labelTablet]}>
+            {addedReceptions.length > 0 ? 'Otras Recepciones Disponibles' : 'Recepción *'}
+          </Text>
+          <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
+            <Picker
+              selectedValue={selectedReceptionId}
+              onValueChange={(value) => {
+                setSelectedReceptionId(value);
+                setSelectedPurchaseProducts([]);
+                setExpandedReceptions(new Set());
+              }}
+              style={styles.picker}
             >
-              {isSelected && <Text style={styles.checkmark}>✓</Text>}
+              <Picker.Item label="Seleccionar recepción..." value="" />
+              {notAddedReceptions.map((reception) => (
+                <Picker.Item
+                  key={reception.id}
+                  label={getReceptionLabel(reception)}
+                  value={reception.transferId || reception.transfer?.id || reception.id}
+                />
+              ))}
+            </Picker>
+          </View>
+        </View>
+
+        {selectedReceptionId &&
+          !Array.from(expandedReceptions).some((id) => {
+            const reception = receptions.find((item) => item.id === id);
+            return (
+              (reception?.transferId || reception?.transfer?.id || reception?.id) ===
+              selectedReceptionId
+            );
+          }) &&
+          purchaseProducts.length > 0 && (
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, isTablet && styles.labelTablet]}>
+                Productos de la Recepción
+              </Text>
+              {renderPurchaseProducts()}
+            </View>
+          )}
+      </>
+    );
+  };
+
+  const renderPurchaseProducts = () => {
+    const selectableProductsCount = getSelectablePurchaseProducts().length;
+    const allProductsSelected = areAllPurchaseProductsSelected();
+
+    return (
+      <>
+        {selectableProductsCount > 0 && (
+          <TouchableOpacity
+            style={styles.selectAllProductsRow}
+            onPress={toggleAllPurchaseProducts}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, allProductsSelected && styles.checkboxChecked]}>
+              {allProductsSelected && <Text style={styles.checkmark}>✓</Text>}
             </View>
             <View style={styles.productInfo}>
-              <Text style={[styles.productName, isAlreadyAdded && styles.productNameDisabled]}>
-                {product.product?.title || product.name}
-                {isAlreadyAdded && ' (Ya agregado)'}
-              </Text>
-              {isPreliminary && (
-                <Text style={[styles.warningText, isTablet && styles.warningTextTablet]}>
-                  ⚠️ Producto por validar Ingreso
-                </Text>
-              )}
-              <Text style={styles.productDetails}>
-                {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku}{' '}
-                | {isPreliminary ? 'Stock Preliminar' : 'Stock Disponible'}: {getProductStock(product.productId)}
-                {product.product?.status === 'preliminary' && ' ⚠ Preliminar'}
+              <Text style={styles.selectAllProductsText}>Agregar todos los productos</Text>
+              <Text style={styles.selectAllProductsHint}>
+                {allProductsSelected
+                  ? 'Todos los productos disponibles están seleccionados'
+                  : `Selecciona ${selectableProductsCount} producto${selectableProductsCount !== 1 ? 's' : ''} disponible${selectableProductsCount !== 1 ? 's' : ''}`}
               </Text>
             </View>
           </TouchableOpacity>
+        )}
 
-          {isSelected && config && (
-            <View style={styles.productConfig}>
-              <TextInput
-                style={[styles.smallInput, isTablet && styles.smallInputTablet]}
-                value={config.quantity.toString()}
-                onChangeText={(value) =>
-                  updatePurchaseProductConfig(product.productId, 'quantity', parseFloat(value) || 0)
-                }
-                placeholder="Cantidad"
-                keyboardType="decimal-pad"
-              />
+        {purchaseProducts.map((product) => {
+          const isSelected = selectedPurchaseProducts.find(
+            (p) => p.productId === product.productId
+          );
+          const config = selectedPurchaseProducts.find((p) => p.productId === product.productId);
+          const isAlreadyAdded = campaignProducts.includes(product.productId);
+          const displayStock = getProductStock(product.productId);
+          const isOutOfStock = displayStock <= 0;
+          const isPreliminary =
+            (product.product?.status as any) === 'preliminary' || product.status === 'preliminary';
+
+          return (
+            <View
+              key={product.id}
+              style={[
+                styles.productItem,
+                isPreliminary && styles.productItemPreliminary,
+                (isAlreadyAdded || isOutOfStock) && styles.productItemDisabled,
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.productCheckbox}
+                onPress={() => {
+                  if (!isAlreadyAdded && !isOutOfStock) {
+                    togglePurchaseProduct(product);
+                  }
+                }}
+                activeOpacity={isAlreadyAdded || isOutOfStock ? 1 : 0.7}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    isSelected && styles.checkboxChecked,
+                    (isAlreadyAdded || isOutOfStock) && styles.checkboxDisabled,
+                  ]}
+                >
+                  {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <View style={styles.productInfo}>
+                  <Text
+                    style={[
+                      styles.productName,
+                      (isAlreadyAdded || isOutOfStock) && styles.productNameDisabled,
+                    ]}
+                  >
+                    {product.product?.title || product.name}
+                    {isAlreadyAdded && ' (Ya agregado)'}
+                    {!isAlreadyAdded && isOutOfStock && ' (Sin stock)'}
+                  </Text>
+                  {isPreliminary && (
+                    <Text style={[styles.warningText, isTablet && styles.warningTextTablet]}>
+                      ⚠️ Producto por validar Ingreso
+                    </Text>
+                  )}
+                  <Text style={styles.productDetails}>
+                    {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU:{' '}
+                    {product.sku} | {isPreliminary ? 'Stock Preliminar' : 'Stock Disponible'}:{' '}
+                    {displayStock}
+                    {isPreliminary && ' ⚠ Preliminar'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {isSelected && config && (
+                <View style={styles.productConfig}>
+                  <TextInput
+                    style={[styles.smallInput, isTablet && styles.smallInputTablet]}
+                    value={config.quantity.toString()}
+                    onChangeText={(value) =>
+                      updatePurchaseProductConfig(
+                        product.productId,
+                        'quantity',
+                        parseFloat(value) || 0
+                      )
+                    }
+                    placeholder="Cantidad"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              )}
             </View>
-          )}
-        </View>
-      );
-    });
+          );
+        })}
+      </>
+    );
   };
 
   return (
@@ -977,12 +1474,15 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                     setSourceType(value);
                     setSelectedProductId('');
                     setSelectedPurchaseId('');
+                    setSelectedReceptionId('');
+                    setPurchaseProducts([]);
                     setSelectedPurchaseProducts([]);
                   }}
                   style={styles.picker}
                 >
                   <Picker.Item label="Desde Inventario" value={ProductSourceType.INVENTORY} />
                   <Picker.Item label="Desde Compra" value={ProductSourceType.PURCHASE} />
+                  <Picker.Item label="Desde Recepción" value={ProductSourceType.RECEPTION} />
                 </Picker>
               </View>
             </View>
@@ -996,7 +1496,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               <>
                 {sourceType === ProductSourceType.INVENTORY
                   ? renderManualForm()
-                  : renderFromPurchaseForm()}
+                  : sourceType === ProductSourceType.PURCHASE
+                    ? renderFromPurchaseForm()
+                    : renderFromReceptionForm()}
               </>
             )}
           </View>
@@ -1023,7 +1525,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             onPress={
               sourceType === ProductSourceType.INVENTORY
                 ? handleAddManualProduct
-                : handleAddFromPurchase
+                : sourceType === ProductSourceType.PURCHASE
+                  ? handleAddFromPurchase
+                  : handleAddFromReception
             }
             disabled={loading || loadingData}
           >
@@ -1031,7 +1535,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
-                Agregar Producto{sourceType === ProductSourceType.PURCHASE && 's'}
+                Agregar Producto{sourceType !== ProductSourceType.INVENTORY && 's'}
               </Text>
             )}
           </TouchableOpacity>
@@ -1369,6 +1873,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#92400E',
     textAlign: 'center',
+  },
+  selectAllProductsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    backgroundColor: '#EEF2FF',
+  },
+  selectAllProductsText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3730A3',
+    marginBottom: 2,
+  },
+  selectAllProductsHint: {
+    fontSize: 12,
+    color: '#64748B',
   },
   productItem: {
     borderWidth: 1,

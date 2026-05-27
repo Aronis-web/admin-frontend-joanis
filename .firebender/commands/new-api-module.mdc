@@ -1,0 +1,39 @@
+---
+name: new-api-module
+description: Scaffolding de un módulo nuevo (service + hooks + types)
+mode: write
+---
+
+Crea un módulo completo de integración API siguiendo los patrones del proyecto. El usuario dará el nombre del módulo (singular, lowercase) y los endpoints/operaciones que necesita.
+
+## Archivos a generar
+
+Para un módulo `foo` (ejemplo):
+
+1. **`src/types/foo.ts`** — interfaces `Foo`, `FoosResponse`, `CreateFooRequest`, `UpdateFooRequest`, `QueryFoosParams`. Reutilizar tipos comunes (`PaginatedResponse`, etc.) si existen.
+
+2. **`src/services/api/foo.ts`** — siguiendo `src/services/api/sales.ts`:
+   - Importar `apiClient` de `./client`.
+   - Exportar `fooApi` con métodos async tipados.
+   - JSDoc `/** METHOD /ruta */` por método.
+
+3. **`src/hooks/api/useFoo.ts`** — siguiendo `src/hooks/api/useProducts.ts`:
+   - `fooKeys` con `all`, `lists`, `list(filters)`, `details`, `detail(id)`.
+   - `useFoos`, `useFoo(id)`, `useCreateFoo`, `useUpdateFoo`, `useDeleteFoo` (los que apliquen).
+   - Invalidaciones y `setQueryData` en `onSuccess`.
+   - `logger` en `onError`.
+
+4. **Registrar** `export { fooApi } from './foo';` en `src/services/api/index.ts`, cuidando colisiones de nombres de tipos.
+
+## Antes de empezar
+
+- Pregunta al usuario:
+  - Nombre del módulo (singular y plural).
+  - Endpoints disponibles (método + ruta + descripción).
+  - Si necesita listado paginado, detalle, create, update, delete o solo algunos.
+- Si la API ya tiene un módulo similar como referencia, menciónalo.
+
+## Después de crear los archivos
+
+- Correr `/validate` (typecheck + lint).
+- Sugerir al usuario hacer `/commit-push`.

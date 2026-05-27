@@ -31,11 +31,13 @@ import {
   CampaignStatusLabels,
   CampaignStatusColors,
   CampaignProduct,
+  CampaignProductDetailItem,
   ProductSourceType,
   ProductStatus,
   DistributionType,
   AddProductRequest,
 } from '@/types/campaigns';
+import { useCampaignProductsDetail } from '@/hooks/api/useCampaigns';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { Product } from '@/services/api/products';
@@ -43,6 +45,7 @@ import { PriceProfile, ProductSalePrice } from '@/types/price-profiles';
 import { ParticipantTotalsResponse } from '@/types/participant-totals';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
+import { ProductDistributionsBySiteModal } from '@/components/Campaigns/ProductDistributionsBySiteModal';
 import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
 import { BulkDistributionModal } from '@/components/Campaigns/BulkDistributionModal';
 import { CopyParticipantsModal } from '@/components/Campaigns/CopyParticipantsModal';
@@ -102,6 +105,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [distributionFilter, setDistributionFilter] = useState<
     'all' | 'generated' | 'not-generated'
   >('all');
+  const [supplierFilter, setSupplierFilter] = useState<string>('all');
   const [participantTotals, setParticipantTotals] = useState<ParticipantTotalsResponse | null>(
     null
   );
@@ -113,6 +117,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [isCopyParticipantsModalVisible, setIsCopyParticipantsModalVisible] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+  const [distributionsBySiteProduct, setDistributionsBySiteProduct] =
+    useState<CampaignProduct | null>(null);
 
   // Quick add product states
   const [globalSearchResults, setGlobalSearchResults] = useState<any[]>([]);
@@ -137,6 +143,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const ITEMS_PER_PAGE = 20;
 
   const isTablet = width >= 768 || height >= 768;
+
+  // ✅ Nuevo endpoint compacto: trae todos los datos de productos de la
+  // campaña (stock site, costo, precios, proveedor, fotos) en un único
+  // request. Reemplaza el flujo de "getCampaign embed + batch products
+  // + sale prices".
+  const { data: productsDetailData, refetch: refetchProductsDetail } =
+    useCampaignProductsDetail(campaignId);
+
+  const productsDetailMap = useMemo<Record<string, CampaignProductDetailItem>>(() => {
+    const map: Record<string, CampaignProductDetailItem> = {};
+    productsDetailData?.items?.forEach((item) => {
+      map[item.campaignProductId] = item;
+    });
+    return map;
+  }, [productsDetailData]);
 
   const loadCampaign = useCallback(async () => {
     try {
@@ -205,104 +226,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       }
 
       // Load products for campaign products
+      // ⚡ [PERF] Solo poblamos el map con datos embebidos. El endpoint
+      // compacto `useCampaignProductsDetail` ya trae fotos, stock, precios
+      // y proveedor en un único request, así que NO disparamos el batch
+      // `getProductsByIds` ni las N llamadas paralelas a
+      // `getProductSalePrices`. En campañas con muchos productos eso
+      // saturaba memoria/red y crasheaba el build Electron en producción.
       if (data.products && data.products.length > 0) {
         const productsMap: Record<string, Product> = {};
-
-        logger.info(`📦 Total campaign products: ${data.products.length}`);
-
-        // ✅ SIEMPRE usar batch endpoint para obtener fotos y datos completos
-        // Los productos embebidos en la campaña NO tienen photoUrls ni stockItems completos
-        const allProductIds = data.products
-          .map((p) => p.productId)
-          .filter((id, index, self) => self.indexOf(id) === index); // unique IDs
-
-        if (allProductIds.length > 0) {
-          try {
-            logger.info(
-              `≡ƒöì Fetching ${allProductIds.length} products using V2 batch endpoint (with photos)`
-            );
-
-            // ✅ Usar getProductsByIds para traer productos con fotos
-            const response = await (productsApi as any).getProductsByIds(
-              allProductIds,
-              true // includePhotos
-            );
-
-            // Agregar los productos obtenidos al mapa
-            response.products.forEach((product: Product) => {
-              productsMap[product.id] = product;
-              logger.info(
-                `✅ Fetched product: ${product.id} - ${product.title || product.sku}`
-              );
-            });
-
-            // Verificar si faltó algún producto
-            const fetchedIds = new Set(response.products.map((p: Product) => p.id));
-            const notFoundIds = allProductIds.filter(id => !fetchedIds.has(id));
-            if (notFoundIds.length > 0) {
-              logger.warn(`⚠️ ${notFoundIds.length} products not found:`, notFoundIds);
-            }
-
-            logger.info(
-              `✅ Successfully fetched ${response.products.length}/${allProductIds.length} products (cached: ${response.cached || false})`
-            );
-          } catch (error) {
-            logger.error('Error loading products with batch endpoint:', error);
-
-            // Fallback: Si falla V2 batch, usar productos embebidos
-            logger.warn('⚠️ Fallback to embedded products');
-            data.products.forEach((campaignProduct) => {
-              if (campaignProduct.product) {
-                productsMap[campaignProduct.productId] = campaignProduct.product as any;
-              }
-            });
+        data.products.forEach((campaignProduct) => {
+          if (campaignProduct.product) {
+            productsMap[campaignProduct.productId] = campaignProduct.product as any;
           }
-        }
-
-        logger.info(`≡ƒôï Final products map size: ${Object.keys(productsMap).length}`);
-        logger.info(`≡ƒôï Sample product from map:`, Object.values(productsMap)[0]);
-
+        });
         setProducts(productsMap);
-
-        // OPTIMIZATION: Cargar precios de venta para todos los productos visibles
-        // Esto permite mostrar los primeros 2 perfiles en la vista de lista
-        // Se cargan en paralelo para mejor rendimiento
-        // Solo se cargan para productos que existen en el catálogo (no preliminares)
-        logger.debug('⚡ [PERF] Cargando precios de venta para productos visibles...');
-
-        const productIds = data.products
-          .filter(p => {
-            // Solo cargar precios para productos que tienen datos embebidos o están en productsMap
-            const productExists = p.product || productsMap[p.productId];
-            const isPreliminary = productExists && (productExists as any).status === 'preliminary';
-            return productExists && !isPreliminary;
-          })
-          .map(p => p.productId);
-
-        if (productIds.length > 0) {
-          const salePricesPromises = productIds.map(productId =>
-            priceProfilesApi.getProductSalePrices(productId)
-              .then((response) => {
-                const salePricesArray = (response as any).salePrices || response.data || [];
-                return { productId, salePrices: salePricesArray };
-              })
-              .catch((error) => {
-                logger.debug(`⚠️ [PERF] No se pudieron cargar precios para producto ${productId} (puede ser preliminar o no existir)`);
-                return { productId, salePrices: [] };
-              })
-          );
-
-          Promise.all(salePricesPromises).then((results) => {
-            const salePricesMap: Record<string, any[]> = {};
-            results.forEach(({ productId, salePrices }) => {
-              salePricesMap[productId] = salePrices;
-            });
-            setProductSalePrices(salePricesMap);
-            logger.debug(`✅ [PERF] Precios de venta cargados para ${Object.keys(salePricesMap).length} productos`);
-          });
-        } else {
-          logger.debug('⚠️ [PERF] No hay productos válidos para cargar precios');
-        }
+        logger.info(
+          `📦 Campaign products: ${data.products.length} (detalle compacto vía useCampaignProductsDetail)`
+        );
       }
     } catch (error: any) {
       logger.error('Error loading campaign:', error);
@@ -344,7 +284,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         navigation.setParams({ updatedProductId: undefined } as any);
 
         // Actualizar solo el producto específico en el estado
-        campaignsService.getProduct(campaignId, updatedProductId)
+        campaignsService
+          .getProduct(campaignId, updatedProductId)
           .then((updatedProduct) => {
             setCampaign((prevCampaign) => {
               if (!prevCampaign) return prevCampaign;
@@ -364,7 +305,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       } else if (shouldReload || forceReload) {
         // Clear the param to avoid reloading again
         logger.debug('≡ƒöä [CAMPAIGN] Reloading due to shouldReload/forceReload param');
-        navigation.setParams({ shouldReload: undefined, forceReload: undefined, timestamp: undefined } as any);
+        navigation.setParams({
+          shouldReload: undefined,
+          forceReload: undefined,
+          timestamp: undefined,
+        } as any);
         hasLoadedRef.current = true;
         loadCampaign();
       } else if (skipReloadOnce) {
@@ -387,20 +332,25 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // The cleanup runs when navigating to ANY screen (including child screens like ProductDetail)
       // We only want to reload when explicitly requested via shouldReload param
       // This prevents unnecessary reloads and improves performance significantly
-    }, [loadCampaign, route.params?.shouldReload, route.params?.skipReloadOnce, route.params?.updatedProductId, navigation, campaignId])
+    }, [
+      loadCampaign,
+      route.params?.shouldReload,
+      route.params?.skipReloadOnce,
+      route.params?.updatedProductId,
+      navigation,
+      campaignId,
+    ])
   );
 
-  // Load stock items on mount for quick add functionality
-  React.useEffect(() => {
-    loadStockItems();
-  }, []);
+  // Track whether stock has been loaded (lazy: only when user starts searching)
+  const stockLoadedRef = useRef(false);
 
-  // Load stock items for quick add functionality
+  // Load stock items for quick add functionality (lazy)
   const loadStockItems = useCallback(async () => {
     try {
       const stockResponse: any = await inventoryApi.getAllStock({});
       // El API puede devolver un array o un objeto paginado { data: [...], total, page, limit }
-      const stockArray = Array.isArray(stockResponse) ? stockResponse : (stockResponse?.data || []);
+      const stockArray = Array.isArray(stockResponse) ? stockResponse : stockResponse?.data || [];
       const stockItemsData: StockItem[] = stockArray.map((item: any) => ({
         id: `${item.productId}-${item.warehouseId}-${item.areaId || 'no-area'}`,
         productId: item.productId,
@@ -421,41 +371,44 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   }, []);
 
   // Get product stock from search results (backend now returns stock structure)
-  const getProductStock = useCallback((product: any): { available: number; reserved: number; total: number } => {
-    // If product has stock from backend (v2 search), use it
-    if (product.stock) {
-      // Backend returns stock structure for both preliminary and active products
-      if (typeof product.stock === 'object') {
+  const getProductStock = useCallback(
+    (product: any): { available: number; reserved: number; total: number } => {
+      // If product has stock from backend (v2 search), use it
+      if (product.stock) {
+        // Backend returns stock structure for both preliminary and active products
+        if (typeof product.stock === 'object') {
+          return {
+            available: product.stock.available || 0,
+            reserved: product.stock.reserved || 0,
+            total: product.stock.total || 0,
+          };
+        }
+        // Fallback: if stock is a number (old format)
         return {
-          available: product.stock.available || 0,
-          reserved: product.stock.reserved || 0,
-          total: product.stock.total || 0,
+          available: product.stock,
+          reserved: 0,
+          total: product.stock,
         };
       }
-      // Fallback: if stock is a number (old format)
-      return {
-        available: product.stock,
-        reserved: 0,
-        total: product.stock,
-      };
-    }
 
-    // Fallback: calculate from stockItems (old method, shouldn't be needed with v2 search)
-    const productStockItems = stockItems.filter((item) => item.productId === product.id);
-    if (productStockItems.length === 0) {
-      return { available: 0, reserved: 0, total: 0 };
-    }
-    const totalStock = productStockItems.reduce((total: number, item: StockItem) => {
-      const quantity =
-        typeof item.availableQuantityBase === 'number'
-          ? item.availableQuantityBase
-          : typeof item.quantityBase === 'string'
-            ? parseFloat(item.quantityBase)
-            : item.quantityBase || 0;
-      return total + quantity;
-    }, 0);
-    return { available: totalStock, reserved: 0, total: totalStock };
-  }, [stockItems]);
+      // Fallback: calculate from stockItems (old method, shouldn't be needed with v2 search)
+      const productStockItems = stockItems.filter((item) => item.productId === product.id);
+      if (productStockItems.length === 0) {
+        return { available: 0, reserved: 0, total: 0 };
+      }
+      const totalStock = productStockItems.reduce((total: number, item: StockItem) => {
+        const quantity =
+          typeof item.availableQuantityBase === 'number'
+            ? item.availableQuantityBase
+            : typeof item.quantityBase === 'string'
+              ? parseFloat(item.quantityBase)
+              : item.quantityBase || 0;
+        return total + quantity;
+      }, 0);
+      return { available: totalStock, reserved: 0, total: totalStock };
+    },
+    [stockItems]
+  );
 
   // Global search for products not in campaign
   const searchGlobalProducts = useCallback(async (query: string) => {
@@ -487,12 +440,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           return acc;
         }, {});
         console.log('≡ƒôè Products by status:', statusCounts);
-        console.log('📦 Sample products:', response.results.slice(0, 5).map((p: any) => ({
-          id: p.id,
-          sku: p.sku,
-          title: p.title,
-          status: p.status,
-        })));
+        console.log(
+          '📦 Sample products:',
+          response.results.slice(0, 5).map((p: any) => ({
+            id: p.id,
+            sku: p.sku,
+            title: p.title,
+            status: p.status,
+          }))
+        );
 
         setGlobalSearchResults(response.results);
         setShowGlobalSearchSuggestions(response.results.length > 0);
@@ -513,107 +469,154 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
   }, []);
 
-  // Handle search query change with debounce
-  const handleSearchQueryChange = useCallback((text: string) => {
-    setSearchQuery(text);
+  /**
+   * Cuando el usuario escanea con un lector de código de barras, el
+   * dispositivo envía todo el código rápido seguido de Enter. Capturamos
+   * `onSubmitEditing`: si el texto coincide exactamente con el barcode de
+   * algún producto de la campaña, abrimos directamente su banner.
+   */
+  const handleSearchSubmit = useCallback(() => {
+    const raw = searchQuery.trim();
+    if (!raw || !campaign?.products) return;
+    const target = raw.toLowerCase();
 
-    // Clear previous timeout
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
+    const match = campaign.products.find((product) => {
+      const detail = productsDetailMap[product.id];
+      const productDetails = product.product || products[product.productId];
+      const barcode = (detail?.barcode || (productDetails as any)?.barcode || '')
+        .toString()
+        .toLowerCase();
+      if (!barcode) return false;
+      return barcode === target;
+    });
 
-    // If query is empty, hide suggestions
-    if (!text.trim()) {
+    if (match) {
+      setSelectedProduct(match);
+      setShowBannerModal(true);
+      setSearchQuery('');
       setGlobalSearchResults([]);
       setShowGlobalSearchSuggestions(false);
-      return;
     }
+  }, [searchQuery, campaign?.products, productsDetailMap, products]);
 
-    // Set new timeout for debounced search
-    const timeout = setTimeout(() => {
-      searchGlobalProducts(text);
-    }, 800);
+  // Handle search query change with debounce
+  const handleSearchQueryChange = useCallback(
+    (text: string) => {
+      setSearchQuery(text);
 
-    setSearchTimeout(timeout);
-  }, [searchTimeout, searchGlobalProducts]);
+      // Lazy-load stock items the first time the user actually searches
+      if (!stockLoadedRef.current && text.trim().length > 0) {
+        stockLoadedRef.current = true;
+        void loadStockItems();
+      }
+
+      // Clear previous timeout
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+
+      // If query is empty, hide suggestions
+      if (!text.trim()) {
+        setGlobalSearchResults([]);
+        setShowGlobalSearchSuggestions(false);
+        return;
+      }
+
+      // Set new timeout for debounced search
+      const timeout = setTimeout(() => {
+        searchGlobalProducts(text);
+      }, 800);
+
+      setSearchTimeout(timeout);
+    },
+    [searchTimeout, searchGlobalProducts, loadStockItems]
+  );
 
   // Quick add product with available stock
-  const handleQuickAddProduct = useCallback(async (product: any) => {
-    if (!campaign) return;
+  const handleQuickAddProduct = useCallback(
+    async (product: any) => {
+      if (!campaign) return;
 
-    const stockInfo = getProductStock(product);
+      const stockInfo = getProductStock(product);
 
-    if (stockInfo.available <= 0) {
-      Alert.alert('Sin stock', 'Este producto no tiene stock disponible');
-      return;
-    }
+      if (stockInfo.available <= 0) {
+        Alert.alert('Sin stock', 'Este producto no tiene stock disponible');
+        return;
+      }
 
-    setAddingQuickProduct(true);
-    try {
-      const actualProductStatus =
-        product.status === 'preliminary'
-          ? ProductStatus.PRELIMINARY
-          : ProductStatus.ACTIVE;
+      setAddingQuickProduct(true);
+      try {
+        const actualProductStatus =
+          product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE;
 
-      const data: AddProductRequest = {
-        productId: product.id,
-        sourceType: ProductSourceType.INVENTORY,
-        totalQuantity: stockInfo.available, // Use available stock (total - reserved)
-        productStatus: actualProductStatus,
-        distributionType: DistributionType.ALL,
-      };
+        const data: AddProductRequest = {
+          productId: product.id,
+          sourceType: ProductSourceType.INVENTORY,
+          totalQuantity: stockInfo.available, // Use available stock (total - reserved)
+          productStatus: actualProductStatus,
+          distributionType: DistributionType.ALL,
+        };
 
-      await campaignsService.addProduct(campaignId, data);
+        await campaignsService.addProduct(campaignId, data);
 
-      Alert.alert('├ëxito', `Producto agregado con ${stockInfo.available} unidades disponibles`);
+        Alert.alert('Éxito', `Producto agregado con ${stockInfo.available} unidades disponibles`);
 
-      // Don't clear search - keep it to allow adding multiple products
-      // Just reload campaign to update the list
-      loadCampaign();
-    } catch (error: any) {
-      console.error('Error adding product:', error);
-      Alert.alert('Error', error.response?.data?.message || 'No se pudo agregar el producto');
-    } finally {
-      setAddingQuickProduct(false);
-    }
-  }, [campaign, campaignId, getProductStock, loadCampaign]);
+        // Don't clear search - keep it to allow adding multiple products
+        // Just reload campaign to update the list
+        loadCampaign();
+      } catch (error: any) {
+        console.error('Error adding product:', error);
+        Alert.alert('Error', error.response?.data?.message || 'No se pudo agregar el producto');
+      } finally {
+        setAddingQuickProduct(false);
+      }
+    },
+    [campaign, campaignId, getProductStock, loadCampaign]
+  );
 
   // Open custom add modal
-  const handleOpenCustomAddModal = useCallback((product: any) => {
-    const stockInfo = getProductStock(product);
-    setSelectedProductForCustomAdd(product);
-    setCustomQuantity(stockInfo.available.toString());
-    setShowCustomAddModal(true);
-  }, [getProductStock]);
+  const handleOpenCustomAddModal = useCallback(
+    (product: any) => {
+      const stockInfo = getProductStock(product);
+      setSelectedProductForCustomAdd(product);
+      setCustomQuantity(stockInfo.available.toString());
+      setShowCustomAddModal(true);
+    },
+    [getProductStock]
+  );
 
   // Open banner modal from global search
-  const handleOpenBannerFromSearch = useCallback(async (product: any) => {
-    try {
-      console.log('🎯 Opening banner from search for product:', product.sku);
+  const handleOpenBannerFromSearch = useCallback(
+    async (product: any) => {
+      try {
+        console.log('🎯 Opening banner from search for product:', product.sku);
 
-      // Fetch full product details to get costCents and other info
-      const fullProductDetails = await productsApi.getProduct(product.id);
-      console.log('📦 Full product details:', fullProductDetails);
-      console.log('💰 Cost from API:', fullProductDetails.costCents);
+        // Fetch full product details to get costCents and other info
+        const fullProductDetails = await productsApi.getProduct(product.id);
+        console.log('📦 Full product details:', fullProductDetails);
+        console.log('💰 Cost from API:', (fullProductDetails as any).costCents);
 
-      // Create a mock campaign product structure for the banner modal
-      const mockCampaignProduct = {
-        productId: product.id,
-        campaignId: campaignId,
-        totalQuantityBase: 0, // No quantity yet since it's not added to campaign
-        productStatus: product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE,
-        distributionGenerated: false,
-        product: fullProductDetails, // Use fullProductDetails instead of product to ensure we have costCents
-      };
+        // Create a mock campaign product structure for the banner modal
+        const mockCampaignProduct = {
+          productId: product.id,
+          campaignId: campaignId,
+          totalQuantityBase: 0, // No quantity yet since it's not added to campaign
+          productStatus:
+            product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE,
+          distributionGenerated: false,
+          product: fullProductDetails, // Use fullProductDetails instead of product to ensure we have costCents
+        };
 
-      setSelectedProductForBannerSearch(mockCampaignProduct);
-      setProductDetailsForBannerSearch(fullProductDetails);
-      setShowBannerModalFromSearch(true);
-    } catch (error) {
-      console.error('Error loading product details for banner:', error);
-      Alert.alert('Error', 'No se pudieron cargar los detalles del producto');
-    }
-  }, [campaignId]);
+        setSelectedProductForBannerSearch(mockCampaignProduct);
+        setProductDetailsForBannerSearch(fullProductDetails);
+        setShowBannerModalFromSearch(true);
+      } catch (error) {
+        console.error('Error loading product details for banner:', error);
+        Alert.alert('Error', 'No se pudieron cargar los detalles del producto');
+      }
+    },
+    [campaignId]
+  );
 
   // Handle custom add product with specific quantity
   const handleCustomAddProduct = useCallback(async () => {
@@ -628,7 +631,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
 
     if (quantity > stockInfo.available) {
-      Alert.alert('Error', `La cantidad no puede ser mayor al stock disponible (${stockInfo.available})`);
+      Alert.alert(
+        'Error',
+        `La cantidad no puede ser mayor al stock disponible (${stockInfo.available})`
+      );
       return;
     }
 
@@ -649,7 +655,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
       await campaignsService.addProduct(campaignId, data);
 
-      Alert.alert('├ëxito', `Producto agregado con ${quantity} unidades`);
+      Alert.alert('Éxito', `Producto agregado con ${quantity} unidades`);
 
       // Close modal and reset
       setShowCustomAddModal(false);
@@ -665,12 +671,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     } finally {
       setAddingQuickProduct(false);
     }
-  }, [campaign, campaignId, selectedProductForCustomAdd, customQuantity, getProductStock, loadCampaign]);
+  }, [
+    campaign,
+    campaignId,
+    selectedProductForCustomAdd,
+    customQuantity,
+    getProductStock,
+    loadCampaign,
+  ]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     hasLoadedRef.current = true; // Mark as loaded to prevent duplicate loads
     loadCampaign();
+    refetchProductsDetail();
   };
 
   const handleActivate = async () => {
@@ -680,7 +694,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
     Alert.alert(
       'Activar Campaña',
-      '┬┐Estás seguro de activar esta campaña? Podrás seguir editando y eliminando participantes y productos hasta que cierres la campaña.',
+      '¿Estás seguro de activar esta campaña? Podrás seguir editando y eliminando participantes y productos hasta que cierres la campaña.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -690,7 +704,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             setActionLoading(true);
             try {
               await campaignsService.activateCampaign(campaignId);
-              Alert.alert('├ëxito', 'Campaña activada exitosamente');
+              Alert.alert('Éxito', 'Campaña activada exitosamente');
               loadCampaign();
             } catch (error: any) {
               Alert.alert(
@@ -713,7 +727,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
     Alert.alert(
       'Cerrar Campaña',
-      '┬┐Estás seguro de cerrar esta campaña? Esta acción no se puede deshacer.',
+      '¿Estás seguro de cerrar esta campaña? Esta acción no se puede deshacer.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -723,7 +737,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             setActionLoading(true);
             try {
               await campaignsService.closeCampaign(campaignId);
-              Alert.alert('├ëxito', 'Campaña cerrada exitosamente');
+              Alert.alert('Éxito', 'Campaña cerrada exitosamente');
               loadCampaign();
             } catch (error: any) {
               Alert.alert('Error', error.response?.data?.message || 'No se pudo cerrar la campaña');
@@ -741,7 +755,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       return;
     }
 
-    Alert.alert('Cancelar Campaña', '┬┐Estás seguro de cancelar esta campaña?', [
+    Alert.alert('Cancelar Campaña', '¿Estás seguro de cancelar esta campaña?', [
       { text: 'No', style: 'cancel' },
       {
         text: 'Sí, Cancelar',
@@ -750,7 +764,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           setActionLoading(true);
           try {
             await campaignsService.cancelCampaign(campaignId);
-            Alert.alert('├ëxito', 'Campaña cancelada exitosamente');
+            Alert.alert('Éxito', 'Campaña cancelada exitosamente');
             loadCampaign();
           } catch (error: any) {
             Alert.alert('Error', error.response?.data?.message || 'No se pudo cancelar la campaña');
@@ -774,24 +788,18 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     });
   }, []);
 
-  const getStatusBadgeStyle = useCallback(
-    (status: CampaignStatus) => {
-      return {
-        backgroundColor: CampaignStatusColors[status] + '20',
-        borderColor: CampaignStatusColors[status],
-      };
-    },
-    []
-  );
+  const getStatusBadgeStyle = useCallback((status: CampaignStatus) => {
+    return {
+      backgroundColor: CampaignStatusColors[status] + '20',
+      borderColor: CampaignStatusColors[status],
+    };
+  }, []);
 
-  const getStatusTextStyle = useCallback(
-    (status: CampaignStatus) => {
-      return {
-        color: CampaignStatusColors[status],
-      };
-    },
-    []
-  );
+  const getStatusTextStyle = useCallback((status: CampaignStatus) => {
+    return {
+      color: CampaignStatusColors[status],
+    };
+  }, []);
 
   const tabs = useMemo<Array<{ key: TabType; label: string }>>(
     () => [
@@ -1020,59 +1028,62 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return `S/ ${(cents / 100).toFixed(2)}`;
   }, []);
 
-  const handleCopyParticipantsFromCampaign = useCallback(async (sourceCampaign: Campaign) => {
-    try {
-      if (!sourceCampaign || !sourceCampaign.participants) {
-        Alert.alert('Error', 'No se encontraron participantes en la campaña seleccionada');
-        setActionLoading(false);
-        return;
-      }
-
-      // Copy each participant
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const participant of sourceCampaign.participants) {
-        try {
-          const participantData: any = {
-            participantType: participant.participantType,
-            assignedAmount: participant.assignedAmountCents / 100,
-            currency: participant.currency,
-          };
-
-          if (participant.participantType === 'EXTERNAL_COMPANY' && participant.companyId) {
-            participantData.companyId = participant.companyId;
-          } else if (participant.participantType === 'INTERNAL_SITE' && participant.siteId) {
-            participantData.siteId = participant.siteId;
-          }
-
-          if (participant.priceProfileId) {
-            participantData.priceProfileId = participant.priceProfileId;
-          }
-
-          await campaignsService.addParticipant(campaignId, participantData);
-          successCount++;
-        } catch (error) {
-          errorCount++;
-          logger.error('Error copying participant:', error);
+  const handleCopyParticipantsFromCampaign = useCallback(
+    async (sourceCampaign: Campaign) => {
+      try {
+        if (!sourceCampaign || !sourceCampaign.participants) {
+          Alert.alert('Error', 'No se encontraron participantes en la campaña seleccionada');
+          setActionLoading(false);
+          return;
         }
-      }
 
-      if (successCount > 0) {
-        Alert.alert(
-          '├ëxito',
-          `Se copiaron ${successCount} participante(s) correctamente${errorCount > 0 ? `. ${errorCount} fallaron.` : ''}`,
-          [{ text: 'OK', onPress: () => loadCampaign() }]
-        );
-      } else {
-        Alert.alert('Error', 'No se pudo copiar ningún participante');
+        // Copy each participant
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const participant of sourceCampaign.participants) {
+          try {
+            const participantData: any = {
+              participantType: participant.participantType,
+              assignedAmount: participant.assignedAmountCents / 100,
+              currency: participant.currency,
+            };
+
+            if (participant.participantType === 'EXTERNAL_COMPANY' && participant.companyId) {
+              participantData.companyId = participant.companyId;
+            } else if (participant.participantType === 'INTERNAL_SITE' && participant.siteId) {
+              participantData.siteId = participant.siteId;
+            }
+
+            if (participant.priceProfileId) {
+              participantData.priceProfileId = participant.priceProfileId;
+            }
+
+            await campaignsService.addParticipant(campaignId, participantData);
+            successCount++;
+          } catch (error) {
+            errorCount++;
+            logger.error('Error copying participant:', error);
+          }
+        }
+
+        if (successCount > 0) {
+          Alert.alert(
+            'Éxito',
+            `Se copiaron ${successCount} participante(s) correctamente${errorCount > 0 ? `. ${errorCount} fallaron.` : ''}`,
+            [{ text: 'OK', onPress: () => loadCampaign() }]
+          );
+        } else {
+          Alert.alert('Error', 'No se pudo copiar ningún participante');
+        }
+      } catch (error: any) {
+        Alert.alert('Error', error.message || 'No se pudieron copiar los participantes');
+      } finally {
+        setActionLoading(false);
       }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'No se pudieron copiar los participantes');
-    } finally {
-      setActionLoading(false);
-    }
-  }, [campaignId, loadCampaign]);
+    },
+    [campaignId, loadCampaign]
+  );
 
   const handleOpenCopyParticipantsModal = useCallback(async () => {
     try {
@@ -1113,7 +1124,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // Show confirmation dialog
       Alert.alert(
         'Copiar Participantes',
-        `┬┐Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campaña "${latestCampaign.code} - ${latestCampaign.name}"?`,
+        `¿Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campaña "${latestCampaign.code} - ${latestCampaign.name}"?`,
         [
           {
             text: 'Cancelar',
@@ -1155,7 +1166,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               let successCount = 0;
               let errorCount = 0;
 
-              for (const participant of campaign.participants) {
+              for (const participant of campaign.participants ?? []) {
                 try {
                   await campaignsService.deleteParticipant(campaignId, participant.id);
                   successCount++;
@@ -1213,8 +1224,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     style={[styles.deleteAllButton, isTablet && styles.deleteAllButtonTablet]}
                     onPress={handleDeleteAllParticipants}
                   >
-                    <Text style={[styles.deleteAllButtonText, isTablet && styles.deleteAllButtonTextTablet]}>
-                      ≡ƒòÅ´∏è Eliminar Todos
+                    <Text
+                      style={[
+                        styles.deleteAllButtonText,
+                        isTablet && styles.deleteAllButtonTextTablet,
+                      ]}
+                    >
+                      🗑️ Eliminar Todos
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1223,7 +1239,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   onPress={() => setIsCopyParticipantsModalVisible(true)}
                 >
                   <Text style={[styles.copyButtonText, isTablet && styles.copyButtonTextTablet]}>
-                    ≡ƒôï Copiar
+                    📋 Copiar
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1295,27 +1311,32 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           )}
 
           {/* Download General Report Button - Participant Totals */}
-          {campaign.participants && campaign.participants.length > 0 && !permissionsLoading && hasPermission(PERMISSIONS.REPARTOS.REPORTS) && (
-            <TouchableOpacity
-              style={[
-                styles.downloadGeneralReportButton,
-                isTablet && styles.downloadGeneralReportButtonTablet,
-                downloadingReport && styles.downloadButtonDisabled,
-              ]}
-              onPress={handleDownloadGeneralReport}
-              disabled={downloadingReport}
-              activeOpacity={0.7}
-            >
-              <Text
+          {campaign.participants &&
+            campaign.participants.length > 0 &&
+            !permissionsLoading &&
+            hasPermission(PERMISSIONS.REPARTOS.REPORTS) && (
+              <TouchableOpacity
                 style={[
-                  styles.downloadGeneralReportButtonText,
-                  isTablet && styles.downloadGeneralReportButtonTextTablet,
+                  styles.downloadGeneralReportButton,
+                  isTablet && styles.downloadGeneralReportButtonTablet,
+                  downloadingReport && styles.downloadButtonDisabled,
                 ]}
+                onPress={handleDownloadGeneralReport}
+                disabled={downloadingReport}
+                activeOpacity={0.7}
               >
-                {downloadingReport ? '≡ƒôä Generando...' : '≡ƒôä Descargar Reporte General de Totales de Participantes'}
-              </Text>
-            </TouchableOpacity>
-          )}
+                <Text
+                  style={[
+                    styles.downloadGeneralReportButtonText,
+                    isTablet && styles.downloadGeneralReportButtonTextTablet,
+                  ]}
+                >
+                  {downloadingReport
+                    ? '📄 Generando...'
+                    : '📄 Descargar Reporte General de Totales de Participantes'}
+                </Text>
+              </TouchableOpacity>
+            )}
 
           {!campaign.participants || campaign.participants.length === 0 ? (
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
@@ -1336,8 +1357,18 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
                 if (a.participantType === 'EXTERNAL_COMPANY') {
                   // For external companies, use alias if available, otherwise use name
-                  nameA = a.company?.alias || a.company?.name || companies[a.companyId!]?.alias || companies[a.companyId!]?.name || '';
-                  nameB = b.company?.alias || b.company?.name || companies[b.companyId!]?.alias || companies[b.companyId!]?.name || '';
+                  nameA =
+                    a.company?.alias ||
+                    a.company?.name ||
+                    companies[a.companyId!]?.alias ||
+                    companies[a.companyId!]?.name ||
+                    '';
+                  nameB =
+                    b.company?.alias ||
+                    b.company?.name ||
+                    companies[b.companyId!]?.alias ||
+                    companies[b.companyId!]?.name ||
+                    '';
                 } else {
                   // For internal sites, use site name
                   nameA = a.site?.name || sites[a.siteId!]?.name || '';
@@ -1347,179 +1378,192 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
               })
               .map((participant) => {
-              // Find totals for this participant
-              const participantTotal = participantTotals?.participants.find(
-                (p) => p.participantId === participant.id
-              );
-
-              // Debug: Log participant data to identify the issue
-              logger.debug(`🔍 Participant ${participant.id}:`, {
-                participantId: participant.id,
-                participantType: participant.participantType,
-                companyId: participant.companyId,
-                siteId: participant.siteId,
-                embeddedCompany: participant.company,
-                embeddedSite: participant.site,
-                foundTotal: !!participantTotal,
-                totalData: participantTotal ? {
-                  participantId: participantTotal.participantId,
-                  totalPurchaseCents: participantTotal.totalPurchaseCents,
-                  totalSaleCents: participantTotal.totalSaleCents,
-                } : null,
-              });
-
-              // Debug: Log all available participant totals
-              if (participantTotals?.participants) {
-                logger.debug(`📊 Available participant totals (${participantTotals.participants.length}):`,
-                  participantTotals.participants.map(pt => ({
-                    participantId: pt.participantId,
-                    participantName: pt.participantName,
-                    totalPurchaseCents: pt.totalPurchaseCents,
-                  }))
+                // Find totals for this participant
+                const participantTotal = participantTotals?.participants.find(
+                  (p) => p.participantId === participant.id
                 );
-              }
 
-              return (
-                <View
-                  key={participant.id}
-                  style={[styles.participantCard, isTablet && styles.participantCardTablet]}
-                >
-                  <TouchableOpacity
-                    style={styles.participantCardMain}
-                    onPress={() =>
-                      navigation.navigate('ParticipantDetail', {
-                        campaignId,
-                        participantId: participant.id,
-                      })
-                    }
+                // Debug: Log participant data to identify the issue
+                logger.debug(`🔍 Participant ${participant.id}:`, {
+                  participantId: participant.id,
+                  participantType: participant.participantType,
+                  companyId: participant.companyId,
+                  siteId: participant.siteId,
+                  embeddedCompany: participant.company,
+                  embeddedSite: participant.site,
+                  foundTotal: !!participantTotal,
+                  totalData: participantTotal
+                    ? {
+                        participantId: participantTotal.participantId,
+                        totalPurchaseCents: participantTotal.totalPurchaseCents,
+                        totalSaleCents: participantTotal.totalSaleCents,
+                      }
+                    : null,
+                });
+
+                // Debug: Log all available participant totals
+                if (participantTotals?.participants) {
+                  logger.debug(
+                    `📊 Available participant totals (${participantTotals.participants.length}):`,
+                    participantTotals.participants.map((pt) => ({
+                      participantId: pt.participantId,
+                      participantName: pt.participantName,
+                      totalPurchaseCents: pt.totalPurchaseCents,
+                    }))
+                  );
+                }
+
+                return (
+                  <View
+                    key={participant.id}
+                    style={[styles.participantCard, isTablet && styles.participantCardTablet]}
                   >
-                    <View style={styles.listItemContent}>
-                      <View style={styles.participantHeader}>
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}
-                          >
-                            {participant.participantType === 'EXTERNAL_COMPANY'
-                              ? participant.company?.alias ||
-                                participant.company?.name ||
-                                companies[participant.companyId!]?.alias ||
-                                companies[participant.companyId!]?.name ||
-                                `Empresa ID: ${participant.companyId}`
-                              : participant.site?.name ||
-                                sites[participant.siteId!]?.name ||
-                                `Sede ID: ${participant.siteId}`}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.listItemSubtitle,
-                              isTablet && styles.listItemSubtitleTablet,
-                            ]}
-                          >
-                            {participant.participantType === 'EXTERNAL_COMPANY'
-                              ? 'Empresa Externa'
-                              : 'Sede Interna'}
-                            {(participant.site?.code || sites[participant.siteId!]?.code) &&
-                              ` - ${participant.site?.code || sites[participant.siteId!]?.code}`}
-                          </Text>
-                        </View>
-                        {(campaign.status === CampaignStatus.DRAFT ||
-                          campaign.status === CampaignStatus.ACTIVE) && (
-                          <TouchableOpacity
-                            style={[
-                              styles.editParticipantButton,
-                              isTablet && styles.editParticipantButtonTablet,
-                            ]}
-                            onPress={(e) => {
-                              e.stopPropagation();
-                              navigation.navigate('EditCampaignParticipant', {
-                                campaignId,
-                                participantId: participant.id,
-                                participant,
-                              });
-                            }}
-                          >
+                    <TouchableOpacity
+                      style={styles.participantCardMain}
+                      onPress={() =>
+                        navigation.navigate('ParticipantDetail', {
+                          campaignId,
+                          participantId: participant.id,
+                        })
+                      }
+                    >
+                      <View style={styles.listItemContent}>
+                        <View style={styles.participantHeader}>
+                          <View style={{ flex: 1 }}>
                             <Text
-                              style={[
-                                styles.editParticipantButtonText,
-                                isTablet && styles.editParticipantButtonTextTablet,
-                              ]}
+                              style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}
                             >
-                              ✏️ Editar
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-
-                      {/* Totals Display */}
-                      {participantTotal && (
-                        <View style={styles.totalsContainer}>
-                          <View style={styles.totalRow}>
-                            <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
-                              Esperado:
+                              {participant.participantType === 'EXTERNAL_COMPANY'
+                                ? participant.company?.alias ||
+                                  participant.company?.name ||
+                                  companies[participant.companyId!]?.alias ||
+                                  companies[participant.companyId!]?.name ||
+                                  `Empresa ID: ${participant.companyId}`
+                                : participant.site?.name ||
+                                  sites[participant.siteId!]?.name ||
+                                  `Sede ID: ${participant.siteId}`}
                             </Text>
                             <Text
                               style={[
-                                styles.totalValueExpected,
-                                isTablet && styles.totalValueTablet,
+                                styles.listItemSubtitle,
+                                isTablet && styles.listItemSubtitleTablet,
                               ]}
                             >
-                              {formatCurrency(participant.assignedAmountCents)}
+                              {participant.participantType === 'EXTERNAL_COMPANY'
+                                ? 'Empresa Externa'
+                                : 'Sede Interna'}
+                              {(participant.site?.code || sites[participant.siteId!]?.code) &&
+                                ` - ${participant.site?.code || sites[participant.siteId!]?.code}`}
                             </Text>
                           </View>
-                          <View style={styles.totalRow}>
-                            <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
-                              Compra:
-                            </Text>
-                            <Text
+                          {(campaign.status === CampaignStatus.DRAFT ||
+                            campaign.status === CampaignStatus.ACTIVE) && (
+                            <TouchableOpacity
                               style={[
-                                styles.totalValuePurchase,
-                                isTablet && styles.totalValueTablet,
+                                styles.editParticipantButton,
+                                isTablet && styles.editParticipantButtonTablet,
                               ]}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                navigation.navigate('EditCampaignParticipant', {
+                                  campaignId,
+                                  participantId: participant.id,
+                                  participant,
+                                });
+                              }}
                             >
-                              {formatCurrency(participantTotal.totalPurchaseCents)}
-                            </Text>
-                          </View>
-                          <View style={styles.totalRow}>
-                            <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
-                              Venta:
-                            </Text>
-                            <Text
-                              style={[styles.totalValueSale, isTablet && styles.totalValueTablet]}
-                            >
-                              {formatCurrency(participantTotal.totalSaleCents)}
-                            </Text>
-                          </View>
-                          <View style={styles.totalRow}>
-                            <Text style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}>
-                              Margen:
-                            </Text>
-                            <View style={styles.marginValueContainer}>
                               <Text
                                 style={[
-                                  styles.totalValueMargin,
+                                  styles.editParticipantButtonText,
+                                  isTablet && styles.editParticipantButtonTextTablet,
+                                ]}
+                              >
+                                ✏️ Editar
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+
+                        {/* Totals Display */}
+                        {participantTotal && (
+                          <View style={styles.totalsContainer}>
+                            <View style={styles.totalRow}>
+                              <Text
+                                style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}
+                              >
+                                Esperado:
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.totalValueExpected,
                                   isTablet && styles.totalValueTablet,
                                 ]}
                               >
-                                {formatCurrency(participantTotal.marginCents)}
+                                {formatCurrency(participant.assignedAmountCents)}
+                              </Text>
+                            </View>
+                            <View style={styles.totalRow}>
+                              <Text
+                                style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}
+                              >
+                                Compra:
                               </Text>
                               <Text
                                 style={[
-                                  styles.marginPercentage,
-                                  isTablet && styles.marginPercentageTablet,
+                                  styles.totalValuePurchase,
+                                  isTablet && styles.totalValueTablet,
                                 ]}
                               >
-                                ({participantTotal.marginPercentage.toFixed(2)}%)
+                                {formatCurrency(participantTotal.totalPurchaseCents)}
                               </Text>
                             </View>
+                            <View style={styles.totalRow}>
+                              <Text
+                                style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}
+                              >
+                                Venta:
+                              </Text>
+                              <Text
+                                style={[styles.totalValueSale, isTablet && styles.totalValueTablet]}
+                              >
+                                {formatCurrency(participantTotal.totalSaleCents)}
+                              </Text>
+                            </View>
+                            <View style={styles.totalRow}>
+                              <Text
+                                style={[styles.totalLabel, isTablet && styles.totalLabelTablet]}
+                              >
+                                Margen:
+                              </Text>
+                              <View style={styles.marginValueContainer}>
+                                <Text
+                                  style={[
+                                    styles.totalValueMargin,
+                                    isTablet && styles.totalValueTablet,
+                                  ]}
+                                >
+                                  {formatCurrency(participantTotal.marginCents)}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.marginPercentage,
+                                    isTablet && styles.marginPercentageTablet,
+                                  ]}
+                                >
+                                  ({participantTotal.marginPercentage.toFixed(2)}%)
+                                </Text>
+                              </View>
+                            </View>
                           </View>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>ΓÇ║</Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })
+                        )}
+                      </View>
+                      <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>
+                        ΓÇ║
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
           )}
         </View>
       </View>
@@ -1536,49 +1580,52 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     setSelectedImageUri(null);
   }, []);
 
-  const handleDeleteProduct = useCallback(async (product: CampaignProduct) => {
-    Alert.alert(
-      'Eliminar Producto',
-      `┬┐Estás seguro de eliminar "${product.product?.title || 'este producto'}" de la campaña?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setActionLoading(true);
-              await campaignsService.deleteProduct(campaignId, product.id);
+  const handleDeleteProduct = useCallback(
+    async (product: CampaignProduct) => {
+      Alert.alert(
+        'Eliminar Producto',
+        `¿Estás seguro de eliminar "${product.product?.title || 'este producto'}" de la campaña?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                setActionLoading(true);
+                await campaignsService.deleteProduct(campaignId, product.id);
 
-              // Update local state instead of reloading everything
-              setCampaign((prevCampaign) => {
-                if (!prevCampaign || !prevCampaign.products) {
-                  return prevCampaign;
-                }
-                return {
-                  ...prevCampaign,
-                  products: prevCampaign.products.filter((p) => p.id !== product.id),
-                };
-              });
+                // Update local state instead of reloading everything
+                setCampaign((prevCampaign) => {
+                  if (!prevCampaign || !prevCampaign.products) {
+                    return prevCampaign;
+                  }
+                  return {
+                    ...prevCampaign,
+                    products: prevCampaign.products.filter((p) => p.id !== product.id),
+                  };
+                });
 
-              // Remove from product sale prices
-              setProductSalePrices((prevPrices) => {
-                const { [product.productId]: removed, ...rest } = prevPrices;
-                return rest;
-              });
+                // Remove from product sale prices
+                setProductSalePrices((prevPrices) => {
+                  const { [product.productId]: removed, ...rest } = prevPrices;
+                  return rest;
+                });
 
-              Alert.alert('├ëxito', 'Producto eliminado de la campaña');
-            } catch (error: any) {
-              logger.error('Error deleting product:', error);
-              Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
-            } finally {
-              setActionLoading(false);
-            }
+                Alert.alert('Éxito', 'Producto eliminado de la campaña');
+              } catch (error: any) {
+                logger.error('Error deleting product:', error);
+                Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
+              } finally {
+                setActionLoading(false);
+              }
+            },
           },
-        },
-      ]
-    );
-  }, [campaignId]);
+        ]
+      );
+    },
+    [campaignId]
+  );
 
   const handleShowBanner = useCallback((product: CampaignProduct) => {
     setSelectedProduct(product);
@@ -1591,96 +1638,104 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     // No need to reload campaign - the modal updates its own state locally
   }, []);
 
-  const handleRefreshProductFromBanner = useCallback(async (updatedProductParam?: CampaignProduct) => {
-    if (!selectedProduct) {
-      return;
-    }
-
-    logger.debug('≡ƒöä [BANNER] Actualizando producto específico:', selectedProduct.id);
-
-    try {
-      // Use provided updated product or fetch it
-      let updatedProduct: CampaignProduct;
-
-      if (updatedProductParam) {
-        logger.debug('✅ [BANNER] Usando producto actualizado proporcionado');
-        updatedProduct = updatedProductParam;
-      } else {
-        logger.debug('≡ƒöä [BANNER] Obteniendo producto actualizado del servidor');
-        // Fetch only the updated product
-        updatedProduct = await campaignsService.getProduct(campaignId, selectedProduct.productId);
+  const handleRefreshProductFromBanner = useCallback(
+    async (updatedProductParam?: CampaignProduct) => {
+      if (!selectedProduct) {
+        return;
       }
 
-      logger.debug('✅ [BANNER] Producto actualizado:', {
-        productId: updatedProduct.id,
-        distributionGenerated: updatedProduct.distributionGenerated,
-        productStatus: updatedProduct.productStatus,
-      });
+      logger.debug('≡ƒöä [BANNER] Actualizando producto específico:', selectedProduct.id);
 
-      // Update the product in the campaign state
-      setCampaign((prev) => {
-        if (!prev || !prev.products) return prev;
+      try {
+        // Use provided updated product or fetch it
+        let updatedProduct: CampaignProduct;
 
-        return {
-          ...prev,
-          products: prev.products.map((p) =>
-            p.id === updatedProduct.id ? updatedProduct : p
-          ),
-        };
-      });
+        if (updatedProductParam) {
+          logger.debug('✅ [BANNER] Usando producto actualizado proporcionado');
+          updatedProduct = updatedProductParam;
+        } else {
+          logger.debug('≡ƒöä [BANNER] Obteniendo producto actualizado del servidor');
+          // Fetch only the updated product
+          updatedProduct = await campaignsService.getProduct(campaignId, selectedProduct.productId);
+        }
 
-      // Update selected product
-      setSelectedProduct(updatedProduct);
+        logger.debug('✅ [BANNER] Producto actualizado:', {
+          productId: updatedProduct.id,
+          distributionGenerated: updatedProduct.distributionGenerated,
+          productStatus: updatedProduct.productStatus,
+        });
 
-      logger.debug('✅ [BANNER] Producto actualizado en la lista sin recargar toda la campaña');
-    } catch (error: any) {
-      logger.error('❌ [BANNER] Error actualizando producto:', error);
-      // Fallback: reload entire campaign
-      logger.debug('⚠️ [BANNER] Fallback: recargando toda la campaña');
-      loadCampaign();
-    }
-  }, [selectedProduct, campaignId, loadCampaign]);
+        // Update the product in the campaign state
+        setCampaign((prev) => {
+          if (!prev || !prev.products) return prev;
 
-  const toggleProductExpanded = useCallback(async (productId: string) => {
-    setExpandedProducts((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(productId)) {
-        newSet.delete(productId);
-      } else {
-        newSet.add(productId);
+          return {
+            ...prev,
+            products: prev.products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)),
+          };
+        });
 
-        // OPTIMIZATION: Cargar precios solo cuando se expande por primera vez
-        // Solo si no están ya cargados y el producto existe en el catálogo
-        if (!productSalePrices[productId]) {
-          const productDetails = products[productId];
-          const isPreliminary = productDetails && (productDetails as any).status === 'preliminary';
+        // Update selected product
+        setSelectedProduct(updatedProduct);
 
-          if (productDetails && !isPreliminary) {
-            logger.debug('⚡ [PERF] Cargando precios para producto expandido:', productId);
+        logger.debug('✅ [BANNER] Producto actualizado en la lista sin recargar toda la campaña');
+      } catch (error: any) {
+        logger.error('❌ [BANNER] Error actualizando producto:', error);
+        // Fallback: reload entire campaign
+        logger.debug('⚠️ [BANNER] Fallback: recargando toda la campaña');
+        loadCampaign();
+      }
+    },
+    [selectedProduct, campaignId, loadCampaign]
+  );
 
-            // Cargar precios en background
-            priceProfilesApi.getProductSalePrices(productId)
-              .then((response) => {
-                const salePricesArray = (response as any).salePrices || response.data || [];
+  const toggleProductExpanded = useCallback(
+    async (productId: string) => {
+      setExpandedProducts((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(productId)) {
+          newSet.delete(productId);
+        } else {
+          newSet.add(productId);
 
-                setProductSalePrices((prevPrices) => ({
-                  ...prevPrices,
-                  [productId]: salePricesArray,
-                }));
+          // OPTIMIZATION: Cargar precios solo cuando se expande por primera vez
+          // Solo si no están ya cargados y el producto existe en el catálogo
+          if (!productSalePrices[productId]) {
+            const productDetails = products[productId];
+            const isPreliminary =
+              productDetails && (productDetails as any).status === 'preliminary';
 
-                logger.debug('✅ [PERF] Precios cargados para producto:', productId);
-              })
-              .catch((error) => {
-                logger.debug('⚠️ [PERF] No se pudieron cargar precios para producto (puede ser preliminar o no existir)');
-              });
-          } else {
-            logger.debug('⚠️ [PERF] Producto preliminar o no existe, no se cargan precios');
+            if (productDetails && !isPreliminary) {
+              logger.debug('⚡ [PERF] Cargando precios para producto expandido:', productId);
+
+              // Cargar precios en background
+              priceProfilesApi
+                .getProductSalePrices(productId)
+                .then((response) => {
+                  const salePricesArray = (response as any).salePrices || response.data || [];
+
+                  setProductSalePrices((prevPrices) => ({
+                    ...prevPrices,
+                    [productId]: salePricesArray,
+                  }));
+
+                  logger.debug('✅ [PERF] Precios cargados para producto:', productId);
+                })
+                .catch((error) => {
+                  logger.debug(
+                    '⚠️ [PERF] No se pudieron cargar precios para producto (puede ser preliminar o no existir)'
+                  );
+                });
+            } else {
+              logger.debug('⚠️ [PERF] Producto preliminar o no existe, no se cargan precios');
+            }
           }
         }
-      }
-      return newSet;
-    });
-  }, [productSalePrices, products]);
+        return newSet;
+      });
+    },
+    [productSalePrices, products]
+  );
 
   const handleStartEditCost = useCallback((productId: string, currentCost: number) => {
     setEditingCost({
@@ -1700,204 +1755,216 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     []
   );
 
-  const handleSaveCost = useCallback(async (productId: string) => {
-    if (!editingCost || editingCost.productId !== productId) {
-      return;
-    }
-
-    try {
-      setSavingPrice(true);
-      const costCents = Math.round(parseFloat(editingCost.value) * 100);
-
-      await productsApi.updateProduct(productId, { costCents });
-
-      // ✅ Invalidar caché V2 para reflejar cambios inmediatamente en búsquedas
-      try {
-        await productsApi.invalidateProductsCacheV2();
-        logger.info('✅ Caché V2 invalidado después de actualizar costo');
-      } catch (cacheError) {
-        logger.warn('⚠️ No se pudo invalidar caché V2:', cacheError);
-        // No bloqueamos la operación si falla la invalidación
+  const handleSaveCost = useCallback(
+    async (productId: string) => {
+      if (!editingCost || editingCost.productId !== productId) {
+        return;
       }
 
-      // Update local state instead of reloading everything
-      setProducts((prevProducts) => {
-        if (!prevProducts || !prevProducts[productId]) {
-          return prevProducts;
-        }
-        return {
-          ...prevProducts,
-          [productId]: {
-            ...prevProducts[productId],
-            costCents,
-          },
-        };
-      });
+      try {
+        setSavingPrice(true);
+        const costCents = Math.round(parseFloat(editingCost.value) * 100);
 
-      setEditingCost(null);
-      Alert.alert('├ëxito', 'Costo actualizado correctamente');
-    } catch (error: any) {
-      logger.error('Error saving cost:', error);
-      Alert.alert('Error', error.message || 'No se pudo actualizar el costo');
-    } finally {
-      setSavingPrice(false);
-    }
-  }, [editingCost]);
+        await productsApi.updateProduct(productId, { costCents });
 
-  const handleSavePrice = useCallback(async (productId: string, profileId: string) => {
-    if (
-      !editingPrice ||
-      editingPrice.productId !== productId ||
-      editingPrice.profileId !== profileId
-    ) {
-      return;
-    }
-
-    try {
-      setSavingPrice(true);
-      const priceCents = Math.round(parseFloat(editingPrice.value) * 100);
-
-      await priceProfilesApi.updateSalePrice(productId, {
-        productId,
-        presentationId: null,
-        profileId,
-        priceCents,
-      });
-
-      // Update local state instead of reloading everything
-      setProductSalePrices((prevPrices) => {
-        const currentPrices = prevPrices[productId] || [];
-        const existingIndex = currentPrices.findIndex(
-          (p) => p.profileId === profileId && p.presentationId === null
-        );
-
-        let updatedPrices: ProductSalePrice[];
-        if (existingIndex >= 0) {
-          // Update existing price
-          updatedPrices = [...currentPrices];
-          updatedPrices[existingIndex] = { ...updatedPrices[existingIndex], priceCents };
-        } else {
-          // Add new price - create a complete ProductSalePrice object
-          const newPrice: ProductSalePrice = {
-            id: `temp-${Date.now()}`, // Temporary ID
-            productId,
-            presentationId: null,
-            profileId,
-            priceCents,
-            currency: 'PEN',
-            isOverridden: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          updatedPrices = [...currentPrices, newPrice];
+        // ✅ Invalidar caché V2 para reflejar cambios inmediatamente en búsquedas
+        try {
+          await productsApi.invalidateProductsCacheV2();
+          logger.info('✅ Caché V2 invalidado después de actualizar costo');
+        } catch (cacheError) {
+          logger.warn('⚠️ No se pudo invalidar caché V2:', cacheError);
+          // No bloqueamos la operación si falla la invalidación
         }
 
-        return {
-          ...prevPrices,
-          [productId]: updatedPrices,
-        };
-      });
-
-      setEditingPrice(null);
-      Alert.alert('├ëxito', 'Precio actualizado correctamente');
-    } catch (error: any) {
-      logger.error('Error saving price:', error);
-      Alert.alert('Error', error.message || 'No se pudo actualizar el precio');
-    } finally {
-      setSavingPrice(false);
-    }
-  }, [editingPrice]);
-
-  const getSalePriceForProfile = useCallback((productId: string, profileId: string): number => {
-    const prices = productSalePrices[productId] || [];
-    const priceEntry = prices.find((p) => p.profileId === profileId && p.presentationId === null);
-    return priceEntry?.priceCents || 0;
-  }, [productSalePrices]);
-
-  const handleCalculateFranquiciaFromSocia = useCallback(async (productId: string) => {
-    // Find Socia and Franquicia profiles
-    const sociaProfile = priceProfiles.find(
-      (p) => p.code === 'SOCIA' || p.name.toLowerCase().includes('socia')
-    );
-    const franquiciaProfile = priceProfiles.find(
-      (p) => p.code === 'FRANQ' || p.name.toLowerCase().includes('franquicia')
-    );
-
-    if (!sociaProfile || !franquiciaProfile) {
-      Alert.alert('Error', 'No se encontraron los perfiles de Precio Socia y Precio Franquicia');
-      return;
-    }
-
-    const sociaPriceCents = getSalePriceForProfile(productId, sociaProfile.id);
-    if (sociaPriceCents === 0) {
-      Alert.alert('Error', 'El Precio Socia debe estar configurado primero');
-      return;
-    }
-
-    const franquiciaPriceCents = Math.round(sociaPriceCents / 1.15);
-
-    try {
-      setSavingPrice(true);
-      await priceProfilesApi.updateSalePrice(productId, {
-        productId,
-        presentationId: null,
-        profileId: franquiciaProfile.id,
-        priceCents: franquiciaPriceCents,
-      });
-
-      // Update local state instead of reloading everything
-      setProductSalePrices((prevPrices) => {
-        const currentPrices = prevPrices[productId] || [];
-        const existingIndex = currentPrices.findIndex(
-          (p) => p.profileId === franquiciaProfile.id && p.presentationId === null
-        );
-
-        let updatedPrices: ProductSalePrice[];
-        if (existingIndex >= 0) {
-          // Update existing price
-          updatedPrices = [...currentPrices];
-          updatedPrices[existingIndex] = {
-            ...updatedPrices[existingIndex],
-            priceCents: franquiciaPriceCents,
+        // Update local state instead of reloading everything
+        setProducts((prevProducts) => {
+          if (!prevProducts || !prevProducts[productId]) {
+            return prevProducts;
+          }
+          return {
+            ...prevProducts,
+            [productId]: {
+              ...prevProducts[productId],
+              costCents,
+            },
           };
-        } else {
-          // Add new price
-          const newPrice: ProductSalePrice = {
-            id: `temp-${Date.now()}`,
-            productId,
-            presentationId: null,
-            profileId: franquiciaProfile.id,
-            priceCents: franquiciaPriceCents,
-            currency: 'PEN',
-            isOverridden: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          updatedPrices = [...currentPrices, newPrice];
-        }
-
-        return {
-          ...prevPrices,
-          [productId]: updatedPrices,
-        };
-      });
-
-      // Show success badge for 3 seconds
-      setCalculatedFranquicia((prev) => new Set(prev).add(productId));
-      setTimeout(() => {
-        setCalculatedFranquicia((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(productId);
-          return newSet;
         });
-      }, 3000);
-    } catch (error: any) {
-      logger.error('Error calculating franquicia price:', error);
-      Alert.alert('Error', error.message || 'No se pudo calcular el precio franquicia');
-    } finally {
-      setSavingPrice(false);
-    }
-  }, [priceProfiles, getSalePriceForProfile]);
+
+        setEditingCost(null);
+        Alert.alert('Éxito', 'Costo actualizado correctamente');
+      } catch (error: any) {
+        logger.error('Error saving cost:', error);
+        Alert.alert('Error', error.message || 'No se pudo actualizar el costo');
+      } finally {
+        setSavingPrice(false);
+      }
+    },
+    [editingCost]
+  );
+
+  const handleSavePrice = useCallback(
+    async (productId: string, profileId: string) => {
+      if (
+        !editingPrice ||
+        editingPrice.productId !== productId ||
+        editingPrice.profileId !== profileId
+      ) {
+        return;
+      }
+
+      try {
+        setSavingPrice(true);
+        const priceCents = Math.round(parseFloat(editingPrice.value) * 100);
+
+        await priceProfilesApi.updateSalePrice(productId, {
+          productId,
+          presentationId: null,
+          profileId,
+          priceCents,
+        });
+
+        // Update local state instead of reloading everything
+        setProductSalePrices((prevPrices) => {
+          const currentPrices = prevPrices[productId] || [];
+          const existingIndex = currentPrices.findIndex(
+            (p) => p.profileId === profileId && p.presentationId === null
+          );
+
+          let updatedPrices: ProductSalePrice[];
+          if (existingIndex >= 0) {
+            // Update existing price
+            updatedPrices = [...currentPrices];
+            updatedPrices[existingIndex] = { ...updatedPrices[existingIndex], priceCents };
+          } else {
+            // Add new price - create a complete ProductSalePrice object
+            const newPrice: ProductSalePrice = {
+              id: `temp-${Date.now()}`, // Temporary ID
+              productId,
+              presentationId: null,
+              profileId,
+              priceCents,
+              currency: 'PEN',
+              isOverridden: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            updatedPrices = [...currentPrices, newPrice];
+          }
+
+          return {
+            ...prevPrices,
+            [productId]: updatedPrices,
+          };
+        });
+
+        setEditingPrice(null);
+        Alert.alert('Éxito', 'Precio actualizado correctamente');
+      } catch (error: any) {
+        logger.error('Error saving price:', error);
+        Alert.alert('Error', error.message || 'No se pudo actualizar el precio');
+      } finally {
+        setSavingPrice(false);
+      }
+    },
+    [editingPrice]
+  );
+
+  const getSalePriceForProfile = useCallback(
+    (productId: string, profileId: string): number => {
+      const prices = productSalePrices[productId] || [];
+      const priceEntry = prices.find((p) => p.profileId === profileId && p.presentationId === null);
+      return priceEntry?.priceCents || 0;
+    },
+    [productSalePrices]
+  );
+
+  const handleCalculateFranquiciaFromSocia = useCallback(
+    async (productId: string) => {
+      // Find Socia and Franquicia profiles
+      const sociaProfile = priceProfiles.find(
+        (p) => p.code === 'SOCIA' || p.name.toLowerCase().includes('socia')
+      );
+      const franquiciaProfile = priceProfiles.find(
+        (p) => p.code === 'FRANQ' || p.name.toLowerCase().includes('franquicia')
+      );
+
+      if (!sociaProfile || !franquiciaProfile) {
+        Alert.alert('Error', 'No se encontraron los perfiles de Precio Socia y Precio Franquicia');
+        return;
+      }
+
+      const sociaPriceCents = getSalePriceForProfile(productId, sociaProfile.id);
+      if (sociaPriceCents === 0) {
+        Alert.alert('Error', 'El Precio Socia debe estar configurado primero');
+        return;
+      }
+
+      const franquiciaPriceCents = Math.round(sociaPriceCents / 1.15);
+
+      try {
+        setSavingPrice(true);
+        await priceProfilesApi.updateSalePrice(productId, {
+          productId,
+          presentationId: null,
+          profileId: franquiciaProfile.id,
+          priceCents: franquiciaPriceCents,
+        });
+
+        // Update local state instead of reloading everything
+        setProductSalePrices((prevPrices) => {
+          const currentPrices = prevPrices[productId] || [];
+          const existingIndex = currentPrices.findIndex(
+            (p) => p.profileId === franquiciaProfile.id && p.presentationId === null
+          );
+
+          let updatedPrices: ProductSalePrice[];
+          if (existingIndex >= 0) {
+            // Update existing price
+            updatedPrices = [...currentPrices];
+            updatedPrices[existingIndex] = {
+              ...updatedPrices[existingIndex],
+              priceCents: franquiciaPriceCents,
+            };
+          } else {
+            // Add new price
+            const newPrice: ProductSalePrice = {
+              id: `temp-${Date.now()}`,
+              productId,
+              presentationId: null,
+              profileId: franquiciaProfile.id,
+              priceCents: franquiciaPriceCents,
+              currency: 'PEN',
+              isOverridden: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            updatedPrices = [...currentPrices, newPrice];
+          }
+
+          return {
+            ...prevPrices,
+            [productId]: updatedPrices,
+          };
+        });
+
+        // Show success badge for 3 seconds
+        setCalculatedFranquicia((prev) => new Set(prev).add(productId));
+        setTimeout(() => {
+          setCalculatedFranquicia((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(productId);
+            return newSet;
+          });
+        }, 3000);
+      } catch (error: any) {
+        logger.error('Error calculating franquicia price:', error);
+        Alert.alert('Error', error.message || 'No se pudo calcular el precio franquicia');
+      } finally {
+        setSavingPrice(false);
+      }
+    },
+    [priceProfiles, getSalePriceForProfile]
+  );
 
   const filteredProducts = useMemo(() => {
     if (!campaign?.products) {
@@ -1913,366 +1980,557 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       filtered = filtered.filter((product) => !product.distributionGenerated);
     }
 
-    // Apply search filter
+    // Apply supplier filter
+    if (supplierFilter !== 'all') {
+      filtered = filtered.filter((product) => {
+        const detail = productsDetailMap[product.id];
+        const productDetails = product.product || products[product.productId];
+        const key =
+          detail?.supplier?.purchaseCode ||
+          detail?.supplier?.name ||
+          (productDetails as any)?.purchase?.code ||
+          '__no_supplier__';
+        return key === supplierFilter;
+      });
+    }
+
+    // Apply search filter (usa primero los datos del endpoint compacto)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((product) => {
+        const detail = productsDetailMap[product.id];
         const productDetails = product.product || products[product.productId];
-        const title = productDetails?.title?.toLowerCase() || '';
-        const sku = productDetails?.sku?.toLowerCase() || '';
+        const title = (detail?.title || productDetails?.title || '').toLowerCase();
+        const sku = (detail?.sku || productDetails?.sku || '').toLowerCase();
+        const barcode = (detail?.barcode || (productDetails as any)?.barcode || '').toLowerCase();
+        const supplierName = (detail?.supplier?.name || '').toLowerCase();
+        const supplierCode = (detail?.supplier?.purchaseCode || '').toLowerCase();
         const quantity = product.totalQuantityBase.toString();
 
-        return title.includes(query) || sku.includes(query) || quantity.includes(query);
+        return (
+          title.includes(query) ||
+          sku.includes(query) ||
+          barcode.includes(query) ||
+          supplierName.includes(query) ||
+          supplierCode.includes(query) ||
+          quantity.includes(query)
+        );
       });
     }
 
     return filtered;
-  }, [campaign?.products, products, searchQuery, distributionFilter]);
+  }, [
+    campaign?.products,
+    products,
+    productsDetailMap,
+    searchQuery,
+    distributionFilter,
+    supplierFilter,
+  ]);
+
+  // Lista única de proveedores presentes entre los productos de la campaña.
+  // Usa el endpoint compacto (preferido) con fallback al `purchase.code` del
+  // producto cuando todavía no se hidrató.
+  const availableSuppliers = useMemo(() => {
+    if (!campaign?.products) return [] as Array<{ key: string; label: string }>;
+    const map = new Map<string, string>();
+    campaign.products.forEach((product) => {
+      const detail = productsDetailMap[product.id];
+      const productDetails = product.product || products[product.productId];
+      const key =
+        detail?.supplier?.purchaseCode ||
+        detail?.supplier?.name ||
+        (productDetails as any)?.purchase?.code ||
+        null;
+      if (!key) {
+        map.set('__no_supplier__', 'Sin proveedor');
+        return;
+      }
+      const label = detail?.supplier?.name
+        ? detail.supplier.purchaseCode
+          ? `${detail.supplier.name} · ${detail.supplier.purchaseCode}`
+          : detail.supplier.name
+        : key;
+      if (!map.has(key)) {
+        map.set(key, label);
+      }
+    });
+    return Array.from(map.entries())
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
+  }, [campaign?.products, productsDetailMap, products]);
 
   // Paginated products - only show a subset for better performance
   const paginatedProducts = useMemo(() => {
     return filteredProducts.slice(0, displayedItemsCount);
   }, [filteredProducts, displayedItemsCount]);
 
-  // Reset pagination when filters change
-  useMemo(() => {
+  // Reset pagination when filters change (side effect, must be useEffect)
+  React.useEffect(() => {
     setDisplayedItemsCount(ITEMS_PER_PAGE);
   }, [searchQuery, distributionFilter]);
 
   // Load more items
   const handleLoadMore = useCallback(() => {
     if (displayedItemsCount < filteredProducts.length) {
-      setDisplayedItemsCount(prev => Math.min(prev + ITEMS_PER_PAGE, filteredProducts.length));
+      setDisplayedItemsCount((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredProducts.length));
     }
   }, [displayedItemsCount, filteredProducts.length, ITEMS_PER_PAGE]);
 
   // Memoized render function for product items
-  const renderProductItem = useCallback(({ item: product }: { item: CampaignProduct }) => {
-    // ✅ PRIORIZAR batch endpoint sobre producto embebido (batch tiene photoUrls)
-    const productDetails = products[product.productId] || product.product;
-    const costCents = productDetails?.costCents || 0;
-    const isExpanded = expandedProducts.has(product.id);
-    // Resaltar productos cuyo estado del producto es 'preliminary' (no validado aún)
-    const isPreliminary = (productDetails?.status as any) === 'preliminary';
+  const renderProductItem = useCallback(
+    ({ item: product }: { item: CampaignProduct }) => {
+      // ✅ Priorizar datos del nuevo endpoint compacto `products-detail`.
+      // Hace fallback a los datos embebidos / batch endpoint si todavía
+      // no se cargó el detalle (primer render).
+      const detail = productsDetailMap[product.id];
+      const productDetails = products[product.productId] || product.product;
+      const costCents = detail?.costCents ?? productDetails?.costCents ?? 0;
+      const isExpanded = expandedProducts.has(product.id);
+      const productStatusRaw = (
+        detail?.productStatus ||
+        (productDetails?.status as any) ||
+        ''
+      ).toString();
+      const isPreliminary = productStatusRaw.toLowerCase() === 'preliminary';
+      const title = detail?.title || productDetails?.title || `Producto ID: ${product.productId}`;
+      const sku = detail?.sku || productDetails?.sku || 'N/A';
+      const barcode = detail?.barcode || (productDetails as any)?.barcode || null;
+      const totalQty = detail
+        ? parseFloat(detail.campaignQuantityBase || '0')
+        : product.totalQuantityBase;
+      // Sum from customDistributions (sólo disponible para distribuciones
+      // CUSTOM). Para distribuciones generadas (ALL / INTERNAL_* /
+      // EXTERNAL_*) el desglose vive en `repartos` y no se trae en este
+      // request, así que asumimos que se repartió el total cuando el
+      // backend marca `distributionGenerated=true`.
+      const customDistributedQty =
+        product.customDistributions?.[0]?.items?.reduce(
+          (sum: number, item: any) => sum + parseFloat(item.assignedQuantityBase || '0'),
+          0
+        ) || 0;
+      const hasDistributedInfo =
+        !!detail || customDistributedQty > 0 || product.distributionGenerated;
+      const distributedQty = detail
+        ? parseFloat(detail.distributedQuantityBase || '0')
+        : customDistributedQty > 0
+          ? customDistributedQty
+          : product.distributionGenerated
+            ? totalQty
+            : 0;
+      const pendingQty = Math.max(totalQty - distributedQty, 0);
+      const stock = detail?.tenantSiteStock;
+      const availableStock = stock ? parseFloat(stock.availableQuantityBase || '0') : null;
+      const reservedStock = stock ? parseFloat(stock.reservedQuantityBase || '0') : 0;
+      const totalStock = stock ? parseFloat(stock.quantityBase || '0') : 0;
+      const imageUri =
+        detail?.photos?.[0] ||
+        (productDetails as any)?.photoUrls?.[0] ||
+        (productDetails as any)?.photos?.[0] ||
+        (productDetails as any)?.imageUrl ||
+        (productDetails as any)?.imageUrls?.[0];
+      const currencyCode = detail?.currency || 'PEN';
+      const currencyPrefix = currencyCode === 'PEN' ? 'S/' : currencyCode;
+      const fmt = (cents: number) => `${currencyPrefix} ${(cents / 100).toFixed(2)}`;
 
-    return (
-      <View
-        style={[
-          styles.productCard,
-          isTablet && styles.productCardTablet,
-          isPreliminary && styles.productCardPreliminary,
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.productCardMain}
-          onPress={() =>
-            navigation.navigate('CampaignProductDetail', {
-              campaignId,
-              productId: product.id,
-              fromCampaignDetail: true,
-            })
-          }
+      // Precios: priorizar los del endpoint compacto. Mostramos sólo
+      // precios base (sin presentación) — los precios por presentación
+      // se ven al entrar al detalle del producto.
+      type DisplayPrice = { profileId: string; profileName: string; priceCents: number };
+      const detailPrices: DisplayPrice[] =
+        detail?.salePrices
+          ?.filter((p) => !p.presentationId)
+          .map((p) => ({
+            profileId: p.profileId,
+            profileName: p.profileName,
+            priceCents: p.priceCents,
+          })) || [];
+      const fallbackPrices: DisplayPrice[] = priceProfiles.slice(0, 2).map((profile) => ({
+        profileId: profile.id,
+        profileName: profile.name,
+        priceCents: getSalePriceForProfile(product.productId, profile.id),
+      }));
+      // El usuario pidió invertir el orden de los perfiles en la lista
+      // (lo que el backend devuelve primero, mostrarlo al final).
+      const orderedDetailPrices = [...detailPrices].reverse();
+      const orderedFallbackPrices = [...fallbackPrices].reverse();
+      const displayPrices =
+        orderedDetailPrices.length > 0 ? orderedDetailPrices : orderedFallbackPrices;
+      const extraPricesCount = Math.max(orderedDetailPrices.length - 2, 0);
+
+      return (
+        <View
+          style={[
+            styles.productCardCompact,
+            isTablet && styles.productCardTablet,
+            isPreliminary && styles.productCardPreliminary,
+          ]}
         >
-          {/* Product content - keeping existing code */}
-          {(() => {
-            const batchProduct = products[product.productId];
-            const embeddedProduct = product.product;
-
-            const imageUri =
-              (productDetails as any)?.photoUrls?.[0] ||
-              (productDetails as any)?.photos?.[0] ||
-              (productDetails as any)?.imageUrl ||
-              (productDetails as any)?.imageUrls?.[0];
-
-            return imageUri ? (
-              <TouchableOpacity
-                onPress={() => handleOpenImageModal(imageUri)}
-                activeOpacity={0.7}
-              >
+          <TouchableOpacity
+            style={styles.productCardCompactMain}
+            onPress={() => toggleProductExpanded(product.id)}
+            activeOpacity={0.7}
+          >
+            {imageUri ? (
+              <TouchableOpacity onPress={() => handleOpenImageModal(imageUri)} activeOpacity={0.7}>
                 <Image
                   source={{ uri: imageUri }}
-                  style={styles.productImage}
+                  style={styles.productImageCompact}
                   resizeMode="cover"
                 />
               </TouchableOpacity>
             ) : (
-              <View style={styles.productImagePlaceholder}>
+              <View style={styles.productImageCompactPlaceholder}>
                 <Text style={styles.productImagePlaceholderText}>📦</Text>
               </View>
-            );
-          })()}
+            )}
 
-          <View style={styles.listItemContent}>
-            <View style={styles.productTitleRow}>
-              <Text
-                style={[styles.listItemTitle, isTablet && styles.listItemTitleTablet]}
-              >
-                {productDetails?.title || `Producto ID: ${product.productId}`}
-              </Text>
-              {isPreliminary && (
-                <View style={styles.preliminaryIndicator}>
-                  <Text style={styles.preliminaryIndicatorText}>⚠️ PRELIMINAR</Text>
-                </View>
-              )}
-            </View>
-            <Text
-              style={[styles.listItemSubtitle, isTablet && styles.listItemSubtitleTablet]}
-            >
-              SKU: {productDetails?.sku || 'N/A'} |{' '}
-              {(() => {
-                // Calcular cantidad repartida desde customDistributions.items.assignedQuantityBase
-                const distributedQty = product.customDistributions?.[0]?.items?.reduce(
-                  (sum: number, item: any) => sum + parseFloat(item.assignedQuantityBase || '0'),
-                  0
-                );
-
-                // Si tiene distribución generada, mostrar cantidad repartida
-                if (product.distributionGenerated && distributedQty) {
-                  return (
-                    <>
-                      Repartido:{' '}
-                      <Text style={styles.quickPriceValue}>
-                        {Math.floor(distributedQty)}
-                      </Text>{' '}
-                      ✔
-                    </>
-                  );
-                }
-                return <>Cant: {product.totalQuantityBase}</>;
-              })()}{' '}
-              | Costo:{' '}
-              <Text style={styles.quickPriceValue}>
-                S/ {(costCents / 100).toFixed(2)}
-              </Text>
-              {priceProfiles.slice(0, 2).map((profile, index) => {
-                const priceCents = getSalePriceForProfile(product.productId, profile.id);
-                const isPriceLowerThanCost = priceCents < costCents;
-                return (
-                  <Text key={profile.id}>
-                    {' | '}
-                    {profile.name}:{' '}
-                    <Text style={[
-                      styles.quickPriceValue,
-                      isPriceLowerThanCost && styles.priceLowerThanCost
-                    ]}>
-                      S/ {(priceCents / 100).toFixed(2)}
-                      {isPriceLowerThanCost && ' ⚠️'}
-                    </Text>
+            <View style={styles.productCompactContent}>
+              {/* Línea 1: SKU + título + badges */}
+              <View style={styles.productCompactHeader}>
+                <Text style={styles.productCompactSku}>{sku}</Text>
+                {barcode ? (
+                  <Text style={styles.productCompactBarcode} numberOfLines={1}>
+                    🔖 {barcode}
                   </Text>
-                );
-              })}
-              {priceProfiles.length > 2 && <Text> (+{priceProfiles.length - 2})</Text>}
-            </Text>
-
-            <View style={styles.productBadges}>
-              <View
-                style={[
-                  styles.badge,
-                  product.productStatus === 'ACTIVE'
-                    ? styles.badgeActive
-                    : styles.badgePreliminary,
-                ]}
-              >
-                <Text style={styles.badgeText}>
-                  {product.productStatus === 'ACTIVE' ? 'Activo' : 'Preliminar'}
+                ) : null}
+                <Text
+                  style={[styles.productCompactTitle, isTablet && styles.productCompactTitleTablet]}
+                  numberOfLines={1}
+                >
+                  {title}
                 </Text>
-              </View>
-              {product.distributionGenerated && (
-                <View style={[styles.badge, styles.badgeGenerated]}>
-                  <Text style={styles.badgeText}>Generado</Text>
-                </View>
-              )}
-            </View>
-          </View>
-          <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
-
-        </TouchableOpacity>
-
-        {/* Action buttons */}
-        <View style={styles.productCardActions}>
-          <TouchableOpacity
-            style={[styles.productActionButton, styles.productExpandButton]}
-            onPress={() => toggleProductExpanded(product.id)}
-          >
-            <Text style={styles.productActionButtonText}>
-              {isExpanded ? '▼ Ocultar Precios' : '▶ Ver Precios'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.productActionButton, styles.productBannerButton]}
-            onPress={() => handleShowBanner(product)}
-          >
-            <Text style={styles.productActionButtonText}>📸 Banner</Text>
-          </TouchableOpacity>
-
-          {(campaign!.status === CampaignStatus.DRAFT ||
-            campaign!.status === CampaignStatus.ACTIVE) && (
-            <TouchableOpacity
-              style={[styles.productActionButton, styles.productDeleteButton]}
-              onPress={() => handleDeleteProduct(product)}
-            >
-              <Text style={styles.productDeleteButtonText}>🗑️</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Expanded price details */}
-        {isExpanded && (
-          <View style={styles.priceDetailsContainer}>
-            {/* Cost row */}
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Costo:</Text>
-              {editingCost?.productId === product.productId ? (
-                <View style={styles.priceEditRow}>
-                  <Text style={styles.currencySymbol}>S/</Text>
-                  <TextInput
-                    style={styles.priceInput}
-                    value={editingCost.value}
-                    onChangeText={(text) =>
-                      setEditingCost({ ...editingCost, value: text })
-                    }
-                    keyboardType="decimal-pad"
-                    autoFocus
-                    onSubmitEditing={() => handleSaveCost(product.productId)}
-                  />
-                  <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={() => handleSaveCost(product.productId)}
-                    disabled={savingPrice}
+                <View style={styles.productCompactBadges}>
+                  <View
+                    style={[
+                      styles.badgeSmall,
+                      product.productStatus === 'ACTIVE'
+                        ? styles.badgeActive
+                        : styles.badgePreliminary,
+                    ]}
                   >
-                    {savingPrice ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.saveButtonText}>✔</Text>
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cancelEditButton}
-                    onPress={() => setEditingCost(null)}
-                  >
-                    <Text style={styles.cancelEditButtonText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.priceDisplayRow}>
-                  <Text style={styles.priceValue}>S/ {(costCents / 100).toFixed(2)}</Text>
-                  <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={() => handleStartEditCost(product.productId, costCents)}
-                  >
-                    <Text style={styles.editButtonText}>✏️</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-
-            {/* Sale prices for first 2 profiles */}
-            {priceProfiles.slice(0, 2).map((profile) => {
-              const salePriceCents = getSalePriceForProfile(product.productId, profile.id);
-              const isEditingThisPrice =
-                editingPrice?.productId === product.productId &&
-                editingPrice?.profileId === profile.id;
-
-              return (
-                <View key={profile.id} style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>{profile.name}:</Text>
-                  {isEditingThisPrice ? (
-                    <View style={styles.priceEditRow}>
-                      <Text style={styles.currencySymbol}>S/</Text>
-                      <TextInput
-                        style={styles.priceInput}
-                        value={editingPrice.value}
-                        onChangeText={(value) =>
-                          setEditingPrice({ ...editingPrice, value })
-                        }
-                        keyboardType="decimal-pad"
-                        autoFocus
-                      />
-                      <TouchableOpacity
-                        style={styles.savePriceIconButton}
-                        onPress={() => handleSavePrice(product.productId, profile.id)}
-                        disabled={savingPrice}
-                      >
-                        <Text style={styles.savePriceIcon}>
-                          {savingPrice ? '⏳' : '✔'}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.cancelPriceIconButton}
-                        onPress={() => setEditingPrice(null)}
-                      >
-                        <Text style={styles.cancelPriceIcon}>✕</Text>
-                      </TouchableOpacity>
+                    <Text style={styles.badgeSmallText}>
+                      {product.productStatus === 'ACTIVE' ? 'Activo' : 'Preliminar'}
+                    </Text>
+                  </View>
+                  {product.distributionGenerated && (
+                    <View style={[styles.badgeSmall, styles.badgeGenerated]}>
+                      <Text style={styles.badgeSmallText}>✓ Gen</Text>
                     </View>
-                  ) : (
-                    <View style={styles.priceDisplayRow}>
-                      <Text style={styles.priceValue}>
-                        {formatCurrency(salePriceCents)}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.editPriceIconButton}
-                        onPress={() =>
-                          handleStartEditPrice(product.productId, profile.id, salePriceCents)
-                        }
-                      >
-                        <Text style={styles.editPriceIcon}>✏️</Text>
-                      </TouchableOpacity>
+                  )}
+                  {isPreliminary && (
+                    <View style={[styles.badgeSmall, styles.badgePreliminary]}>
+                      <Text style={styles.badgeSmallText}>⚠️ Prel</Text>
                     </View>
                   )}
                 </View>
-              );
-            })}
+              </View>
 
-            {/* Calculate Franquicia button (only for Socia profile) */}
-            {priceProfiles.some(
-              (p) => p.code === 'SOCIA' || p.name.toLowerCase().includes('socia')
-            ) && (
-              <View style={styles.calculateFranquiciaContainer}>
-                <TouchableOpacity
-                  style={styles.calculateFranquiciaButton}
-                  onPress={() => handleCalculateFranquiciaFromSocia(product.productId)}
-                  disabled={savingPrice}
-                >
-                  <Text style={styles.calculateFranquiciaButtonText}>
-                    🧮 Calcular Precio Franquicia (/1.15)
+              {/* Línea 2: cantidades */}
+              <View style={styles.productCompactMetricsRow}>
+                <View style={styles.productCompactMetric}>
+                  <Text style={styles.productCompactMetricLabel}>Camp.</Text>
+                  <Text style={styles.productCompactMetricValue}>{Math.floor(totalQty)}</Text>
+                </View>
+                <View style={styles.productCompactMetric}>
+                  <Text style={styles.productCompactMetricLabel}>Repart.</Text>
+                  <Text
+                    style={[
+                      styles.productCompactMetricValue,
+                      distributedQty > 0 && styles.productCompactMetricValueOk,
+                    ]}
+                  >
+                    {hasDistributedInfo ? Math.floor(distributedQty) : '—'}
                   </Text>
-                </TouchableOpacity>
-                {calculatedFranquicia.has(product.productId) && (
-                  <View style={styles.calculatedBadge}>
-                    <Text style={styles.calculatedBadgeText}>✔ Calculado</Text>
+                </View>
+                <View style={styles.productCompactMetric}>
+                  <Text style={styles.productCompactMetricLabel}>Pend.</Text>
+                  <Text
+                    style={[
+                      styles.productCompactMetricValue,
+                      pendingQty > 0 && styles.productCompactMetricValueWarn,
+                    ]}
+                  >
+                    {hasDistributedInfo ? Math.floor(pendingQty) : '—'}
+                  </Text>
+                </View>
+                <View style={styles.productCompactDivider} />
+                <View style={styles.productCompactMetric}>
+                  <Text style={styles.productCompactMetricLabel}>Stock disp.</Text>
+                  <Text
+                    style={[
+                      styles.productCompactMetricValue,
+                      (availableStock ?? 0) > 0
+                        ? styles.productCompactMetricValueOk
+                        : styles.productCompactMetricValueWarn,
+                    ]}
+                  >
+                    {availableStock !== null ? Math.floor(availableStock) : '—'}
+                  </Text>
+                </View>
+                {reservedStock > 0 && (
+                  <View style={styles.productCompactMetric}>
+                    <Text style={styles.productCompactMetricLabel}>Reserv.</Text>
+                    <Text style={styles.productCompactMetricValueMuted}>
+                      {Math.floor(reservedStock)}
+                    </Text>
+                  </View>
+                )}
+                {totalStock > 0 && (
+                  <View style={styles.productCompactMetric}>
+                    <Text style={styles.productCompactMetricLabel}>Total</Text>
+                    <Text style={styles.productCompactMetricValueMuted}>
+                      {Math.floor(totalStock)}
+                    </Text>
                   </View>
                 )}
               </View>
+
+              {/* Línea 3: precios */}
+              <View style={styles.productCompactPricesRow}>
+                <View style={styles.productCompactPriceChip}>
+                  <Text style={styles.productCompactPriceLabel}>Costo</Text>
+                  <Text style={styles.productCompactPriceValue}>{fmt(costCents)}</Text>
+                </View>
+                {displayPrices.slice(0, 2).map((p) => {
+                  const lower = p.priceCents < costCents && costCents > 0;
+                  return (
+                    <View
+                      key={p.profileId}
+                      style={[
+                        styles.productCompactPriceChip,
+                        lower && styles.productCompactPriceChipWarn,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.productCompactPriceLabel,
+                          lower && styles.productCompactPriceLabelWarn,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {p.profileName}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.productCompactPriceValue,
+                          lower && styles.productCompactPriceValueWarn,
+                        ]}
+                      >
+                        {fmt(p.priceCents)}
+                        {lower ? ' ⚠️' : ''}
+                      </Text>
+                    </View>
+                  );
+                })}
+                {extraPricesCount > 0 && (
+                  <View style={styles.productCompactPriceChipMuted}>
+                    <Text style={styles.productCompactPriceLabel}>
+                      +{extraPricesCount} perfiles
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Línea 4: proveedor / compra (siempre visible) */}
+              <View style={styles.productCompactSupplierRow}>
+                <Text style={styles.productCompactSupplierIcon}>🏢</Text>
+                <Text
+                  style={[
+                    styles.productCompactSupplierText,
+                    !detail?.supplier &&
+                      !product.purchase &&
+                      styles.productCompactSupplierTextEmpty,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {detail?.supplier
+                    ? `${detail.supplier.name}${
+                        detail.supplier.purchaseCode ? ` · ${detail.supplier.purchaseCode}` : ''
+                      }`
+                    : product.purchase?.code
+                      ? `Compra: ${product.purchase.code}`
+                      : 'Sin proveedor'}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>
+              {isExpanded ? '▾' : '▸'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Action buttons */}
+          <View style={styles.productCardActions}>
+            <TouchableOpacity
+              style={[styles.productActionButton, styles.productBannerButton]}
+              onPress={() => handleShowBanner(product)}
+            >
+              <Text style={styles.productActionButtonText}>📸 Banner</Text>
+            </TouchableOpacity>
+
+            {(campaign!.status === CampaignStatus.DRAFT ||
+              campaign!.status === CampaignStatus.ACTIVE) && (
+              <TouchableOpacity
+                style={[styles.productActionButton, styles.productDeleteButton]}
+                onPress={() => handleDeleteProduct(product)}
+              >
+                <Text style={styles.productDeleteButtonText}>🗑️ Eliminar</Text>
+              </TouchableOpacity>
             )}
           </View>
-        )}
-      </View>
-    );
-  }, [
-    products,
-    expandedProducts,
-    isTablet,
-    navigation,
-    campaignId,
-    handleOpenImageModal,
-    priceProfiles,
-    getSalePriceForProfile,
-    toggleProductExpanded,
-    handleShowBanner,
-    campaign,
-    handleDeleteProduct,
-    editingCost,
-    savingPrice,
-    handleSaveCost,
-    handleStartEditCost,
-    editingPrice,
-    handleSavePrice,
-    handleStartEditPrice,
-    formatCurrency,
-    handleCalculateFranquiciaFromSocia,
-    calculatedFranquicia,
-  ]);
+
+          {/* Expanded price details */}
+          {isExpanded && (
+            <View style={styles.priceDetailsContainer}>
+              {/* Cost row */}
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Costo:</Text>
+                {editingCost?.productId === product.productId ? (
+                  <View style={styles.priceEditRow}>
+                    <Text style={styles.currencySymbol}>S/</Text>
+                    <TextInput
+                      style={styles.priceInput}
+                      value={editingCost.value}
+                      onChangeText={(text) => setEditingCost({ ...editingCost, value: text })}
+                      keyboardType="decimal-pad"
+                      autoFocus
+                      onSubmitEditing={() => handleSaveCost(product.productId)}
+                    />
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={() => handleSaveCost(product.productId)}
+                      disabled={savingPrice}
+                    >
+                      {savingPrice ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.saveButtonText}>✔</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.cancelEditButton}
+                      onPress={() => setEditingCost(null)}
+                    >
+                      <Text style={styles.cancelEditButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.priceDisplayRow}>
+                    <Text style={styles.priceValue}>S/ {(costCents / 100).toFixed(2)}</Text>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() => handleStartEditCost(product.productId, costCents)}
+                    >
+                      <Text style={styles.editButtonText}>✏️</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              {/* Sale prices for first 2 profiles */}
+              {priceProfiles.slice(0, 2).map((profile) => {
+                const salePriceCents = getSalePriceForProfile(product.productId, profile.id);
+                const isEditingThisPrice =
+                  editingPrice?.productId === product.productId &&
+                  editingPrice?.profileId === profile.id;
+
+                return (
+                  <View key={profile.id} style={styles.priceRow}>
+                    <Text style={styles.priceLabel}>{profile.name}:</Text>
+                    {isEditingThisPrice ? (
+                      <View style={styles.priceEditRow}>
+                        <Text style={styles.currencySymbol}>S/</Text>
+                        <TextInput
+                          style={styles.priceInput}
+                          value={editingPrice.value}
+                          onChangeText={(value) => setEditingPrice({ ...editingPrice, value })}
+                          keyboardType="decimal-pad"
+                          autoFocus
+                        />
+                        <TouchableOpacity
+                          style={styles.savePriceIconButton}
+                          onPress={() => handleSavePrice(product.productId, profile.id)}
+                          disabled={savingPrice}
+                        >
+                          <Text style={styles.savePriceIcon}>{savingPrice ? '⏳' : '✔'}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.cancelPriceIconButton}
+                          onPress={() => setEditingPrice(null)}
+                        >
+                          <Text style={styles.cancelPriceIcon}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.priceDisplayRow}>
+                        <Text style={styles.priceValue}>{formatCurrency(salePriceCents)}</Text>
+                        <TouchableOpacity
+                          style={styles.editPriceIconButton}
+                          onPress={() =>
+                            handleStartEditPrice(product.productId, profile.id, salePriceCents)
+                          }
+                        >
+                          <Text style={styles.editPriceIcon}>✏️</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+
+              {/* Calculate Franquicia button (only for Socia profile) */}
+              {priceProfiles.some(
+                (p) => p.code === 'SOCIA' || p.name.toLowerCase().includes('socia')
+              ) && (
+                <View style={styles.calculateFranquiciaContainer}>
+                  <TouchableOpacity
+                    style={styles.calculateFranquiciaButton}
+                    onPress={() => handleCalculateFranquiciaFromSocia(product.productId)}
+                    disabled={savingPrice}
+                  >
+                    <Text style={styles.calculateFranquiciaButtonText}>
+                      🧮 Calcular Precio Franquicia (/1.15)
+                    </Text>
+                  </TouchableOpacity>
+                  {calculatedFranquicia.has(product.productId) && (
+                    <View style={styles.calculatedBadge}>
+                      <Text style={styles.calculatedBadgeText}>✔ Calculado</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      );
+    },
+    [
+      products,
+      productsDetailMap,
+      expandedProducts,
+      isTablet,
+      navigation,
+      campaignId,
+      handleOpenImageModal,
+      priceProfiles,
+      getSalePriceForProfile,
+      toggleProductExpanded,
+      handleShowBanner,
+      campaign,
+      handleDeleteProduct,
+      editingCost,
+      savingPrice,
+      handleSaveCost,
+      handleStartEditCost,
+      editingPrice,
+      handleSavePrice,
+      handleStartEditPrice,
+      formatCurrency,
+      handleCalculateFranquiciaFromSocia,
+      calculatedFranquicia,
+    ]
+  );
 
   const keyExtractor = useCallback((item: CampaignProduct) => item.id, []);
 
@@ -2283,13 +2541,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
 
     return filteredProducts.reduce((total, product) => {
+      const detail = productsDetailMap[product.id];
       const productDetails = products[product.productId] || product.product;
-      const costCents = productDetails?.costCents || 0;
-      const quantity = product.totalQuantityBase || 0;
+      const costCents = detail?.costCents ?? productDetails?.costCents ?? 0;
+      const quantity = detail
+        ? parseFloat(detail.campaignQuantityBase || '0') || product.totalQuantityBase || 0
+        : product.totalQuantityBase || 0;
 
-      return total + (costCents * quantity);
+      return total + costCents * quantity;
     }, 0);
-  }, [filteredProducts, products]);
+  }, [filteredProducts, products, productsDetailMap]);
 
   const renderProducts = () => {
     if (!campaign) {
@@ -2337,26 +2598,52 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             )}
           </View>
 
-          {/* Search bar - Always visible to provide product recommendations */}
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-              placeholder="Buscar por nombre, SKU o cantidad..."
-              value={searchQuery}
-              onChangeText={handleSearchQueryChange}
-              placeholderTextColor="#94A3B8"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                style={styles.clearSearchButton}
-                onPress={() => {
-                  setSearchQuery('');
-                  setGlobalSearchResults([]);
-                  setShowGlobalSearchSuggestions(false);
-                }}
+          {/* Search bar + supplier picker */}
+          <View style={styles.searchRow}>
+            <View style={styles.searchInputWrap}>
+              <TextInput
+                style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+                placeholder="Buscar por nombre, SKU, cantidad o escanear código..."
+                value={searchQuery}
+                onChangeText={handleSearchQueryChange}
+                onSubmitEditing={handleSearchSubmit}
+                returnKeyType="search"
+                blurOnSubmit={false}
+                placeholderTextColor="#94A3B8"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearSearchButton}
+                  onPress={() => {
+                    setSearchQuery('');
+                    setGlobalSearchResults([]);
+                    setShowGlobalSearchSuggestions(false);
+                  }}
+                >
+                  <Text style={styles.clearSearchText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {availableSuppliers.length > 0 && (
+              <View
+                style={[styles.supplierPickerWrap, isTablet && styles.supplierPickerWrapTablet]}
               >
-                <Text style={styles.clearSearchText}>✕</Text>
-              </TouchableOpacity>
+                <Picker
+                  selectedValue={supplierFilter}
+                  onValueChange={(v) => setSupplierFilter(String(v))}
+                  style={styles.supplierPicker}
+                  mode="dropdown"
+                  dropdownIconColor="#475569"
+                >
+                  <Picker.Item
+                    label={`Todos los proveedores (${availableSuppliers.length})`}
+                    value="all"
+                  />
+                  {availableSuppliers.map((s) => (
+                    <Picker.Item key={s.key} label={s.label} value={s.key} />
+                  ))}
+                </Picker>
+              </View>
             )}
           </View>
 
@@ -2432,27 +2719,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               ) : (
                 <>
                   {paginatedProducts.map((product) => (
-                    <View key={product.id}>
-                      {renderProductItem({ item: product })}
-                    </View>
+                    <View key={product.id}>{renderProductItem({ item: product })}</View>
                   ))}
                   {displayedItemsCount < filteredProducts.length && (
-                    <TouchableOpacity
-                      style={styles.loadMoreButton}
-                      onPress={handleLoadMore}
-                    >
+                    <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
                       <Text style={styles.loadMoreButtonText}>
                         Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
                       </Text>
                     </TouchableOpacity>
                   )}
-                  {displayedItemsCount >= filteredProducts.length && filteredProducts.length > ITEMS_PER_PAGE && (
-                    <View style={styles.endOfListContainer}>
-                      <Text style={styles.endOfListText}>
-                        ✓ Mostrando todos los productos ({filteredProducts.length})
-                      </Text>
-                    </View>
-                  )}
+                  {displayedItemsCount >= filteredProducts.length &&
+                    filteredProducts.length > ITEMS_PER_PAGE && (
+                      <View style={styles.endOfListContainer}>
+                        <Text style={styles.endOfListText}>
+                          ✓ Mostrando todos los productos ({filteredProducts.length})
+                        </Text>
+                      </View>
+                    )}
                 </>
               )}
 
@@ -2460,122 +2743,135 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               {searchQuery.trim() && isGlobalSearching && (
                 <View style={styles.globalSearchLoading}>
                   <ActivityIndicator size="small" color="#6366F1" />
-                  <Text style={styles.globalSearchLoadingText}>Buscando en todos los productos...</Text>
+                  <Text style={styles.globalSearchLoadingText}>
+                    Buscando en todos los productos...
+                  </Text>
                 </View>
               )}
 
               {/* Global search suggestions - Always show when searching */}
-              {searchQuery.trim() && !isGlobalSearching && showGlobalSearchSuggestions && globalSearchResults.length > 0 && (
-                <View style={styles.globalSearchContainer}>
-                  <Text style={styles.globalSearchTitle}>
-                    ≡ƒÆí Productos disponibles para agregar ({globalSearchResults.length})
-                  </Text>
-                  <Text style={styles.globalSearchHint}>
-                    Usa "Agregar Todo" para agregar con todo el stock o "Personalizado" para elegir la cantidad
-                  </Text>
-                  <ScrollView style={styles.globalSearchList} nestedScrollEnabled>
-                    {globalSearchResults.slice(0, 10).map((product) => {
-                      const isPreliminary = (product.status as any) === 'preliminary';
-                      const stockInfo = getProductStock(product);
-                      const isAlreadyAdded = campaign.products?.some(p => p.productId === product.id);
+              {searchQuery.trim() &&
+                !isGlobalSearching &&
+                showGlobalSearchSuggestions &&
+                globalSearchResults.length > 0 && (
+                  <View style={styles.globalSearchContainer}>
+                    <Text style={styles.globalSearchTitle}>
+                      ≡ƒÆí Productos disponibles para agregar ({globalSearchResults.length})
+                    </Text>
+                    <Text style={styles.globalSearchHint}>
+                      Usa "Agregar Todo" para agregar con todo el stock o "Personalizado" para
+                      elegir la cantidad
+                    </Text>
+                    <ScrollView style={styles.globalSearchList} nestedScrollEnabled>
+                      {globalSearchResults.slice(0, 10).map((product) => {
+                        const isPreliminary = (product.status as any) === 'preliminary';
+                        const stockInfo = getProductStock(product);
+                        const isAlreadyAdded = campaign.products?.some(
+                          (p) => p.productId === product.id
+                        );
 
-                      return (
-                        <View
-                          key={product.id}
-                          style={[
-                            styles.globalSearchItem,
-                            isPreliminary && styles.globalSearchItemPreliminary,
-                            isAlreadyAdded && styles.globalSearchItemDisabled,
-                          ]}
-                        >
-                          {/* Banner button - Left side */}
-                          <TouchableOpacity
-                            style={styles.globalSearchBannerButtonLeft}
-                            onPress={() => handleOpenBannerFromSearch(product)}
-                            activeOpacity={0.7}
+                        return (
+                          <View
+                            key={product.id}
+                            style={[
+                              styles.globalSearchItem,
+                              isPreliminary && styles.globalSearchItemPreliminary,
+                              isAlreadyAdded && styles.globalSearchItemDisabled,
+                            ]}
                           >
-                            <Text style={styles.globalSearchBannerButtonLeftText}>📋</Text>
-                          </TouchableOpacity>
-
-                          {product.photos && product.photos.length > 0 ? (
-                            <Image
-                              source={{ uri: product.photos[0] }}
-                              style={styles.globalSearchImage}
-                              resizeMode="cover"
-                            />
-                          ) : product.imageUrl ? (
-                            <Image
-                              source={{ uri: product.imageUrl }}
-                              style={styles.globalSearchImage}
-                              resizeMode="cover"
-                            />
-                          ) : null}
-                          <View style={styles.globalSearchContent}>
-                            <Text
-                              style={[
-                                styles.globalSearchItemTitle,
-                                isAlreadyAdded && styles.globalSearchItemTitleDisabled,
-                              ]}
+                            {/* Banner button - Left side */}
+                            <TouchableOpacity
+                              style={styles.globalSearchBannerButtonLeft}
+                              onPress={() => handleOpenBannerFromSearch(product)}
+                              activeOpacity={0.7}
                             >
-                              {product.correlativeNumber && `#${product.correlativeNumber} | `}
-                              {product.sku} - {product.title}
-                              {isAlreadyAdded && ' (Ya agregado)'}
-                            </Text>
-                            {isPreliminary && (
-                              <Text style={styles.globalSearchWarning}>
-                                ⚠️ Producto por validar Ingreso
+                              <Text style={styles.globalSearchBannerButtonLeftText}>📋</Text>
+                            </TouchableOpacity>
+
+                            {product.photos && product.photos.length > 0 ? (
+                              <Image
+                                source={{ uri: product.photos[0] }}
+                                style={styles.globalSearchImage}
+                                resizeMode="cover"
+                              />
+                            ) : product.imageUrl ? (
+                              <Image
+                                source={{ uri: product.imageUrl }}
+                                style={styles.globalSearchImage}
+                                resizeMode="cover"
+                              />
+                            ) : null}
+                            <View style={styles.globalSearchContent}>
+                              <Text
+                                style={[
+                                  styles.globalSearchItemTitle,
+                                  isAlreadyAdded && styles.globalSearchItemTitleDisabled,
+                                ]}
+                              >
+                                {product.correlativeNumber && `#${product.correlativeNumber} | `}
+                                {product.sku} - {product.title}
+                                {isAlreadyAdded && ' (Ya agregado)'}
                               </Text>
-                            )}
-                            <View style={styles.globalSearchMeta}>
-                              <View style={styles.stockInfoContainer}>
-                                <Text
-                                  style={[
-                                    styles.globalSearchStock,
-                                    stockInfo.available > 0 ? styles.stockAvailable : styles.stockUnavailable,
-                                  ]}
-                                >
-                                  {isPreliminary ? '📦 Stock preliminar: ' : '✅ Disponible: '}{stockInfo.available}
+                              {isPreliminary && (
+                                <Text style={styles.globalSearchWarning}>
+                                  ⚠️ Producto por validar Ingreso
                                 </Text>
-                                {!isPreliminary && stockInfo.reserved > 0 && (
-                                  <Text style={styles.stockReserved}>
-                                    ≡ƒöÆ Reservado: {stockInfo.reserved}
+                              )}
+                              <View style={styles.globalSearchMeta}>
+                                <View style={styles.stockInfoContainer}>
+                                  <Text
+                                    style={[
+                                      styles.globalSearchStock,
+                                      stockInfo.available > 0
+                                        ? styles.stockAvailable
+                                        : styles.stockUnavailable,
+                                    ]}
+                                  >
+                                    {isPreliminary ? '📦 Stock preliminar: ' : '✅ Disponible: '}
+                                    {stockInfo.available}
                                   </Text>
-                                )}
-                                {!isPreliminary && stockInfo.total !== stockInfo.available && (
-                                  <Text style={styles.stockTotal}>
-                                    ≡ƒôè Total: {stockInfo.total}
-                                  </Text>
-                                )}
+                                  {!isPreliminary && stockInfo.reserved > 0 && (
+                                    <Text style={styles.stockReserved}>
+                                      ≡ƒöÆ Reservado: {stockInfo.reserved}
+                                    </Text>
+                                  )}
+                                  {!isPreliminary && stockInfo.total !== stockInfo.available && (
+                                    <Text style={styles.stockTotal}>
+                                      ≡ƒôè Total: {stockInfo.total}
+                                    </Text>
+                                  )}
+                                </View>
+                                <Text style={styles.globalSearchStatus}>
+                                  {product.status === 'active' ? '✔ Activo' : 'ΓÜá Preliminar'}
+                                </Text>
                               </View>
-                              <Text style={styles.globalSearchStatus}>
-                                {product.status === 'active' ? '✔ Activo' : 'ΓÜá Preliminar'}
-                              </Text>
                             </View>
+                            {!isAlreadyAdded && stockInfo.available > 0 && (
+                              <View style={styles.globalSearchActions}>
+                                <TouchableOpacity
+                                  style={styles.globalSearchActionButton}
+                                  onPress={() => handleQuickAddProduct(product)}
+                                  disabled={addingQuickProduct}
+                                >
+                                  <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.globalSearchActionButtonSecondary}
+                                  onPress={() => handleOpenCustomAddModal(product)}
+                                  disabled={addingQuickProduct}
+                                >
+                                  <Text style={styles.globalSearchActionButtonSecondaryText}>
+                                    ⚙️ Personalizado
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            )}
                           </View>
-                          {!isAlreadyAdded && stockInfo.available > 0 && (
-                            <View style={styles.globalSearchActions}>
-                              <TouchableOpacity
-                                style={styles.globalSearchActionButton}
-                                onPress={() => handleQuickAddProduct(product)}
-                                disabled={addingQuickProduct}
-                              >
-                                <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                style={styles.globalSearchActionButtonSecondary}
-                                onPress={() => handleOpenCustomAddModal(product)}
-                                disabled={addingQuickProduct}
-                              >
-                                <Text style={styles.globalSearchActionButtonSecondaryText}>⚙️ Personalizado</Text>
-                              </TouchableOpacity>
-                            </View>
-                          )}
-                        </View>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              )}
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
             </>
           )}
         </View>
@@ -2688,7 +2984,67 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           }
           onClose={handleCloseBanner}
           onRefresh={handleRefreshProductFromBanner}
+          distributedQuantityBase={
+            selectedProduct
+              ? productsDetailMap[selectedProduct.id]?.distributedQuantityBase
+                ? parseFloat(productsDetailMap[selectedProduct.id].distributedQuantityBase)
+                : selectedProduct.distributionGenerated
+                  ? selectedProduct.totalQuantityBase
+                  : undefined
+              : undefined
+          }
+          supplier={
+            selectedProduct
+              ? productsDetailMap[selectedProduct.id]?.supplier ||
+                (selectedProduct.purchase
+                  ? { name: '', purchaseCode: selectedProduct.purchase.code }
+                  : null)
+              : null
+          }
+          onViewDistributionsBySite={
+            selectedProduct
+              ? () => {
+                  setDistributionsBySiteProduct(selectedProduct);
+                }
+              : undefined
+          }
         />
+
+        {/* Repartos por sede (modal con scroll) */}
+        {distributionsBySiteProduct && (
+          <ProductDistributionsBySiteModal
+            visible={!!distributionsBySiteProduct}
+            campaignId={campaignId}
+            productId={distributionsBySiteProduct.productId}
+            productTitle={
+              productsDetailMap[distributionsBySiteProduct.id]?.title ||
+              distributionsBySiteProduct.product?.title ||
+              products[distributionsBySiteProduct.productId]?.title
+            }
+            productSku={
+              productsDetailMap[distributionsBySiteProduct.id]?.sku ||
+              distributionsBySiteProduct.product?.sku ||
+              products[distributionsBySiteProduct.productId]?.sku
+            }
+            campaignQuantityBase={(() => {
+              const d = productsDetailMap[distributionsBySiteProduct.id];
+              return d
+                ? parseFloat(d.campaignQuantityBase || '0') ||
+                    distributionsBySiteProduct.totalQuantityBase
+                : distributionsBySiteProduct.totalQuantityBase;
+            })()}
+            distributedQuantityBase={(() => {
+              const d = productsDetailMap[distributionsBySiteProduct.id];
+              if (d) {
+                return parseFloat(d.distributedQuantityBase || '0');
+              }
+              return distributionsBySiteProduct.distributionGenerated
+                ? distributionsBySiteProduct.totalQuantityBase
+                : undefined;
+            })()}
+            onClose={() => setDistributionsBySiteProduct(null)}
+          />
+        )}
 
         {/* Bulk Update Modal */}
         <BulkUpdateModal
@@ -2813,7 +3169,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 <>
                   <View style={styles.customAddModalProductInfo}>
                     <Text style={styles.customAddModalProductTitle}>
-                      {selectedProductForCustomAdd.correlativeNumber && `#${selectedProductForCustomAdd.correlativeNumber} | `}
+                      {selectedProductForCustomAdd.correlativeNumber &&
+                        `#${selectedProductForCustomAdd.correlativeNumber} | `}
                       {selectedProductForCustomAdd.sku} - {selectedProductForCustomAdd.title}
                     </Text>
                     {selectedProductForCustomAdd.status === 'preliminary' && (
@@ -2834,12 +3191,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                             <Text style={styles.customAddModalStockLabel}>
                               {isPreliminary ? '📦 Stock preliminar:' : '✅ Disponible:'}
                             </Text>
-                            <Text style={styles.customAddModalStockValue}>{stockInfo.available}</Text>
+                            <Text style={styles.customAddModalStockValue}>
+                              {stockInfo.available}
+                            </Text>
                           </View>
                           {!isPreliminary && stockInfo.reserved > 0 && (
                             <View style={styles.customAddModalStockRow}>
                               <Text style={styles.customAddModalStockLabel}>≡ƒöÆ Reservado:</Text>
-                              <Text style={styles.customAddModalStockValue}>{stockInfo.reserved}</Text>
+                              <Text style={styles.customAddModalStockValue}>
+                                {stockInfo.reserved}
+                              </Text>
                             </View>
                           )}
                           {!isPreliminary && (
@@ -2897,7 +3258,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         {/* Floating Action Button for Bulk Update */}
         <ProtectedElement
-          requiredPermissions={[PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE]}
+          requiredPermissions={[
+            PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD,
+            PERMISSIONS.PRODUCTS.PRICES_UPDATE,
+          ]}
           requireAll={false}
           fallback={null}
         >
@@ -3493,6 +3857,199 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     overflow: 'hidden',
   },
+  // ============================================
+  // Compact product card (new endpoint design)
+  // ============================================
+  productCardCompact: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  productCardCompactMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    gap: 10,
+  },
+  productImageCompact: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  productImageCompactPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productCompactContent: {
+    flex: 1,
+    gap: 6,
+  },
+  productCompactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  productCompactSku: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    letterSpacing: 0.3,
+  },
+  productCompactBarcode: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0F766E',
+    backgroundColor: '#CCFBF1',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    letterSpacing: 0.3,
+    maxWidth: 160,
+  },
+  productCompactTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+    minWidth: 120,
+  },
+  productCompactTitleTablet: {
+    fontSize: 15,
+  },
+  productCompactBadges: {
+    flexDirection: 'row',
+    gap: 4,
+    flexShrink: 0,
+  },
+  badgeSmall: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  badgeSmallText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#1E293B',
+    letterSpacing: 0.2,
+  },
+  productCompactMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  productCompactMetric: {
+    flexDirection: 'column',
+  },
+  productCompactDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: '#E2E8F0',
+  },
+  productCompactMetricLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  productCompactMetricValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    lineHeight: 16,
+  },
+  productCompactMetricValueOk: {
+    color: '#059669',
+  },
+  productCompactMetricValueWarn: {
+    color: '#D97706',
+  },
+  productCompactMetricValueMuted: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    lineHeight: 16,
+  },
+  productCompactPricesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  productCompactPriceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  productCompactPriceChipMuted: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  productCompactPriceChipWarn: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+  },
+  productCompactPriceLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  productCompactPriceLabelWarn: {
+    color: '#B91C1C',
+  },
+  productCompactPriceValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E40AF',
+  },
+  productCompactPriceValueWarn: {
+    color: '#B91C1C',
+  },
+  productCompactSupplierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  productCompactSupplierIcon: {
+    fontSize: 12,
+  },
+  productCompactSupplierText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+  },
+  productCompactSupplierTextEmpty: {
+    color: '#CBD5E1',
+    fontStyle: 'italic',
+  },
   productCardPreliminary: {
     backgroundColor: '#FFFBEB',
     borderWidth: 2,
@@ -3671,6 +4228,34 @@ const styles = StyleSheet.create({
   searchContainer: {
     marginBottom: 16,
     position: 'relative',
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  searchInputWrap: {
+    flex: 1,
+    minWidth: 220,
+    position: 'relative',
+  },
+  supplierPickerWrap: {
+    minWidth: 220,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  supplierPickerWrapTablet: {
+    minWidth: 280,
+  },
+  supplierPicker: {
+    height: 44,
+    color: '#1E293B',
   },
   searchInput: {
     backgroundColor: '#FFFFFF',
@@ -4400,4 +4985,3 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-

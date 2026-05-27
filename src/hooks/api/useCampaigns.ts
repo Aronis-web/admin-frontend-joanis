@@ -24,8 +24,11 @@ export const campaignKeys = {
   detail: (id: string) => [...campaignKeys.details(), id] as const,
   participants: (campaignId: string) => [...campaignKeys.all, 'participants', campaignId] as const,
   products: (campaignId: string) => [...campaignKeys.all, 'products', campaignId] as const,
-  distributions: (campaignId: string) => [...campaignKeys.all, 'distributions', campaignId] as const,
+  distributions: (campaignId: string) =>
+    [...campaignKeys.all, 'distributions', campaignId] as const,
   totals: (campaignId: string) => [...campaignKeys.all, 'totals', campaignId] as const,
+  productsDetail: (campaignId: string) =>
+    [...campaignKeys.all, 'products-detail', campaignId] as const,
 };
 
 /**
@@ -48,6 +51,21 @@ export const useCampaign = (id: string, enabled = true) => {
     queryFn: () => campaignsService.getCampaign(id),
     enabled: enabled && !!id,
     staleTime: 2 * 60 * 1000, // 2 minutos (campañas cambian frecuentemente)
+  });
+};
+
+/**
+ * Hook para obtener los productos de una campaña con todos los datos
+ * pre-agregados (stock del site, costo, precios por perfil, proveedor,
+ * fotos). Usa el endpoint compacto `/admin/campaigns/:id/products-detail`.
+ */
+export const useCampaignProductsDetail = (campaignId: string, enabled = true) => {
+  return useQuery({
+    queryKey: campaignKeys.productsDetail(campaignId),
+    queryFn: () => campaignsService.getProductsDetail(campaignId),
+    enabled: enabled && !!campaignId,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -193,7 +211,7 @@ export const useRemoveCampaignParticipant = () => {
 
   return useMutation({
     mutationFn: ({ campaignId, participantId }: { campaignId: string; participantId: string }) =>
-      campaignsService.removeParticipant(campaignId, participantId),
+      campaignsService.deleteParticipant(campaignId, participantId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: campaignKeys.detail(variables.campaignId) });
       queryClient.invalidateQueries({ queryKey: campaignKeys.participants(variables.campaignId) });
@@ -251,7 +269,7 @@ export const useRemoveCampaignProduct = () => {
 
   return useMutation({
     mutationFn: ({ campaignId, productId }: { campaignId: string; productId: string }) =>
-      campaignsService.removeProduct(campaignId, productId),
+      campaignsService.deleteProduct(campaignId, productId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: campaignKeys.detail(variables.campaignId) });
       queryClient.invalidateQueries({ queryKey: campaignKeys.products(variables.campaignId) });
@@ -293,14 +311,24 @@ export const useGenerateDistribution = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ campaignId, data }: { campaignId: string; data: GenerateDistributionRequest }) =>
-      campaignsService.generateDistribution(campaignId, data),
+    mutationFn: ({
+      campaignId,
+      productId,
+      data,
+    }: {
+      campaignId: string;
+      productId: string;
+      data: GenerateDistributionRequest;
+    }) => campaignsService.generateDistribution(campaignId, productId, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: campaignKeys.detail(variables.campaignId) });
       queryClient.invalidateQueries({
         queryKey: campaignKeys.distributions(variables.campaignId),
       });
-      logger.info('Distribución generada', { campaignId: variables.campaignId });
+      logger.info('Distribución generada', {
+        campaignId: variables.campaignId,
+        productId: variables.productId,
+      });
     },
   });
 };
@@ -310,7 +338,14 @@ export const useGenerateDistribution = () => {
  */
 export const useDistributionPreview = () => {
   return useMutation({
-    mutationFn: ({ campaignId, data }: { campaignId: string; data: DistributionPreviewRequest }) =>
-      campaignsService.getDistributionPreview(campaignId, data),
+    mutationFn: ({
+      campaignId,
+      productId,
+      data,
+    }: {
+      campaignId: string;
+      productId: string;
+      data?: DistributionPreviewRequest;
+    }) => campaignsService.getDistributionPreview(campaignId, productId, data),
   });
 };

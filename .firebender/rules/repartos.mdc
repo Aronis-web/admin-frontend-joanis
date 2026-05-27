@@ -1,0 +1,23 @@
+---
+description: Reglas específicas del módulo Repartos
+globs: "src/screens/Repartos/**, src/components/Repartos/**, src/hooks/api/useRepartos.ts, src/services/api/repartos.ts"
+---
+
+# Módulo Repartos
+
+## Archivos canónicos
+
+- Servicio: `src/services/api/repartos.ts` (**1.020 líneas** — el más grande de servicios).
+- Hook: `src/hooks/api/useRepartos.ts` (271 líneas).
+- Pantalla pesada: `src/screens/Repartos/RepartoParticipantDetailScreen.tsx` (**3.465 líneas**).
+
+## Avisos
+
+- `repartos.ts` (servicio) está al límite. Si agregas >5 endpoints más, considera partir en `repartos-base.ts` + `repartos-participants.ts` + `repartos-payments.ts`.
+- `RepartoParticipantDetailScreen.tsx` es candidato fuerte de `/split-large-file`. Antes de tocarlo, lee solo las secciones necesarias.
+
+## Convenciones del módulo
+
+- Pantallas → hooks `useRepartos`. No `repartosApi` directo.
+- Pagos y participantes son sub-entidades; mantener su lógica agrupada en archivos separados si crece.
+- Validaciones de monto / cantidad: usar `yup` schemas en `src/utils/` o `constants/`, no inline.

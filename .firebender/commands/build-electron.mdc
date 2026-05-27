@@ -1,0 +1,33 @@
+---
+name: build-electron
+description: Genera el instalador .exe Windows (Electron)
+mode: write
+---
+
+Genera el `.exe` de la app de escritorio Windows.
+
+## Pasos
+
+```bash
+cd C:/Users/aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis
+npm run build:electron:win
+```
+
+## Salida
+- Instalador NSIS en `dist/`.
+- Tamaño esperado: 120–150 MB.
+- Soporta auto-update vía GitHub Releases (`electron-updater`).
+
+## Modo desarrollo (dos terminales)
+
+Si el usuario pide correr Electron en dev en vez de empaquetar:
+
+```bash
+# Terminal 1
+npm run electron:run
+
+# Terminal 2 (cuando el servidor esté en :8082)
+npx electron electron/main.js
+```
+
+Nota: `concurrently` no siempre lanza Electron automáticamente, por eso se abre manualmente en la segunda terminal.

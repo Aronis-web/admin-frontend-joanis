@@ -1,0 +1,24 @@
+---
+name: review-diff
+description: Revisa el diff staged buscando bugs, malas prácticas y deudas
+model: default
+mode: read
+---
+
+Revisa el `git diff` actual (staged + unstaged). Reporta hallazgos accionables, sin reformatear ni cambiar código.
+
+## Pasos
+
+1. `git --no-pager status` y `git --no-pager diff` (también `--cached` si hay staged).
+2. Para cada archivo cambiado, evaluar según el área:
+   - **`services/api/*.ts`**: ¿usa `apiClient`? ¿retorna `any` injustificado? ¿documenta endpoint con `/** METHOD /ruta */`?
+   - **`hooks/api/use*.ts`**: ¿usa `xxxKeys`? ¿invalida listas tras mutations? ¿logueo de errores con `logger`?
+   - **`screens/**/*.tsx`**: ¿llama HTTP directo? ¿usa design-system tokens? ¿maneja loading/error/empty?
+   - **`components/**/*.tsx`**: ¿cross-platform? ¿estilos hardcodeados?
+   - **General**: `console.log`, imports relativos profundos (en lugar de alias `@/`), `any`, números mágicos, código duplicado.
+3. Listar hallazgos por severidad:
+   - **Bloqueantes**: bugs reales o regresiones probables.
+   - **Recomendaciones**: limpieza, deuda técnica.
+   - **Nice-to-have**: refactors menores.
+
+No edites archivos. Solo reporta con archivo:línea y por qué.

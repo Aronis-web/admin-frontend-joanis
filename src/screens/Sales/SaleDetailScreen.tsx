@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -62,6 +62,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const [debitNotes, setDebitNotes] = useState<any[]>([]);
   const [showCreditNoteModal, setShowCreditNoteModal] = useState(false);
   const [showDebitNoteModal, setShowDebitNoteModal] = useState(false);
+  const [creatingCreditNote, setCreatingCreditNote] = useState(false);
+  const creatingCreditNoteRef = useRef(false);
 
   // Load sale
   const loadSale = async (isRefresh: boolean = false) => {
@@ -115,8 +117,23 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const loadSaleDocuments = async () => {
     setLoadingDocuments(true);
     try {
-      const docs = await salesApi.getSaleDocuments(saleId);
+      const [docsResult, creditNotesResult] = await Promise.allSettled([
+        salesApi.getSaleDocuments(saleId),
+        salesApi.getSaleCreditNotes(saleId),
+      ]);
+
+      const docs = docsResult.status === 'fulfilled' ? docsResult.value : null;
+      const creditNotesResponse = creditNotesResult.status === 'fulfilled' ? creditNotesResult.value : null;
       const allDocs = docs?.allDocuments || docs?.documents || [];
+      const adminCreditNotes = Array.isArray(creditNotesResponse?.creditNotes)
+        ? creditNotesResponse.creditNotes
+        : [];
+
+      if (creditNotesResult.status === 'rejected') {
+        logger.error('❌ Error cargando notas de crédito admin:', creditNotesResult.reason);
+      }
+
+      setCreditNotes(adminCreditNotes);
 
       if (allDocs.length > 0) {
         setSaleDocuments((prev: any) => ({
@@ -125,10 +142,6 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
           documents: allDocs,
           allDocuments: allDocs,
         }));
-
-        if (docs?.creditNotes && Array.isArray(docs.creditNotes) && docs.creditNotes.length > 0) {
-          setCreditNotes((prev) => prev.length === 0 ? docs.creditNotes : prev);
-        }
 
         if (docs?.debitNotes && Array.isArray(docs.debitNotes) && docs.debitNotes.length > 0) {
           setDebitNotes((prev) => prev.length === 0 ? docs.debitNotes : prev);
@@ -168,12 +181,13 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
 
     try {
       if (Platform.OS === 'web') {
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${document.id}/pdf`;
+        const pdfBlob = await salesApi.downloadDocumentPDF(saleId, document.id);
+        const pdfUrl = URL.createObjectURL(pdfBlob);
         window.open(pdfUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
       } else {
         const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${document.id}/pdf`;
+        const pdfUrl = `${apiUrl}/admin/sales/${saleId}/documents/${document.id}/pdf`;
 
         const fileName = `${document.documentNumber}.pdf`;
         const fileUri = FileSystem.cacheDirectory + fileName;
@@ -213,12 +227,13 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     setLoadingDocuments(true);
     try {
       if (Platform.OS === 'web') {
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${documentId}/pdf`;
+        const pdfBlob = await salesApi.downloadDocumentPDF(saleId, documentId);
+        const pdfUrl = URL.createObjectURL(pdfBlob);
         window.open(pdfUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
       } else {
         const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
-        const pdfUrl = `${apiUrl}/sales/${saleId}/documents/${documentId}/pdf`;
+        const pdfUrl = `${apiUrl}/admin/sales/${saleId}/documents/${documentId}/pdf`;
 
         const fileName = `${documentNumber}.pdf`;
         const fileUri = FileSystem.cacheDirectory + fileName;
@@ -250,21 +265,25 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   };
 
   const createCreditNote = async (data: CreateCreditNoteRequest) => {
-    if (!sale?.id) return;
+    if (!sale?.id || creatingCreditNoteRef.current) return;
 
+    creatingCreditNoteRef.current = true;
+    setCreatingCreditNote(true);
     setLoadingDocuments(true);
     try {
       const result = await salesApi.createCreditNote(sale.id, data);
       setShowCreditNoteModal(false);
       Alert.alert(
         'Éxito',
-        `Nota de crédito creada: ${result.documentNumber}`,
+        result?.message || `Nota de crédito creada: ${result?.documentNumber || ''}`,
         [{ text: 'OK', onPress: () => loadSale(true) }]
       );
     } catch (error: any) {
       logger.error('Error creando nota de crédito:', error);
       Alert.alert('Error', error?.response?.data?.message || 'No se pudo crear la nota de crédito');
     } finally {
+      creatingCreditNoteRef.current = false;
+      setCreatingCreditNote(false);
       setLoadingDocuments(false);
     }
   };
@@ -656,7 +675,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Monto</Text>
                   <Text style={[styles.infoValue, { color: colors.warning[600] }]}>
-                    S/ {(note.totalCents / 100).toFixed(2)}
+                    S/ {((note.totalCents ?? Math.round((note.total || 0) * 100)) / 100).toFixed(2)}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -685,11 +704,16 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
             {sale.status === SaleStatus.CONFIRMED && (sale.documentType === DocumentType.BOLETA || sale.documentType === DocumentType.FACTURA) && (
               <>
                 <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: colors.warning[500] }]}
+                  style={[styles.actionButton, { backgroundColor: colors.warning[500] }, creatingCreditNote && styles.disabledActionButton]}
                   onPress={() => setShowCreditNoteModal(true)}
+                  disabled={creatingCreditNote}
                 >
-                  <Ionicons name="document-text-outline" size={20} color={colors.neutral[0]} />
-                  <Text style={styles.actionButtonText}>Nota de Crédito</Text>
+                  {creatingCreditNote ? (
+                    <ActivityIndicator size="small" color={colors.neutral[0]} />
+                  ) : (
+                    <Ionicons name="document-text-outline" size={20} color={colors.neutral[0]} />
+                  )}
+                  <Text style={styles.actionButtonText}>{creatingCreditNote ? 'Generando NC...' : 'Nota de Crédito'}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -710,49 +734,36 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       </ScrollView>
 
       {/* Credit Note Modal */}
-      <Modal visible={showCreditNoteModal} transparent animationType="slide" onRequestClose={() => setShowCreditNoteModal(false)}>
+      <Modal visible={showCreditNoteModal} transparent animationType="slide" onRequestClose={() => !creatingCreditNote && setShowCreditNoteModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Crear Nota de Crédito</Text>
-              <TouchableOpacity onPress={() => setShowCreditNoteModal(false)}>
-                <Ionicons name="close" size={24} color={colors.neutral[500]} />
+              <TouchableOpacity onPress={() => setShowCreditNoteModal(false)} disabled={creatingCreditNote}>
+                <Ionicons name="close" size={24} color={creatingCreditNote ? colors.neutral[300] : colors.neutral[500]} />
               </TouchableOpacity>
             </View>
             <View style={styles.modalBody}>
-              <Text style={styles.modalDescription}>Selecciona el tipo de devolución:</Text>
+              <Text style={styles.modalDescription}>Genera una nota de crédito para anular la operación:</Text>
               <TouchableOpacity
-                style={styles.modalOption}
+                style={[styles.modalOption, creatingCreditNote && styles.disabledModalOption]}
                 onPress={() => createCreditNote({
-                  motivoNota: '06',
-                  sustentoNota: 'Devolución total de mercadería',
-                  observaciones: 'Devolución total solicitada por el cliente',
+                  motivoNota: '01',
+                  sustentoNota: 'Anulación de la operación',
+                  observaciones: 'Nota de crédito generada desde Admin',
                 })}
+                disabled={creatingCreditNote}
               >
                 <View style={styles.modalOptionIcon}>
-                  <Ionicons name="return-down-back" size={24} color={colors.warning[600]} />
+                  {creatingCreditNote ? (
+                    <ActivityIndicator size="small" color={colors.warning[600]} />
+                  ) : (
+                    <Ionicons name="document-text-outline" size={24} color={colors.warning[600]} />
+                  )}
                 </View>
                 <View style={styles.modalOptionContent}>
-                  <Text style={styles.modalOptionTitle}>Devolución Total</Text>
-                  <Text style={styles.modalOptionSubtitle}>100% del monto de la venta</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalOption}
-                onPress={() => createCreditNote({
-                  motivoNota: '07',
-                  sustentoNota: 'Devolución parcial de mercadería',
-                  porcentajeDevolucion: 50,
-                  observaciones: 'Devolución del 50% de los productos',
-                })}
-              >
-                <View style={styles.modalOptionIcon}>
-                  <Ionicons name="git-branch-outline" size={24} color={colors.warning[600]} />
-                </View>
-                <View style={styles.modalOptionContent}>
-                  <Text style={styles.modalOptionTitle}>Devolución 50%</Text>
-                  <Text style={styles.modalOptionSubtitle}>Devolución parcial de la venta</Text>
+                  <Text style={styles.modalOptionTitle}>{creatingCreditNote ? 'Generando NC...' : 'Anulación de la operación'}</Text>
+                  <Text style={styles.modalOptionSubtitle}>Crear y encolar envío a Bizlinks</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
               </TouchableOpacity>
@@ -1223,6 +1234,9 @@ const styles = StyleSheet.create({
     gap: spacing[2],
     ...shadows.sm,
   },
+  disabledActionButton: {
+    opacity: 0.7,
+  },
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
@@ -1273,6 +1287,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
     borderWidth: 1,
     borderColor: colors.neutral[200],
+  },
+  disabledModalOption: {
+    opacity: 0.7,
   },
   modalOptionIcon: {
     width: 48,

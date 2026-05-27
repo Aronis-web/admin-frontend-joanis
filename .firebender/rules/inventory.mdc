@@ -1,0 +1,24 @@
+---
+description: Reglas específicas del módulo Inventario y Stock
+globs: "src/screens/Inventory/**, src/components/Inventory/**, src/hooks/api/useStock.ts, src/services/api/inventory.ts"
+---
+
+# Módulo Inventario / Stock
+
+## Archivos canónicos
+
+- Servicio: `src/services/api/inventory.ts` (694 líneas).
+- Hook: `src/hooks/api/useStock.ts` (337 líneas).
+- Componente modal pesado: `src/components/Inventory/ProductImagesModal.tsx` (**2.113 líneas**).
+- Componente nuevo: `src/components/Inventory/StockProductDetailModal.tsx` (sin commitear aún en el repo).
+
+## Convenciones del módulo
+
+- Stock cambia con frecuencia: `staleTime` máximo 3 minutos en queries de cantidades.
+- Tras transferencias o recepciones, invalidar `stockKeys.lists()` y `stockKeys.detail(productId)`.
+- Imágenes de producto: `staleTime` 10 min (cambian poco).
+- `ProductImagesModal.tsx` es candidato de refactor — al tocarlo, considera extraer subcomponentes.
+
+## Integraciones cruzadas
+
+- Recepciones de transferencias (`src/screens/Transfers/ReceptionsScreen.tsx`, 2.011 líneas) afectan stock: cuando modifiques una, valida que la otra invalide caché.

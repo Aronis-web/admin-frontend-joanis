@@ -1,0 +1,27 @@
+---
+name: split-large-file
+description: Divide un archivo >1500 líneas extrayendo componentes y hooks
+model: default
+mode: write
+---
+
+Delega al subagente `refactor-large-file` para partir un archivo grande sin romper la funcionalidad.
+
+## Antes de invocar al subagente
+
+1. Pide al usuario la ruta del archivo si no la dio.
+2. Confirma con `read_file` solo las primeras ~50 líneas (imports y firma) y el conteo total.
+3. Si el archivo está en la tabla de "archivos gigantes" de `heavy-files.mdc`, prioridad alta.
+
+## Invocación
+
+Lanza el subagente `refactor-large-file` con un prompt que incluya:
+- Ruta absoluta del archivo.
+- Patrones del proyecto a respetar (design-system, hooks/api, `apiClient`, sin `axios` directo).
+- Restricción: **no** cambiar comportamiento; solo extraer subcomponentes a `src/components/<Modulo>/` y hooks a `src/hooks/` o helpers a `src/utils/`.
+- Validación final con `npm run typecheck`.
+
+## Después
+
+- Mostrar resumen de archivos creados/movidos y líneas finales del archivo original.
+- Sugerir `/commit-push`.

@@ -23,6 +23,7 @@ import { productsApi } from '@/services/api/products';
 import { ProductSalePrice, PriceProfile } from '@/types/price-profiles';
 import { DistributionFormModal } from './DistributionFormModal';
 import logger from '@/utils/logger';
+import { useTenantStore } from '@/store/tenant';
 
 interface CampaignProductBannerModalProps {
   visible: boolean;
@@ -32,6 +33,12 @@ interface CampaignProductBannerModalProps {
   onRefresh?: (updatedProduct?: CampaignProduct) => void; // Callback to refresh campaign data after distribution or update specific product
   hideStockAndDistribution?: boolean; // Hide stock and distribution sections (for search banner)
   onOpenDistribution?: () => void; // Optional callback to open distribution modal from parent
+  /** Cantidad ya repartida (del endpoint compacto products/detail). */
+  distributedQuantityBase?: number;
+  /** Proveedor/compra del endpoint compacto. */
+  supplier?: { id?: string; name: string; purchaseCode?: string } | null;
+  /** Callback al pulsar "Ver cantidades repartidas por sede". */
+  onViewDistributionsBySite?: () => void;
 }
 
 interface PriceFormData {
@@ -53,9 +60,14 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   onClose,
   onRefresh,
   hideStockAndDistribution = false,
+  distributedQuantityBase,
+  supplier,
+  onViewDistributionsBySite,
 }) => {
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768;
+  const selectedSite = useTenantStore((state) => state.selectedSite);
+  const currentSiteId = selectedSite?.id;
   const [loadingStock, setLoadingStock] = useState(false);
   const [stockData, setStockData] = useState<{
     stock?: number;
@@ -102,13 +114,18 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       // Initialize cost value - handle both costCents and costCentsBase (API inconsistency)
       let costCentsValue = null;
       if (productDetails?.costCents !== undefined && productDetails.costCents !== null) {
-        costCentsValue = typeof productDetails.costCents === 'string'
-          ? parseFloat(productDetails.costCents)
-          : productDetails.costCents;
-      } else if (productDetails?.costCentsBase !== undefined && productDetails.costCentsBase !== null) {
-        costCentsValue = typeof productDetails.costCentsBase === 'string'
-          ? parseFloat(productDetails.costCentsBase)
-          : productDetails.costCentsBase;
+        costCentsValue =
+          typeof productDetails.costCents === 'string'
+            ? parseFloat(productDetails.costCents)
+            : productDetails.costCents;
+      } else if (
+        productDetails?.costCentsBase !== undefined &&
+        productDetails.costCentsBase !== null
+      ) {
+        costCentsValue =
+          typeof productDetails.costCentsBase === 'string'
+            ? parseFloat(productDetails.costCentsBase)
+            : productDetails.costCentsBase;
       }
 
       if (costCentsValue !== null && !isNaN(costCentsValue)) {
@@ -124,7 +141,13 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
         setQuantityValue(campaignProduct.totalQuantityBase.toString());
       }
     }
-  }, [visible, campaignProduct?.productId, hideStockAndDistribution, productDetails?.costCents, productDetails?.costCentsBase]); // Added both cost fields
+  }, [
+    visible,
+    campaignProduct?.productId,
+    hideStockAndDistribution,
+    productDetails?.costCents,
+    productDetails?.costCentsBase,
+  ]); // Added both cost fields
 
   // Update form values when productDetails or campaignProduct changes (without fetching)
   useEffect(() => {
@@ -692,26 +715,41 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
     // Also check campaign product status (should be ACTIVE)
     if (campaignProduct.productStatus !== 'ACTIVE') {
-      Alert.alert('Error', 'Solo se pueden generar repartos de productos en estado ACTIVO en la campaña');
+      Alert.alert(
+        'Error',
+        'Solo se pueden generar repartos de productos en estado ACTIVO en la campaña'
+      );
       return;
     }
 
     // Cargar stock directamente desde el API de inventario
     logger.debug('📦 [STOCK] Consultando stock directamente del API de inventario...');
     try {
-      const stockResponse: any = await inventoryApi.getAllStock({ productId: campaignProduct.productId });
+      const stockResponse: any = await inventoryApi.getAllStock({
+        productId: campaignProduct.productId,
+        // Filtrar por la sede actual cuando esté disponible para que el modal
+        // solo muestre stock relevante a la sede del usuario.
+        ...(currentSiteId ? { siteId: currentSiteId } : {}),
+      });
       logger.debug('✅ [STOCK] Stock obtenido del API:', {
         stockResponse: stockResponse,
       });
 
       // El API devuelve una estructura paginada: { data: [...], total, page, limit }
       // Pero también puede devolver un array directamente (para compatibilidad)
-      const stockData = Array.isArray(stockResponse) ? stockResponse : (stockResponse?.data || []);
+      const stockData = Array.isArray(stockResponse) ? stockResponse : stockResponse?.data || [];
 
       // Guardar en estado local
       if (stockData && stockData.length > 0) {
         const stockDetails: StockDetailByWarehouse[] = stockData.map((item: any) => ({
           warehouse: item.warehouse?.name || 'Almacén desconocido',
+          warehouseId: item.warehouseId || item.warehouse?.id,
+          // El backend puede devolver siteId en distintos paths; si no viene,
+          // asumimos el siteId actual porque ya filtramos en el request.
+          siteId:
+            item.warehouse?.siteId ?? item.warehouse?.site?.id ?? item.siteId ?? currentSiteId,
+          area: item.area?.name ?? null,
+          areaId: item.areaId ?? item.area?.id ?? null,
           total: item.quantityBase || 0,
           reserved: item.reservedQuantityBase || 0,
           available: item.availableQuantityBase || item.quantityBase || 0,
@@ -735,15 +773,25 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
             );
 
             if (purchaseProduct && purchaseProduct.preliminaryStock) {
-              logger.debug('✅ [STOCK] Stock preliminar encontrado en compra:', purchaseProduct.preliminaryStock);
+              logger.debug(
+                '✅ [STOCK] Stock preliminar encontrado en compra:',
+                purchaseProduct.preliminaryStock
+              );
 
               // Crear stockDetails con el stock preliminar
-              const stockDetails: StockDetailByWarehouse[] = [{
-                warehouse: purchaseProduct.warehouse?.name || 'Almacén de compra',
-                total: purchaseProduct.preliminaryStock,
-                reserved: 0,
-                available: purchaseProduct.preliminaryStock,
-              }];
+              const stockDetails: StockDetailByWarehouse[] = [
+                {
+                  warehouse: purchaseProduct.warehouse?.name || 'Almacén de compra',
+                  warehouseId:
+                    (purchaseProduct as any).warehouseId || (purchaseProduct as any).warehouse?.id,
+                  siteId: (purchaseProduct as any).warehouse?.siteId,
+                  area: (purchaseProduct as any).area?.name ?? null,
+                  areaId: (purchaseProduct as any).areaId ?? null,
+                  total: purchaseProduct.preliminaryStock,
+                  reserved: 0,
+                  available: purchaseProduct.preliminaryStock,
+                },
+              ];
 
               setLocalStockData(stockDetails);
             }
@@ -833,419 +881,488 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
             >
-            {/* SKU Banner */}
-            <View style={styles.bannerSection}>
-              <Text style={styles.bannerLabel}>SKU</Text>
-              <Text style={[styles.bannerValue, isTablet && styles.bannerValueTablet]}>
-                {product.sku || 'N/A'}
-              </Text>
-            </View>
-
-            {/* Product Name Banner */}
-            <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
-              <Text style={styles.bannerLabel}>PRODUCTO</Text>
-              <Text
-                style={[
-                  styles.bannerValue,
-                  styles.bannerValueName,
-                  isTablet && styles.bannerValueTablet,
-                ]}
-              >
-                {product.title || 'Sin nombre'}
-              </Text>
-            </View>
-
-            {/* Quantity in Campaign Banner - Editable - Only show if not hiding stock and distribution */}
-            {!hideStockAndDistribution && (
+              {/* SKU Banner */}
               <View style={styles.bannerSection}>
-                <Text style={styles.bannerLabel}>CANTIDAD EN CAMPAÑA</Text>
-                {editingQuantity ? (
-                  <View style={styles.quantityEditContainer}>
-                    <TextInput
-                      style={styles.quantityInput}
-                      value={quantityValue}
-                      onChangeText={handleQuantityChange}
-                      keyboardType="number-pad"
-                      editable={!savingQuantity}
-                      selectTextOnFocus={true}
-                      autoFocus={true}
-                    />
-                    <Text style={styles.stockAvailableText}>
-                      Stock disponible:{' '}
-                      {stockData.stock !== undefined ? stockData.stock : 'Cargando...'}
-                    </Text>
-                    <View style={styles.quantityActionButtons}>
-                      <TouchableOpacity
-                        style={styles.cancelQuantityButton}
-                        onPress={handleCancelQuantityEdit}
-                        disabled={savingQuantity}
-                      >
-                        <Text style={styles.cancelQuantityButtonText}>✕ Cancelar</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.saveQuantityButton,
-                          savingQuantity && styles.saveQuantityButtonDisabled,
-                        ]}
-                        onPress={handleSaveQuantity}
-                        disabled={savingQuantity}
-                      >
-                        {savingQuantity ? (
-                          <ActivityIndicator size="small" color={colors.neutral[0]} />
-                        ) : (
-                          <Text style={styles.saveQuantityButtonText}>✓ Guardar</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={styles.quantityDisplayContainer}>
-                    <Text
-                      style={[
-                        styles.bannerValue,
-                        styles.quantityValue,
-                        isTablet && styles.bannerValueTablet,
-                      ]}
-                    >
-                      {campaignProduct.totalQuantityBase}
-                    </Text>
-                    {!campaignProduct.distributionGenerated && (
-                      <View style={styles.quantityActionsContainer}>
+                <Text style={styles.bannerLabel}>SKU</Text>
+                <Text style={[styles.bannerValue, isTablet && styles.bannerValueTablet]}>
+                  {product.sku || 'N/A'}
+                </Text>
+              </View>
+
+              {/* Product Name Banner */}
+              <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
+                <Text style={styles.bannerLabel}>PRODUCTO</Text>
+                <Text
+                  style={[
+                    styles.bannerValue,
+                    styles.bannerValueName,
+                    isTablet && styles.bannerValueTablet,
+                  ]}
+                >
+                  {product.title || 'Sin nombre'}
+                </Text>
+              </View>
+
+              {/* Quantity in Campaign Banner - Editable - Only show if not hiding stock and distribution */}
+              {!hideStockAndDistribution && (
+                <View style={styles.bannerSection}>
+                  <Text style={styles.bannerLabel}>CANTIDAD EN CAMPAÑA</Text>
+                  {editingQuantity ? (
+                    <View style={styles.quantityEditContainer}>
+                      <TextInput
+                        style={styles.quantityInput}
+                        value={quantityValue}
+                        onChangeText={handleQuantityChange}
+                        keyboardType="number-pad"
+                        editable={!savingQuantity}
+                        selectTextOnFocus={true}
+                        autoFocus={true}
+                      />
+                      <Text style={styles.stockAvailableText}>
+                        Stock disponible:{' '}
+                        {stockData.stock !== undefined ? stockData.stock : 'Cargando...'}
+                      </Text>
+                      <View style={styles.quantityActionButtons}>
                         <TouchableOpacity
-                          style={styles.editQuantityButton}
-                          onPress={() => setEditingQuantity(true)}
+                          style={styles.cancelQuantityButton}
+                          onPress={handleCancelQuantityEdit}
+                          disabled={savingQuantity}
                         >
-                          <Text style={styles.editQuantityButtonText}>✏️ Editar</Text>
+                          <Text style={styles.cancelQuantityButtonText}>✕ Cancelar</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[
-                            styles.quickDistributionButton,
-                            isPreliminary && styles.quickDistributionButtonDisabled,
+                            styles.saveQuantityButton,
+                            savingQuantity && styles.saveQuantityButtonDisabled,
                           ]}
-                          onPress={handleOpenDistribution}
-                          disabled={isPreliminary}
+                          onPress={handleSaveQuantity}
+                          disabled={savingQuantity}
                         >
-                          <Text
-                            style={[
-                              styles.quickDistributionButtonText,
-                              isPreliminary && styles.quickDistributionButtonTextDisabled,
-                            ]}
-                          >
-                            ⚡ Generar Reparto
-                          </Text>
+                          {savingQuantity ? (
+                            <ActivityIndicator size="small" color={colors.neutral[0]} />
+                          ) : (
+                            <Text style={styles.saveQuantityButtonText}>✓ Guardar</Text>
+                          )}
                         </TouchableOpacity>
                       </View>
-                    )}
-                    {isPreliminary && !campaignProduct.distributionGenerated && (
-                      <Text style={styles.preliminaryWarningNote}>
-                        ⚠️ Producto preliminar - Debe validarse antes de generar reparto
-                      </Text>
-                    )}
-                    {campaignProduct.distributionGenerated && (
-                      <Text style={styles.distributionGeneratedNote}>
-                        ⚠️ No se puede editar - Reparto generado
-                      </Text>
-                    )}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Cost Banner - Editable */}
-            <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
-              <Text style={styles.bannerLabel}>COSTO</Text>
-              {editingCost ? (
-                <View style={styles.costEditContainer}>
-                  <View style={styles.inputRow}>
-                    <Text style={styles.currencySymbol}>S/</Text>
-                    <TextInput
-                      style={styles.costInput}
-                      value={costValue}
-                      onChangeText={handleCostChange}
-                      keyboardType="decimal-pad"
-                      editable={!savingCost}
-                      selectTextOnFocus={true}
-                      autoFocus={true}
-                    />
-                  </View>
-                  <View style={styles.costActionButtons}>
-                    <TouchableOpacity
-                      style={styles.cancelCostButton}
-                      onPress={handleCancelCostEdit}
-                      disabled={savingCost}
-                    >
-                      <Text style={styles.cancelCostButtonText}>✕ Cancelar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.saveCostButton, savingCost && styles.saveCostButtonDisabled]}
-                      onPress={handleSaveCost}
-                      disabled={savingCost}
-                    >
-                      {savingCost ? (
-                        <ActivityIndicator size="small" color={colors.neutral[0]} />
-                      ) : (
-                        <Text style={styles.saveCostButtonText}>✓ Guardar</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.costDisplayContainer}>
-                  <View style={styles.costValueContainer}>
-                    <Text
-                      style={[
-                        styles.bannerValue,
-                        styles.costValue,
-                        isTablet && styles.bannerValueTablet,
-                      ]}
-                    >
-                      {formatCurrency(costCents)}
-                    </Text>
-                    {updatedCost && (
-                      <View style={styles.updatedBadge}>
-                        <Text style={styles.updatedBadgeText}>✓ Actualizado</Text>
-                      </View>
-                    )}
-                  </View>
-                  <TouchableOpacity
-                    style={styles.editCostButton}
-                    onPress={() => setEditingCost(true)}
-                  >
-                    <Text style={styles.editCostButtonText}>✏️ Editar</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-
-            {/* Price Profiles Section */}
-            {loadingPrices ? (
-              <View style={styles.loadingPricesContainer}>
-                <ActivityIndicator size="large" color={colors.success[500]} />
-                <Text style={styles.loadingPricesText}>Cargando perfiles de precio...</Text>
-              </View>
-            ) : priceFormData.length === 0 ? (
-              <View style={styles.emptyPricesContainer}>
-                <Text style={styles.emptyPricesText}>No hay perfiles de precio activos</Text>
-              </View>
-            ) : (
-              priceFormData.map((priceData, index) => {
-                const isEditing = editingPriceId === priceData.profileId;
-                const isSocia =
-                  priceData.profileCode === 'SOCIA' ||
-                  priceData.profileName.toLowerCase().includes('socia');
-
-                return (
-                  <View
-                    key={priceData.profileId}
-                    style={[
-                      styles.bannerSection,
-                      isSocia && styles.bannerSectionSocia,
-                      !isSocia && index === 0 && styles.bannerSectionFirst,
-                    ]}
-                  >
-                    {/* Profile Header */}
-                    <View style={styles.profileHeaderBanner}>
-                      <Text style={[styles.bannerLabel, isSocia && styles.bannerLabelSocia]}>
-                        {priceData.profileName}
-                      </Text>
-                      <Text style={styles.profileCodeBanner}>
-                        {priceData.profileCode} • {priceData.factorToCost.toFixed(2)}x
-                      </Text>
-                      {isSocia && (
-                        <View style={styles.sociaBadge}>
-                          <Text style={styles.sociaBadgeText}>⭐ PRECIO DESTACADO</Text>
-                        </View>
-                      )}
                     </View>
-
-                    {/* Price Display/Edit */}
-                    {isEditing ? (
-                      <View style={styles.priceEditContainer}>
-                        <View style={styles.inputRow}>
-                          <Text style={styles.currencySymbol}>S/</Text>
-                          <TextInput
-                            style={styles.priceInputLarge}
-                            value={editingPriceValue}
-                            onChangeText={handlePriceChange}
-                            keyboardType="decimal-pad"
-                            editable={!saving}
-                            selectTextOnFocus={true}
-                            autoFocus={true}
-                          />
-                        </View>
-
-                        {/* Show calculate button only for Precio Socia */}
-                        {(priceData.profileCode === 'SOCIA' ||
-                          priceData.profileName.toLowerCase().includes('socia')) && (
-                          <View>
-                            <TouchableOpacity
-                              style={styles.calculateSociaButton}
-                              onPress={handleCalculateFranquiciaFromSocia}
-                              disabled={saving || !editingPriceValue}
-                            >
-                              <Text style={styles.calculateSociaButtonText}>
-                                🧮 Calcular Precio Franquicia (/1.15)
-                              </Text>
-                            </TouchableOpacity>
-                            {calculatedFranquicia && (
-                              <View style={styles.calculatedBadge}>
-                                <Text style={styles.calculatedBadgeText}>✓ Calculado</Text>
-                              </View>
-                            )}
-                          </View>
-                        )}
-
-                        <View style={styles.priceActionButtons}>
-                          <TouchableOpacity
-                            style={styles.cancelPriceButton}
-                            onPress={handleCancelPriceEdit}
-                            disabled={saving}
-                          >
-                            <Text style={styles.cancelPriceButtonText}>✕ Cancelar</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[
-                              styles.savePriceButton,
-                              saving && styles.savePriceButtonDisabled,
-                            ]}
-                            onPress={() => handleSavePrice(priceData.profileId)}
-                            disabled={saving}
-                          >
-                            {saving ? (
-                              <ActivityIndicator size="small" color={colors.neutral[0]} />
-                            ) : (
-                              <Text style={styles.savePriceButtonText}>✓ Guardar</Text>
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ) : (
-                      <View style={styles.priceDisplayContainer}>
-                        <View style={styles.priceValueContainer}>
+                  ) : (
+                    <View style={styles.quantityDisplayContainer}>
+                      {/* Cantidad campaña + repartida en la misma cartilla */}
+                      <View style={styles.quantityComparisonRow}>
+                        <View style={styles.quantityComparisonBlock}>
+                          <Text style={styles.quantityComparisonLabel}>Campaña</Text>
                           <Text
                             style={[
                               styles.bannerValue,
-                              styles.priceValue,
+                              styles.quantityValue,
+                              styles.quantityComparisonValue,
                               isTablet && styles.bannerValueTablet,
                             ]}
                           >
-                            {formatCurrency(priceData.priceCents)}
+                            {campaignProduct.totalQuantityBase}
                           </Text>
-                          {updatedPrices.has(priceData.profileId) && (
-                            <View style={styles.updatedBadge}>
-                              <Text style={styles.updatedBadgeText}>✓ Actualizado</Text>
-                            </View>
-                          )}
                         </View>
+                        <View style={styles.quantityComparisonDivider} />
+                        <View style={styles.quantityComparisonBlock}>
+                          <Text style={styles.quantityComparisonLabel}>Repartido</Text>
+                          <Text
+                            style={[
+                              styles.bannerValue,
+                              styles.quantityComparisonValue,
+                              styles.quantityRepartidoValue,
+                              isTablet && styles.bannerValueTablet,
+                            ]}
+                          >
+                            {distributedQuantityBase !== undefined
+                              ? Math.floor(distributedQuantityBase)
+                              : campaignProduct.distributionGenerated
+                                ? campaignProduct.totalQuantityBase
+                                : 0}
+                          </Text>
+                        </View>
+                      </View>
+                      {onViewDistributionsBySite && (
                         <TouchableOpacity
-                          style={styles.editPriceButton}
-                          onPress={() => handleStartEditPrice(priceData)}
+                          style={styles.viewBySiteButton}
+                          onPress={onViewDistributionsBySite}
                         >
-                          <Text style={styles.editPriceButtonText}>✏️ Editar</Text>
+                          <Text style={styles.viewBySiteButtonText}>
+                            🏢 Ver cantidades por sede
+                          </Text>
                         </TouchableOpacity>
-                      </View>
-                    )}
-
-                    {/* Price Info */}
-                    {!isEditing && (
-                      <View style={styles.priceInfoBanner}>
-                        <Text style={styles.priceInfoText}>
-                          Calculado: {formatCurrency(priceData.calculatedPriceCents)} • Margen:{' '}
-                          {calculateMargin(costCents, priceData.priceCents)}
+                      )}
+                      {!campaignProduct.distributionGenerated && (
+                        <View style={styles.quantityActionsContainer}>
+                          <TouchableOpacity
+                            style={styles.editQuantityButton}
+                            onPress={() => setEditingQuantity(true)}
+                          >
+                            <Text style={styles.editQuantityButtonText}>✏️ Editar</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              styles.quickDistributionButton,
+                              isPreliminary && styles.quickDistributionButtonDisabled,
+                            ]}
+                            onPress={handleOpenDistribution}
+                            disabled={isPreliminary}
+                          >
+                            <Text
+                              style={[
+                                styles.quickDistributionButtonText,
+                                isPreliminary && styles.quickDistributionButtonTextDisabled,
+                              ]}
+                            >
+                              ⚡ Generar Reparto
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      {isPreliminary && !campaignProduct.distributionGenerated && (
+                        <Text style={styles.preliminaryWarningNote}>
+                          ⚠️ Producto preliminar - Debe validarse antes de generar reparto
                         </Text>
-                        {priceData.isOverridden && (
-                          <Text style={styles.overriddenTextBanner}>✏️ Modificado</Text>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                );
-              })
-            )}
-
-            {/* Total Cost Banner - NEW */}
-            <View style={[styles.bannerSection, styles.bannerSectionTotal]}>
-              <Text style={styles.bannerLabel}>TOTAL COSTO</Text>
-              <Text style={styles.bannerLabelSubtitle}>
-                (Costo × Cantidad Campaña)
-              </Text>
-              <Text
-                style={[
-                  styles.bannerValue,
-                  styles.totalCostValue,
-                  isTablet && styles.bannerValueTablet,
-                ]}
-              >
-                {formatCurrency(costCents * (campaignProduct.totalQuantityBase || 0))}
-              </Text>
-              <Text style={styles.totalCostBreakdown}>
-                {formatCurrency(costCents)} × {campaignProduct.totalQuantityBase || 0} unidades
-              </Text>
-            </View>
-
-            {/* Product Image Banner - NEW */}
-            <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
-              <Text style={styles.bannerLabel}>FOTO DEL PRODUCTO</Text>
-              {loadingImage ? (
-                <View style={styles.loadingImageContainer}>
-                  <ActivityIndicator size="large" color={colors.accent[500]} />
-                  <Text style={styles.loadingImageText}>Cargando imagen...</Text>
-                </View>
-              ) : productImageUrl ? (
-                <Image
-                  source={{ uri: productImageUrl }}
-                  style={styles.productImage}
-                  resizeMode="contain"
-                />
-              ) : (
-                <View style={styles.noImageContainer}>
-                  <Text style={styles.noImageIcon}>📷</Text>
-                  <Text style={styles.noImageText}>Sin imagen disponible</Text>
+                      )}
+                      {campaignProduct.distributionGenerated && (
+                        <Text style={styles.distributionGeneratedNote}>
+                          ⚠️ No se puede editar - Reparto generado
+                        </Text>
+                      )}
+                    </View>
+                  )}
                 </View>
               )}
-            </View>
 
-            {/* Stock Banner - Moved to the end - Only show if not hiding stock and distribution */}
-            {!hideStockAndDistribution && (
+              {/* Cost Banner - Editable */}
               <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
-                <Text style={styles.bannerLabel}>{stockLabel.toUpperCase()}</Text>
-                {loadingStock ? (
-                  <View style={styles.loadingStockContainer}>
-                    <ActivityIndicator size="large" color={colors.primary[400]} />
-                    <Text style={styles.loadingStockText}>Cargando stock...</Text>
+                <Text style={styles.bannerLabel}>COSTO</Text>
+                {editingCost ? (
+                  <View style={styles.costEditContainer}>
+                    <View style={styles.inputRow}>
+                      <Text style={styles.currencySymbol}>S/</Text>
+                      <TextInput
+                        style={styles.costInput}
+                        value={costValue}
+                        onChangeText={handleCostChange}
+                        keyboardType="decimal-pad"
+                        editable={!savingCost}
+                        selectTextOnFocus={true}
+                        autoFocus={true}
+                      />
+                    </View>
+                    <View style={styles.costActionButtons}>
+                      <TouchableOpacity
+                        style={styles.cancelCostButton}
+                        onPress={handleCancelCostEdit}
+                        disabled={savingCost}
+                      >
+                        <Text style={styles.cancelCostButtonText}>✕ Cancelar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.saveCostButton, savingCost && styles.saveCostButtonDisabled]}
+                        onPress={handleSaveCost}
+                        disabled={savingCost}
+                      >
+                        {savingCost ? (
+                          <ActivityIndicator size="small" color={colors.neutral[0]} />
+                        ) : (
+                          <Text style={styles.saveCostButtonText}>✓ Guardar</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 ) : (
+                  <View style={styles.costDisplayContainer}>
+                    <View style={styles.costValueContainer}>
+                      <Text
+                        style={[
+                          styles.bannerValue,
+                          styles.costValue,
+                          isTablet && styles.bannerValueTablet,
+                        ]}
+                      >
+                        {formatCurrency(costCents)}
+                      </Text>
+                      {updatedCost && (
+                        <View style={styles.updatedBadge}>
+                          <Text style={styles.updatedBadgeText}>✓ Actualizado</Text>
+                        </View>
+                      )}
+                    </View>
+                    <TouchableOpacity
+                      style={styles.editCostButton}
+                      onPress={() => setEditingCost(true)}
+                    >
+                      <Text style={styles.editCostButtonText}>✏️ Editar</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              {/* Price Profiles Section */}
+              {loadingPrices ? (
+                <View style={styles.loadingPricesContainer}>
+                  <ActivityIndicator size="large" color={colors.success[500]} />
+                  <Text style={styles.loadingPricesText}>Cargando perfiles de precio...</Text>
+                </View>
+              ) : priceFormData.length === 0 ? (
+                <View style={styles.emptyPricesContainer}>
+                  <Text style={styles.emptyPricesText}>No hay perfiles de precio activos</Text>
+                </View>
+              ) : (
+                priceFormData.map((priceData, index) => {
+                  const isEditing = editingPriceId === priceData.profileId;
+                  const isSocia =
+                    priceData.profileCode === 'SOCIA' ||
+                    priceData.profileName.toLowerCase().includes('socia');
+
+                  return (
+                    <View
+                      key={priceData.profileId}
+                      style={[
+                        styles.bannerSection,
+                        isSocia && styles.bannerSectionSocia,
+                        !isSocia && index === 0 && styles.bannerSectionFirst,
+                      ]}
+                    >
+                      {/* Profile Header */}
+                      <View style={styles.profileHeaderBanner}>
+                        <Text style={[styles.bannerLabel, isSocia && styles.bannerLabelSocia]}>
+                          {priceData.profileName}
+                        </Text>
+                        <Text style={styles.profileCodeBanner}>
+                          {priceData.profileCode} • {priceData.factorToCost.toFixed(2)}x
+                        </Text>
+                        {isSocia && (
+                          <View style={styles.sociaBadge}>
+                            <Text style={styles.sociaBadgeText}>⭐ PRECIO DESTACADO</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Price Display/Edit */}
+                      {isEditing ? (
+                        <View style={styles.priceEditContainer}>
+                          <View style={styles.inputRow}>
+                            <Text style={styles.currencySymbol}>S/</Text>
+                            <TextInput
+                              style={styles.priceInputLarge}
+                              value={editingPriceValue}
+                              onChangeText={handlePriceChange}
+                              keyboardType="decimal-pad"
+                              editable={!saving}
+                              selectTextOnFocus={true}
+                              autoFocus={true}
+                            />
+                          </View>
+
+                          {/* Show calculate button only for Precio Socia */}
+                          {(priceData.profileCode === 'SOCIA' ||
+                            priceData.profileName.toLowerCase().includes('socia')) && (
+                            <View>
+                              <TouchableOpacity
+                                style={styles.calculateSociaButton}
+                                onPress={handleCalculateFranquiciaFromSocia}
+                                disabled={saving || !editingPriceValue}
+                              >
+                                <Text style={styles.calculateSociaButtonText}>
+                                  🧮 Calcular Precio Franquicia (/1.15)
+                                </Text>
+                              </TouchableOpacity>
+                              {calculatedFranquicia && (
+                                <View style={styles.calculatedBadge}>
+                                  <Text style={styles.calculatedBadgeText}>✓ Calculado</Text>
+                                </View>
+                              )}
+                            </View>
+                          )}
+
+                          <View style={styles.priceActionButtons}>
+                            <TouchableOpacity
+                              style={styles.cancelPriceButton}
+                              onPress={handleCancelPriceEdit}
+                              disabled={saving}
+                            >
+                              <Text style={styles.cancelPriceButtonText}>✕ Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[
+                                styles.savePriceButton,
+                                saving && styles.savePriceButtonDisabled,
+                              ]}
+                              onPress={() => handleSavePrice(priceData.profileId)}
+                              disabled={saving}
+                            >
+                              {saving ? (
+                                <ActivityIndicator size="small" color={colors.neutral[0]} />
+                              ) : (
+                                <Text style={styles.savePriceButtonText}>✓ Guardar</Text>
+                              )}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={styles.priceDisplayContainer}>
+                          <View style={styles.priceValueContainer}>
+                            <Text
+                              style={[
+                                styles.bannerValue,
+                                styles.priceValue,
+                                isTablet && styles.bannerValueTablet,
+                              ]}
+                            >
+                              {formatCurrency(priceData.priceCents)}
+                            </Text>
+                            {updatedPrices.has(priceData.profileId) && (
+                              <View style={styles.updatedBadge}>
+                                <Text style={styles.updatedBadgeText}>✓ Actualizado</Text>
+                              </View>
+                            )}
+                          </View>
+                          <TouchableOpacity
+                            style={styles.editPriceButton}
+                            onPress={() => handleStartEditPrice(priceData)}
+                          >
+                            <Text style={styles.editPriceButtonText}>✏️ Editar</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+
+                      {/* Price Info */}
+                      {!isEditing && (
+                        <View style={styles.priceInfoBanner}>
+                          <Text style={styles.priceInfoText}>
+                            Calculado: {formatCurrency(priceData.calculatedPriceCents)} • Margen:{' '}
+                            {calculateMargin(costCents, priceData.priceCents)}
+                          </Text>
+                          {priceData.isOverridden && (
+                            <Text style={styles.overriddenTextBanner}>✏️ Modificado</Text>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })
+              )}
+
+              {/* Total Cost Banner - NEW */}
+              <View style={[styles.bannerSection, styles.bannerSectionTotal]}>
+                <Text style={styles.bannerLabel}>TOTAL COSTO</Text>
+                <Text style={styles.bannerLabelSubtitle}>(Costo × Cantidad Campaña)</Text>
+                <Text
+                  style={[
+                    styles.bannerValue,
+                    styles.totalCostValue,
+                    isTablet && styles.bannerValueTablet,
+                  ]}
+                >
+                  {formatCurrency(costCents * (campaignProduct.totalQuantityBase || 0))}
+                </Text>
+                <Text style={styles.totalCostBreakdown}>
+                  {formatCurrency(costCents)} × {campaignProduct.totalQuantityBase || 0} unidades
+                </Text>
+              </View>
+
+              {/* Product Image Banner - NEW */}
+              <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
+                <Text style={styles.bannerLabel}>FOTO DEL PRODUCTO</Text>
+                {loadingImage ? (
+                  <View style={styles.loadingImageContainer}>
+                    <ActivityIndicator size="large" color={colors.accent[500]} />
+                    <Text style={styles.loadingImageText}>Cargando imagen...</Text>
+                  </View>
+                ) : productImageUrl ? (
+                  <Image
+                    source={{ uri: productImageUrl }}
+                    style={styles.productImage}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <View style={styles.noImageContainer}>
+                    <Text style={styles.noImageIcon}>📷</Text>
+                    <Text style={styles.noImageText}>Sin imagen disponible</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Stock Banner - Moved to the end - Only show if not hiding stock and distribution */}
+              {!hideStockAndDistribution && (
+                <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
+                  <Text style={styles.bannerLabel}>{stockLabel.toUpperCase()}</Text>
+                  {loadingStock ? (
+                    <View style={styles.loadingStockContainer}>
+                      <ActivityIndicator size="large" color={colors.primary[400]} />
+                      <Text style={styles.loadingStockText}>Cargando stock...</Text>
+                    </View>
+                  ) : (
+                    <>
+                      <Text
+                        style={[
+                          styles.bannerValue,
+                          styles.stockValue,
+                          isTablet && styles.bannerValueTablet,
+                        ]}
+                      >
+                        {stockValue !== undefined && stockValue !== null ? stockValue : 'N/A'}
+                      </Text>
+                      {!campaignProduct.distributionGenerated &&
+                        campaignProduct.productStatus === 'ACTIVE' && (
+                          <TouchableOpacity
+                            style={styles.distributionButton}
+                            onPress={handleOpenDistribution}
+                          >
+                            <Text style={styles.distributionButtonText}>
+                              📊 Generar Distribución
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      {campaignProduct.distributionGenerated && (
+                        <Text style={styles.distributionGeneratedNote}>
+                          ✅ Distribución ya generada
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {isPreliminary && (
+                    <Text style={styles.preliminaryNote}>⚠️ Producto Preliminar</Text>
+                  )}
+                </View>
+              )}
+
+              {/* Proveedor / Compra (al final) */}
+              <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
+                <Text style={styles.bannerLabel}>PROVEEDOR</Text>
+                {supplier?.name ? (
                   <>
                     <Text
                       style={[
                         styles.bannerValue,
-                        styles.stockValue,
+                        styles.supplierName,
                         isTablet && styles.bannerValueTablet,
                       ]}
                     >
-                      {stockValue !== undefined && stockValue !== null ? stockValue : 'N/A'}
+                      🏢 {supplier.name}
                     </Text>
-                    {!campaignProduct.distributionGenerated && campaignProduct.productStatus === 'ACTIVE' && (
-                      <TouchableOpacity
-                        style={styles.distributionButton}
-                        onPress={handleOpenDistribution}
-                      >
-                        <Text style={styles.distributionButtonText}>
-                          📊 Generar Distribución
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    {campaignProduct.distributionGenerated && (
-                      <Text style={styles.distributionGeneratedNote}>
-                        ✅ Distribución ya generada
-                      </Text>
+                    {supplier.purchaseCode && (
+                      <Text style={styles.supplierPurchase}>Compra: {supplier.purchaseCode}</Text>
                     )}
                   </>
+                ) : campaignProduct.purchase?.code ? (
+                  <Text
+                    style={[
+                      styles.bannerValue,
+                      styles.supplierName,
+                      isTablet && styles.bannerValueTablet,
+                    ]}
+                  >
+                    Compra: {campaignProduct.purchase.code}
+                  </Text>
+                ) : (
+                  <Text style={styles.supplierEmpty}>Sin información de proveedor</Text>
                 )}
-                {isPreliminary && <Text style={styles.preliminaryNote}>⚠️ Producto Preliminar</Text>}
               </View>
-            )}
-          </ScrollView>
+            </ScrollView>
           </>
         )}
 
@@ -1657,6 +1774,78 @@ const styles = StyleSheet.create({
   },
   quantityDisplayContainer: {
     alignItems: 'center',
+  },
+  quantityComparisonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: spacing[2],
+  },
+  quantityComparisonBlock: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  quantityComparisonDivider: {
+    width: 1,
+    height: 56,
+    backgroundColor: colors.border.default,
+    marginHorizontal: spacing[3],
+  },
+  quantityComparisonLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.neutral[500],
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: spacing[1],
+  },
+  quantityComparisonValue: {
+    fontSize: 32,
+    lineHeight: 38,
+  },
+  quantityRepartidoValue: {
+    color: colors.success[500],
+  },
+  viewBySiteButton: {
+    marginTop: spacing[3],
+    backgroundColor: colors.primary[500],
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[2.5],
+    borderRadius: borderRadius.lg,
+    alignSelf: 'center',
+    shadowColor: colors.primary[500],
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  viewBySiteButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.neutral[0],
+  },
+  supplierName: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '700',
+    color: colors.neutral[800],
+  },
+  supplierPurchase: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.neutral[500],
+    marginTop: spacing[2],
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
+  },
+  supplierEmpty: {
+    fontSize: 14,
+    color: colors.neutral[400],
+    fontStyle: 'italic',
+    marginTop: spacing[1],
   },
   quantityInput: {
     width: '100%',

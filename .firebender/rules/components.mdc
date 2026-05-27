@@ -1,0 +1,26 @@
+---
+description: Convenciones para componentes RN cross-platform
+globs: "src/components/**/*.tsx, src/design-system/**/*.tsx"
+---
+
+# Componentes
+
+## Reglas
+- Componentes funcionales con `React.FC` opcional; preferir tipar `props` con interface explícita.
+- Memoizar con `React.memo` si la lista que los renderiza es grande.
+- Cross-platform: probar mentalmente que funciona en web (RN Web) y nativo. Evitar APIs solo-DOM (`document`, `window` sin guardas).
+- Usar `Pressable` o componentes del design-system, no `TouchableOpacity` salvo necesidad puntual.
+- Imágenes: `expo-image` o `Image` de RN con `resizeMode` explícito.
+
+## Estilos
+- `StyleSheet.create` o tokens del design-system. No hardcodear colores hex en el componente.
+- Padding/margin con múltiplos del spacing token.
+
+## Accesibilidad
+- `accessibilityLabel` en elementos interactivos.
+- `accessibilityRole` cuando aplique (`button`, `header`, etc.).
+
+## Anti-patrones
+- ❌ Importar desde `react-native-web` directamente.
+- ❌ `console.log` en código de producción.
+- ❌ Mezclar lógica de fetch dentro del componente — usar hooks API.

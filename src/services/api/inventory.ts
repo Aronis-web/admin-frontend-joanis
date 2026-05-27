@@ -124,6 +124,216 @@ export interface StockByWarehouseResponse {
   }[];
 }
 
+export type ProductStockStatus =
+  | 'with_stock'
+  | 'without_stock'
+  | 'available'
+  | 'reserved'
+  | 'negative'
+  | 'low_stock';
+
+export type ProductStockSortBy =
+  | 'name'
+  | 'sku'
+  | 'totalStock'
+  | 'reservedStock'
+  | 'availableStock'
+  | 'updatedAt';
+
+export type StockBatchStatus = 'ACTIVE' | 'DEPLETED' | 'BLOCKED' | 'available' | 'exhausted';
+export type StockBatchSortBy = 'receivedAt' | 'expirationDate' | 'availableStock' | 'unitCost';
+
+export interface ProductsStockParams {
+  page?: number;
+  limit?: number;
+  q?: string;
+  productId?: string;
+  warehouseId?: string;
+  areaId?: string;
+  categoryId?: string;
+  productStatus?: string;
+  includeZeroStock?: boolean;
+  minAvailableStock?: number;
+  stockStatus?: ProductStockStatus;
+  sortBy?: ProductStockSortBy;
+  sortOrder?: 'ASC' | 'DESC';
+}
+
+export interface ProductStockAreaSummary {
+  areaId: string;
+  areaCode: string;
+  areaName: string;
+  totalStock: number;
+  reservedStock: number;
+  availableStock: number;
+}
+
+export interface ProductStockWarehouseSummary {
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  siteCode?: string;
+  totalStock: number;
+  reservedStock: number;
+  availableStock: number;
+  areas: ProductStockAreaSummary[];
+}
+
+export interface ProductStockSummaryItem {
+  productId: string;
+  correlativeNumber?: number;
+  sku?: string;
+  barcode?: string;
+  name: string;
+  status: string;
+  categoryId?: string;
+  categoryName?: string;
+  minStockAlert?: number;
+  totalStock: number;
+  reservedStock: number;
+  availableStock: number;
+  warehouses: ProductStockWarehouseSummary[];
+}
+
+export interface ProductsStockResponse {
+  data: ProductStockSummaryItem[];
+  meta: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+export interface ProductStockDetailParams {
+  warehouseId?: string;
+  areaId?: string;
+  includeZeroStock?: boolean;
+  includeBatches?: boolean;
+  includeMovements?: boolean;
+  movementsLimit?: number;
+  batchStatus?: StockBatchStatus;
+  sortBatchesBy?: StockBatchSortBy;
+  sortOrder?: 'ASC' | 'DESC';
+}
+
+export interface ProductStockDetailProduct {
+  productId: string;
+  correlativeNumber?: number;
+  sku?: string;
+  barcode?: string;
+  name: string;
+  description?: string;
+  status: string;
+  categoryId?: string;
+  categoryName?: string;
+  taxType?: string;
+  currency?: string;
+  baseCostCents?: number;
+  minStockAlert?: number;
+}
+
+export interface ProductStockDetailSummary {
+  totalStock: number;
+  reservedStock: number;
+  availableStock: number;
+  warehousesCount: number;
+  areasCount: number;
+  batchesCount: number;
+  availableValueCents: number;
+  lowStock: boolean;
+}
+
+export interface ProductStockBatchSupplier {
+  supplierId: string;
+  code?: string;
+  commercialName?: string;
+  taxIdType?: string;
+  taxIdNumber?: string;
+}
+
+export interface ProductStockBatchPurchase {
+  purchaseId: string;
+  code?: string;
+  guideType?: string;
+  guideNumber?: string;
+  guideDate?: string;
+  status?: string;
+  purchaseProductId?: string;
+  purchaseProductCostCents?: number;
+  validatedStock?: number;
+}
+
+export interface ProductStockBatch {
+  batchId: string;
+  batchNumber?: string;
+  status: string;
+  receivedAt?: string;
+  expirationDate?: string;
+  initialStock: number;
+  currentStock: number;
+  reservedStock: number;
+  availableStock: number;
+  unitCostCents?: number;
+  currentValueCents?: number;
+  currency?: string;
+  notes?: string;
+  supplier?: ProductStockBatchSupplier | null;
+  purchase?: ProductStockBatchPurchase | null;
+}
+
+export interface ProductStockDetailArea {
+  areaId: string;
+  areaCode?: string;
+  areaName?: string;
+  totalStock: number;
+  reservedStock: number;
+  availableStock: number;
+  availableValueCents?: number;
+  batches?: ProductStockBatch[];
+}
+
+export interface ProductStockDetailWarehouse {
+  warehouseId: string;
+  warehouseCode?: string;
+  warehouseName: string;
+  siteId?: string;
+  siteCode?: string;
+  totalStock: number;
+  reservedStock: number;
+  availableStock: number;
+  availableValueCents?: number;
+  areas: ProductStockDetailArea[];
+}
+
+export interface ProductStockMovement {
+  movementId: string;
+  movementType: string;
+  quantity: number;
+  stockBefore?: number;
+  stockAfter?: number;
+  warehouseId?: string;
+  warehouseName?: string;
+  areaId?: string | null;
+  areaName?: string | null;
+  referenceType?: string;
+  referenceId?: string | null;
+  performedBy?: string;
+  performedByName?: string;
+  performedByEmail?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ProductStockDetailResponse {
+  product: ProductStockDetailProduct;
+  stockSummary: ProductStockDetailSummary;
+  warehouses: ProductStockDetailWarehouse[];
+  lastMovements: ProductStockMovement[];
+}
+
 // ========== EXPORT STOCK TYPES ==========
 
 export type ExportFormat = 'excel' | 'pdf';
@@ -199,6 +409,30 @@ export const inventoryApi = {
   // Get stock by product with areas - GET /inventory/stock/product/:productId
   getStockByProductWithAreas: async (productId: string): Promise<StockItemResponse[]> => {
     return apiClient.get<StockItemResponse[]>(`/inventory/stock/product/${productId}`);
+  },
+
+  // ========== CONSOLIDATED PRODUCT STOCK ENDPOINTS ==========
+
+  /**
+   * Listado paginado de productos con stock consolidado por almacén y área.
+   * GET /admin/inventory/products/stock
+   */
+  getProductsStock: async (params?: ProductsStockParams): Promise<ProductsStockResponse> => {
+    return apiClient.get<ProductsStockResponse>('/admin/inventory/products/stock', { params });
+  },
+
+  /**
+   * Detalle completo de stock de un producto: ubicaciones, lotes y movimientos.
+   * GET /admin/inventory/products/:productId/stock-detail
+   */
+  getProductStockDetail: async (
+    productId: string,
+    params?: ProductStockDetailParams
+  ): Promise<ProductStockDetailResponse> => {
+    return apiClient.get<ProductStockDetailResponse>(
+      `/admin/inventory/products/${productId}/stock-detail`,
+      { params }
+    );
   },
 
   // ========== V2 OPTIMIZED ENDPOINTS ==========

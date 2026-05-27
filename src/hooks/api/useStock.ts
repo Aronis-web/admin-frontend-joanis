@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { inventoryApi } from '@/services/api/inventory';
+import {
+  inventoryApi,
+  ProductStockDetailParams,
+  ProductsStockParams,
+} from '@/services/api/inventory';
 import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
 import { logger } from '@/utils/logger';
 
@@ -9,6 +13,10 @@ export const stockKeys = {
   lists: () => [...stockKeys.all, 'list'] as const,
   list: (filters?: { warehouseId?: string; areaId?: string }) =>
     [...stockKeys.lists(), filters] as const,
+  products: () => [...stockKeys.all, 'products'] as const,
+  productsList: (params?: ProductsStockParams) => [...stockKeys.products(), 'list', params] as const,
+  productDetail: (productId: string, params?: ProductStockDetailParams) =>
+    [...stockKeys.products(), 'detail', productId, params] as const,
   byProduct: (productId: string) => [...stockKeys.all, 'byProduct', productId] as const,
   movements: (productId: string, warehouseId?: string) =>
     [...stockKeys.all, 'movements', productId, warehouseId] as const,
@@ -33,6 +41,33 @@ export const useStock = (warehouseId?: string, areaId?: string) => {
     queryKey: stockKeys.list({ warehouseId, areaId }),
     queryFn: () => inventoryApi.getAllStock({ warehouseId, areaId }),
     staleTime: 2 * 60 * 1000, // 2 minutos (stock cambia frecuentemente)
+  });
+};
+
+/**
+ * Hook para listado consolidado de productos con stock.
+ */
+export const useProductsStock = (params?: ProductsStockParams) => {
+  return useQuery({
+    queryKey: stockKeys.productsList(params),
+    queryFn: () => inventoryApi.getProductsStock(params),
+    staleTime: 2 * 60 * 1000,
+  });
+};
+
+/**
+ * Hook para detalle pesado de stock por producto.
+ */
+export const useProductStockDetail = (
+  productId: string,
+  params?: ProductStockDetailParams,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: stockKeys.productDetail(productId, params),
+    queryFn: () => inventoryApi.getProductStockDetail(productId, params),
+    enabled: enabled && !!productId,
+    staleTime: 60 * 1000,
   });
 };
 
@@ -110,7 +145,7 @@ export const useStockMovements = (productId: string, warehouseId?: string, enabl
       return [];
     },
     enabled: enabled && !!productId,
-    staleTime: 1 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 };
 
@@ -167,6 +202,7 @@ export const useAdjustStock = () => {
     onSuccess: (_, variables) => {
       // Invalidar stock lists
       queryClient.invalidateQueries({ queryKey: stockKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: stockKeys.products() });
 
       // Invalidar stock del producto específico
       queryClient.invalidateQueries({ queryKey: stockKeys.byProduct(variables.productId) });
@@ -226,6 +262,7 @@ export const useTransferStock = () => {
     onSuccess: (_, variables) => {
       // Invalidar todas las listas de stock
       queryClient.invalidateQueries({ queryKey: stockKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: stockKeys.products() });
 
       // Invalidar stock del producto
       queryClient.invalidateQueries({ queryKey: stockKeys.byProduct(variables.productId) });

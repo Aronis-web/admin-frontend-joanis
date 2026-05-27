@@ -1,0 +1,23 @@
+---
+name: commit-push
+description: Crea commit con mensaje generado y hace push
+mode: write
+---
+
+Crea un commit y hace push siguiendo la regla del proyecto: tras cada cambio funcional, versionar inmediatamente.
+
+## Pasos
+
+1. `git --no-pager status` para ver archivos modificados.
+2. `git --no-pager diff --stat` para resumen.
+3. Si hay cambios sin stagear, `git add -A` (excluyendo secretos: `.env*`, `credentials*`, llaves).
+4. Generar un mensaje corto en español, imperativo, enfocado en el **por qué** del cambio (no en el qué).
+5. `git commit -m "<mensaje>"`.
+6. `git --no-pager log -1` para confirmar.
+7. `git push` a la rama actual. Si no hay upstream, usar `git push -u origin <rama>`.
+8. Reporta el hash del commit y rama destino.
+
+## Restricciones
+- **Nunca** hacer `push --force` ni `--no-verify`.
+- **Nunca** push directo a `master` si los cambios son grandes — preguntar al usuario primero.
+- No incluir archivos con secretos.

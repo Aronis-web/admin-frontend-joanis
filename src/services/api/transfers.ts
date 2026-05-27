@@ -268,6 +268,15 @@ export const transfersApi = {
   // ============================================
 
   /**
+   * 📥 Get recent receptions (ENTRADAS recientes)
+   * GET /api/receptions
+   * Obtiene recepciones recientes para consultas generales
+   */
+  getReceptions: async (filters?: ReceptionFilters): Promise<ReceptionListResponse> => {
+    return apiClient.get<ReceptionListResponse>('/receptions', { params: filters });
+  },
+
+  /**
    * 📥 Get pending receptions (ENTRADAS pendientes)
    * GET /api/receptions/pending
    * Obtiene todas las recepciones pendientes de validar

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://docs.firebender.com/schema/firebender.json",
+  "agents": [
+    ".firebender/agents/planner.md",
+    ".firebender/agents/api-integrator.md",
+    ".firebender/agents/screen-builder.md",
+    ".firebender/agents/refactor-large-file.md",
+    ".firebender/agents/code-reviewer.md",
+    ".firebender/agents/verifier.md"
+  ]
+}

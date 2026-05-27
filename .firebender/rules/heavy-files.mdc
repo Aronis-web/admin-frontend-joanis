@@ -1,0 +1,43 @@
+---
+description: Archivos que NUNCA hay que leer completos (gigantes o artefactos)
+alwaysApply: true
+---
+
+# Archivos prohibidos / cuidado al leer
+
+No cargues estos archivos enteros con `read_file`. Usa `grep`, `find_usages`, o `read_file` con `offset`/`limit`.
+
+## Datos estáticos enormes
+- `src/constants/ubigeo.ts` — **8.961 líneas, 192KB**. Tabla de ubigeos del Perú. Para consultar un código: `grep` por el código exacto. Nunca devolver su contenido.
+
+## Carpetas que NO son código fuente
+- `dist/` (~6 GB), `web-build/`, `node_modules/`, `android/build/`, `ios/build/`, `vendor/` — artefactos. No explorar, no `list_dir`, no `grep` global.
+- `android/*.log` — logs de Gradle viejos. Ignorar.
+- `assets/` — íconos/binarios.
+
+## Archivos fuente >1500 líneas (refactor candidates)
+
+Lee solo las secciones relevantes con `offset`/`limit` o `grep`. Si necesitas modificar varias secciones, sugiere `/split-large-file`:
+
+| Archivo | Líneas |
+|---|---|
+| `src/screens/Campaigns/CampaignDetailScreen.tsx` | 4.404 |
+| `src/screens/Repartos/RepartoParticipantDetailScreen.tsx` | 3.465 |
+| `src/components/Campaigns/DistributionFormModal.tsx` | 2.977 |
+| `src/screens/Photos/PhotoCampaignManagementScreen.tsx` | 2.583 |
+| `src/screens/CashReconciliation/CuadreScreen.tsx` | 2.379 |
+| `src/screens/Dashboard/DashboardScreen.tsx` | 2.257 |
+| `src/components/Inventory/ProductImagesModal.tsx` | 2.113 |
+| `src/screens/Transfers/ReceptionsScreen.tsx` | 2.011 |
+| `src/screens/Campaigns/AddProductScreen.tsx` | 2.001 |
+| `src/components/Campaigns/CampaignProductBannerModal.tsx` | 1.955 |
+| `src/screens/Transfers/ExternalTransfersScreen.tsx` | 1.920 |
+| `src/navigation/index.tsx` | 1.871 |
+| `src/screens/Purchases/PurchaseDetailScreen.tsx` | 1.648 |
+| `src/screens/AccountsReceivable/AccountsReceivableScreen.tsx` | 2.060 |
+
+## Reglas de oro
+
+- Antes de leer un archivo >800 líneas, intenta `grep` primero.
+- Para refactors grandes, usa el subagente `refactor-large-file` (delegable vía `/split-large-file`).
+- Los hooks de Firebender bloquearán intentos de leer `ubigeo.ts` y carpetas de build.

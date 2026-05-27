@@ -1,0 +1,31 @@
+---
+description: Mapa rápido del codebase para no escanear src/ a ciegas
+alwaysApply: true
+---
+
+# Mapa del codebase
+
+## Índices y registros
+- **Servicios API**: 44 archivos en `src/services/api/*.ts`. Registro central de exports: `src/services/api/index.ts`.
+- **Hooks React Query**: `src/hooks/api/use*.ts` (Campaigns, Expenses, Products, Purchases, Repartos, Stock).
+- **Pantallas**: 39 módulos en `src/screens/<Modulo>/` (Sales, Inventory, Campaigns, Repartos, Expenses, Purchases, AccountsPayable, AccountsReceivable, CashReconciliation, Bizlinks, Transport, Transfers, Photos, Treasury, etc.).
+- **Componentes**: por módulo en `src/components/<Modulo>/`. Compartidos: `common/`, `ui/`, `Layout/`, `Navigation/`.
+- **Design system**: tokens en `src/design-system/tokens/`, componentes en `src/design-system/components/`. Entry: `src/design-system/index.ts`.
+- **Constants críticos**:
+  - `src/constants/permissions.ts` — todos los permisos (703 líneas, leer con grep por permiso).
+  - `src/constants/routes.ts` — todas las rutas (425 líneas).
+- **Navegación**: `src/navigation/index.tsx` (1.871 líneas, leer por secciones).
+- **HTTP client**: `src/services/api/client.ts` (interceptores, auth, errores).
+- **Logger**: `@/utils/logger`.
+
+## Cómo encontrar cosas
+- "¿Dónde está la API de X?" → `grep -l "<X>Api" src/services/api/`.
+- "¿Qué hooks consumen un servicio?" → `find_usages` sobre el `xxxApi`.
+- "¿Dónde se usa un permiso?" → `grep` en `src/constants/permissions.ts` por la clave, luego `find_usages`.
+- "¿Cómo se llama la ruta de Y?" → `grep` en `src/constants/routes.ts`.
+
+## Stack runtime relevante
+- React Query v5 — keys siempre vía objeto `xxxKeys` (ver `useProducts.ts`).
+- Axios envuelto en `apiClient` — nunca `axios` directo.
+- Zustand para estado cliente (`src/store/`).
+- React Navigation v6 — tipado en `src/navigation/`.

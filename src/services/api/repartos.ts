@@ -584,6 +584,176 @@ class RepartosService {
   }
 
   /**
+   * Get pending products available for partial closure v2.
+   */
+  async getClosureBatchV2PendingProducts(
+    campaignParticipantId: string,
+    campaignId: string
+  ): Promise<{
+    campaignId: string;
+    campaignParticipantId: string;
+    totalProducts: number;
+    totalValidatedQuantity: number;
+    products: Array<{
+      repartoProductoId: string;
+      repartoId: string;
+      repartoCode: string;
+      repartoName: string;
+      productId: string;
+      productName: string;
+      productSku: string;
+      warehouseId: string;
+      areaId: string | null;
+      quantityAssigned: number;
+      quantityValidated: number;
+      difference: number;
+      validatedAt: string;
+      validatedBy: string;
+    }>;
+  }> {
+    return apiClient.get(
+      `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/closure-batches-v2/pending-products`
+    );
+  }
+
+  /**
+   * Get all partial closure batches v2 for a participant/campaign.
+   */
+  async getClosureBatchesV2(
+    campaignParticipantId: string,
+    campaignId: string
+  ): Promise<Array<{
+    id: string;
+    campaignId: string;
+    campaignParticipantId: string;
+    transfer: {
+      id: string;
+      transferNumber: string;
+      status: string;
+    };
+    remissionGuide: null | {
+      id: string;
+      serieNumero: string;
+      generatedAt: string;
+      isDevelopment: boolean;
+      pdfUrl: string | null;
+      xmlUrl: string | null;
+      cdrUrl: string | null;
+    };
+    notes?: string;
+    createdAt: string;
+    summary: {
+      totalProducts: number;
+      totalAssigned: number;
+      totalValidated: number;
+      totalDifference: number;
+    };
+    items: Array<{
+      id: string;
+      repartoProductoId: string;
+      productId: string;
+      productName: string;
+      productSku: string;
+      quantityAssigned: number;
+      quantityValidated: number;
+      quantityDifference: number;
+    }>;
+  }>> {
+    return apiClient.get(
+      `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/closure-batches-v2`
+    );
+  }
+
+  /**
+   * Create partial closure batch v2 and generate external transfer.
+   */
+  async createClosureBatchV2(
+    campaignParticipantId: string,
+    campaignId: string,
+    data: {
+      repartoProductoIds: string[];
+      notes?: string;
+    }
+  ): Promise<{
+    success: boolean;
+    closureBatch: {
+      id: string;
+      campaignId: string;
+      campaignParticipantId: string;
+      transferId: string;
+      transferNumber: string;
+      notes?: string;
+      createdAt: string;
+    };
+    transfer: {
+      id: string;
+      transferNumber: string;
+      status: string;
+      originWarehouse: string;
+      destinationWarehouse: string;
+    };
+    summary: {
+      totalProducts: number;
+      totalConsolidatedProducts: number;
+      totalAssigned: number;
+      totalValidated: number;
+      totalDifference: number;
+    };
+  }> {
+    return apiClient.post(
+      `${this.basePath}/participants/${campaignParticipantId}/campaigns/${campaignId}/closure-batches-v2`,
+      data
+    );
+  }
+
+  /**
+   * Generate remission guide for a partial closure batch v2.
+   */
+  async generateClosureBatchV2RemissionGuide(
+    closureBatchId: string,
+    transportData?: {
+      vehicleId?: string;
+      driverId?: string;
+      transporterId?: string;
+      numeroBultos?: number;
+    }
+  ): Promise<{
+    success: boolean;
+    remissionGuide: {
+      id: string;
+      serieNumero: string;
+      status: string;
+      pdfUrl: string | null;
+      xmlUrl: string | null;
+      cdrUrl?: string | null;
+    };
+    transfer: {
+      id: string;
+      transferNumber: string;
+    };
+    closureBatchId: string;
+    message: string;
+  }> {
+    return apiClient.post(
+      `${this.basePath}/closure-batches-v2/${closureBatchId}/generate-remission-guide`,
+      transportData,
+      {
+        timeout: config.API_TIMEOUT_REMISSION_GUIDE,
+      }
+    );
+  }
+
+  /**
+   * Download a closure batch v2 guide file from returned transfer URL.
+   */
+  async downloadClosureBatchV2GuideFile(url: string): Promise<Blob> {
+    const timestamp = new Date().getTime();
+    const separator = url.includes('?') ? '&' : '?';
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+    return downloadWithAuth(`${url}${separator}t=${timestamp}`, { method: 'GET' });
+  }
+
+  /**
    * Generate remission guide for a participant's consolidated transfer
    * Requires that a consolidated transfer has been generated first
    */

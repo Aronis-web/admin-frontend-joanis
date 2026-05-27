@@ -36,16 +36,18 @@ if (process.platform === 'win32') {
 }
 
 // Token de GitHub para repositorios privados
-// IMPORTANTE: Configurar GITHUB_TOKEN en el entorno de ejecución para acceder a releases privados.
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+// IMPORTANTE: El token se debe inyectar via variable de entorno GH_TOKEN al
+// empaquetar la app o ejecutarla. Nunca commitear el token al repositorio.
+const GITHUB_TOKEN = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 if (GITHUB_TOKEN) {
   autoUpdater.requestHeaders = {
     Authorization: `token ${GITHUB_TOKEN}`
   };
-  console.log('[ELECTRON] ✅ Auto-updater configurado para repositorio privado');
 } else {
-  console.warn('[ELECTRON] ⚠️ GITHUB_TOKEN no configurado; auto-updater sin autenticación privada');
+  console.warn('[ELECTRON] ⚠️ GH_TOKEN no definido: auto-updater sin auth para repo privado');
 }
+
+console.log('[ELECTRON] ✅ Auto-updater configurado para repositorio privado');
 
 // Variable para almacenar el estado de la actualización
 let updateInfo = null;

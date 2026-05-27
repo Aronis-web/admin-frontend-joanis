@@ -1,0 +1,23 @@
+---
+name: find-usages
+description: Encuentra dónde se usa un símbolo (LSP, no grep)
+model: quick
+mode: read
+---
+
+El usuario te dará un símbolo (función, clase, hook, constante) o un archivo.
+
+## Pasos
+
+1. Si no hay claridad de archivo de definición, primero `grep` corto para localizar la definición.
+2. Usa `find_usages` del LSP — no `grep` global — para listar usos reales. Esto evita falsos positivos en `dist/`, `node_modules`, comentarios, etc.
+3. Agrupa resultados por carpeta (`services/api`, `hooks/api`, `screens`, `components`) y reporta:
+   - Path:línea con un snippet de 1 línea.
+   - Total por carpeta.
+
+## Útil para
+- Verificar impacto antes de renombrar o borrar (junto con `rename_symbol`).
+- Migrar un endpoint o hook.
+- Confirmar que un componente realmente se usa.
+
+No edites código. Solo reporta.

@@ -1,0 +1,32 @@
+---
+description: Cómo trabajar con navegación y rutas sin romper el stack
+globs: "src/navigation/**, src/constants/routes.ts"
+---
+
+# Navegación y rutas
+
+## Archivos canónicos
+
+- Stack/tabs principal: `src/navigation/index.tsx` (**1.871 líneas — leer por secciones con grep**).
+- Constantes de rutas: `src/constants/routes.ts` (425 líneas).
+
+## Cómo agregar una pantalla nueva
+
+1. Definir la ruta en `src/constants/routes.ts` (no hardcodear strings en navigation).
+2. Importar la pantalla en `src/navigation/index.tsx`.
+3. Añadir el `<Stack.Screen>` en el stack del módulo correspondiente (Sales, Inventory, etc.).
+4. Si la pantalla requiere permiso, envolver en el guard que el módulo use actualmente (revisar otras pantallas del mismo stack).
+
+## Cómo encontrar dónde se registra una ruta existente
+
+```
+grep -n "ROUTES.<NOMBRE>" src/navigation/index.tsx
+grep -n "<NOMBRE>:" src/constants/routes.ts
+```
+
+## Reglas
+
+- ❌ Nunca `navigation.navigate('NombreLiteral')`. Siempre `navigation.navigate(ROUTES.NOMBRE)`.
+- ❌ No leer `src/navigation/index.tsx` entero. Usa grep para la sección del stack.
+- ✅ Tipar correctamente los `RootStackParamList` / `TabParamList` (revisar archivo de tipos en `src/navigation/`).
+- ✅ Si agregas un parámetro a una ruta, actualizar el tipo correspondiente.

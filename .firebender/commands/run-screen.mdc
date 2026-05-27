@@ -1,0 +1,38 @@
+---
+name: run-screen
+description: Levanta Electron en modo desarrollo (dos terminales)
+mode: write
+---
+
+Levanta la app de escritorio en dev. Por bug conocido en `concurrently`, hace falta dos terminales.
+
+## Pasos
+
+```powershell
+cd C:/Users/aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis
+
+# Terminal 1 (servidor web) — minimizada
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "npm run electron:run" -WindowStyle Minimized
+
+# Esperar a que el servidor esté arriba
+Start-Sleep -Seconds 8
+
+# Terminal 2 (Electron)
+npx electron electron/main.js
+```
+
+## Si ya hay un servidor en :8082
+
+Saltar el paso 1 y abrir directamente Electron:
+
+```powershell
+npx electron electron/main.js
+```
+
+## DevTools
+
+Para abrir con DevTools desde el inicio:
+
+```powershell
+npm run electron:debug
+```

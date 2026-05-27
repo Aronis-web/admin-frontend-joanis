@@ -1,0 +1,30 @@
+---
+name: explain-screen
+description: Resume una pantalla compleja sin leerla entera
+model: quick
+mode: read
+---
+
+El usuario te dará el nombre o ruta de una pantalla (`src/screens/<Modulo>/<Nombre>Screen.tsx`). Genera un resumen útil sin cargar el archivo entero.
+
+## Pasos
+
+1. Si el archivo tiene >800 líneas, **no lo leas completo**. Usa `grep` para localizar:
+   - `import` (primeras ~50 líneas).
+   - Definición del componente principal (`export default` / `const ...Screen`).
+   - Hooks API consumidos (`use*`).
+   - Navegación (`useNavigation`, `navigate(`).
+   - Permisos (`hasPermission`, constantes de `permissions.ts`).
+   - Estados principales (`useState`, `useReducer`).
+2. Lee solo los rangos necesarios con `offset`/`limit`.
+
+## Reporte
+
+- **Propósito**: 1–2 líneas.
+- **Datos**: qué hooks API consume y qué muestra.
+- **Acciones del usuario**: botones/forms y a qué llaman.
+- **Navegación**: a qué rutas lleva.
+- **Permisos**: cuáles verifica.
+- **Riesgos / deuda**: si supera 1500 líneas, sugerir `/split-large-file`.
+
+Sé conciso. No expliques sintaxis básica.

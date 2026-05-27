@@ -18,6 +18,7 @@ import {
   DistributionPreviewRequest,
   DistributionResultResponse,
   GenerateDistributionRequest,
+  CampaignProductsDetailResponse,
 } from '@/types/campaigns';
 import { ParticipantTotalsResponse } from '@/types/participant-totals';
 
@@ -43,7 +44,7 @@ class CampaignsService {
     };
 
     const response = await apiClient.get<any>(this.basePath, {
-      params: paginatedParams
+      params: paginatedParams,
     });
 
     // Handle different response formats
@@ -75,6 +76,103 @@ class CampaignsService {
       page: paginatedParams.page,
       limit: paginatedParams.limit,
     };
+  }
+
+  /**
+   * Get a lightweight campaign summary (optional fast endpoint).
+   *
+   * Tries `GET /admin/campaigns/:id/summary` first, falls back to the full
+   * `getCampaign` if the endpoint is not available on the backend. Useful for
+   * the campaign detail header / overview tab, where the full nested payload
+   * (participants, products, distributions, etc.) is not required.
+   */
+  async getCampaignSummary(id: string): Promise<Campaign> {
+    try {
+      return await apiClient.get<Campaign>(`${this.basePath}/${id}/summary`);
+    } catch (error: any) {
+      // 404 / 501 → backend does not expose the summary endpoint yet
+      if (error?.response?.status === 404 || error?.response?.status === 501) {
+        return this.getCampaign(id);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get paginated/filtered campaign products (optional fast endpoint).
+   *
+   * Falls back to the unpaginated `getProducts` when the backend does not
+   * expose the paginated route yet, applying client-side filtering as a
+   * graceful degradation.
+   */
+  async getProductsPaginated(
+    campaignId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      q?: string;
+      distributionStatus?: 'generated' | 'not-generated';
+    }
+  ): Promise<{ data: CampaignProduct[]; total: number; page: number; limit: number }> {
+    const page = params?.page ?? 1;
+    const limit = params?.limit ?? 20;
+    try {
+      const response = await apiClient.get<any>(`${this.basePath}/${campaignId}/products`, {
+        params: { page, limit, q: params?.q, distributionStatus: params?.distributionStatus },
+      });
+      // If backend already paginates, normalize the response
+      if (response && (response.items || response.data)) {
+        const items: CampaignProduct[] = response.items || response.data || [];
+        return {
+          data: items,
+          total: response.total ?? items.length,
+          page: response.page ?? page,
+          limit: response.limit ?? limit,
+        };
+      }
+      // Otherwise, treat as full array and paginate on the client
+      const all: CampaignProduct[] = Array.isArray(response) ? response : [];
+      const filtered = this.filterCampaignProducts(all, params);
+      const start = (page - 1) * limit;
+      return {
+        data: filtered.slice(start, start + limit),
+        total: filtered.length,
+        page,
+        limit,
+      };
+    } catch (error) {
+      // Final fallback: use the existing helper and paginate locally
+      const all = await this.getProducts(campaignId);
+      const filtered = this.filterCampaignProducts(all, params);
+      const start = (page - 1) * limit;
+      return {
+        data: filtered.slice(start, start + limit),
+        total: filtered.length,
+        page,
+        limit,
+      };
+    }
+  }
+
+  private filterCampaignProducts(
+    items: CampaignProduct[],
+    params?: { q?: string; distributionStatus?: 'generated' | 'not-generated' }
+  ): CampaignProduct[] {
+    let result = items;
+    if (params?.distributionStatus === 'generated') {
+      result = result.filter((p) => p.distributionGenerated);
+    } else if (params?.distributionStatus === 'not-generated') {
+      result = result.filter((p) => !p.distributionGenerated);
+    }
+    if (params?.q && params.q.trim()) {
+      const q = params.q.trim().toLowerCase();
+      result = result.filter((p) => {
+        const title = (p.product as any)?.title?.toLowerCase?.() || '';
+        const sku = (p.product as any)?.sku?.toLowerCase?.() || '';
+        return title.includes(q) || sku.includes(q);
+      });
+    }
+    return result;
   }
 
   /**
@@ -194,10 +292,23 @@ class CampaignsService {
   async getProducts(campaignId: string): Promise<CampaignProduct[]> {
     return apiClient.get<CampaignProduct[]>(`${this.basePath}/${campaignId}/products`, {
       params: {
-        include:
-          'product.category,product.presentations,product.salePrices,purchase',
+        include: 'product.category,product.presentations,product.salePrices,purchase',
       },
     });
+  }
+
+  /**
+   * Get compact products detail for a campaign (new fast endpoint).
+   *
+   * Trae todos los datos necesarios para la pestaña de productos en un
+   * solo request: stock del site, costo, precios por perfil, proveedor
+   * y fotos. Reemplaza el flujo previo que combinaba `getCampaign` +
+   * `getProductsByIds` + `getProductSalePrices`.
+   */
+  async getProductsDetail(campaignId: string): Promise<CampaignProductsDetailResponse> {
+    return apiClient.get<CampaignProductsDetailResponse>(
+      `${this.basePath}/${campaignId}/products/detail`
+    );
   }
 
   /**
@@ -432,7 +543,10 @@ class CampaignsService {
   /**
    * Upload bulk distribution Excel and generate repartos
    */
-  async uploadBulkDistribution(campaignId: string, file: File | Blob): Promise<{
+  async uploadBulkDistribution(
+    campaignId: string,
+    file: File | Blob
+  ): Promise<{
     success: boolean;
     repartosCreated: number;
     totalProducts: number;
@@ -456,10 +570,7 @@ class CampaignsService {
     formData.append('file', file);
 
     // Don't set Content-Type header manually - let the browser/runtime set it with the correct boundary
-    return apiClient.post<any>(
-      `${this.basePath}/${campaignId}/bulk-distribution-upload`,
-      formData
-    );
+    return apiClient.post<any>(`${this.basePath}/${campaignId}/bulk-distribution-upload`, formData);
   }
 }
 

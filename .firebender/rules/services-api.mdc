@@ -1,0 +1,44 @@
+---
+description: Patrones para servicios HTTP en src/services/api/
+globs: "src/services/api/**/*.ts"
+---
+
+# Servicios API
+
+Patrón de referencia: `src/services/api/sales.ts`, `src/services/api/products.ts`.
+
+## Estructura obligatoria
+
+```ts
+import { apiClient } from './client';
+import { Foo, FooResponse, CreateFooRequest } from '@/types/foo';
+
+export const fooApi = {
+  /** GET /admin/foos */
+  getFoos: async (params?: QueryFoosParams): Promise<FooResponse> =>
+    apiClient.get<FooResponse>('/admin/foos', { params }),
+
+  /** GET /admin/foos/:id */
+  getFooById: async (id: string): Promise<Foo> =>
+    apiClient.get<Foo>(`/admin/foos/${id}`),
+
+  /** POST /foos */
+  createFoo: async (data: CreateFooRequest): Promise<Foo> =>
+    apiClient.post<Foo>('/foos', data),
+};
+```
+
+## Reglas
+- Exportar un objeto `xxxApi` (camelCase). No usar `default export` salvo que ya exista para el módulo.
+- Usar siempre `apiClient` del archivo `./client`. **Nunca** importar `axios` directo aquí.
+- Cada método debe ser `async` y tipar explícitamente el retorno (`Promise<T>`).
+- Documentar arriba con `/** METHOD /ruta */` (ayuda al lector y a otros agentes).
+- Los tipos viven en `@/types/<modulo>.ts`, no en el servicio. Si el módulo ya define tipos locales (como `roles.ts`, `apps.ts`), seguir esa convención existente.
+- Para `responseType: 'blob'` (PDFs, descargas) pasar la opción explícita.
+- Registrar el nuevo servicio en `src/services/api/index.ts` con un `export` nominal evitando colisiones de nombres.
+
+## Anti-patrones
+- ❌ `axios.get(...)` directo
+- ❌ Devolver `any` cuando existe un tipo apropiado
+- ❌ Lanzar excepciones custom desde aquí: el manejo central de errores vive en `client.ts`
+- ❌ Concatenar query strings a mano — usar `{ params }`

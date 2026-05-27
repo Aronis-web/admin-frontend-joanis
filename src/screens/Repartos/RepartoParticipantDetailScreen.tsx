@@ -23,8 +23,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { saveAndSharePdf } from '@/utils/fileDownload';
-import { campaignsService, repartosService, productsApi } from '@/services/api';
+import { saveAndShareFile, saveAndSharePdf } from '@/utils/fileDownload';
+import { campaignsService, repartosService, productsApi, transfersApi } from '@/services/api';
 import { CampaignParticipant, ParticipantType } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { Product } from '@/services/api/products';
@@ -80,6 +80,64 @@ interface PresentationInfo {
   roundingMethod: string;
 }
 
+interface PendingClosureProduct {
+  repartoProductoId: string;
+  repartoId: string;
+  repartoCode: string;
+  repartoName: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  warehouseId: string;
+  areaId: string | null;
+  quantityAssigned: number;
+  quantityValidated: number;
+  difference: number;
+  validatedAt: string;
+  validatedBy: string;
+}
+
+interface ClosureBatchV2 {
+  id: string;
+  isLegacy?: boolean;
+  campaignId: string;
+  campaignParticipantId: string;
+  transfer: {
+    id: string;
+    transferNumber: string;
+    status: string;
+  };
+  remissionGuide: null | {
+    id: string;
+    serieNumero: string;
+    generatedAt: string;
+    status?: string | null;
+    statusSunat?: string | null;
+    isDevelopment: boolean;
+    pdfUrl: string | null;
+    xmlUrl: string | null;
+    cdrUrl: string | null;
+  };
+  notes?: string;
+  createdAt: string;
+  summary: {
+    totalProducts: number;
+    totalAssigned: number;
+    totalValidated: number;
+    totalDifference: number;
+  };
+  items: Array<{
+    id: string;
+    repartoProductoId: string;
+    productId: string;
+    productName: string;
+    productSku: string;
+    quantityAssigned: number;
+    quantityValidated: number;
+    quantityDifference: number;
+  }>;
+}
+
 interface ProductoReparto {
   id: string;
   productId: string;
@@ -132,6 +190,7 @@ interface ProductoReparto {
   repartoStatus?: string;
   validacion?: {
     presentationInfo?: PresentationInfo;
+    validatedQuantity?: number;
     validatedQuantityBase?: string;
     photoUrl?: string;
     signatureUrl?: string;
@@ -140,6 +199,52 @@ interface ProductoReparto {
     notes?: string;
   };
 }
+
+const normalizeStatus = (status?: string) => (status || '').toUpperCase();
+
+const isValidatedFlowStatus = (status?: string) => {
+  const normalizedStatus = normalizeStatus(status);
+  return normalizedStatus === 'VALIDATED' || normalizedStatus === 'TRANSFERRED';
+};
+
+const isPendingFlowStatus = (status?: string) => normalizeStatus(status) === 'PENDING';
+
+const getValidatedQuantity = (producto: ProductoReparto) => {
+  if (producto.quantityValidated !== undefined && producto.quantityValidated > 0) {
+    return producto.quantityValidated;
+  }
+
+  const validatedQuantity = producto.validacion?.validatedQuantity;
+  if (validatedQuantity !== undefined && validatedQuantity > 0) {
+    return validatedQuantity;
+  }
+
+  const validatedQuantityBase = producto.validacion?.validatedQuantityBase;
+  if (validatedQuantityBase) {
+    const parsedQuantity = parseFloat(validatedQuantityBase);
+    return Number.isNaN(parsedQuantity) ? 0 : parsedQuantity;
+  }
+
+  return producto.quantityValidated || 0;
+};
+
+const getGuideSunatStatus = (guide?: any, fallbackGuide?: any) => {
+  const status =
+    guide?.statusSunat ||
+    guide?.sunatStatus ||
+    guide?.estadoSunat?.code ||
+    guide?.estadoSunat?.statusSunat ||
+    guide?.status_sunat ||
+    fallbackGuide?.statusSunat ||
+    fallbackGuide?.sunatStatus ||
+    fallbackGuide?.estadoSunat?.code ||
+    fallbackGuide?.estadoSunat?.statusSunat ||
+    fallbackGuide?.status_sunat ||
+    guide?.status ||
+    fallbackGuide?.status;
+
+  return status || 'Pendiente';
+};
 
 export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailScreenProps> = ({
   navigation,
@@ -161,8 +266,20 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const [validationFilter, setValidationFilter] = useState<'all' | 'validated' | 'pending'>('all');
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [repartoId, setRepartoId] = useState<string | null>(null);
-  const [generatingConsolidated, setGeneratingConsolidated] = useState(false);
-  const [consolidatedTransferGenerated, setConsolidatedTransferGenerated] = useState(false);
+  const [closuresModalVisible, setClosuresModalVisible] = useState(false);
+  const [loadingClosures, setLoadingClosures] = useState(false);
+  const [creatingClosure, setCreatingClosure] = useState(false);
+  const [generatingClosureGuide, setGeneratingClosureGuide] = useState<string | null>(null);
+  const [downloadingClosureGuide, setDownloadingClosureGuide] = useState<string | null>(null);
+  const [pendingClosureProducts, setPendingClosureProducts] = useState<PendingClosureProduct[]>([]);
+  const [closureBatches, setClosureBatches] = useState<ClosureBatchV2[]>([]);
+  const [selectedClosureProductIds, setSelectedClosureProductIds] = useState<string[]>([]);
+  const [pendingProductsExpanded, setPendingProductsExpanded] = useState(false);
+  const [expandedClosureBatchIds, setExpandedClosureBatchIds] = useState<string[]>([]);
+  const [closureNotes, setClosureNotes] = useState('');
+  const [selectedClosureForGuide, setSelectedClosureForGuide] = useState<ClosureBatchV2 | null>(
+    null
+  );
   const [consolidatedTransferInfo, setConsolidatedTransferInfo] = useState<{
     exists: boolean;
     transferId: string | null;
@@ -190,7 +307,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const [discrepanciasModalVisible, setDiscrepanciasModalVisible] = useState(false);
   const [notasModalVisible, setNotasModalVisible] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
-  const [selectedDiscrepancy, setSelectedDiscrepancy] = useState<TransferReportDiscrepancy | null>(null);
+  const [selectedDiscrepancy, setSelectedDiscrepancy] = useState<TransferReportDiscrepancy | null>(
+    null
+  );
   const [bultosModalVisible, setBultosModalVisible] = useState(false);
   const [numeroBultos, setNumeroBultos] = useState('1');
   const [pendingTransportData, setPendingTransportData] = useState<{
@@ -326,8 +445,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             },
             quantityAssigned: reparto.quantityAssigned,
             quantityValidated: reparto.quantityValidated,
-            validationStatus: reparto.status,
-            status: reparto.status,
+            validationStatus: normalizeStatus(reparto.status),
+            status: normalizeStatus(reparto.status),
+            validacion: reparto.validacion || reparto.validation,
             repartoCode: reparto.repartoCode,
             repartoName: reparto.repartoName,
             repartoStatus: reparto.repartoStatus,
@@ -356,7 +476,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
       // ✅ Cargar fotos de productos usando batch endpoint
       try {
-        const productIds = [...new Set(productosAsignados.map(p => p.productId))];
+        const productIds = [...new Set(productosAsignados.map((p) => p.productId))];
         console.log(`📸 Total productos únicos: ${productIds.length}`);
         console.log(`📸 Product IDs:`, productIds);
         if (productIds.length > 0) {
@@ -380,7 +500,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           console.log(`✅ Total productos con fotos: ${Object.keys(photosMap).length}`);
           console.log(`✅ Llamando a setProductPhotos con:`, photosMap);
           setProductPhotos(photosMap);
-          console.log(`✅ setProductPhotos llamado (el estado se actualizará en el próximo render)`);
+          console.log(
+            `✅ setProductPhotos llamado (el estado se actualizará en el próximo render)`
+          );
         } else {
           console.log('⚠️ No hay productos para cargar fotos');
         }
@@ -397,10 +519,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           participantId,
           campaignId
         );
-        logger.info('📊 Respuesta del servidor (traslado):', JSON.stringify(transferStatus, null, 2));
+        logger.info(
+          '📊 Respuesta del servidor (traslado):',
+          JSON.stringify(transferStatus, null, 2)
+        );
         setConsolidatedTransferInfo(transferStatus);
-        // ✅ SIEMPRE actualizar el estado basado en la respuesta del servidor
-        setConsolidatedTransferGenerated(transferStatus.exists);
         if (transferStatus.exists) {
           logger.info('✅ Traslado consolidado ya existe:', transferStatus);
         } else {
@@ -409,17 +532,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       } catch (error: any) {
         logger.error('❌ Error verificando estado del traslado consolidado:', error);
         // En caso de error, asumir que no existe
-        setConsolidatedTransferGenerated(false);
         setConsolidatedTransferInfo(null);
       }
 
       // Verificar si ya existe una guía de remisión
       try {
         logger.info('🔍 Verificando estado de la guía de remisión...');
-        const guideInfo = await repartosService.getRemissionGuideInfo(
-          participantId,
-          campaignId
-        );
+        const guideInfo = await repartosService.getRemissionGuideInfo(participantId, campaignId);
         logger.info('📊 Respuesta del servidor (guía):', JSON.stringify(guideInfo, null, 2));
         setRemissionGuideInfo(guideInfo);
         if (guideInfo.exists) {
@@ -457,7 +576,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     console.log('🔄 productPhotos state cambió:', {
       totalProductos: Object.keys(productPhotos).length,
       productIds: Object.keys(productPhotos),
-      photosMap: productPhotos
+      photosMap: productPhotos,
     });
   }, [productPhotos]);
 
@@ -485,9 +604,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
     // Filtrar por estado de validación
     if (validationFilter === 'validated') {
-      filtered = filtered.filter((p) => p.validationStatus === 'VALIDATED');
+      filtered = filtered.filter((p) => isValidatedFlowStatus(p.validationStatus));
     } else if (validationFilter === 'pending') {
-      filtered = filtered.filter((p) => p.validationStatus === 'PENDING');
+      filtered = filtered.filter((p) => isPendingFlowStatus(p.validationStatus));
     }
 
     // Filtrar por búsqueda
@@ -557,6 +676,251 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     }
   };
 
+  const loadClosureBatchData = useCallback(async () => {
+    setLoadingClosures(true);
+    try {
+      const [pendingResponse, batchesResponse] = await Promise.all([
+        repartosService.getClosureBatchV2PendingProducts(participantId, campaignId),
+        repartosService.getClosureBatchesV2(participantId, campaignId),
+      ]);
+
+      const normalizedBatches = Array.isArray(batchesResponse) ? batchesResponse : [];
+      const batchesWithGuideStatus = await Promise.all(
+        normalizedBatches.map(async (batch: ClosureBatchV2) => {
+          if (!batch.remissionGuide || batch.remissionGuide.statusSunat) {
+            return batch;
+          }
+
+          try {
+            const transferDetail = await transfersApi.getTransferById(batch.transfer.id);
+            const transferGuide = transferDetail?.remissionGuide;
+
+            return {
+              ...batch,
+              remissionGuide: {
+                ...batch.remissionGuide,
+                status: batch.remissionGuide.status || transferGuide?.status || null,
+                statusSunat: getGuideSunatStatus(transferGuide, batch.remissionGuide),
+              },
+            };
+          } catch (error) {
+            logger.warn('No se pudo obtener estado SUNAT del traslado:', batch.transfer.id, error);
+            return batch;
+          }
+        })
+      );
+
+      const pendingProducts = pendingResponse.products || [];
+
+      setPendingClosureProducts(pendingProducts);
+      setClosureBatches(batchesWithGuideStatus);
+      setSelectedClosureProductIds(pendingProducts.map((product) => product.repartoProductoId));
+    } catch (error: any) {
+      logger.error('Error cargando cierres parciales v2:', error);
+      Alert.alert('Error', error.response?.data?.message || 'No se pudieron cargar los cierres');
+    } finally {
+      setLoadingClosures(false);
+    }
+  }, [campaignId, participantId]);
+
+  const closureBatchesToDisplay = useMemo(() => {
+    const legacyTransferId =
+      consolidatedTransferInfo?.transferId || remissionGuideInfo?.remissionGuideId;
+    const shouldShowLegacyClosure = consolidatedTransferInfo?.exists || remissionGuideInfo?.exists;
+
+    if (!shouldShowLegacyClosure || !legacyTransferId) {
+      return closureBatches;
+    }
+
+    const hasLegacyInV2 = closureBatches.some(
+      (batch) =>
+        batch.transfer?.id === consolidatedTransferInfo?.transferId ||
+        batch.id === `legacy-${legacyTransferId}`
+    );
+
+    if (hasLegacyInV2) {
+      return closureBatches;
+    }
+
+    const legacyTransferNumber =
+      consolidatedTransferInfo?.transferNumber ||
+      remissionGuideInfo?.remissionGuideNumber ||
+      'Cierre consolidado';
+
+    const legacyItems = productos.map((product) => {
+      const assigned = product.quantityBase
+        ? parseInt(product.quantityBase)
+        : product.quantityAssigned || 0;
+      const validated = getValidatedQuantity(product);
+      return {
+        id: `legacy-item-${product.id}`,
+        repartoProductoId: product.id,
+        productId: product.productId,
+        productName: product.product?.title || product.product?.name || 'Producto',
+        productSku: product.product?.sku || 'N/A',
+        quantityAssigned: assigned,
+        quantityValidated: validated,
+        quantityDifference: Math.max(assigned - validated, 0),
+      };
+    });
+
+    const legacyBatch: ClosureBatchV2 = {
+      id: `legacy-${legacyTransferId}`,
+      isLegacy: true,
+      campaignId,
+      campaignParticipantId: participantId,
+      transfer: {
+        id: legacyTransferId,
+        transferNumber: legacyTransferNumber,
+        status: remissionGuideInfo?.status || 'CONSOLIDATED',
+      },
+      remissionGuide: remissionGuideInfo?.exists
+        ? {
+            id: remissionGuideInfo.remissionGuideId || `legacy-guide-${legacyTransferId}`,
+            serieNumero: remissionGuideInfo.remissionGuideNumber || 'Guía consolidada',
+            generatedAt: remissionGuideInfo.generatedAt || remissionGuideInfo.createdAt || '',
+            status: remissionGuideInfo.status,
+            statusSunat: remissionGuideInfo.statusSunat,
+            isDevelopment: false,
+            pdfUrl: remissionGuideInfo.pdfUrl,
+            xmlUrl: remissionGuideInfo.xmlUrl,
+            cdrUrl: remissionGuideInfo.cdrUrl,
+          }
+        : null,
+      notes: 'Cierre consolidado generado con el flujo anterior',
+      createdAt:
+        consolidatedTransferInfo?.generatedAt ||
+        remissionGuideInfo?.generatedAt ||
+        remissionGuideInfo?.createdAt ||
+        new Date().toISOString(),
+      summary: {
+        totalProducts: legacyItems.length,
+        totalAssigned: legacyItems.filter((item) => item.quantityAssigned > 0).length,
+        totalValidated: legacyItems.filter((item) => item.quantityValidated > 0).length,
+        totalDifference: legacyItems.filter((item) => item.quantityDifference > 0).length,
+      },
+      items: legacyItems,
+    };
+
+    return [legacyBatch, ...closureBatches];
+  }, [
+    campaignId,
+    closureBatches,
+    consolidatedTransferInfo,
+    participantId,
+    productos,
+    remissionGuideInfo,
+  ]);
+
+  const pendingProductsToDisplay = pendingProductsExpanded ? pendingClosureProducts : [];
+  const allPendingProductsSelected =
+    pendingClosureProducts.length > 0 &&
+    selectedClosureProductIds.length === pendingClosureProducts.length;
+  const partiallySelectedPendingProducts =
+    selectedClosureProductIds.length > 0 && !allPendingProductsSelected;
+
+  const handleOpenClosuresModal = async () => {
+    setPendingProductsExpanded(false);
+    setExpandedClosureBatchIds([]);
+    setClosuresModalVisible(true);
+    await loadClosureBatchData();
+  };
+
+  const toggleClosureBatchExpansion = (batchId: string) => {
+    setExpandedClosureBatchIds((currentIds) =>
+      currentIds.includes(batchId)
+        ? currentIds.filter((id) => id !== batchId)
+        : [...currentIds, batchId]
+    );
+  };
+
+  const toggleAllClosureProductsSelection = () => {
+    setSelectedClosureProductIds(
+      allPendingProductsSelected
+        ? []
+        : pendingClosureProducts.map((product) => product.repartoProductoId)
+    );
+  };
+
+  const toggleClosureProductSelection = (repartoProductoId: string) => {
+    setSelectedClosureProductIds((currentIds) =>
+      currentIds.includes(repartoProductoId)
+        ? currentIds.filter((id) => id !== repartoProductoId)
+        : [...currentIds, repartoProductoId]
+    );
+  };
+
+  const handleCreateClosureBatch = async () => {
+    if (selectedClosureProductIds.length === 0) {
+      Alert.alert('Selecciona productos', 'Debes seleccionar al menos un producto validado.');
+      return;
+    }
+
+    try {
+      setCreatingClosure(true);
+      const response = await repartosService.createClosureBatchV2(participantId, campaignId, {
+        repartoProductoIds: selectedClosureProductIds,
+        notes: closureNotes.trim() || undefined,
+      });
+
+      Alert.alert(
+        'Cierre generado',
+        `Traslado ${response.transfer.transferNumber} generado con ${response.summary.totalProducts} producto(s).`
+      );
+      setSelectedClosureProductIds([]);
+      setClosureNotes('');
+      await Promise.all([loadClosureBatchData(), loadData()]);
+    } catch (error: any) {
+      logger.error('Error creando cierre parcial v2:', error);
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo generar el cierre parcial');
+    } finally {
+      setCreatingClosure(false);
+    }
+  };
+
+  const handleGenerateClosureGuide = (closureBatch: ClosureBatchV2) => {
+    setSelectedClosureForGuide(closureBatch);
+    setTransportModalVisible(true);
+  };
+
+  const handleDownloadClosureGuide = async (
+    closureBatch: ClosureBatchV2,
+    fileType: 'pdf' | 'xml' | 'cdr'
+  ) => {
+    const guide = closureBatch.remissionGuide;
+    const url =
+      fileType === 'pdf' ? guide?.pdfUrl : fileType === 'xml' ? guide?.xmlUrl : guide?.cdrUrl;
+
+    if (!url) {
+      Alert.alert(
+        'No disponible',
+        `La guía no tiene archivo ${fileType.toUpperCase()} disponible.`
+      );
+      return;
+    }
+
+    try {
+      setDownloadingClosureGuide(`${closureBatch.id}-${fileType}`);
+      const blob = await repartosService.downloadClosureBatchV2GuideFile(url);
+      const extension = fileType;
+      const mimeType = fileType === 'pdf' ? 'application/pdf' : 'application/xml';
+      const fileName = `guia-${guide?.serieNumero || closureBatch.transfer.transferNumber}-${Date.now()}.${extension}`;
+
+      await saveAndShareFile({
+        blob,
+        fileName,
+        mimeType,
+        dialogTitle: `Guía ${guide?.serieNumero || closureBatch.transfer.transferNumber}`,
+        UTI: fileType === 'pdf' ? 'com.adobe.pdf' : 'public.xml',
+      });
+    } catch (error: any) {
+      logger.error('Error descargando guía de cierre v2:', error);
+      Alert.alert('Error', error.message || 'No se pudo descargar el archivo de la guía');
+    } finally {
+      setDownloadingClosureGuide(null);
+    }
+  };
+
   const handleDownloadParticipantReport = async () => {
     if (!repartoId || !participant) {
       Alert.alert('Error', 'No se pudo obtener la información del reparto');
@@ -598,97 +962,6 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     }
   };
 
-  const handleGenerateConsolidatedTransfer = async () => {
-    if (!participant) {
-      Alert.alert('Error', 'No se pudo obtener la información del participante');
-      return;
-    }
-
-    const participantName =
-      participant.participantType === ParticipantType.EXTERNAL_COMPANY
-        ? participant.company?.alias || participant.company?.name || 'Empresa'
-        : participant.site?.name || 'Sede';
-
-    // Confirmar acción
-    Alert.alert(
-      'Cerrar Consolidado de Repartos',
-      `¿Estás seguro de que deseas cerrar el consolidado de repartos para ${participantName}?\n\n` +
-        'Esta acción:\n' +
-        '• Liberará TODAS las reservas de stock\n' +
-        '• Descontará SOLO el stock validado\n' +
-        '• Creará el traslado consolidado\n' +
-        '• Generará un reporte de discrepancias si hay diferencias',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Confirmar',
-          style: 'default',
-          onPress: async () => {
-            try {
-              setGeneratingConsolidated(true);
-              logger.info('🔄 Generando traslado consolidado para:', participantName);
-
-              const response = await repartosService.generateConsolidatedTransfer(
-                participantId,
-                campaignId,
-                {
-                  notes: `Traslado consolidado para ${participantName}`,
-                }
-              );
-
-              logger.info('✅ Traslado consolidado generado:', response);
-
-              // Mostrar resumen
-              const hasDiscrepancies = response.summary.productsWithDiscrepancies > 0;
-
-              let message = `Traslado consolidado generado exitosamente:\n\n`;
-              message += `📦 Total productos: ${response.summary.totalProducts}\n`;
-              message += `✅ Cantidad validada: ${response.summary.totalValidated} unidades\n`;
-              message += `📤 Cantidad transferida: ${response.summary.totalTransferred} unidades\n`;
-
-              if (hasDiscrepancies) {
-                message += `\n⚠️ Discrepancias encontradas:\n`;
-                message += `• ${response.summary.productsWithDiscrepancies} productos con diferencias\n`;
-                message += `• ${response.summary.totalDifference} unidades de diferencia\n`;
-                message += `\n📝 Se ha creado un reporte de discrepancias que puedes gestionar ahora.`;
-              }
-
-              Alert.alert(
-                'Éxito',
-                message,
-                [
-                  {
-                    text: hasDiscrepancies ? 'Ver Discrepancias' : 'Aceptar',
-                    onPress: () => {
-                      setConsolidatedTransferGenerated(true);
-                      if (hasDiscrepancies && response.report) {
-                        // Abrir modal de discrepancias
-                        setCurrentReportId(response.report.id);
-                        setDiscrepanciasModalVisible(true);
-                      }
-                      loadData(); // Recargar datos
-                    },
-                  },
-                ]
-              );
-            } catch (error: any) {
-              logger.error('Error generando traslado consolidado:', error);
-              Alert.alert(
-                'Error',
-                error.response?.data?.message || 'No se pudo generar el traslado consolidado'
-              );
-            } finally {
-              setGeneratingConsolidated(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleGenerateRemissionGuide = async () => {
     if (!participant) {
       Alert.alert('Error', 'No se pudo obtener la información del participante');
@@ -701,21 +974,25 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
   const handleTransportModalClose = useCallback(() => {
     setTransportModalVisible(false);
+    setSelectedClosureForGuide(null);
     // Si el usuario cierra el modal sin confirmar, limpiar el flag pendiente
     pendingBultosModalRef.current = false;
   }, []);
 
-  const handleTransportConfirm = useCallback((vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
-    // Guardar datos de transporte
-    setPendingTransportData({ vehicle, driver, transporter });
-    setNumeroBultos('1'); // Resetear a valor por defecto
+  const handleTransportConfirm = useCallback(
+    (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
+      // Guardar datos de transporte
+      setPendingTransportData({ vehicle, driver, transporter });
+      setNumeroBultos('1'); // Resetear a valor por defecto
 
-    // Marcar que debe abrirse el modal de bultos (usando ref para evitar re-renders)
-    pendingBultosModalRef.current = true;
+      // Marcar que debe abrirse el modal de bultos (usando ref para evitar re-renders)
+      pendingBultosModalRef.current = true;
 
-    // Cerrar el modal de transporte - el useEffect se encargará de abrir el modal de bultos
-    setTransportModalVisible(false);
-  }, []);
+      // Cerrar el modal de transporte - el useEffect se encargará de abrir el modal de bultos
+      setTransportModalVisible(false);
+    },
+    []
+  );
 
   const handleBultosConfirm = async () => {
     if (!pendingTransportData) {
@@ -732,6 +1009,66 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     }
 
     setBultosModalVisible(false);
+
+    if (selectedClosureForGuide) {
+      const closureBatch = selectedClosureForGuide;
+      const isPublicTransport = transporter !== null && !vehicle && !driver;
+
+      Alert.alert(
+        'Generar Guía de Cierre',
+        `¿Deseas generar la guía de remisión para el cierre ${closureBatch.transfer.transferNumber}?\n\n` +
+          `📦 Bultos: ${bultosNum}`,
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => {
+              setPendingTransportData(null);
+              setSelectedClosureForGuide(null);
+            },
+          },
+          {
+            text: 'Generar',
+            style: 'default',
+            onPress: async () => {
+              try {
+                setGeneratingClosureGuide(closureBatch.id);
+                const response = await repartosService.generateClosureBatchV2RemissionGuide(
+                  closureBatch.id,
+                  isPublicTransport
+                    ? {
+                        transporterId: transporter!.id,
+                        numeroBultos: bultosNum,
+                      }
+                    : {
+                        vehicleId: vehicle!.id,
+                        driverId: driver!.id,
+                        numeroBultos: bultosNum,
+                      }
+                );
+
+                Alert.alert(
+                  'Guía generada',
+                  `Guía ${response.remissionGuide.serieNumero} generada para el traslado ${response.transfer.transferNumber}.`
+                );
+                await loadClosureBatchData();
+              } catch (error: any) {
+                logger.error('Error generando guía de cierre v2:', error);
+                Alert.alert(
+                  'Error',
+                  error.response?.data?.message || 'No se pudo generar la guía del cierre'
+                );
+              } finally {
+                setGeneratingClosureGuide(null);
+                setPendingTransportData(null);
+                setSelectedClosureForGuide(null);
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
 
     const participantName =
       participant?.participantType === ParticipantType.EXTERNAL_COMPANY
@@ -765,94 +1102,87 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       '• Quedará anexada al participante de la campaña';
 
     // Confirmar acción con los datos seleccionados
-    Alert.alert(
-      'Generar Guía de Remisión',
-      confirmMessage,
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-          onPress: () => {
-            setPendingTransportData(null);
-          },
+    Alert.alert('Generar Guía de Remisión', confirmMessage, [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+        onPress: () => {
+          setPendingTransportData(null);
         },
-        {
-          text: 'Generar',
-          style: 'default',
-          onPress: async () => {
-            try {
-              setGeneratingRemissionGuide(true);
-              logger.info('🔄 Generando guía de remisión para:', participantName);
-              logger.info('📦 Número de bultos:', bultosNum);
+      },
+      {
+        text: 'Generar',
+        style: 'default',
+        onPress: async () => {
+          try {
+            setGeneratingRemissionGuide(true);
+            logger.info('🔄 Generando guía de remisión para:', participantName);
+            logger.info('📦 Número de bultos:', bultosNum);
 
-              if (isPublicTransport) {
-                logger.info('🚌 Tipo de transporte: Público');
-                logger.info('🏢 Transportista:', transporter!.razonSocial);
-              } else {
-                logger.info('🚗 Tipo de transporte: Privado');
-                logger.info('🚗 Vehículo:', vehicle!.numeroPlaca);
-                logger.info('👤 Conductor:', `${driver!.nombre} ${driver!.apellido}`);
-              }
-
-              const response = await repartosService.generateRemissionGuide(
-                participantId,
-                campaignId,
-                isPublicTransport ? {
-                  transporterId: transporter!.id,
-                  numeroBultos: bultosNum,
-                } : {
-                  vehicleId: vehicle!.id,
-                  driverId: driver!.id,
-                  numeroBultos: bultosNum,
-                }
-              );
-
-              logger.info('✅ Guía de remisión generada:', response);
-
-              let successMessage =
-                `Guía de remisión generada exitosamente:\n\n` +
-                `📄 Número: ${response.remissionGuide.serieNumero}\n` +
-                `✅ Estado: ${response.remissionGuide.status}\n` +
-                `📦 Traslado: ${response.transfer.transferNumber}\n` +
-                `📦 Bultos: ${bultosNum}\n`;
-
-              if (isPublicTransport) {
-                successMessage +=
-                  `🚌 Transporte: Público\n` +
-                  `🏢 Transportista: ${transporter!.razonSocial}`;
-              } else {
-                successMessage +=
-                  `🚗 Transporte: Privado\n` +
-                  `🚗 Vehículo: ${vehicle!.numeroPlaca}\n` +
-                  `👤 Conductor: ${driver!.nombre} ${driver!.apellido}`;
-              }
-
-              Alert.alert(
-                'Éxito',
-                successMessage,
-                [
-                  {
-                    text: 'Aceptar',
-                    onPress: () => {
-                      loadData(); // Recargar datos para actualizar el estado
-                    },
-                  },
-                ]
-              );
-            } catch (error: any) {
-              logger.error('Error generando guía de remisión:', error);
-              Alert.alert(
-                'Error',
-                error.response?.data?.message || 'No se pudo generar la guía de remisión'
-              );
-            } finally {
-              setGeneratingRemissionGuide(false);
-              setPendingTransportData(null);
+            if (isPublicTransport) {
+              logger.info('🚌 Tipo de transporte: Público');
+              logger.info('🏢 Transportista:', transporter!.razonSocial);
+            } else {
+              logger.info('🚗 Tipo de transporte: Privado');
+              logger.info('🚗 Vehículo:', vehicle!.numeroPlaca);
+              logger.info('👤 Conductor:', `${driver!.nombre} ${driver!.apellido}`);
             }
-          },
+
+            const response = await repartosService.generateRemissionGuide(
+              participantId,
+              campaignId,
+              isPublicTransport
+                ? {
+                    transporterId: transporter!.id,
+                    numeroBultos: bultosNum,
+                  }
+                : {
+                    vehicleId: vehicle!.id,
+                    driverId: driver!.id,
+                    numeroBultos: bultosNum,
+                  }
+            );
+
+            logger.info('✅ Guía de remisión generada:', response);
+
+            let successMessage =
+              `Guía de remisión generada exitosamente:\n\n` +
+              `📄 Número: ${response.remissionGuide.serieNumero}\n` +
+              `✅ Estado: ${response.remissionGuide.status}\n` +
+              `📦 Traslado: ${response.transfer.transferNumber}\n` +
+              `📦 Bultos: ${bultosNum}\n`;
+
+            if (isPublicTransport) {
+              successMessage +=
+                `🚌 Transporte: Público\n` + `🏢 Transportista: ${transporter!.razonSocial}`;
+            } else {
+              successMessage +=
+                `🚗 Transporte: Privado\n` +
+                `🚗 Vehículo: ${vehicle!.numeroPlaca}\n` +
+                `👤 Conductor: ${driver!.nombre} ${driver!.apellido}`;
+            }
+
+            Alert.alert('Éxito', successMessage, [
+              {
+                text: 'Aceptar',
+                onPress: () => {
+                  loadData(); // Recargar datos para actualizar el estado
+                },
+              },
+            ]);
+          } catch (error: any) {
+            logger.error('Error generando guía de remisión:', error);
+            Alert.alert(
+              'Error',
+              error.response?.data?.message || 'No se pudo generar la guía de remisión'
+            );
+          } finally {
+            setGeneratingRemissionGuide(false);
+            setPendingTransportData(null);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleDownloadRemissionGuide = async () => {
@@ -876,15 +1206,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       logger.info('🔄 Descargando guía de remisión:', remissionGuideInfo.remissionGuideNumber);
 
       // Usar el nuevo endpoint para descargar el PDF
-      const blob = await repartosService.downloadRemissionGuidePdf(
-        participant.id,
-        campaignId
-      );
+      const blob = await repartosService.downloadRemissionGuidePdf(participant.id, campaignId);
 
       const timestamp = new Date().getTime();
       const fileName = `guia-remision-${remissionGuideInfo.remissionGuideNumber?.replace(/\s+/g, '-')}-${timestamp}.pdf`;
 
-      await saveAndSharePdf(blob, fileName, `Guía de Remisión - ${remissionGuideInfo.remissionGuideNumber}`);
+      await saveAndSharePdf(
+        blob,
+        fileName,
+        `Guía de Remisión - ${remissionGuideInfo.remissionGuideNumber}`
+      );
 
       if (Platform.OS === 'web') {
         Alert.alert('Éxito', 'La guía de remisión se ha descargado');
@@ -915,6 +1246,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       case 'PENDING':
         return '#F59E0B';
       case 'VALIDATED':
+      case 'TRANSFERRED':
         return '#10B981';
       case 'CANCELLED':
         return '#EF4444';
@@ -937,6 +1269,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         return 'Pendiente';
       case 'VALIDATED':
         return 'Validado';
+      case 'TRANSFERRED':
+        return 'Transferido';
       case 'CANCELLED':
         return 'Cancelado';
       case 'PARTIAL':
@@ -952,183 +1286,192 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     }
   };
 
-  const renderProductCard = useCallback((producto: ProductoReparto) => {
-    // Determinar la cantidad a mostrar (priorizar quantityBase, luego quantityAssigned)
-    const quantity = producto.quantityBase
-      ? parseInt(producto.quantityBase)
-      : producto.quantityAssigned || 0;
+  const renderProductCard = useCallback(
+    (producto: ProductoReparto) => {
+      // Determinar la cantidad a mostrar (priorizar quantityBase, luego quantityAssigned)
+      const quantity = producto.quantityBase
+        ? parseInt(producto.quantityBase)
+        : producto.quantityAssigned || 0;
 
-    // Determinar el estado a mostrar
-    const productStatus = producto.validationStatus || producto.status || 'PENDING';
+      // Determinar el estado a mostrar
+      const productStatus = normalizeStatus(
+        producto.validationStatus || producto.status || 'PENDING'
+      );
+      const validatedQuantity = getValidatedQuantity(producto);
 
-    // ✅ SOLO mostrar por presentación si la VALIDACIÓN fue por presentación
-    // Esto se determina verificando si existe validacion.presentationInfo con roundingApplied
-    const wasValidatedByPresentation =
-      productStatus === 'VALIDATED' &&
-      producto.validacion?.presentationInfo?.roundingApplied === true;
+      // ✅ SOLO mostrar por presentación si la VALIDACIÓN fue por presentación
+      // Esto se determina verificando si existe validacion.presentationInfo con roundingApplied
+      const wasValidatedByPresentation =
+        isValidatedFlowStatus(productStatus) &&
+        producto.validacion?.presentationInfo?.roundingApplied === true;
 
-    // Calcular cantidades en presentación SOLO si fue validado por presentación
-    let quantityInPresentation = 0;
-    let validatedInPresentation = 0;
-    let presentationName = '';
+      // Calcular cantidades en presentación SOLO si fue validado por presentación
+      let quantityInPresentation = 0;
+      let validatedInPresentation = 0;
+      let presentationName = '';
 
-    if (wasValidatedByPresentation && producto.validacion?.presentationInfo?.largestPresentation) {
-      const factor = producto.validacion.presentationInfo.largestPresentation.factorToBase;
-      presentationName = producto.validacion.presentationInfo.largestPresentation.name;
-      quantityInPresentation = Math.floor(quantity / factor);
-      if (producto.quantityValidated) {
-        validatedInPresentation = Math.floor(producto.quantityValidated / factor);
+      if (
+        wasValidatedByPresentation &&
+        producto.validacion?.presentationInfo?.largestPresentation
+      ) {
+        const factor = producto.validacion.presentationInfo.largestPresentation.factorToBase;
+        presentationName = producto.validacion.presentationInfo.largestPresentation.name;
+        quantityInPresentation = Math.floor(quantity / factor);
+        if (validatedQuantity) {
+          validatedInPresentation = Math.floor(validatedQuantity / factor);
+        }
       }
-    }
 
-    return (
-      <View key={producto.id} style={[styles.card, isTablet && styles.cardTablet]}>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderLeft}>
-            {/* Product Thumbnail */}
-            {productPhotos[producto.productId]?.[0] && (
-              <TouchableOpacity
-                onPress={() => {
-                  setSelectedImageUrl(productPhotos[producto.productId][0]);
-                  setImageViewerVisible(true);
-                }}
-                activeOpacity={0.7}
-              >
-                <Image
-                  source={{ uri: productPhotos[producto.productId][0] }}
-                  style={styles.productThumbnail}
-                  resizeMode="cover"
-                  // Optimizaciones de rendimiento
-                  fadeDuration={0}
-                  progressiveRenderingEnabled={true}
-                />
-              </TouchableOpacity>
-            )}
-            <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
-              {producto.product?.title || producto.product?.name || 'Producto'}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.statusBadge,
-              isTablet && styles.statusBadgeTablet,
-              {
-                backgroundColor: getStatusColor(productStatus) + '20',
-                borderColor: getStatusColor(productStatus),
-              },
-            ]}
-          >
-            <Text
+      return (
+        <View key={producto.id} style={[styles.card, isTablet && styles.cardTablet]}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              {/* Product Thumbnail */}
+              {productPhotos[producto.productId]?.[0] && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedImageUrl(productPhotos[producto.productId][0]);
+                    setImageViewerVisible(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Image
+                    source={{ uri: productPhotos[producto.productId][0] }}
+                    style={styles.productThumbnail}
+                    resizeMode="cover"
+                    // Optimizaciones de rendimiento
+                    fadeDuration={0}
+                    progressiveRenderingEnabled={true}
+                  />
+                </TouchableOpacity>
+              )}
+              <Text style={[styles.productName, isTablet && styles.productNameTablet]}>
+                {producto.product?.title || producto.product?.name || 'Producto'}
+              </Text>
+            </View>
+            <View
               style={[
-                styles.statusText,
-                isTablet && styles.statusTextTablet,
-                { color: getStatusColor(productStatus) },
+                styles.statusBadge,
+                isTablet && styles.statusBadgeTablet,
+                {
+                  backgroundColor: getStatusColor(productStatus) + '20',
+                  borderColor: getStatusColor(productStatus),
+                },
               ]}
             >
-              {getStatusLabel(productStatus)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.cardBody}>
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>SKU:</Text>
-            <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-              {producto.product?.correlativeNumber && `#${producto.product.correlativeNumber} | `}
-              {producto.product?.sku || 'N/A'}
-            </Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-              Cantidad Asignada:
-            </Text>
-            <Text style={[styles.quantityValue, isTablet && styles.quantityValueTablet]}>
-              {wasValidatedByPresentation
-                ? `${quantityInPresentation} ${presentationName} (${quantity} unidades)`
-                : `${quantity} unidades`}
-            </Text>
-          </View>
-
-          {producto.quantityValidated !== undefined && producto.quantityValidated > 0 && (
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Cantidad Validada:
-              </Text>
               <Text
                 style={[
-                  styles.quantityValue,
-                  isTablet && styles.quantityValueTablet,
-                  { color: '#10B981' },
+                  styles.statusText,
+                  isTablet && styles.statusTextTablet,
+                  { color: getStatusColor(productStatus) },
                 ]}
               >
+                {getStatusLabel(productStatus)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.cardBody}>
+            <View style={styles.infoRow}>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>SKU:</Text>
+              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                {producto.product?.correlativeNumber && `#${producto.product.correlativeNumber} | `}
+                {producto.product?.sku || 'N/A'}
+              </Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                Cantidad Asignada:
+              </Text>
+              <Text style={[styles.quantityValue, isTablet && styles.quantityValueTablet]}>
                 {wasValidatedByPresentation
-                  ? `${validatedInPresentation} ${presentationName} (${producto.quantityValidated} unidades)`
-                  : `${producto.quantityValidated} unidades`}
+                  ? `${quantityInPresentation} ${presentationName} (${quantity} unidades)`
+                  : `${quantity} unidades`}
               </Text>
             </View>
-          )}
 
-          {producto.warehouse && (
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Almacén:</Text>
-              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                {producto.warehouse.name}
+            {validatedQuantity > 0 && (
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                  Cantidad Validada:
+                </Text>
+                <Text
+                  style={[
+                    styles.quantityValue,
+                    isTablet && styles.quantityValueTablet,
+                    { color: '#10B981' },
+                  ]}
+                >
+                  {wasValidatedByPresentation
+                    ? `${validatedInPresentation} ${presentationName} (${validatedQuantity} unidades)`
+                    : `${validatedQuantity} unidades`}
+                </Text>
+              </View>
+            )}
+
+            {producto.warehouse && (
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Almacén:</Text>
+                <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                  {producto.warehouse.name}
+                </Text>
+              </View>
+            )}
+
+            {producto.area && (
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Área:</Text>
+                <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                  {producto.area.name}
+                </Text>
+              </View>
+            )}
+
+            {producto.stockItem && (
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Lote:</Text>
+                <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
+                  {producto.stockItem.batchNumber || 'N/A'}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.repartoInfo}>
+              <Text style={[styles.repartoLabel, isTablet && styles.repartoLabelTablet]}>
+                Reparto:
+              </Text>
+              <Text style={[styles.repartoValue, isTablet && styles.repartoValueTablet]}>
+                {producto.repartoCode} - {producto.repartoName}
               </Text>
             </View>
-          )}
+          </View>
 
-          {producto.area && (
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Área:</Text>
-              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                {producto.area.name}
-              </Text>
-            </View>
-          )}
-
-          {producto.stockItem && (
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Lote:</Text>
-              <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
-                {producto.stockItem.batchNumber || 'N/A'}
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.repartoInfo}>
-            <Text style={[styles.repartoLabel, isTablet && styles.repartoLabelTablet]}>
-              Reparto:
-            </Text>
-            <Text style={[styles.repartoValue, isTablet && styles.repartoValueTablet]}>
-              {producto.repartoCode} - {producto.repartoName}
-            </Text>
+          {/* Botones de acción */}
+          <View style={styles.cardFooter}>
+            {isPendingFlowStatus(productStatus) ? (
+              <TouchableOpacity
+                style={[styles.validateButton, actionLoading && styles.buttonDisabled]}
+                onPress={() => handleValidateProduct(producto)}
+                disabled={actionLoading}
+              >
+                <Text style={styles.validateButtonText}>📸 Validar Salida</Text>
+              </TouchableOpacity>
+            ) : isValidatedFlowStatus(productStatus) ? (
+              <TouchableOpacity
+                style={[styles.detailButton, actionLoading && styles.buttonDisabled]}
+                onPress={() => handleViewValidation(producto)}
+                disabled={actionLoading}
+              >
+                <Text style={styles.detailButtonText}>👁️ Ver Detalles de Validación</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
-
-        {/* Botones de acción */}
-        <View style={styles.cardFooter}>
-          {productStatus === 'PENDING' ? (
-            <TouchableOpacity
-              style={[styles.validateButton, actionLoading && styles.buttonDisabled]}
-              onPress={() => handleValidateProduct(producto)}
-              disabled={actionLoading}
-            >
-              <Text style={styles.validateButtonText}>📸 Validar Salida</Text>
-            </TouchableOpacity>
-          ) : productStatus === 'VALIDATED' ? (
-            <TouchableOpacity
-              style={[styles.detailButton, actionLoading && styles.buttonDisabled]}
-              onPress={() => handleViewValidation(producto)}
-              disabled={actionLoading}
-            >
-              <Text style={styles.detailButtonText}>👁️ Ver Detalles de Validación</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      </View>
-    );
-  }, [isTablet, productPhotos, actionLoading, handleValidateProduct, handleViewValidation]);
+      );
+    },
+    [isTablet, productPhotos, actionLoading, handleValidateProduct, handleViewValidation]
+  );
 
   if (loading) {
     return (
@@ -1157,7 +1500,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
   // Calcular progreso de validación del participante (productos validados)
   const totalProductos = productos.length;
-  const productosValidados = productos.filter((p) => p.validationStatus === 'VALIDATED').length;
+  const productosValidados = productos.filter((p) =>
+    isValidatedFlowStatus(p.validationStatus)
+  ).length;
   const progressPercentage =
     totalProductos > 0 ? Math.round((productosValidados / totalProductos) * 100) : 0;
 
@@ -1256,19 +1601,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             </TouchableOpacity>
           )}
 
-          {/* Generate Consolidated Transfer Button */}
-          {hasPermission('repartos.validate') &&
-           productos.length > 0 &&
-           productosValidados === totalProductos &&
-           !consolidatedTransferGenerated && (
+          {/* Closure Management Button */}
+          {hasPermission('repartos.generate_transfer') && productos.length > 0 && (
             <TouchableOpacity
               style={[
                 styles.consolidatedButton,
                 isTablet && styles.consolidatedButtonTablet,
-                generatingConsolidated && styles.downloadButtonDisabled,
+                (loadingClosures || creatingClosure) && styles.downloadButtonDisabled,
               ]}
-              onPress={handleGenerateConsolidatedTransfer}
-              disabled={generatingConsolidated}
+              onPress={handleOpenClosuresModal}
+              disabled={loadingClosures || creatingClosure}
               activeOpacity={0.7}
             >
               <Text
@@ -1277,149 +1619,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   isTablet && styles.consolidatedButtonTextTablet,
                 ]}
               >
-                {generatingConsolidated ? '🔄 Generando Traslado...' : '✅ Cerrar Consolidado de Repartos'}
+                {loadingClosures ? '🔄 Cargando cierres...' : '🧾 Gestionar cierres'}
               </Text>
             </TouchableOpacity>
-          )}
-
-          {/* Consolidated Transfer Generated Message */}
-          {consolidatedTransferGenerated && (
-            <View style={[styles.successMessage, isTablet && styles.successMessageTablet]}>
-              <Text style={[styles.successMessageText, isTablet && styles.successMessageTextTablet]}>
-                ✅ Traslado consolidado generado exitosamente
-              </Text>
-              {consolidatedTransferInfo?.exists && consolidatedTransferInfo.transferNumber && (
-                <Text style={[styles.successMessageSubtext, isTablet && styles.successMessageSubtextTablet]}>
-                  Traslado: {consolidatedTransferInfo.transferNumber}
-                  {consolidatedTransferInfo.generatedAt && (
-                    ` • ${new Date(consolidatedTransferInfo.generatedAt).toLocaleDateString('es-ES', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}`
-                  )}
-                </Text>
-              )}
-            </View>
-          )}
-
-          {/* Generate Remission Guide Button - Solo si existe traslado consolidado y NO existe guía */}
-          {hasPermission('repartos.generate_transfer') &&
-           consolidatedTransferGenerated &&
-           !remissionGuideInfo?.exists && (
-            <TouchableOpacity
-              style={[
-                styles.remissionGuideButton,
-                isTablet && styles.remissionGuideButtonTablet,
-                generatingRemissionGuide && styles.downloadButtonDisabled,
-              ]}
-              onPress={handleGenerateRemissionGuide}
-              disabled={generatingRemissionGuide}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.remissionGuideButtonText,
-                  isTablet && styles.remissionGuideButtonTextTablet,
-                ]}
-              >
-                {generatingRemissionGuide ? '🔄 Generando Guía...' : '📋 Generar Guía de Remisión'}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Download Remission Guide Button - Solo si existe la guía */}
-          {remissionGuideInfo?.exists && (
-            <View>
-              {/* Remission Guide Info Card */}
-              <View style={[styles.guideInfoCard, isTablet && styles.guideInfoCardTablet]}>
-                <View style={styles.guideInfoHeader}>
-                  <Ionicons name="document-text" size={24} color="#10B981" />
-                  <Text style={[styles.guideInfoTitle, isTablet && styles.guideInfoTitleTablet]}>
-                    Guía de Remisión Generada
-                  </Text>
-                </View>
-
-                <View style={styles.guideInfoDetails}>
-                  <View style={styles.guideInfoRow}>
-                    <Text style={[styles.guideInfoLabel, isTablet && styles.guideInfoLabelTablet]}>
-                      Número:
-                    </Text>
-                    <Text style={[styles.guideInfoValue, isTablet && styles.guideInfoValueTablet]}>
-                      {remissionGuideInfo.remissionGuideNumber || 'N/A'}
-                    </Text>
-                  </View>
-
-                  {remissionGuideInfo.status && (
-                    <View style={styles.guideInfoRow}>
-                      <Text style={[styles.guideInfoLabel, isTablet && styles.guideInfoLabelTablet]}>
-                        Estado:
-                      </Text>
-                      <Text style={[styles.guideInfoValue, isTablet && styles.guideInfoValueTablet]}>
-                        {remissionGuideInfo.status}
-                      </Text>
-                    </View>
-                  )}
-
-                  {remissionGuideInfo.statusSunat && (
-                    <View style={styles.guideInfoRow}>
-                      <Text style={[styles.guideInfoLabel, isTablet && styles.guideInfoLabelTablet]}>
-                        Estado SUNAT:
-                      </Text>
-                      <Text style={[styles.guideInfoValue, isTablet && styles.guideInfoValueTablet]}>
-                        {remissionGuideInfo.statusSunat}
-                      </Text>
-                    </View>
-                  )}
-
-                  {remissionGuideInfo.generatedAt && (
-                    <View style={styles.guideInfoRow}>
-                      <Text style={[styles.guideInfoLabel, isTablet && styles.guideInfoLabelTablet]}>
-                        Generada:
-                      </Text>
-                      <Text style={[styles.guideInfoValue, isTablet && styles.guideInfoValueTablet]}>
-                        {new Date(remissionGuideInfo.generatedAt).toLocaleDateString('es-ES', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              {/* Download Button */}
-              <TouchableOpacity
-                style={[
-                  styles.downloadGuideButton,
-                  isTablet && styles.downloadGuideButtonTablet,
-                  downloadingRemissionGuide && styles.downloadButtonDisabled,
-                ]}
-                onPress={handleDownloadRemissionGuide}
-                disabled={downloadingRemissionGuide}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="download-outline"
-                  size={20}
-                  color="#FFFFFF"
-                  style={{ marginRight: 8 }}
-                />
-                <Text
-                  style={[
-                    styles.downloadGuideButtonText,
-                    isTablet && styles.downloadGuideButtonTextTablet,
-                  ]}
-                >
-                  {downloadingRemissionGuide ? 'Descargando...' : 'Descargar Guía de Remisión'}
-                </Text>
-              </TouchableOpacity>
-            </View>
           )}
         </View>
 
@@ -1459,99 +1661,110 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   Productos de Reparto
                 </Text>
 
-            {/* Filtro de validación */}
-            {productos.length > 0 && (
-              <View style={[(styles as any).filterContainer, isTablet && (styles as any).filterContainerTablet]}>
-                <TouchableOpacity
-                  style={[
-                    (styles as any).filterButton,
-                    isTablet && (styles as any).filterButtonTablet,
-                    validationFilter === 'all' && (styles as any).filterButtonActive,
-                  ]}
-                  onPress={() => setValidationFilter('all')}
-                >
-                  <Text
+                {/* Filtro de validación */}
+                {productos.length > 0 && (
+                  <View
                     style={[
-                      (styles as any).filterButtonText,
-                      isTablet && (styles as any).filterButtonTextTablet,
-                      validationFilter === 'all' && (styles as any).filterButtonTextActive,
+                      (styles as any).filterContainer,
+                      isTablet && (styles as any).filterContainerTablet,
                     ]}
                   >
-                    Todos ({productos.length})
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    (styles as any).filterButton,
-                    isTablet && (styles as any).filterButtonTablet,
-                    validationFilter === 'validated' && (styles as any).filterButtonActive,
-                  ]}
-                  onPress={() => setValidationFilter('validated')}
-                >
-                  <Text
-                    style={[
-                      (styles as any).filterButtonText,
-                      isTablet && (styles as any).filterButtonTextTablet,
-                      validationFilter === 'validated' && (styles as any).filterButtonTextActive,
-                    ]}
-                  >
-                    ✅ Validados ({productos.filter((p) => p.validationStatus === 'VALIDATED').length})
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    (styles as any).filterButton,
-                    isTablet && (styles as any).filterButtonTablet,
-                    validationFilter === 'pending' && (styles as any).filterButtonActive,
-                  ]}
-                  onPress={() => setValidationFilter('pending')}
-                >
-                  <Text
-                    style={[
-                      (styles as any).filterButtonText,
-                      isTablet && (styles as any).filterButtonTextTablet,
-                      validationFilter === 'pending' && (styles as any).filterButtonTextActive,
-                    ]}
-                  >
-                    ⏳ Pendientes ({productos.filter((p) => p.validationStatus === 'PENDING').length})
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Buscador de productos */}
-            {productos.length > 0 && (
-              <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
-                <Text style={[styles.searchIcon, isTablet && styles.searchIconTablet]}>🔍</Text>
-                <TextInput
-                  style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-                  placeholder="Buscar por nombre, SKU o reparto..."
-                  placeholderTextColor="#94A3B8"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {searchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-                    <Text
-                      style={[styles.clearButtonText, isTablet && styles.clearButtonTextTablet]}
+                    <TouchableOpacity
+                      style={[
+                        (styles as any).filterButton,
+                        isTablet && (styles as any).filterButtonTablet,
+                        validationFilter === 'all' && (styles as any).filterButtonActive,
+                      ]}
+                      onPress={() => setValidationFilter('all')}
                     >
-                      ✕
-                    </Text>
-                  </TouchableOpacity>
+                      <Text
+                        style={[
+                          (styles as any).filterButtonText,
+                          isTablet && (styles as any).filterButtonTextTablet,
+                          validationFilter === 'all' && (styles as any).filterButtonTextActive,
+                        ]}
+                      >
+                        Todos ({productos.length})
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        (styles as any).filterButton,
+                        isTablet && (styles as any).filterButtonTablet,
+                        validationFilter === 'validated' && (styles as any).filterButtonActive,
+                      ]}
+                      onPress={() => setValidationFilter('validated')}
+                    >
+                      <Text
+                        style={[
+                          (styles as any).filterButtonText,
+                          isTablet && (styles as any).filterButtonTextTablet,
+                          validationFilter === 'validated' &&
+                            (styles as any).filterButtonTextActive,
+                        ]}
+                      >
+                        ✅ Validados (
+                        {productos.filter((p) => isValidatedFlowStatus(p.validationStatus)).length})
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        (styles as any).filterButton,
+                        isTablet && (styles as any).filterButtonTablet,
+                        validationFilter === 'pending' && (styles as any).filterButtonActive,
+                      ]}
+                      onPress={() => setValidationFilter('pending')}
+                    >
+                      <Text
+                        style={[
+                          (styles as any).filterButtonText,
+                          isTablet && (styles as any).filterButtonTextTablet,
+                          validationFilter === 'pending' && (styles as any).filterButtonTextActive,
+                        ]}
+                      >
+                        ⏳ Pendientes (
+                        {productos.filter((p) => isPendingFlowStatus(p.validationStatus)).length})
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
-              </View>
-            )}
 
-            {/* Contador de resultados */}
-            {searchQuery.trim() && productos.length > 0 && (
-              <Text style={[styles.searchResults, isTablet && styles.searchResultsTablet]}>
-                {filteredCount === 0
-                  ? 'No se encontraron productos'
-                  : `Mostrando ${filteredCount} de ${totalProductos} producto${totalProductos !== 1 ? 's' : ''}`}
-              </Text>
-            )}
+                {/* Buscador de productos */}
+                {productos.length > 0 && (
+                  <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
+                    <Text style={[styles.searchIcon, isTablet && styles.searchIconTablet]}>🔍</Text>
+                    <TextInput
+                      style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+                      placeholder="Buscar por nombre, SKU o reparto..."
+                      placeholderTextColor="#94A3B8"
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    {searchQuery.length > 0 && (
+                      <TouchableOpacity
+                        onPress={() => setSearchQuery('')}
+                        style={styles.clearButton}
+                      >
+                        <Text
+                          style={[styles.clearButtonText, isTablet && styles.clearButtonTextTablet]}
+                        >
+                          ✕
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {/* Contador de resultados */}
+                {searchQuery.trim() && productos.length > 0 && (
+                  <Text style={[styles.searchResults, isTablet && styles.searchResultsTablet]}>
+                    {filteredCount === 0
+                      ? 'No se encontraron productos'
+                      : `Mostrando ${filteredCount} de ${totalProductos} producto${totalProductos !== 1 ? 's' : ''}`}
+                  </Text>
+                )}
               </View>
             }
             ListEmptyComponent={
@@ -1566,6 +1779,421 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             }
           />
         )}
+
+        {/* Closures Management Modal */}
+        <Modal
+          visible={closuresModalVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setClosuresModalVisible(false)}
+        >
+          <View style={styles.closuresModalOverlay}>
+            <View
+              style={[
+                styles.closuresModalContainer,
+                isTablet && styles.closuresModalContainerTablet,
+              ]}
+            >
+              <View style={styles.closuresModalHeader}>
+                <View>
+                  <Text
+                    style={[styles.closuresModalTitle, isTablet && styles.closuresModalTitleTablet]}
+                  >
+                    Gestionar cierres
+                  </Text>
+                  <Text style={styles.closuresModalSubtitle}>
+                    Cierres parciales v2 por productos validados
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setClosuresModalVisible(false)}
+                  style={styles.closuresCloseButton}
+                >
+                  <Ionicons name="close" size={24} color={colors.text.secondary} />
+                </TouchableOpacity>
+              </View>
+
+              {loadingClosures ? (
+                <View style={styles.closuresLoadingContainer}>
+                  <ActivityIndicator size="large" color={colors.primary[500]} />
+                  <Text style={styles.loadingText}>Cargando cierres...</Text>
+                </View>
+              ) : (
+                <ScrollView
+                  style={styles.closuresModalBody}
+                  contentContainerStyle={styles.closuresModalBodyContent}
+                  showsVerticalScrollIndicator
+                  nestedScrollEnabled
+                >
+                  <View style={styles.closureSection}>
+                    <Text style={styles.closureSectionTitle}>
+                      Pendientes de cierre ({pendingClosureProducts.length})
+                    </Text>
+                    <Text style={styles.closureSectionHint}>
+                      Selecciona productos validados que aún no fueron transferidos.
+                    </Text>
+
+                    {pendingClosureProducts.length === 0 ? (
+                      <View style={styles.closureEmptyBox}>
+                        <Text style={styles.closureEmptyText}>
+                          No hay productos pendientes para cerrar.
+                        </Text>
+                      </View>
+                    ) : (
+                      <>
+                        <View style={styles.productsAccordionButton}>
+                          <TouchableOpacity
+                            style={styles.selectAllProductsButton}
+                            onPress={toggleAllClosureProductsSelection}
+                            activeOpacity={0.75}
+                          >
+                            <View
+                              style={[
+                                styles.checkbox,
+                                allPendingProductsSelected && styles.checkboxSelected,
+                                partiallySelectedPendingProducts && styles.checkboxPartial,
+                              ]}
+                            >
+                              {allPendingProductsSelected && (
+                                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                              )}
+                              {partiallySelectedPendingProducts && (
+                                <Ionicons name="remove" size={16} color="#FFFFFF" />
+                              )}
+                            </View>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.productsAccordionContent}
+                            onPress={() => setPendingProductsExpanded((expanded) => !expanded)}
+                            activeOpacity={0.75}
+                          >
+                            <View style={styles.productsAccordionTextBox}>
+                              <Text style={styles.productsAccordionTitle}>
+                                Seleccionar todos los productos
+                              </Text>
+                              <Text style={styles.productsAccordionSubtitle}>
+                                {selectedClosureProductIds.length} seleccionado(s) de{' '}
+                                {pendingClosureProducts.length}
+                              </Text>
+                            </View>
+                            <Ionicons
+                              name={pendingProductsExpanded ? 'chevron-up' : 'chevron-down'}
+                              size={20}
+                              color={colors.primary[600]}
+                            />
+                          </TouchableOpacity>
+                        </View>
+
+                        {pendingProductsToDisplay.map((product) => {
+                          const selected = selectedClosureProductIds.includes(
+                            product.repartoProductoId
+                          );
+                          return (
+                            <TouchableOpacity
+                              key={product.repartoProductoId}
+                              style={[
+                                styles.pendingClosureItem,
+                                selected && styles.pendingClosureItemSelected,
+                              ]}
+                              onPress={() =>
+                                toggleClosureProductSelection(product.repartoProductoId)
+                              }
+                              activeOpacity={0.75}
+                            >
+                              <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                                {selected && (
+                                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                                )}
+                              </View>
+                              <View style={styles.pendingClosureInfo}>
+                                <View style={styles.pendingClosureProductHeader}>
+                                  <Text style={styles.pendingClosureProductName} numberOfLines={2}>
+                                    {product.productName}
+                                  </Text>
+                                  <View style={styles.quantityPill}>
+                                    <Text style={styles.quantityPillText}>
+                                      {product.quantityValidated} val.
+                                    </Text>
+                                  </View>
+                                </View>
+                                <View style={styles.siteInfoCard}>
+                                  <View style={styles.siteIconBubble}>
+                                    <Ionicons
+                                      name="business-outline"
+                                      size={14}
+                                      color={colors.primary[700]}
+                                    />
+                                  </View>
+                                  <View style={styles.siteInfoTextBox}>
+                                    <Text style={styles.siteInfoLabel}>Sede / reparto</Text>
+                                    <Text style={styles.siteInfoName} numberOfLines={1}>
+                                      {product.repartoCode} · {product.repartoName}
+                                    </Text>
+                                  </View>
+                                </View>
+                                <View style={styles.pendingClosureChipsRow}>
+                                  <View style={styles.pendingClosureChip}>
+                                    <Text style={styles.pendingClosureChipText}>
+                                      SKU {product.productSku}
+                                    </Text>
+                                  </View>
+                                  <View style={styles.pendingClosureChipSuccess}>
+                                    <Text style={styles.pendingClosureChipSuccessText}>
+                                      Asignado {product.quantityAssigned}
+                                    </Text>
+                                  </View>
+                                  <View style={styles.pendingClosureChipWarning}>
+                                    <Text style={styles.pendingClosureChipWarningText}>
+                                      Dif {product.difference}
+                                    </Text>
+                                  </View>
+                                </View>
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+
+                        {!pendingProductsExpanded && pendingClosureProducts.length > 0 && (
+                          <TouchableOpacity
+                            style={styles.showMoreProductsButton}
+                            onPress={() => setPendingProductsExpanded(true)}
+                            activeOpacity={0.75}
+                          >
+                            <Text style={styles.showMoreProductsText}>
+                              Ver {pendingClosureProducts.length} producto(s)
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </>
+                    )}
+
+                    {pendingClosureProducts.length > 0 && (
+                      <>
+                        <TextInput
+                          style={styles.closureNotesInput}
+                          placeholder="Notas del cierre parcial (opcional)"
+                          placeholderTextColor={colors.text.tertiary}
+                          value={closureNotes}
+                          onChangeText={setClosureNotes}
+                          multiline
+                        />
+                        <TouchableOpacity
+                          style={[
+                            styles.createClosureButton,
+                            (creatingClosure || selectedClosureProductIds.length === 0) &&
+                              styles.downloadButtonDisabled,
+                          ]}
+                          onPress={handleCreateClosureBatch}
+                          disabled={creatingClosure || selectedClosureProductIds.length === 0}
+                        >
+                          <Text style={styles.createClosureButtonText}>
+                            {creatingClosure
+                              ? 'Generando cierre...'
+                              : `Generar cierre parcial (${selectedClosureProductIds.length})`}
+                          </Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+
+                  <View style={styles.closureSection}>
+                    <Text style={styles.closureSectionTitle}>
+                      Cierres generados ({closureBatchesToDisplay.length})
+                    </Text>
+
+                    {closureBatchesToDisplay.length === 0 ? (
+                      <View style={styles.closureEmptyBox}>
+                        <Text style={styles.closureEmptyText}>Aún no hay cierres generados.</Text>
+                      </View>
+                    ) : (
+                      closureBatchesToDisplay.map((batch) => {
+                        const productsExpanded = expandedClosureBatchIds.includes(batch.id);
+                        const productsToShow = productsExpanded ? batch.items : [];
+                        const assignedProductCount = batch.items.filter(
+                          (item) => item.quantityAssigned > 0
+                        ).length;
+                        const validatedProductCount = batch.items.filter(
+                          (item) => item.quantityValidated > 0
+                        ).length;
+                        const differenceProductCount = batch.items.filter(
+                          (item) => item.quantityDifference > 0
+                        ).length;
+
+                        return (
+                          <View key={batch.id} style={styles.closureBatchCard}>
+                            <View style={styles.closureBatchHeader}>
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.closureBatchTitle}>
+                                  {batch.isLegacy ? 'Cierre consolidado' : 'Traslado'}{' '}
+                                  {batch.transfer.transferNumber}
+                                </Text>
+                                <Text style={styles.closureBatchMeta}>
+                                  {batch.isLegacy
+                                    ? 'Flujo anterior'
+                                    : `Estado: ${batch.transfer.status}`}{' '}
+                                  • {new Date(batch.createdAt).toLocaleDateString('es-PE')}
+                                </Text>
+                              </View>
+                              <View style={styles.closureBatchBadge}>
+                                <Text style={styles.closureBatchBadgeText}>
+                                  {batch.summary.totalProducts} prod.
+                                </Text>
+                              </View>
+                            </View>
+
+                            <View style={styles.closureSummaryGrid}>
+                              <View style={styles.closureSummaryCard}>
+                                <Text style={styles.closureSummaryLabel}>Validado</Text>
+                                <Text style={styles.closureSummaryValue}>
+                                  {validatedProductCount}
+                                </Text>
+                              </View>
+                              <View style={styles.closureSummaryCard}>
+                                <Text style={styles.closureSummaryLabel}>Abonado</Text>
+                                <Text style={styles.closureSummaryValue}>
+                                  {assignedProductCount}
+                                </Text>
+                              </View>
+                              <View style={styles.closureSummaryCardWarning}>
+                                <Text style={styles.closureSummaryLabel}>Dif.</Text>
+                                <Text style={styles.closureSummaryValueWarning}>
+                                  {differenceProductCount}
+                                </Text>
+                              </View>
+                            </View>
+
+                            <TouchableOpacity
+                              style={styles.batchProductsAccordionButton}
+                              onPress={() => toggleClosureBatchExpansion(batch.id)}
+                              activeOpacity={0.75}
+                            >
+                              <Text style={styles.batchProductsAccordionText}>
+                                Productos del cierre ({batch.items.length})
+                              </Text>
+                              <Ionicons
+                                name={productsExpanded ? 'chevron-up' : 'chevron-down'}
+                                size={18}
+                                color={colors.primary[600]}
+                              />
+                            </TouchableOpacity>
+
+                            {productsToShow.map((item) => (
+                              <View key={item.id} style={styles.closureBatchProductRow}>
+                                <Text style={styles.closureBatchItemText} numberOfLines={2}>
+                                  {item.productName}
+                                </Text>
+                                <Text style={styles.closureBatchItemQuantity}>
+                                  {item.quantityValidated} val.
+                                </Text>
+                              </View>
+                            ))}
+
+                            {batch.remissionGuide ? (
+                              <View style={styles.guideActionsBox}>
+                                <View style={styles.guideCompactRow}>
+                                  <View style={styles.guideCompactInfo}>
+                                    <Text style={styles.guideSuccessText}>
+                                      Guía generada exitosamente
+                                    </Text>
+                                    <Text style={styles.guideNumberText} numberOfLines={1}>
+                                      {batch.remissionGuide.serieNumero}
+                                    </Text>
+                                    <View style={styles.guideStatusRow}>
+                                      <Text style={styles.guideStatusLabel}>SUNAT:</Text>
+                                      <Text style={styles.guideStatusValue} numberOfLines={1}>
+                                        {getGuideSunatStatus(
+                                          batch.remissionGuide,
+                                          remissionGuideInfo
+                                        )}
+                                      </Text>
+                                    </View>
+                                  </View>
+                                  <TouchableOpacity
+                                    style={styles.guideDownloadButton}
+                                    onPress={() =>
+                                      batch.isLegacy
+                                        ? handleDownloadRemissionGuide()
+                                        : handleDownloadClosureGuide(batch, 'pdf')
+                                    }
+                                    disabled={
+                                      batch.isLegacy
+                                        ? downloadingRemissionGuide
+                                        : downloadingClosureGuide === `${batch.id}-pdf`
+                                    }
+                                  >
+                                    <Text style={styles.guideDownloadButtonText}>
+                                      {batch.isLegacy && downloadingRemissionGuide ? '...' : 'PDF'}
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
+                                {!batch.isLegacy &&
+                                  (batch.remissionGuide.xmlUrl || batch.remissionGuide.cdrUrl) && (
+                                    <View style={styles.guideActionsRow}>
+                                      {!batch.isLegacy && batch.remissionGuide.xmlUrl && (
+                                        <TouchableOpacity
+                                          style={styles.guideDownloadButton}
+                                          onPress={() => handleDownloadClosureGuide(batch, 'xml')}
+                                          disabled={downloadingClosureGuide === `${batch.id}-xml`}
+                                        >
+                                          <Text style={styles.guideDownloadButtonText}>XML</Text>
+                                        </TouchableOpacity>
+                                      )}
+                                      {!batch.isLegacy && batch.remissionGuide.cdrUrl && (
+                                        <TouchableOpacity
+                                          style={styles.guideDownloadButton}
+                                          onPress={() => handleDownloadClosureGuide(batch, 'cdr')}
+                                          disabled={downloadingClosureGuide === `${batch.id}-cdr`}
+                                        >
+                                          <Text style={styles.guideDownloadButtonText}>CDR</Text>
+                                        </TouchableOpacity>
+                                      )}
+                                    </View>
+                                  )}
+                              </View>
+                            ) : batch.isLegacy ? (
+                              <View style={styles.guideActionsBox}>
+                                <TouchableOpacity
+                                  style={[
+                                    styles.generateGuideButton,
+                                    generatingRemissionGuide && styles.downloadButtonDisabled,
+                                  ]}
+                                  onPress={handleGenerateRemissionGuide}
+                                  disabled={generatingRemissionGuide}
+                                >
+                                  <Text style={styles.generateGuideButtonText}>
+                                    {generatingRemissionGuide
+                                      ? 'Generando guía...'
+                                      : 'Generar guía'}
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            ) : (
+                              <TouchableOpacity
+                                style={[
+                                  styles.generateGuideButton,
+                                  generatingClosureGuide === batch.id &&
+                                    styles.downloadButtonDisabled,
+                                ]}
+                                onPress={() => handleGenerateClosureGuide(batch)}
+                                disabled={generatingClosureGuide === batch.id}
+                              >
+                                <Text style={styles.generateGuideButtonText}>
+                                  {generatingClosureGuide === batch.id
+                                    ? 'Generando guía...'
+                                    : 'Generar guía'}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        );
+                      })
+                    )}
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
 
         {/* Validation Modal */}
         {selectedProducto &&
@@ -1596,7 +2224,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                       photos: productPhotos[selectedProducto.productId] || [],
                     },
                     quantityBase:
-                      selectedProducto.quantityBase || String(selectedProducto.quantityAssigned || 0),
+                      selectedProducto.quantityBase ||
+                      String(selectedProducto.quantityAssigned || 0),
                     quantityAssigned: selectedProducto.quantityAssigned,
                     presentationInfo: selectedProducto.presentationInfo,
                     presentationId: selectedProducto.presentationId,
@@ -1666,13 +2295,17 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.bultosModalOverlay}
           >
-            <View style={[styles.bultosModalContainer, isTablet && styles.bultosModalContainerTablet]}>
+            <View
+              style={[styles.bultosModalContainer, isTablet && styles.bultosModalContainerTablet]}
+            >
               <View style={styles.bultosModalHeader}>
                 <Ionicons name="cube-outline" size={32} color={colors.primary[500]} />
                 <Text style={[styles.bultosModalTitle, isTablet && styles.bultosModalTitleTablet]}>
                   Cantidad de Bultos
                 </Text>
-                <Text style={[styles.bultosModalSubtitle, isTablet && styles.bultosModalSubtitleTablet]}>
+                <Text
+                  style={[styles.bultosModalSubtitle, isTablet && styles.bultosModalSubtitleTablet]}
+                >
                   Ingrese el número de bultos para la guía de remisión
                 </Text>
               </View>
@@ -2342,6 +2975,506 @@ const styles = StyleSheet.create({
   },
   filterButtonTextActive: {
     color: colors.text.inverse,
+  },
+  closuresModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing[3],
+  },
+  closuresModalContainer: {
+    width: '100%',
+    maxWidth: 720,
+    height: '92%',
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    ...shadows.lg,
+  },
+  closuresModalContainerTablet: {
+    height: '88%',
+  },
+  closuresModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.default,
+  },
+  closuresModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text.primary,
+  },
+  closuresModalTitleTablet: {
+    fontSize: 24,
+  },
+  closuresModalSubtitle: {
+    marginTop: spacing[1],
+    fontSize: 13,
+    color: colors.text.secondary,
+  },
+  closuresCloseButton: {
+    padding: spacing[2],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background.secondary,
+  },
+  closuresLoadingContainer: {
+    paddingVertical: spacing[12],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closuresModalBody: {
+    flex: 1,
+    paddingHorizontal: spacing[4],
+  },
+  closuresModalBodyContent: {
+    paddingBottom: spacing[6],
+  },
+  closureSection: {
+    paddingVertical: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.default,
+  },
+  closureSectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.text.primary,
+    marginBottom: spacing[1],
+  },
+  closureSectionHint: {
+    fontSize: 13,
+    color: colors.text.secondary,
+    marginBottom: spacing[3],
+  },
+  closureEmptyBox: {
+    padding: spacing[4],
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+  },
+  closureEmptyText: {
+    color: colors.text.secondary,
+    textAlign: 'center',
+    fontSize: 14,
+  },
+  productsAccordionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.primary[200],
+    backgroundColor: colors.primary[50],
+    marginBottom: spacing[3],
+  },
+  selectAllProductsButton: {
+    marginRight: spacing[3],
+  },
+  productsAccordionContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  productsAccordionTextBox: {
+    flex: 1,
+  },
+  productsAccordionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.primary[800],
+  },
+  productsAccordionSubtitle: {
+    marginTop: spacing[0.5],
+    fontSize: 12,
+    color: colors.primary[700],
+  },
+  pendingClosureItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: spacing[3],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    backgroundColor: colors.background.secondary,
+    marginBottom: spacing[2],
+  },
+  pendingClosureItemSelected: {
+    borderColor: colors.primary[500],
+    backgroundColor: colors.primary[50],
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: borderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.border.dark,
+    marginRight: spacing[3],
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.primary,
+  },
+  checkboxSelected: {
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
+  },
+  checkboxPartial: {
+    backgroundColor: colors.warning[500],
+    borderColor: colors.warning[500],
+  },
+  pendingClosureInfo: {
+    flex: 1,
+  },
+  pendingClosureProductHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[2],
+  },
+  pendingClosureProductName: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text.primary,
+  },
+  quantityPill: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.success[100],
+  },
+  quantityPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.success[700],
+  },
+  siteInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing[2],
+    padding: spacing[2],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary[100],
+    backgroundColor: colors.background.primary,
+  },
+  siteIconBubble: {
+    width: 28,
+    height: 28,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing[2],
+  },
+  siteInfoTextBox: {
+    flex: 1,
+  },
+  siteInfoLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.text.tertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  siteInfoName: {
+    marginTop: spacing[0.5],
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text.primary,
+  },
+  pendingClosureChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[1.5],
+    marginTop: spacing[2],
+  },
+  pendingClosureChip: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+  },
+  pendingClosureChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.text.secondary,
+  },
+  pendingClosureChipSuccess: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.success[100],
+  },
+  pendingClosureChipSuccessText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.success[700],
+  },
+  pendingClosureChipWarning: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.warning[100],
+  },
+  pendingClosureChipWarningText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.warning[700],
+  },
+  showMoreProductsButton: {
+    alignItems: 'center',
+    paddingVertical: spacing[2.5],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.primary[300],
+    backgroundColor: colors.primary[50],
+  },
+  showMoreProductsText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.primary[700],
+  },
+  pendingClosureMeta: {
+    marginTop: spacing[1],
+    fontSize: 12,
+    color: colors.text.secondary,
+  },
+  pendingClosureQuantities: {
+    marginTop: spacing[1],
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.success[700],
+  },
+  closureNotesInput: {
+    minHeight: 72,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    color: colors.text.primary,
+    backgroundColor: colors.background.primary,
+    textAlignVertical: 'top',
+    marginTop: spacing[2],
+  },
+  createClosureButton: {
+    backgroundColor: colors.success[500],
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing[3],
+    alignItems: 'center',
+    marginTop: spacing[3],
+  },
+  createClosureButtonText: {
+    color: colors.text.inverse,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  closureBatchCard: {
+    padding: spacing[4],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    backgroundColor: colors.background.secondary,
+    marginBottom: spacing[3],
+  },
+  closureBatchHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: spacing[2],
+  },
+  closureBatchTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text.primary,
+  },
+  closureBatchMeta: {
+    marginTop: spacing[1],
+    fontSize: 12,
+    color: colors.text.secondary,
+  },
+  closureBatchBadge: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[100],
+  },
+  closureBatchBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.primary[700],
+  },
+  closureBatchSummary: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.success[700],
+    marginBottom: spacing[2],
+  },
+  closureSummaryGrid: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    marginBottom: spacing[3],
+  },
+  closureSummaryCard: {
+    flex: 1,
+    padding: spacing[2],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.primary,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+  },
+  closureSummaryCardWarning: {
+    flex: 1,
+    padding: spacing[2],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.warning[50],
+    borderWidth: 1,
+    borderColor: colors.warning[200],
+  },
+  closureSummaryLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.text.tertiary,
+    textTransform: 'uppercase',
+  },
+  closureSummaryValue: {
+    marginTop: spacing[0.5],
+    fontSize: 14,
+    fontWeight: '900',
+    color: colors.text.primary,
+  },
+  closureSummaryValueWarning: {
+    marginTop: spacing[0.5],
+    fontSize: 14,
+    fontWeight: '900',
+    color: colors.warning[700],
+  },
+  batchProductsAccordionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing[2.5],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.primary,
+    borderWidth: 1,
+    borderColor: colors.primary[100],
+    marginBottom: spacing[2],
+  },
+  batchProductsAccordionText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.primary[700],
+  },
+  closureBatchProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[2],
+    paddingVertical: spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.default,
+  },
+  closureBatchItemText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.text.secondary,
+  },
+  closureBatchItemQuantity: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.success[700],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.success[100],
+  },
+  showMoreBatchProductsButton: {
+    alignItems: 'center',
+    paddingVertical: spacing[2],
+    marginTop: spacing[1],
+  },
+  showMoreBatchProductsText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.primary[700],
+  },
+  guideActionsBox: {
+    marginTop: spacing[3],
+    paddingTop: spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.default,
+  },
+  guideSuccessText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.success[700],
+  },
+  guideCompactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[2],
+  },
+  guideCompactInfo: {
+    flex: 1,
+  },
+  guideNumberText: {
+    marginTop: spacing[0.5],
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.text.primary,
+  },
+  guideStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginTop: spacing[0.5],
+  },
+  guideStatusLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.text.tertiary,
+  },
+  guideStatusValue: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.info[700],
+  },
+  guideActionsRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    marginTop: spacing[2],
+  },
+  guideDownloadButton: {
+    backgroundColor: colors.info[500],
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    minWidth: 52,
+    alignItems: 'center',
+  },
+  guideDownloadButtonText: {
+    color: colors.text.inverse,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  generateGuideButton: {
+    marginTop: spacing[3],
+    backgroundColor: colors.accent[500],
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing[3],
+    alignItems: 'center',
+  },
+  generateGuideButtonText: {
+    color: colors.text.inverse,
+    fontWeight: '800',
+    fontSize: 14,
   },
   // Bultos Modal Styles
   bultosModalOverlay: {

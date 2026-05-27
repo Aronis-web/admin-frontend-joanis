@@ -16,3 +16,6 @@ web-build/
 # Electron build resources (keep .gitkeep)
 electron/build/*
 !electron/build/.gitkeep
+
+# Firebender session data (markers de hooks, no versionar)
+.firebender/.session/
