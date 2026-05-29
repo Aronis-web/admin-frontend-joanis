@@ -531,6 +531,15 @@ export interface CampaignProductDetailSupplier {
 }
 
 /**
+ * Foto enriquecida que devuelve el endpoint compacto. `type` puede ser
+ * `reference`, `design`, `price`, etc. Se conserva la URL para mostrar.
+ */
+export interface CampaignProductDetailPhoto {
+  type?: string;
+  url: string;
+}
+
+/**
  * Item del endpoint compacto `products-detail` — incluye todos los datos
  * que necesita la UI de la pestaña de productos en un solo request.
  */
@@ -547,7 +556,12 @@ export interface CampaignProductDetailItem {
   currency: string;
   salePrices: CampaignProductDetailSalePrice[];
   supplier: CampaignProductDetailSupplier | null;
-  photos: string[];
+  /**
+   * Fotos del producto. El backend devolvió antes `string[]` y ahora puede
+   * devolver objetos con metadata `{ type, url }`. Aceptamos ambas formas
+   * para no romper en producción mientras migra el contrato.
+   */
+  photos: Array<string | CampaignProductDetailPhoto>;
   productStatus: string;
   distributionGenerated: boolean;
 }

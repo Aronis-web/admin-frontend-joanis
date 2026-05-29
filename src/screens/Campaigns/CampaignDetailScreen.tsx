@@ -2123,12 +2123,47 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const availableStock = stock ? parseFloat(stock.availableQuantityBase || '0') : null;
       const reservedStock = stock ? parseFloat(stock.reservedQuantityBase || '0') : 0;
       const totalStock = stock ? parseFloat(stock.quantityBase || '0') : 0;
+      // ⚠️ Las fotos del endpoint compacto pueden venir como string o como
+      // { type, url }. Las del producto embebido pueden ser string o el
+      // mismo objeto. Normalizamos a string para no romper <Image>.
+      // Preferencia: design > reference > primera disponible.
+      const pickPhotoUrl = (p: any): string | undefined => {
+        if (!p) return undefined;
+        if (typeof p === 'string') return p;
+        if (typeof p === 'object' && typeof p.url === 'string') return p.url;
+        return undefined;
+      };
+      const pickPreferredPhotoUrl = (arr: any): string | undefined => {
+        if (!Array.isArray(arr)) return undefined;
+        const byType = (t: string) =>
+          arr.find(
+            (p) =>
+              p && typeof p === 'object' && typeof p.type === 'string' && p.type.toLowerCase() === t
+          );
+        const design = byType('design');
+        if (design) {
+          const url = pickPhotoUrl(design);
+          if (url) return url;
+        }
+        const reference = byType('reference');
+        if (reference) {
+          const url = pickPhotoUrl(reference);
+          if (url) return url;
+        }
+        for (const p of arr) {
+          const url = pickPhotoUrl(p);
+          if (url) return url;
+        }
+        return undefined;
+      };
       const imageUri =
-        detail?.photos?.[0] ||
-        (productDetails as any)?.photoUrls?.[0] ||
-        (productDetails as any)?.photos?.[0] ||
-        (productDetails as any)?.imageUrl ||
-        (productDetails as any)?.imageUrls?.[0];
+        pickPreferredPhotoUrl(detail?.photos) ||
+        pickPreferredPhotoUrl((productDetails as any)?.photoUrls) ||
+        pickPreferredPhotoUrl((productDetails as any)?.photos) ||
+        (typeof (productDetails as any)?.imageUrl === 'string'
+          ? (productDetails as any).imageUrl
+          : undefined) ||
+        pickPreferredPhotoUrl((productDetails as any)?.imageUrls);
       const currencyCode = detail?.currency || 'PEN';
       const currencyPrefix = currencyCode === 'PEN' ? 'S/' : currencyCode;
       const fmt = (cents: number) => `${currencyPrefix} ${(cents / 100).toFixed(2)}`;
@@ -2788,19 +2823,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               <Text style={styles.globalSearchBannerButtonLeftText}>📋</Text>
                             </TouchableOpacity>
 
-                            {product.photos && product.photos.length > 0 ? (
-                              <Image
-                                source={{ uri: product.photos[0] }}
-                                style={styles.globalSearchImage}
-                                resizeMode="cover"
-                              />
-                            ) : product.imageUrl ? (
-                              <Image
-                                source={{ uri: product.imageUrl }}
-                                style={styles.globalSearchImage}
-                                resizeMode="cover"
-                              />
-                            ) : null}
+                            {(() => {
+                              const firstPhoto: any = (product as any).photos?.[0];
+                              const photoUrl =
+                                typeof firstPhoto === 'string' ? firstPhoto : firstPhoto?.url;
+                              const uri = photoUrl || product.imageUrl;
+                              if (!uri) return null;
+                              return (
+                                <Image
+                                  source={{ uri }}
+                                  style={styles.globalSearchImage}
+                                  resizeMode="cover"
+                                />
+                              );
+                            })()}
                             <View style={styles.globalSearchContent}>
                               <Text
                                 style={[
