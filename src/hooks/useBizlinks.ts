@@ -27,7 +27,8 @@ export const useBizlinksConfig = () => {
       const configs = await bizlinksApi.getConfigs(params);
       return configs;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al obtener configuraciones';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al obtener configuraciones';
       setError(errorMessage);
       throw err;
     } finally {
@@ -42,7 +43,8 @@ export const useBizlinksConfig = () => {
       const config = await bizlinksApi.getConfigById(id);
       return config;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al obtener configuración';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al obtener configuración';
       setError(errorMessage);
       throw err;
     } finally {
@@ -57,7 +59,8 @@ export const useBizlinksConfig = () => {
       const configs = await bizlinksApi.getConfigsByCompany(companyId);
       return configs;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al obtener configuraciones';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al obtener configuraciones';
       setError(errorMessage);
       throw err;
     } finally {
@@ -72,7 +75,8 @@ export const useBizlinksConfig = () => {
       const config = await bizlinksApi.getActiveConfig(companyId, siteId);
       return config;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al obtener configuración activa';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al obtener configuración activa';
       setError(errorMessage);
       throw err;
     } finally {
@@ -87,7 +91,8 @@ export const useBizlinksConfig = () => {
       const config = await bizlinksApi.createConfig(data);
       return config;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al crear configuración';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al crear configuración';
       setError(errorMessage);
       throw err;
     } finally {
@@ -102,7 +107,8 @@ export const useBizlinksConfig = () => {
       const config = await bizlinksApi.updateConfig(id, data);
       return config;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al actualizar configuración';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al actualizar configuración';
       setError(errorMessage);
       throw err;
     } finally {
@@ -116,7 +122,8 @@ export const useBizlinksConfig = () => {
     try {
       await bizlinksApi.deleteConfig(id);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al eliminar configuración';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al eliminar configuración';
       setError(errorMessage);
       throw err;
     } finally {
@@ -161,7 +168,8 @@ export const useBizlinksConfig = () => {
       const config = await bizlinksApi.deleteLogo(configId);
       return config;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al eliminar el logo';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al eliminar el logo';
       setError(errorMessage);
       throw err;
     } finally {
@@ -197,7 +205,8 @@ export const useBizlinksDocuments = () => {
       const documents = await bizlinksApi.getDocuments(params);
       return documents;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al obtener documentos';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al obtener documentos';
       setError(errorMessage);
       throw err;
     } finally {
@@ -212,7 +221,8 @@ export const useBizlinksDocuments = () => {
       const document = await bizlinksApi.getDocumentById(id);
       return document;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al obtener documento';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al obtener documento';
       setError(errorMessage);
       throw err;
     } finally {
@@ -227,7 +237,8 @@ export const useBizlinksDocuments = () => {
       const document = await bizlinksApi.getDocumentBySerieNumero(serieNumero);
       return document;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al obtener documento';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al obtener documento';
       setError(errorMessage);
       throw err;
     } finally {
@@ -279,7 +290,8 @@ export const useBizlinksDocuments = () => {
 
       return document;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al emitir comprobante';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al emitir comprobante';
       setError(errorMessage);
       throw err;
     } finally {
@@ -294,7 +306,8 @@ export const useBizlinksDocuments = () => {
       const document = await bizlinksApi.refreshDocumentStatus(id);
       return document;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al actualizar estado';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al actualizar estado';
       setError(errorMessage);
       throw err;
     } finally {
@@ -302,20 +315,43 @@ export const useBizlinksDocuments = () => {
     }
   }, []);
 
-  const downloadArtifacts = useCallback(async (id: string, options?: { downloadPdf?: boolean; downloadXml?: boolean; downloadCdr?: boolean }) => {
+  const retryDocument = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
     try {
-      const document = await bizlinksApi.downloadArtifacts(id, options);
+      const document = await bizlinksApi.retryDocument(id);
       return document;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al descargar archivos';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al reintentar el documento';
       setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const downloadArtifacts = useCallback(
+    async (
+      id: string,
+      options?: { downloadPdf?: boolean; downloadXml?: boolean; downloadCdr?: boolean }
+    ) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const document = await bizlinksApi.downloadArtifacts(id, options);
+        return document;
+      } catch (err: any) {
+        const errorMessage =
+          err.response?.data?.message || err.message || 'Error al descargar archivos';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   const sendToSunat = useCallback(async (id: string) => {
     setLoading(true);
@@ -339,7 +375,8 @@ export const useBizlinksDocuments = () => {
       const document = await bizlinksApi.voidDocument(id, reason);
       return document;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al anular documento';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al anular documento';
       setError(errorMessage);
       throw err;
     } finally {
@@ -371,6 +408,7 @@ export const useBizlinksDocuments = () => {
     emitirFactura,
     emitirComprobante,
     refreshDocumentStatus,
+    retryDocument,
     downloadArtifacts,
     sendToSunat,
     voidDocument,
@@ -405,7 +443,8 @@ export const useBizlinksUtils = () => {
       const info = await bizlinksApi.getUbigeoInfo(code);
       return info;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Error al obtener información de ubigeo';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Error al obtener información de ubigeo';
       setError(errorMessage);
       throw err;
     } finally {

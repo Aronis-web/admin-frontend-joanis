@@ -4,7 +4,7 @@
  * Pantalla de inicio de sesión con diseño profesional y moderno.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -21,12 +21,7 @@ import { useTenantStore } from '@/store/tenant';
 import { AUTH_ROUTES } from '@/constants/routes';
 
 // Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-} from '@/design-system/tokens';
+import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 import {
   Text,
   DisplayText,
@@ -58,6 +53,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
+
+  // Fix: en Electron/Web, tras un logout por 401 disparado desde un
+  // window.confirm/alert, el BrowserWindow puede perder el foco del teclado.
+  // Al montar el Login forzamos window.focus() para que los inputs respondan.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    try {
+      window.focus();
+      const active = document.activeElement as HTMLElement | null;
+      if (active && active !== document.body && !document.body.contains(active)) {
+        active.blur?.();
+      }
+    } catch {
+      // no-op
+    }
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -99,11 +110,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <View style={styles.brandingSection}>
               <View style={styles.logoContainer}>
                 <View style={styles.logo}>
-                  <Text
-                    variant="displayMedium"
-                    color={colors.text.inverse}
-                    style={styles.logoText}
-                  >
+                  <Text variant="displayMedium" color={colors.text.inverse} style={styles.logoText}>
                     ERP
                   </Text>
                 </View>
@@ -113,12 +120,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 <DisplayText size="small" color="primary" align="center">
                   Bienvenido
                 </DisplayText>
-                <Body
-                  size="medium"
-                  color="secondary"
-                  align="center"
-                  style={styles.subtitle}
-                >
+                <Body size="medium" color="secondary" align="center" style={styles.subtitle}>
                   Inicia sesión para acceder a tu panel de administración
                 </Body>
               </View>
@@ -155,12 +157,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 onPress={() => setRememberMe(!rememberMe)}
                 activeOpacity={0.7}
               >
-                <View
-                  style={[
-                    styles.checkbox,
-                    rememberMe && styles.checkboxChecked,
-                  ]}
-                >
+                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
                   {rememberMe && (
                     <Ionicons name="checkmark" size={14} color={colors.text.inverse} />
                   )}

@@ -106,6 +106,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     'all' | 'generated' | 'not-generated'
   >('all');
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
+  // Filtro por estado del producto subyacente (PurchaseProduct):
+  //  - 'preliminary' = compra aún no validada (ProductStatus.PRELIMINARY)
+  //  - 'active'      = compra validada (ProductStatus.ACTIVE)
+  const [productStatusFilter, setProductStatusFilter] = useState<'all' | 'preliminary' | 'active'>(
+    'all'
+  );
+  // Set de campaignProductIds que están actualmente cerrando validación
+  // (para mostrar spinner en el botón "Activar").
+  const [activatingProductIds, setActivatingProductIds] = useState<Set<string>>(new Set());
   const [participantTotals, setParticipantTotals] = useState<ParticipantTotalsResponse | null>(
     null
   );
@@ -1980,6 +1989,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       filtered = filtered.filter((product) => !product.distributionGenerated);
     }
 
+    // Apply product status filter (preliminar / activo del producto subyacente).
+    // Prioridad: `detail.productStatus` (endpoint fresco products-detail) >
+    // `product.productStatus` (CampaignProduct). NO usar `productDetails.status`
+    // porque ése es el status del Product maestro (típicamente 'active')
+    // y enmascaraba campaign products realmente preliminares.
+    if (productStatusFilter !== 'all') {
+      filtered = filtered.filter((product) => {
+        const detail = productsDetailMap[product.id];
+        const raw = (detail?.productStatus || product.productStatus || '').toString().toLowerCase();
+        const isPreliminary = raw === 'preliminary';
+        return productStatusFilter === 'preliminary' ? isPreliminary : !isPreliminary;
+      });
+    }
+
     // Apply supplier filter
     if (supplierFilter !== 'all') {
       filtered = filtered.filter((product) => {
@@ -2026,6 +2049,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     searchQuery,
     distributionFilter,
     supplierFilter,
+    productStatusFilter,
   ]);
 
   // Lista única de proveedores presentes entre los productos de la campaña.
@@ -2065,6 +2089,54 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return filteredProducts.slice(0, displayedItemsCount);
   }, [filteredProducts, displayedItemsCount]);
 
+  // Activar un producto preliminar dentro de la campaña: simplemente
+  // cambia el `productStatus` del CampaignProduct de PRELIMINARY a ACTIVE.
+  // No toca la compra ni dispara validaciones — sólo es un toggle de
+  // estado en la campaña.
+  const handleActivatePreliminary = useCallback(
+    async (product: CampaignProduct) => {
+      Alert.alert(
+        'Activar producto',
+        '¿Pasar este producto de preliminar a activo en la campaña?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Activar',
+            style: 'default',
+            onPress: async () => {
+              setActivatingProductIds((prev) => new Set(prev).add(product.id));
+              try {
+                await campaignsService.updateProduct(campaignId, product.id, {
+                  productStatus: ProductStatus.ACTIVE,
+                });
+                // Refrescamos campaign (para que `product.productStatus`
+                // pase a 'ACTIVE') y el endpoint compacto (para que
+                // `detail.productStatus` no quede stale en 'PRELIMINARY').
+                await Promise.all([loadCampaign(), refetchProductsDetail()]);
+                Alert.alert('Producto activado', 'El producto ahora está activo en la campaña.');
+              } catch (e: any) {
+                logger.error('Error activando producto en campaña', e);
+                Alert.alert(
+                  'Error',
+                  e?.response?.data?.message ||
+                    e?.message ||
+                    'No se pudo activar el producto. Intenta de nuevo.'
+                );
+              } finally {
+                setActivatingProductIds((prev) => {
+                  const n = new Set(prev);
+                  n.delete(product.id);
+                  return n;
+                });
+              }
+            },
+          },
+        ]
+      );
+    },
+    [campaignId, loadCampaign, refetchProductsDetail]
+  );
+
   // Reset pagination when filters change (side effect, must be useEffect)
   React.useEffect(() => {
     setDisplayedItemsCount(ITEMS_PER_PAGE);
@@ -2087,11 +2159,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const productDetails = products[product.productId] || product.product;
       const costCents = detail?.costCents ?? productDetails?.costCents ?? 0;
       const isExpanded = expandedProducts.has(product.id);
-      const productStatusRaw = (
-        detail?.productStatus ||
-        (productDetails?.status as any) ||
-        ''
-      ).toString();
+      // Fuentes válidas para saber si el campaign product es preliminar:
+      //   1) `detail.productStatus` — endpoint products-detail (fresco)
+      //   2) `product.productStatus` — campo del CampaignProduct
+      // NO usar `productDetails.status`: ése es el status del Product
+      // maestro (siempre 'active'), no del campaign product, y enmascaraba
+      // productos realmente preliminares.
+      const productStatusRaw = (detail?.productStatus || product.productStatus || '').toString();
       const isPreliminary = productStatusRaw.toLowerCase() === 'preliminary';
       const title = detail?.title || productDetails?.title || `Producto ID: ${product.productId}`;
       const sku = detail?.sku || productDetails?.sku || 'N/A';
@@ -2236,16 +2310,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   {title}
                 </Text>
                 <View style={styles.productCompactBadges}>
+                  {/* Badge Activo/Preliminar: usamos `isPreliminary` (que
+                      prioriza `detail.productStatus` del endpoint compacto
+                      products-detail) en vez de `product.productStatus`,
+                      porque éste último puede quedar stale cuando la compra
+                      asociada se valida fuera del flujo de la campaña. */}
                   <View
                     style={[
                       styles.badgeSmall,
-                      product.productStatus === 'ACTIVE'
-                        ? styles.badgeActive
-                        : styles.badgePreliminary,
+                      isPreliminary ? styles.badgePreliminary : styles.badgeActive,
                     ]}
                   >
                     <Text style={styles.badgeSmallText}>
-                      {product.productStatus === 'ACTIVE' ? 'Activo' : 'Preliminar'}
+                      {isPreliminary ? 'Preliminar' : 'Activo'}
                     </Text>
                   </View>
                   {product.distributionGenerated && (
@@ -2254,9 +2331,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     </View>
                   )}
                   {isPreliminary && (
-                    <View style={[styles.badgeSmall, styles.badgePreliminary]}>
-                      <Text style={styles.badgeSmallText}>⚠️ Prel</Text>
-                    </View>
+                    <TouchableOpacity
+                      style={[styles.badgeSmall, styles.badgeActivate]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleActivatePreliminary(product);
+                      }}
+                      disabled={activatingProductIds.has(product.id)}
+                    >
+                      {activatingProductIds.has(product.id) ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.badgeSmallText}>✅ Activar</Text>
+                      )}
+                    </TouchableOpacity>
                   )}
                 </View>
               </View>
@@ -2740,176 +2828,228 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </View>
           )}
 
-          {!campaign.products || campaign.products.length === 0 ? (
+          {/* Product status filter (preliminar / activo del producto subyacente) */}
+          {campaign.products && campaign.products.length > 0 && (
+            <View style={styles.filterContainer}>
+              <Text style={styles.filterLabel}>Estado:</Text>
+              <View style={styles.filterButtons}>
+                {(
+                  [
+                    { key: 'all', label: 'Todos' },
+                    { key: 'active', label: '✅ Activos' },
+                    { key: 'preliminary', label: '⚠️ Preliminares' },
+                  ] as const
+                ).map((opt) => {
+                  const count =
+                    opt.key === 'all'
+                      ? campaign.products!.length
+                      : campaign.products!.filter((p) => {
+                          const d = productsDetailMap[p.id];
+                          const pd = p.product || products[p.productId];
+                          const raw = (
+                            d?.productStatus ||
+                            (pd?.status as any) ||
+                            p.productStatus ||
+                            ''
+                          )
+                            .toString()
+                            .toLowerCase();
+                          const isPrel = raw === 'preliminary';
+                          return opt.key === 'preliminary' ? isPrel : !isPrel;
+                        }).length;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[
+                        styles.filterButton,
+                        productStatusFilter === opt.key && styles.filterButtonActive,
+                      ]}
+                      onPress={() => setProductStatusFilter(opt.key)}
+                    >
+                      <Text
+                        style={[
+                          styles.filterButtonText,
+                          productStatusFilter === opt.key && styles.filterButtonTextActive,
+                        ]}
+                      >
+                        {opt.label} ({count})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Mensaje vacío: solo cuando NO hay productos en campaña Y el usuario no está buscando.
+              Si está buscando, dejamos que el buscador global muestre sugerencias debajo. */}
+          {(!campaign.products || campaign.products.length === 0) && !searchQuery.trim() && (
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
               No hay productos agregados
             </Text>
+          )}
+
+          {/* Productos filtrados de la campaña (vacío si la campaña aún no tiene productos) */}
+          {filteredProducts.length === 0 &&
+          searchQuery.trim() &&
+          campaign.products &&
+          campaign.products.length > 0 ? (
+            <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+              No se encontraron productos en la campaña que coincidan con "{searchQuery}"
+            </Text>
           ) : (
             <>
-              {/* Show filtered products from campaign */}
-              {filteredProducts.length === 0 && searchQuery.trim() ? (
-                <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                  No se encontraron productos en la campaña que coincidan con "{searchQuery}"
-                </Text>
-              ) : (
-                <>
-                  {paginatedProducts.map((product) => (
-                    <View key={product.id}>{renderProductItem({ item: product })}</View>
-                  ))}
-                  {displayedItemsCount < filteredProducts.length && (
-                    <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
-                      <Text style={styles.loadMoreButtonText}>
-                        Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {displayedItemsCount >= filteredProducts.length &&
-                    filteredProducts.length > ITEMS_PER_PAGE && (
-                      <View style={styles.endOfListContainer}>
-                        <Text style={styles.endOfListText}>
-                          ✓ Mostrando todos los productos ({filteredProducts.length})
-                        </Text>
-                      </View>
-                    )}
-                </>
-              )}
-
-              {/* Loading indicator for global search */}
-              {searchQuery.trim() && isGlobalSearching && (
-                <View style={styles.globalSearchLoading}>
-                  <ActivityIndicator size="small" color="#6366F1" />
-                  <Text style={styles.globalSearchLoadingText}>
-                    Buscando en todos los productos...
+              {paginatedProducts.map((product) => (
+                <View key={product.id}>{renderProductItem({ item: product })}</View>
+              ))}
+              {displayedItemsCount < filteredProducts.length && (
+                <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
+                  <Text style={styles.loadMoreButtonText}>
+                    Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
                   </Text>
-                </View>
+                </TouchableOpacity>
               )}
-
-              {/* Global search suggestions - Always show when searching */}
-              {searchQuery.trim() &&
-                !isGlobalSearching &&
-                showGlobalSearchSuggestions &&
-                globalSearchResults.length > 0 && (
-                  <View style={styles.globalSearchContainer}>
-                    <Text style={styles.globalSearchTitle}>
-                      ≡ƒÆí Productos disponibles para agregar ({globalSearchResults.length})
+              {displayedItemsCount >= filteredProducts.length &&
+                filteredProducts.length > ITEMS_PER_PAGE && (
+                  <View style={styles.endOfListContainer}>
+                    <Text style={styles.endOfListText}>
+                      ✓ Mostrando todos los productos ({filteredProducts.length})
                     </Text>
-                    <Text style={styles.globalSearchHint}>
-                      Usa "Agregar Todo" para agregar con todo el stock o "Personalizado" para
-                      elegir la cantidad
-                    </Text>
-                    <ScrollView style={styles.globalSearchList} nestedScrollEnabled>
-                      {globalSearchResults.slice(0, 10).map((product) => {
-                        const isPreliminary = (product.status as any) === 'preliminary';
-                        const stockInfo = getProductStock(product);
-                        const isAlreadyAdded = campaign.products?.some(
-                          (p) => p.productId === product.id
-                        );
-
-                        return (
-                          <View
-                            key={product.id}
-                            style={[
-                              styles.globalSearchItem,
-                              isPreliminary && styles.globalSearchItemPreliminary,
-                              isAlreadyAdded && styles.globalSearchItemDisabled,
-                            ]}
-                          >
-                            {/* Banner button - Left side */}
-                            <TouchableOpacity
-                              style={styles.globalSearchBannerButtonLeft}
-                              onPress={() => handleOpenBannerFromSearch(product)}
-                              activeOpacity={0.7}
-                            >
-                              <Text style={styles.globalSearchBannerButtonLeftText}>📋</Text>
-                            </TouchableOpacity>
-
-                            {(() => {
-                              const firstPhoto: any = (product as any).photos?.[0];
-                              const photoUrl =
-                                typeof firstPhoto === 'string' ? firstPhoto : firstPhoto?.url;
-                              const uri = photoUrl || product.imageUrl;
-                              if (!uri) return null;
-                              return (
-                                <Image
-                                  source={{ uri }}
-                                  style={styles.globalSearchImage}
-                                  resizeMode="cover"
-                                />
-                              );
-                            })()}
-                            <View style={styles.globalSearchContent}>
-                              <Text
-                                style={[
-                                  styles.globalSearchItemTitle,
-                                  isAlreadyAdded && styles.globalSearchItemTitleDisabled,
-                                ]}
-                              >
-                                {product.correlativeNumber && `#${product.correlativeNumber} | `}
-                                {product.sku} - {product.title}
-                                {isAlreadyAdded && ' (Ya agregado)'}
-                              </Text>
-                              {isPreliminary && (
-                                <Text style={styles.globalSearchWarning}>
-                                  ⚠️ Producto por validar Ingreso
-                                </Text>
-                              )}
-                              <View style={styles.globalSearchMeta}>
-                                <View style={styles.stockInfoContainer}>
-                                  <Text
-                                    style={[
-                                      styles.globalSearchStock,
-                                      stockInfo.available > 0
-                                        ? styles.stockAvailable
-                                        : styles.stockUnavailable,
-                                    ]}
-                                  >
-                                    {isPreliminary ? '📦 Stock preliminar: ' : '✅ Disponible: '}
-                                    {stockInfo.available}
-                                  </Text>
-                                  {!isPreliminary && stockInfo.reserved > 0 && (
-                                    <Text style={styles.stockReserved}>
-                                      ≡ƒöÆ Reservado: {stockInfo.reserved}
-                                    </Text>
-                                  )}
-                                  {!isPreliminary && stockInfo.total !== stockInfo.available && (
-                                    <Text style={styles.stockTotal}>
-                                      ≡ƒôè Total: {stockInfo.total}
-                                    </Text>
-                                  )}
-                                </View>
-                                <Text style={styles.globalSearchStatus}>
-                                  {product.status === 'active' ? '✔ Activo' : 'ΓÜá Preliminar'}
-                                </Text>
-                              </View>
-                            </View>
-                            {!isAlreadyAdded && stockInfo.available > 0 && (
-                              <View style={styles.globalSearchActions}>
-                                <TouchableOpacity
-                                  style={styles.globalSearchActionButton}
-                                  onPress={() => handleQuickAddProduct(product)}
-                                  disabled={addingQuickProduct}
-                                >
-                                  <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                  style={styles.globalSearchActionButtonSecondary}
-                                  onPress={() => handleOpenCustomAddModal(product)}
-                                  disabled={addingQuickProduct}
-                                >
-                                  <Text style={styles.globalSearchActionButtonSecondaryText}>
-                                    ⚙️ Personalizado
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-                            )}
-                          </View>
-                        );
-                      })}
-                    </ScrollView>
                   </View>
                 )}
             </>
           )}
+
+          {/* Loading indicator for global search */}
+          {searchQuery.trim() && isGlobalSearching && (
+            <View style={styles.globalSearchLoading}>
+              <ActivityIndicator size="small" color="#6366F1" />
+              <Text style={styles.globalSearchLoadingText}>Buscando en todos los productos...</Text>
+            </View>
+          )}
+
+          {/* Global search suggestions - Always show when searching */}
+          {searchQuery.trim() &&
+            !isGlobalSearching &&
+            showGlobalSearchSuggestions &&
+            globalSearchResults.length > 0 && (
+              <View style={styles.globalSearchContainer}>
+                <Text style={styles.globalSearchTitle}>
+                  ≡ƒÆí Productos disponibles para agregar ({globalSearchResults.length})
+                </Text>
+                <Text style={styles.globalSearchHint}>
+                  Usa "Agregar Todo" para agregar con todo el stock o "Personalizado" para elegir la
+                  cantidad
+                </Text>
+                <ScrollView style={styles.globalSearchList} nestedScrollEnabled>
+                  {globalSearchResults.slice(0, 10).map((product) => {
+                    const isPreliminary = (product.status as any) === 'preliminary';
+                    const stockInfo = getProductStock(product);
+                    const isAlreadyAdded = campaign.products?.some(
+                      (p) => p.productId === product.id
+                    );
+
+                    return (
+                      <View
+                        key={product.id}
+                        style={[
+                          styles.globalSearchItem,
+                          isPreliminary && styles.globalSearchItemPreliminary,
+                          isAlreadyAdded && styles.globalSearchItemDisabled,
+                        ]}
+                      >
+                        {/* Banner button - Left side */}
+                        <TouchableOpacity
+                          style={styles.globalSearchBannerButtonLeft}
+                          onPress={() => handleOpenBannerFromSearch(product)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.globalSearchBannerButtonLeftText}>📋</Text>
+                        </TouchableOpacity>
+
+                        {(() => {
+                          const firstPhoto: any = (product as any).photos?.[0];
+                          const photoUrl =
+                            typeof firstPhoto === 'string' ? firstPhoto : firstPhoto?.url;
+                          const uri = photoUrl || product.imageUrl;
+                          if (!uri) return null;
+                          return (
+                            <Image
+                              source={{ uri }}
+                              style={styles.globalSearchImage}
+                              resizeMode="cover"
+                            />
+                          );
+                        })()}
+                        <View style={styles.globalSearchContent}>
+                          <Text
+                            style={[
+                              styles.globalSearchItemTitle,
+                              isAlreadyAdded && styles.globalSearchItemTitleDisabled,
+                            ]}
+                          >
+                            {product.correlativeNumber && `#${product.correlativeNumber} | `}
+                            {product.sku} - {product.title}
+                            {isAlreadyAdded && ' (Ya agregado)'}
+                          </Text>
+                          {isPreliminary && (
+                            <Text style={styles.globalSearchWarning}>
+                              ⚠️ Producto por validar Ingreso
+                            </Text>
+                          )}
+                          <View style={styles.globalSearchMeta}>
+                            <View style={styles.stockInfoContainer}>
+                              <Text
+                                style={[
+                                  styles.globalSearchStock,
+                                  stockInfo.available > 0
+                                    ? styles.stockAvailable
+                                    : styles.stockUnavailable,
+                                ]}
+                              >
+                                {isPreliminary ? '📦 Stock preliminar: ' : '✅ Disponible: '}
+                                {stockInfo.available}
+                              </Text>
+                              {!isPreliminary && stockInfo.reserved > 0 && (
+                                <Text style={styles.stockReserved}>
+                                  ≡ƒöÆ Reservado: {stockInfo.reserved}
+                                </Text>
+                              )}
+                              {!isPreliminary && stockInfo.total !== stockInfo.available && (
+                                <Text style={styles.stockTotal}>≡ƒôè Total: {stockInfo.total}</Text>
+                              )}
+                            </View>
+                            <Text style={styles.globalSearchStatus}>
+                              {product.status === 'active' ? '✔ Activo' : 'ΓÜá Preliminar'}
+                            </Text>
+                          </View>
+                        </View>
+                        {!isAlreadyAdded && stockInfo.available > 0 && (
+                          <View style={styles.globalSearchActions}>
+                            <TouchableOpacity
+                              style={styles.globalSearchActionButton}
+                              onPress={() => handleQuickAddProduct(product)}
+                              disabled={addingQuickProduct}
+                            >
+                              <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.globalSearchActionButtonSecondary}
+                              onPress={() => handleOpenCustomAddModal(product)}
+                              disabled={addingQuickProduct}
+                            >
+                              <Text style={styles.globalSearchActionButtonSecondaryText}>
+                                ⚙️ Personalizado
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
         </View>
       </View>
     );
@@ -3848,6 +3988,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F59E0B40',
     borderWidth: 1,
     borderColor: '#F59E0B',
+  },
+  badgeActivate: {
+    backgroundColor: '#10B981',
+    borderWidth: 1,
+    borderColor: '#059669',
+    minHeight: 22,
+    justifyContent: 'center',
   },
   badgeGenerated: {
     backgroundColor: '#6366F120',

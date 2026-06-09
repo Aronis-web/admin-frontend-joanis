@@ -234,13 +234,22 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
       (p) => p.presentationId === presentationId
     );
     if (presentation) {
+      const previousPresentation = selectedPresentation;
       setSelectedPresentationId(presentationId);
       setSelectedPresentation(presentation);
 
       // Convert current quantity to new presentation
       if (usePresentation && validatedQuantity) {
-        const currentBase = parseFloat(validatedQuantity);
-        const newPresentationQty = currentBase / presentation.factorToBase;
+        const currentQty = parseFloat(validatedQuantity) || 0;
+        // La cantidad actual está expresada en la presentación anterior:
+        // primero convertir a unidades base y luego a la nueva presentación.
+        const previousFactor =
+          previousPresentation && previousPresentation.factorToBase > 0
+            ? previousPresentation.factorToBase
+            : 1;
+        const currentBase = currentQty * previousFactor;
+        const newPresentationQty =
+          presentation.factorToBase > 0 ? currentBase / presentation.factorToBase : currentBase;
         setValidatedQuantity(newPresentationQty.toFixed(2));
       }
     }
@@ -265,8 +274,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
     }
 
     const quantityInBase = getQuantityInBase();
-    const assignedQuantity =
-      producto.quantityAssigned || parseFloat(producto.quantityBase || '0');
+    const assignedQuantity = producto.quantityAssigned || parseFloat(producto.quantityBase || '0');
 
     if (isNaN(quantityInBase) || quantityInBase < 0) {
       Alert.alert('Error', 'Por favor ingresa una cantidad válida');
@@ -399,13 +407,13 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
             {/* Product Info */}
             <View style={styles.productInfo}>
-              <Body weight="semibold" style={{ marginBottom: spacing[1] }}>
+              <Body style={{ marginBottom: spacing[1], fontWeight: '600' }}>
                 {producto.product?.title}
               </Body>
               <Caption color="secondary" style={{ marginBottom: spacing[1] }}>
                 {producto.product?.sku}
               </Caption>
-              <Body color="secondary" size="sm">
+              <Body color="secondary" size="small">
                 Cantidad asignada: {producto.quantityAssigned || producto.quantityBase} unidades
               </Body>
             </View>
@@ -448,9 +456,11 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                     }}
                   >
                     <Body
-                      size="sm"
-                      weight={!usePresentation ? 'semibold' : 'medium'}
-                      style={{ color: !usePresentation ? colors.primary.main : colors.text.secondary }}
+                      size="small"
+                      style={{
+                        color: !usePresentation ? colors.primary[900] : colors.text.secondary,
+                        fontWeight: !usePresentation ? '600' : '500',
+                      }}
                     >
                       Por Unidad
                     </Body>
@@ -468,9 +478,11 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                     }}
                   >
                     <Body
-                      size="sm"
-                      weight={usePresentation ? 'semibold' : 'medium'}
-                      style={{ color: usePresentation ? colors.primary.main : colors.text.secondary }}
+                      size="small"
+                      style={{
+                        color: usePresentation ? colors.primary[900] : colors.text.secondary,
+                        fontWeight: usePresentation ? '600' : '500',
+                      }}
                     >
                       Por Presentación
                     </Body>
@@ -496,12 +508,13 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                     >
                       <View style={styles.presentationOptionContent}>
                         <Body
-                          size="sm"
-                          weight="semibold"
+                          size="small"
                           style={{
-                            color: selectedPresentationId === pres.presentationId
-                              ? colors.primary.main
-                              : colors.text.secondary
+                            color:
+                              selectedPresentationId === pres.presentationId
+                                ? colors.primary[900]
+                                : colors.text.secondary,
+                            fontWeight: '600',
                           }}
                         >
                           {pres.presentation.code} - {pres.presentation.name}
@@ -532,7 +545,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                 placeholder="Cantidad entregada"
               />
               {usePresentation && selectedPresentation && validatedQuantity && (
-                <Caption style={{ color: colors.primary.main, marginTop: spacing[1] }}>
+                <Caption style={{ color: colors.primary[900], marginTop: spacing[1] }}>
                   ≈ {getQuantityInBase().toFixed(2)} unidades base
                 </Caption>
               )}
@@ -552,22 +565,28 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                     onLoad={() => console.log('✅ Photo image loaded successfully')}
                     onError={(error) => console.error('❌ Photo image load error:', error)}
                   />
-                  <TouchableOpacity style={styles.recaptureButton} onPress={() => {
-                    console.log('🔄 Retaking photo...');
-                    setStep('photo');
-                  }}>
-                    <Body size="sm" weight="semibold" style={{ color: colors.text.inverse }}>
+                  <TouchableOpacity
+                    style={styles.recaptureButton}
+                    onPress={() => {
+                      console.log('🔄 Retaking photo...');
+                      setStep('photo');
+                    }}
+                  >
+                    <Body size="small" style={{ color: colors.text.inverse, fontWeight: '600' }}>
                       📷 Cambiar Foto
                     </Body>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity style={styles.captureButton} onPress={() => {
-                  console.log('📸 Opening photo capture...');
-                  setStep('photo');
-                }}>
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={() => {
+                    console.log('📸 Opening photo capture...');
+                    setStep('photo');
+                  }}
+                >
                   <Body style={styles.captureButtonIcon}>📷</Body>
-                  <Body size="sm" weight="semibold" style={{ color: colors.primary.main }}>
+                  <Body size="small" style={{ color: colors.primary[900], fontWeight: '600' }}>
                     Tomar Foto de Validación
                   </Body>
                 </TouchableOpacity>
@@ -592,7 +611,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                     style={styles.recaptureButton}
                     onPress={() => setStep('signature')}
                   >
-                    <Body size="sm" weight="semibold" style={{ color: colors.text.inverse }}>
+                    <Body size="small" style={{ color: colors.text.inverse, fontWeight: '600' }}>
                       ✍️ Cambiar Firma
                     </Body>
                   </TouchableOpacity>
@@ -600,7 +619,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
               ) : (
                 <TouchableOpacity style={styles.captureButton} onPress={() => setStep('signature')}>
                   <Body style={styles.captureButtonIcon}>✍️</Body>
-                  <Body size="sm" weight="semibold" style={{ color: colors.primary.main }}>
+                  <Body size="small" style={{ color: colors.primary[900], fontWeight: '600' }}>
                     Capturar Firma
                   </Body>
                 </TouchableOpacity>
@@ -616,7 +635,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                 placeholder="Observaciones sobre la entrega"
                 multiline
                 numberOfLines={3}
-                style={styles.textArea}
+                inputStyle={styles.textArea}
               />
             </View>
 
@@ -712,7 +731,7 @@ const styles = StyleSheet.create({
   captureButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.primary.main,
+    color: colors.primary[900],
   },
   capturedContainer: {
     borderWidth: 1,
@@ -733,7 +752,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
   },
   recaptureButton: {
-    backgroundColor: colors.primary.main,
+    backgroundColor: colors.primary[900],
     paddingVertical: spacing[3],
     alignItems: 'center',
   },
@@ -757,7 +776,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.secondary,
   },
   modalButtonConfirm: {
-    backgroundColor: colors.primary.main,
+    backgroundColor: colors.primary[900],
   },
   modalButtonTextCancel: {
     fontSize: 14,
@@ -796,7 +815,7 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
   },
   toggleTextActive: {
-    color: colors.primary.main,
+    color: colors.primary[900],
     fontWeight: '600',
   },
   // Presentation Options Styles
@@ -811,9 +830,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
   },
   presentationOptionSelected: {
-    borderColor: colors.primary.main,
+    borderColor: colors.primary[900],
     borderWidth: 2,
-    backgroundColor: colors.primary.lighter,
+    backgroundColor: colors.primary[100],
   },
   presentationOptionContent: {
     gap: spacing[1],
@@ -824,7 +843,7 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
   },
   presentationOptionLabelSelected: {
-    color: colors.primary.main,
+    color: colors.primary[900],
   },
   presentationOptionFactor: {
     fontSize: 12,
@@ -832,7 +851,7 @@ const styles = StyleSheet.create({
   },
   conversionHint: {
     fontSize: 13,
-    color: colors.primary.main,
+    color: colors.primary[900],
     marginTop: spacing[1],
     fontWeight: '500',
   },

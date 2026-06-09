@@ -6,8 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import Alert from '@/utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,9 +28,11 @@ type Props = NativeStackScreenProps<any, 'BizlinksDocumentDetail'>;
 
 export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { documentId } = route.params as { documentId: string };
-  const { getDocumentById, refreshDocumentStatus, downloadArtifacts, loading } = useBizlinksDocuments();
+  const { getDocumentById, refreshDocumentStatus, downloadArtifacts, retryDocument, loading } =
+    useBizlinksDocuments();
   const [document, setDocument] = useState<BizlinksDocument | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     loadDocument();
@@ -59,6 +61,41 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleRetry = () => {
+    if (!document) return;
+
+    Alert.alert(
+      'Reintentar documento',
+      `¿Deseas reintentar el envío de ${document.serieNumero}? Se reseteará el contador de intentos y se re-encolará la tarea fiscal.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Reintentar',
+          onPress: async () => {
+            try {
+              setRetrying(true);
+              const updated = await retryDocument(document.id);
+              setDocument(updated);
+              Alert.alert(
+                'Reintento encolado',
+                'El documento se re-encoló correctamente. El scheduler lo procesará en el próximo ciclo (~30s).'
+              );
+            } catch (error: any) {
+              Alert.alert(
+                'Error',
+                error?.response?.data?.message ||
+                  error?.message ||
+                  'No se pudo reintentar el documento'
+              );
+            } finally {
+              setRetrying(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDownload = async () => {
@@ -113,7 +150,9 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
                 </View>
                 <Text style={styles.headerTitle}>{document.serieNumero}</Text>
               </View>
-              <Text style={styles.headerSubtitle}>{getDocumentTypeLabel(document.documentType)}</Text>
+              <Text style={styles.headerSubtitle}>
+                {getDocumentTypeLabel(document.documentType)}
+              </Text>
             </View>
             <View style={[styles.statusBadgeHeader, { backgroundColor: statusColor }]}>
               <Text style={styles.statusTextHeader}>
@@ -124,126 +163,127 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
         </LinearGradient>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-
-        {(document.fechaEmision || document.horaEmision || document.tipoMoneda) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Información General</Text>
-            {document.fechaEmision && (
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Fecha de Emisión:</Text>
-                <Text style={styles.value}>
-                  {new Date(document.fechaEmision).toLocaleDateString('es-PE')}
-                </Text>
-              </View>
-            )}
-            {document.horaEmision && (
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Hora:</Text>
-                <Text style={styles.value}>{document.horaEmision}</Text>
-              </View>
-            )}
-            {document.tipoMoneda && (
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Moneda:</Text>
-                <Text style={styles.value}>{document.tipoMoneda}</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {(document.razonSocialAdquiriente || document.numeroDocumentoAdquiriente) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Cliente</Text>
-            {document.razonSocialAdquiriente && (
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Razón Social:</Text>
-                <Text style={styles.value}>{document.razonSocialAdquiriente}</Text>
-              </View>
-            )}
-            {document.numeroDocumentoAdquiriente && (
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Documento:</Text>
-                <Text style={styles.value}>
-                  {document.tipoDocumentoAdquiriente} - {document.numeroDocumentoAdquiriente}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {(document.totalValorVenta !== undefined || document.totalIgv !== undefined || document.totalVenta !== undefined) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Totales</Text>
-            {document.totalValorVenta !== undefined && (
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Subtotal:</Text>
-                <Text style={styles.value}>
-                  {formatCurrency(document.totalValorVenta, document.tipoMoneda)}
-                </Text>
-              </View>
-            )}
-            {document.totalIgv !== undefined && (
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>IGV:</Text>
-                <Text style={styles.value}>
-                  {formatCurrency(document.totalIgv, document.tipoMoneda)}
-                </Text>
-              </View>
-            )}
-            {document.totalVenta !== undefined && (
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>TOTAL:</Text>
-                <Text style={styles.totalValue}>
-                  {formatCurrency(document.totalVenta, document.tipoMoneda)}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Estado SUNAT</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Estado WS:</Text>
-            <Text style={styles.value}>{getBizlinksStatusWsLabel(document.statusWs)}</Text>
-          </View>
-          {document.messageSunat && (
-            <View style={styles.messageContainer}>
-              <Text style={styles.messageLabel}>Mensaje SUNAT:</Text>
-              <Text style={styles.messageText}>{document.messageSunat.mensaje}</Text>
+          {(document.fechaEmision || document.horaEmision || document.tipoMoneda) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Información General</Text>
+              {document.fechaEmision && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Fecha de Emisión:</Text>
+                  <Text style={styles.value}>
+                    {new Date(document.fechaEmision).toLocaleDateString('es-PE')}
+                  </Text>
+                </View>
+              )}
+              {document.horaEmision && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Hora:</Text>
+                  <Text style={styles.value}>{document.horaEmision}</Text>
+                </View>
+              )}
+              {document.tipoMoneda && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Moneda:</Text>
+                  <Text style={styles.value}>{document.tipoMoneda}</Text>
+                </View>
+              )}
             </View>
           )}
-          {document.hashCode && (
+
+          {(document.razonSocialAdquiriente || document.numeroDocumentoAdquiriente) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Cliente</Text>
+              {document.razonSocialAdquiriente && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Razón Social:</Text>
+                  <Text style={styles.value}>{document.razonSocialAdquiriente}</Text>
+                </View>
+              )}
+              {document.numeroDocumentoAdquiriente && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Documento:</Text>
+                  <Text style={styles.value}>
+                    {document.tipoDocumentoAdquiriente} - {document.numeroDocumentoAdquiriente}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {(document.totalValorVenta !== undefined ||
+            document.totalIgv !== undefined ||
+            document.totalVenta !== undefined) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Totales</Text>
+              {document.totalValorVenta !== undefined && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>Subtotal:</Text>
+                  <Text style={styles.value}>
+                    {formatCurrency(document.totalValorVenta, document.tipoMoneda)}
+                  </Text>
+                </View>
+              )}
+              {document.totalIgv !== undefined && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.label}>IGV:</Text>
+                  <Text style={styles.value}>
+                    {formatCurrency(document.totalIgv, document.tipoMoneda)}
+                  </Text>
+                </View>
+              )}
+              {document.totalVenta !== undefined && (
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>TOTAL:</Text>
+                  <Text style={styles.totalValue}>
+                    {formatCurrency(document.totalVenta, document.tipoMoneda)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Estado SUNAT</Text>
             <View style={styles.infoRow}>
-              <Text style={styles.label}>Hash:</Text>
-              <Text style={styles.valueSmall}>{document.hashCode}</Text>
+              <Text style={styles.label}>Estado WS:</Text>
+              <Text style={styles.value}>{getBizlinksStatusWsLabel(document.statusWs)}</Text>
             </View>
-          )}
-        </View>
-
-        {(document.pdfPath || document.xmlSignPath || document.xmlSunatPath) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Archivos</Text>
-            {document.pdfPath && (
-              <View style={styles.fileRow}>
-                <Text style={styles.fileIcon}>📄</Text>
-                <Text style={styles.fileName}>PDF disponible</Text>
+            {document.messageSunat && (
+              <View style={styles.messageContainer}>
+                <Text style={styles.messageLabel}>Mensaje SUNAT:</Text>
+                <Text style={styles.messageText}>{document.messageSunat.mensaje}</Text>
               </View>
             )}
-            {document.xmlSignPath && (
-              <View style={styles.fileRow}>
-                <Text style={styles.fileIcon}>📝</Text>
-                <Text style={styles.fileName}>XML firmado disponible</Text>
-              </View>
-            )}
-            {document.xmlSunatPath && (
-              <View style={styles.fileRow}>
-                <Text style={styles.fileIcon}>✅</Text>
-                <Text style={styles.fileName}>CDR disponible</Text>
+            {document.hashCode && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Hash:</Text>
+                <Text style={styles.valueSmall}>{document.hashCode}</Text>
               </View>
             )}
           </View>
-        )}
+
+          {(document.pdfPath || document.xmlSignPath || document.xmlSunatPath) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Archivos</Text>
+              {document.pdfPath && (
+                <View style={styles.fileRow}>
+                  <Text style={styles.fileIcon}>📄</Text>
+                  <Text style={styles.fileName}>PDF disponible</Text>
+                </View>
+              )}
+              {document.xmlSignPath && (
+                <View style={styles.fileRow}>
+                  <Text style={styles.fileIcon}>📝</Text>
+                  <Text style={styles.fileName}>XML firmado disponible</Text>
+                </View>
+              )}
+              {document.xmlSunatPath && (
+                <View style={styles.fileRow}>
+                  <Text style={styles.fileIcon}>✅</Text>
+                  <Text style={styles.fileName}>CDR disponible</Text>
+                </View>
+              )}
+            </View>
+          )}
 
           <View style={styles.actions}>
             <TouchableOpacity
@@ -256,6 +296,19 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
                 {refreshing ? 'Actualizando...' : 'Actualizar Estado'}
               </Text>
             </TouchableOpacity>
+
+            {String(document.status || '').toUpperCase() === 'FAILED' && (
+              <TouchableOpacity
+                style={[styles.button, styles.retryButton]}
+                onPress={handleRetry}
+                disabled={retrying}
+              >
+                <Ionicons name="reload" size={20} color={colors.neutral[0]} />
+                <Text style={styles.buttonText}>
+                  {retrying ? 'Reintentando...' : 'Reintentar envío'}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[styles.button, styles.downloadButton]}
@@ -462,6 +515,9 @@ const styles = StyleSheet.create({
   },
   downloadButton: {
     backgroundColor: colors.success[600],
+  },
+  retryButton: {
+    backgroundColor: '#DC2626',
   },
   buttonText: {
     color: colors.neutral[0],

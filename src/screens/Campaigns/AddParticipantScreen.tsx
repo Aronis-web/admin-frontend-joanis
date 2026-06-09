@@ -6,10 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
+import Alert from '@/utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { campaignsService, companiesApi, sitesApi } from '@/services/api';

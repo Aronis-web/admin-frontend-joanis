@@ -54,6 +54,7 @@ import {
   IconButton,
   EmptyState,
   SearchBar,
+  Input,
 } from '@/design-system';
 
 type PurchaseDetailScreenProps = ScreenProps<'PurchaseDetail'>;
@@ -71,14 +72,17 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [selectedProductForInfo, setSelectedProductForInfo] = useState<PurchaseProduct | null>(null);
+  const [selectedProductForInfo, setSelectedProductForInfo] = useState<PurchaseProduct | null>(
+    null
+  );
   const [productPhotos, setProductPhotos] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<ExpenseSupplier | null>(null);
   const [updatingSupplier, setUpdatingSupplier] = useState(false);
   const [showEntriesModal, setShowEntriesModal] = useState(false);
-  const [selectedProductForEntries, setSelectedProductForEntries] = useState<PurchaseProduct | null>(null);
+  const [selectedProductForEntries, setSelectedProductForEntries] =
+    useState<PurchaseProduct | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -119,7 +123,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         if (reopenEntriesProductId) {
           try {
             const productsData = await purchasesService.getPurchaseProducts(purchaseId);
-            const productToReopen = productsData.find((product) => product.id === reopenEntriesProductId);
+            const productToReopen = productsData.find(
+              (product) => product.id === reopenEntriesProductId
+            );
             if (productToReopen) {
               setSelectedProductForEntries(productToReopen);
               setShowEntriesModal(true);
@@ -244,14 +250,28 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
               throw new Error('Producto sin SKU o nombre');
             }
 
-            const cajas = isFinite(product.cajas) && !isNaN(product.cajas) && product.cajas > 0
-              ? Math.max(1, Math.floor(product.cajas)) : 1;
-            const unidadesPorCaja = isFinite(product.unidades_por_caja) && !isNaN(product.unidades_por_caja) && product.unidades_por_caja > 0
-              ? Math.max(1, Math.floor(product.unidades_por_caja)) : 1;
-            const cantidadTotal = isFinite(product.cantidad_total) && !isNaN(product.cantidad_total) && product.cantidad_total > 0
-              ? Math.max(1, Math.floor(product.cantidad_total)) : 0;
-            const precioUnitario = isFinite(product.precio_unitario) && !isNaN(product.precio_unitario) && product.precio_unitario > 0
-              ? Math.max(0.01, product.precio_unitario) : 0;
+            const cajas =
+              isFinite(product.cajas) && !isNaN(product.cajas) && product.cajas > 0
+                ? Math.max(1, Math.floor(product.cajas))
+                : 1;
+            const unidadesPorCaja =
+              isFinite(product.unidades_por_caja) &&
+              !isNaN(product.unidades_por_caja) &&
+              product.unidades_por_caja > 0
+                ? Math.max(1, Math.floor(product.unidades_por_caja))
+                : 1;
+            const cantidadTotal =
+              isFinite(product.cantidad_total) &&
+              !isNaN(product.cantidad_total) &&
+              product.cantidad_total > 0
+                ? Math.max(1, Math.floor(product.cantidad_total))
+                : 0;
+            const precioUnitario =
+              isFinite(product.precio_unitario) &&
+              !isNaN(product.precio_unitario) &&
+              product.precio_unitario > 0
+                ? Math.max(0.01, product.precio_unitario)
+                : 0;
 
             if (cantidadTotal <= 0 || precioUnitario <= 0) {
               throw new Error('Cantidad o precio inválido');
@@ -307,15 +327,23 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       }
 
       if (errorCount === 0) {
-        Alert.alert('Éxito', `Se agregaron ${successCount} producto${successCount !== 1 ? 's' : ''} correctamente`);
+        Alert.alert(
+          'Éxito',
+          `Se agregaron ${successCount} producto${successCount !== 1 ? 's' : ''} correctamente`
+        );
       } else if (successCount > 0) {
-        Alert.alert('Completado con errores',
+        Alert.alert(
+          'Completado con errores',
           `Se agregaron ${successCount} producto${successCount !== 1 ? 's' : ''} correctamente.\n\n` +
-          `${errorCount} producto${errorCount !== 1 ? 's' : ''} no se pudieron agregar:\n` +
-          errors.slice(0, 5).join('\n') + (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
+            `${errorCount} producto${errorCount !== 1 ? 's' : ''} no se pudieron agregar:\n` +
+            errors.slice(0, 5).join('\n') +
+            (errors.length > 5 ? `\n... y ${errors.length - 5} más` : '')
         );
       } else {
-        Alert.alert('Error', `No se pudo agregar ningún producto.\n\nErrores:\n` + errors.slice(0, 5).join('\n'));
+        Alert.alert(
+          'Error',
+          `No se pudo agregar ningún producto.\n\nErrores:\n` + errors.slice(0, 5).join('\n')
+        );
       }
 
       if (successCount > 0) {
@@ -346,7 +374,10 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       navigation.navigate('ValidatePurchaseProduct', { purchaseId, productId: product.id });
     } else if (product.status === PurchaseProductStatus.PRELIMINARY) {
       navigation.navigate('EditPurchaseProduct', { purchaseId, productId: product.id });
-    } else if (product.status === PurchaseProductStatus.VALIDATED || product.status === PurchaseProductStatus.REJECTED) {
+    } else if (
+      product.status === PurchaseProductStatus.VALIDATED ||
+      product.status === PurchaseProductStatus.REJECTED
+    ) {
       navigation.navigate('ValidatePurchaseProduct', { purchaseId, productId: product.id });
     }
   };
@@ -378,25 +409,29 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const handleClosePurchase = async () => {
-    Alert.alert('Cerrar Compra', '¿Está seguro de cerrar esta compra? Esta acción no se puede deshacer.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Cerrar',
-        style: 'destructive',
-        onPress: async () => {
-          setActionLoading(true);
-          try {
-            await purchasesService.closePurchase(purchaseId);
-            Alert.alert('Éxito', 'Compra cerrada correctamente');
-            loadPurchase();
-          } catch (error: any) {
-            Alert.alert('Error', error.message || 'No se pudo cerrar la compra');
-          } finally {
-            setActionLoading(false);
-          }
+    Alert.alert(
+      'Cerrar Compra',
+      '¿Está seguro de cerrar esta compra? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar',
+          style: 'destructive',
+          onPress: async () => {
+            setActionLoading(true);
+            try {
+              await purchasesService.closePurchase(purchaseId);
+              Alert.alert('Éxito', 'Compra cerrada correctamente');
+              loadPurchase();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'No se pudo cerrar la compra');
+            } finally {
+              setActionLoading(false);
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleCancelPurchase = async () => {
@@ -423,25 +458,125 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   };
 
   const handleDeleteProductValidations = async (product: PurchaseProduct) => {
-    Alert.alert('Eliminar Validaciones', `¿Está seguro de eliminar las validaciones del producto "${product.name}"?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          setActionLoading(true);
-          try {
-            const result = await purchasesService.deleteProductValidations(purchaseId, product.id);
-            Alert.alert('Éxito', `Se eliminaron ${result.deletedCount} validación(es)`);
-            loadPurchase();
-          } catch (error: any) {
-            Alert.alert('Error', error.message || 'No se pudieron eliminar las validaciones');
-          } finally {
-            setActionLoading(false);
-          }
+    if (!hasPermission('purchases.validations.delete')) {
+      Alert.alert('Sin permiso', 'No tiene permiso para eliminar validaciones.');
+      return;
+    }
+    Alert.alert(
+      'Eliminar Validaciones',
+      `¿Está seguro de eliminar las validaciones del producto "${product.name}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            setActionLoading(true);
+            try {
+              const result = await purchasesService.deleteProductValidations(
+                purchaseId,
+                product.id
+              );
+              Alert.alert('Éxito', `Se eliminaron ${result.deletedCount} validación(es)`);
+              loadPurchase();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'No se pudieron eliminar las validaciones');
+            } finally {
+              setActionLoading(false);
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
+  };
+
+  const handleDeleteAllValidations = async () => {
+    if (!hasPermission('purchases.validations.delete')) {
+      Alert.alert('Sin permiso', 'No tiene permiso para eliminar validaciones.');
+      return;
+    }
+    Alert.alert(
+      'Eliminar TODAS las validaciones',
+      '¿Está seguro de eliminar todas las validaciones de esta compra? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar todo',
+          style: 'destructive',
+          onPress: async () => {
+            setActionLoading(true);
+            try {
+              const result = await purchasesService.deleteAllValidations(purchaseId);
+              Alert.alert('Éxito', `Se eliminaron ${result.deletedCount} validación(es)`);
+              loadPurchase();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'No se pudieron eliminar las validaciones');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReverseEntry = async (
+    product: PurchaseProduct,
+    validationId: string,
+    reason: string
+  ) => {
+    if (!hasPermission('purchases.validate')) {
+      Alert.alert('Sin permiso', 'No tiene permiso para anular ingresos.');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const updated = await purchasesService.reversePurchaseProductEntry(
+        purchaseId,
+        product.id,
+        validationId,
+        { reason }
+      );
+      Alert.alert('Éxito', 'Ingreso anulado correctamente');
+      setSelectedProductForEntries(updated);
+      loadPurchase();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'No se pudo anular el ingreso');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCloseMultiValidation = async (product: PurchaseProduct) => {
+    if (!hasPermission('purchases.validate.close')) {
+      Alert.alert('Sin permiso', 'No tiene permiso para cerrar validaciones.');
+      return;
+    }
+    Alert.alert(
+      'Cerrar validación',
+      `¿Marcar el producto "${product.name}" como validado? No se podrán agregar más ingresos.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar',
+          style: 'default',
+          onPress: async () => {
+            setActionLoading(true);
+            try {
+              const updated = await purchasesService.closeMultiValidation(purchaseId, product.id);
+              Alert.alert('Éxito', 'Producto marcado como validado');
+              setSelectedProductForEntries(updated);
+              setShowEntriesModal(false);
+              loadPurchase();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'No se pudo cerrar la validación');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -455,56 +590,85 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
   const getProductStats = () => {
     const total = products.length;
-    const preliminary = products.filter((p) => p.status === PurchaseProductStatus.PRELIMINARY).length;
-    const inValidation = products.filter((p) => p.status === PurchaseProductStatus.IN_VALIDATION).length;
+    const preliminary = products.filter(
+      (p) => p.status === PurchaseProductStatus.PRELIMINARY
+    ).length;
+    const inValidation = products.filter(
+      (p) => p.status === PurchaseProductStatus.IN_VALIDATION
+    ).length;
     const validated = products.filter((p) => p.status === PurchaseProductStatus.VALIDATED).length;
     const rejected = products.filter((p) => p.status === PurchaseProductStatus.REJECTED).length;
     return { total, preliminary, inValidation, validated, rejected };
   };
 
   const canAddProducts = () => {
-    return purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED;
+    return (
+      purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED
+    );
   };
 
   const filteredProducts = products.filter((product) => {
     const trimmedQuery = searchQuery.trim();
     if (trimmedQuery.length < 2) return true;
     const query = trimmedQuery.toLowerCase();
-    return product.sku.toLowerCase().includes(query) ||
+    return (
+      product.sku.toLowerCase().includes(query) ||
       product.name.toLowerCase().includes(query) ||
-      product.correlativeNumber?.toString().includes(query);
+      product.correlativeNumber?.toString().includes(query)
+    );
   });
 
   const canAssignDebts = () => purchase?.status === PurchaseStatus.VALIDATED;
   const canClosePurchase = () => purchase?.status === PurchaseStatus.VALIDATED;
-  const canCancelPurchase = () => purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED;
+  const canCancelPurchase = () =>
+    purchase?.status !== PurchaseStatus.CLOSED && purchase?.status !== PurchaseStatus.CANCELLED;
 
-  const getStatusVariant = (status: PurchaseStatus): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
+  const getStatusVariant = (
+    status: PurchaseStatus
+  ): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
     switch (status) {
-      case PurchaseStatus.DRAFT: return 'draft';
+      case PurchaseStatus.DRAFT:
+        return 'draft';
       case PurchaseStatus.IN_CAPTURE:
-      case PurchaseStatus.IN_VALIDATION: return 'pending';
-      case PurchaseStatus.VALIDATED: return 'completed';
-      case PurchaseStatus.CLOSED: return 'active';
-      case PurchaseStatus.CANCELLED: return 'cancelled';
-      default: return 'draft';
+      case PurchaseStatus.IN_VALIDATION:
+        return 'pending';
+      case PurchaseStatus.VALIDATED:
+        return 'completed';
+      case PurchaseStatus.CLOSED:
+        return 'active';
+      case PurchaseStatus.CANCELLED:
+        return 'cancelled';
+      default:
+        return 'draft';
     }
   };
 
-  const getProductStatusVariant = (status: PurchaseProductStatus): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
+  const getProductStatusVariant = (
+    status: PurchaseProductStatus
+  ): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
     switch (status) {
-      case PurchaseProductStatus.PRELIMINARY: return 'draft';
-      case PurchaseProductStatus.IN_VALIDATION: return 'pending';
-      case PurchaseProductStatus.VALIDATED: return 'completed';
-      case PurchaseProductStatus.REJECTED: return 'cancelled';
-      case PurchaseProductStatus.CLOSED: return 'active';
-      default: return 'draft';
+      case PurchaseProductStatus.PRELIMINARY:
+        return 'draft';
+      case PurchaseProductStatus.IN_VALIDATION:
+        return 'pending';
+      case PurchaseProductStatus.VALIDATED:
+        return 'completed';
+      case PurchaseProductStatus.REJECTED:
+        return 'cancelled';
+      case PurchaseProductStatus.CLOSED:
+        return 'active';
+      default:
+        return 'draft';
     }
   };
 
   const renderProductCard = (product: PurchaseProduct) => {
-    const canDelete = (product.status === PurchaseProductStatus.PRELIMINARY || product.status === PurchaseProductStatus.IN_VALIDATION) && !product.resolutionAction;
-    const canValidate = product.status !== PurchaseProductStatus.VALIDATED &&
+    const canDelete =
+      (product.status === PurchaseProductStatus.PRELIMINARY ||
+        product.status === PurchaseProductStatus.IN_VALIDATION) &&
+      !product.resolutionAction;
+    const canValidate =
+      product.status !== PurchaseProductStatus.VALIDATED &&
       product.status !== PurchaseProductStatus.CLOSED &&
       product.status !== PurchaseProductStatus.REJECTED &&
       purchase?.status !== PurchaseStatus.CLOSED &&
@@ -516,7 +680,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           {/* Product Header */}
           <View style={styles.productHeader}>
             <View style={styles.productHeaderLeft}>
-              <Title size="small" numberOfLines={1}>{product.name}</Title>
+              <Title size="small" numberOfLines={1}>
+                {product.name}
+              </Title>
               <Caption color="secondary">
                 {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU: {product.sku}
               </Caption>
@@ -530,7 +696,10 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
               {canDelete && (
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={(e) => { e.stopPropagation(); handleDeleteProduct(product); }}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleDeleteProduct(product);
+                  }}
                 >
                   <Ionicons name="trash-outline" size={18} color={colors.danger[500]} />
                 </TouchableOpacity>
@@ -557,13 +726,18 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
             {product.resolutionAction && (
               <View style={styles.productRow}>
                 <Label color="secondary">Resolución:</Label>
-                <Body color={colors.primary[600]}>{product.resolutionAction === 'MERGE' ? 'Fusionado' : 'Nuevo producto'}</Body>
+                <Body color={colors.primary[600]}>
+                  {product.resolutionAction === 'MERGE' ? 'Fusionado' : 'Nuevo producto'}
+                </Body>
               </View>
             )}
             {product.validations && product.validations.length > 0 && (
               <View style={styles.productRow}>
                 <Label color="secondary">Ingresos:</Label>
-                <Body>{product.validations.filter((validation) => !validation.isReversed).length} activos / {product.validations.length} total</Body>
+                <Body>
+                  {product.validations.filter((validation) => !validation.isReversed).length}{' '}
+                  activos / {product.validations.length} total
+                </Body>
               </View>
             )}
             {product.warehouse && (
@@ -582,21 +756,34 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           )}
 
           {/* Action hints */}
-          {(product.status === PurchaseProductStatus.PRELIMINARY || product.status === PurchaseProductStatus.IN_VALIDATION) && (
-            <Caption color="tertiary" style={styles.actionHint}>{product.status === PurchaseProductStatus.IN_VALIDATION ? '📦 Toca para gestionar ingresos' : '✏️ Toca para editar'}</Caption>
+          {(product.status === PurchaseProductStatus.PRELIMINARY ||
+            product.status === PurchaseProductStatus.IN_VALIDATION) && (
+            <Caption color="tertiary" style={styles.actionHint}>
+              {product.status === PurchaseProductStatus.IN_VALIDATION
+                ? '📦 Toca para gestionar ingresos'
+                : '✏️ Toca para editar'}
+            </Caption>
           )}
           {product.status === PurchaseProductStatus.VALIDATED && (
-            <Caption color="tertiary" style={styles.actionHint}>👁️ Toca para ver detalles</Caption>
+            <Caption color="tertiary" style={styles.actionHint}>
+              👁️ Toca para ver detalles
+            </Caption>
           )}
         </TouchableOpacity>
 
         {/* Action Buttons */}
         {canValidate && (
           <Button
-            title={product.status === PurchaseProductStatus.IN_VALIDATION ? '📦 Gestionar Ingresos' : '✓ Validar Producto'}
-            onPress={() => product.status === PurchaseProductStatus.IN_VALIDATION
-              ? handleOpenEntriesModal(product)
-              : handleStartProductValidation(product)}
+            title={
+              product.status === PurchaseProductStatus.IN_VALIDATION
+                ? '📦 Gestionar Ingresos'
+                : '✓ Validar Producto'
+            }
+            onPress={() =>
+              product.status === PurchaseProductStatus.IN_VALIDATION
+                ? handleOpenEntriesModal(product)
+                : handleStartProductValidation(product)
+            }
             variant="success"
             size="small"
             fullWidth
@@ -605,7 +792,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           />
         )}
 
-        {(product.status === PurchaseProductStatus.VALIDATED || product.status === PurchaseProductStatus.CLOSED) && (
+        {(product.status === PurchaseProductStatus.VALIDATED ||
+          product.status === PurchaseProductStatus.CLOSED) && (
           <Button
             title="📋 Información Registrada"
             onPress={() => handleOpenInfoModal(product)}
@@ -636,7 +824,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary[900]} />
-          <Body color="secondary" style={styles.loadingText}>Cargando compra...</Body>
+          <Body color="secondary" style={styles.loadingText}>
+            Cargando compra...
+          </Body>
         </View>
       </SafeAreaView>
     );
@@ -668,18 +858,31 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       <ScrollView
         style={styles.content}
         contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary[900]]} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary[900]]}
+          />
+        }
       >
         {/* Purchase Info Card */}
         <Card variant="elevated" padding="medium" style={styles.infoCard}>
-          <Title size="small" style={styles.sectionTitle}>Información de la Compra</Title>
+          <Title size="small" style={styles.sectionTitle}>
+            Información de la Compra
+          </Title>
 
           <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Proveedor:</Label>
+            <Label color="secondary" style={styles.infoLabel}>
+              Proveedor:
+            </Label>
             <View style={styles.infoValueWithButton}>
               <Body style={styles.infoValue}>{purchase.supplier?.commercialName || 'N/A'}</Body>
               {canAddProducts() && (
-                <TouchableOpacity style={styles.editSupplierButton} onPress={handleOpenEditSupplierModal}>
+                <TouchableOpacity
+                  style={styles.editSupplierButton}
+                  onPress={handleOpenEditSupplierModal}
+                >
                   <Caption color={colors.primary[600]}>✏️ Editar</Caption>
                 </TouchableOpacity>
               )}
@@ -687,22 +890,30 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           </View>
 
           <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Tipo de Guía:</Label>
+            <Label color="secondary" style={styles.infoLabel}>
+              Tipo de Guía:
+            </Label>
             <Body style={styles.infoValue}>{GuideTypeLabels[purchase.guideType]}</Body>
           </View>
 
           <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Número de Guía:</Label>
+            <Label color="secondary" style={styles.infoLabel}>
+              Número de Guía:
+            </Label>
             <Body style={styles.infoValue}>{purchase.guideNumber}</Body>
           </View>
 
           <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Fecha de Guía:</Label>
+            <Label color="secondary" style={styles.infoLabel}>
+              Fecha de Guía:
+            </Label>
             <Body style={styles.infoValue}>{formatDate(purchase.guideDate)}</Body>
           </View>
 
           <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Creado:</Label>
+            <Label color="secondary" style={styles.infoLabel}>
+              Creado:
+            </Label>
             <Body style={styles.infoValue}>{formatDate(purchase.createdAt)}</Body>
           </View>
 
@@ -716,26 +927,38 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
         {/* Product Stats Card */}
         <Card variant="elevated" padding="medium" style={styles.statsCard}>
-          <Title size="small" style={styles.sectionTitle}>Resumen de Productos</Title>
+          <Title size="small" style={styles.sectionTitle}>
+            Resumen de Productos
+          </Title>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
-              <Title size="medium" color={colors.text.primary}>{stats.total}</Title>
+              <Title size="medium" color={colors.text.primary}>
+                {stats.total}
+              </Title>
               <Caption color="secondary">Total</Caption>
             </View>
             <View style={styles.statItem}>
-              <Title size="medium" color={colors.neutral[500]}>{stats.preliminary}</Title>
+              <Title size="medium" color={colors.neutral[500]}>
+                {stats.preliminary}
+              </Title>
               <Caption color="secondary">Preliminar</Caption>
             </View>
             <View style={styles.statItem}>
-              <Title size="medium" color={colors.warning[500]}>{stats.inValidation}</Title>
+              <Title size="medium" color={colors.warning[500]}>
+                {stats.inValidation}
+              </Title>
               <Caption color="secondary">En Validación</Caption>
             </View>
             <View style={styles.statItem}>
-              <Title size="medium" color={colors.success[500]}>{stats.validated}</Title>
+              <Title size="medium" color={colors.success[500]}>
+                {stats.validated}
+              </Title>
               <Caption color="secondary">Validados</Caption>
             </View>
             <View style={styles.statItem}>
-              <Title size="medium" color={colors.danger[500]}>{stats.rejected}</Title>
+              <Title size="medium" color={colors.danger[500]}>
+                {stats.rejected}
+              </Title>
               <Caption color="secondary">Rechazados</Caption>
             </View>
           </View>
@@ -744,25 +967,50 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
         {/* Total Sum Card */}
         {totalSum && (
           <Card variant="elevated" padding="medium" style={styles.totalSumCard}>
-            <Title size="small" style={styles.sectionTitle}>💰 Totales de la Compra</Title>
+            <Title size="small" style={styles.sectionTitle}>
+              💰 Totales de la Compra
+            </Title>
             <View style={styles.totalSumGrid}>
               <View style={styles.totalSumRow}>
                 <View style={styles.totalSumItem}>
                   <Caption color="secondary">Total Sin Validar</Caption>
-                  <Title size="medium" color={colors.neutral[600]}>{formatCurrency(totalSum.totalUnvalidatedCents)}</Title>
-                  <Caption color="tertiary">{totalSum.totalProducts} producto{totalSum.totalProducts !== 1 ? 's' : ''}</Caption>
+                  <Title size="medium" color={colors.neutral[600]}>
+                    {formatCurrency(totalSum.totalUnvalidatedCents)}
+                  </Title>
+                  <Caption color="tertiary">
+                    {totalSum.totalProducts} producto{totalSum.totalProducts !== 1 ? 's' : ''}
+                  </Caption>
                 </View>
                 <View style={styles.totalSumItem}>
                   <Caption color="secondary">Total Validado</Caption>
-                  <Title size="medium" color={colors.success[600]}>{formatCurrency(totalSum.totalValidatedCents)}</Title>
-                  <Caption color="tertiary">{totalSum.validatedProducts} validado{totalSum.validatedProducts !== 1 ? 's' : ''}</Caption>
+                  <Title size="medium" color={colors.success[600]}>
+                    {formatCurrency(totalSum.totalValidatedCents)}
+                  </Title>
+                  <Caption color="tertiary">
+                    {totalSum.validatedProducts} validado
+                    {totalSum.validatedProducts !== 1 ? 's' : ''}
+                  </Caption>
                 </View>
               </View>
               {totalSum.differenceCents !== 0 && (
-                <View style={[styles.totalSumDifference, totalSum.differenceCents > 0 ? styles.differencePositive : styles.differenceNegative]}>
-                  <Caption color={totalSum.differenceCents > 0 ? colors.success[700] : colors.danger[700]}>Diferencia:</Caption>
-                  <Body color={totalSum.differenceCents > 0 ? colors.success[700] : colors.danger[700]}>
-                    {totalSum.differenceCents > 0 ? '+' : ''}{formatCurrency(totalSum.differenceCents)}
+                <View
+                  style={[
+                    styles.totalSumDifference,
+                    totalSum.differenceCents > 0
+                      ? styles.differencePositive
+                      : styles.differenceNegative,
+                  ]}
+                >
+                  <Caption
+                    color={totalSum.differenceCents > 0 ? colors.success[700] : colors.danger[700]}
+                  >
+                    Diferencia:
+                  </Caption>
+                  <Body
+                    color={totalSum.differenceCents > 0 ? colors.success[700] : colors.danger[700]}
+                  >
+                    {totalSum.differenceCents > 0 ? '+' : ''}
+                    {formatCurrency(totalSum.differenceCents)}
                   </Body>
                 </View>
               )}
@@ -772,7 +1020,9 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
         {/* Products Section */}
         <View style={styles.productsSection}>
-          <Title size="small" style={styles.sectionTitle}>Productos ({products.length})</Title>
+          <Title size="small" style={styles.sectionTitle}>
+            Productos ({products.length})
+          </Title>
 
           {/* Search Bar */}
           {products.length > 0 && (
@@ -798,12 +1048,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                 <Ionicons name="camera" size={16} color={colors.text.inverse} />
                 <Caption color={colors.text.inverse}>Escáner OCR</Caption>
               </ProtectedTouchableOpacity>
-              <Button
-                title="+ Agregar"
-                onPress={handleAddProduct}
-                variant="primary"
-                size="small"
-              />
+              <Button title="+ Agregar" onPress={handleAddProduct} variant="primary" size="small" />
             </View>
           )}
 
@@ -835,6 +1080,17 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       {/* Footer Action Buttons */}
       {(canAssignDebts() || canClosePurchase() || canCancelPurchase()) && (
         <View style={styles.footer}>
+          {canCancelPurchase() &&
+            hasPermission('purchases.validations.delete') &&
+            products.some((p) => (p.validations?.length || 0) > 0) && (
+              <Button
+                title="🗑️ Eliminar todas las validaciones"
+                onPress={handleDeleteAllValidations}
+                variant="danger"
+                disabled={actionLoading}
+                style={styles.footerButton}
+              />
+            )}
           {canCancelPurchase() && (
             <Button
               title="Cancelar Compra"
@@ -894,9 +1150,24 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
             const productToOpen = selectedProductForEntries;
             handleCloseEntriesModal();
             if (productToOpen) {
-              navigation.navigate('ValidatePurchaseProduct', { purchaseId, productId: productToOpen.id, returnToEntriesModal: true });
+              navigation.navigate('ValidatePurchaseProduct', {
+                purchaseId,
+                productId: productToOpen.id,
+                returnToEntriesModal: true,
+              });
             }
           }}
+          canReverseEntry={hasPermission('purchases.validate')}
+          canCloseMultiValidation={hasPermission('purchases.validate.close')}
+          canDeleteValidations={hasPermission('purchases.validations.delete')}
+          actionLoading={actionLoading}
+          onReverseEntry={(validationId, reason) =>
+            handleReverseEntry(selectedProductForEntries, validationId, reason)
+          }
+          onCloseMultiValidation={() => handleCloseMultiValidation(selectedProductForEntries)}
+          onDeleteProductValidations={() =>
+            handleDeleteProductValidations(selectedProductForEntries)
+          }
         />
       )}
 
@@ -923,16 +1194,27 @@ interface ProductInfoModalProps {
   productPhotos: string[];
 }
 
-const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, onClose, productPhotos }) => {
+const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
+  visible,
+  product,
+  onClose,
+  productPhotos,
+}) => {
   const formatCurrency = (cents: number) => `S/ ${(cents / 100).toFixed(2)}`;
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('es-PE', {
-      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
-  const preliminaryPresentation = product.presentationHistory?.find((ph) => ph.type === 'PRELIMINARY');
+  const preliminaryPresentation = product.presentationHistory?.find(
+    (ph) => ph.type === 'PRELIMINARY'
+  );
   const validatedPresentation = product.presentationHistory?.find((ph) => ph.type === 'VALIDATED');
 
   return (
@@ -942,7 +1224,9 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, o
           <View style={modalStyles.header}>
             <View>
               <Title size="medium">📋 Información Registrada</Title>
-              <Body color="secondary" numberOfLines={1}>{product.name}</Body>
+              <Body color="secondary" numberOfLines={1}>
+                {product.name}
+              </Body>
             </View>
             <IconButton icon="close" onPress={onClose} variant="ghost" size="small" />
           </View>
@@ -950,20 +1234,31 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, o
           <ScrollView style={modalStyles.content}>
             {/* Preliminary Data */}
             <Card variant="outlined" padding="medium" style={modalStyles.section}>
-              <Label color="primary" style={modalStyles.sectionTitle}>📝 Datos Preliminares</Label>
-              <InfoRow label="SKU" value={`${product.correlativeNumber ? `#${product.correlativeNumber} | ` : ''}${product.sku}`} />
+              <Label color="primary" style={modalStyles.sectionTitle}>
+                📝 Datos Preliminares
+              </Label>
+              <InfoRow
+                label="SKU"
+                value={`${product.correlativeNumber ? `#${product.correlativeNumber} | ` : ''}${product.sku}`}
+              />
               <InfoRow label="Nombre" value={product.name} />
               <InfoRow label="Costo Unitario" value={formatCurrency(product.costCents)} />
               <InfoRow label="Stock Preliminar" value={`${product.preliminaryStock} unidades`} />
               {product.preliminaryPresentationQuantity !== undefined && (
-                <InfoRow label="Cant. Presentaciones" value={`${product.preliminaryPresentationQuantity}`} />
+                <InfoRow
+                  label="Cant. Presentaciones"
+                  value={`${product.preliminaryPresentationQuantity}`}
+                />
               )}
               {product.preliminaryLooseUnits !== undefined && (
                 <InfoRow label="Unidades Sueltas" value={`${product.preliminaryLooseUnits}`} />
               )}
               {preliminaryPresentation && (
                 <>
-                  <InfoRow label="Presentación" value={preliminaryPresentation.presentation?.name || 'N/A'} />
+                  <InfoRow
+                    label="Presentación"
+                    value={preliminaryPresentation.presentation?.name || 'N/A'}
+                  />
                   <InfoRow label="Factor" value={`${preliminaryPresentation.factorToBase}x`} />
                 </>
               )}
@@ -972,9 +1267,18 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, o
               {productPhotos.length > 0 && (
                 <View style={modalStyles.photoSection}>
                   <Label color="secondary">📷 Fotos del Producto ({productPhotos.length}):</Label>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={modalStyles.photosScroll}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={modalStyles.photosScroll}
+                  >
                     {productPhotos.map((photoUrl, index) => (
-                      <Image key={index} source={{ uri: photoUrl }} style={modalStyles.photo} resizeMode="cover" />
+                      <Image
+                        key={index}
+                        source={{ uri: photoUrl }}
+                        style={modalStyles.photo}
+                        resizeMode="cover"
+                      />
                     ))}
                   </ScrollView>
                 </View>
@@ -982,14 +1286,29 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, o
             </Card>
 
             {/* Validated Data */}
-            {(product.status === PurchaseProductStatus.VALIDATED || product.status === PurchaseProductStatus.CLOSED) && (
-              <Card variant="outlined" padding="medium" style={{...modalStyles.section, ...modalStyles.validatedCard}}>
-                <Label color={colors.success[700]} style={modalStyles.sectionTitle}>✅ Datos Validados</Label>
+            {(product.status === PurchaseProductStatus.VALIDATED ||
+              product.status === PurchaseProductStatus.CLOSED) && (
+              <Card
+                variant="outlined"
+                padding="medium"
+                style={{ ...modalStyles.section, ...modalStyles.validatedCard }}
+              >
+                <Label color={colors.success[700]} style={modalStyles.sectionTitle}>
+                  ✅ Datos Validados
+                </Label>
                 {product.validatedStock !== undefined && (
-                  <InfoRow label="Stock Validado" value={`${product.validatedStock} unidades`} highlight />
+                  <InfoRow
+                    label="Stock Validado"
+                    value={`${product.validatedStock} unidades`}
+                    highlight
+                  />
                 )}
                 {product.validatedPresentationQuantity !== undefined && (
-                  <InfoRow label="Cant. Presentaciones" value={`${product.validatedPresentationQuantity}`} highlight />
+                  <InfoRow
+                    label="Cant. Presentaciones"
+                    value={`${product.validatedPresentationQuantity}`}
+                    highlight
+                  />
                 )}
                 {product.warehouse && (
                   <InfoRow label="Almacén" value={product.warehouse.name} highlight />
@@ -997,18 +1316,29 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, o
                 {product.barcode && (
                   <InfoRow label="Código de Barras" value={product.barcode} highlight />
                 )}
-                {product.weightKg !== undefined && product.weightKg !== null && typeof product.weightKg === 'number' && !isNaN(product.weightKg) && (
+                {product.weightKg !== undefined &&
+                  product.weightKg !== null &&
+                  typeof product.weightKg === 'number' &&
+                  !isNaN(product.weightKg) && (
+                    <InfoRow
+                      label="Peso"
+                      value={`${(product.weightKg * 1000).toFixed(0)} g (${product.weightKg.toFixed(3)} kg)`}
+                      highlight
+                    />
+                  )}
+                {product.validatedAt && (
                   <InfoRow
-                    label="Peso"
-                    value={`${(product.weightKg * 1000).toFixed(0)} g (${product.weightKg.toFixed(3)} kg)`}
+                    label="Fecha de Validación"
+                    value={formatDate(product.validatedAt)}
                     highlight
                   />
                 )}
-                {product.validatedAt && (
-                  <InfoRow label="Fecha de Validación" value={formatDate(product.validatedAt)} highlight />
-                )}
                 {product.validatedByUser && (
-                  <InfoRow label="Validado Por" value={product.validatedByUser.name || product.validatedByUser.email} highlight />
+                  <InfoRow
+                    label="Validado Por"
+                    value={product.validatedByUser.name || product.validatedByUser.email}
+                    highlight
+                  />
                 )}
               </Card>
             )}
@@ -1016,32 +1346,66 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, o
             {/* Validation History */}
             {product.validations && product.validations.length > 0 && (
               <Card variant="outlined" padding="medium" style={modalStyles.section}>
-                <Label color="primary" style={modalStyles.sectionTitle}>📸 Historial de Ingresos</Label>
+                <Label color="primary" style={modalStyles.sectionTitle}>
+                  📸 Historial de Ingresos
+                </Label>
                 {product.validations.map((validation, index) => (
-                  <View key={validation.id} style={[modalStyles.validationItem, validation.isReversed && modalStyles.validationItemReversed]}>
+                  <View
+                    key={validation.id}
+                    style={[
+                      modalStyles.validationItem,
+                      validation.isReversed && modalStyles.validationItemReversed,
+                    ]}
+                  >
                     <View style={modalStyles.validationHeaderRow}>
                       <Body>Ingreso #{index + 1}</Body>
-                      <Badge label={validation.isReversed ? 'Anulado' : 'Activo'} variant={validation.isReversed ? 'cancelled' : 'completed'} size="small" />
+                      <Badge
+                        label={validation.isReversed ? 'Anulado' : 'Activo'}
+                        variant={validation.isReversed ? 'cancelled' : 'completed'}
+                        size="small"
+                      />
                     </View>
                     <InfoRow label="Fecha" value={formatDate(validation.validatedAt)} />
                     <InfoRow label="Stock" value={`${validation.validatedStock} unidades`} />
                     {(validation.warehouse || validation.warehouseId) && (
-                      <InfoRow label="Almacén" value={validation.warehouse?.name || validation.warehouseId} />
+                      <InfoRow
+                        label="Almacén"
+                        value={validation.warehouse?.name || validation.warehouseId}
+                      />
                     )}
                     {(validation.area || validation.areaId) && (
-                      <InfoRow label="Área" value={validation.area?.name || validation.area?.code || validation.areaId || 'N/A'} />
+                      <InfoRow
+                        label="Área"
+                        value={
+                          validation.area?.name ||
+                          validation.area?.code ||
+                          validation.areaId ||
+                          'N/A'
+                        }
+                      />
                     )}
                     {(validation.notes || validation.validationNotes) && (
-                      <InfoRow label="Notas" value={validation.validationNotes || validation.notes || ''} />
+                      <InfoRow
+                        label="Notas"
+                        value={validation.validationNotes || validation.notes || ''}
+                      />
                     )}
                     {validation.isReversed && validation.reversalReason && (
                       <InfoRow label="Motivo anulación" value={validation.reversalReason} />
                     )}
                     {validation.photoUrl && (
-                      <Image source={{ uri: validation.photoUrl }} style={modalStyles.validationPhoto} resizeMode="cover" />
+                      <Image
+                        source={{ uri: validation.photoUrl }}
+                        style={modalStyles.validationPhoto}
+                        resizeMode="cover"
+                      />
                     )}
                     {validation.signatureUrl && (
-                      <Image source={{ uri: validation.signatureUrl }} style={modalStyles.signaturePhoto} resizeMode="contain" />
+                      <Image
+                        source={{ uri: validation.signatureUrl }}
+                        style={modalStyles.signaturePhoto}
+                        resizeMode="contain"
+                      />
                     )}
                   </View>
                 ))}
@@ -1059,10 +1423,18 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({ visible, product, o
 };
 
 // Info Row Component
-const InfoRow: React.FC<{ label: string; value: string; highlight?: boolean }> = ({ label, value, highlight }) => (
+const InfoRow: React.FC<{ label: string; value: string; highlight?: boolean }> = ({
+  label,
+  value,
+  highlight,
+}) => (
   <View style={modalStyles.infoRow}>
-    <Label color="secondary" style={modalStyles.infoLabel}>{label}:</Label>
-    <Body color={highlight ? colors.success[700] : 'primary'} style={modalStyles.infoValue}>{value}</Body>
+    <Label color="secondary" style={modalStyles.infoLabel}>
+      {label}:
+    </Label>
+    <Body color={highlight ? colors.success[700] : 'primary'} style={modalStyles.infoValue}>
+      {value}
+    </Body>
   </View>
 );
 
@@ -1076,6 +1448,13 @@ interface EntriesManagementModalProps {
   product: PurchaseProduct;
   onClose: () => void;
   onCreateEntry: () => void;
+  canReverseEntry?: boolean;
+  canCloseMultiValidation?: boolean;
+  canDeleteValidations?: boolean;
+  actionLoading?: boolean;
+  onReverseEntry?: (validationId: string, reason: string) => Promise<void> | void;
+  onCloseMultiValidation?: () => void;
+  onDeleteProductValidations?: () => void;
 }
 
 const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
@@ -1083,18 +1462,51 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
   product,
   onClose,
   onCreateEntry,
+  canReverseEntry = false,
+  canCloseMultiValidation = false,
+  canDeleteValidations = false,
+  actionLoading = false,
+  onReverseEntry,
+  onCloseMultiValidation,
+  onDeleteProductValidations,
 }) => {
-  const [selectedValidationDetail, setSelectedValidationDetail] = useState<PurchaseProductValidationEntry | null>(null);
+  const [selectedValidationDetail, setSelectedValidationDetail] =
+    useState<PurchaseProductValidationEntry | null>(null);
+  const [reverseTarget, setReverseTarget] = useState<PurchaseProductValidationEntry | null>(null);
+  const [reverseReason, setReverseReason] = useState('');
   const canCreateEntry = product.status === PurchaseProductStatus.IN_VALIDATION;
   const activeEntries = product.validations?.filter((validation) => !validation.isReversed) || [];
   const isResolved = !!product.resolutionAction && !!product.resolvedAt && !!product.productId;
   const createEntryTitle = isResolved ? 'Agregar Ingreso' : 'Resolver y Registrar Primer Ingreso';
+  const canCloseValidationNow =
+    canCloseMultiValidation &&
+    product.status === PurchaseProductStatus.IN_VALIDATION &&
+    isResolved &&
+    activeEntries.length > 0 &&
+    (product.validatedStock || 0) > 0;
+
+  const handleConfirmReverse = async () => {
+    if (!reverseTarget || !onReverseEntry) return;
+    const trimmed = reverseReason.trim();
+    if (trimmed.length < 3) {
+      Alert.alert('Motivo requerido', 'Ingrese un motivo (mínimo 3 caracteres).');
+      return;
+    }
+    await onReverseEntry(reverseTarget.id, trimmed);
+    setReverseTarget(null);
+    setReverseReason('');
+  };
 
   const getWarehouseName = (validation: PurchaseProductValidationEntry) => {
     if (validation.warehouse?.name) return validation.warehouse.name;
     if (validation.changes?.warehouseName) return validation.changes.warehouseName;
     if (validation.changes?.warehouse?.name) return validation.changes.warehouse.name;
-    if (product.warehouseId && validation.warehouseId === product.warehouseId && product.warehouse?.name) return product.warehouse.name;
+    if (
+      product.warehouseId &&
+      validation.warehouseId === product.warehouseId &&
+      product.warehouse?.name
+    )
+      return product.warehouse.name;
     return 'No disponible';
   };
 
@@ -1104,17 +1516,30 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
     if (validation.changes?.areaName) return validation.changes.areaName;
     if (validation.changes?.area?.name) return validation.changes.area.name;
     if (validation.changes?.area?.code) return validation.changes.area.code;
-    if (product.areaId && validation.areaId === product.areaId && (product.area?.name || product.area?.code)) return product.area.name || product.area.code || 'No disponible';
+    if (
+      product.areaId &&
+      validation.areaId === product.areaId &&
+      (product.area?.name || product.area?.code)
+    )
+      return product.area.name || product.area.code || 'No disponible';
     return 'No disponible';
   };
 
   const getValidationBarcode = (validation: PurchaseProductValidationEntry) => {
-    return validation.barcodeAdded || validation.changes?.barcode || validation.changes?.barcodeAdded || product.barcode || 'No disponible';
+    return (
+      validation.barcodeAdded ||
+      validation.changes?.barcode ||
+      validation.changes?.barcodeAdded ||
+      product.barcode ||
+      'No disponible'
+    );
   };
 
   const getValidationWeight = (validation: PurchaseProductValidationEntry) => {
     const weightKg = validation.changes?.weightKg ?? validation.changes?.weight ?? product.weightKg;
-    return typeof weightKg === 'number' ? `${(weightKg * 1000).toFixed(0)} g (${weightKg.toFixed(3)} kg)` : 'No disponible';
+    return typeof weightKg === 'number'
+      ? `${(weightKg * 1000).toFixed(0)} g (${weightKg.toFixed(3)} kg)`
+      : 'No disponible';
   };
 
   const getValidationPhotos = (validation: PurchaseProductValidationEntry) => {
@@ -1137,49 +1562,136 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
           <View style={modalStyles.header}>
             <View style={modalStyles.headerTitleContainer}>
               <Title size="medium">📦 Gestionar Ingresos</Title>
-              <Body color="secondary" numberOfLines={1}>{product.name}</Body>
+              <Body color="secondary" numberOfLines={1}>
+                {product.name}
+              </Body>
             </View>
             <IconButton icon="close" onPress={onClose} variant="ghost" size="small" />
           </View>
 
           <ScrollView style={modalStyles.content} keyboardShouldPersistTaps="handled">
             <Card variant="outlined" padding="medium" style={modalStyles.section}>
-              <Label color="primary" style={modalStyles.sectionTitle}>Resumen</Label>
-              <InfoRow label="Resolución" value={product.resolutionAction ? (product.resolutionAction === 'MERGE' ? 'Fusionado' : 'Producto nuevo') : isResolved ? 'Resuelto' : 'Pendiente'} />
+              <Label color="primary" style={modalStyles.sectionTitle}>
+                Resumen
+              </Label>
+              <InfoRow
+                label="Resolución"
+                value={
+                  product.resolutionAction
+                    ? product.resolutionAction === 'MERGE'
+                      ? 'Fusionado'
+                      : 'Producto nuevo'
+                    : isResolved
+                      ? 'Resuelto'
+                      : 'Pendiente'
+                }
+              />
               <InfoRow label="Estado" value={PurchaseProductStatusLabels[product.status]} />
-              <InfoRow label="Stock validado" value={`${product.validatedStock || 0} unidades`} highlight />
+              <InfoRow
+                label="Stock validado"
+                value={`${product.validatedStock || 0} unidades`}
+                highlight
+              />
               <InfoRow label="Ingresos activos" value={`${activeEntries.length}`} />
             </Card>
 
             {canCreateEntry && (
               <Card variant="outlined" padding="medium" style={modalStyles.section}>
-                <Button title={createEntryTitle} onPress={onCreateEntry} variant="primary" fullWidth />
+                <Button
+                  title={createEntryTitle}
+                  onPress={onCreateEntry}
+                  variant="primary"
+                  fullWidth
+                />
+                {canCloseValidationNow && onCloseMultiValidation && (
+                  <Button
+                    title="✅ Marcar producto como validado"
+                    onPress={onCloseMultiValidation}
+                    variant="success"
+                    fullWidth
+                    disabled={actionLoading}
+                    style={modalStyles.entryActionButton}
+                  />
+                )}
+                {canDeleteValidations &&
+                  onDeleteProductValidations &&
+                  (product.validations?.length || 0) > 0 && (
+                    <Button
+                      title="🗑️ Eliminar todas las validaciones del producto"
+                      onPress={onDeleteProductValidations}
+                      variant="danger"
+                      fullWidth
+                      disabled={actionLoading}
+                      style={modalStyles.entryActionButton}
+                    />
+                  )}
               </Card>
             )}
 
             <Card variant="outlined" padding="medium" style={modalStyles.section}>
-              <Label color="primary" style={modalStyles.sectionTitle}>Historial de ingresos</Label>
+              <Label color="primary" style={modalStyles.sectionTitle}>
+                Historial de ingresos
+              </Label>
               {!product.validations || product.validations.length === 0 ? (
                 <Body color="secondary">Aún no hay ingresos registrados.</Body>
-              ) : product.validations.map((validation, index) => (
-                <View key={validation.id} style={[modalStyles.validationItem, validation.isReversed && modalStyles.validationItemReversed]}>
-                  <View style={modalStyles.validationHeaderRow}>
-                    <Body>Ingreso #{index + 1}</Body>
-                    <Badge label={validation.isReversed ? 'Anulado' : 'Activo'} variant={validation.isReversed ? 'cancelled' : 'completed'} size="small" />
+              ) : (
+                product.validations.map((validation, index) => (
+                  <View
+                    key={validation.id}
+                    style={[
+                      modalStyles.validationItem,
+                      validation.isReversed && modalStyles.validationItemReversed,
+                    ]}
+                  >
+                    <View style={modalStyles.validationHeaderRow}>
+                      <Body>Ingreso #{index + 1}</Body>
+                      <Badge
+                        label={validation.isReversed ? 'Anulado' : 'Activo'}
+                        variant={validation.isReversed ? 'cancelled' : 'completed'}
+                        size="small"
+                      />
+                    </View>
+                    <InfoRow
+                      label="Fecha"
+                      value={new Date(validation.validatedAt).toLocaleString('es-PE')}
+                    />
+                    <InfoRow label="Stock" value={`${validation.validatedStock} unidades`} />
+                    <InfoRow label="Almacén" value={getWarehouseName(validation)} />
+                    <InfoRow label="Área" value={getAreaName(validation)} />
+                    {(validation.notes || validation.validationNotes) && (
+                      <InfoRow
+                        label="Notas"
+                        value={validation.validationNotes || validation.notes || ''}
+                      />
+                    )}
+                    {validation.isReversed && validation.reversalReason && (
+                      <InfoRow label="Motivo" value={validation.reversalReason} />
+                    )}
+                    <Button
+                      title="Ver ingreso completo"
+                      onPress={() => setSelectedValidationDetail(validation)}
+                      variant="outline"
+                      size="small"
+                      fullWidth
+                      style={modalStyles.entryActionButton}
+                    />
+                    {!validation.isReversed && canReverseEntry && onReverseEntry && (
+                      <Button
+                        title="🚫 Anular ingreso"
+                        onPress={() => {
+                          setReverseReason('');
+                          setReverseTarget(validation);
+                        }}
+                        variant="danger"
+                        size="small"
+                        fullWidth
+                        disabled={actionLoading}
+                        style={modalStyles.entryActionButton}
+                      />
+                    )}
                   </View>
-                  <InfoRow label="Fecha" value={new Date(validation.validatedAt).toLocaleString('es-PE')} />
-                  <InfoRow label="Stock" value={`${validation.validatedStock} unidades`} />
-                  <InfoRow label="Almacén" value={getWarehouseName(validation)} />
-                  <InfoRow label="Área" value={getAreaName(validation)} />
-                  {(validation.notes || validation.validationNotes) && (
-                    <InfoRow label="Notas" value={validation.validationNotes || validation.notes || ''} />
-                  )}
-                  {validation.isReversed && validation.reversalReason && (
-                    <InfoRow label="Motivo" value={validation.reversalReason} />
-                  )}
-                  <Button title="Ver ingreso completo" onPress={() => setSelectedValidationDetail(validation)} variant="outline" size="small" fullWidth style={modalStyles.entryActionButton} />
-                </View>
-              ))}
+                ))
+              )}
             </Card>
           </ScrollView>
 
@@ -1188,60 +1700,130 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
           </View>
 
           {selectedValidationDetail && (
-            <Modal visible={!!selectedValidationDetail} animationType="slide" transparent={true} onRequestClose={() => setSelectedValidationDetail(null)}>
+            <Modal
+              visible={!!selectedValidationDetail}
+              animationType="slide"
+              transparent={true}
+              onRequestClose={() => setSelectedValidationDetail(null)}
+            >
               <View style={modalStyles.overlay}>
                 <View style={modalStyles.container}>
                   <View style={modalStyles.header}>
                     <View style={modalStyles.headerTitleContainer}>
                       <Title size="medium">Detalle del Ingreso</Title>
-                      <Body color="secondary">{new Date(selectedValidationDetail.validatedAt).toLocaleString('es-PE')}</Body>
+                      <Body color="secondary">
+                        {new Date(selectedValidationDetail.validatedAt).toLocaleString('es-PE')}
+                      </Body>
                     </View>
-                    <IconButton icon="close" onPress={() => setSelectedValidationDetail(null)} variant="ghost" size="small" />
+                    <IconButton
+                      icon="close"
+                      onPress={() => setSelectedValidationDetail(null)}
+                      variant="ghost"
+                      size="small"
+                    />
                   </View>
 
                   <ScrollView style={modalStyles.content}>
                     <Card variant="outlined" padding="medium" style={modalStyles.section}>
-                      <Label color="primary" style={modalStyles.sectionTitle}>Datos principales</Label>
-                      <InfoRow label="Estado" value={selectedValidationDetail.isReversed ? 'Anulado' : 'Activo'} />
-                      <InfoRow label="Stock" value={`${selectedValidationDetail.validatedStock} unidades`} highlight />
+                      <Label color="primary" style={modalStyles.sectionTitle}>
+                        Datos principales
+                      </Label>
+                      <InfoRow
+                        label="Estado"
+                        value={selectedValidationDetail.isReversed ? 'Anulado' : 'Activo'}
+                      />
+                      <InfoRow
+                        label="Stock"
+                        value={`${selectedValidationDetail.validatedStock} unidades`}
+                        highlight
+                      />
                       <InfoRow label="Almacén" value={getWarehouseName(selectedValidationDetail)} />
                       <InfoRow label="Área" value={getAreaName(selectedValidationDetail)} />
-                      <InfoRow label="Código barras" value={getValidationBarcode(selectedValidationDetail)} />
+                      <InfoRow
+                        label="Código barras"
+                        value={getValidationBarcode(selectedValidationDetail)}
+                      />
                       <InfoRow label="Peso" value={getValidationWeight(selectedValidationDetail)} />
-                      {(selectedValidationDetail.notes || selectedValidationDetail.validationNotes) && (
-                        <InfoRow label="Notas" value={selectedValidationDetail.validationNotes || selectedValidationDetail.notes || ''} />
+                      {(selectedValidationDetail.notes ||
+                        selectedValidationDetail.validationNotes) && (
+                        <InfoRow
+                          label="Notas"
+                          value={
+                            selectedValidationDetail.validationNotes ||
+                            selectedValidationDetail.notes ||
+                            ''
+                          }
+                        />
                       )}
-                      {selectedValidationDetail.isReversed && selectedValidationDetail.reversalReason && (
-                        <InfoRow label="Motivo anulación" value={selectedValidationDetail.reversalReason} />
-                      )}
+                      {selectedValidationDetail.isReversed &&
+                        selectedValidationDetail.reversalReason && (
+                          <InfoRow
+                            label="Motivo anulación"
+                            value={selectedValidationDetail.reversalReason}
+                          />
+                        )}
                     </Card>
 
                     <Card variant="outlined" padding="medium" style={modalStyles.section}>
-                      <Label color="primary" style={modalStyles.sectionTitle}>Auditoría</Label>
-                      <InfoRow label="Validado por" value={getValidatedByName(selectedValidationDetail)} />
-                      <InfoRow label="Fecha" value={new Date(selectedValidationDetail.validatedAt).toLocaleString('es-PE')} />
+                      <Label color="primary" style={modalStyles.sectionTitle}>
+                        Auditoría
+                      </Label>
+                      <InfoRow
+                        label="Validado por"
+                        value={getValidatedByName(selectedValidationDetail)}
+                      />
+                      <InfoRow
+                        label="Fecha"
+                        value={new Date(selectedValidationDetail.validatedAt).toLocaleString(
+                          'es-PE'
+                        )}
+                      />
                       {selectedValidationDetail.reversedAt && (
-                        <InfoRow label="Anulado el" value={new Date(selectedValidationDetail.reversedAt).toLocaleString('es-PE')} />
+                        <InfoRow
+                          label="Anulado el"
+                          value={new Date(selectedValidationDetail.reversedAt).toLocaleString(
+                            'es-PE'
+                          )}
+                        />
                       )}
                     </Card>
 
                     <Card variant="outlined" padding="medium" style={modalStyles.section}>
-                      <Label color="primary" style={modalStyles.sectionTitle}>Fotos</Label>
+                      <Label color="primary" style={modalStyles.sectionTitle}>
+                        Fotos
+                      </Label>
                       {getValidationPhotos(selectedValidationDetail).length === 0 ? (
                         <Body color="secondary">No hay fotos registradas para este ingreso.</Body>
                       ) : (
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={modalStyles.photosScroll}>
-                          {getValidationPhotos(selectedValidationDetail).map((photoUrl, photoIndex) => (
-                            <Image key={`${photoUrl}-${photoIndex}`} source={{ uri: photoUrl }} style={modalStyles.photo} resizeMode="cover" />
-                          ))}
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          style={modalStyles.photosScroll}
+                        >
+                          {getValidationPhotos(selectedValidationDetail).map(
+                            (photoUrl, photoIndex) => (
+                              <Image
+                                key={`${photoUrl}-${photoIndex}`}
+                                source={{ uri: photoUrl }}
+                                style={modalStyles.photo}
+                                resizeMode="cover"
+                              />
+                            )
+                          )}
                         </ScrollView>
                       )}
                     </Card>
 
                     <Card variant="outlined" padding="medium" style={modalStyles.section}>
-                      <Label color="primary" style={modalStyles.sectionTitle}>Firma</Label>
+                      <Label color="primary" style={modalStyles.sectionTitle}>
+                        Firma
+                      </Label>
                       {selectedValidationDetail.signatureUrl ? (
-                        <Image source={{ uri: selectedValidationDetail.signatureUrl }} style={modalStyles.signaturePhoto} resizeMode="contain" />
+                        <Image
+                          source={{ uri: selectedValidationDetail.signatureUrl }}
+                          style={modalStyles.signaturePhoto}
+                          resizeMode="contain"
+                        />
                       ) : (
                         <Body color="secondary">No hay firma registrada.</Body>
                       )}
@@ -1249,7 +1831,71 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
                   </ScrollView>
 
                   <View style={modalStyles.footer}>
-                    <Button title="Cerrar detalle" onPress={() => setSelectedValidationDetail(null)} variant="primary" fullWidth />
+                    <Button
+                      title="Cerrar detalle"
+                      onPress={() => setSelectedValidationDetail(null)}
+                      variant="primary"
+                      fullWidth
+                    />
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          )}
+
+          {reverseTarget && (
+            <Modal
+              visible={!!reverseTarget}
+              animationType="fade"
+              transparent={true}
+              onRequestClose={() => setReverseTarget(null)}
+            >
+              <View style={modalStyles.overlay}>
+                <View style={modalStyles.container}>
+                  <View style={modalStyles.header}>
+                    <View style={modalStyles.headerTitleContainer}>
+                      <Title size="medium">🚫 Anular ingreso</Title>
+                      <Body color="secondary">Stock: {reverseTarget.validatedStock} unidades</Body>
+                    </View>
+                    <IconButton
+                      icon="close"
+                      onPress={() => setReverseTarget(null)}
+                      variant="ghost"
+                      size="small"
+                    />
+                  </View>
+
+                  <View style={modalStyles.content}>
+                    <Body color="secondary" style={{ marginBottom: spacing[3] }}>
+                      Ingrese el motivo de la anulación. Esta acción revertirá el ingreso de stock.
+                    </Body>
+                    <Input
+                      label="Motivo"
+                      value={reverseReason}
+                      onChangeText={setReverseReason}
+                      placeholder="Ej. Error de conteo, producto dañado..."
+                      multiline
+                      numberOfLines={3}
+                      autoFocus
+                    />
+                  </View>
+
+                  <View style={modalStyles.footer}>
+                    <Button
+                      title="Cancelar"
+                      onPress={() => setReverseTarget(null)}
+                      variant="secondary"
+                      disabled={actionLoading}
+                      style={modalStyles.modalButton}
+                    />
+                    <Button
+                      title="Anular"
+                      onPress={handleConfirmReverse}
+                      variant="danger"
+                      loading={actionLoading}
+                      disabled={actionLoading || reverseReason.trim().length < 3}
+                      style={modalStyles.modalButton}
+                    />
                   </View>
                 </View>
               </View>
@@ -1274,7 +1920,12 @@ interface EditSupplierModalProps {
 }
 
 const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
-  visible, onClose, onSupplierSelect, selectedSupplier, onUpdate, updating,
+  visible,
+  onClose,
+  onSupplierSelect,
+  selectedSupplier,
+  onUpdate,
+  updating,
 }) => {
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
@@ -1303,8 +1954,21 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
           </View>
 
           <View style={modalStyles.footer}>
-            <Button title="Cancelar" onPress={onClose} variant="secondary" disabled={updating} style={modalStyles.modalButton} />
-            <Button title="Actualizar" onPress={onUpdate} variant="primary" loading={updating} disabled={updating || !selectedSupplier} style={modalStyles.modalButton} />
+            <Button
+              title="Cancelar"
+              onPress={onClose}
+              variant="secondary"
+              disabled={updating}
+              style={modalStyles.modalButton}
+            />
+            <Button
+              title="Actualizar"
+              onPress={onUpdate}
+              variant="primary"
+              loading={updating}
+              disabled={updating || !selectedSupplier}
+              style={modalStyles.modalButton}
+            />
           </View>
         </View>
       </View>

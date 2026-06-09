@@ -19,6 +19,33 @@ interface AlertButton {
 
 type AlertType = 'default' | 'plain-text' | 'secure-text' | 'login-password';
 
+/**
+ * Restaura el foco del teclado a la ventana después de un diálogo nativo.
+ *
+ * Bug conocido de Electron/Chromium: cuando `window.confirm`/`window.alert`/
+ * `window.prompt` se invocan desde un evento y el elemento disparador se
+ * desmonta (por ejemplo tras un logout por 401), el BrowserWindow pierde el
+ * foco del teclado y los inputs no responden hasta que el usuario hace clic
+ * manualmente en la ventana.
+ *
+ * Llamar `window.focus()` + blur del activeElement reactiva el foco.
+ */
+function restoreKeyboardFocus(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    // Re-enfocar la ventana (Electron pierde focus tras dialogs nativos)
+    window.focus();
+
+    // Si el activeElement quedó "huérfano" (desmontado), forzar blur al body
+    const active = document.activeElement as HTMLElement | null;
+    if (!active || active === document.body || !document.body.contains(active)) {
+      document.body.focus?.();
+    }
+  } catch {
+    // No-op: si falla por seguridad, no romper la app
+  }
+}
+
 class CustomAlert {
   /**
    * Show an alert dialog
@@ -79,11 +106,7 @@ class CustomAlert {
   /**
    * Custom alert implementation for Web/Electron
    */
-  private static showWebAlert(
-    title: string,
-    message?: string,
-    buttons?: AlertButton[]
-  ): void {
+  private static showWebAlert(title: string, message?: string, buttons?: AlertButton[]): void {
     const fullMessage = message ? `${title}\n\n${message}` : title;
 
     // If no buttons or only one button, use simple alert
@@ -91,10 +114,12 @@ class CustomAlert {
       // Use setTimeout to make it async and non-blocking
       setTimeout(() => {
         window.alert(fullMessage);
+        restoreKeyboardFocus();
         if (buttons && buttons[0]?.onPress) {
           // Execute callback after alert is dismissed
           setTimeout(() => {
             buttons[0].onPress!();
+            restoreKeyboardFocus();
           }, 100);
         }
       }, 0);
@@ -105,22 +130,24 @@ class CustomAlert {
     if (buttons.length === 2) {
       setTimeout(() => {
         const result = window.confirm(fullMessage);
+        restoreKeyboardFocus();
 
         // Execute appropriate callback after dialog is dismissed
         setTimeout(() => {
           if (result) {
             // User clicked OK/Yes (first non-cancel button)
-            const confirmButton = buttons.find(b => b.style !== 'cancel') || buttons[0];
+            const confirmButton = buttons.find((b) => b.style !== 'cancel') || buttons[0];
             if (confirmButton.onPress) {
               confirmButton.onPress();
             }
           } else {
             // User clicked Cancel/No
-            const cancelButton = buttons.find(b => b.style === 'cancel') || buttons[1];
+            const cancelButton = buttons.find((b) => b.style === 'cancel') || buttons[1];
             if (cancelButton.onPress) {
               cancelButton.onPress();
             }
           }
+          restoreKeyboardFocus();
         }, 100);
       }, 0);
       return;
@@ -128,14 +155,16 @@ class CustomAlert {
 
     // For more than 2 buttons, show alert with button text and use first button
     setTimeout(() => {
-      const buttonTexts = buttons.map(b => b.text || 'OK').join(' / ');
+      const buttonTexts = buttons.map((b) => b.text || 'OK').join(' / ');
       window.alert(`${fullMessage}\n\nOpciones: ${buttonTexts}`);
+      restoreKeyboardFocus();
 
       // Execute first button's callback
       setTimeout(() => {
         if (buttons[0]?.onPress) {
           buttons[0].onPress();
         }
+        restoreKeyboardFocus();
       }, 100);
     }, 0);
   }
@@ -153,6 +182,7 @@ class CustomAlert {
 
     setTimeout(() => {
       const result = window.prompt(fullMessage, defaultValue || '');
+      restoreKeyboardFocus();
 
       setTimeout(() => {
         // If callback is a function (simple callback)
@@ -169,18 +199,20 @@ class CustomAlert {
 
           if (result !== null) {
             // User clicked OK - find the confirm button (non-cancel)
-            const confirmButton = buttons.find(b => b.style !== 'cancel') || buttons[buttons.length - 1];
+            const confirmButton =
+              buttons.find((b) => b.style !== 'cancel') || buttons[buttons.length - 1];
             if (confirmButton?.onPress) {
               confirmButton.onPress(result);
             }
           } else {
             // User clicked Cancel - find the cancel button
-            const cancelButton = buttons.find(b => b.style === 'cancel');
+            const cancelButton = buttons.find((b) => b.style === 'cancel');
             if (cancelButton?.onPress) {
               cancelButton.onPress();
             }
           }
         }
+        restoreKeyboardFocus();
       }, 100);
     }, 0);
   }

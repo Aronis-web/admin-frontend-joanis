@@ -21,7 +21,7 @@ import { priceProfilesApi } from '@/services/api/price-profiles';
 import { campaignsService } from '@/services/api';
 import { productsApi } from '@/services/api/products';
 import { ProductSalePrice, PriceProfile } from '@/types/price-profiles';
-import { DistributionFormModal } from './DistributionFormModal';
+import { DistributionFormModalV2 as DistributionFormModal } from './DistributionFormModalV2';
 import logger from '@/utils/logger';
 import { useTenantStore } from '@/store/tenant';
 
@@ -701,9 +701,9 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       return;
     }
 
-    // Check if the PRODUCT itself is preliminary (not the campaign product status)
-    const product = campaignProduct.product || productDetails;
-    const isProductPreliminary = (product?.status as any) === 'preliminary';
+    // Usamos el estado del CampaignProduct (mismo source que la lista). El
+    // `status` del Product maestro puede quedar stale como 'preliminary'.
+    const isProductPreliminary = campaignProduct.productStatus === ProductStatus.PRELIMINARY;
 
     if (isProductPreliminary) {
       Alert.alert(
@@ -750,9 +750,18 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
             item.warehouse?.siteId ?? item.warehouse?.site?.id ?? item.siteId ?? currentSiteId,
           area: item.area?.name ?? null,
           areaId: item.areaId ?? item.area?.id ?? null,
-          total: item.quantityBase || 0,
-          reserved: item.reservedQuantityBase || 0,
-          available: item.availableQuantityBase || item.quantityBase || 0,
+          // ⚠️ Usar ?? (no ||) para que un disponible legítimo de 0 (todo
+          // reservado) no degrade al total. Antes mostrábamos el total como
+          // "disponible" cuando availableQuantityBase venía 0.
+          total: Number(item.quantityBase ?? 0),
+          reserved: Number(item.reservedQuantityBase ?? 0),
+          available: Number(
+            item.availableQuantityBase ??
+              Math.max(
+                (Number(item.quantityBase) || 0) - (Number(item.reservedQuantityBase) || 0),
+                0
+              )
+          ),
         }));
 
         setLocalStockData(stockDetails);
@@ -784,7 +793,13 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                   warehouse: purchaseProduct.warehouse?.name || 'Almacén de compra',
                   warehouseId:
                     (purchaseProduct as any).warehouseId || (purchaseProduct as any).warehouse?.id,
-                  siteId: (purchaseProduct as any).warehouse?.siteId,
+                  // Fallback explícito a la sede actual: el modal V2 descarta
+                  // todo stock sin siteId para no mezclar sedes.
+                  siteId:
+                    (purchaseProduct as any).warehouse?.siteId ??
+                    (purchaseProduct as any).warehouse?.site?.id ??
+                    (purchaseProduct as any).siteId ??
+                    currentSiteId,
                   area: (purchaseProduct as any).area?.name ?? null,
                   areaId: (purchaseProduct as any).areaId ?? null,
                   total: purchaseProduct.preliminaryStock,
@@ -827,11 +842,15 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     return null;
   }
 
-  // Check if the PRODUCT itself is preliminary (not the campaign product status)
-  const isPreliminary = (product?.status as any) === 'preliminary';
+  // Estado preliminar: usamos el `productStatus` del CampaignProduct (mismo
+  // source de verdad que la lista de productos de la campaña). NO usar
+  // `product.status` del Product maestro porque puede quedar stale como
+  // 'preliminary' aunque el campaign product ya esté validado, bloqueando
+  // incorrectamente el botón "Generar Reparto".
+  const isPreliminary = campaignProduct.productStatus === ProductStatus.PRELIMINARY;
 
-  // For backward compatibility, also check campaign product status for stock display
-  const isCampaignProductPreliminary = campaignProduct.productStatus === ProductStatus.PRELIMINARY;
+  // Alias mantenido para compatibilidad con código que ya lo referencia
+  const isCampaignProductPreliminary = isPreliminary;
 
   // Use localCostCents (updated state) if available, otherwise fallback to productDetails or 0
   const getCostCents = () => {
@@ -982,7 +1001,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                           </Text>
                         </View>
                       </View>
-                      {onViewDistributionsBySite && (
+                      {onViewDistributionsBySite && !campaignProduct.distributionGenerated && (
                         <TouchableOpacity
                           style={styles.viewBySiteButton}
                           onPress={onViewDistributionsBySite}
@@ -992,7 +1011,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                           </Text>
                         </TouchableOpacity>
                       )}
-                      {!campaignProduct.distributionGenerated && (
+                      {!campaignProduct.distributionGenerated ? (
                         <View style={styles.quantityActionsContainer}>
                           <TouchableOpacity
                             style={styles.editQuantityButton}
@@ -1018,15 +1037,21 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                             </Text>
                           </TouchableOpacity>
                         </View>
+                      ) : (
+                        onViewDistributionsBySite && (
+                          <View style={styles.quantityActionsContainer}>
+                            <TouchableOpacity
+                              style={styles.quickDistributionButton}
+                              onPress={onViewDistributionsBySite}
+                            >
+                              <Text style={styles.quickDistributionButtonText}>📋 Ver Reparto</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )
                       )}
                       {isPreliminary && !campaignProduct.distributionGenerated && (
                         <Text style={styles.preliminaryWarningNote}>
                           ⚠️ Producto preliminar - Debe validarse antes de generar reparto
-                        </Text>
-                      )}
-                      {campaignProduct.distributionGenerated && (
-                        <Text style={styles.distributionGeneratedNote}>
-                          ⚠️ No se puede editar - Reparto generado
                         </Text>
                       )}
                     </View>

@@ -182,7 +182,7 @@ class CampaignsService {
     return apiClient.get<Campaign>(`${this.basePath}/${id}`, {
       params: {
         include:
-          'participants.company,participants.site,participants.priceProfile,products.product.category,products.product.presentations,products.product.salePrices,products.customDistributions.items',
+          'participants.company,participants.site,participants.priceProfile,products.product.category,products.product.presentations,products.product.salePrices,products.customDistributions.items,products.purchaseProduct,products.purchase',
       },
     });
   }

@@ -42,7 +42,7 @@ export enum BizlinksCurrency {
 
 export enum BizlinksUnitMeasure {
   NIU = 'NIU', // Unidad (bienes)
-  ZZ = 'ZZ',   // Unidad (servicios)
+  ZZ = 'ZZ', // Unidad (servicios)
   KGM = 'KGM', // Kilogramo
   LTR = 'LTR', // Litro
   MTR = 'MTR', // Metro
@@ -52,20 +52,20 @@ export enum BizlinksUnitMeasure {
   TNE = 'TNE', // Tonelada
   DZN = 'DZN', // Docena
   SET = 'SET', // Juego
-  BX = 'BX',   // Caja
+  BX = 'BX', // Caja
 }
 
 export enum BizlinksTaxType {
-  IGV = '10',           // Gravado - Operación Onerosa
-  IGV_GRATUITO = '11',  // Gravado - Retiro por premio
-  IGV_DONACION = '12',  // Gravado - Retiro por donación
-  IGV_RETIRO = '13',    // Gravado - Retiro
+  IGV = '10', // Gravado - Operación Onerosa
+  IGV_GRATUITO = '11', // Gravado - Retiro por premio
+  IGV_DONACION = '12', // Gravado - Retiro por donación
+  IGV_RETIRO = '13', // Gravado - Retiro
   IGV_BONIFICACION = '14', // Gravado - Retiro por bonificación
-  IGV_PUBLICIDAD = '15',   // Gravado - Retiro por publicidad
-  IGV_MUESTRAS = '16',     // Gravado - Retiro por muestras
-  EXONERADO = '20',     // Exonerado - Operación Onerosa
-  INAFECTO = '30',      // Inafecto - Operación Onerosa
-  EXPORTACION = '40',   // Exportación
+  IGV_PUBLICIDAD = '15', // Gravado - Retiro por publicidad
+  IGV_MUESTRAS = '16', // Gravado - Retiro por muestras
+  EXONERADO = '20', // Exonerado - Operación Onerosa
+  INAFECTO = '30', // Inafecto - Operación Onerosa
+  EXPORTACION = '40', // Exportación
 }
 
 export enum BizlinksDocumentIdentityType {
@@ -140,6 +140,7 @@ export interface BizlinksDocument {
   totalIgv?: number;
   totalVenta?: number;
   // Estados
+  status?: string; // estado general del documento (FAILED, QUEUED, SENT, etc.)
   statusWs?: BizlinksStatusWs;
   statusSunat?: BizlinksStatusSunat;
   messageSunat?: BizlinksSunatMessage;
@@ -416,7 +417,14 @@ export interface GetBizlinksDocumentsParams {
   hasPdf?: boolean;
   hasXml?: boolean;
   hasCdr?: boolean;
-  sortBy?: 'createdAt' | 'fecha' | 'serieNumero' | 'documentType' | 'status' | 'statusSunat' | 'total';
+  sortBy?:
+    | 'createdAt'
+    | 'fecha'
+    | 'serieNumero'
+    | 'documentType'
+    | 'status'
+    | 'statusSunat'
+    | 'total';
   sortOrder?: 'ASC' | 'DESC';
   startDate?: string;
   endDate?: string;
@@ -519,7 +527,15 @@ export interface Retencion {
   importeTotalPagado?: number;
   tipoMoneda?: 'PEN' | 'USD';
   items?: RetencionItemDto[];
-  status: 'QUEUED' | 'SENDING' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'ERROR' | 'COMPLETED' | 'DOWNLOAD_FAILED';
+  status:
+    | 'QUEUED'
+    | 'SENDING'
+    | 'SENT'
+    | 'ACCEPTED'
+    | 'REJECTED'
+    | 'ERROR'
+    | 'COMPLETED'
+    | 'DOWNLOAD_FAILED';
   statusWs?: BizlinksStatusWs;
   statusSunat?: BizlinksStatusSunat;
   messageSunat?: BizlinksSunatMessage;

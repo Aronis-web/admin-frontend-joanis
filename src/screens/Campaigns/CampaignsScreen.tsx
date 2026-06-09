@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -40,7 +39,9 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   useScreenTracking('CampaignsScreen', 'CampaignsScreen');
 
   // ✅ Por defecto mostrar todas menos canceladas
-  const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL' | 'NOT_CANCELLED'>('NOT_CANCELLED');
+  const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL' | 'NOT_CANCELLED'>(
+    'NOT_CANCELLED'
+  );
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -55,17 +56,13 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
     () => ({
       page,
       limit,
-      ...(selectedStatus !== 'ALL' && selectedStatus !== 'NOT_CANCELLED' && { status: selectedStatus }),
+      ...(selectedStatus !== 'ALL' &&
+        selectedStatus !== 'NOT_CANCELLED' && { status: selectedStatus }),
     }),
     [page, selectedStatus]
   );
 
-  const {
-    data: campaignsResponse,
-    isLoading,
-    isRefetching,
-    refetch,
-  } = useCampaigns(params);
+  const { data: campaignsResponse, isLoading, isRefetching, refetch } = useCampaigns(params);
 
   // Extraer campaigns y paginación de la respuesta
   const campaigns = useMemo(() => {
@@ -334,7 +331,9 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
                 <View style={styles.headerIconContainer}>
                   <Ionicons name="megaphone" size={22} color={colors.neutral[0]} />
                 </View>
-                <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Campañas</Text>
+                <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
+                  Campañas
+                </Text>
               </View>
               <Text style={styles.headerSubtitle}>Gestión de campañas de distribución</Text>
             </View>
@@ -364,7 +363,9 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
                 <View style={styles.headerIconContainer}>
                   <Ionicons name="megaphone" size={22} color={colors.neutral[0]} />
                 </View>
-                <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Campañas</Text>
+                <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
+                  Campañas
+                </Text>
               </View>
               <Text style={styles.headerSubtitle}>Gestión de campañas de distribución</Text>
             </View>

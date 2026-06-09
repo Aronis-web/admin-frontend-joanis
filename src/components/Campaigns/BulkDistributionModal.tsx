@@ -5,11 +5,11 @@ import {
   Modal,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   ScrollView,
   Platform,
 } from 'react-native';
+import Alert from '@/utils/alert';
 import { getDocumentAsync } from '@/utils/filePicker';
 import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -124,7 +124,11 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
         return;
       }
 
-      const file = result.assets[0];
+      const file = result.assets?.[0];
+      if (!file) {
+        logger.warn('⚠️ No se obtuvo ningún archivo del selector');
+        return;
+      }
       logger.info('📄 Archivo seleccionado:', file.name);
 
       setIsUploading(true);
@@ -146,14 +150,16 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
           const fetchResponse = await fetch(file.uri);
           const blob = await fetchResponse.blob();
           fileToUpload = new File([blob], file.name, {
-            type: file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            type:
+              file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           });
         }
       } else {
         // Mobile: Use file metadata object (React Native FormData format)
         fileToUpload = {
           uri: file.uri,
-          type: file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          type:
+            file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           name: file.name,
         };
       }
@@ -193,10 +199,7 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
       }
     } catch (error: any) {
       logger.error('❌ Error al subir archivo:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'No se pudo procesar el archivo Excel'
-      );
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo procesar el archivo Excel');
     } finally {
       setIsUploading(false);
     }
@@ -225,7 +228,8 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
 
             {/* Description */}
             <Text style={styles.description}>
-              Genera repartos automáticamente para todos los participantes mediante un archivo Excel.
+              Genera repartos automáticamente para todos los participantes mediante un archivo
+              Excel.
             </Text>
 
             {/* Steps */}
@@ -242,7 +246,11 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
                   Descarga el formato con los participantes y productos disponibles.
                 </Text>
                 <TouchableOpacity
-                  style={[styles.button, styles.downloadButton, isDownloading && styles.buttonDisabled]}
+                  style={[
+                    styles.button,
+                    styles.downloadButton,
+                    isDownloading && styles.buttonDisabled,
+                  ]}
                   onPress={handleDownloadTemplate}
                   disabled={isDownloading}
                 >
@@ -267,7 +275,9 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
                 </Text>
                 <View style={styles.noteBox}>
                   <Text style={styles.noteTitle}>⚠️ Importante:</Text>
-                  <Text style={styles.noteText}>• Solo se procesarán filas con cantidad {'>'} 0</Text>
+                  <Text style={styles.noteText}>
+                    • Solo se procesarán filas con cantidad {'>'} 0
+                  </Text>
                   <Text style={styles.noteText}>• No modificar las demás columnas</Text>
                   <Text style={styles.noteText}>• No exceder el stock disponible</Text>
                 </View>
@@ -304,7 +314,12 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
             {/* Upload Result */}
             {uploadResult && (
               <View style={styles.resultContainer}>
-                <View style={[styles.resultHeader, uploadResult.success ? styles.resultSuccess : styles.resultError]}>
+                <View
+                  style={[
+                    styles.resultHeader,
+                    uploadResult.success ? styles.resultSuccess : styles.resultError,
+                  ]}
+                >
                   <Text style={styles.resultTitle}>
                     {uploadResult.success ? '✅ Proceso Completado' : '⚠️ Completado con Errores'}
                   </Text>
@@ -327,7 +342,9 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
 
                 {uploadResult.errors.length > 0 && (
                   <View style={styles.errorsContainer}>
-                    <Text style={styles.errorsTitle}>❌ Errores ({uploadResult.errors.length}):</Text>
+                    <Text style={styles.errorsTitle}>
+                      ❌ Errores ({uploadResult.errors.length}):
+                    </Text>
                     <ScrollView style={styles.errorsList} nestedScrollEnabled>
                       {uploadResult.errors.map((error, index) => (
                         <View key={index} style={styles.errorItem}>

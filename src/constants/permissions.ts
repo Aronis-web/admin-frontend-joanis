@@ -73,6 +73,7 @@ export const PERMISSIONS = {
     CLOSE: 'purchases.close',
     VALIDATE: 'purchases.validate',
     VALIDATE_CLOSE: 'purchases.validate.close',
+    VALIDATIONS_DELETE: 'purchases.validations.delete',
     PRODUCTS_ADD: 'purchases.products.add',
     PRODUCTS_EDIT: 'purchases.products.edit',
     PRODUCTS_DELETE: 'purchases.products.delete',

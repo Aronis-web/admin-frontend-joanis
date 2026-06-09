@@ -6,10 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
-  Platform,
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,8 +15,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system/legacy';
+import Alert from '@/utils/alert';
+import { saveAndShareFile } from '@/utils/fileDownload';
 
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { TaxDocumentsFAB } from '@/components/Bizlinks/TaxDocumentsFAB';
@@ -79,6 +77,7 @@ const STATUS_SUNAT_COLORS: Record<string, string> = {
   ACEPTADO: '#10B981',
   RECHAZADO: '#EF4444',
   ANULADO: '#64748B',
+  FAILED: '#DC2626',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -92,6 +91,12 @@ const STATUS_LABELS: Record<string, string> = {
   ERROR: 'Error',
   QUEUED: 'En cola',
   SENDING: 'Enviando',
+  FAILED: 'Fallido',
+};
+
+const isDocumentFailed = (document: BizlinksDocumentListItem): boolean => {
+  const status = String(document.status || '').toUpperCase();
+  return status === 'FAILED';
 };
 
 const documentTypeOptions = [
@@ -103,15 +108,22 @@ const documentTypeOptions = [
   { value: '09', label: 'Guías', color: DOCUMENT_TYPE_COLORS['09'] },
 ];
 
+// Nota: el valor 'FAILED' filtra por el campo general `status` (no por statusSunat).
+// El resto filtra por `statusSunat`. El distingo se hace en buildParams.
 const sunatStatusOptions = [
   { value: 'ALL', label: 'Todos', color: '#6366F1' },
   { value: 'AC_03', label: 'Aceptados', color: STATUS_SUNAT_COLORS.AC_03 },
   { value: 'RC_05', label: 'Rechazados', color: STATUS_SUNAT_COLORS.RC_05 },
   { value: 'PE_02', label: 'Pendientes', color: STATUS_SUNAT_COLORS.PE_02 },
   { value: 'ED_06', label: 'Errores', color: STATUS_SUNAT_COLORS.ED_06 },
+  { value: 'FAILED', label: 'Fallidos', color: STATUS_SUNAT_COLORS.FAILED },
 ];
 
-const availabilityOptions: { value: AvailabilityFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+const availabilityOptions: {
+  value: AvailabilityFilter;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { value: 'ALL', label: 'Todos', icon: 'albums-outline' },
   { value: 'WITH_PDF', label: 'Con PDF', icon: 'document-text-outline' },
   { value: 'WITH_XML', label: 'Con XML', icon: 'code-slash-outline' },
@@ -152,13 +164,15 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
-  const [sortBy, setSortBy] = useState<NonNullable<GetBizlinksDocumentsParams['sortBy']>>('createdAt');
+  const [sortBy, setSortBy] =
+    useState<NonNullable<GetBizlinksDocumentsParams['sortBy']>>('createdAt');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [documents, setDocuments] = useState<BizlinksDocumentListItem[]>([]);
   const [pagination, setPagination] = useState<PaginationState>(initialPagination);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
 
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -168,7 +182,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
   const [showTaxDocumentsReportModal, setShowTaxDocumentsReportModal] = useState(false);
 
   const debouncedSearchTerm = useDebounce(searchTerm.trim(), 500);
-  const { getDocuments } = useBizlinksDocuments();
+  const { getDocuments, retryDocument } = useBizlinksDocuments();
 
   const activeFiltersCount = useMemo(() => {
     return [
@@ -179,7 +193,14 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
       !!fromDate,
       !!toDate,
     ].filter(Boolean).length;
-  }, [debouncedSearchTerm, fromDate, selectedAvailability, selectedDocumentType, selectedStatusSunat, toDate]);
+  }, [
+    debouncedSearchTerm,
+    fromDate,
+    selectedAvailability,
+    selectedDocumentType,
+    selectedStatusSunat,
+    toDate,
+  ]);
 
   const buildParams = useCallback((): GetBizlinksDocumentsParams => {
     const params: GetBizlinksDocumentsParams = {
@@ -195,7 +216,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
       params.documentType = selectedDocumentType;
     }
 
-    if (selectedStatusSunat !== 'ALL') {
+    if (selectedStatusSunat === 'FAILED') {
+      // FAILED no es un statusSunat, va por el status general del documento
+      params.status = 'FAILED';
+    } else if (selectedStatusSunat !== 'ALL') {
       params.statusSunat = selectedStatusSunat;
     }
 
@@ -306,18 +330,16 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
     setPage(1);
   }, []);
 
-  const getDocumentTypeCode = (document: BizlinksDocumentListItem) => (
-    document.tipo?.code || document.documentType || 'OTRO'
-  );
+  const getDocumentTypeCode = (document: BizlinksDocumentListItem) =>
+    document.tipo?.code || document.documentType || 'OTRO';
 
   const getDocumentTypeName = (document: BizlinksDocumentListItem) => {
     const code = getDocumentTypeCode(document);
     return document.tipo?.name || DOCUMENT_TYPE_LABELS[code] || String(code);
   };
 
-  const getStatusCode = (document: BizlinksDocumentListItem) => (
-    document.estadoSunat?.code || document.statusSunat || document.status || 'PENDIENTE'
-  );
+  const getStatusCode = (document: BizlinksDocumentListItem) =>
+    document.estadoSunat?.code || document.statusSunat || document.status || 'PENDIENTE';
 
   const getStatusLabel = (document: BizlinksDocumentListItem) => {
     const code = String(getStatusCode(document));
@@ -351,7 +373,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
   const buildDownloadUrl = (document: BizlinksDocumentListItem, artifactKind: ArtifactKind) => {
     const artifact = document[artifactKind] as BizlinksDocumentArtifact | undefined;
-    const candidateUrl = artifact?.downloadUrl || artifact?.url || `/bizlinks/documents/${document.id}/${artifactKind}`;
+    const candidateUrl =
+      artifact?.downloadUrl ||
+      artifact?.url ||
+      `/bizlinks/documents/${document.id}/${artifactKind}`;
 
     if (candidateUrl.startsWith('http')) {
       return candidateUrl;
@@ -390,7 +415,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
     const artifact = document[artifactKind] as BizlinksDocumentArtifact | undefined;
     if (artifact && !artifact.available) {
-      Alert.alert('Archivo no disponible', `El ${artifactKind.toUpperCase()} aún no está disponible para este documento.`);
+      Alert.alert(
+        'Archivo no disponible',
+        `El ${artifactKind.toUpperCase()} aún no está disponible para este documento.`
+      );
       return;
     }
 
@@ -399,31 +427,27 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       const downloadUrl = buildDownloadUrl(document, artifactKind);
-
-      if (Platform.OS === 'web') {
-        window.open(downloadUrl, '_blank');
-        return;
-      }
-
       const fileName = `${document.serieNumero || document.id}.${artifactKind}`;
-      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-      const downloadResult = await FileSystem.downloadAsync(downloadUrl, fileUri, {
+
+      // Descargar con headers de auth (funciona en web/electron y móvil)
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
         headers: buildAuthHeaders(),
       });
 
-      if (downloadResult.status < 200 || downloadResult.status >= 300) {
-        Alert.alert('Error', `Error del servidor: ${downloadResult.status}`);
+      if (!response.ok) {
+        Alert.alert('Error', `Error del servidor: ${response.status}`);
         return;
       }
 
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(downloadResult.uri, {
-          mimeType,
-          dialogTitle: `${artifactKind.toUpperCase()} ${document.serieNumero}`,
-        });
-      } else {
-        Alert.alert('Éxito', `${artifactKind.toUpperCase()} guardado en: ${downloadResult.uri}`);
-      }
+      const blob = await response.blob();
+
+      await saveAndShareFile({
+        blob,
+        fileName,
+        mimeType,
+        dialogTitle: `${artifactKind.toUpperCase()} ${document.serieNumero}`,
+      });
     } catch (error: any) {
       Alert.alert('Error', error.message || `Error al descargar ${artifactKind.toUpperCase()}`);
     } finally {
@@ -433,6 +457,42 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleDocumentPress = (document: BizlinksDocumentListItem) => {
     navigation.navigate('BizlinksDocumentDetail', { documentId: document.id });
+  };
+
+  const handleRetryDocument = (document: BizlinksDocumentListItem, event: any) => {
+    event?.stopPropagation?.();
+
+    const serie = document.serieNumero || `${document.serie || ''}-${document.numero || ''}`;
+    Alert.alert(
+      'Reintentar documento',
+      `¿Deseas reintentar el envío de ${serie}? Se reseteará el contador y se re-encolará la tarea fiscal.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Reintentar',
+          onPress: async () => {
+            try {
+              setRetryingId(document.id);
+              await retryDocument(document.id);
+              Alert.alert(
+                'Reintento encolado',
+                'El documento se re-encoló. El scheduler lo procesará en el próximo ciclo (~30s).'
+              );
+              await loadDocuments();
+            } catch (error: any) {
+              Alert.alert(
+                'Error',
+                error?.response?.data?.message ||
+                  error?.message ||
+                  'No se pudo reintentar el documento'
+              );
+            } finally {
+              setRetryingId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleOpenTaxDocumentsReport = useCallback(() => {
@@ -459,9 +519,16 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
           color={selectedValue === option.value ? colors.neutral[0] : colors.neutral[600]}
         />
       ) : (
-        <View style={[styles.filterDot, { backgroundColor: option.color || colors.primary[600] }]} />
+        <View
+          style={[styles.filterDot, { backgroundColor: option.color || colors.primary[600] }]}
+        />
       )}
-      <Text style={[styles.filterChipText, selectedValue === option.value && styles.filterChipTextActive]}>
+      <Text
+        style={[
+          styles.filterChipText,
+          selectedValue === option.value && styles.filterChipTextActive,
+        ]}
+      >
         {option.label}
       </Text>
     </TouchableOpacity>
@@ -481,7 +548,11 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.actionButton, buttonStyle, (!available || isDownloading) && styles.actionButtonDisabled]}
+        style={[
+          styles.actionButton,
+          buttonStyle,
+          (!available || isDownloading) && styles.actionButtonDisabled,
+        ]}
         onPress={(event) => handleDownloadArtifact(document, artifactKind, mimeType, event)}
         disabled={!available || isDownloading}
       >
@@ -513,7 +584,12 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
-            <View style={[styles.documentTypeBadge, { backgroundColor: `${documentTypeColor}20`, borderColor: documentTypeColor }]}>
+            <View
+              style={[
+                styles.documentTypeBadge,
+                { backgroundColor: `${documentTypeColor}20`, borderColor: documentTypeColor },
+              ]}
+            >
               <Text style={[styles.documentTypeText, { color: documentTypeColor }]}>
                 {getDocumentTypeName(document)}
               </Text>
@@ -522,7 +598,12 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
               {document.serieNumero || `${document.serie || ''}-${document.numero || ''}`}
             </Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20`, borderColor: statusColor }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: `${statusColor}20`, borderColor: statusColor },
+            ]}
+          >
             <Text style={[styles.statusText, { color: statusColor }]}>
               {getStatusLabel(document)}
             </Text>
@@ -546,8 +627,13 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Total:</Text>
-            <Text style={[styles.infoValue, styles.totalAmount, isTablet && styles.infoValueTablet]}>
-              {formatCurrency(document.total ?? document.totalVenta, document.moneda || String(document.tipoMoneda || 'PEN'))}
+            <Text
+              style={[styles.infoValue, styles.totalAmount, isTablet && styles.infoValueTablet]}
+            >
+              {formatCurrency(
+                document.total ?? document.totalVenta,
+                document.moneda || String(document.tipoMoneda || 'PEN')
+              )}
             </Text>
           </View>
 
@@ -561,16 +647,59 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
           {!!sunatMessage && (
             <View style={styles.messageBox}>
               <Ionicons name="information-circle-outline" size={16} color={colors.neutral[500]} />
-              <Text style={styles.messageText} numberOfLines={2}>{sunatMessage}</Text>
+              <Text style={styles.messageText} numberOfLines={2}>
+                {sunatMessage}
+              </Text>
             </View>
           )}
         </View>
 
         <View style={styles.cardFooter}>
           <View style={styles.cardActions}>
-            {renderArtifactButton(document, 'pdf', 'PDF', 'document-text', styles.pdfButton, 'application/pdf')}
-            {renderArtifactButton(document, 'xml', 'XML', 'code-slash', styles.xmlButton, 'application/xml')}
-            {renderArtifactButton(document, 'cdr', 'CDR', 'archive', styles.cdrButton, 'application/zip')}
+            {renderArtifactButton(
+              document,
+              'pdf',
+              'PDF',
+              'document-text',
+              styles.pdfButton,
+              'application/pdf'
+            )}
+            {renderArtifactButton(
+              document,
+              'xml',
+              'XML',
+              'code-slash',
+              styles.xmlButton,
+              'application/xml'
+            )}
+            {renderArtifactButton(
+              document,
+              'cdr',
+              'CDR',
+              'archive',
+              styles.cdrButton,
+              'application/zip'
+            )}
+            {isDocumentFailed(document) && (
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  styles.retryButton,
+                  retryingId === document.id && styles.actionButtonDisabled,
+                ]}
+                onPress={(event) => handleRetryDocument(document, event)}
+                disabled={retryingId === document.id}
+              >
+                {retryingId === document.id ? (
+                  <ActivityIndicator size="small" color={colors.neutral[0]} />
+                ) : (
+                  <>
+                    <Ionicons name="refresh" size={16} color={colors.neutral[0]} />
+                    <Text style={styles.actionButtonText}>Reintentar</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
 
           <Ionicons name="chevron-forward" size={20} color={colors.neutral[300]} />
@@ -611,9 +740,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                   Documentos Tributarios
                 </Text>
               </View>
-              <Text style={styles.subtitle}>
-                Consulta de comprobantes electrónicos SUNAT
-              </Text>
+              <Text style={styles.subtitle}>Consulta de comprobantes electrónicos SUNAT</Text>
             </View>
 
             <View style={styles.statsContainer}>
@@ -626,7 +753,12 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.searchContainer}>
             <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+              <Ionicons
+                name="search"
+                size={20}
+                color={colors.neutral[400]}
+                style={styles.searchIcon}
+              />
               <TextInput
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 value={searchTerm}
@@ -662,22 +794,42 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         </LinearGradient>
 
         <View style={styles.quickFiltersContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickFiltersContent}>
-            {documentTypeOptions.map((option) => renderFilterChip(option, selectedDocumentType, setSelectedDocumentType))}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickFiltersContent}
+          >
+            {documentTypeOptions.map((option) =>
+              renderFilterChip(option, selectedDocumentType, setSelectedDocumentType)
+            )}
           </ScrollView>
         </View>
 
         <View style={styles.quickFiltersContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickFiltersContent}>
-            {sunatStatusOptions.map((option) => renderFilterChip(option, selectedStatusSunat, setSelectedStatusSunat))}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickFiltersContent}
+          >
+            {sunatStatusOptions.map((option) =>
+              renderFilterChip(option, selectedStatusSunat, setSelectedStatusSunat)
+            )}
           </ScrollView>
         </View>
 
         {showAdvancedFilters && (
           <View style={styles.advancedFiltersPanel}>
             <Text style={styles.filterSectionTitle}>Archivos disponibles</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.availabilityContent}>
-              {availabilityOptions.map((option) => renderFilterChip(option, selectedAvailability, (value) => setSelectedAvailability(value as AvailabilityFilter)))}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.availabilityContent}
+            >
+              {availabilityOptions.map((option) =>
+                renderFilterChip(option, selectedAvailability, (value) =>
+                  setSelectedAvailability(value as AvailabilityFilter)
+                )
+              )}
             </ScrollView>
 
             <View style={styles.dateRangePickers}>
@@ -702,7 +854,11 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.sortRow}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortOptionsContent}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.sortOptionsContent}
+              >
                 {sortOptions.map((option) => (
                   <TouchableOpacity
                     key={option.value}
@@ -712,7 +868,12 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                       setPage(1);
                     }}
                   >
-                    <Text style={[styles.sortChipText, sortBy === option.value && styles.sortChipTextActive]}>
+                    <Text
+                      style={[
+                        styles.sortChipText,
+                        sortBy === option.value && styles.sortChipTextActive,
+                      ]}
+                    >
                       {option.label}
                     </Text>
                   </TouchableOpacity>
@@ -725,13 +886,22 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                   setPage(1);
                 }}
               >
-                <Ionicons name={sortOrder === 'DESC' ? 'arrow-down' : 'arrow-up'} size={16} color={colors.primary[700]} />
+                <Ionicons
+                  name={sortOrder === 'DESC' ? 'arrow-down' : 'arrow-up'}
+                  size={16}
+                  color={colors.primary[700]}
+                />
                 <Text style={styles.sortOrderText}>{sortOrder}</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.advancedFooter}>
-              <TouchableOpacity style={styles.limitButton} onPress={() => setLimit((current) => (current === 20 ? 50 : current === 50 ? 100 : 20))}>
+              <TouchableOpacity
+                style={styles.limitButton}
+                onPress={() =>
+                  setLimit((current) => (current === 20 ? 50 : current === 50 ? 100 : 20))
+                }
+              >
                 <Ionicons name="list-outline" size={16} color={colors.neutral[700]} />
                 <Text style={styles.limitButtonText}>{limit} por página</Text>
               </TouchableOpacity>
@@ -748,7 +918,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
         <ScrollView
           style={styles.content}
-          contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
+          contentContainerStyle={[
+            styles.contentContainer,
+            isTablet && styles.contentContainerTablet,
+          ]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {loading && documents.length > 0 && (
@@ -778,11 +951,19 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         {pagination.total > 0 && (
           <View style={styles.paginationContainer}>
             <TouchableOpacity
-              style={[styles.paginationButton, !pagination.hasPreviousPage && page === 1 && styles.paginationButtonDisabled]}
+              style={[
+                styles.paginationButton,
+                !pagination.hasPreviousPage && page === 1 && styles.paginationButtonDisabled,
+              ]}
               onPress={handlePreviousPage}
               disabled={!pagination.hasPreviousPage && page === 1}
             >
-              <Text style={[styles.paginationButtonText, !pagination.hasPreviousPage && page === 1 && styles.paginationButtonTextDisabled]}>
+              <Text
+                style={[
+                  styles.paginationButtonText,
+                  !pagination.hasPreviousPage && page === 1 && styles.paginationButtonTextDisabled,
+                ]}
+              >
                 ← Anterior
               </Text>
             </TouchableOpacity>
@@ -797,11 +978,23 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <TouchableOpacity
-              style={[styles.paginationButton, !pagination.hasNextPage && page >= pagination.totalPages && styles.paginationButtonDisabled]}
+              style={[
+                styles.paginationButton,
+                !pagination.hasNextPage &&
+                  page >= pagination.totalPages &&
+                  styles.paginationButtonDisabled,
+              ]}
               onPress={handleNextPage}
               disabled={!pagination.hasNextPage && page >= pagination.totalPages}
             >
-              <Text style={[styles.paginationButtonText, !pagination.hasNextPage && page >= pagination.totalPages && styles.paginationButtonTextDisabled]}>
+              <Text
+                style={[
+                  styles.paginationButtonText,
+                  !pagination.hasNextPage &&
+                    page >= pagination.totalPages &&
+                    styles.paginationButtonTextDisabled,
+                ]}
+              >
                 Siguiente →
               </Text>
             </TouchableOpacity>
@@ -1284,6 +1477,9 @@ const styles = StyleSheet.create({
   },
   cdrButton: {
     backgroundColor: colors.primary[600],
+  },
+  retryButton: {
+    backgroundColor: '#DC2626',
   },
   actionButtonText: {
     fontSize: 11,

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Linking,
   Modal,
@@ -19,8 +18,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { bizlinksApi } from '@/services/api/bizlinks';
 import { Retencion } from '@/types/bizlinks';
 import { formatDateToString } from '@/utils/dateHelpers';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system/legacy';
+import Alert from '@/utils/alert';
+import { saveAndSharePdf, saveAndShareFile } from '@/utils/fileDownload';
+import { isWeb } from '@/utils/platform';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 
@@ -88,7 +88,8 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       retencion.razonSocialProveedor = parseXmlData(xml, 'razonSocialProveedor') || undefined;
     }
     if (!retencion.numeroDocumentoProveedor) {
-      retencion.numeroDocumentoProveedor = parseXmlData(xml, 'numeroDocumentoProveedor') || undefined;
+      retencion.numeroDocumentoProveedor =
+        parseXmlData(xml, 'numeroDocumentoProveedor') || undefined;
     }
     if (!retencion.direccionProveedor) {
       retencion.direccionProveedor = parseXmlData(xml, 'direccionProveedor') || undefined;
@@ -179,8 +180,8 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       serieNumero: retencion.serieNumero,
     });
 
-    // Si hay pdfUrl, abrir directamente
-    if (retencion.pdfUrl) {
+    // En móvil, si hay pdfUrl pública, abrir en navegador
+    if (retencion.pdfUrl && !isWeb()) {
       try {
         setDownloading('pdf');
         console.log('🔗 Opening PDF URL:', retencion.pdfUrl);
@@ -195,34 +196,12 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       return;
     }
 
-    console.log('⚠️ No pdfUrl found, trying API download...');
-
     try {
       setDownloading('pdf');
       const blob = await bizlinksApi.downloadRetencionPDF(retencion.id);
-
-      // Guardar archivo
       const fileName = `${retencion.serieNumero}.pdf`;
-      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
-      // Convertir blob a base64
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const base64data = reader.result as string;
-        const base64 = base64data.split(',')[1];
-
-        await FileSystem.writeAsStringAsync(fileUri, base64, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-
-        // Compartir archivo
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(fileUri);
-        } else {
-          Alert.alert('Éxito', `PDF guardado en: ${fileUri}`);
-        }
-      };
+      await saveAndSharePdf(blob, fileName, `Retención ${retencion.serieNumero}`);
     } catch (error: any) {
       console.error('Error downloading PDF:', error);
       Alert.alert('Error', error.message || 'Error al descargar PDF');
@@ -240,8 +219,8 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       serieNumero: retencion.serieNumero,
     });
 
-    // Si hay xmlSignUrl, abrir directamente
-    if (retencion.xmlSignUrl) {
+    // En móvil, si hay xmlSignUrl pública, abrir en navegador
+    if (retencion.xmlSignUrl && !isWeb()) {
       try {
         setDownloading('xml');
         console.log('🔗 Opening XML URL:', retencion.xmlSignUrl);
@@ -256,31 +235,17 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       return;
     }
 
-    console.log('⚠️ No xmlSignUrl found, trying API download...');
-
     try {
       setDownloading('xml');
       const blob = await bizlinksApi.downloadRetencionXML(retencion.id);
-
       const fileName = `${retencion.serieNumero}.xml`;
-      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const base64data = reader.result as string;
-        const base64 = base64data.split(',')[1];
-
-        await FileSystem.writeAsStringAsync(fileUri, base64, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(fileUri);
-        } else {
-          Alert.alert('Éxito', `XML guardado en: ${fileUri}`);
-        }
-      };
+      await saveAndShareFile({
+        blob,
+        fileName,
+        mimeType: 'application/xml',
+        dialogTitle: `Retención ${retencion.serieNumero}`,
+      });
     } catch (error: any) {
       console.error('Error downloading XML:', error);
       Alert.alert('Error', error.message || 'Error al descargar XML');
@@ -350,10 +315,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       );
     } catch (error: any) {
       console.error('Error al anular retención:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudo anular la retención'
-      );
+      Alert.alert('Error', error.message || 'No se pudo anular la retención');
     } finally {
       setLoading(false);
       setMotivoAnulacion('');
@@ -404,19 +366,22 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
               <Text style={styles.headerSubtitle}>Detalle de Retención</Text>
             </View>
             <View style={styles.headerActions}>
-              <View style={[styles.statusBadgeHeader, { backgroundColor: retencion.isReversed ? colors.danger[500] : statusColor }]}>
-                <Text style={styles.statusTextHeader}>{retencion.isReversed ? 'ANULADA' : statusLabel}</Text>
+              <View
+                style={[
+                  styles.statusBadgeHeader,
+                  { backgroundColor: retencion.isReversed ? colors.danger[500] : statusColor },
+                ]}
+              >
+                <Text style={styles.statusTextHeader}>
+                  {retencion.isReversed ? 'ANULADA' : statusLabel}
+                </Text>
               </View>
               <TouchableOpacity
                 onPress={handleRefresh}
                 style={styles.refreshButtonHeader}
                 disabled={refreshing}
               >
-                <Ionicons
-                  name="refresh"
-                  size={20}
-                  color={colors.neutral[0]}
-                />
+                <Ionicons name="refresh" size={20} color={colors.neutral[0]} />
               </TouchableOpacity>
             </View>
           </View>
@@ -441,9 +406,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                     <Text style={styles.reversedAlertText}>
                       Revertida por: {retencion.reversedBySerieNumero}
                     </Text>
-                    <Text style={styles.reversedAlertText}>
-                      Motivo: {retencion.reversalReason}
-                    </Text>
+                    <Text style={styles.reversedAlertText}>Motivo: {retencion.reversalReason}</Text>
                     <Text style={styles.reversedAlertText}>
                       Fecha de anulación: {formatDateToString(new Date(retencion.reversedAt!))}
                     </Text>
@@ -453,253 +416,273 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
             </View>
           )}
 
-        {/* Información General */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Información General</Text>
-          <View style={styles.infoGrid}>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Fecha de Emisión</Text>
-              <Text style={styles.infoValue}>
-                {formatDateToString(new Date(retencion.fechaEmision))}
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Régimen</Text>
-              <Text style={styles.infoValue}>
-                {retencion.regimenRetencion ? (REGIMEN_LABELS[retencion.regimenRetencion] || retencion.regimenRetencion) : '-'}
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Tasa de Retención</Text>
-              <Text style={styles.infoValue}>{getSafeNumber(retencion.tasaRetencion).toFixed(2)}%</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Moneda</Text>
-              <Text style={styles.infoValue}>{retencion.tipoMoneda || 'PEN'}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Proveedor */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Proveedor</Text>
-          <View style={styles.infoGrid}>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Razón Social</Text>
-              <Text style={styles.infoValue}>
-                {retencion.proveedor?.razonSocialProveedor || retencion.razonSocialProveedor || '-'}
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>RUC</Text>
-              <Text style={styles.infoValue}>
-                {retencion.proveedor?.numeroDocumentoProveedor || retencion.numeroDocumentoProveedor || '-'}
-              </Text>
-            </View>
-            {(retencion.proveedor?.direccionProveedor || retencion.direccionProveedor) && (
+          {/* Información General */}
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Información General</Text>
+            <View style={styles.infoGrid}>
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Dirección</Text>
+                <Text style={styles.infoLabel}>Fecha de Emisión</Text>
                 <Text style={styles.infoValue}>
-                  {retencion.proveedor?.direccionProveedor || retencion.direccionProveedor}
+                  {formatDateToString(new Date(retencion.fechaEmision))}
                 </Text>
               </View>
-            )}
-          </View>
-        </View>
-
-        {/* Totales */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Totales</Text>
-          <View style={styles.totalesContainer}>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total Pagado:</Text>
-              <Text style={styles.totalValue}>
-                {retencion.tipoMoneda || 'PEN'} {getSafeNumber(retencion.importeTotalPagado).toFixed(2)}
-              </Text>
-            </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total Retenido:</Text>
-              <Text style={[styles.totalValue, { color: '#EF4444' }]}>
-                {retencion.tipoMoneda || 'PEN'} {getSafeNumber(retencion.importeTotalRetenido).toFixed(2)}
-              </Text>
-            </View>
-            <View style={[styles.totalRow, styles.totalRowFinal]}>
-              <Text style={styles.totalLabelFinal}>Neto Pagado:</Text>
-              <Text style={styles.totalValueFinal}>
-                {retencion.tipoMoneda || 'PEN'}{' '}
-                {(getSafeNumber(retencion.importeTotalPagado) - getSafeNumber(retencion.importeTotalRetenido)).toFixed(2)}
-              </Text>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Régimen</Text>
+                <Text style={styles.infoValue}>
+                  {retencion.regimenRetencion
+                    ? REGIMEN_LABELS[retencion.regimenRetencion] || retencion.regimenRetencion
+                    : '-'}
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Tasa de Retención</Text>
+                <Text style={styles.infoValue}>
+                  {getSafeNumber(retencion.tasaRetencion).toFixed(2)}%
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Moneda</Text>
+                <Text style={styles.infoValue}>{retencion.tipoMoneda || 'PEN'}</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* Documentos Relacionados */}
-        {retencion.items && retencion.items.length > 0 && (
+          {/* Proveedor */}
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>
-              Documentos Relacionados ({retencion.items.length})
-            </Text>
-            {retencion.items.map((item, index) => (
-              <View key={index} style={styles.itemCard}>
-                <View style={styles.itemHeader}>
-                  <Text style={styles.itemNumero}>{item.numeroDocumentoRelacionado}</Text>
-                  <Text style={styles.itemFecha}>
-                    {formatDateToString(new Date(item.fechaEmisionDocumentoRelacionado))}
+            <Text style={styles.sectionTitle}>Proveedor</Text>
+            <View style={styles.infoGrid}>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Razón Social</Text>
+                <Text style={styles.infoValue}>
+                  {retencion.proveedor?.razonSocialProveedor ||
+                    retencion.razonSocialProveedor ||
+                    '-'}
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>RUC</Text>
+                <Text style={styles.infoValue}>
+                  {retencion.proveedor?.numeroDocumentoProveedor ||
+                    retencion.numeroDocumentoProveedor ||
+                    '-'}
+                </Text>
+              </View>
+              {(retencion.proveedor?.direccionProveedor || retencion.direccionProveedor) && (
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Dirección</Text>
+                  <Text style={styles.infoValue}>
+                    {retencion.proveedor?.direccionProveedor || retencion.direccionProveedor}
                   </Text>
                 </View>
-                <View style={styles.itemBody}>
-                  <View style={styles.itemRow}>
-                    <Text style={styles.itemLabel}>Importe Total:</Text>
-                    <Text style={styles.itemValue}>
-                      {item.tipoMonedaDocumentoRelacionado}{' '}
-                      {getSafeNumber(item.importeTotalDocumentoRelacionado).toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.itemRow}>
-                    <Text style={styles.itemLabel}>Pago sin Retención:</Text>
-                    <Text style={styles.itemValue}>
-                      {item.monedaPago} {getSafeNumber(item.importePagoSinRetencion).toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.itemRow}>
-                    <Text style={styles.itemLabel}>Importe Retenido:</Text>
-                    <Text style={[styles.itemValue, { color: '#EF4444' }]}>
-                      {item.monedaImporteRetenido} {getSafeNumber(item.importeRetenido).toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={[styles.itemRow, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }]}>
-                    <Text style={styles.itemLabelBold}>Neto Pagado:</Text>
-                    <Text style={styles.itemValueBold}>
-                      {item.monedaMontoNetoPagado} {getSafeNumber(item.importeTotalPagarNeto).toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Observaciones */}
-        {retencion.observaciones && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Observaciones</Text>
-            <Text style={styles.observaciones}>{retencion.observaciones}</Text>
-          </View>
-        )}
-
-        {/* Acciones */}
-        <View style={styles.actionsCard}>
-          <Text style={styles.sectionTitle}>Descargar Archivos</Text>
-          <View style={styles.actionsGrid}>
-            <TouchableOpacity
-              style={[styles.actionButton, downloading === 'pdf' && styles.actionButtonDisabled]}
-              onPress={handleDownloadPDF}
-              disabled={downloading === 'pdf'}
-            >
-              <Ionicons
-                name="document-text"
-                size={24}
-                color={downloading === 'pdf' ? '#9CA3AF' : '#EF4444'}
-              />
-              <Text style={styles.actionButtonText}>
-                {downloading === 'pdf' ? 'Descargando...' : 'PDF'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, downloading === 'xml' && styles.actionButtonDisabled]}
-              onPress={handleDownloadXML}
-              disabled={downloading === 'xml'}
-            >
-              <Ionicons
-                name="code-slash"
-                size={24}
-                color={downloading === 'xml' ? '#9CA3AF' : '#3B82F6'}
-              />
-              <Text style={styles.actionButtonText}>
-                {downloading === 'xml' ? 'Descargando...' : 'XML'}
-              </Text>
-            </TouchableOpacity>
-
-            {retencion.pdfUrl && (
-              <TouchableOpacity style={styles.actionButton} onPress={handleOpenPDF}>
-                <Ionicons name="open-outline" size={24} color="#10B981" />
-                <Text style={styles.actionButtonText}>Abrir PDF</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {/* Botón de Anular */}
-        {!retencion.isReversed && (
-          <View style={styles.actionsCard}>
-            <Text style={styles.sectionTitle}>Acciones</Text>
-            <TouchableOpacity
-              style={styles.anularButton}
-              onPress={handleAnularRetencion}
-              disabled={loading}
-            >
-              <Ionicons name="ban" size={24} color="#FFFFFF" />
-              <Text style={styles.anularButtonText}>
-                {loading ? 'Procesando...' : 'Anular Retención'}
-              </Text>
-            </TouchableOpacity>
-            <Text style={styles.anularWarning}>
-              ⚠️ Esta acción generará un documento de reversión y no se puede deshacer
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Modal de Anulación */}
-      <Modal
-        visible={showAnularModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowAnularModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Anular Retención</Text>
-            <Text style={styles.modalSubtitle}>
-              {retencion?.serieNumero}
-            </Text>
-            <Text style={styles.modalWarning}>
-              ⚠️ Esta acción generará un documento de reversión y no se puede deshacer.
-            </Text>
-
-            <Text style={styles.modalLabel}>Motivo de anulación *</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Ingrese el motivo (mínimo 5 caracteres)"
-              value={motivoAnulacion}
-              onChangeText={setMotivoAnulacion}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              autoFocus
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalButtonCancel}
-                onPress={() => {
-                  setShowAnularModal(false);
-                  setMotivoAnulacion('');
-                }}
-              >
-                <Text style={styles.modalButtonCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalButtonConfirm}
-                onPress={confirmarAnulacion}
-              >
-                <Text style={styles.modalButtonConfirmText}>Anular</Text>
-              </TouchableOpacity>
+              )}
             </View>
           </View>
-        </View>
+
+          {/* Totales */}
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Totales</Text>
+            <View style={styles.totalesContainer}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Total Pagado:</Text>
+                <Text style={styles.totalValue}>
+                  {retencion.tipoMoneda || 'PEN'}{' '}
+                  {getSafeNumber(retencion.importeTotalPagado).toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Total Retenido:</Text>
+                <Text style={[styles.totalValue, { color: '#EF4444' }]}>
+                  {retencion.tipoMoneda || 'PEN'}{' '}
+                  {getSafeNumber(retencion.importeTotalRetenido).toFixed(2)}
+                </Text>
+              </View>
+              <View style={[styles.totalRow, styles.totalRowFinal]}>
+                <Text style={styles.totalLabelFinal}>Neto Pagado:</Text>
+                <Text style={styles.totalValueFinal}>
+                  {retencion.tipoMoneda || 'PEN'}{' '}
+                  {(
+                    getSafeNumber(retencion.importeTotalPagado) -
+                    getSafeNumber(retencion.importeTotalRetenido)
+                  ).toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Documentos Relacionados */}
+          {retencion.items && retencion.items.length > 0 && (
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>
+                Documentos Relacionados ({retencion.items.length})
+              </Text>
+              {retencion.items.map((item, index) => (
+                <View key={index} style={styles.itemCard}>
+                  <View style={styles.itemHeader}>
+                    <Text style={styles.itemNumero}>{item.numeroDocumentoRelacionado}</Text>
+                    <Text style={styles.itemFecha}>
+                      {formatDateToString(new Date(item.fechaEmisionDocumentoRelacionado))}
+                    </Text>
+                  </View>
+                  <View style={styles.itemBody}>
+                    <View style={styles.itemRow}>
+                      <Text style={styles.itemLabel}>Importe Total:</Text>
+                      <Text style={styles.itemValue}>
+                        {item.tipoMonedaDocumentoRelacionado}{' '}
+                        {getSafeNumber(item.importeTotalDocumentoRelacionado).toFixed(2)}
+                      </Text>
+                    </View>
+                    <View style={styles.itemRow}>
+                      <Text style={styles.itemLabel}>Pago sin Retención:</Text>
+                      <Text style={styles.itemValue}>
+                        {item.monedaPago} {getSafeNumber(item.importePagoSinRetencion).toFixed(2)}
+                      </Text>
+                    </View>
+                    <View style={styles.itemRow}>
+                      <Text style={styles.itemLabel}>Importe Retenido:</Text>
+                      <Text style={[styles.itemValue, { color: '#EF4444' }]}>
+                        {item.monedaImporteRetenido}{' '}
+                        {getSafeNumber(item.importeRetenido).toFixed(2)}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.itemRow,
+                        {
+                          marginTop: 8,
+                          paddingTop: 8,
+                          borderTopWidth: 1,
+                          borderTopColor: '#E5E7EB',
+                        },
+                      ]}
+                    >
+                      <Text style={styles.itemLabelBold}>Neto Pagado:</Text>
+                      <Text style={styles.itemValueBold}>
+                        {item.monedaMontoNetoPagado}{' '}
+                        {getSafeNumber(item.importeTotalPagarNeto).toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Observaciones */}
+          {retencion.observaciones && (
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Observaciones</Text>
+              <Text style={styles.observaciones}>{retencion.observaciones}</Text>
+            </View>
+          )}
+
+          {/* Acciones */}
+          <View style={styles.actionsCard}>
+            <Text style={styles.sectionTitle}>Descargar Archivos</Text>
+            <View style={styles.actionsGrid}>
+              <TouchableOpacity
+                style={[styles.actionButton, downloading === 'pdf' && styles.actionButtonDisabled]}
+                onPress={handleDownloadPDF}
+                disabled={downloading === 'pdf'}
+              >
+                <Ionicons
+                  name="document-text"
+                  size={24}
+                  color={downloading === 'pdf' ? '#9CA3AF' : '#EF4444'}
+                />
+                <Text style={styles.actionButtonText}>
+                  {downloading === 'pdf' ? 'Descargando...' : 'PDF'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionButton, downloading === 'xml' && styles.actionButtonDisabled]}
+                onPress={handleDownloadXML}
+                disabled={downloading === 'xml'}
+              >
+                <Ionicons
+                  name="code-slash"
+                  size={24}
+                  color={downloading === 'xml' ? '#9CA3AF' : '#3B82F6'}
+                />
+                <Text style={styles.actionButtonText}>
+                  {downloading === 'xml' ? 'Descargando...' : 'XML'}
+                </Text>
+              </TouchableOpacity>
+
+              {retencion.pdfUrl && (
+                <TouchableOpacity style={styles.actionButton} onPress={handleOpenPDF}>
+                  <Ionicons name="open-outline" size={24} color="#10B981" />
+                  <Text style={styles.actionButtonText}>Abrir PDF</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Botón de Anular */}
+          {!retencion.isReversed && (
+            <View style={styles.actionsCard}>
+              <Text style={styles.sectionTitle}>Acciones</Text>
+              <TouchableOpacity
+                style={styles.anularButton}
+                onPress={handleAnularRetencion}
+                disabled={loading}
+              >
+                <Ionicons name="ban" size={24} color="#FFFFFF" />
+                <Text style={styles.anularButtonText}>
+                  {loading ? 'Procesando...' : 'Anular Retención'}
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.anularWarning}>
+                ⚠️ Esta acción generará un documento de reversión y no se puede deshacer
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Modal de Anulación */}
+        <Modal
+          visible={showAnularModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowAnularModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Anular Retención</Text>
+              <Text style={styles.modalSubtitle}>{retencion?.serieNumero}</Text>
+              <Text style={styles.modalWarning}>
+                ⚠️ Esta acción generará un documento de reversión y no se puede deshacer.
+              </Text>
+
+              <Text style={styles.modalLabel}>Motivo de anulación *</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Ingrese el motivo (mínimo 5 caracteres)"
+                value={motivoAnulacion}
+                onChangeText={setMotivoAnulacion}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                autoFocus
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.modalButtonCancel}
+                  onPress={() => {
+                    setShowAnularModal(false);
+                    setMotivoAnulacion('');
+                  }}
+                >
+                  <Text style={styles.modalButtonCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.modalButtonConfirm} onPress={confirmarAnulacion}>
+                  <Text style={styles.modalButtonConfirmText}>Anular</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </Modal>
       </SafeAreaView>
     </ScreenLayout>

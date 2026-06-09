@@ -11,6 +11,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "web:serve": "npx serve web-build -p 8082",
+    "electron": "npm run build:web:quick && concurrently -k -s first -n serve,electron -c blue,green \"npm run web:serve\" \"wait-on tcp:8082 && electron electron/main.js\"",
     "electron:run": "npm run build:web:quick && concurrently \"npm run web:serve\" \"wait-on http://localhost:8082 && electron electron/main.js\"",
     "electron:dev": "cross-env NODE_ENV=development npm run build:web:quick && concurrently \"npm run web:serve\" \"wait-on http://localhost:8082 && electron electron/main.js\"",
     "electron:debug": "electron electron/main.js --devtools",

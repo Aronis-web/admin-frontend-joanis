@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
   Platform,
 } from 'react-native';
+import Alert from '@/utils/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { saveAndSharePdf } from '@/utils/fileDownload';
@@ -116,7 +116,11 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
       const timestamp = new Date().getTime();
       const fileName = `reporte-totales-participante-${totalsData.participantName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
 
-      await saveAndSharePdf(pdfBlob, fileName, `Reporte de Totales - ${totalsData.participantName}`);
+      await saveAndSharePdf(
+        pdfBlob,
+        fileName,
+        `Reporte de Totales - ${totalsData.participantName}`
+      );
 
       if (Platform.OS === 'web') {
         Alert.alert('Éxito', 'El reporte se está descargando');
@@ -333,7 +337,7 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
                         style={[
                           styles.detailLabel,
                           isTablet && styles.detailLabelTablet,
-                          styles.totalLabel,
+                          styles.totalLabelBold,
                         ]}
                       >
                         Total Compra:
@@ -354,7 +358,7 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
                         style={[
                           styles.detailLabel,
                           isTablet && styles.detailLabelTablet,
-                          styles.totalLabel,
+                          styles.totalLabelBold,
                         ]}
                       >
                         Total Venta:
@@ -678,7 +682,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E2E8F0',
     marginTop: 4,
   },
-  totalLabel: {
+  totalLabelBold: {
     fontWeight: '600',
   },
   downloadButton: {

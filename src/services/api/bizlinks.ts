@@ -85,7 +85,9 @@ export const bizlinksApi = {
   // ==================== DOCUMENTS ====================
 
   // Get all tax documents - GET /api/admin/bizlinks-documents
-  getDocuments: async (params?: GetBizlinksDocumentsParams): Promise<GetBizlinksDocumentsResponse> => {
+  getDocuments: async (
+    params?: GetBizlinksDocumentsParams
+  ): Promise<GetBizlinksDocumentsResponse> => {
     return apiClient.get<GetBizlinksDocumentsResponse>('/admin/bizlinks-documents', { params });
   },
 
@@ -137,6 +139,12 @@ export const bizlinksApi = {
   // Refresh document status - POST /bizlinks/documents/:id/refresh
   refreshDocumentStatus: async (id: string): Promise<BizlinksDocument> => {
     return apiClient.post<BizlinksDocument>(`/bizlinks/documents/${id}/refresh`);
+  },
+
+  // Retry failed document - POST /bizlinks/documents/:id/retry
+  // Resetea retry_count, re-encola tarea fiscal y dispara DISPATCH o RECONCILIATION
+  retryDocument: async (id: string): Promise<BizlinksDocument> => {
+    return apiClient.post<BizlinksDocument>(`/bizlinks/documents/${id}/retry`);
   },
 
   // Download artifacts (PDF, XML, CDR) - POST /bizlinks/documents/:id/download-artifacts
@@ -191,11 +199,15 @@ export const bizlinksApi = {
 
   // Validate RUC - GET /bizlinks/utils/validate-ruc/:ruc
   validateRuc: async (ruc: string): Promise<{ valid: boolean; message?: string }> => {
-    return apiClient.get<{ valid: boolean; message?: string }>(`/bizlinks/utils/validate-ruc/${ruc}`);
+    return apiClient.get<{ valid: boolean; message?: string }>(
+      `/bizlinks/utils/validate-ruc/${ruc}`
+    );
   },
 
   // Get ubigeo info - GET /bizlinks/utils/ubigeo/:code
-  getUbigeoInfo: async (code: string): Promise<{
+  getUbigeoInfo: async (
+    code: string
+  ): Promise<{
     code: string;
     departamento: string;
     provincia: string;

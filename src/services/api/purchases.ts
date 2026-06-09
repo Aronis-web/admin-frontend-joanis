@@ -126,7 +126,9 @@ class PurchasesService {
    * Get purchase validation progress
    */
   async getPurchaseValidationProgress(id: string): Promise<PurchaseValidationProgressResponse> {
-    return apiClient.get<PurchaseValidationProgressResponse>(`${this.basePath}/${id}/validation-progress`);
+    return apiClient.get<PurchaseValidationProgressResponse>(
+      `${this.basePath}/${id}/validation-progress`
+    );
   }
 
   // ============================================
@@ -335,6 +337,17 @@ class PurchasesService {
     );
   }
 
+  /**
+   * Delete ALL validations for a purchase (across every product line)
+   */
+  async deleteAllValidations(
+    purchaseId: string
+  ): Promise<{ deletedCount: number; message: string }> {
+    return apiClient.delete<{ deletedCount: number; message: string }>(
+      `${this.basePath}/${purchaseId}/validations`
+    );
+  }
+
   // ============================================
   // OCR Scanner
   // ============================================
@@ -388,9 +401,8 @@ class PurchasesService {
     }
 
     // Select endpoint based on provider
-    const endpoint = provider === 'gemini'
-      ? `${this.basePath}/ocr/gemini/scan`
-      : `${this.basePath}/ocr/scan`;
+    const endpoint =
+      provider === 'gemini' ? `${this.basePath}/ocr/gemini/scan` : `${this.basePath}/ocr/scan`;
 
     // ApiClient will automatically use fetch for FormData
     // DO NOT set Content-Type - fetch will handle it with proper boundary
@@ -418,9 +430,8 @@ class PurchasesService {
     const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
 
     // Select endpoint based on provider
-    const endpoint = provider === 'gemini'
-      ? `${this.basePath}/ocr/gemini/scan`
-      : `${this.basePath}/ocr/scan`;
+    const endpoint =
+      provider === 'gemini' ? `${this.basePath}/ocr/gemini/scan` : `${this.basePath}/ocr/scan`;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -458,10 +469,7 @@ class PurchasesService {
           formData.append('observaciones', observaciones);
         }
 
-        const response = await apiClient.post<OcrScanResponse>(
-          endpoint,
-          formData
-        );
+        const response = await apiClient.post<OcrScanResponse>(endpoint, formData);
 
         // Accumulate results
         if (response.items && Array.isArray(response.items)) {
@@ -494,7 +502,12 @@ class PurchasesService {
    * Scan a single document (for backward compatibility)
    * @deprecated Use scanDocuments instead for better performance
    */
-  async scanDocument(uri: string, filename: string, mimeType: string, provider: 'openai' | 'gemini' = 'openai'): Promise<OcrScanResponse> {
+  async scanDocument(
+    uri: string,
+    filename: string,
+    mimeType: string,
+    provider: 'openai' | 'gemini' = 'openai'
+  ): Promise<OcrScanResponse> {
     // Use the new batch endpoint with a single file
     return this.scanDocuments([{ uri, filename, mimeType }], undefined, provider);
   }
