@@ -12,7 +12,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { appsApi, App, GetAppsParams } from '@/services/api';
@@ -31,6 +32,8 @@ interface AppsScreenProps {
 }
 
 export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { user, logout } = useAuthStore();
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(true);
@@ -208,12 +211,12 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
 
   const getAppTypeColor = (type: AppType): string => {
     const typeColors: Record<AppType, string> = {
-      [AppType.SALES]: colors.success[500],
-      [AppType.POS]: colors.warning[500],
-      [AppType.ADMIN]: colors.accent[500],
-      [AppType.INTERNAL]: colors.neutral[500],
+      [AppType.SALES]: theme.color.icon.success,
+      [AppType.POS]: theme.color.icon.warning,
+      [AppType.ADMIN]: theme.color.brand.accent,
+      [AppType.INTERNAL]: theme.color.icon.subtle,
     };
-    return typeColors[type] || colors.neutral[500];
+    return typeColors[type] || theme.color.icon.subtle;
   };
 
   const renderAppCard = (app: App) => (
@@ -282,7 +285,7 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
             placeholder="Buscar por nombre o código..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor={colors.neutral[400]}
+            placeholderTextColor={theme.color.text.placeholder}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -300,7 +303,7 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.accent[500]} />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando apps...</Text>
           </View>
         ) : filteredApps.length === 0 ? (
@@ -400,36 +403,36 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 24,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     fontWeight: '600',
   },
   headerTitleContainer: {
@@ -439,11 +442,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     marginTop: 2,
   },
   headerRight: {
@@ -452,26 +455,26 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.xl,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   searchIcon: {
     fontSize: 18,
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   clearIcon: {
     fontSize: 16,
-    color: colors.neutral[400],
-    paddingHorizontal: spacing[2],
+    color: theme.color.text.placeholder,
+    paddingHorizontal: theme.space[2],
   },
   content: {
     flex: 1,
@@ -487,9 +490,9 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   loadingText: {
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
     fontSize: 15,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   emptyContainer: {
     flex: 1,
@@ -505,26 +508,26 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
     textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   appsGrid: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   appCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    padding: spacing[4],
-    marginBottom: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
+    padding: theme.space[4],
+    marginBottom: theme.space[3],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -538,11 +541,11 @@ const styles = StyleSheet.create({
   appIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.background.secondary,
+    borderRadius: theme.radii.xl,
+    backgroundColor: theme.color.background.subtle,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   appIcon: {
     fontSize: 24,
@@ -553,13 +556,13 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   appCode: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontFamily: 'monospace',
   },
   statusIndicator: {
@@ -570,10 +573,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusActive: {
-    backgroundColor: colors.success[100],
+    backgroundColor: theme.color.state.success.background,
   },
   statusInactive: {
-    backgroundColor: colors.danger[100],
+    backgroundColor: theme.color.state.danger.background,
   },
   statusDot: {
     width: 10,
@@ -581,10 +584,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   statusDotActive: {
-    backgroundColor: colors.success[500],
+    backgroundColor: theme.color.state.success.border,
   },
   statusDotInactive: {
-    backgroundColor: colors.danger[500],
+    backgroundColor: theme.color.state.danger.border,
   },
   appCardFooter: {
     flexDirection: 'row',
@@ -592,9 +595,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   typeBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.md,
   },
   typeBadgeText: {
     fontSize: 12,
@@ -602,19 +605,19 @@ const styles = StyleSheet.create({
   },
   appDate: {
     fontSize: 12,
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
   },
   fab: {
     position: 'absolute',
-    right: spacing[5],
+    right: theme.space[5],
     bottom: 90,
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.accent[500],
+    backgroundColor: theme.color.brand.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.accent[500],
+    shadowColor: theme.color.brand.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -622,7 +625,7 @@ const styles = StyleSheet.create({
   },
   fabIcon: {
     fontSize: 28,
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
     fontWeight: '300',
   },
 });
