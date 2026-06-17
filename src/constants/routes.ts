@@ -105,6 +105,7 @@ export const MAIN_ROUTES = {
   USERS: 'Users',
   ROLES_PERMISSIONS: 'RolesPermissions',
   PERMISSIONS_DEBUG: 'PermissionsDebug',
+  THEME_PLAYGROUND: 'ThemePlayground',
 
   // Company & Sites
   COMPANIES: 'Companies',

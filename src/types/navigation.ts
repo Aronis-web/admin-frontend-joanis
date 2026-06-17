@@ -184,6 +184,7 @@ export type MainStackParamList = {
   Users: undefined;
   RolesPermissions: undefined;
   PermissionsDebug: undefined;
+  ThemePlayground: undefined;
 
   // Company & Sites
   Companies: undefined;

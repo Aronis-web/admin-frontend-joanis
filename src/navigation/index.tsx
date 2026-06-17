@@ -56,6 +56,7 @@ const SitesScreen = lazyLoad(() => import('@/screens/Sites/SitesScreen').then(m 
 const WarehousesScreen = lazyLoad(() => import('@/screens/Warehouses').then(m => ({ default: m.WarehousesScreen })));
 const WarehouseAreasScreen = lazyLoad(() => import('@/screens/Warehouses').then(m => ({ default: m.WarehouseAreasScreen })));
 const PermissionsDebugScreen = lazyLoad(() => import('@/screens/Debug/PermissionsDebugScreen').then(m => ({ default: m.PermissionsDebugScreen })));
+const ThemePlaygroundScreen = lazyLoad(() => import('@/screens/Debug/ThemePlaygroundScreen').then(m => ({ default: m.ThemePlaygroundScreen })));
 const ProductsScreen = lazyLoad(() => import('@/screens/Inventory/ProductsScreen').then(m => ({ default: m.ProductsScreen })), 'Cargando productos...');
 const StockScreen = lazyLoad(() => import('@/screens/Inventory/StockScreen').then(m => ({ default: m.StockScreen })), 'Cargando inventario...');
 const PhotosScreen = lazyLoad(() => import('@/screens/Photos').then(m => ({ default: m.PhotosScreen })), 'Cargando campañas de fotos...');
@@ -354,6 +355,13 @@ const MainStack = React.memo(() => {
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.THEME_PLAYGROUND}
+        component={ThemePlaygroundScreen}
+        options={{
+          title: 'Theme Playground',
+        }}
+      />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.PRODUCTS}
         options={{
