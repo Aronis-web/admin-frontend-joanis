@@ -19,3 +19,9 @@ electron/build/*
 
 # Firebender session data (markers de hooks, no versionar)
 .firebender/.session/
+
+# Augment IDE plugin state (per-machine)
+.idea/AugmentWebviewStateStore.xml
+
+# Recovery workspace (artefactos extraidos del instalador para reconstruccion)
+.recovery/
