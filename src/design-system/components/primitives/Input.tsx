@@ -16,9 +16,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
-import { colors } from '../../tokens/colors';
-import { textVariants } from '../../tokens/typography';
-import { spacing, borderRadius, iconSizes } from '../../tokens/spacing';
+import { iconSizes } from '../../tokens/spacing';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 import { activeOpacity } from '../../tokens/animations';
 
 export type InputSize = 'small' | 'medium' | 'large';
@@ -96,6 +96,8 @@ export const Input = forwardRef<TextInput, InputProps>(({
   secureTextEntry,
   ...props
 }, ref) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [isFocused, setIsFocused] = useState(false);
   const [isSecure, setIsSecure] = useState(secureTextEntry);
 
@@ -134,10 +136,10 @@ export const Input = forwardRef<TextInput, InputProps>(({
   };
 
   const getIconColor = (): string => {
-    if (disabled) return colors.icon.disabled;
-    if (hasError) return colors.icon.danger;
-    if (isFocused) return colors.icon.primary;
-    return colors.icon.tertiary;
+    if (disabled) return theme.color.icon.disabled;
+    if (hasError) return theme.color.icon.danger;
+    if (isFocused) return theme.color.icon.default;
+    return theme.color.icon.subtle;
   };
 
   return (
@@ -149,7 +151,7 @@ export const Input = forwardRef<TextInput, InputProps>(({
             {label}
           </Text>
           {required && (
-            <Text variant="labelMedium" color={colors.danger[500]}>
+            <Text variant="labelMedium" color={theme.color.text.danger}>
               {' *'}
             </Text>
           )}
@@ -173,7 +175,7 @@ export const Input = forwardRef<TextInput, InputProps>(({
         <TextInput
           ref={ref}
           style={inputStyles}
-          placeholderTextColor={colors.text.placeholder}
+          placeholderTextColor={theme.color.text.placeholder}
           editable={isEditable}
           secureTextEntry={isSecure}
           onFocus={handleFocus}
@@ -226,9 +228,9 @@ export const Input = forwardRef<TextInput, InputProps>(({
 
 Input.displayName = 'Input';
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
 
   // ============================================
@@ -236,7 +238,7 @@ const styles = StyleSheet.create({
   // ============================================
   labelContainer: {
     flexDirection: 'row',
-    marginBottom: spacing[1.5],
+    marginBottom: theme.space[1.5],
   },
 
   // ============================================
@@ -245,26 +247,26 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1.5,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.md,
     overflow: 'hidden',
   },
 
   inputContainerFocused: {
-    borderColor: colors.primary[900],
-    backgroundColor: colors.surface.primary,
+    borderColor: theme.color.border.focus,
+    backgroundColor: theme.color.surface.base,
   },
 
   inputContainerError: {
-    borderColor: colors.danger[500],
-    backgroundColor: colors.danger[50],
+    borderColor: theme.color.border.error,
+    backgroundColor: theme.color.state.danger.background,
   },
 
   inputContainerDisabled: {
-    backgroundColor: colors.surface.disabled,
-    borderColor: colors.border.light,
+    backgroundColor: theme.color.surface.disabled,
+    borderColor: theme.color.border.subtle,
   },
 
   // ============================================
@@ -287,46 +289,46 @@ const styles = StyleSheet.create({
   // ============================================
   input: {
     flex: 1,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    color: colors.text.primary,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
+    color: theme.color.text.body,
   },
 
   inputText_small: {
-    ...textVariants.bodySmall,
+    ...theme.text.bodySmall,
   },
 
   inputText_medium: {
-    ...textVariants.bodyMedium,
+    ...theme.text.bodyMedium,
   },
 
   inputText_large: {
-    ...textVariants.bodyLarge,
+    ...theme.text.bodyLarge,
   },
 
   inputWithLeftIcon: {
-    paddingLeft: spacing[1],
+    paddingLeft: theme.space[1],
   },
 
   inputWithRightIcon: {
-    paddingRight: spacing[1],
+    paddingRight: theme.space[1],
   },
 
   inputDisabled: {
-    color: colors.text.disabled,
+    color: theme.color.text.disabled,
   },
 
   // ============================================
   // ICON STYLES
   // ============================================
   leftIconContainer: {
-    paddingLeft: spacing[3],
+    paddingLeft: theme.space[3],
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   rightIconContainer: {
-    paddingRight: spacing[3],
+    paddingRight: theme.space[3],
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 44,
@@ -337,8 +339,8 @@ const styles = StyleSheet.create({
   // HELPER TEXT STYLES
   // ============================================
   helperText: {
-    marginTop: spacing[1],
-    marginLeft: spacing[1],
+    marginTop: theme.space[1],
+    marginLeft: theme.space[1],
   },
 });
 

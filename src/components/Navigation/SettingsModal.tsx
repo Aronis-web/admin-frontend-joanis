@@ -57,6 +57,7 @@ import {
 
 // Store
 import { useThemeStore } from '@/store/theme';
+import { useTheme } from '@/design-system/themes';
 
 // Configuración de GitHub para actualizaciones
 const GITHUB_OWNER = 'Aronis-web';
@@ -142,10 +143,18 @@ interface SettingsCardProps {
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({ title, icon, children }) => {
+  const theme = useTheme();
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.color.surface.subtle, borderColor: theme.color.border.subtle },
+      ]}
+    >
       <View style={styles.cardHeader}>
-        <View style={styles.cardIconContainer}>
+        <View
+          style={[styles.cardIconContainer, { backgroundColor: theme.color.surface.base }]}
+        >
           <Ionicons name={icon} size={iconSizes.md} color={colors.primary[900]} />
         </View>
         <Text variant="titleSmall" color="primary">
@@ -178,6 +187,7 @@ const compareVersions = (v1: string, v2: string): number => {
 // ============================================
 export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { isDarkMode, toggleMode } = useThemeStore();
 
   // Obtener versión directamente de package.json (siempre disponible)
@@ -575,10 +585,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
+      <View style={[styles.modalContainer, { backgroundColor: theme.color.overlay.medium }]}>
         <View
           style={[
             styles.modalContent,
+            { backgroundColor: theme.color.surface.elevated },
             {
               paddingTop: insets.top + spacing[4],
               paddingBottom: insets.bottom + spacing[4],
@@ -588,7 +599,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <View style={styles.headerIconContainer}>
+              <View
+                style={[styles.headerIconContainer, { backgroundColor: theme.color.brand.accentSoft }]}
+              >
                 <Ionicons name="settings" size={iconSizes.lg} color={colors.primary[900]} />
               </View>
               <Title size="large">Configuración</Title>
@@ -608,7 +621,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
             <SettingsCard title="Apariencia" icon="color-palette-outline">
               <View style={styles.settingRow}>
                 <View style={styles.settingInfo}>
-                  <View style={styles.settingIconSmall}>
+                  <View
+                    style={[styles.settingIconSmall, { backgroundColor: theme.color.surface.base }]}
+                  >
                     <Ionicons
                       name={isDarkMode ? 'moon' : 'sunny'}
                       size={iconSizes.sm}
