@@ -11,8 +11,8 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Text } from './Text';
-import { colors } from '../../tokens/colors';
 import { spacing } from '../../tokens/spacing';
+import { useTheme } from '../../themes';
 
 export interface DividerProps {
   /**
@@ -56,10 +56,12 @@ export const Divider: React.FC<DividerProps> = ({
   variant = 'full',
   label,
   thickness = 1,
-  color = colors.border.light,
+  color,
   spacing: spacingProp = 'medium',
   style,
 }) => {
+  const theme = useTheme();
+  const lineColor = color ?? theme.color.border.subtle;
   const isHorizontal = orientation === 'horizontal';
 
   const getMargin = () => {
@@ -107,7 +109,7 @@ export const Divider: React.FC<DividerProps> = ({
             styles.line,
             {
               height: thickness,
-              backgroundColor: color,
+              backgroundColor: lineColor,
               flex: 1,
             },
           ]}
@@ -124,7 +126,7 @@ export const Divider: React.FC<DividerProps> = ({
             styles.line,
             {
               height: thickness,
-              backgroundColor: color,
+              backgroundColor: lineColor,
               flex: 1,
             },
           ]}
@@ -141,7 +143,7 @@ export const Divider: React.FC<DividerProps> = ({
           styles.horizontal,
           {
             height: thickness,
-            backgroundColor: color,
+            backgroundColor: lineColor,
             marginVertical: margin,
             marginHorizontal: inset,
           },
@@ -158,7 +160,7 @@ export const Divider: React.FC<DividerProps> = ({
         styles.vertical,
         {
           width: thickness,
-          backgroundColor: color,
+          backgroundColor: lineColor,
           marginHorizontal: margin,
           marginVertical: inset,
         },

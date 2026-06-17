@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
 import { colors } from '../../tokens/colors';
 import { avatarSizes, borderRadius, iconSizes } from '../../tokens/spacing';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export type AvatarSize = 'xs' | 'small' | 'medium' | 'large' | 'xl' | '2xl';
 
@@ -91,6 +93,8 @@ export const Avatar: React.FC<AvatarProps> = ({
   backgroundColor,
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const dimension = avatarSizes[sizeMap[size]];
   const radius = square ? borderRadius.md : dimension / 2;
 
@@ -138,7 +142,8 @@ export const Avatar: React.FC<AvatarProps> = ({
       width: dimension,
       height: dimension,
       borderRadius: radius,
-      backgroundColor: backgroundColor || (name ? getBackgroundColor(name) : colors.neutral[300]),
+      backgroundColor:
+        backgroundColor || (name ? getBackgroundColor(name) : theme.color.surface.muted),
     },
     style,
   ];
@@ -168,7 +173,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       <View style={containerStyles}>
         <Text
           variant="titleMedium"
-          color={colors.text.inverse}
+          color={theme.color.text.onAction}
           style={{ fontSize: getFontSize() }}
         >
           {getInitials(name)}
@@ -183,7 +188,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       <Ionicons
         name="person"
         size={getIconSize()}
-        color={colors.icon.inverse}
+        color={theme.color.icon.inverse}
       />
     </View>
   );
@@ -220,6 +225,8 @@ export const AvatarGroup: React.FC<AvatarGroupProps> = ({
   size = 'medium',
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const visibleAvatars = avatars.slice(0, max);
   const remainingCount = avatars.length - max;
   const dimension = avatarSizes[sizeMap[size]];
@@ -264,7 +271,7 @@ export const AvatarGroup: React.FC<AvatarGroupProps> = ({
                 width: dimension,
                 height: dimension,
                 borderRadius: dimension / 2,
-                backgroundColor: colors.neutral[200],
+                backgroundColor: theme.color.surface.muted,
               },
             ]}
           >
@@ -278,7 +285,7 @@ export const AvatarGroup: React.FC<AvatarGroupProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -301,7 +308,7 @@ const styles = StyleSheet.create({
 
   groupAvatar: {
     borderWidth: 2,
-    borderColor: colors.surface.primary,
+    borderColor: theme.color.surface.base,
   },
 });
 

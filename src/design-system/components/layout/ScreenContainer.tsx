@@ -15,8 +15,9 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
-import { colors } from '../../tokens/colors';
 import { spacing } from '../../tokens/spacing';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export interface ScreenContainerProps {
   /**
@@ -87,7 +88,7 @@ export interface ScreenContainerProps {
 
 export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   children,
-  backgroundColor = colors.background.secondary,
+  backgroundColor,
   scroll = false,
   padding = 'medium',
   refreshing = false,
@@ -100,6 +101,9 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   footer,
   testID,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const resolvedBackground = backgroundColor ?? theme.color.background.subtle;
   const getPadding = () => {
     switch (padding) {
       case 'none':
@@ -134,8 +138,8 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={colors.primary[900]}
-                colors={[colors.primary[900]]}
+                tintColor={theme.color.brand.primary}
+                colors={[theme.color.brand.primary]}
               />
             ) : undefined
           }
@@ -162,7 +166,7 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
 
   const content = (
     <SafeAreaView
-      style={[styles.safeArea, { backgroundColor }, style]}
+      style={[styles.safeArea, { backgroundColor: resolvedBackground }, style]}
       edges={safeAreaEdges}
       testID={testID}
     >
@@ -204,6 +208,7 @@ export const Section: React.FC<SectionProps> = ({
   action,
   style,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const { Text } = require('../primitives/Text');
 
   return (
@@ -250,6 +255,7 @@ export const Row: React.FC<RowProps> = ({
   wrap = false,
   style,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const alignMap: Record<string, ViewStyle['justifyContent']> = {
     start: 'flex-start',
     center: 'center',
@@ -321,7 +327,7 @@ export const Spacer: React.FC<SpacerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
   },
@@ -343,23 +349,23 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    borderTopColor: theme.color.border.subtle,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
   },
 
   // Section styles
   section: {
-    marginBottom: spacing[6],
+    marginBottom: theme.space[6],
   },
 
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   sectionTitleContainer: {
@@ -367,7 +373,7 @@ const styles = StyleSheet.create({
   },
 
   sectionSubtitle: {
-    marginTop: spacing[0.5],
+    marginTop: theme.space[0.5],
   },
 
   // Row styles

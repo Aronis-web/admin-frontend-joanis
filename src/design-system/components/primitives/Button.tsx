@@ -15,11 +15,11 @@ import {
   TextStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../tokens/colors';
 import { textVariants } from '../../tokens/typography';
-import { spacing, borderRadius, touchTargets, iconSizes } from '../../tokens/spacing';
-import { shadows } from '../../tokens/shadows';
+import { touchTargets, iconSizes } from '../../tokens/spacing';
 import { activeOpacity } from '../../tokens/animations';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success';
 export type ButtonSize = 'small' | 'medium' | 'large';
@@ -94,7 +94,10 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const isDisabled = disabled || loading;
+  const action = theme.color.action[variant];
 
   const containerStyles = [
     styles.base,
@@ -102,7 +105,7 @@ export const Button: React.FC<ButtonProps> = ({
     styles[`size_${size}`],
     fullWidth && styles.fullWidth,
     isDisabled && styles.disabled,
-    variant === 'primary' && !isDisabled && shadows.sm,
+    variant === 'primary' && !isDisabled && theme.shadow.sm,
     style,
   ];
 
@@ -115,23 +118,8 @@ export const Button: React.FC<ButtonProps> = ({
   ];
 
   const getIconColor = (): string => {
-    if (isDisabled) return colors.text.disabled;
-
-    switch (variant) {
-      case 'primary':
-        return colors.text.inverse;
-      case 'secondary':
-        return colors.text.primary;
-      case 'outline':
-      case 'ghost':
-        return colors.text.primary;
-      case 'danger':
-        return colors.text.inverse;
-      case 'success':
-        return colors.text.inverse;
-      default:
-        return colors.text.primary;
-    }
+    if (isDisabled) return action.textDisabled;
+    return action.text;
   };
 
   const getIconSize = (): number => {
@@ -145,16 +133,7 @@ export const Button: React.FC<ButtonProps> = ({
     }
   };
 
-  const getLoaderColor = (): string => {
-    switch (variant) {
-      case 'primary':
-      case 'danger':
-      case 'success':
-        return colors.text.inverse;
-      default:
-        return colors.text.primary;
-    }
-  };
+  const getLoaderColor = (): string => action.text;
 
   return (
     <TouchableOpacity
@@ -190,7 +169,7 @@ export const Button: React.FC<ButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   // ============================================
   // BASE STYLES
   // ============================================
@@ -198,7 +177,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.md,
+    borderRadius: theme.radii.md,
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
@@ -221,56 +200,56 @@ const styles = StyleSheet.create({
   // VARIANT STYLES
   // ============================================
   variant_primary: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.action.primary.background,
+    borderColor: theme.color.action.primary.border,
   },
 
   variant_secondary: {
-    backgroundColor: colors.neutral[100],
-    borderColor: colors.neutral[200],
+    backgroundColor: theme.color.action.secondary.background,
+    borderColor: theme.color.action.secondary.border,
   },
 
   variant_outline: {
-    backgroundColor: 'transparent',
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.action.outline.background,
+    borderColor: theme.color.action.outline.border,
   },
 
   variant_ghost: {
-    backgroundColor: 'transparent',
-    borderColor: 'transparent',
+    backgroundColor: theme.color.action.ghost.background,
+    borderColor: theme.color.action.ghost.border,
   },
 
   variant_danger: {
-    backgroundColor: colors.danger[600],
-    borderColor: colors.danger[600],
+    backgroundColor: theme.color.action.danger.background,
+    borderColor: theme.color.action.danger.border,
   },
 
   variant_success: {
-    backgroundColor: colors.success[600],
-    borderColor: colors.success[600],
+    backgroundColor: theme.color.action.success.background,
+    borderColor: theme.color.action.success.border,
   },
 
   // ============================================
   // SIZE STYLES
   // ============================================
   size_small: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
     minHeight: touchTargets.small,
-    borderRadius: borderRadius.sm,
+    borderRadius: theme.radii.sm,
   },
 
   size_medium: {
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
+    paddingVertical: theme.space[2.5],
+    paddingHorizontal: theme.space[4],
     minHeight: touchTargets.medium,
   },
 
   size_large: {
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[6],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[6],
     minHeight: touchTargets.large,
-    borderRadius: borderRadius.lg,
+    borderRadius: theme.radii.lg,
   },
 
   // ============================================
@@ -281,27 +260,27 @@ const styles = StyleSheet.create({
   },
 
   text_primary: {
-    color: colors.text.inverse,
+    color: theme.color.action.primary.text,
   },
 
   text_secondary: {
-    color: colors.text.primary,
+    color: theme.color.action.secondary.text,
   },
 
   text_outline: {
-    color: colors.text.primary,
+    color: theme.color.action.outline.text,
   },
 
   text_ghost: {
-    color: colors.text.primary,
+    color: theme.color.action.ghost.text,
   },
 
   text_danger: {
-    color: colors.text.inverse,
+    color: theme.color.action.danger.text,
   },
 
   text_success: {
-    color: colors.text.inverse,
+    color: theme.color.action.success.text,
   },
 
   text_small: {
@@ -317,18 +296,18 @@ const styles = StyleSheet.create({
   },
 
   textDisabled: {
-    color: colors.text.disabled,
+    color: theme.color.text.disabled,
   },
 
   // ============================================
   // ICON STYLES
   // ============================================
   leftIcon: {
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
 
   rightIcon: {
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
 });
 

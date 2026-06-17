@@ -12,9 +12,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
-import { colors } from '../../tokens/colors';
-import { spacing, borderRadius, iconSizes } from '../../tokens/spacing';
-import { textVariants } from '../../tokens/typography';
+import { iconSizes } from '../../tokens/spacing';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export type BadgeVariant =
   | 'default'
@@ -71,21 +71,21 @@ export interface BadgeProps {
   style?: ViewStyle;
 }
 
-const getVariantColors = (variant: BadgeVariant, outlined: boolean) => {
-  // Status colors from tokens
-  const statusMap: Record<string, { background: string; text: string; border: string }> = {
-    active: colors.status.active,
-    pending: colors.status.pending,
-    draft: colors.status.draft,
-    completed: colors.status.completed,
-    cancelled: colors.status.cancelled,
-    overdue: colors.status.overdue,
-    paid: colors.status.paid,
-    partial: colors.status.partial,
+const getVariantColors = (theme: Theme, variant: BadgeVariant, outlined: boolean) => {
+  // Status colors mapeados al theme actual
+  const statusKeys: Record<string, keyof typeof theme.color.state> = {
+    active: 'active',
+    pending: 'pending',
+    draft: 'draft',
+    completed: 'completed',
+    cancelled: 'cancelled',
+    overdue: 'overdue',
+    paid: 'paid',
+    partial: 'partial',
   };
 
-  if (statusMap[variant]) {
-    const status = statusMap[variant];
+  if (statusKeys[variant]) {
+    const status = theme.color.state[statusKeys[variant]];
     return {
       backgroundColor: outlined ? 'transparent' : status.background,
       textColor: status.text,
@@ -93,37 +93,37 @@ const getVariantColors = (variant: BadgeVariant, outlined: boolean) => {
     };
   }
 
-  // Semantic colors
+  // Semantic colors derivados del theme
   const semanticMap: Record<string, { bg: string; text: string; border: string }> = {
     default: {
-      bg: colors.neutral[100],
-      text: colors.neutral[700],
-      border: colors.neutral[300],
+      bg: theme.color.surface.muted,
+      text: theme.color.text.muted,
+      border: theme.color.border.subtle,
     },
     primary: {
-      bg: colors.primary[100],
-      text: colors.primary[900],
-      border: colors.primary[300],
+      bg: theme.color.brand.primarySoft,
+      text: theme.color.brand.primary,
+      border: theme.color.border.default,
     },
     success: {
-      bg: colors.success[100],
-      text: colors.success[800],
-      border: colors.success[300],
+      bg: theme.color.state.success.background,
+      text: theme.color.state.success.text,
+      border: theme.color.state.success.border,
     },
     warning: {
-      bg: colors.warning[100],
-      text: colors.warning[800],
-      border: colors.warning[300],
+      bg: theme.color.state.warning.background,
+      text: theme.color.state.warning.text,
+      border: theme.color.state.warning.border,
     },
     danger: {
-      bg: colors.danger[100],
-      text: colors.danger[800],
-      border: colors.danger[300],
+      bg: theme.color.state.danger.background,
+      text: theme.color.state.danger.text,
+      border: theme.color.state.danger.border,
     },
     info: {
-      bg: colors.info[100],
-      text: colors.info[800],
-      border: colors.info[300],
+      bg: theme.color.state.info.background,
+      text: theme.color.state.info.text,
+      border: theme.color.state.info.border,
     },
   };
 
@@ -144,7 +144,9 @@ export const Badge: React.FC<BadgeProps> = ({
   outlined = false,
   style,
 }) => {
-  const variantColors = getVariantColors(variant, outlined);
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const variantColors = getVariantColors(theme, variant, outlined);
 
   const containerStyles = [
     styles.base,
@@ -255,18 +257,20 @@ export const CounterBadge: React.FC<CounterBadgeProps> = ({
   variant = 'danger',
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const displayCount = count > max ? `${max}+` : count.toString();
 
   return (
     <View style={[styles.counterBadge, styles[`counter_${variant}`], style]}>
-      <Text variant="labelSmall" color={colors.text.inverse}>
+      <Text variant="labelSmall" color={theme.color.text.onAction}>
         {displayCount}
       </Text>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   // ============================================
   // BASE STYLES
   // ============================================
@@ -274,7 +278,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.sm,
+    borderRadius: theme.radii.sm,
     borderWidth: 1,
     alignSelf: 'flex-start',
   },
@@ -284,29 +288,29 @@ const styles = StyleSheet.create({
   },
 
   pill: {
-    borderRadius: borderRadius.full,
+    borderRadius: theme.radii.full,
   },
 
   icon: {
-    marginRight: spacing[1],
+    marginRight: theme.space[1],
   },
 
   // ============================================
   // SIZE STYLES
   // ============================================
   size_small: {
-    paddingVertical: spacing[0.5],
-    paddingHorizontal: spacing[1.5],
+    paddingVertical: theme.space[0.5],
+    paddingHorizontal: theme.space[1.5],
   },
 
   size_medium: {
-    paddingVertical: spacing[1],
-    paddingHorizontal: spacing[2],
+    paddingVertical: theme.space[1],
+    paddingHorizontal: theme.space[2],
   },
 
   size_large: {
-    paddingVertical: spacing[1.5],
-    paddingHorizontal: spacing[3],
+    paddingVertical: theme.space[1.5],
+    paddingHorizontal: theme.space[3],
   },
 
   textSmall: {
@@ -320,22 +324,22 @@ const styles = StyleSheet.create({
   counterBadge: {
     minWidth: 20,
     height: 20,
-    borderRadius: borderRadius.full,
+    borderRadius: theme.radii.full,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing[1.5],
+    paddingHorizontal: theme.space[1.5],
   },
 
   counter_primary: {
-    backgroundColor: colors.primary[900],
+    backgroundColor: theme.color.action.primary.background,
   },
 
   counter_danger: {
-    backgroundColor: colors.danger[600],
+    backgroundColor: theme.color.action.danger.background,
   },
 
   counter_success: {
-    backgroundColor: colors.success[600],
+    backgroundColor: theme.color.action.success.background,
   },
 });
 

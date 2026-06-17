@@ -12,10 +12,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../tokens/colors';
-import { spacing, borderRadius, iconSizes, touchTargets } from '../../tokens/spacing';
-import { shadows } from '../../tokens/shadows';
+import { iconSizes, touchTargets } from '../../tokens/spacing';
 import { activeOpacity } from '../../tokens/animations';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export type IconButtonVariant = 'default' | 'primary' | 'secondary' | 'ghost' | 'danger';
 export type IconButtonSize = 'small' | 'medium' | 'large';
@@ -78,6 +78,8 @@ export const IconButton: React.FC<IconButtonProps> = ({
   style,
   testID,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const isDisabled = disabled || loading;
 
   const getContainerSize = (): number => {
@@ -104,19 +106,19 @@ export const IconButton: React.FC<IconButtonProps> = ({
 
   const getIconColor = (): string => {
     if (iconColor) return iconColor;
-    if (isDisabled) return colors.icon.disabled;
+    if (isDisabled) return theme.color.icon.disabled;
 
     switch (variant) {
       case 'primary':
-        return colors.icon.inverse;
+        return theme.color.icon.inverse;
       case 'secondary':
-        return colors.icon.primary;
+        return theme.color.icon.default;
       case 'ghost':
-        return colors.icon.secondary;
+        return theme.color.icon.muted;
       case 'danger':
-        return colors.danger[600];
+        return theme.color.icon.danger;
       default:
-        return colors.icon.primary;
+        return theme.color.icon.default;
     }
   };
 
@@ -131,7 +133,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       borderRadius: containerSize / 2,
     },
     isDisabled && styles.disabled,
-    variant === 'primary' && !isDisabled && shadows.sm,
+    variant === 'primary' && !isDisabled && theme.shadow.sm,
     style,
   ];
 
@@ -146,7 +148,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' ? colors.icon.inverse : colors.icon.primary}
+          color={variant === 'primary' ? theme.color.icon.inverse : theme.color.icon.default}
         />
       ) : (
         <Ionicons
@@ -159,7 +161,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -173,15 +175,15 @@ const styles = StyleSheet.create({
   // VARIANT STYLES
   // ============================================
   variant_default: {
-    backgroundColor: colors.surface.secondary,
+    backgroundColor: theme.color.surface.subtle,
   },
 
   variant_primary: {
-    backgroundColor: colors.primary[900],
+    backgroundColor: theme.color.action.primary.background,
   },
 
   variant_secondary: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.action.secondary.background,
   },
 
   variant_ghost: {
@@ -189,7 +191,7 @@ const styles = StyleSheet.create({
   },
 
   variant_danger: {
-    backgroundColor: colors.danger[50],
+    backgroundColor: theme.color.state.danger.background,
   },
 });
 
