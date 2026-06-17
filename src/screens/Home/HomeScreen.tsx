@@ -12,8 +12,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
 import { useAuthStore } from '@/store/auth';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '@/utils/config';
@@ -31,6 +33,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { user, logout, currentCompany, currentSite, setCurrentCompany, setCurrentSite } =
     useAuthStore();
   const { width, height } = useWindowDimensions();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   // Determine if device is tablet based on width (works for both portrait and landscape)
   const isTablet = width >= 768 || height >= 768;
@@ -67,7 +71,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header con gradiente */}
       <LinearGradient
-        colors={[colors.primary[900], colors.primary[800]]}
+        colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -87,7 +91,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               />
             ) : (
               <LinearGradient
-                colors={[colors.accent[400], colors.accent[600]]}
+                colors={[theme.color.brand.avatarFrom, theme.color.brand.avatarTo]}
                 style={[styles.avatarPlaceholder, isTablet && styles.avatarPlaceholderTablet]}
               >
                 <Text style={[styles.avatarText, isTablet && styles.avatarTextTablet]}>
@@ -102,13 +106,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <View style={styles.badgesContainer}>
           {currentCompany && (
             <View style={styles.infoBadge}>
-              <Ionicons name="business" size={14} color="rgba(255,255,255,0.8)" />
+              <Ionicons name="business" size={14} color={theme.color.brand.onHeaderMuted} />
               <Text style={styles.infoBadgeText}>{currentCompany.alias || currentCompany.name}</Text>
             </View>
           )}
           {currentSite && (
             <View style={styles.infoBadge}>
-              <Ionicons name="location" size={14} color="rgba(255,255,255,0.8)" />
+              <Ionicons name="location" size={14} color={theme.color.brand.onHeaderMuted} />
               <Text style={styles.infoBadgeText}>{currentSite.name}</Text>
             </View>
           )}
@@ -128,7 +132,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <View style={[styles.profileCard, isTablet && styles.profileCardTablet]}>
           <View style={styles.profileCardHeader}>
             <View style={styles.profileIconContainer}>
-              <Ionicons name="person" size={20} color={colors.accent[600]} />
+              <Ionicons name="person" size={20} color={theme.color.icon.accent} />
             </View>
             <Text style={styles.profileCardTitle}>Mi Perfil</Text>
           </View>
@@ -144,7 +148,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <View style={styles.profileInfoItem}>
               <Text style={styles.profileInfoLabel}>Rol</Text>
               <View style={styles.roleContainer}>
-                <Ionicons name="shield-checkmark" size={14} color={colors.accent[600]} />
+                <Ionicons name="shield-checkmark" size={14} color={theme.color.icon.accent} />
                 <Text style={styles.userRole}>{getUserRole()}</Text>
               </View>
             </View>
@@ -155,7 +159,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <View style={[styles.qrCard, isTablet && styles.qrCardTablet]}>
           <View style={styles.qrCardHeader}>
             <View style={styles.qrIconContainer}>
-              <Ionicons name="qr-code" size={20} color={colors.primary[700]} />
+              <Ionicons name="qr-code" size={20} color={theme.color.brand.primary} />
             </View>
             <View style={styles.qrCardTitleContainer}>
               <Text style={styles.qrCardTitle}>Mi Código QR</Text>
@@ -181,7 +185,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                         ? styles.qrCodeTablet
                         : styles.qrCode
                   }
-                  color={colors.primary[900]}
+                  color={theme.color.brand.primary}
                 />
               </View>
             ) : (
@@ -192,14 +196,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   isTablet && isLandscape && styles.qrPlaceholderLandscape,
                 ]}
               >
-                <Ionicons name="qr-code-outline" size={48} color={colors.neutral[400]} />
+                <Ionicons name="qr-code-outline" size={48} color={theme.color.text.placeholder} />
                 <Text style={styles.qrPlaceholderText}>Generando QR...</Text>
               </View>
             )}
           </View>
 
           <Text style={styles.qrHint}>
-            <Ionicons name="information-circle-outline" size={14} color={colors.neutral[400]} />
+            <Ionicons name="information-circle-outline" size={14} color={theme.color.text.placeholder} />
             {' '}Usa este código para identificarte
           </Text>
         </View>
@@ -211,15 +215,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[6],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[6],
   },
   headerContent: {
     flexDirection: 'row',
@@ -231,14 +235,14 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginBottom: spacing[0.5],
+    marginBottom: theme.space[0.5],
   },
   userName: {
     fontSize: 26,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   userNameTablet: {
@@ -250,7 +254,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: theme.color.brand.headerBorder,
   },
   avatarPlaceholder: {
     width: 56,
@@ -259,12 +263,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: theme.color.brand.headerBorder,
   },
   avatarText: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 1,
   },
   avatarTextTablet: {
@@ -283,32 +287,32 @@ const styles = StyleSheet.create({
   badgesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[2],
-    marginTop: spacing[4],
+    gap: theme.space[2],
+    marginTop: theme.space[4],
   },
   infoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.full,
-    gap: spacing[1.5],
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1.5],
+    borderRadius: theme.radii.full,
+    gap: theme.space[1.5],
   },
   infoBadgeText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: theme.color.brand.onHeader,
     fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: spacing[5],
+    padding: theme.space[5],
     paddingBottom: 100,
   },
   contentTablet: {
-    paddingHorizontal: spacing[8],
+    paddingHorizontal: theme.space[8],
     maxWidth: 700,
     alignSelf: 'center',
     width: '100%',
@@ -319,104 +323,104 @@ const styles = StyleSheet.create({
   },
   // Profile Card
   profileCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    padding: spacing[5],
-    marginBottom: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
+    padding: theme.space[5],
+    marginBottom: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 3,
   },
   profileCardTablet: {
-    padding: spacing[6],
+    padding: theme.space[6],
   },
   profileCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[5],
-    paddingBottom: spacing[4],
+    marginBottom: theme.space[5],
+    paddingBottom: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
+    borderBottomColor: theme.color.border.subtle,
   },
   profileIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.accent[50],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   profileCardTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   profileInfoRow: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   profileInfoItem: {},
   profileInfoLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   profileInfoValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
   },
   roleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.accent[50],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.full,
+    backgroundColor: theme.color.brand.accentSoft,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1.5],
+    borderRadius: theme.radii.full,
     alignSelf: 'flex-start',
-    gap: spacing[1.5],
+    gap: theme.space[1.5],
   },
   userRole: {
     fontSize: 13,
-    color: colors.accent[700],
+    color: theme.color.icon.accent,
     fontWeight: '600',
   },
   // QR Card
   qrCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    padding: spacing[5],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
+    padding: theme.space[5],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 3,
   },
   qrCardTablet: {
-    padding: spacing[6],
+    padding: theme.space[6],
   },
   qrCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
   },
   qrIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[50],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.primarySoft,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   qrCardTitleContainer: {
     flex: 1,
@@ -424,27 +428,27 @@ const styles = StyleSheet.create({
   qrCardTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   qrCardSubtitle: {
     fontSize: 13,
-    color: colors.neutral[500],
-    marginTop: spacing[0.5],
+    color: theme.color.text.subtle,
+    marginTop: theme.space[0.5],
   },
   qrContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   qrContainerTablet: {},
   qrContainerLandscape: {},
   qrWrapper: {
-    backgroundColor: colors.neutral[0],
-    padding: spacing[4],
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.surface.base,
+    padding: theme.space[4],
+    borderRadius: theme.radii.xl,
     borderWidth: 2,
-    borderColor: colors.neutral[100],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -465,14 +469,14 @@ const styles = StyleSheet.create({
   qrPlaceholder: {
     width: 180,
     height: 180,
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.xl,
     borderWidth: 2,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   qrPlaceholderTablet: {
     width: 220,
@@ -485,11 +489,11 @@ const styles = StyleSheet.create({
   qrPlaceholderText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   qrHint: {
     fontSize: 13,
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
     textAlign: 'center',
     fontWeight: '500',
   },

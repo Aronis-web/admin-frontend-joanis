@@ -21,7 +21,6 @@ import { useTenantStore } from '@/store/tenant';
 import { AUTH_ROUTES } from '@/constants/routes';
 
 // Design System
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
 import {
   Text,
   DisplayText,
@@ -32,6 +31,9 @@ import {
   Card,
   Divider,
 } from '@/design-system/components';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
 
 // @ts-ignore
 import { version } from '../../../package.json';
@@ -50,6 +52,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const { loginWithCredentials, isLoading, error } = useAuthStore();
   const { clearTenantContext } = useTenantStore();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
@@ -99,7 +103,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background.primary} />
+      <StatusBar
+        barStyle={theme.scheme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={theme.color.background.canvas}
+      />
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           style={styles.keyboardView}
@@ -110,7 +117,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <View style={styles.brandingSection}>
               <View style={styles.logoContainer}>
                 <View style={styles.logo}>
-                  <Text variant="displayMedium" color={colors.text.inverse} style={styles.logoText}>
+                  <Text variant="displayMedium" color={theme.color.text.onAction} style={styles.logoText}>
                     ERP
                   </Text>
                 </View>
@@ -159,7 +166,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               >
                 <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
                   {rememberMe && (
-                    <Ionicons name="checkmark" size={14} color={colors.text.inverse} />
+                    <Ionicons name="checkmark" size={14} color={theme.color.text.onAction} />
                   )}
                 </View>
                 <Body size="small" color="secondary">
@@ -193,10 +200,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
 
   keyboardView: {
@@ -208,8 +215,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: 'center',
     width: '100%',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[6],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[6],
   },
 
   // ============================================
@@ -217,21 +224,21 @@ const styles = StyleSheet.create({
   // ============================================
   brandingSection: {
     alignItems: 'center',
-    marginBottom: spacing[8],
+    marginBottom: theme.space[8],
   },
 
   logoContainer: {
-    marginBottom: spacing[6],
+    marginBottom: theme.space[6],
   },
 
   logo: {
     width: 88,
     height: 88,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.primary[900],
+    borderRadius: theme.radii.xl,
+    backgroundColor: theme.color.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    ...shadows.lg,
+    ...theme.shadow.lg,
   },
 
   logoText: {
@@ -243,7 +250,7 @@ const styles = StyleSheet.create({
   },
 
   subtitle: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
     maxWidth: 300,
   },
 
@@ -251,35 +258,35 @@ const styles = StyleSheet.create({
   // FORM
   // ============================================
   formCard: {
-    marginBottom: spacing[6],
+    marginBottom: theme.space[6],
   },
 
   rememberMeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[4],
-    marginTop: -spacing[2],
+    marginBottom: theme.space[4],
+    marginTop: -theme.space[2],
   },
 
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: borderRadius.sm,
+    borderRadius: theme.radii.sm,
     borderWidth: 2,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.primary,
+    borderColor: theme.color.border.default,
+    backgroundColor: theme.color.surface.base,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
 
   checkboxChecked: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
 
   submitButton: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
 
   // ============================================
