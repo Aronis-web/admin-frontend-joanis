@@ -16,6 +16,7 @@ import { useTenantStore } from '@/store/tenant';
 import { Loader } from '@/components/common/Loader';
 import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { ThemeProvider, FloatingFooterProvider, useThemeValue } from '@/design-system';
 // Sentry has been removed - import commented out
 // import { initSentry } from '@/config/sentry';
 import { useSessionWarning } from '@/hooks/useSessionWarning';
@@ -38,8 +39,8 @@ export const App = () => {
   // 🆕 Enable activity tracking for inactivity-based session expiration
   // Solo envía heartbeat cuando el usuario está activo pero no hace API calls
   useActivityTracker({
-    checkIntervalMs: 5 * 60 * 1000,      // Verificar cada 5 minutos
-    apiIdleThresholdMs: 10 * 60 * 1000,  // Heartbeat si no hay API calls en 10 min
+    checkIntervalMs: 5 * 60 * 1000, // Verificar cada 5 minutos
+    apiIdleThresholdMs: 10 * 60 * 1000, // Heartbeat si no hay API calls en 10 min
     userIdleThresholdMs: 15 * 60 * 1000, // No enviar heartbeat si usuario inactivo 15+ min
     debug: __DEV__, // Solo logging en desarrollo
   });
@@ -102,15 +103,26 @@ export const App = () => {
     <GlobalErrorBoundary>
       <QueryProvider>
         <SafeAreaProvider>
-          <StatusBar
-            barStyle="dark-content"
-            translucent={true}
-            backgroundColor="transparent"
-          />
-          <Navigation />
+          <ThemeProvider>
+            <FloatingFooterProvider>
+              <ThemedStatusBar />
+              <Navigation />
+            </FloatingFooterProvider>
+          </ThemeProvider>
         </SafeAreaProvider>
       </QueryProvider>
     </GlobalErrorBoundary>
+  );
+};
+
+const ThemedStatusBar = () => {
+  const { isDark } = useThemeValue();
+  return (
+    <StatusBar
+      barStyle={isDark ? 'light-content' : 'dark-content'}
+      translucent
+      backgroundColor="transparent"
+    />
   );
 };
 
