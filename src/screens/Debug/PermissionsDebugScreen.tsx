@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
+import { MAIN_ROUTES } from '@/constants/routes';
 
 interface PermissionsDebugScreenProps {
   navigation: any;
@@ -21,6 +22,16 @@ export const PermissionsDebugScreen: React.FC<PermissionsDebugScreenProps> = ({ 
       </View>
 
       <ScrollView style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Herramientas</Text>
+          <TouchableOpacity
+            style={styles.toolButton}
+            onPress={() => navigation.navigate(MAIN_ROUTES.THEME_PLAYGROUND)}
+          >
+            <Text style={styles.toolButtonText}>Theme Playground</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Usuario</Text>
           <View style={styles.infoBox}>
@@ -237,6 +248,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  toolButton: {
+    backgroundColor: '#1E293B',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  toolButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   emptyText: {
     fontSize: 14,

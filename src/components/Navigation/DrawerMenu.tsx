@@ -498,6 +498,12 @@ const menuCategories: MenuCategory[] = [
             route: MAIN_ROUTES.APP_VERSIONS,
             requiredPermissions: ['apps.manage', 'apps.read'],
           },
+          {
+            id: 'theme-playground',
+            icon: 'color-palette-outline',
+            label: 'Theme Playground',
+            route: MAIN_ROUTES.THEME_PLAYGROUND,
+          },
         ],
       },
     ],
