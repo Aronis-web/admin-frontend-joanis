@@ -25,10 +25,6 @@ import { usePermissions } from '@/hooks/usePermissions';
 
 // Design System
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   activeOpacity,
   iconSizes,
 } from '@/design-system/tokens';
@@ -40,6 +36,8 @@ import {
   Divider,
   IconButton,
 } from '@/design-system/components';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 // Settings Modal
 import { SettingsModal } from './SettingsModal';
@@ -520,6 +518,8 @@ interface DrawerMenuProps {
 }
 
 export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side = 'left' }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [slideAnim] = useState(new Animated.Value(side === 'left' ? -300 : 300));
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubItems, setExpandedSubItems] = useState<Set<string>>(new Set());
@@ -684,14 +684,14 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                 onPress={handleSiteChange}
                 activeOpacity={activeOpacity.medium}
               >
-                <Ionicons name="business" size={iconSizes.md} color={colors.primary[900]} />
+                <Ionicons name="business" size={iconSizes.md} color={theme.color.brand.primary} />
                 <View style={styles.siteSelectorText}>
                   <Caption color="tertiary">Sede actual</Caption>
                   <Text variant="labelMedium" color="primary" numberOfLines={1}>
                     {selectedSite.name}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.icon.tertiary} />
+                <Ionicons name="chevron-forward" size={iconSizes.sm} color={theme.color.icon.subtle} />
               </TouchableOpacity>
             )}
           </View>
@@ -722,7 +722,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                     disabled={!item.route}
                   >
                     <View style={styles.menuItemIcon}>
-                      <Ionicons name={item.icon} size={iconSizes.md} color={colors.icon.secondary} />
+                      <Ionicons name={item.icon} size={iconSizes.md} color={theme.color.icon.muted} />
                     </View>
                     <Text variant="bodyMedium" color="primary">
                       {item.label}
@@ -741,7 +741,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                   >
                     <View style={styles.categoryHeaderLeft}>
                       <View style={styles.menuItemIcon}>
-                        <Ionicons name={category.icon} size={iconSizes.md} color={colors.icon.secondary} />
+                        <Ionicons name={category.icon} size={iconSizes.md} color={theme.color.icon.muted} />
                       </View>
                       <Text variant="titleSmall" color="primary">
                         {category.title}
@@ -750,7 +750,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                     <Ionicons
                       name={isExpanded ? 'chevron-up' : 'chevron-down'}
                       size={iconSizes.sm}
-                      color={colors.icon.tertiary}
+                      color={theme.color.icon.subtle}
                     />
                   </TouchableOpacity>
 
@@ -765,7 +765,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                             activeOpacity={activeOpacity.medium}
                           >
                             <View style={styles.subMenuItemIcon}>
-                              <Ionicons name={item.icon} size={iconSizes.sm} color={colors.icon.tertiary} />
+                              <Ionicons name={item.icon} size={iconSizes.sm} color={theme.color.icon.subtle} />
                             </View>
                             <Text variant="bodySmall" color="secondary" style={styles.subMenuLabel}>
                               {item.label}
@@ -773,7 +773,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                             <Ionicons
                               name={isSubExpanded ? 'chevron-up' : 'chevron-down'}
                               size={iconSizes.xs}
-                              color={colors.icon.tertiary}
+                              color={theme.color.icon.subtle}
                             />
                           </TouchableOpacity>
 
@@ -785,7 +785,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                               activeOpacity={activeOpacity.medium}
                             >
                               <View style={styles.subMenuItemIconSmall}>
-                                <Ionicons name={subItem.icon} size={iconSizes.sm} color={colors.icon.tertiary} />
+                                <Ionicons name={subItem.icon} size={iconSizes.sm} color={theme.color.icon.subtle} />
                               </View>
                               <Text variant="bodySmall" color="secondary">
                                 {subItem.label}
@@ -804,7 +804,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                         activeOpacity={activeOpacity.medium}
                       >
                         <View style={styles.subMenuItemIcon}>
-                          <Ionicons name={item.icon} size={iconSizes.sm} color={colors.icon.tertiary} />
+                          <Ionicons name={item.icon} size={iconSizes.sm} color={theme.color.icon.subtle} />
                         </View>
                         <Text variant="bodySmall" color="secondary">
                           {item.label}
@@ -825,8 +825,8 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
               onPress={handleLogout}
               activeOpacity={activeOpacity.medium}
             >
-              <Ionicons name="log-out-outline" size={iconSizes.lg} color={colors.danger[600]} />
-              <Text variant="buttonMedium" color={colors.danger[600]} style={styles.logoutText}>
+              <Ionicons name="log-out-outline" size={iconSizes.lg} color={theme.color.state.danger.text} />
+              <Text variant="buttonMedium" color={theme.color.state.danger.text} style={styles.logoutText}>
                 Cerrar Sesión
               </Text>
             </TouchableOpacity>
@@ -843,7 +843,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   modalContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -851,64 +851,64 @@ const styles = StyleSheet.create({
 
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
   },
 
   drawer: {
     position: 'absolute',
     top: 0,
     bottom: 0,
-    backgroundColor: colors.surface.primary,
-    ...shadows.xl,
+    backgroundColor: theme.color.surface.base,
+    ...theme.shadow.xl,
   },
 
   // ============================================
   // HEADER
   // ============================================
   header: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
 
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
 
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
+    gap: theme.space[1],
   },
 
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface.secondary,
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[3],
+    backgroundColor: theme.color.surface.subtle,
+    padding: theme.space[3],
+    borderRadius: theme.radii.lg,
+    marginBottom: theme.space[3],
   },
 
   userDetails: {
     flex: 1,
-    marginLeft: spacing[3],
+    marginLeft: theme.space[3],
   },
 
   siteSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.primarySoft,
+    padding: theme.space[3],
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: colors.primary[200],
+    borderColor: theme.color.border.subtle,
   },
 
   siteSelectorText: {
     flex: 1,
-    marginLeft: spacing[3],
+    marginLeft: theme.space[3],
   },
 
   // ============================================
@@ -919,37 +919,37 @@ const styles = StyleSheet.create({
   },
 
   menuScrollContent: {
-    paddingVertical: spacing[2],
+    paddingVertical: theme.space[2],
   },
 
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
   },
 
   menuItemIcon: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.subtle,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
 
   categorySection: {
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
 
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.surface.primary,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
+    backgroundColor: theme.color.surface.base,
   },
 
   categoryHeaderLeft: {
@@ -960,19 +960,19 @@ const styles = StyleSheet.create({
   categoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing[2.5],
-    paddingLeft: spacing[8],
-    paddingRight: spacing[4],
-    backgroundColor: colors.surface.secondary,
+    paddingVertical: theme.space[2.5],
+    paddingLeft: theme.space[8],
+    paddingRight: theme.space[4],
+    backgroundColor: theme.color.surface.subtle,
   },
 
   subMenuItemIcon: {
     width: 28,
     height: 28,
-    borderRadius: borderRadius.sm,
+    borderRadius: theme.radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
 
   subMenuItemIconSmall: {
@@ -980,16 +980,16 @@ const styles = StyleSheet.create({
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
 
   subCategoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing[2.5],
-    paddingLeft: spacing[8],
-    paddingRight: spacing[4],
-    backgroundColor: colors.surface.secondary,
+    paddingVertical: theme.space[2.5],
+    paddingLeft: theme.space[8],
+    paddingRight: theme.space[4],
+    backgroundColor: theme.color.surface.subtle,
   },
 
   subMenuLabel: {
@@ -999,32 +999,32 @@ const styles = StyleSheet.create({
   subMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing[2],
-    paddingLeft: spacing[14],
-    paddingRight: spacing[4],
-    backgroundColor: colors.surface.tertiary,
+    paddingVertical: theme.space[2],
+    paddingLeft: theme.space[14],
+    paddingRight: theme.space[4],
+    backgroundColor: theme.color.surface.muted,
   },
 
   // ============================================
   // FOOTER
   // ============================================
   footer: {
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[2],
+    paddingHorizontal: theme.space[4],
+    paddingBottom: theme.space[2],
   },
 
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[3],
-    marginTop: spacing[3],
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.lg,
+    paddingVertical: theme.space[3],
+    marginTop: theme.space[3],
+    backgroundColor: theme.color.state.danger.background,
+    borderRadius: theme.radii.lg,
   },
 
   logoutText: {
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
 });
 
