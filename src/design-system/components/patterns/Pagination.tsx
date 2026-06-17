@@ -13,10 +13,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../primitives/Text';
-import { colors } from '../../tokens/colors';
-import { spacing, borderRadius, iconSizes } from '../../tokens/spacing';
-import { shadows } from '../../tokens/shadows';
+import { iconSizes } from '../../tokens/spacing';
 import { activeOpacity } from '../../tokens/animations';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export interface PaginationProps {
   /**
@@ -70,6 +70,8 @@ export const Pagination: React.FC<PaginationProps> = ({
   variant = 'full',
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const canGoPrevious = currentPage > 1 && !loading;
   const canGoNext = currentPage < totalPages && !loading;
 
@@ -98,7 +100,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           <Ionicons
             name="chevron-back"
             size={iconSizes.md}
-            color={canGoPrevious ? colors.icon.primary : colors.icon.disabled}
+            color={canGoPrevious ? theme.color.icon.default : theme.color.icon.disabled}
           />
         </TouchableOpacity>
 
@@ -115,7 +117,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           <Ionicons
             name="chevron-forward"
             size={iconSizes.md}
-            color={canGoNext ? colors.icon.primary : colors.icon.disabled}
+            color={canGoNext ? theme.color.icon.default : theme.color.icon.disabled}
           />
         </TouchableOpacity>
       </View>
@@ -135,11 +137,11 @@ export const Pagination: React.FC<PaginationProps> = ({
           <Ionicons
             name="chevron-back"
             size={iconSizes.sm}
-            color={canGoPrevious ? colors.icon.inverse : colors.icon.disabled}
+            color={canGoPrevious ? theme.color.icon.inverse : theme.color.icon.disabled}
           />
           <Text
             variant="buttonSmall"
-            color={canGoPrevious ? colors.text.inverse : colors.text.disabled}
+            color={canGoPrevious ? theme.color.text.onAction : theme.color.text.disabled}
             style={styles.navButtonText}
           >
             Anterior
@@ -160,7 +162,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         >
           <Text
             variant="buttonSmall"
-            color={canGoNext ? colors.text.inverse : colors.text.disabled}
+            color={canGoNext ? theme.color.text.onAction : theme.color.text.disabled}
             style={styles.navButtonText}
           >
             Siguiente
@@ -168,7 +170,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           <Ionicons
             name="chevron-forward"
             size={iconSizes.sm}
-            color={canGoNext ? colors.icon.inverse : colors.icon.disabled}
+            color={canGoNext ? theme.color.icon.inverse : theme.color.icon.disabled}
           />
         </TouchableOpacity>
       </View>
@@ -177,7 +179,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   // Full variant - Con toda la información
   return (
-    <View style={[styles.container, shadows.xs, style]}>
+    <View style={[styles.container, theme.shadow.xs, style]}>
       {/* Previous Button */}
       <TouchableOpacity
         style={[styles.navButton, !canGoPrevious && styles.buttonDisabled]}
@@ -188,11 +190,11 @@ export const Pagination: React.FC<PaginationProps> = ({
         <Ionicons
           name="chevron-back"
           size={iconSizes.sm}
-          color={canGoPrevious ? colors.icon.inverse : colors.icon.disabled}
+          color={canGoPrevious ? theme.color.icon.inverse : theme.color.icon.disabled}
         />
         <Text
           variant="buttonSmall"
-          color={canGoPrevious ? colors.text.inverse : colors.text.disabled}
+          color={canGoPrevious ? theme.color.text.onAction : theme.color.text.disabled}
           style={styles.navButtonText}
         >
           Anterior
@@ -220,7 +222,7 @@ export const Pagination: React.FC<PaginationProps> = ({
       >
         <Text
           variant="buttonSmall"
-          color={canGoNext ? colors.text.inverse : colors.text.disabled}
+          color={canGoNext ? theme.color.text.onAction : theme.color.text.disabled}
           style={styles.navButtonText}
         >
           Siguiente
@@ -228,53 +230,53 @@ export const Pagination: React.FC<PaginationProps> = ({
         <Ionicons
           name="chevron-forward"
           size={iconSizes.sm}
-          color={canGoNext ? colors.icon.inverse : colors.icon.disabled}
+          color={canGoNext ? theme.color.icon.inverse : theme.color.icon.disabled}
         />
       </TouchableOpacity>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   // Full variant
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    borderTopColor: theme.color.border.subtle,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
   },
 
   navButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary[900],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.action.primary.background,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.md,
     minWidth: 110,
   },
 
   buttonDisabled: {
-    backgroundColor: colors.neutral[200],
+    backgroundColor: theme.color.action.primary.backgroundDisabled,
   },
 
   navButtonText: {
-    marginHorizontal: spacing[1],
+    marginHorizontal: theme.space[1],
   },
 
   centerInfo: {
     alignItems: 'center',
     flex: 1,
-    paddingHorizontal: spacing[2],
+    paddingHorizontal: theme.space[2],
   },
 
   itemsInfo: {
-    marginTop: spacing[0.5],
+    marginTop: theme.space[0.5],
   },
 
   // Simple variant
@@ -282,11 +284,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
+    borderTopColor: theme.color.border.subtle,
   },
 
   pageIndicator: {
@@ -298,14 +300,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing[3],
-    paddingVertical: spacing[2],
+    gap: theme.space[3],
+    paddingVertical: theme.space[2],
   },
 
   compactButton: {
-    padding: spacing[2],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.secondary,
+    padding: theme.space[2],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.subtle,
   },
 });
 
