@@ -13,7 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { config } from '@/utils/config';
 import { filesApi } from '@/services/api/files';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ImageViewerModalProps {
   visible: boolean;
@@ -32,6 +33,8 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
   fileName,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const [imageData, setImageData] = React.useState<string | null>(null);
@@ -145,7 +148,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
               {fileName || 'Imagen del Pago'}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={28} color={colors.neutral[0]} />
+              <Ionicons name="close" size={28} color={theme.color.text.inverse} />
             </TouchableOpacity>
           </View>
         </View>
@@ -154,13 +157,13 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
         <View style={styles.imageContainer}>
           {loading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.accent[500]} />
+              <ActivityIndicator size="large" color={theme.color.brand.accent} />
               <Text style={styles.loadingText}>Cargando imagen...</Text>
             </View>
           )}
           {error && (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={64} color={colors.danger[500]} />
+              <Ionicons name="alert-circle" size={64} color={theme.color.icon.danger} />
               <Text style={styles.errorText}>No se pudo cargar la imagen</Text>
               <TouchableOpacity
                 style={styles.retryButton}
@@ -181,7 +184,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
           )}
           {!loading && !error && !imageData && !imageUrl && !fileId && (
             <View style={styles.errorContainer}>
-              <Ionicons name="image-outline" size={64} color={colors.neutral[400]} />
+              <Ionicons name="image-outline" size={64} color={theme.color.icon.disabled} />
               <Text style={styles.errorText}>No hay imagen disponible</Text>
             </View>
           )}
@@ -190,7 +193,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
         {/* Footer */}
         <View style={styles.footer}>
           <TouchableOpacity style={styles.closeFooterButton} onPress={onClose}>
-            <Ionicons name="close-circle" size={20} color={colors.neutral[0]} />
+            <Ionicons name="close-circle" size={20} color={theme.color.text.inverse} />
             <Text style={styles.closeFooterButtonText}>Cerrar</Text>
           </TouchableOpacity>
         </View>
@@ -199,96 +202,97 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.overlay.dark,
-  },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : spacing[5],
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[4],
-    backgroundColor: colors.overlay.dark,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-    marginRight: spacing[3],
-  },
-  closeButton: {
-    padding: spacing[1],
-  },
-  imageContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  image: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT - 200,
-  },
-  loadingContainer: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 14,
-    color: colors.neutral[0],
-  },
-  errorContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[8],
-  },
-  errorText: {
-    marginTop: spacing[4],
-    fontSize: 16,
-    color: colors.neutral[0],
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: spacing[4],
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[5],
-    backgroundColor: colors.accent[500],
-    borderRadius: borderRadius.lg,
-  },
-  retryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  footer: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    paddingBottom: Platform.OS === 'ios' ? spacing[8] : spacing[4],
-    backgroundColor: colors.overlay.dark,
-    alignItems: 'center',
-  },
-  closeFooterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[6],
-    backgroundColor: colors.accent[500],
-    borderRadius: borderRadius.lg,
-  },
-  closeFooterButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.strong,
+    },
+    header: {
+      paddingTop: Platform.OS === 'ios' ? 50 : theme.space[5],
+      paddingHorizontal: theme.space[4],
+      paddingBottom: theme.space[4],
+      backgroundColor: theme.color.overlay.strong,
+    },
+    headerContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    headerTitle: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+      marginRight: theme.space[3],
+    },
+    closeButton: {
+      padding: theme.space[1],
+    },
+    imageContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    image: {
+      width: SCREEN_WIDTH,
+      height: SCREEN_HEIGHT - 200,
+    },
+    loadingContainer: {
+      position: 'absolute',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 10,
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.inverse,
+    },
+    errorContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[8],
+    },
+    errorText: {
+      marginTop: theme.space[4],
+      fontSize: 16,
+      color: theme.color.text.inverse,
+      textAlign: 'center',
+    },
+    retryButton: {
+      marginTop: theme.space[4],
+      paddingVertical: theme.space[2.5],
+      paddingHorizontal: theme.space[5],
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: theme.radii.lg,
+    },
+    retryButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    footer: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      paddingBottom: Platform.OS === 'ios' ? theme.space[8] : theme.space[4],
+      backgroundColor: theme.color.overlay.strong,
+      alignItems: 'center',
+    },
+    closeFooterButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[6],
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: theme.radii.lg,
+    },
+    closeFooterButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+  });
 
 export default ImageViewerModal;
