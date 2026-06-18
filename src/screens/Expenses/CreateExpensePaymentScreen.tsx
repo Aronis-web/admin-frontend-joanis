@@ -23,6 +23,8 @@ import {
   requestCameraPermissionsAsync,
   MediaTypeOptions
 } from '@/utils/filePicker';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CreateExpensePaymentScreenProps {
   navigation: any;
@@ -37,6 +39,8 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { expenseId } = route.params;
   const [loading, setLoading] = useState(false);
   const [expense, setExpense] = useState<any>(null);
@@ -246,7 +250,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
               {option.label}
             </Text>
             {value === option.value && (
-              <Ionicons name="checkmark-circle" size={20} color="#6366F1" />
+              <Ionicons name="checkmark-circle" size={20} color={theme.color.brand.accent} />
             )}
           </TouchableOpacity>
         ))}
@@ -265,13 +269,13 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>{label}</Text>
       <View style={styles.inputWrapper}>
-        {icon && <Ionicons name={icon as any} size={20} color="#64748B" style={styles.inputIcon} />}
+        {icon && <Ionicons name={icon as any} size={20} color={theme.color.text.muted} style={styles.inputIcon} />}
         <TextInput
           style={styles.input}
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
           keyboardType={keyboardType}
         />
       </View>
@@ -282,7 +286,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando gasto...</Text>
         </View>
       </SafeAreaView>
@@ -293,7 +297,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Registrar Pago</Text>
         <View style={styles.headerRight} />
@@ -428,12 +432,12 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
             {!attachedFile ? (
               <View style={styles.fileButtonsContainer}>
                 <TouchableOpacity style={styles.fileButton} onPress={handlePickFile}>
-                  <Ionicons name="document-attach" size={20} color="#6366F1" />
+                  <Ionicons name="document-attach" size={20} color={theme.color.brand.accent} />
                   <Text style={styles.fileButtonText}>Adjuntar Archivo</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.fileButton} onPress={handleTakePhoto}>
-                  <Ionicons name="camera" size={20} color="#6366F1" />
+                  <Ionicons name="camera" size={20} color={theme.color.brand.accent} />
                   <Text style={styles.fileButtonText}>Tomar Foto</Text>
                 </TouchableOpacity>
               </View>
@@ -447,7 +451,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
                   />
                 ) : (
                   <View style={styles.pdfPreview}>
-                    <Ionicons name="document-text" size={48} color="#EF4444" />
+                    <Ionicons name="document-text" size={48} color={theme.color.state.danger.border} />
                     <Text style={styles.pdfText}>PDF</Text>
                   </View>
                 )}
@@ -456,7 +460,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
                     {attachedFile.filename}
                   </Text>
                   <TouchableOpacity style={styles.removeFileButton} onPress={handleRemoveFile}>
-                    <Ionicons name="close-circle" size={24} color="#EF4444" />
+                    <Ionicons name="close-circle" size={24} color={theme.color.state.danger.border} />
                     <Text style={styles.removeFileText}>Eliminar</Text>
                   </TouchableOpacity>
                 </View>
@@ -480,7 +484,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={theme.color.text.inverse} />
             ) : (
               <Text style={styles.saveButtonText}>Registrar Pago</Text>
             )}
@@ -503,10 +507,10 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   centerContainer: {
     flex: 1,
@@ -517,7 +521,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
@@ -525,9 +529,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -535,7 +539,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -544,15 +548,15 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     marginHorizontal: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -561,13 +565,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   expenseName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   expenseInfo: {
@@ -577,19 +581,19 @@ const styles = StyleSheet.create({
   },
   expenseInfoLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   expenseInfoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   pendingAmount: {
-    color: '#DC2626',
+    color: theme.color.state.danger.text,
     fontSize: 15,
   },
   estimatedAmount: {
-    color: '#92400E',
+    color: theme.color.state.warning.text,
     fontSize: 13,
   },
   inputContainer: {
@@ -598,16 +602,16 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     paddingHorizontal: 12,
   },
   inputIcon: {
@@ -616,7 +620,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     paddingVertical: 12,
   },
   pickerContainer: {
@@ -628,26 +632,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     paddingHorizontal: 12,
     paddingVertical: 10,
     flex: 1,
     minWidth: '45%',
   },
   pickerOptionSelected: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.primarySoft,
+    borderColor: theme.color.brand.accent,
   },
   pickerOptionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   pickerOptionTextSelected: {
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
   actionsContainer: {
@@ -664,20 +668,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#DC2626',
+    color: theme.color.state.danger.text,
   },
   saveButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   fileButtonsContainer: {
     flexDirection: 'row',
@@ -688,10 +692,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.primarySoft,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#6366F1',
+    borderColor: theme.color.brand.accent,
     paddingVertical: 12,
     paddingHorizontal: 16,
     gap: 8,
@@ -699,13 +703,13 @@ const styles = StyleSheet.create({
   fileButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
   },
   attachedFileContainer: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     padding: 12,
     gap: 12,
   },
@@ -718,14 +722,14 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 8,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pdfText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
     marginTop: 8,
   },
   fileInfo: {
@@ -737,7 +741,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginRight: 12,
   },
   removeFileButton: {
@@ -748,6 +752,6 @@ const styles = StyleSheet.create({
   removeFileText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
   },
 });

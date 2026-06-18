@@ -21,6 +21,8 @@ import { usePermissionError } from '@/hooks/usePermissionError';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { formatDateToString } from '@/utils/dateHelpers';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CreateExpenseScreenProps {
   navigation: any;
@@ -35,6 +37,8 @@ interface CreateExpenseScreenProps {
 }
 
 export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [loadingExpense, setLoadingExpense] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
@@ -511,13 +515,13 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>{label}</Text>
       <View style={styles.inputWrapper}>
-        {icon && <Ionicons name={icon as any} size={20} color="#64748B" style={styles.inputIcon} />}
+        {icon && <Ionicons name={icon as any} size={20} color={theme.color.text.muted} style={styles.inputIcon} />}
         <TextInput
           style={[styles.input, multiline && styles.inputMultiline]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
           keyboardType={keyboardType}
           multiline={multiline}
           numberOfLines={multiline ? 4 : 1}
@@ -530,7 +534,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {isEditing ? 'Editar Gasto' : isFromProject ? 'Crear Gasto para Proyecto' : 'Crear Gasto'}
@@ -541,7 +545,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={theme.color.text.inverse} />
           ) : (
             <Text style={styles.saveButtonText}>Guardar</Text>
           )}
@@ -550,7 +554,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
 
       {loadingExpense ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando gasto...</Text>
         </View>
       ) : (
@@ -558,7 +562,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           {/* Project Info Banner */}
           {isFromProject && projectData && (
             <View style={styles.projectBanner}>
-              <Ionicons name="folder-open" size={20} color="#6366F1" />
+              <Ionicons name="folder-open" size={20} color={theme.color.brand.accent} />
               <View style={styles.bannerContent}>
                 <Text style={styles.projectBannerText}>
                   Este gasto se asociará automáticamente al proyecto
@@ -574,7 +578,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           {/* Template Info Banner */}
           {isFromTemplate && templateData && (
             <View style={styles.templateBanner}>
-              <Ionicons name="repeat" size={20} color="#10B981" />
+              <Ionicons name="repeat" size={20} color={theme.color.state.success.border} />
               <View style={styles.bannerContent}>
                 <Text style={styles.templateBannerText}>
                   Creando gasto desde plantilla recurrente
@@ -604,7 +608,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
               ) : isFromProject && projectData?.site ? (
                 <>
                   <View style={styles.disabledInput}>
-                    <Ionicons name="business" size={16} color="#6366F1" style={{ marginRight: 8 }} />
+                    <Ionicons name="business" size={16} color={theme.color.brand.accent} style={{ marginRight: 8 }} />
                     <Text style={styles.disabledInputText}>{projectData.site.name}</Text>
                   </View>
                   <Text style={styles.infoText}>💡 La sede se toma automáticamente del proyecto</Text>
@@ -612,7 +616,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
               ) : isFromTemplate && templateData?.site ? (
                 <>
                   <View style={styles.disabledInput}>
-                    <Ionicons name="business" size={16} color="#10B981" style={{ marginRight: 8 }} />
+                    <Ionicons name="business" size={16} color={theme.color.state.success.border} style={{ marginRight: 8 }} />
                     <Text style={styles.disabledInputText}>{templateData.site.name}</Text>
                   </View>
                   <Text style={styles.infoText}>
@@ -727,7 +731,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
                 } as never);
               }}
             >
-              <Ionicons name="add-circle-outline" size={20} color="#6366F1" />
+              <Ionicons name="add-circle-outline" size={20} color={theme.color.brand.accent} />
               <Text style={styles.createSupplierButtonText}>Crear nuevo proveedor</Text>
             </TouchableOpacity>
 
@@ -753,7 +757,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
             {/* Información sobre Cuenta por Pagar */}
             {selectedSupplier && supplierLegalEntityId && (
               <View style={styles.infoBanner}>
-                <Ionicons name="information-circle" size={20} color="#6366F1" />
+                <Ionicons name="information-circle" size={20} color={theme.color.brand.accent} />
                 <Text style={styles.infoBannerText}>
                   Al guardar este gasto, se creará automáticamente una cuenta por pagar vinculada
                   al proveedor seleccionado.
@@ -794,10 +798,10 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   header: {
     flexDirection: 'row',
@@ -805,9 +809,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -815,27 +819,27 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
   saveButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   saveButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: theme.color.text.placeholder,
   },
   saveButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   content: {
     padding: 16,
@@ -848,14 +852,14 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -864,7 +868,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   inputContainer: {
@@ -873,16 +877,16 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     paddingHorizontal: 12,
   },
   inputIcon: {
@@ -892,7 +896,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   inputMultiline: {
     minHeight: 80,
@@ -904,7 +908,7 @@ const styles = StyleSheet.create({
   pickerLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   pickerScroll: {
@@ -914,22 +918,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     marginRight: 8,
   },
   pickerOptionActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   pickerOptionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   pickerOptionTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -943,27 +947,27 @@ const styles = StyleSheet.create({
   toggleLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginLeft: 12,
   },
   recurrenceSection: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
   },
   recurrenceTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     marginBottom: 12,
   },
   projectBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.primarySoft,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -971,21 +975,21 @@ const styles = StyleSheet.create({
   },
   projectBannerText: {
     fontSize: 14,
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
   projectBannerSubtext: {
     fontSize: 12,
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     marginTop: 4,
     opacity: 0.8,
   },
   templateBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.color.state.success.background,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: theme.color.state.success.border,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -993,12 +997,12 @@ const styles = StyleSheet.create({
   },
   templateBannerText: {
     fontSize: 14,
-    color: '#10B981',
+    color: theme.color.state.success.border,
     fontWeight: '600',
   },
   templateBannerSubtext: {
     fontSize: 12,
-    color: '#10B981',
+    color: theme.color.state.success.border,
     marginTop: 4,
     opacity: 0.8,
   },
@@ -1009,9 +1013,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.primarySoft,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -1021,7 +1025,7 @@ const styles = StyleSheet.create({
   createSupplierButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
   },
 });
 

@@ -31,6 +31,8 @@ import {
   SiteCurrencySummary,
 } from '@/types/expenses';
 import { useAuthStore } from '@/store/auth';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ExpenseReportsScreenProps {
   navigation: any;
@@ -47,6 +49,8 @@ type ReportView =
   | 'projections';
 
 export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeView, setActiveView] = useState<ReportView>('dashboard');
@@ -247,7 +251,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
           <Text style={styles.subsectionTitle}>Gastos Totales</Text>
           <View style={styles.cardGrid}>
             {dashboardData.totalExpenses.byCurrency.map((item) =>
-              renderCurrencyCard(item, 'Total', '#4F46E5')
+              renderCurrencyCard(item, 'Total', theme.color.brand.accent)
             )}
           </View>
           <Text style={styles.infoText}>
@@ -260,7 +264,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
           <Text style={styles.subsectionTitle}>Gastos Recurrentes</Text>
           <View style={styles.cardGrid}>
             {dashboardData.recurringExpenses.byCurrency.map((item) =>
-              renderCurrencyCard(item, 'Recurrentes', '#10B981')
+              renderCurrencyCard(item, 'Recurrentes', theme.color.state.success.border)
             )}
           </View>
           <Text style={styles.infoText}>
@@ -313,7 +317,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
             <Text style={styles.subsectionTitle}>⚠️ Gastos Vencidos</Text>
             <View style={styles.cardGrid}>
               {dashboardData.overdueExpenses.byCurrency.map((item) =>
-                renderCurrencyCard(item, 'Vencidos', '#EF4444')
+                renderCurrencyCard(item, 'Vencidos', theme.color.state.danger.border)
               )}
             </View>
             <Text style={styles.warningText}>
@@ -334,7 +338,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>💰 Resumen de Gastos Totales</Text>
         <View style={styles.cardGrid}>
-          {totalData.byCurrency.map((item) => renderCurrencyCard(item, 'Total', '#4F46E5'))}
+          {totalData.byCurrency.map((item) => renderCurrencyCard(item, 'Total', theme.color.brand.accent))}
         </View>
         <Text style={styles.infoText}>Total de gastos: {totalData.totalExpenseCount}</Text>
 
@@ -365,7 +369,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
         <Text style={styles.sectionTitle}>🔄 Gastos Recurrentes</Text>
         <View style={styles.cardGrid}>
           {recurringData.byCurrency.map((item) =>
-            renderCurrencyCard(item, 'Recurrentes', '#10B981')
+            renderCurrencyCard(item, 'Recurrentes', theme.color.state.success.border)
           )}
         </View>
         <Text style={styles.infoText}>
@@ -472,7 +476,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
               <Text
                 style={[
                   styles.comparisonDiffAmount,
-                  { color: item.percentageChange >= 0 ? '#EF4444' : '#10B981' },
+                  { color: item.percentageChange >= 0 ? theme.color.state.danger.border : theme.color.state.success.border },
                 ]}
               >
                 {item.percentageChange >= 0 ? '+' : ''}
@@ -577,7 +581,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
     if (loading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando datos...</Text>
         </View>
       );
@@ -606,13 +610,13 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   };
 
   const getStatusStyle = (status: string) => {
-    const styles: any = {
-      ACTIVE: { backgroundColor: '#DBEAFE', color: '#1E40AF' },
-      PAID: { backgroundColor: '#D1FAE5', color: '#065F46' },
-      OVERDUE: { backgroundColor: '#FEE2E2', color: '#991B1B' },
-      CANCELLED: { backgroundColor: '#F3F4F6', color: '#4B5563' },
+    const statusStyles: any = {
+      ACTIVE: { backgroundColor: theme.color.state.info.background, color: theme.color.state.info.border },
+      PAID: { backgroundColor: theme.color.state.success.background, color: theme.color.state.success.border },
+      OVERDUE: { backgroundColor: theme.color.state.danger.background, color: theme.color.state.danger.border },
+      CANCELLED: { backgroundColor: theme.color.surface.subtle, color: theme.color.text.body },
     };
-    return styles[status] || styles.ACTIVE;
+    return statusStyles[status] || statusStyles.ACTIVE;
   };
 
   const renderFilters = () => (
@@ -666,7 +670,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
             style={styles.dateButton}
             onPress={() => setShowStartDatePicker(true)}
           >
-            <Ionicons name="calendar-outline" size={20} color="#4F46E5" />
+            <Ionicons name="calendar-outline" size={20} color={theme.color.brand.accent} />
             <Text style={styles.dateButtonText}>{formatDisplayDate(startDate)}</Text>
           </TouchableOpacity>
         </View>
@@ -677,7 +681,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
             style={styles.dateButton}
             onPress={() => setShowEndDatePicker(true)}
           >
-            <Ionicons name="calendar-outline" size={20} color="#4F46E5" />
+            <Ionicons name="calendar-outline" size={20} color={theme.color.brand.accent} />
             <Text style={styles.dateButtonText}>{formatDisplayDate(endDate)}</Text>
           </TouchableOpacity>
         </View>
@@ -766,10 +770,10 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -777,41 +781,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 20,
-    color: '#4F46E5',
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   headerSpacer: {
     width: 40,
   },
   filtersContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   filtersTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
     marginBottom: 12,
   },
   quickFiltersScroll: {
@@ -825,21 +829,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   quickFilterButtonActive: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   quickFilterText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#4B5563',
+    color: theme.color.text.body,
   },
   quickFilterTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   filterRow: {
     flexDirection: 'row',
@@ -852,7 +856,7 @@ const styles = StyleSheet.create({
   filterLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   dateButton: {
@@ -860,32 +864,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   dateButtonText: {
     fontSize: 14,
-    color: '#1F2937',
+    color: theme.color.text.heading,
     flex: 1,
   },
   applyButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: theme.color.brand.accent,
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
   },
   applyButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: '600',
   },
   tabsContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   tabsContent: {
     paddingHorizontal: 12,
@@ -896,21 +900,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   tabButtonActive: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   tabButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#4B5563',
+    color: theme.color.text.body,
   },
   tabButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   content: {
     flex: 1,
@@ -924,7 +928,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontSize: 16,
   },
   section: {
@@ -933,7 +937,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   subsection: {
@@ -942,7 +946,7 @@ const styles = StyleSheet.create({
   subsectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
     marginBottom: 12,
   },
   cardGrid: {
@@ -954,11 +958,11 @@ const styles = StyleSheet.create({
   currencyCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -967,7 +971,7 @@ const styles = StyleSheet.create({
   currencyCardTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 8,
   },
   currencyCardAmount: {
@@ -977,16 +981,16 @@ const styles = StyleSheet.create({
   },
   currencyCardSubtitle: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: theme.color.text.placeholder,
   },
   infoText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginTop: 8,
   },
   warningText: {
     fontSize: 14,
-    color: '#DC2626',
+    color: theme.color.state.danger.border,
     fontWeight: '500',
     marginTop: 8,
   },
@@ -994,11 +998,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -1010,12 +1014,12 @@ const styles = StyleSheet.create({
   listItemTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   listItemSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   listItemRight: {
     alignItems: 'flex-end',
@@ -1023,7 +1027,7 @@ const styles = StyleSheet.create({
   listItemAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   statusBadge: {
@@ -1035,22 +1039,22 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   filtersApplied: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
   },
   filterText: {
     fontSize: 13,
-    color: '#4B5563',
+    color: theme.color.text.body,
     marginTop: 4,
   },
   categorySection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -1059,7 +1063,7 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   categoryContent: {
@@ -1075,24 +1079,24 @@ const styles = StyleSheet.create({
   categoryAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#4F46E5',
+    color: theme.color.brand.accent,
     marginBottom: 4,
   },
   categorySubtitle: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   categoryTotal: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginTop: 8,
   },
   comparisonCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -1101,7 +1105,7 @@ const styles = StyleSheet.create({
   comparisonCurrency: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   comparisonRow: {
@@ -1115,29 +1119,29 @@ const styles = StyleSheet.create({
   comparisonLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   comparisonAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   comparisonCount: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: theme.color.text.placeholder,
   },
   comparisonDifference: {
     alignItems: 'center',
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: theme.color.border.subtle,
   },
   comparisonDiffLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   comparisonDiffAmount: {
@@ -1147,14 +1151,14 @@ const styles = StyleSheet.create({
   },
   comparisonDiffValue: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   trendSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -1163,13 +1167,13 @@ const styles = StyleSheet.create({
   trendCurrency: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   trendItem: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: theme.color.surface.subtle,
   },
   trendItemHeader: {
     flexDirection: 'row',
@@ -1180,30 +1184,30 @@ const styles = StyleSheet.create({
   trendPeriod: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   trendAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#4F46E5',
+    color: theme.color.brand.accent,
   },
   trendCount: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 2,
   },
   trendDates: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: theme.color.text.placeholder,
   },
   projectionSummary: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -1215,20 +1219,20 @@ const styles = StyleSheet.create({
   projectionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   projectionValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   projectionItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -1243,16 +1247,16 @@ const styles = StyleSheet.create({
   projectionMonth: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   projectionAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.color.state.success.border,
   },
   projectionCount: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
 });
 
