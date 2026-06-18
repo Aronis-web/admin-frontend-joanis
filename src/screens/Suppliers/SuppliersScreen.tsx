@@ -20,12 +20,16 @@ import { suppliersService } from '@/services/api/suppliers';
 import { Supplier, SupplierType } from '@/types/suppliers';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { SUPPLIER_TYPE_LABELS, SUPPLIER_TYPE_ICONS, SUPPLIER_TYPE_COLORS } from '@/constants/supplierTypes';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface SuppliersScreenProps {
   navigation: any;
 }
 
 export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { user, logout } = useAuthStore();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -369,7 +373,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
           placeholder="Buscar por nombre, código, RUC, categoría..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
@@ -377,7 +381,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
           </TouchableOpacity>
         )}
         {searchQuery !== debouncedSearchQuery && (
-          <ActivityIndicator size="small" color="#667eea" style={styles.searchLoader} />
+          <ActivityIndicator size="small" color={theme.color.brand.accent} style={styles.searchLoader} />
         )}
       </View>
 
@@ -503,7 +507,7 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#667eea" />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={[styles.loadingText, isTablet && styles.loadingTextTablet]}>
               Cargando proveedores...
             </Text>
@@ -599,41 +603,41 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
+    paddingHorizontal: theme.space[8],
+    paddingVertical: theme.space[5],
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: theme.space[4],
   },
   menuButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuIcon: {
     fontSize: 24,
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   menuIconTablet: {
     fontSize: 28,
@@ -641,14 +645,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   headerTitleTablet: {
     fontSize: 24,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   headerSubtitleTablet: {
@@ -657,56 +661,56 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginVertical: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: theme.color.surface.base,
+    marginHorizontal: theme.space[5],
+    marginVertical: theme.space[4],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   searchContainerTablet: {
-    marginHorizontal: 32,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    marginHorizontal: theme.space[8],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[3.5],
   },
   searchIcon: {
     fontSize: 20,
-    marginRight: 12,
+    marginRight: theme.space[3],
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.body,
   },
   searchInputTablet: {
     fontSize: 17,
   },
   clearButton: {
-    padding: 4,
+    padding: theme.space[1],
   },
   clearButtonText: {
     fontSize: 18,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
   },
   searchLoader: {
-    marginLeft: 8,
+    marginLeft: theme.space[2],
   },
   filterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   filterLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
-    marginRight: 12,
+    color: theme.color.text.muted,
+    marginRight: theme.space[3],
   },
   filterScroll: {
     flex: 1,
@@ -714,15 +718,15 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    marginRight: 8,
-    gap: 4,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.muted,
+    marginRight: theme.space[2],
+    gap: theme.space[1],
   },
   filterChipActive: {
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.brand.accent,
   },
   filterChipIcon: {
     fontSize: 14,
@@ -730,58 +734,54 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: theme.space[5],
     paddingBottom: 100,
   },
   contentContainerTablet: {
-    paddingHorizontal: 32,
+    paddingHorizontal: theme.space[8],
   },
   suppliersGrid: {
-    gap: 16,
+    gap: theme.space[4],
   },
   suppliersGridLandscape: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 20,
+    gap: theme.space[5],
   },
   supplierCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
+    padding: theme.space[4],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   supplierCardTablet: {
-    padding: 20,
-    borderRadius: 20,
+    padding: theme.space[5],
+    borderRadius: theme.radii['2xl'],
   },
   supplierHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: theme.space[3],
   },
   supplierIcon: {
     width: 48,
     height: 48,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: theme.space[3],
   },
   supplierIconText: {
     fontSize: 24,
@@ -792,7 +792,7 @@ const styles = StyleSheet.create({
   supplierName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   supplierNameTablet: {
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
   },
   supplierCode: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 2,
   },
   supplierCodeTablet: {
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
   },
   supplierRuc: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: theme.color.text.subtle,
   },
   supplierRucTablet: {
     fontSize: 13,
@@ -816,42 +816,42 @@ const styles = StyleSheet.create({
   statusBadge: {
     width: 32,
     height: 32,
-    borderRadius: 8,
-    backgroundColor: '#10B981',
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.state.success.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   statusBadgeText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '700',
   },
   supplierDetails: {
-    gap: 8,
-    marginBottom: 12,
+    gap: theme.space[2],
+    marginBottom: theme.space[3],
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: theme.space[2],
   },
   detailIcon: {
     fontSize: 14,
   },
   detailText: {
     fontSize: 13,
-    color: '#475569',
+    color: theme.color.text.muted,
     flex: 1,
   },
   detailTextTablet: {
     fontSize: 14,
   },
   debtSection: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    gap: 6,
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
+    padding: theme.space[3],
+    marginBottom: theme.space[3],
+    gap: theme.space[1.5],
   },
   debtRow: {
     flexDirection: 'row',
@@ -860,7 +860,7 @@ const styles = StyleSheet.create({
   },
   debtLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   debtLabelTablet: {
@@ -869,27 +869,27 @@ const styles = StyleSheet.create({
   debtAmount: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   debtAmountTablet: {
     fontSize: 15,
   },
   debtAmountPositive: {
-    color: '#EF4444',
+    color: theme.color.text.danger,
   },
   debtAmountUnassigned: {
-    color: '#F59E0B',
+    color: theme.color.text.warning,
   },
   supplierFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 12,
+    paddingTop: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: theme.color.border.subtle,
   },
   footerText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: theme.color.text.subtle,
   },
   footerTextTablet: {
     fontSize: 13,
@@ -901,9 +901,9 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: theme.space[4],
     fontSize: 15,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   loadingTextTablet: {
     fontSize: 17,
@@ -916,28 +916,28 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: theme.space[4],
   },
   emptyText: {
     fontSize: 16,
-    color: '#64748B',
-    marginBottom: 24,
+    color: theme.color.text.muted,
+    marginBottom: theme.space[6],
   },
   emptyTextTablet: {
     fontSize: 18,
   },
   emptyButton: {
-    backgroundColor: '#667eea',
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 12,
+    backgroundColor: theme.color.brand.accent,
+    paddingVertical: theme.space[3.5],
+    paddingHorizontal: theme.space[8],
+    borderRadius: theme.radii.lg,
   },
   emptyButtonTablet: {
-    paddingVertical: 16,
-    paddingHorizontal: 40,
+    paddingVertical: theme.space[4],
+    paddingHorizontal: theme.space[10],
   },
   emptyButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -949,20 +949,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 2,
-    borderTopColor: '#667eea',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderTopColor: theme.color.brand.accent,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    gap: theme.space[4],
+    ...theme.shadow.md,
   },
   paginationInfo: {
     alignItems: 'center',
@@ -972,54 +968,49 @@ const styles = StyleSheet.create({
   paginationText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   paginationSubtext: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 4,
     fontWeight: '500',
   },
   paginationButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    backgroundColor: '#667eea',
+    paddingVertical: theme.space[3.5],
+    paddingHorizontal: theme.space[6],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.brand.accent,
     minWidth: 120,
     alignItems: 'center',
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    ...theme.shadow.sm,
   },
   paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.surface.disabled,
     shadowOpacity: 0,
     elevation: 0,
   },
   paginationButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   paginationButtonTextDisabled: {
-    color: '#94A3B8',
+    color: theme.color.text.disabled,
   },
-  // v1.1.0 - Estilos para tipos de proveedor
   typesSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: theme.space[2],
+    gap: theme.space[2],
   },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.lg,
+    gap: theme.space[1],
   },
   typeBadgeIcon: {
     fontSize: 14,
@@ -1030,18 +1021,18 @@ const styles = StyleSheet.create({
   },
   additionalTypesText: {
     fontSize: 11,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontStyle: 'italic',
   },
   categorySection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: theme.space[2],
   },
   categoryText: {
     fontSize: 12,
-    color: '#475569',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   ratingContainer: {
@@ -1050,7 +1041,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: theme.color.text.warning,
     fontWeight: '600',
   },
 });

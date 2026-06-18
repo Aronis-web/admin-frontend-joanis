@@ -45,10 +45,6 @@ import type { PurchaseValidationProgressResponse } from '@/types/purchases';
 import { usePermissions } from '@/hooks/usePermissions';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   Title,
   Body,
   Label,
@@ -59,6 +55,8 @@ import {
   EmptyState,
   Pagination,
 } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface PurchasesScreenProps {
   navigation: any;
@@ -67,6 +65,9 @@ interface PurchasesScreenProps {
 export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) => {
   // Screen tracking
   useScreenTracking('PurchasesScreen', 'PurchasesScreen');
+
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [selectedStatus, setSelectedStatus] = useState<PurchaseStatus | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
@@ -314,13 +315,14 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
   // Status filter options
   const statusOptions: StatusOption[] = useMemo(() => {
+    const fallback = theme.color.text.muted;
     const getStatusColor = (status: PurchaseStatus | 'ALL'): string => {
-      if (status === 'ALL') return colors.accent[500];
-      return PurchaseStatusColors[status] || colors.neutral[500];
+      if (status === 'ALL') return theme.color.brand.accent;
+      return PurchaseStatusColors[status] || fallback;
     };
 
     return [
-      { value: 'ALL', label: 'Todos', color: colors.accent[500] },
+      { value: 'ALL', label: 'Todos', color: theme.color.brand.accent },
       { value: PurchaseStatus.DRAFT, label: PurchaseStatusLabels[PurchaseStatus.DRAFT], color: getStatusColor(PurchaseStatus.DRAFT) },
       { value: PurchaseStatus.IN_CAPTURE, label: PurchaseStatusLabels[PurchaseStatus.IN_CAPTURE], color: getStatusColor(PurchaseStatus.IN_CAPTURE) },
       { value: PurchaseStatus.IN_VALIDATION, label: PurchaseStatusLabels[PurchaseStatus.IN_VALIDATION], color: getStatusColor(PurchaseStatus.IN_VALIDATION) },
@@ -328,7 +330,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
       { value: PurchaseStatus.CLOSED, label: PurchaseStatusLabels[PurchaseStatus.CLOSED], color: getStatusColor(PurchaseStatus.CLOSED) },
       { value: PurchaseStatus.CANCELLED, label: PurchaseStatusLabels[PurchaseStatus.CANCELLED], color: getStatusColor(PurchaseStatus.CANCELLED) },
     ];
-  }, []);
+  }, [theme]);
 
   const renderPurchaseCard = useCallback((purchase: Purchase) => {
     const totalProducts = purchase.products?.length || 0;
@@ -415,18 +417,18 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
                 activeOpacity={0.7}
               >
                 {isDownloading ? (
-                  <ActivityIndicator size="small" color={colors.text.inverse} />
+                  <ActivityIndicator size="small" color={theme.color.text.inverse} />
                 ) : (
                   <>
-                    <Ionicons name="document-text-outline" size={14} color={colors.text.inverse} />
-                    <Caption color={colors.text.inverse} style={styles.downloadButtonText}>
+                    <Ionicons name="document-text-outline" size={14} color={theme.color.text.inverse} />
+                    <Caption color={theme.color.text.inverse} style={styles.downloadButtonText}>
                       Reporte
                     </Caption>
                   </>
                 )}
               </TouchableOpacity>
             )}
-            <Ionicons name="chevron-forward" size={20} color={colors.icon.tertiary} />
+            <Ionicons name="chevron-forward" size={20} color={theme.color.icon.subtle} />
           </View>
         </View>
       </Card>
@@ -437,7 +439,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -446,7 +448,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cart" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="cart" size={22} color={theme.color.text.inverse} />
                 </View>
                 <Title size="large" style={styles.headerTitle}>Compras</Title>
               </View>
@@ -455,7 +457,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Body color="secondary" style={styles.loadingText}>Cargando compras...</Body>
         </View>
       </SafeAreaView>
@@ -467,7 +469,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -476,7 +478,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cart" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="cart" size={22} color={theme.color.text.inverse} />
                 </View>
                 <Title size="large" style={styles.headerTitle}>Compras</Title>
               </View>
@@ -495,17 +497,17 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           {/* Search Bar */}
           <View style={styles.searchInputWrapper}>
             <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+              <Ionicons name="search" size={20} color={theme.color.text.placeholder} style={styles.searchIcon} />
               <TextInput
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 value={searchTerm}
                 onChangeText={setSearchTerm}
                 placeholder="Buscar por código, proveedor, productos..."
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
               />
               {searchTerm.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchTerm('')} style={styles.clearButton}>
-                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="close-circle" size={20} color={theme.color.text.placeholder} />
                 </TouchableOpacity>
               )}
             </View>
@@ -533,7 +535,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <Ionicons
               name={showDateFilters ? 'calendar' : 'calendar-outline'}
               size={20}
-              color={colors.primary[900]}
+              color={theme.color.brand.primary}
             />
             <Label color="primary" style={styles.dateFilterToggleText}>
               {showDateFilters ? 'Ocultar Filtros de Fecha' : 'Filtrar por Fecha'}
@@ -541,7 +543,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <Ionicons
               name={showDateFilters ? 'chevron-up' : 'chevron-down'}
               size={20}
-              color={colors.primary[900]}
+              color={theme.color.brand.primary}
             />
           </TouchableOpacity>
           {(startDate || endDate) && (
@@ -550,7 +552,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
               onPress={handleClearDateFilters}
               activeOpacity={0.7}
             >
-              <Ionicons name="close-circle" size={20} color={colors.danger[500]} />
+              <Ionicons name="close-circle" size={20} color={theme.color.text.danger} />
             </TouchableOpacity>
           )}
         </View>
@@ -580,7 +582,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
                     activeOpacity={0.7}
                   >
                     <Caption
-                      color={dateField === field ? colors.text.inverse : 'secondary'}
+                      color={dateField === field ? theme.color.text.inverse : 'secondary'}
                     >
                       {label}
                     </Caption>
@@ -614,7 +616,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             {/* Active Filters Info */}
             {(startDate || endDate) && (
               <View style={styles.activeFiltersInfo}>
-                <Ionicons name="information-circle" size={16} color={colors.info[500]} />
+                <Ionicons name="information-circle" size={16} color={theme.color.icon.accent} />
                 <Caption color="secondary" style={styles.activeFiltersText}>
                   {startDate && endDate
                     ? `Mostrando compras desde ${startDate} hasta ${endDate}`
@@ -634,7 +636,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             styles.contentContainer,
             isTablet && styles.contentContainerTablet,
           ]}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} colors={[colors.primary[900]]} />}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} colors={[theme.color.brand.primary]} />}
         >
           {purchases.length === 0 ? (
             <EmptyState
@@ -691,22 +693,21 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
-  // Header con gradiente
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   headerTitleContainer: {
     flex: 1,
@@ -714,72 +715,72 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerTitle: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   headerSubtitle: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginLeft: spacing[12],
+    color: theme.color.brand.onHeaderMuted,
+    marginLeft: theme.space[12],
   },
   statsHeaderContainer: {
     alignItems: 'flex-end',
   },
   statHeaderItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.lg,
   },
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   statHeaderLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
   searchInputWrapper: {
     flexDirection: 'row',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.space[3],
   },
   searchIcon: {
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   searchInput: {
     flex: 1,
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   searchInputTablet: {
     fontSize: 16,
-    paddingVertical: spacing[3.5],
+    paddingVertical: theme.space[3.5],
   },
   clearButton: {
-    padding: spacing[1],
+    padding: theme.space[1],
   },
   loadingContainer: {
     flex: 1,
@@ -787,65 +788,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
   statusFilter: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   dateFilterToggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   dateFilterToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   dateFilterToggleText: {
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
   clearDateButton: {
-    padding: spacing[1],
+    padding: theme.space[1],
   },
   dateFiltersPanel: {
-    backgroundColor: colors.surface.secondary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    backgroundColor: theme.color.surface.subtle,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    gap: spacing[4],
+    borderBottomColor: theme.color.border.subtle,
+    gap: theme.space[4],
   },
   dateFieldSelector: {
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   dateFieldButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   dateFieldButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: theme.color.border.subtle,
   },
   dateFieldButtonActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   dateRangePickers: {
     flexDirection: 'row',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   datePickerWrapper: {
     flex: 1,
@@ -853,10 +854,10 @@ const styles = StyleSheet.create({
   activeFiltersInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
-    backgroundColor: colors.info[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
+    gap: theme.space[2],
+    backgroundColor: theme.color.state.info.background,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
   },
   activeFiltersText: {
     flex: 1,
@@ -865,34 +866,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[4],
-    gap: spacing[4],
+    padding: theme.space[4],
+    gap: theme.space[4],
   },
   contentContainerTablet: {
-    padding: spacing[6],
+    padding: theme.space[6],
     maxWidth: 1200,
     alignSelf: 'center',
     width: '100%',
   },
   purchaseCard: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   cardHeaderLeft: {
     flex: 1,
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   cardCode: {
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   cardBody: {
-    gap: spacing[2],
-    marginBottom: spacing[4],
+    gap: theme.space[2],
+    marginBottom: theme.space[4],
   },
   infoRow: {
     flexDirection: 'row',
@@ -906,45 +907,45 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     alignItems: 'center',
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
+    marginTop: theme.space[3],
+    paddingTop: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
+    borderTopColor: theme.color.border.subtle,
   },
   progressLabel: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing[3],
+    paddingTop: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
+    borderTopColor: theme.color.border.subtle,
   },
   cardActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   downloadButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary[900],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.md,
-    gap: spacing[1],
+    backgroundColor: theme.color.brand.primary,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1.5],
+    borderRadius: theme.radii.md,
+    gap: theme.space[1],
   },
   downloadButtonDisabled: {
-    backgroundColor: colors.neutral[400],
+    backgroundColor: theme.color.text.disabled,
     opacity: 0.7,
   },
   downloadButtonText: {
-    marginLeft: spacing[1],
+    marginLeft: theme.space[1],
   },
   bottomSpacer: {
-    height: spacing[20],
+    height: theme.space[20],
   },
 });
 

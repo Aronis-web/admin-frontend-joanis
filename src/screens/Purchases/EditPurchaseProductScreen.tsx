@@ -21,10 +21,6 @@ import { presentationsApi } from '@/services/api/presentations';
 import type { Presentation } from '@/services/api/presentations';
 import type { ProductPresentationConfig } from '@/types/purchases';
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   Title,
   Body,
   Label,
@@ -34,6 +30,8 @@ import {
   Input,
   IconButton,
 } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface EditPurchaseProductScreenProps {
   navigation: any;
@@ -53,6 +51,8 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { purchaseId, productId } = route.params;
   const [sku, setSku] = useState('');
   const [name, setName] = useState('');
@@ -314,7 +314,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
         </View>
 
         <View style={styles.presentationDetails}>
-          <Label color={colors.primary[600]}>Factor: {pp.factorToBase}x</Label>
+          <Label color={theme.color.brand.accent}>Factor: {pp.factorToBase}x</Label>
           {pp.notes && (
             <Caption color="secondary" style={styles.presentationNotes}>
               {pp.notes}
@@ -347,7 +347,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
                 }
               }}
             >
-              <Caption color={isSelected ? colors.text.inverse : colors.primary[600]}>
+              <Caption color={isSelected ? theme.color.text.inverse : theme.color.brand.accent}>
                 {isSelected ? '✓ Seleccionada' : 'Seleccionar'}
               </Caption>
             </TouchableOpacity>
@@ -367,12 +367,12 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
               }
             }}
             placeholder={isSelected ? 'Ej: 5' : 'Seleccione esta presentación primero'}
-            placeholderTextColor={colors.text.placeholder}
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="number-pad"
             editable={isSelected}
           />
           {isSelected && pp.quantityOfPresentations > 0 && (
-            <Caption color={colors.success[600]} style={styles.calculationHint}>
+            <Caption color={theme.color.text.success} style={styles.calculationHint}>
               = {pp.quantityOfPresentations} × {pp.factorToBase} = {pp.quantityOfPresentations * pp.factorToBase} unidades
             </Caption>
           )}
@@ -385,7 +385,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Body color="secondary" style={styles.loadingText}>Cargando producto...</Body>
         </View>
       </SafeAreaView>
@@ -400,7 +400,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.icon.primary} />
+          <Ionicons name="chevron-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Title size="large">Editar Producto</Title>
@@ -459,7 +459,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Label color="primary">
-              Presentaciones <Label color={colors.danger[500]}>*</Label>
+              Presentaciones <Label color={theme.color.text.danger}>*</Label>
             </Label>
             <Button
               title="+ Agregar"
@@ -500,7 +500,7 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
         <View style={styles.section}>
           <Label color="secondary">Stock Total Preliminar (Calculado)</Label>
           <View style={styles.calculatedField}>
-            <Title size="medium" color={colors.text.secondary}>
+            <Title size="medium" color={theme.color.text.muted}>
               {calculateTotalStock()} unidades
             </Title>
           </View>
@@ -512,8 +512,8 @@ export const EditPurchaseProductScreen: React.FC<EditPurchaseProductScreenProps>
         {/* Info Box */}
         <Card variant="filled" padding="medium" style={styles.infoBox}>
           <View style={styles.infoBoxContent}>
-            <Ionicons name="information-circle" size={24} color={colors.info[600]} />
-            <Body color={colors.info[800]} style={styles.infoBoxText}>
+            <Ionicons name="information-circle" size={24} color={theme.color.icon.accent} />
+            <Body color={theme.color.state.info.text} style={styles.infoBoxText}>
               Estos datos son preliminares. Podrás validar y completar la información del producto en la siguiente etapa.
             </Body>
           </View>
@@ -566,6 +566,8 @@ const AddPresentationModal: React.FC<AddPresentationModalProps> = ({
   onAdd,
   onCancel,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [selectedPresentationId, setSelectedPresentationId] = useState('');
   const [factorToBase, setFactorToBase] = useState('1');
   const [notes, setNotes] = useState('');
@@ -599,7 +601,7 @@ const AddPresentationModal: React.FC<AddPresentationModalProps> = ({
 
           <ScrollView style={styles.modalBody}>
             <Label color="secondary" style={styles.modalLabel}>
-              Seleccionar Presentación <Label color={colors.danger[500]}>*</Label>
+              Seleccionar Presentación <Label color={theme.color.text.danger}>*</Label>
             </Label>
             <View style={styles.presentationOptions}>
               {presentations.map((p) => (
@@ -611,7 +613,7 @@ const AddPresentationModal: React.FC<AddPresentationModalProps> = ({
                   ]}
                   onPress={() => setSelectedPresentationId(p.id)}
                 >
-                  <Body color={selectedPresentationId === p.id ? colors.primary[900] : 'primary'}>
+                  <Body color={selectedPresentationId === p.id ? theme.color.brand.primary : 'primary'}>
                     {p.name}
                   </Body>
                 </TouchableOpacity>
@@ -656,10 +658,10 @@ const AddPresentationModal: React.FC<AddPresentationModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -667,23 +669,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    gap: spacing[3],
+    borderBottomColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -694,174 +696,173 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   contentContainerTablet: {
-    padding: spacing[6],
+    padding: theme.space[6],
     maxWidth: 800,
     alignSelf: 'center',
     width: '100%',
   },
   section: {
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   emptyPresentations: {
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   presentationsList: {
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   presentationCard: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   presentationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   presentationDetails: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   presentationNotes: {
-    marginTop: spacing[1],
+    marginTop: theme.space[1],
     fontStyle: 'italic',
   },
   quantitySection: {
-    paddingTop: spacing[3],
+    paddingTop: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
+    borderTopColor: theme.color.border.subtle,
   },
   quantityHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   selectForQuantityButton: {
-    backgroundColor: colors.primary[100],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
+    backgroundColor: theme.color.brand.primarySoft,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
     borderWidth: 1,
-    borderColor: colors.primary[200],
+    borderColor: theme.color.border.default,
   },
   selectForQuantityButtonActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   quantityInput: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1.5,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2.5],
     fontSize: 15,
-    color: colors.text.primary,
+    color: theme.color.text.body,
   },
   quantityInputDisabled: {
-    backgroundColor: colors.surface.secondary,
+    backgroundColor: theme.color.surface.subtle,
     opacity: 0.6,
   },
   calculationHint: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
     fontWeight: '600',
   },
   calculatedField: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[4],
-    marginTop: spacing[2],
-    marginBottom: spacing[2],
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.md,
+    padding: theme.space[4],
+    marginTop: theme.space[2],
+    marginBottom: theme.space[2],
   },
   infoBox: {
-    backgroundColor: colors.info[50],
+    backgroundColor: theme.color.state.info.background,
     borderWidth: 1,
-    borderColor: colors.info[200],
+    borderColor: theme.color.state.info.border,
   },
   infoBoxContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   infoBoxText: {
     flex: 1,
     lineHeight: 20,
   },
   bottomSpacer: {
-    height: spacing[10],
+    height: theme.space[10],
   },
   footer: {
     flexDirection: 'row',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    gap: spacing[3],
+    borderTopColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   footerButton: {
     flex: 1,
   },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[5],
+    padding: theme.space[5],
   },
   modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
     width: '100%',
     maxWidth: 500,
     maxHeight: '80%',
-    ...shadows.xl,
+    ...theme.shadow.xl,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing[5],
+    padding: theme.space[5],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   modalBody: {
-    padding: spacing[5],
+    padding: theme.space[5],
   },
   modalLabel: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   presentationOptions: {
-    gap: spacing[2],
-    marginBottom: spacing[4],
+    gap: theme.space[2],
+    marginBottom: theme.space[4],
   },
   presentationOption: {
-    backgroundColor: colors.surface.secondary,
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.surface.subtle,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
     borderWidth: 1.5,
-    borderColor: colors.border.light,
+    borderColor: theme.color.border.subtle,
   },
   presentationOptionSelected: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[500],
+    backgroundColor: theme.color.brand.primarySoft,
+    borderColor: theme.color.brand.accent,
   },
   modalFooter: {
     flexDirection: 'row',
-    padding: spacing[5],
+    padding: theme.space[5],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    gap: spacing[3],
+    borderTopColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   modalButton: {
     flex: 1,
