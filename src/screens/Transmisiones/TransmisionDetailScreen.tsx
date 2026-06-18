@@ -32,6 +32,8 @@ import {
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { TransmisionProductsList } from '@/components/Transmisiones/TransmisionProductsList';
 import { AddProductModal } from '@/components/Transmisiones/AddProductModal';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface TransmisionDetailScreenProps {
   navigation: any;
@@ -46,6 +48,8 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { transmisionId } = route.params;
   const [transmision, setTransmision] = useState<TransmisionWithProducts | null>(null);
   const [products, setProducts] = useState<TransmisionProduct[]>([]);
@@ -191,7 +195,7 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
               value={editedName}
               onChangeText={setEditedName}
               placeholder="Nombre de la transmisión"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.color.text.placeholder}
             />
           </View>
 
@@ -202,7 +206,7 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
               value={editedDescription}
               onChangeText={setEditedDescription}
               placeholder="Descripción opcional"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.color.text.placeholder}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -245,7 +249,7 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={theme.color.text.inverse} size="small" />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar</Text>
               )}
@@ -309,7 +313,7 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0EA5E9" />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando transmisión...</Text>
           </View>
         </SafeAreaView>
@@ -351,7 +355,7 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
               onPress={handleAddProduct}
               activeOpacity={0.9}
             >
-              <Ionicons name="add" size={28} color="#FFFFFF" />
+              <Ionicons name="add" size={28} color={theme.color.text.inverse} />
             </TouchableOpacity>
           </View>
         )}
@@ -372,283 +376,284 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  backButton: {
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#0EA5E9',
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  headerTitleTablet: {
-    fontSize: 28,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  headerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  compactHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  miniStats: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  miniStatText: {
-    fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 18,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  titleTablet: {
-    fontSize: 28,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  description: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  descriptionTablet: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  deleteActionButton: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-  },
-  deleteActionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#DC2626',
-  },
-  editContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
-  inputTablet: {
-    padding: 16,
-    fontSize: 18,
-  },
-  textArea: {
-    minHeight: 80,
-    paddingTop: 12,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  statusButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  statusButtonActive: {
-    backgroundColor: '#0EA5E9',
-    borderColor: '#0EA5E9',
-  },
-  statusButtonText: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  statusButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  editActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  saveButton: {
-    backgroundColor: '#0EA5E9',
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  addButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  addButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  floatingButtonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    left: 0,
-    top: 0,
-    zIndex: 999,
-    elevation: 999,
-  },
-  floatingButton: {
-    position: 'absolute',
-    bottom: 90,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#8B5CF6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 999,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    zIndex: 999,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    headerTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    backButton: {
+      paddingVertical: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.accent,
+      fontWeight: '600',
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    headerTitleTablet: {
+      fontSize: 28,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    content: {
+      padding: 16,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    headerContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    compactHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    miniStats: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: 8,
+      marginBottom: 12,
+    },
+    miniStatText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      lineHeight: 18,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    titleTablet: {
+      fontSize: 28,
+    },
+    statusBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    statusText: {
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    description: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 16,
+      lineHeight: 20,
+    },
+    descriptionTablet: {
+      fontSize: 16,
+      lineHeight: 24,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 16,
+    },
+    actionButton: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      alignItems: 'center',
+    },
+    actionButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    deleteActionButton: {
+      backgroundColor: theme.color.state.danger.background,
+      borderColor: theme.color.state.danger.border,
+    },
+    deleteActionButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.danger,
+    },
+    editContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    section: {
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    labelTablet: {
+      fontSize: 16,
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    input: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    inputTablet: {
+      padding: 16,
+      fontSize: 18,
+    },
+    textArea: {
+      minHeight: 80,
+      paddingTop: 12,
+    },
+    statusContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    statusButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    statusButtonActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    statusButtonText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    statusButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    editActions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 8,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    saveButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    saveButtonDisabled: {
+      backgroundColor: theme.color.action.primary.backgroundDisabled,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+    addButton: {
+      backgroundColor: theme.color.action.success.background,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    addButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+    floatingButtonContainer: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      left: 0,
+      top: 0,
+      zIndex: 999,
+      elevation: 999,
+    },
+    floatingButton: {
+      position: 'absolute',
+      bottom: 90,
+      right: 20,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.color.brand.accent,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      elevation: 999,
+      borderWidth: 3,
+      borderColor: theme.color.surface.base,
+      zIndex: 999,
+    },
+  });
