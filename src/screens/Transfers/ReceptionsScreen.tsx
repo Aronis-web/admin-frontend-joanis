@@ -34,6 +34,8 @@ import {
   ValidateItemDto,
   CompleteReceptionDto,
 } from '@/types/transfers';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ReceptionsScreenProps {
   navigation: any;
@@ -78,6 +80,8 @@ interface PersistedReceptionForm {
 const getReceptionFormStorageKey = (transferId: string) => `reception-form:${transferId}`;
 
 export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { currentSite } = useAuthStore();
   const { selectedSite } = useTenantStore();
 
@@ -790,17 +794,17 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
           const statusConfig =
             reception.status === ReceptionStatus.PENDING
-              ? { label: 'Pendiente', backgroundColor: '#FEF3C7', borderColor: '#F59E0B', textColor: '#F59E0B' }
+              ? { label: 'Pendiente', backgroundColor: theme.color.state.warning.background, borderColor: theme.color.state.warning.border, textColor: theme.color.state.warning.text }
               : reception.status === ReceptionStatus.PARTIAL
-                ? { label: 'Parcial', backgroundColor: '#EDE9FE', borderColor: '#8B5CF6', textColor: '#8B5CF6' }
+                ? { label: 'Parcial', backgroundColor: theme.color.state.partial.background, borderColor: theme.color.state.partial.border, textColor: theme.color.state.partial.text }
                 : reception.status === ReceptionStatus.WITH_DIFFERENCES
                   ? {
                       label: 'Con diferencias',
-                      backgroundColor: '#FFEDD5',
-                      borderColor: '#EA580C',
-                      textColor: '#C2410C',
+                      backgroundColor: theme.color.state.warning.background,
+                      borderColor: theme.color.state.warning.border,
+                      textColor: theme.color.state.warning.text,
                     }
-                  : { label: 'Completo', backgroundColor: '#D1FAE5', borderColor: '#10B981', textColor: '#10B981' };
+                  : { label: 'Completo', backgroundColor: theme.color.state.success.background, borderColor: theme.color.state.success.border, textColor: theme.color.state.success.text };
           const expectedItemsCount =
             Number(
               reception.totalItemsExpected ??
@@ -871,7 +875,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                     <View style={styles.statDivider} />
                     <View style={styles.stat}>
                       <Text style={styles.statLabel}>Diferencias</Text>
-                      <Text style={[styles.statValue, { color: '#F59E0B' }]}>Sí</Text>
+                      <Text style={[styles.statValue, { color: theme.color.state.warning.border }]}>Sí</Text>
                     </View>
                   </>
                 )}
@@ -959,7 +963,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
           : 'Validado'
       : 'Pendiente';
 
-    const statusColor = isValidatedFromApi ? '#10B981' : '#64748B';
+    const statusColor = isValidatedFromApi ? theme.color.state.success.text : theme.color.text.muted;
 
     return (
       <View style={styles.validateItemCard}>
@@ -1019,7 +1023,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando recepciones...</Text>
         </View>
       ) : (
@@ -1115,7 +1119,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                   placeholder="Buscar por nombre, código o correlativo"
                   value={productSearchTerm}
                   onChangeText={setProductSearchTerm}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                 />
               </>
             }
@@ -1130,7 +1134,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                   multiline
                   numberOfLines={3}
                   editable={!isReadOnlyMode}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                 />
               </View>
             }
@@ -1185,7 +1189,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
               onChangeText={setNumeroBultos}
               keyboardType="numeric"
               placeholder="Ej: 10"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
 
             <View style={styles.modalActionsRow}>
@@ -1229,7 +1233,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                 keyboardType="numeric"
                 value={errorModalForm?.quantityReceived || ''}
                 onChangeText={(value) => updateErrorModalForm('quantityReceived', value)}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
 
               <Text style={styles.label}>Almacén destino *</Text>
@@ -1271,7 +1275,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                 onChangeText={(value) => updateErrorModalForm('notes', value)}
                 multiline
                 numberOfLines={2}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
 
               <View style={styles.damagedToggleRow}>
@@ -1299,7 +1303,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                     keyboardType="numeric"
                     value={errorModalForm?.quantityDamaged || ''}
                     onChangeText={(value) => updateErrorModalForm('quantityDamaged', value)}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
 
                   <Text style={styles.label}>Almacén de dañados *</Text>
@@ -1341,7 +1345,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                     onChangeText={(value) => updateErrorModalForm('damageNotes', value)}
                     multiline
                     numberOfLines={2}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
                 </>
               )}
@@ -1433,31 +1437,31 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   backButtonText: {
     fontSize: 20,
-    color: '#334155',
+    color: theme.color.text.body,
   },
   headerTitleContainer: {
     flex: 1,
@@ -1465,11 +1469,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   scrollView: {
@@ -1488,7 +1492,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   emptyContainer: {
     flex: 1,
@@ -1503,22 +1507,22 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#334155',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   receptionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1536,16 +1540,16 @@ const styles = StyleSheet.create({
   receptionNumber: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   receptionDate: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   transferInfoText: {
     fontSize: 13,
-    color: '#475569',
+    color: theme.color.text.body,
     marginVertical: 2,
   },
   statusBadge: {
@@ -1563,7 +1567,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: theme.color.surface.subtle,
   },
   stat: {
     flex: 1,
@@ -1572,11 +1576,11 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
   },
   statLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '600',
     textTransform: 'uppercase',
     marginBottom: 4,
@@ -1584,13 +1588,13 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   receptionNotes: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: theme.color.surface.subtle,
   },
   guideActionButton: {
     marginTop: 12,
@@ -1600,28 +1604,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   downloadGuideButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   createGuideButton: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.border,
   },
   guideActionButtonDisabled: {
     opacity: 0.7,
   },
   guideActionButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 13,
     fontWeight: '700',
   },
   notesLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   notesText: {
     fontSize: 13,
-    color: '#475569',
+    color: theme.color.text.body,
     lineHeight: 18,
   },
   paginationContainer: {
@@ -1632,55 +1636,55 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   paginationButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
   },
   paginationButtonDisabled: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: theme.color.border.default,
   },
   paginationButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 13,
     fontWeight: '600',
   },
   paginationInfo: {
     flex: 1,
     textAlign: 'center',
-    color: '#475569',
+    color: theme.color.text.body,
     fontSize: 12,
     fontWeight: '600',
   },
   validateModalContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   validateHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   validateTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: 'bold',
   },
   validateList: {
@@ -1691,71 +1695,71 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   validateInfo: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.accentSoft,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: theme.color.state.info.border,
   },
   validateInfoText: {
     fontSize: 13,
-    color: '#4338CA',
+    color: theme.color.state.info.text,
     fontWeight: '500',
     marginBottom: 4,
   },
   guideDetailCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   guideDetailTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: theme.color.text.muted,
     textTransform: 'uppercase',
     marginBottom: 6,
   },
   guideDetailValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   guideDetailMeta: {
     marginTop: 4,
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 12,
   },
   searchInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   qualityCheckSectionInline: {
-    backgroundColor: '#F0F9FF',
+    backgroundColor: theme.color.state.info.background,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: theme.color.state.info.border,
     marginTop: 8,
     marginBottom: 8,
     paddingHorizontal: 12,
@@ -1763,12 +1767,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   validateItemCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   validateItemTopRow: {
     flexDirection: 'row',
@@ -1783,19 +1787,19 @@ const styles = StyleSheet.create({
   validateItemTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   validateItemSku: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   itemStatusBadge: {
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   itemStatusText: {
     fontSize: 11,
@@ -1808,7 +1812,7 @@ const styles = StyleSheet.create({
   },
   quantityBox: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 6,
     padding: 10,
     alignItems: 'center',
@@ -1816,14 +1820,14 @@ const styles = StyleSheet.create({
   quantityLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   quantityValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   inlineDestinationSection: {
     marginBottom: 10,
@@ -1831,13 +1835,13 @@ const styles = StyleSheet.create({
   inlineDestinationLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 6,
     marginTop: 8,
   },
   destinationInfoText: {
     fontSize: 12,
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 10,
   },
   itemActionsRow: {
@@ -1851,34 +1855,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullEntryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.color.state.success.text,
   },
   fullEntryDoneButton: {
-    backgroundColor: '#047857',
+    backgroundColor: theme.color.action.success.backgroundPressed,
   },
   errorEntryButton: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.border,
   },
   itemActionText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 13,
     fontWeight: '700',
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 8,
     marginTop: 12,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   textArea: {
     minHeight: 80,
@@ -1886,10 +1890,10 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   fixedActionsBar: {
     flexDirection: 'row',
@@ -1898,8 +1902,8 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 14,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: theme.color.border.subtle,
+    backgroundColor: theme.color.surface.base,
   },
   fixedActionButton: {
     flex: 1,
@@ -1908,30 +1912,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelFixedButton: {
-    backgroundColor: '#475569',
+    backgroundColor: theme.color.text.body,
   },
   validateFixedButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: theme.color.brand.accent,
   },
   fixedActionText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontWeight: '700',
     fontSize: 14,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     padding: 18,
   },
   itemErrorModalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 18,
     maxHeight: '92%',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
@@ -1946,7 +1950,7 @@ const styles = StyleSheet.create({
   itemErrorModalTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   modalTextArea: {
     minHeight: 72,
@@ -1961,7 +1965,7 @@ const styles = StyleSheet.create({
   damagedToggleLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#334155',
+    color: theme.color.text.body,
   },
   modalActionsRow: {
     flexDirection: 'row',
@@ -1978,18 +1982,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCancelButton: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
   },
   modalSaveButton: {
-    backgroundColor: '#6D28D9',
+    backgroundColor: theme.color.brand.accent,
   },
   modalActionText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontWeight: '800',
     fontSize: 14,
   },
   modalActionTextCancel: {
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '800',
     fontSize: 14,
   },
@@ -1997,13 +2001,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: theme.color.text.muted,
     textTransform: 'uppercase',
   },
   viewRowValue: {
     marginTop: 2,
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
 });
 

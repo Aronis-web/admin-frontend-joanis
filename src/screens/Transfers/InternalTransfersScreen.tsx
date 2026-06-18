@@ -36,6 +36,8 @@ import {
   CreateInternalTransferDto,
 } from '@/types/transfers';
 import { logger } from '@/utils/logger';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface InternalTransfersScreenProps {
   navigation: any;
@@ -54,6 +56,8 @@ interface TransferItemInput {
 }
 
 export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { user, currentSite, currentCompany, logout } = useAuthStore();
   const { selectedSite, selectedCompany } = useTenantStore();
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -575,7 +579,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
     if (loading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando traslados internos...</Text>
         </View>
       );
@@ -625,7 +629,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
           placeholder="Buscar por número, almacén..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -878,7 +882,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
               disabled={creating}
             >
               {creating ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.color.text.inverse} />
               ) : (
                 <Text style={styles.submitButtonText}>Crear Traslado</Text>
               )}
@@ -951,31 +955,31 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   backButtonText: {
     fontSize: 20,
-    color: '#334155',
+    color: theme.color.text.body,
   },
   headerTitleContainer: {
     flex: 1,
@@ -983,28 +987,28 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   searchContainer: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   searchInput: {
     height: 44,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   scrollView: {
     flex: 1,
@@ -1022,7 +1026,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   emptyIcon: {
     fontSize: 64,
@@ -1031,36 +1035,36 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#334155',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   modalCloseText: {
     fontSize: 24,
-    color: '#64748B',
+    color: theme.color.text.muted,
     width: 24,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   modalContent: {
     flex: 1,
@@ -1072,7 +1076,7 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#334155',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   sectionDivider: {
@@ -1080,48 +1084,48 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingTop: 16,
     borderTopWidth: 2,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   pickerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginTop: 8,
   },
   inputDisabled: {
-    backgroundColor: '#F1F5F9',
-    color: '#94A3B8',
+    backgroundColor: theme.color.surface.subtle,
+    color: theme.color.text.placeholder,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: theme.color.state.danger.border,
     borderWidth: 2,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: theme.color.state.danger.background,
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
+    color: theme.color.state.danger.text,
     marginTop: 4,
     marginLeft: 4,
     fontWeight: '500',
@@ -1132,7 +1136,7 @@ const styles = StyleSheet.create({
   },
   formHint: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 8,
     fontStyle: 'italic',
   },
@@ -1143,17 +1147,17 @@ const styles = StyleSheet.create({
   productImageLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 6,
   },
   productImageWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     padding: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   productImage: {
     width: 80,
@@ -1165,13 +1169,13 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 13,
     fontWeight: '500',
-    color: '#334155',
+    color: theme.color.text.body,
   },
   locationCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     padding: 12,
     marginBottom: 8,
     flexDirection: 'row',
@@ -1179,12 +1183,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   locationCardSelected: {
-    borderColor: '#6366F1',
-    backgroundColor: '#EEF2FF',
+    borderColor: theme.color.brand.accent,
+    backgroundColor: theme.color.brand.accentSoft,
   },
   locationCardDisabled: {
     opacity: 0.5,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   locationInfo: {
     flex: 1,
@@ -1192,37 +1196,37 @@ const styles = StyleSheet.create({
   locationWarehouse: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   locationArea: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   locationStock: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.color.state.success.text,
   },
   locationStockZero: {
-    color: '#EF4444',
+    color: theme.color.state.danger.text,
   },
   locationReserved: {
     fontSize: 11,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   locationSelectedIcon: {
     fontSize: 24,
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     fontWeight: 'bold',
   },
   noStockContainer: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: theme.color.state.danger.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: theme.color.state.danger.border,
     padding: 16,
     alignItems: 'center',
   },
@@ -1232,7 +1236,7 @@ const styles = StyleSheet.create({
   },
   noStockText: {
     fontSize: 13,
-    color: '#991B1B',
+    color: theme.color.state.danger.text,
     textAlign: 'center',
     fontWeight: '500',
   },
@@ -1243,23 +1247,23 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   addItemButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
   addItemButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 12,
     fontWeight: '600',
   },
   itemRow: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   itemRowHeader: {
     flexDirection: 'row',
@@ -1270,14 +1274,14 @@ const styles = StyleSheet.create({
   itemRowTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   removeItemText: {
     fontSize: 18,
-    color: '#EF4444',
+    color: theme.color.state.danger.text,
   },
   submitButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',
@@ -1285,15 +1289,15 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   submitButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: theme.color.text.placeholder,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '700',
   },
   detailSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
@@ -1301,22 +1305,22 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
     textTransform: 'uppercase',
     marginBottom: 8,
   },
   detailValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   detailSubvalue: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 4,
   },
   executeButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.color.state.success.text,
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',
@@ -1324,7 +1328,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   executeButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '700',
   },

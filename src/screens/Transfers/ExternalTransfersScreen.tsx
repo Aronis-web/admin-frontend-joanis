@@ -40,6 +40,8 @@ import {
 import { logger } from '@/utils/logger';
 import { downloadRemissionGuidePdf } from '@/utils/remissionGuideDownload';
 import { Driver, Transporter, Vehicle } from '@/types/transport';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ExternalTransfersScreenProps {
   navigation: any;
@@ -58,6 +60,8 @@ interface TransferItemInput {
 }
 
 export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { user, currentSite, currentCompany, logout } = useAuthStore();
   const { selectedSite, selectedCompany } = useTenantStore();
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -118,12 +122,12 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   const effectiveCompany = selectedCompany || currentCompany;
 
   const statusFilters = [
-    { key: 'ALL', label: 'Todos', color: '#64748B' },
-    { key: TransferStatus.DRAFT, label: 'Borrador', color: '#94A3B8' },
-    { key: TransferStatus.APPROVED, label: 'Aprobado', color: '#3B82F6' },
-    { key: TransferStatus.IN_TRANSIT, label: 'En Tránsito', color: '#F59E0B' },
-    { key: TransferStatus.RECEIVED, label: 'Recibido', color: '#8B5CF6' },
-    { key: TransferStatus.COMPLETED, label: 'Completado', color: '#10B981' },
+    { key: 'ALL', label: 'Todos', color: theme.color.text.muted },
+    { key: TransferStatus.DRAFT, label: 'Borrador', color: theme.color.state.draft.border },
+    { key: TransferStatus.APPROVED, label: 'Aprobado', color: theme.color.brand.accent },
+    { key: TransferStatus.IN_TRANSIT, label: 'En Tránsito', color: theme.color.state.warning.border },
+    { key: TransferStatus.RECEIVED, label: 'Recibido', color: theme.color.state.completed.border },
+    { key: TransferStatus.COMPLETED, label: 'Completado', color: theme.color.state.success.text },
   ];
 
   // Auto-reload transfers when screen comes into focus
@@ -766,7 +770,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     if (loading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando traslados externos...</Text>
         </View>
       );
@@ -834,7 +838,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
           placeholder="Buscar por número, almacén..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -1036,7 +1040,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                       keyboardType="numeric"
                       value={item.quantity}
                       onChangeText={(value) => updateTransferItem(index, 'quantity', value)}
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={theme.color.text.placeholder}
                       editable={!!item.selectedStockLocation}
                     />
                     {item.selectedStockLocation &&
@@ -1054,7 +1058,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                     placeholder="Notas del producto..."
                     value={item.notes}
                     onChangeText={(value) => updateTransferItem(index, 'notes', value)}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
                 </View>
               ))}
@@ -1121,7 +1125,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                 onChangeText={setTransferNotes}
                 multiline
                 numberOfLines={4}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
             </View>
 
@@ -1317,7 +1321,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
               onChangeText={setNumeroBultos}
               keyboardType="numeric"
               placeholder="Ej: 10"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
 
             <View style={styles.shipModalButtons}>
@@ -1361,7 +1365,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
               onChangeText={setShippingNotes}
               multiline
               numberOfLines={3}
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
 
             <View style={styles.shipModalButtons}>
@@ -1385,31 +1389,31 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   backButtonText: {
     fontSize: 20,
-    color: '#334155',
+    color: theme.color.text.body,
   },
   headerTitleContainer: {
     flex: 1,
@@ -1417,33 +1421,33 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   searchContainer: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   searchInput: {
     height: 44,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   filtersContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -1457,16 +1461,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: theme.color.border.subtle,
+    backgroundColor: theme.color.surface.base,
   },
   filterText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   filterTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   scrollView: {
     flex: 1,
@@ -1484,7 +1488,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   emptyIcon: {
     fontSize: 64,
@@ -1493,44 +1497,44 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#334155',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   // Modal Styles
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: 'bold',
   },
   modalContent: {
@@ -1552,55 +1556,55 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 8,
     marginTop: 12,
   },
   pickerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
   },
   addItemButton: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.accentSoft,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
   addItemButtonText: {
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     fontSize: 13,
     fontWeight: '600',
   },
   itemContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
@@ -1614,22 +1618,22 @@ const styles = StyleSheet.create({
   itemNumber: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   removeItemText: {
-    color: '#EF4444',
+    color: theme.color.state.danger.text,
     fontSize: 13,
     fontWeight: '600',
   },
   modalCreateButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
   },
   modalCreateButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1640,18 +1644,18 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 4,
     textTransform: 'uppercase',
   },
   detailValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   detailSubvalue: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   actionButtons: {
@@ -1665,16 +1669,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   approveButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: theme.color.brand.accent,
   },
   shipButton: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.border,
   },
   cancelButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.color.state.danger.border,
   },
   actionButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1685,40 +1689,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   downloadGuideButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   createGuideButton: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.border,
   },
   guideActionButtonDisabled: {
     opacity: 0.7,
   },
   guideActionButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: '700',
   },
   infoBox: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: theme.color.state.info.background,
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: theme.color.state.info.border,
   },
   infoText: {
-    color: '#1E40AF',
+    color: theme.color.state.info.text,
     fontSize: 14,
     lineHeight: 20,
   },
   successBox: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: theme.color.state.success.background,
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: theme.color.state.success.border,
   },
   successText: {
-    color: '#15803D',
+    color: theme.color.state.success.text,
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
@@ -1726,18 +1730,18 @@ const styles = StyleSheet.create({
   infoBoxText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: theme.color.state.info.text,
   },
   // Ship Modal Styles
   shipModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   shipModalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 24,
     width: '100%',
@@ -1746,12 +1750,12 @@ const styles = StyleSheet.create({
   shipModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   shipModalSubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 20,
   },
   shipModalButtons: {
@@ -1766,18 +1770,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   shipModalCancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
   },
   shipModalCancelButtonText: {
-    color: '#475569',
+    color: theme.color.text.body,
     fontSize: 15,
     fontWeight: '600',
   },
   shipModalConfirmButton: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.border,
   },
   shipModalConfirmButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -1787,7 +1791,7 @@ const styles = StyleSheet.create({
   },
   formHint: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 8,
     fontStyle: 'italic',
   },
@@ -1798,17 +1802,17 @@ const styles = StyleSheet.create({
   productImageLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 6,
   },
   productImageWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     padding: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   productImage: {
     width: 80,
@@ -1820,13 +1824,13 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 13,
     fontWeight: '500',
-    color: '#334155',
+    color: theme.color.text.body,
   },
   locationCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     padding: 12,
     marginBottom: 8,
     flexDirection: 'row',
@@ -1834,12 +1838,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   locationCardSelected: {
-    borderColor: '#6366F1',
-    backgroundColor: '#EEF2FF',
+    borderColor: theme.color.brand.accent,
+    backgroundColor: theme.color.brand.accentSoft,
   },
   locationCardDisabled: {
     opacity: 0.5,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   locationInfo: {
     flex: 1,
@@ -1847,37 +1851,37 @@ const styles = StyleSheet.create({
   locationWarehouse: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   locationArea: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   locationStock: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.color.state.success.text,
   },
   locationStockZero: {
-    color: '#EF4444',
+    color: theme.color.state.danger.text,
   },
   locationReserved: {
     fontSize: 11,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   locationSelectedIcon: {
     fontSize: 24,
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     fontWeight: 'bold',
   },
   noStockContainer: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: theme.color.state.danger.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: theme.color.state.danger.border,
     padding: 16,
     alignItems: 'center',
   },
@@ -1887,22 +1891,22 @@ const styles = StyleSheet.create({
   },
   noStockText: {
     fontSize: 13,
-    color: '#991B1B',
+    color: theme.color.state.danger.text,
     textAlign: 'center',
     fontWeight: '500',
   },
   inputDisabled: {
-    backgroundColor: '#F1F5F9',
-    color: '#94A3B8',
+    backgroundColor: theme.color.surface.subtle,
+    color: theme.color.text.placeholder,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: theme.color.state.danger.border,
     borderWidth: 2,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: theme.color.state.danger.background,
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
+    color: theme.color.state.danger.text,
     marginTop: 4,
     marginLeft: 4,
     fontWeight: '500',
@@ -1912,7 +1916,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingTop: 16,
     borderTopWidth: 2,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
   },
 });
 

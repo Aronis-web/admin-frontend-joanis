@@ -25,8 +25,12 @@ import {
   TransferStatusHistory,
   getTransferTypeLabel,
 } from '@/types/transfers';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 export const TransferDetailScreen = ({ navigation, route }: any) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { logout } = useAuthStore();
   const [transfer, setTransfer] = useState<Transfer | null>(null);
   const [history, setHistory] = useState<TransferStatusHistory[]>([]);
@@ -252,7 +256,7 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando detalle...</Text>
         </View>
       </SafeAreaView>
@@ -457,7 +461,7 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
               onChangeText={setNumeroBultos}
               keyboardType="numeric"
               placeholder="Ej: 10"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
 
             <View style={styles.bultosModalActions}>
@@ -487,31 +491,31 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   backButtonText: {
     fontSize: 20,
-    color: '#334155',
+    color: theme.color.text.body,
   },
   headerTitleContainer: {
     flex: 1,
@@ -519,11 +523,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   scrollView: {
@@ -542,7 +546,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   emptyIcon: {
     fontSize: 64,
@@ -551,7 +555,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#334155',
+    color: theme.color.text.body,
   },
   section: {
     marginBottom: 24,
@@ -559,15 +563,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   infoCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   infoRow: {
     flexDirection: 'row',
@@ -578,22 +582,22 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   infoValue: {
     fontSize: 13,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '500',
     textAlign: 'right',
     flex: 1,
     marginLeft: 12,
   },
   locationCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   locationSection: {
     marginBottom: 16,
@@ -601,57 +605,57 @@ const styles = StyleSheet.create({
   locationTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 8,
   },
   locationWarehouse: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   locationSite: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   locationArea: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
   },
   locationDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
     marginBottom: 16,
   },
   notesCard: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: theme.color.state.warning.background,
     borderRadius: 8,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: theme.color.state.warning.border,
   },
   notesText: {
     fontSize: 14,
-    color: '#78350F',
+    color: theme.color.state.warning.text,
     lineHeight: 20,
   },
   guideCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   guideNumber: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   guideMeta: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   guideButton: {
     marginTop: 12,
@@ -660,22 +664,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   downloadGuideButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   createGuideButton: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.border,
   },
   guideButtonDisabled: {
     opacity: 0.7,
   },
   guideButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -683,35 +687,35 @@ const styles = StyleSheet.create({
   bultosModalCard: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 20,
   },
   bultosModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   bultosModalSubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
-    color: '#334155',
+    color: theme.color.text.body,
     fontWeight: '600',
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: theme.color.border.default,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#0F172A',
+    color: theme.color.text.heading,
   },
   bultosModalActions: {
     flexDirection: 'row',
@@ -725,18 +729,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bultosCancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
   },
   bultosConfirmButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   bultosCancelButtonText: {
-    color: '#475569',
+    color: theme.color.text.body,
     fontSize: 14,
     fontWeight: '700',
   },
   bultosConfirmButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -755,15 +759,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   timelineIconActive: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.accentSoft,
+    borderColor: theme.color.brand.accent,
   },
   timelineIconText: {
     fontSize: 18,
@@ -771,16 +775,16 @@ const styles = StyleSheet.create({
   timelineLine: {
     width: 2,
     flex: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
     marginTop: 4,
   },
   timelineContent: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   timelineHeader: {
     flexDirection: 'row',
@@ -790,37 +794,37 @@ const styles = StyleSheet.create({
   },
   timelineDate: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   timelineUser: {
     fontSize: 12,
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 4,
   },
   timelineNotes: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontStyle: 'italic',
   },
   receptionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   warningBox: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.color.state.warning.background,
     borderRadius: 6,
     padding: 12,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: theme.color.state.warning.border,
   },
   warningText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#92400E',
+    color: theme.color.state.warning.text,
     textAlign: 'center',
   },
 });
