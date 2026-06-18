@@ -25,7 +25,8 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   CampaignProduct,
   DistributionType,
@@ -57,6 +58,8 @@ export const DistributionFormModalV2: React.FC<DistributionFormModalV2Props> = (
   onSuccess,
   asContent = false,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
 
@@ -98,7 +101,7 @@ export const DistributionFormModalV2: React.FC<DistributionFormModalV2Props> = (
 
         {form.loading ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator color={colors.primary[900]} />
+            <ActivityIndicator color={theme.color.brand.primary} />
             <Text style={styles.loadingText}>Cargando datos del reparto…</Text>
           </View>
         ) : (
@@ -327,7 +330,7 @@ export const DistributionFormModalV2: React.FC<DistributionFormModalV2Props> = (
             onPress={form.submit}
           >
             {form.submitting ? (
-              <ActivityIndicator color={colors.text.inverse} />
+              <ActivityIndicator color={theme.color.text.inverse} />
             ) : (
               <Text style={styles.generateButtonText}>Generar reparto</Text>
             )}
@@ -353,264 +356,265 @@ export const DistributionFormModalV2: React.FC<DistributionFormModalV2Props> = (
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[3],
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 0,
-  },
-  contentInner: {
-    flex: 1,
-    backgroundColor: colors.surface.primary,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 1200,
-    maxHeight: '95%',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-  },
-  modalContentTablet: {
-    width: '95%',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    gap: spacing[2],
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text.primary,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginTop: 4,
-  },
-  strong: {
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  closeBtn: {
-    padding: spacing[1],
-  },
-  closeText: {
-    fontSize: 20,
-    color: colors.text.secondary,
-  },
-  scroll: {
-    flexGrow: 0,
-    flexShrink: 1,
-  },
-  scrollContent: {
-    padding: spacing[3],
-    gap: spacing[3],
-  },
-  card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    gap: spacing[2],
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  typeOption: {
-    flex: 1,
-    minWidth: 200,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    padding: spacing[2],
-    backgroundColor: colors.surface.secondary,
-    gap: 4,
-  },
-  typeOptionSelected: {
-    borderColor: colors.primary[900],
-    backgroundColor: colors.primary[50],
-  },
-  typeLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  typeLabelSelected: {
-    color: colors.primary[900],
-  },
-  typeHint: {
-    fontSize: 11,
-    color: colors.text.tertiary,
-  },
-  modeRow: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.secondary,
-    alignItems: 'center',
-  },
-  modeButtonSelected: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
-  },
-  modeText: {
-    color: colors.text.primary,
-    fontWeight: '600',
-  },
-  modeTextSelected: {
-    color: colors.text.inverse,
-  },
-  presentationRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[1],
-  },
-  presentationChip: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.secondary,
-  },
-  presentationChipSelected: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
-  },
-  presentationChipText: {
-    fontSize: 12,
-    color: colors.text.primary,
-    fontWeight: '600',
-  },
-  presentationChipTextSelected: {
-    color: colors.text.inverse,
-  },
-  halfBoxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing[1],
-  },
-  halfBoxLabel: {
-    fontSize: 13,
-    color: colors.text.primary,
-  },
-  halfBoxHint: {
-    fontSize: 12,
-    color: colors.warning[700],
-  },
-  remainderBox: {
-    marginTop: spacing[1],
-    gap: spacing[1],
-  },
-  remainderLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  remainderChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[1],
-  },
-  remainderChip: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.secondary,
-  },
-  remainderChipActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
-  },
-  remainderChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  remainderChipTextActive: {
-    color: colors.text.inverse,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    padding: spacing[3],
-    gap: spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  cancelButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  cancelButtonText: {
-    color: colors.text.primary,
-    fontWeight: '600',
-  },
-  generateButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary[900],
-    minWidth: 180,
-    alignItems: 'center',
-  },
-  generateButtonDisabled: {
-    opacity: 0.6,
-  },
-  generateButtonText: {
-    color: colors.text.inverse,
-    fontWeight: '700',
-  },
-  loadingBox: {
-    padding: spacing[7],
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  loadingText: {
-    color: colors.text.secondary,
-  },
-  errorBox: {
-    backgroundColor: colors.danger[50],
-    borderColor: colors.danger[400],
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    padding: spacing[2],
-  },
-  errorText: {
-    color: colors.danger[800],
-    fontSize: 13,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[3],
+    },
+    contentContainer: {
+      flex: 1,
+      padding: 0,
+    },
+    contentInner: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+    },
+    modalContent: {
+      width: '100%',
+      maxWidth: 1200,
+      maxHeight: '95%',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      overflow: 'hidden',
+    },
+    modalContentTablet: {
+      width: '95%',
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      gap: theme.space[2],
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    subtitle: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    strong: {
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeBtn: {
+      padding: theme.space[1],
+    },
+    closeText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+    },
+    scroll: {
+      flexGrow: 0,
+      flexShrink: 1,
+    },
+    scrollContent: {
+      padding: theme.space[3],
+      gap: theme.space[3],
+    },
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      gap: theme.space[2],
+    },
+    sectionTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    typeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    typeOption: {
+      flex: 1,
+      minWidth: 200,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2],
+      backgroundColor: theme.color.surface.subtle,
+      gap: 4,
+    },
+    typeOptionSelected: {
+      borderColor: theme.color.brand.primary,
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    typeLabel: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    typeLabelSelected: {
+      color: theme.color.brand.primary,
+    },
+    typeHint: {
+      fontSize: 11,
+      color: theme.color.text.subtle,
+    },
+    modeRow: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    modeButton: {
+      flex: 1,
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.subtle,
+      alignItems: 'center',
+    },
+    modeButtonSelected: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    modeText: {
+      color: theme.color.text.heading,
+      fontWeight: '600',
+    },
+    modeTextSelected: {
+      color: theme.color.text.inverse,
+    },
+    presentationRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[1],
+    },
+    presentationChip: {
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.full,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    presentationChipSelected: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    presentationChipText: {
+      fontSize: 12,
+      color: theme.color.text.heading,
+      fontWeight: '600',
+    },
+    presentationChipTextSelected: {
+      color: theme.color.text.inverse,
+    },
+    halfBoxRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: theme.space[1],
+    },
+    halfBoxLabel: {
+      fontSize: 13,
+      color: theme.color.text.heading,
+    },
+    halfBoxHint: {
+      fontSize: 12,
+      color: theme.color.text.warning,
+    },
+    remainderBox: {
+      marginTop: theme.space[1],
+      gap: theme.space[1],
+    },
+    remainderLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    remainderChips: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[1],
+    },
+    remainderChip: {
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.full,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    remainderChipActive: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    remainderChipText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    remainderChipTextActive: {
+      color: theme.color.text.inverse,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      padding: theme.space[3],
+      gap: theme.space[2],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    cancelButton: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    cancelButtonText: {
+      color: theme.color.text.heading,
+      fontWeight: '600',
+    },
+    generateButton: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.brand.primary,
+      minWidth: 180,
+      alignItems: 'center',
+    },
+    generateButtonDisabled: {
+      opacity: 0.6,
+    },
+    generateButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+    },
+    loadingBox: {
+      padding: theme.space[7],
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    loadingText: {
+      color: theme.color.text.muted,
+    },
+    errorBox: {
+      backgroundColor: theme.color.state.danger.background,
+      borderColor: theme.color.state.danger.border,
+      borderWidth: 1,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2],
+    },
+    errorText: {
+      color: theme.color.state.danger.text,
+      fontSize: 13,
+    },
+  });
 
 export default DistributionFormModalV2;
