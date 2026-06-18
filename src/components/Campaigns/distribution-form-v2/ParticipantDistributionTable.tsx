@@ -10,8 +10,12 @@
  */
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { ParticipantRowV2 } from './types';
+
+type Styles = ReturnType<typeof createStyles>;
+type BadgeColors = Record<CoverageBucket, { bg: string; fg: string }>;
 
 // ============================================================
 // Definición de columnas (única fuente de verdad para alineación)
@@ -48,7 +52,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: 'lock', label: '🔒', width: 40, align: 'center' },
 ];
 
-const COLUMN_GAP = spacing[1];
+const COLUMN_GAP = 4;
 
 const formatMoney = (cents: number) => {
   const v = cents / 100;
@@ -57,14 +61,14 @@ const formatMoney = (cents: number) => {
 
 type CoverageBucket = 'complete' | 'inRange' | 'low' | 'over' | 'noExpected' | 'noPrice';
 
-const coverageBadgeColors: Record<CoverageBucket, { bg: string; fg: string }> = {
-  complete: { bg: colors.success[100], fg: colors.success[800] },
-  inRange: { bg: colors.warning[100], fg: colors.warning[800] },
-  low: { bg: colors.danger[100], fg: colors.danger[800] },
-  over: { bg: colors.danger[100], fg: colors.danger[800] },
-  noExpected: { bg: colors.neutral[100], fg: colors.text.tertiary },
-  noPrice: { bg: colors.neutral[200], fg: colors.text.secondary },
-};
+const makeCoverageBadgeColors = (theme: Theme): BadgeColors => ({
+  complete: { bg: theme.color.state.success.background, fg: theme.color.state.success.text },
+  inRange: { bg: theme.color.state.warning.background, fg: theme.color.state.warning.text },
+  low: { bg: theme.color.state.danger.background, fg: theme.color.state.danger.text },
+  over: { bg: theme.color.state.danger.background, fg: theme.color.state.danger.text },
+  noExpected: { bg: theme.color.background.muted, fg: theme.color.text.subtle },
+  noPrice: { bg: theme.color.surface.muted, fg: theme.color.text.muted },
+});
 
 const classifyCoverage = (
   expectedTotalCents: number,
@@ -85,9 +89,11 @@ const CoverageBadge: React.FC<{
   pct: number;
   hasPrice: boolean;
   isPartial: boolean;
-}> = ({ expectedTotalCents, totalSaleCents, pct, hasPrice, isPartial }) => {
+  styles: Styles;
+  badgeColors: BadgeColors;
+}> = ({ expectedTotalCents, totalSaleCents, pct, hasPrice, isPartial, styles, badgeColors }) => {
   const bucket = classifyCoverage(expectedTotalCents, pct, hasPrice);
-  const cfg = coverageBadgeColors[bucket];
+  const cfg = badgeColors[bucket];
   let label: string;
   if (bucket === 'noPrice') label = 'Sin precio';
   else if (bucket === 'noExpected') label = 'Sin esperado';
@@ -111,7 +117,11 @@ const CoverageBadge: React.FC<{
 // ============================================================
 // Cell wrapper (ancho/alineación derivados del ColumnDef)
 // ============================================================
-const Cell: React.FC<{ col: ColumnDef; children: React.ReactNode }> = ({ col, children }) => {
+const Cell: React.FC<{ col: ColumnDef; children: React.ReactNode; styles: Styles }> = ({
+  col,
+  children,
+  styles,
+}) => {
   const alignItems =
     col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start';
   return <View style={[styles.cell, { width: col.width, alignItems }]}>{children}</View>;
@@ -120,10 +130,10 @@ const Cell: React.FC<{ col: ColumnDef; children: React.ReactNode }> = ({ col, ch
 // ============================================================
 // Header
 // ============================================================
-const HeaderRow: React.FC<{ columns: ColumnDef[] }> = ({ columns }) => (
+const HeaderRow: React.FC<{ columns: ColumnDef[]; styles: Styles }> = ({ columns, styles }) => (
   <View style={[styles.row, styles.headerRow]}>
     {columns.map((col) => (
-      <Cell key={col.key} col={col}>
+      <Cell key={col.key} col={col} styles={styles}>
         <Text style={[styles.headerText, { textAlign: col.align }]} numberOfLines={1}>
           {col.label}
         </Text>
@@ -145,6 +155,8 @@ interface RowProps {
   looseEditable: boolean;
   onChange: (id: string, next: { boxes?: number; halfBoxes?: number; loose?: number }) => void;
   onToggleLock: (id: string) => void;
+  styles: Styles;
+  badgeColors: BadgeColors;
 }
 
 const ParticipantRow: React.FC<RowProps> = ({
@@ -156,6 +168,8 @@ const ParticipantRow: React.FC<RowProps> = ({
   looseEditable,
   onChange,
   onToggleLock,
+  styles,
+  badgeColors,
 }) => {
   const evenFactor = factor > 1 && factor % 2 === 0;
   const showHalf = showBoxes && allowHalfBox && evenFactor;
@@ -164,7 +178,7 @@ const ParticipantRow: React.FC<RowProps> = ({
     switch (col.key) {
       case 'name':
         return (
-          <Cell key={col.key} col={col}>
+          <Cell key={col.key} col={col} styles={styles}>
             <Text style={styles.participantName} numberOfLines={1}>
               {row.participantName}
             </Text>
@@ -177,7 +191,7 @@ const ParticipantRow: React.FC<RowProps> = ({
         );
       case 'boxes':
         return (
-          <Cell key={col.key} col={col}>
+          <Cell key={col.key} col={col} styles={styles}>
             {showBoxes ? (
               <TextInput
                 style={[styles.qtyInput, { width: col.width - 8 }]}
@@ -193,7 +207,7 @@ const ParticipantRow: React.FC<RowProps> = ({
         );
       case 'halfBoxes':
         return (
-          <Cell key={col.key} col={col}>
+          <Cell key={col.key} col={col} styles={styles}>
             {showHalf ? (
               <TextInput
                 style={[styles.qtyInput, { width: col.width - 8 }]}
@@ -211,7 +225,7 @@ const ParticipantRow: React.FC<RowProps> = ({
         );
       case 'loose':
         return (
-          <Cell key={col.key} col={col}>
+          <Cell key={col.key} col={col} styles={styles}>
             {looseEditable ? (
               <TextInput
                 style={[styles.qtyInput, { width: col.width - 8 }]}
@@ -229,19 +243,19 @@ const ParticipantRow: React.FC<RowProps> = ({
         );
       case 'total':
         return (
-          <Cell key={col.key} col={col}>
+          <Cell key={col.key} col={col} styles={styles}>
             <Text style={styles.totalText}>{row.quantityBase}</Text>
           </Cell>
         );
       case 'price':
         return (
-          <Cell key={col.key} col={col}>
+          <Cell key={col.key} col={col} styles={styles}>
             <Text style={styles.moneyText}>{formatMoney(row.unitPriceCents)}</Text>
           </Cell>
         );
       case 'coverage':
         return (
-          <Cell key={col.key} col={col}>
+          <Cell key={col.key} col={col} styles={styles}>
             <Text style={styles.moneyText}>
               {formatMoney(row.totalSaleCents)}
               <Text style={styles.coverageExpected}>
@@ -258,18 +272,20 @@ const ParticipantRow: React.FC<RowProps> = ({
               pct={row.campaignCoveragePercent}
               hasPrice={!row.hasPriceWarning}
               isPartial={row.previousSaleIsPartial}
+              styles={styles}
+              badgeColors={badgeColors}
             />
           </Cell>
         );
       case 'cost':
         return (
-          <Cell key={col.key} col={col}>
+          <Cell key={col.key} col={col} styles={styles}>
             <Text style={styles.moneyText}>{formatMoney(row.totalCostCents)}</Text>
           </Cell>
         );
       case 'profit':
         return (
-          <Cell key={col.key} col={col}>
+          <Cell key={col.key} col={col} styles={styles}>
             <Text style={[styles.moneyText, row.profitCents < 0 && styles.profitNegative]}>
               {formatMoney(row.profitCents)}
             </Text>
@@ -277,7 +293,7 @@ const ParticipantRow: React.FC<RowProps> = ({
         );
       case 'lock':
         return (
-          <Cell key={col.key} col={col}>
+          <Cell key={col.key} col={col} styles={styles}>
             <TouchableOpacity onPress={() => onToggleLock(row.participantId)}>
               <Text style={styles.lockIcon}>{row.locked ? '🔒' : '🔓'}</Text>
             </TouchableOpacity>
@@ -317,6 +333,8 @@ export const ParticipantDistributionTable: React.FC<TableProps> = ({
   onChange,
   onToggleLock,
 }) => {
+  const styles = useThemedStyles(createStyles);
+  const badgeColors = useThemedStyles(makeCoverageBadgeColors);
   const showBoxes = mode === 'presentation' && factor > 1;
   const evenFactor = factor > 1 && factor % 2 === 0;
   const showHalf = showBoxes && allowHalfBox && evenFactor;
@@ -360,7 +378,7 @@ export const ParticipantDistributionTable: React.FC<TableProps> = ({
               Participan del auto-reparto según el tipo seleccionado.
             </Text>
           </View>
-          <HeaderRow columns={columns} />
+          <HeaderRow columns={columns} styles={styles} />
           {internalRows.length === 0 ? (
             <Text style={styles.emptyText}>No hay sedes internas elegibles.</Text>
           ) : (
@@ -375,6 +393,8 @@ export const ParticipantDistributionTable: React.FC<TableProps> = ({
                 looseEditable={looseEditable}
                 onChange={onChange}
                 onToggleLock={onToggleLock}
+                styles={styles}
+                badgeColors={badgeColors}
               />
             ))
           )}
@@ -387,7 +407,7 @@ export const ParticipantDistributionTable: React.FC<TableProps> = ({
                   También participan del auto-reparto cuando el tipo es "Todos" o "Solo Externas".
                 </Text>
               </View>
-              <HeaderRow columns={columns} />
+              <HeaderRow columns={columns} styles={styles} />
               {externalRows.map((r) => (
                 <ParticipantRow
                   key={r.participantId}
@@ -399,6 +419,8 @@ export const ParticipantDistributionTable: React.FC<TableProps> = ({
                   looseEditable={looseEditable}
                   onChange={onChange}
                   onToggleLock={onToggleLock}
+                  styles={styles}
+                  badgeColors={badgeColors}
                 />
               ))}
             </>
@@ -409,137 +431,138 @@ export const ParticipantDistributionTable: React.FC<TableProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  groupTitleBox: {
-    marginTop: spacing[2],
-    marginBottom: spacing[1],
-    gap: 2,
-  },
-  groupTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  groupHint: {
-    fontSize: 11,
-    color: colors.text.tertiary,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[1],
-    gap: COLUMN_GAP,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  headerRow: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing[1],
-  },
-  rowLocked: {
-    backgroundColor: colors.primary[50],
-  },
-  headerText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.text.secondary,
-    width: '100%',
-  },
-  cell: {
-    justifyContent: 'center',
-  },
-  participantName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.primary,
-    width: '100%',
-  },
-  priceWarning: {
-    fontSize: 10,
-    color: colors.warning[700],
-    width: '100%',
-  },
-  qtyInput: {
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.sm,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    textAlign: 'center',
-    color: colors.text.primary,
-    backgroundColor: colors.surface.primary,
-  },
-  qtyDisabledText: {
-    color: colors.text.disabled,
-  },
-  remainderBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary[700],
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.sm,
-  },
-  totalText: {
-    fontWeight: '700',
-    color: colors.text.primary,
-    fontSize: 13,
-  },
-  moneyText: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    textAlign: 'right',
-    width: '100%',
-  },
-  badge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
-    marginTop: 2,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  coverageWrap: {
-    alignItems: 'flex-end',
-    gap: 2,
-    marginTop: 2,
-  },
-  coverageBreakdown: {
-    fontSize: 10,
-    color: colors.text.tertiary,
-    textAlign: 'right',
-    width: '100%',
-  },
-  coverageExpected: {
-    color: colors.text.tertiary,
-    fontSize: 11,
-  },
-  coverageDelta: {
-    fontSize: 10,
-    color: colors.text.tertiary,
-  },
-  profitNegative: {
-    color: colors.danger[700],
-  },
-  lockIcon: {
-    fontSize: 16,
-  },
-  emptyText: {
-    color: colors.text.tertiary,
-    fontStyle: 'italic',
-    paddingVertical: spacing[2],
-    textAlign: 'center',
-    width: '100%',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    groupTitleBox: {
+      marginTop: theme.space[2],
+      marginBottom: theme.space[1],
+      gap: 2,
+    },
+    groupTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    groupHint: {
+      fontSize: 11,
+      color: theme.color.text.subtle,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[1],
+      gap: COLUMN_GAP,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerRow: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.sm,
+      paddingHorizontal: theme.space[1],
+    },
+    rowLocked: {
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    headerText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+      width: '100%',
+    },
+    cell: {
+      justifyContent: 'center',
+    },
+    participantName: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      width: '100%',
+    },
+    priceWarning: {
+      fontSize: 10,
+      color: theme.color.text.warning,
+      width: '100%',
+    },
+    qtyInput: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.sm,
+      paddingVertical: 4,
+      paddingHorizontal: 6,
+      textAlign: 'center',
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    qtyDisabledText: {
+      color: theme.color.text.disabled,
+    },
+    remainderBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.brand.primary,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: theme.radii.sm,
+    },
+    totalText: {
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      fontSize: 13,
+    },
+    moneyText: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      textAlign: 'right',
+      width: '100%',
+    },
+    badge: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: theme.radii.full,
+      marginTop: 2,
+    },
+    badgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    coverageWrap: {
+      alignItems: 'flex-end',
+      gap: 2,
+      marginTop: 2,
+    },
+    coverageBreakdown: {
+      fontSize: 10,
+      color: theme.color.text.subtle,
+      textAlign: 'right',
+      width: '100%',
+    },
+    coverageExpected: {
+      color: theme.color.text.subtle,
+      fontSize: 11,
+    },
+    coverageDelta: {
+      fontSize: 10,
+      color: theme.color.text.subtle,
+    },
+    profitNegative: {
+      color: theme.color.text.danger,
+    },
+    lockIcon: {
+      fontSize: 16,
+    },
+    emptyText: {
+      color: theme.color.text.subtle,
+      fontStyle: 'italic',
+      paddingVertical: theme.space[2],
+      textAlign: 'center',
+      width: '100%',
+    },
+  });
