@@ -13,12 +13,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ExpensePaymentsScreenProps {
   navigation: any;
 }
 
 export const ExpensePaymentsScreen: React.FC<ExpensePaymentsScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { width, height } = useWindowDimensions();
@@ -54,7 +58,7 @@ export const ExpensePaymentsScreen: React.FC<ExpensePaymentsScreenProps> = ({ na
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando pagos...</Text>
         </View>
       </SafeAreaView>
@@ -91,10 +95,10 @@ export const ExpensePaymentsScreen: React.FC<ExpensePaymentsScreenProps> = ({ na
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -102,27 +106,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 20,
-    color: '#4F46E5',
+    color: theme.color.brand.primary,
     fontWeight: '600',
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   headerSpacer: {
     width: 40,
@@ -138,7 +142,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontSize: 16,
   },
   emptyContainer: {
@@ -154,19 +158,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   emptyMessage: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     textAlign: 'center',
     marginBottom: 8,
     paddingHorizontal: 40,
   },
   emptyHint: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: theme.color.text.placeholder,
     textAlign: 'center',
     fontStyle: 'italic',
     paddingHorizontal: 40,

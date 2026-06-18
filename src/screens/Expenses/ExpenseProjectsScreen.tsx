@@ -17,12 +17,16 @@ import { ExpenseProject, ProjectStatus, ProjectStatusLabels } from '@/types/expe
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { ProjectCard } from '@/components/Expenses/ProjectCard';
 import { MAIN_ROUTES } from '@/constants/routes';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ExpenseProjectsScreenProps {
   navigation: any;
 }
 
 export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [projects, setProjects] = useState<ExpenseProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -113,7 +117,7 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ na
     if (loading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando proyectos...</Text>
         </View>
       );
@@ -151,7 +155,7 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ na
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Proyectos de Gastos</Text>
         <View style={styles.headerRight} />
@@ -170,10 +174,10 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ na
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   header: {
     flexDirection: 'row',
@@ -181,9 +185,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -191,7 +195,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -200,14 +204,14 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   filterWrapper: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   filterContent: {
     paddingRight: 16,
@@ -217,21 +221,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   filterButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   filterButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   filterButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
   },
   scrollView: {
     flex: 1,
@@ -248,18 +252,18 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     textAlign: 'center',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     textAlign: 'center',
   },
 });
