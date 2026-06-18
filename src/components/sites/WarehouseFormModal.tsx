@@ -10,7 +10,8 @@ import {
   TextInput,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { Site } from '@/types/sites';
 import { Warehouse } from '@/types/warehouses';
 import { WarehouseType, WarehouseTypeLabels, WarehouseTypeDescriptions } from '@/types/enums';
@@ -35,6 +36,8 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
   onWarehouseCreated,
   onWarehouseUpdated,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { currentSite, currentCompany } = useAuthStore();
   const { selectedSite, selectedCompany } = useTenantStore();
 
@@ -169,6 +172,7 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
               <TextInput
                 style={styles.input}
                 placeholder="Ej: Almacén Central"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={name}
                 onChangeText={setName}
                 maxLength={200}
@@ -184,6 +188,7 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
               <TextInput
                 style={styles.input}
                 placeholder="Ej: HQ"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={siteCode}
                 onChangeText={setSiteCode}
                 maxLength={50}
@@ -256,159 +261,160 @@ export const WarehouseFormModal: React.FC<WarehouseFormModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '80%',
-    paddingBottom: spacing[5],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  warehouseIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.warning[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  iconText: {
-    fontSize: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  scrollContent: {
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[5],
-  },
-  formGroup: {
-    marginBottom: spacing[5],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  required: {
-    color: colors.danger[500],
-  },
-  input: {
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[800],
-  },
-  hint: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-  },
-  pickerContainer: {
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-    color: colors.neutral[800],
-  },
-  infoBox: {
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginTop: spacing[2],
-  },
-  infoBoxTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary[500],
-    marginBottom: spacing[2],
-  },
-  infoBoxText: {
-    fontSize: 14,
-    color: colors.neutral[800],
-    lineHeight: 20,
-  },
-  bold: {
-    fontWeight: '600',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[5],
-    gap: spacing[3],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  submitButton: {
-    backgroundColor: colors.primary[500],
-  },
-  submitButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '80%',
+      paddingBottom: theme.space[5],
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    warehouseIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.state.warning.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    iconText: {
+      fontSize: 24,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    scrollContent: {
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[5],
+    },
+    formGroup: {
+      marginBottom: theme.space[5],
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    input: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.xl,
+      overflow: 'hidden',
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    infoBox: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginTop: theme.space[2],
+    },
+    infoBoxTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+      marginBottom: theme.space[2],
+    },
+    infoBoxText: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      lineHeight: 20,
+    },
+    bold: {
+      fontWeight: '600',
+    },
+    modalActions: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[5],
+      gap: theme.space[3],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    submitButtonDisabled: {
+      backgroundColor: theme.color.text.placeholder,
+    },
+    submitButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+  });
 
 export default WarehouseFormModal;
