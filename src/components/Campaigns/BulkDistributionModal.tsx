@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import Alert from '@/utils/alert';
 import { getDocumentAsync } from '@/utils/filePicker';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { campaignsService } from '@/services/api';
@@ -32,6 +33,8 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{
@@ -255,7 +258,7 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
                   disabled={isDownloading}
                 >
                   {isDownloading ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={theme.color.text.inverse} />
                   ) : (
                     <Text style={styles.buttonText}>📥 Descargar Formato</Text>
                   )}
@@ -301,7 +304,7 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
                 >
                   {isUploading ? (
                     <>
-                      <ActivityIndicator size="small" color="#fff" />
+                      <ActivityIndicator size="small" color={theme.color.text.inverse} />
                       <Text style={[styles.buttonText, { marginLeft: 8 }]}>Procesando...</Text>
                     </>
                   ) : (
@@ -366,222 +369,223 @@ export const BulkDistributionModal: React.FC<BulkDistributionModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[5],
-  },
-  modalContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    width: '100%',
-    maxWidth: 600,
-    maxHeight: '90%',
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  scrollView: {
-    padding: spacing[5],
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[4],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: 'bold',
-  },
-  description: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[6],
-    lineHeight: 20,
-  },
-  stepsContainer: {
-    gap: spacing[5],
-  },
-  step: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  stepHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[2],
-  },
-  stepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.accent[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  stepNumberText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-  },
-  stepTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  stepDescription: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[3],
-    lineHeight: 20,
-  },
-  button: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[5],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[2],
-  },
-  downloadButton: {
-    backgroundColor: colors.info[600],
-  },
-  uploadButton: {
-    backgroundColor: colors.success[500],
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  noteBox: {
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    marginTop: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.warning[200],
-  },
-  noteTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.warning[700],
-    marginBottom: spacing[1.5],
-  },
-  noteText: {
-    fontSize: 12,
-    color: colors.warning[700],
-    lineHeight: 18,
-  },
-  resultContainer: {
-    marginTop: spacing[6],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    overflow: 'hidden',
-  },
-  resultHeader: {
-    padding: spacing[4],
-  },
-  resultSuccess: {
-    backgroundColor: colors.success[100],
-  },
-  resultError: {
-    backgroundColor: colors.danger[100],
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  resultStats: {
-    padding: spacing[4],
-    gap: spacing[3],
-  },
-  resultStat: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  resultStatLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  resultStatValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  errorsContainer: {
-    padding: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  errorsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.danger[600],
-    marginBottom: spacing[3],
-  },
-  errorsList: {
-    maxHeight: 200,
-  },
-  errorItem: {
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    marginBottom: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.danger[100],
-  },
-  errorRow: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.danger[800],
-    marginBottom: spacing[1],
-  },
-  errorParticipant: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.neutral[800],
-    marginBottom: spacing[0.5],
-  },
-  errorProduct: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  errorMessage: {
-    fontSize: 12,
-    color: colors.danger[600],
-    fontStyle: 'italic',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+    },
+    modalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      width: '100%',
+      maxWidth: 600,
+      maxHeight: '90%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    scrollView: {
+      padding: theme.space[5],
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[4],
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.background.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.subtle,
+      fontWeight: 'bold',
+    },
+    description: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[6],
+      lineHeight: 20,
+    },
+    stepsContainer: {
+      gap: theme.space[5],
+    },
+    step: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    stepHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[2],
+    },
+    stepNumber: {
+      width: 28,
+      height: 28,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    stepNumberText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: theme.color.text.inverse,
+    },
+    stepTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    stepDescription: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[3],
+      lineHeight: 20,
+    },
+    button: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[5],
+      borderRadius: theme.radii.lg,
+      marginTop: theme.space[2],
+    },
+    downloadButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    uploadButton: {
+      backgroundColor: theme.color.action.success.background,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    buttonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    noteBox: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+      marginTop: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+    },
+    noteTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.state.warning.text,
+      marginBottom: theme.space[1.5],
+    },
+    noteText: {
+      fontSize: 12,
+      color: theme.color.state.warning.text,
+      lineHeight: 18,
+    },
+    resultContainer: {
+      marginTop: theme.space[6],
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      overflow: 'hidden',
+    },
+    resultHeader: {
+      padding: theme.space[4],
+    },
+    resultSuccess: {
+      backgroundColor: theme.color.state.success.background,
+    },
+    resultError: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    resultTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    resultStats: {
+      padding: theme.space[4],
+      gap: theme.space[3],
+    },
+    resultStat: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    resultStatLabel: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+    },
+    resultStatValue: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    errorsContainer: {
+      padding: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    errorsTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.danger,
+      marginBottom: theme.space[3],
+    },
+    errorsList: {
+      maxHeight: 200,
+    },
+    errorItem: {
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+      marginBottom: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.state.danger.border,
+    },
+    errorRow: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.state.danger.text,
+      marginBottom: theme.space[1],
+    },
+    errorParticipant: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[0.5],
+    },
+    errorProduct: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[1],
+    },
+    errorMessage: {
+      fontSize: 12,
+      color: theme.color.text.danger,
+      fontStyle: 'italic',
+    },
+  });
