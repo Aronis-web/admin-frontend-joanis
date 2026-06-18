@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RepartoParticipantDetailScreen - Detalle de participante en reparto
  * Migrado al Design System unificado
  */
@@ -44,17 +44,18 @@ import logger from '@/utils/logger';
 import { config } from '@/utils/config';
 import { Driver, Vehicle, Transporter } from '@/types/transport';
 import {
-  colors,
   spacing,
   borderRadius,
-  shadows,
   Title,
   Body,
   Label,
   Caption,
   Button,
   IconButton,
+  useTheme,
+  useThemedStyles,
 } from '@/design-system';
+import type { Theme } from '@/design-system';
 
 interface RepartoParticipantDetailScreenProps {
   navigation: any;
@@ -141,7 +142,7 @@ interface ClosureBatchV2 {
 interface ProductoReparto {
   id: string;
   productId: string;
-  repartoId: string; // ✅ Necesario para subir archivos al servidor
+  repartoId: string; // âœ… Necesario para subir archivos al servidor
   presentationId?: string;
   factorToBase?: number;
   presentationInfo?: PresentationInfo;
@@ -250,6 +251,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { campaignId, participantId } = route.params;
   const [participant, setParticipant] = useState<CampaignParticipant | null>(null);
   const [productos, setProductos] = useState<ProductoReparto[]>([]);
@@ -348,17 +351,17 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         participantId
       );
 
-      console.log('📦 Total productos recibidos:', participantProducts.length);
+      console.log('ðŸ“¦ Total productos recibidos:', participantProducts.length);
 
       // Log COMPLETO del primer producto usando JSON.stringify para ver TODO
       if (participantProducts[0]) {
-        console.log('🔍 PRIMER PRODUCTO COMPLETO (JSON):');
+        console.log('ðŸ” PRIMER PRODUCTO COMPLETO (JSON):');
         console.log(JSON.stringify(participantProducts[0], null, 2));
       }
 
-      // Log específico del primer reparto
+      // Log especÃ­fico del primer reparto
       if (participantProducts[0]?.repartos?.[0]) {
-        console.log('🔍 PRIMER REPARTO COMPLETO (JSON):');
+        console.log('ðŸ” PRIMER REPARTO COMPLETO (JSON):');
         console.log(JSON.stringify(participantProducts[0].repartos[0], null, 2));
       }
 
@@ -373,15 +376,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           if (!firstRepartoId && reparto.repartoId) {
             firstRepartoId = reparto.repartoId;
           }
-          // WORKAROUND: Si el backend no envía presentationInfo, intentar construirlo
-          // basándonos en los datos del reparto individual
+          // WORKAROUND: Si el backend no envÃ­a presentationInfo, intentar construirlo
+          // basÃ¡ndonos en los datos del reparto individual
           let presentationInfo = productGroup.presentationInfo;
 
           // Si no hay presentationInfo pero el reparto tiene presentationId/factorToBase,
           // construir un presentationInfo temporal
           if (!presentationInfo && reparto.presentationId && reparto.factorToBase) {
             console.log(
-              '⚠️ WORKAROUND: Construyendo presentationInfo temporal para reparto:',
+              'âš ï¸ WORKAROUND: Construyendo presentationInfo temporal para reparto:',
               reparto.repartoCode
             );
             presentationInfo = {
@@ -389,7 +392,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               largestFactor: reparto.factorToBase,
               largestPresentation: {
                 id: reparto.presentationId,
-                name: reparto.presentationName || 'Presentación',
+                name: reparto.presentationName || 'PresentaciÃ³n',
                 factorToBase: reparto.factorToBase,
               },
               totalPresentations: 1,
@@ -415,13 +418,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               },
             ];
             console.log(
-              '✅ Presentations construido para producto:',
+              'âœ… Presentations construido para producto:',
               productGroup.productName,
               presentations
             );
           } else {
             console.log(
-              '⚠️ No se pudo construir presentations para:',
+              'âš ï¸ No se pudo construir presentations para:',
               productGroup.productName,
               'presentationInfo:',
               presentationInfo
@@ -431,17 +434,17 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           productosAsignados.push({
             id: reparto.repartoProductoId,
             productId: productGroup.productId,
-            repartoId: reparto.repartoId, // ✅ Necesario para subir archivos al servidor
-            presentationId: reparto.presentationId, // Información de presentación
-            factorToBase: reparto.factorToBase, // Factor de conversión
-            presentationInfo: presentationInfo, // ✅ Info completa de presentación (del backend o construida)
+            repartoId: reparto.repartoId, // âœ… Necesario para subir archivos al servidor
+            presentationId: reparto.presentationId, // InformaciÃ³n de presentaciÃ³n
+            factorToBase: reparto.factorToBase, // Factor de conversiÃ³n
+            presentationInfo: presentationInfo, // âœ… Info completa de presentaciÃ³n (del backend o construida)
             product: {
               id: productGroup.productId,
               name: productGroup.productName,
               title: productGroup.productName,
               sku: productGroup.productSku,
-              correlativeNumber: productGroup.productCorrelativeNumber, // ✅ Agregar correlativo
-              presentations: presentations, // ✅ Construido desde presentationInfo
+              correlativeNumber: productGroup.productCorrelativeNumber, // âœ… Agregar correlativo
+              presentations: presentations, // âœ… Construido desde presentationInfo
             },
             quantityAssigned: reparto.quantityAssigned,
             quantityValidated: reparto.quantityValidated,
@@ -455,9 +458,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         });
       });
 
-      console.log('📊 Total productos asignados:', productosAsignados.length);
+      console.log('ðŸ“Š Total productos asignados:', productosAsignados.length);
 
-      // ✅ Ordenar productos por correlativo antes de setear
+      // âœ… Ordenar productos por correlativo antes de setear
       const sortedProductos = productosAsignados.sort((a, b) => {
         const correlativeA = a.product?.correlativeNumber || 0;
         const correlativeB = b.product?.correlativeNumber || 0;
@@ -471,95 +474,95 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         setRepartoId(firstRepartoId);
       }
 
-      console.log('🚀 INICIANDO CARGA DE FOTOS DE PRODUCTOS...');
-      console.log('🚀 productosAsignados.length:', productosAsignados.length);
+      console.log('ðŸš€ INICIANDO CARGA DE FOTOS DE PRODUCTOS...');
+      console.log('ðŸš€ productosAsignados.length:', productosAsignados.length);
 
-      // ✅ Cargar fotos de productos usando batch endpoint
+      // âœ… Cargar fotos de productos usando batch endpoint
       try {
         const productIds = [...new Set(productosAsignados.map((p) => p.productId))];
-        console.log(`📸 Total productos únicos: ${productIds.length}`);
-        console.log(`📸 Product IDs:`, productIds);
+        console.log(`ðŸ“¸ Total productos Ãºnicos: ${productIds.length}`);
+        console.log(`ðŸ“¸ Product IDs:`, productIds);
         if (productIds.length > 0) {
-          console.log(`📸 Llamando a batch endpoint con includePhotos=true...`);
+          console.log(`ðŸ“¸ Llamando a batch endpoint con includePhotos=true...`);
           const batchResponse = await productsApi.getProductsByIds(productIds, true);
-          console.log(`📸 Batch response recibido:`, batchResponse);
-          console.log(`📸 Total productos en respuesta: ${batchResponse.products?.length || 0}`);
+          console.log(`ðŸ“¸ Batch response recibido:`, batchResponse);
+          console.log(`ðŸ“¸ Total productos en respuesta: ${batchResponse.products?.length || 0}`);
           const photosMap: Record<string, string[]> = {};
           batchResponse.products.forEach((product: Product) => {
-            // ✅ El backend puede devolver 'photos' o 'photoUrls'
+            // âœ… El backend puede devolver 'photos' o 'photoUrls'
             const productPhotos = (product as any).photos || (product as any).photoUrls || [];
-            console.log(`📸 Procesando producto ${product.id}: ${productPhotos.length} fotos`);
-            console.log(`📸   - product.photos:`, (product as any).photos);
-            console.log(`📸   - product.photoUrls:`, (product as any).photoUrls);
+            console.log(`ðŸ“¸ Procesando producto ${product.id}: ${productPhotos.length} fotos`);
+            console.log(`ðŸ“¸   - product.photos:`, (product as any).photos);
+            console.log(`ðŸ“¸   - product.photoUrls:`, (product as any).photoUrls);
             if (productPhotos.length > 0) {
               photosMap[product.id] = productPhotos;
-              console.log(`📸 Fotos guardadas para ${product.id}:`, productPhotos);
+              console.log(`ðŸ“¸ Fotos guardadas para ${product.id}:`, productPhotos);
             }
           });
-          console.log(`✅ PhotosMap final:`, photosMap);
-          console.log(`✅ Total productos con fotos: ${Object.keys(photosMap).length}`);
-          console.log(`✅ Llamando a setProductPhotos con:`, photosMap);
+          console.log(`âœ… PhotosMap final:`, photosMap);
+          console.log(`âœ… Total productos con fotos: ${Object.keys(photosMap).length}`);
+          console.log(`âœ… Llamando a setProductPhotos con:`, photosMap);
           setProductPhotos(photosMap);
           console.log(
-            `✅ setProductPhotos llamado (el estado se actualizará en el próximo render)`
+            `âœ… setProductPhotos llamado (el estado se actualizarÃ¡ en el prÃ³ximo render)`
           );
         } else {
-          console.log('⚠️ No hay productos para cargar fotos');
+          console.log('âš ï¸ No hay productos para cargar fotos');
         }
       } catch (error: any) {
-        console.error('❌ Error cargando fotos de productos:', error);
-        console.error('❌ Error stack:', error.stack);
-        // No bloquear la carga si falla la obtención de fotos
+        console.error('âŒ Error cargando fotos de productos:', error);
+        console.error('âŒ Error stack:', error.stack);
+        // No bloquear la carga si falla la obtenciÃ³n de fotos
       }
 
       // Verificar si ya existe un traslado consolidado
       try {
-        logger.info('🔍 Verificando estado del traslado consolidado...');
+        logger.info('ðŸ” Verificando estado del traslado consolidado...');
         const transferStatus = await repartosService.checkConsolidatedTransferStatus(
           participantId,
           campaignId
         );
         logger.info(
-          '📊 Respuesta del servidor (traslado):',
+          'ðŸ“Š Respuesta del servidor (traslado):',
           JSON.stringify(transferStatus, null, 2)
         );
         setConsolidatedTransferInfo(transferStatus);
         if (transferStatus.exists) {
-          logger.info('✅ Traslado consolidado ya existe:', transferStatus);
+          logger.info('âœ… Traslado consolidado ya existe:', transferStatus);
         } else {
-          logger.info('ℹ️ Traslado consolidado NO existe aún');
+          logger.info('â„¹ï¸ Traslado consolidado NO existe aÃºn');
         }
       } catch (error: any) {
-        logger.error('❌ Error verificando estado del traslado consolidado:', error);
+        logger.error('âŒ Error verificando estado del traslado consolidado:', error);
         // En caso de error, asumir que no existe
         setConsolidatedTransferInfo(null);
       }
 
-      // Verificar si ya existe una guía de remisión
+      // Verificar si ya existe una guÃ­a de remisiÃ³n
       try {
-        logger.info('🔍 Verificando estado de la guía de remisión...');
+        logger.info('ðŸ” Verificando estado de la guÃ­a de remisiÃ³n...');
         const guideInfo = await repartosService.getRemissionGuideInfo(participantId, campaignId);
-        logger.info('📊 Respuesta del servidor (guía):', JSON.stringify(guideInfo, null, 2));
+        logger.info('ðŸ“Š Respuesta del servidor (guÃ­a):', JSON.stringify(guideInfo, null, 2));
         setRemissionGuideInfo(guideInfo);
         if (guideInfo.exists) {
-          logger.info('✅ Guía de remisión ya existe:', guideInfo);
+          logger.info('âœ… GuÃ­a de remisiÃ³n ya existe:', guideInfo);
         } else {
-          logger.info('ℹ️ Guía de remisión NO existe aún');
+          logger.info('â„¹ï¸ GuÃ­a de remisiÃ³n NO existe aÃºn');
         }
       } catch (error: any) {
-        logger.error('❌ Error verificando estado de la guía de remisión:', error);
+        logger.error('âŒ Error verificando estado de la guÃ­a de remisiÃ³n:', error);
         // En caso de error, asumir que no existe
         setRemissionGuideInfo(null);
       }
 
-      console.log('✅ LOADDATA COMPLETADO EXITOSAMENTE');
+      console.log('âœ… LOADDATA COMPLETADO EXITOSAMENTE');
     } catch (error: any) {
-      console.error('❌ ERROR EN LOADDATA:', error);
+      console.error('âŒ ERROR EN LOADDATA:', error);
       console.error('Error loading participant data:', error);
-      Alert.alert('Error', 'No se pudo cargar la información del participante');
+      Alert.alert('Error', 'No se pudo cargar la informaciÃ³n del participante');
       navigation.goBack();
     } finally {
-      console.log('🏁 FINALLY BLOCK - Finalizando loadData');
+      console.log('ðŸ FINALLY BLOCK - Finalizando loadData');
       setLoading(false);
       setRefreshing(false);
     }
@@ -571,16 +574,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     }, [loadData])
   );
 
-  // 🔍 Monitor productPhotos state changes
+  // ðŸ” Monitor productPhotos state changes
   React.useEffect(() => {
-    console.log('🔄 productPhotos state cambió:', {
+    console.log('ðŸ”„ productPhotos state cambiÃ³:', {
       totalProductos: Object.keys(productPhotos).length,
       productIds: Object.keys(productPhotos),
       photosMap: productPhotos,
     });
   }, [productPhotos]);
 
-  // 📦 Abrir modal de bultos después de cerrar modal de transporte
+  // ðŸ“¦ Abrir modal de bultos despuÃ©s de cerrar modal de transporte
   React.useEffect(() => {
     // Solo actuar cuando el modal de transporte se cierra Y hay datos pendientes
     if (!transportModalVisible && pendingBultosModalRef.current) {
@@ -598,18 +601,18 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     loadData();
   };
 
-  // Filtrar productos basado en la búsqueda y estado de validación
+  // Filtrar productos basado en la bÃºsqueda y estado de validaciÃ³n
   const filteredProductos = useMemo(() => {
     let filtered = productos;
 
-    // Filtrar por estado de validación
+    // Filtrar por estado de validaciÃ³n
     if (validationFilter === 'validated') {
       filtered = filtered.filter((p) => isValidatedFlowStatus(p.validationStatus));
     } else if (validationFilter === 'pending') {
       filtered = filtered.filter((p) => isPendingFlowStatus(p.validationStatus));
     }
 
-    // Filtrar por búsqueda
+    // Filtrar por bÃºsqueda
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((producto) => {
@@ -652,18 +655,18 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
     setActionLoading(true);
     try {
-      // ✅ El modal ya subió las fotos al servidor, aquí solo enviamos la validación
-      logger.info('📤 Enviando validación al servidor con URLs ya subidas...');
+      // âœ… El modal ya subiÃ³ las fotos al servidor, aquÃ­ solo enviamos la validaciÃ³n
+      logger.info('ðŸ“¤ Enviando validaciÃ³n al servidor con URLs ya subidas...');
 
       await repartosService.validarSalida(selectedProducto.id, {
         validatedQuantityBase: data.validatedQuantityBase,
-        photoUrl: data.photoUrl, // ✅ Ya es URL del servidor
-        signatureUrl: data.signatureUrl, // ✅ Ya es URL del servidor
+        photoUrl: data.photoUrl, // âœ… Ya es URL del servidor
+        signatureUrl: data.signatureUrl, // âœ… Ya es URL del servidor
         validatedByName: user?.name || user?.email || 'Usuario',
         notes: data.notes,
       });
 
-      Alert.alert('Éxito', 'Salida validada exitosamente');
+      Alert.alert('Ã‰xito', 'Salida validada exitosamente');
       setValidationModalVisible(false);
       setSelectedProducto(null);
       loadData();
@@ -777,7 +780,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       remissionGuide: remissionGuideInfo?.exists
         ? {
             id: remissionGuideInfo.remissionGuideId || `legacy-guide-${legacyTransferId}`,
-            serieNumero: remissionGuideInfo.remissionGuideNumber || 'Guía consolidada',
+            serieNumero: remissionGuideInfo.remissionGuideNumber || 'GuÃ­a consolidada',
             generatedAt: remissionGuideInfo.generatedAt || remissionGuideInfo.createdAt || '',
             status: remissionGuideInfo.status,
             statusSunat: remissionGuideInfo.statusSunat,
@@ -894,7 +897,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     if (!url) {
       Alert.alert(
         'No disponible',
-        `La guía no tiene archivo ${fileType.toUpperCase()} disponible.`
+        `La guÃ­a no tiene archivo ${fileType.toUpperCase()} disponible.`
       );
       return;
     }
@@ -910,12 +913,12 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         blob,
         fileName,
         mimeType,
-        dialogTitle: `Guía ${guide?.serieNumero || closureBatch.transfer.transferNumber}`,
+        dialogTitle: `GuÃ­a ${guide?.serieNumero || closureBatch.transfer.transferNumber}`,
         UTI: fileType === 'pdf' ? 'com.adobe.pdf' : 'public.xml',
       });
     } catch (error: any) {
-      logger.error('Error descargando guía de cierre v2:', error);
-      Alert.alert('Error', error.message || 'No se pudo descargar el archivo de la guía');
+      logger.error('Error descargando guÃ­a de cierre v2:', error);
+      Alert.alert('Error', error.message || 'No se pudo descargar el archivo de la guÃ­a');
     } finally {
       setDownloadingClosureGuide(null);
     }
@@ -923,7 +926,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
   const handleDownloadParticipantReport = async () => {
     if (!repartoId || !participant) {
-      Alert.alert('Error', 'No se pudo obtener la información del reparto');
+      Alert.alert('Error', 'No se pudo obtener la informaciÃ³n del reparto');
       return;
     }
 
@@ -935,16 +938,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     try {
       setDownloadingReport(true);
 
-      logger.info('🔄 Descargando reporte del participante:', participantName);
+      logger.info('ðŸ”„ Descargando reporte del participante:', participantName);
       const startTime = new Date().getTime();
 
       // Call the API to get the PDF blob for this participant
       const pdfBlob = await repartosService.exportRepartoTotalsReport(participantId, campaignId);
 
       const endTime = new Date().getTime();
-      logger.info('✅ PDF descargado del servidor');
-      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
+      logger.info('âœ… PDF descargado del servidor');
+      logger.info('ðŸ“¦ TamaÃ±o del PDF:', pdfBlob.size, 'bytes');
+      logger.info('â±ï¸ Tiempo de descarga:', endTime - startTime, 'ms');
 
       const timestamp = new Date().getTime();
       const fileName = `reporte-totales-${participantName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
@@ -952,7 +955,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       await saveAndSharePdf(pdfBlob, fileName, `Reporte de Totales - ${participantName}`);
 
       if (Platform.OS === 'web') {
-        Alert.alert('Éxito', `El reporte de ${participantName} se está descargando`);
+        Alert.alert('Ã‰xito', `El reporte de ${participantName} se estÃ¡ descargando`);
       }
     } catch (error: any) {
       logger.error('Error downloading participant report:', error);
@@ -964,11 +967,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
   const handleGenerateRemissionGuide = async () => {
     if (!participant) {
-      Alert.alert('Error', 'No se pudo obtener la información del participante');
+      Alert.alert('Error', 'No se pudo obtener la informaciÃ³n del participante');
       return;
     }
 
-    // Abrir modal de selección de transporte
+    // Abrir modal de selecciÃ³n de transporte
     setTransportModalVisible(true);
   };
 
@@ -988,7 +991,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       // Marcar que debe abrirse el modal de bultos (usando ref para evitar re-renders)
       pendingBultosModalRef.current = true;
 
-      // Cerrar el modal de transporte - el useEffect se encargará de abrir el modal de bultos
+      // Cerrar el modal de transporte - el useEffect se encargarÃ¡ de abrir el modal de bultos
       setTransportModalVisible(false);
     },
     []
@@ -1004,7 +1007,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     const bultosNum = parseInt(numeroBultos, 10);
 
     if (isNaN(bultosNum) || bultosNum < 1) {
-      Alert.alert('Error', 'La cantidad de bultos debe ser un número mayor a 0');
+      Alert.alert('Error', 'La cantidad de bultos debe ser un nÃºmero mayor a 0');
       return;
     }
 
@@ -1015,9 +1018,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       const isPublicTransport = transporter !== null && !vehicle && !driver;
 
       Alert.alert(
-        'Generar Guía de Cierre',
-        `¿Deseas generar la guía de remisión para el cierre ${closureBatch.transfer.transferNumber}?\n\n` +
-          `📦 Bultos: ${bultosNum}`,
+        'Generar GuÃ­a de Cierre',
+        `Â¿Deseas generar la guÃ­a de remisiÃ³n para el cierre ${closureBatch.transfer.transferNumber}?\n\n` +
+          `ðŸ“¦ Bultos: ${bultosNum}`,
         [
           {
             text: 'Cancelar',
@@ -1048,15 +1051,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 );
 
                 Alert.alert(
-                  'Guía generada',
-                  `Guía ${response.remissionGuide.serieNumero} generada para el traslado ${response.transfer.transferNumber}.`
+                  'GuÃ­a generada',
+                  `GuÃ­a ${response.remissionGuide.serieNumero} generada para el traslado ${response.transfer.transferNumber}.`
                 );
                 await loadClosureBatchData();
               } catch (error: any) {
-                logger.error('Error generando guía de cierre v2:', error);
+                logger.error('Error generando guÃ­a de cierre v2:', error);
                 Alert.alert(
                   'Error',
-                  error.response?.data?.message || 'No se pudo generar la guía del cierre'
+                  error.response?.data?.message || 'No se pudo generar la guÃ­a del cierre'
                 );
               } finally {
                 setGeneratingClosureGuide(null);
@@ -1075,34 +1078,34 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         ? participant.company?.alias || participant.company?.name || 'Empresa'
         : participant?.site?.name || 'Sede';
 
-    // Determinar si es transporte público (tiene transportista pero no vehículo ni conductor)
+    // Determinar si es transporte pÃºblico (tiene transportista pero no vehÃ­culo ni conductor)
     const isPublicTransport = transporter !== null && !vehicle && !driver;
 
-    // Construir mensaje de confirmación
-    let confirmMessage = `¿Estás seguro de que deseas generar la guía de remisión electrónica para ${participantName}?\n\n`;
+    // Construir mensaje de confirmaciÃ³n
+    let confirmMessage = `Â¿EstÃ¡s seguro de que deseas generar la guÃ­a de remisiÃ³n electrÃ³nica para ${participantName}?\n\n`;
 
     if (isPublicTransport) {
       confirmMessage +=
-        `🚌 Transporte: Público\n` +
-        `🏢 Transportista: ${transporter!.razonSocial}\n` +
-        `📋 RUC: ${transporter!.numeroRuc}\n`;
+        `ðŸšŒ Transporte: PÃºblico\n` +
+        `ðŸ¢ Transportista: ${transporter!.razonSocial}\n` +
+        `ðŸ“‹ RUC: ${transporter!.numeroRuc}\n`;
     } else {
       confirmMessage +=
-        `🚗 Transporte: Privado\n` +
-        `🚗 Vehículo: ${vehicle!.numeroPlaca} (${vehicle!.marca} ${vehicle!.modelo})\n` +
-        `👤 Conductor: ${driver!.nombre} ${driver!.apellido}\n` +
-        `📋 Licencia: ${driver!.numeroLicencia}\n`;
+        `ðŸš— Transporte: Privado\n` +
+        `ðŸš— VehÃ­culo: ${vehicle!.numeroPlaca} (${vehicle!.marca} ${vehicle!.modelo})\n` +
+        `ðŸ‘¤ Conductor: ${driver!.nombre} ${driver!.apellido}\n` +
+        `ðŸ“‹ Licencia: ${driver!.numeroLicencia}\n`;
     }
 
     confirmMessage +=
-      `📦 Bultos: ${bultosNum}\n\n` +
-      'Esta acción:\n' +
-      '• Generará una guía de remisión tipo 09 (Traslado)\n' +
-      '• Se enviará automáticamente a SUNAT\n' +
-      '• Quedará anexada al participante de la campaña';
+      `ðŸ“¦ Bultos: ${bultosNum}\n\n` +
+      'Esta acciÃ³n:\n' +
+      'â€¢ GenerarÃ¡ una guÃ­a de remisiÃ³n tipo 09 (Traslado)\n' +
+      'â€¢ Se enviarÃ¡ automÃ¡ticamente a SUNAT\n' +
+      'â€¢ QuedarÃ¡ anexada al participante de la campaÃ±a';
 
-    // Confirmar acción con los datos seleccionados
-    Alert.alert('Generar Guía de Remisión', confirmMessage, [
+    // Confirmar acciÃ³n con los datos seleccionados
+    Alert.alert('Generar GuÃ­a de RemisiÃ³n', confirmMessage, [
       {
         text: 'Cancelar',
         style: 'cancel',
@@ -1116,16 +1119,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         onPress: async () => {
           try {
             setGeneratingRemissionGuide(true);
-            logger.info('🔄 Generando guía de remisión para:', participantName);
-            logger.info('📦 Número de bultos:', bultosNum);
+            logger.info('ðŸ”„ Generando guÃ­a de remisiÃ³n para:', participantName);
+            logger.info('ðŸ“¦ NÃºmero de bultos:', bultosNum);
 
             if (isPublicTransport) {
-              logger.info('🚌 Tipo de transporte: Público');
-              logger.info('🏢 Transportista:', transporter!.razonSocial);
+              logger.info('ðŸšŒ Tipo de transporte: PÃºblico');
+              logger.info('ðŸ¢ Transportista:', transporter!.razonSocial);
             } else {
-              logger.info('🚗 Tipo de transporte: Privado');
-              logger.info('🚗 Vehículo:', vehicle!.numeroPlaca);
-              logger.info('👤 Conductor:', `${driver!.nombre} ${driver!.apellido}`);
+              logger.info('ðŸš— Tipo de transporte: Privado');
+              logger.info('ðŸš— VehÃ­culo:', vehicle!.numeroPlaca);
+              logger.info('ðŸ‘¤ Conductor:', `${driver!.nombre} ${driver!.apellido}`);
             }
 
             const response = await repartosService.generateRemissionGuide(
@@ -1143,26 +1146,26 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   }
             );
 
-            logger.info('✅ Guía de remisión generada:', response);
+            logger.info('âœ… GuÃ­a de remisiÃ³n generada:', response);
 
             let successMessage =
-              `Guía de remisión generada exitosamente:\n\n` +
-              `📄 Número: ${response.remissionGuide.serieNumero}\n` +
-              `✅ Estado: ${response.remissionGuide.status}\n` +
-              `📦 Traslado: ${response.transfer.transferNumber}\n` +
-              `📦 Bultos: ${bultosNum}\n`;
+              `GuÃ­a de remisiÃ³n generada exitosamente:\n\n` +
+              `ðŸ“„ NÃºmero: ${response.remissionGuide.serieNumero}\n` +
+              `âœ… Estado: ${response.remissionGuide.status}\n` +
+              `ðŸ“¦ Traslado: ${response.transfer.transferNumber}\n` +
+              `ðŸ“¦ Bultos: ${bultosNum}\n`;
 
             if (isPublicTransport) {
               successMessage +=
-                `🚌 Transporte: Público\n` + `🏢 Transportista: ${transporter!.razonSocial}`;
+                `ðŸšŒ Transporte: PÃºblico\n` + `ðŸ¢ Transportista: ${transporter!.razonSocial}`;
             } else {
               successMessage +=
-                `🚗 Transporte: Privado\n` +
-                `🚗 Vehículo: ${vehicle!.numeroPlaca}\n` +
-                `👤 Conductor: ${driver!.nombre} ${driver!.apellido}`;
+                `ðŸš— Transporte: Privado\n` +
+                `ðŸš— VehÃ­culo: ${vehicle!.numeroPlaca}\n` +
+                `ðŸ‘¤ Conductor: ${driver!.nombre} ${driver!.apellido}`;
             }
 
-            Alert.alert('Éxito', successMessage, [
+            Alert.alert('Ã‰xito', successMessage, [
               {
                 text: 'Aceptar',
                 onPress: () => {
@@ -1171,10 +1174,10 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               },
             ]);
           } catch (error: any) {
-            logger.error('Error generando guía de remisión:', error);
+            logger.error('Error generando guÃ­a de remisiÃ³n:', error);
             Alert.alert(
               'Error',
-              error.response?.data?.message || 'No se pudo generar la guía de remisión'
+              error.response?.data?.message || 'No se pudo generar la guÃ­a de remisiÃ³n'
             );
           } finally {
             setGeneratingRemissionGuide(false);
@@ -1187,12 +1190,12 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
   const handleDownloadRemissionGuide = async () => {
     if (!remissionGuideInfo?.exists) {
-      Alert.alert('Error', 'No se encontró la guía de remisión');
+      Alert.alert('Error', 'No se encontrÃ³ la guÃ­a de remisiÃ³n');
       return;
     }
 
     if (!participant?.id) {
-      Alert.alert('Error', 'No se encontró el ID del participante');
+      Alert.alert('Error', 'No se encontrÃ³ el ID del participante');
       return;
     }
 
@@ -1203,7 +1206,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
     try {
       setDownloadingRemissionGuide(true);
-      logger.info('🔄 Descargando guía de remisión:', remissionGuideInfo.remissionGuideNumber);
+      logger.info('ðŸ”„ Descargando guÃ­a de remisiÃ³n:', remissionGuideInfo.remissionGuideNumber);
 
       // Usar el nuevo endpoint para descargar el PDF
       const blob = await repartosService.downloadRemissionGuidePdf(participant.id, campaignId);
@@ -1214,15 +1217,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       await saveAndSharePdf(
         blob,
         fileName,
-        `Guía de Remisión - ${remissionGuideInfo.remissionGuideNumber}`
+        `GuÃ­a de RemisiÃ³n - ${remissionGuideInfo.remissionGuideNumber}`
       );
 
       if (Platform.OS === 'web') {
-        Alert.alert('Éxito', 'La guía de remisión se ha descargado');
+        Alert.alert('Ã‰xito', 'La guÃ­a de remisiÃ³n se ha descargado');
       }
     } catch (error: any) {
-      logger.error('Error descargando guía de remisión:', error);
-      const errorMessage = error.message || 'No se pudo descargar la guía de remisión';
+      logger.error('Error descargando guÃ­a de remisiÃ³n:', error);
+      const errorMessage = error.message || 'No se pudo descargar la guÃ­a de remisiÃ³n';
       Alert.alert('Error', errorMessage);
     } finally {
       setDownloadingRemissionGuide(false);
@@ -1235,31 +1238,31 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   };
 
   const handleNotesUpdated = () => {
-    // Recargar el modal de discrepancias si está abierto
+    // Recargar el modal de discrepancias si estÃ¡ abierto
     if (discrepanciasModalVisible) {
-      // El modal de discrepancias se recargará automáticamente
+      // El modal de discrepancias se recargarÃ¡ automÃ¡ticamente
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return '#F59E0B';
+        return theme.color.icon.warning;
       case 'VALIDATED':
       case 'TRANSFERRED':
-        return '#10B981';
+        return theme.color.icon.success;
       case 'CANCELLED':
-        return '#EF4444';
+        return theme.color.icon.danger;
       case 'PARTIAL':
-        return '#3B82F6';
+        return theme.color.text.link;
       case 'DISCREPANCY':
-        return '#EF4444';
+        return theme.color.icon.danger;
       case 'IN_PROGRESS':
-        return '#3B82F6';
+        return theme.color.text.link;
       case 'COMPLETED':
-        return '#10B981';
+        return theme.color.icon.success;
       default:
-        return '#64748B';
+        return theme.color.text.muted;
     }
   };
 
@@ -1299,13 +1302,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       );
       const validatedQuantity = getValidatedQuantity(producto);
 
-      // ✅ SOLO mostrar por presentación si la VALIDACIÓN fue por presentación
+      // âœ… SOLO mostrar por presentaciÃ³n si la VALIDACIÃ“N fue por presentaciÃ³n
       // Esto se determina verificando si existe validacion.presentationInfo con roundingApplied
       const wasValidatedByPresentation =
         isValidatedFlowStatus(productStatus) &&
         producto.validacion?.presentationInfo?.roundingApplied === true;
 
-      // Calcular cantidades en presentación SOLO si fue validado por presentación
+      // Calcular cantidades en presentaciÃ³n SOLO si fue validado por presentaciÃ³n
       let quantityInPresentation = 0;
       let validatedInPresentation = 0;
       let presentationName = '';
@@ -1400,7 +1403,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   style={[
                     styles.quantityValue,
                     isTablet && styles.quantityValueTablet,
-                    { color: '#10B981' },
+                    { color: theme.color.icon.success },
                   ]}
                 >
                   {wasValidatedByPresentation
@@ -1412,7 +1415,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
             {producto.warehouse && (
               <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Almacén:</Text>
+                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                  AlmacÃ©n:
+                </Text>
                 <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                   {producto.warehouse.name}
                 </Text>
@@ -1421,7 +1426,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
             {producto.area && (
               <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Área:</Text>
+                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Ãrea:</Text>
                 <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                   {producto.area.name}
                 </Text>
@@ -1447,7 +1452,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             </View>
           </View>
 
-          {/* Botones de acción */}
+          {/* Botones de acciÃ³n */}
           <View style={styles.cardFooter}>
             {isPendingFlowStatus(productStatus) ? (
               <TouchableOpacity
@@ -1455,7 +1460,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 onPress={() => handleValidateProduct(producto)}
                 disabled={actionLoading}
               >
-                <Text style={styles.validateButtonText}>📸 Validar Salida</Text>
+                <Text style={styles.validateButtonText}>ðŸ“¸ Validar Salida</Text>
               </TouchableOpacity>
             ) : isValidatedFlowStatus(productStatus) ? (
               <TouchableOpacity
@@ -1463,7 +1468,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 onPress={() => handleViewValidation(producto)}
                 disabled={actionLoading}
               >
-                <Text style={styles.detailButtonText}>👁️ Ver Detalles de Validación</Text>
+                <Text style={styles.detailButtonText}>ðŸ‘ï¸ Ver Detalles de ValidaciÃ³n</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -1477,7 +1482,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando productos...</Text>
         </View>
       </SafeAreaView>
@@ -1498,7 +1503,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     return sum + quantity;
   }, 0);
 
-  // Calcular progreso de validación del participante (productos validados)
+  // Calcular progreso de validaciÃ³n del participante (productos validados)
   const totalProductos = productos.length;
   const productosValidados = productos.filter((p) =>
     isValidatedFlowStatus(p.validationStatus)
@@ -1506,7 +1511,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const progressPercentage =
     totalProductos > 0 ? Math.round((productosValidados / totalProductos) * 100) : 0;
 
-  // Calcular estadísticas de productos filtrados
+  // Calcular estadÃ­sticas de productos filtrados
   const filteredCount = filteredProductos.length;
 
   return (
@@ -1516,7 +1521,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
+              â† Volver
             </Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
@@ -1533,8 +1538,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               >
                 <Text style={[styles.typeText, isTablet && styles.typeTextTablet]}>
                   {participant.participantType === ParticipantType.EXTERNAL_COMPANY
-                    ? '🏢 Empresa'
-                    : '🏛️ Sede'}
+                    ? 'ðŸ¢ Empresa'
+                    : 'ðŸ›ï¸ Sede'}
                 </Text>
               </View>
             </View>
@@ -1596,7 +1601,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   isTablet && styles.downloadReportButtonTextTablet,
                 ]}
               >
-                {downloadingReport ? '📄 Generando Reporte...' : '📄 Descargar Reporte de Totales'}
+                {downloadingReport
+                  ? 'ðŸ“„ Generando Reporte...'
+                  : 'ðŸ“„ Descargar Reporte de Totales'}
               </Text>
             </TouchableOpacity>
           )}
@@ -1619,7 +1626,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   isTablet && styles.consolidatedButtonTextTablet,
                 ]}
               >
-                {loadingClosures ? '🔄 Cargando cierres...' : '🧾 Gestionar cierres'}
+                {loadingClosures ? 'ðŸ”„ Cargando cierres...' : 'ðŸ§¾ Gestionar cierres'}
               </Text>
             </TouchableOpacity>
           )}
@@ -1637,7 +1644,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 No hay productos asignados
               </Text>
               <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-                Este participante aún no tiene productos en repartos
+                Este participante aÃºn no tiene productos en repartos
               </Text>
             </View>
           </ScrollView>
@@ -1661,7 +1668,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   Productos de Reparto
                 </Text>
 
-                {/* Filtro de validación */}
+                {/* Filtro de validaciÃ³n */}
                 {productos.length > 0 && (
                   <View
                     style={[
@@ -1703,7 +1710,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                             (styles as any).filterButtonTextActive,
                         ]}
                       >
-                        ✅ Validados (
+                        âœ… Validados (
                         {productos.filter((p) => isValidatedFlowStatus(p.validationStatus)).length})
                       </Text>
                     </TouchableOpacity>
@@ -1722,7 +1729,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                           validationFilter === 'pending' && (styles as any).filterButtonTextActive,
                         ]}
                       >
-                        ⏳ Pendientes (
+                        â³ Pendientes (
                         {productos.filter((p) => isPendingFlowStatus(p.validationStatus)).length})
                       </Text>
                     </TouchableOpacity>
@@ -1732,11 +1739,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 {/* Buscador de productos */}
                 {productos.length > 0 && (
                   <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
-                    <Text style={[styles.searchIcon, isTablet && styles.searchIconTablet]}>🔍</Text>
+                    <Text style={[styles.searchIcon, isTablet && styles.searchIconTablet]}>
+                      ðŸ”
+                    </Text>
                     <TextInput
                       style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                       placeholder="Buscar por nombre, SKU o reparto..."
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={theme.color.text.subtle}
                       value={searchQuery}
                       onChangeText={setSearchQuery}
                       autoCapitalize="none"
@@ -1750,7 +1759,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                         <Text
                           style={[styles.clearButtonText, isTablet && styles.clearButtonTextTablet]}
                         >
-                          ✕
+                          âœ•
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -1773,7 +1782,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   No se encontraron productos
                 </Text>
                 <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-                  Intenta con otros términos de búsqueda
+                  Intenta con otros tÃ©rminos de bÃºsqueda
                 </Text>
               </View>
             }
@@ -1809,13 +1818,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   onPress={() => setClosuresModalVisible(false)}
                   style={styles.closuresCloseButton}
                 >
-                  <Ionicons name="close" size={24} color={colors.text.secondary} />
+                  <Ionicons name="close" size={24} color={theme.color.text.muted} />
                 </TouchableOpacity>
               </View>
 
               {loadingClosures ? (
                 <View style={styles.closuresLoadingContainer}>
-                  <ActivityIndicator size="large" color={colors.primary[500]} />
+                  <ActivityIndicator size="large" color={theme.color.brand.primary} />
                   <Text style={styles.loadingText}>Cargando cierres...</Text>
                 </View>
               ) : (
@@ -1830,7 +1839,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                       Pendientes de cierre ({pendingClosureProducts.length})
                     </Text>
                     <Text style={styles.closureSectionHint}>
-                      Selecciona productos validados que aún no fueron transferidos.
+                      Selecciona productos validados que aÃºn no fueron transferidos.
                     </Text>
 
                     {pendingClosureProducts.length === 0 ? (
@@ -1855,10 +1864,18 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                               ]}
                             >
                               {allPendingProductsSelected && (
-                                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                                <Ionicons
+                                  name="checkmark"
+                                  size={16}
+                                  color={theme.color.surface.base}
+                                />
                               )}
                               {partiallySelectedPendingProducts && (
-                                <Ionicons name="remove" size={16} color="#FFFFFF" />
+                                <Ionicons
+                                  name="remove"
+                                  size={16}
+                                  color={theme.color.surface.base}
+                                />
                               )}
                             </View>
                           </TouchableOpacity>
@@ -1879,7 +1896,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                             <Ionicons
                               name={pendingProductsExpanded ? 'chevron-up' : 'chevron-down'}
                               size={20}
-                              color={colors.primary[600]}
+                              color={theme.color.brand.primary}
                             />
                           </TouchableOpacity>
                         </View>
@@ -1902,7 +1919,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                             >
                               <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
                                 {selected && (
-                                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                                  <Ionicons
+                                    name="checkmark"
+                                    size={16}
+                                    color={theme.color.surface.base}
+                                  />
                                 )}
                               </View>
                               <View style={styles.pendingClosureInfo}>
@@ -1921,13 +1942,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                                     <Ionicons
                                       name="business-outline"
                                       size={14}
-                                      color={colors.primary[700]}
+                                      color={theme.color.brand.primary}
                                     />
                                   </View>
                                   <View style={styles.siteInfoTextBox}>
                                     <Text style={styles.siteInfoLabel}>Sede / reparto</Text>
                                     <Text style={styles.siteInfoName} numberOfLines={1}>
-                                      {product.repartoCode} · {product.repartoName}
+                                      {product.repartoCode} Â· {product.repartoName}
                                     </Text>
                                   </View>
                                 </View>
@@ -1972,7 +1993,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                         <TextInput
                           style={styles.closureNotesInput}
                           placeholder="Notas del cierre parcial (opcional)"
-                          placeholderTextColor={colors.text.tertiary}
+                          placeholderTextColor={theme.color.text.subtle}
                           value={closureNotes}
                           onChangeText={setClosureNotes}
                           multiline
@@ -2003,7 +2024,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
                     {closureBatchesToDisplay.length === 0 ? (
                       <View style={styles.closureEmptyBox}>
-                        <Text style={styles.closureEmptyText}>Aún no hay cierres generados.</Text>
+                        <Text style={styles.closureEmptyText}>AÃºn no hay cierres generados.</Text>
                       </View>
                     ) : (
                       closureBatchesToDisplay.map((batch) => {
@@ -2031,7 +2052,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                                   {batch.isLegacy
                                     ? 'Flujo anterior'
                                     : `Estado: ${batch.transfer.status}`}{' '}
-                                  • {new Date(batch.createdAt).toLocaleDateString('es-PE')}
+                                  â€¢ {new Date(batch.createdAt).toLocaleDateString('es-PE')}
                                 </Text>
                               </View>
                               <View style={styles.closureBatchBadge}>
@@ -2073,7 +2094,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                               <Ionicons
                                 name={productsExpanded ? 'chevron-up' : 'chevron-down'}
                                 size={18}
-                                color={colors.primary[600]}
+                                color={theme.color.brand.primary}
                               />
                             </TouchableOpacity>
 
@@ -2093,7 +2114,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                                 <View style={styles.guideCompactRow}>
                                   <View style={styles.guideCompactInfo}>
                                     <Text style={styles.guideSuccessText}>
-                                      Guía generada exitosamente
+                                      GuÃ­a generada exitosamente
                                     </Text>
                                     <Text style={styles.guideNumberText} numberOfLines={1}>
                                       {batch.remissionGuide.serieNumero}
@@ -2162,8 +2183,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                                 >
                                   <Text style={styles.generateGuideButtonText}>
                                     {generatingRemissionGuide
-                                      ? 'Generando guía...'
-                                      : 'Generar guía'}
+                                      ? 'Generando guÃ­a...'
+                                      : 'Generar guÃ­a'}
                                   </Text>
                                 </TouchableOpacity>
                               </View>
@@ -2179,8 +2200,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                               >
                                 <Text style={styles.generateGuideButtonText}>
                                   {generatingClosureGuide === batch.id
-                                    ? 'Generando guía...'
-                                    : 'Generar guía'}
+                                    ? 'Generando guÃ­a...'
+                                    : 'Generar guÃ­a'}
                                 </Text>
                               </TouchableOpacity>
                             )}
@@ -2199,13 +2220,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         {selectedProducto &&
           (() => {
             console.log(
-              '🔍 selectedProducto.product?.presentations:',
+              'ðŸ” selectedProducto.product?.presentations:',
               selectedProducto.product?.presentations
             );
-            console.log('🔍 selectedProducto completo:', JSON.stringify(selectedProducto, null, 2));
-            console.log('🔍 productPhotos state:', JSON.stringify(productPhotos));
-            console.log('🔍 selectedProducto.productId:', selectedProducto.productId);
-            console.log('🔍 Fotos para este producto:', productPhotos[selectedProducto.productId]);
+            console.log(
+              'ðŸ” selectedProducto completo:',
+              JSON.stringify(selectedProducto, null, 2)
+            );
+            console.log('ðŸ” productPhotos state:', JSON.stringify(productPhotos));
+            console.log('ðŸ” selectedProducto.productId:', selectedProducto.productId);
+            console.log('ðŸ” Fotos para este producto:', productPhotos[selectedProducto.productId]);
             return (
               <ValidacionSalidaModal
                 visible={validationModalVisible}
@@ -2299,14 +2323,14 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               style={[styles.bultosModalContainer, isTablet && styles.bultosModalContainerTablet]}
             >
               <View style={styles.bultosModalHeader}>
-                <Ionicons name="cube-outline" size={32} color={colors.primary[500]} />
+                <Ionicons name="cube-outline" size={32} color={theme.color.brand.primary} />
                 <Text style={[styles.bultosModalTitle, isTablet && styles.bultosModalTitleTablet]}>
                   Cantidad de Bultos
                 </Text>
                 <Text
                   style={[styles.bultosModalSubtitle, isTablet && styles.bultosModalSubtitleTablet]}
                 >
-                  Ingrese el número de bultos para la guía de remisión
+                  Ingrese el nÃºmero de bultos para la guÃ­a de remisiÃ³n
                 </Text>
               </View>
 
@@ -2320,14 +2344,14 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                     }
                   }}
                 >
-                  <Ionicons name="remove" size={24} color={colors.text.inverse} />
+                  <Ionicons name="remove" size={24} color={theme.color.text.inverse} />
                 </TouchableOpacity>
 
                 <TextInput
                   style={[styles.bultosInput, isTablet && styles.bultosInputTablet]}
                   value={numeroBultos}
                   onChangeText={(text) => {
-                    // Solo permitir números
+                    // Solo permitir nÃºmeros
                     const numericValue = text.replace(/[^0-9]/g, '');
                     setNumeroBultos(numericValue);
                   }}
@@ -2343,7 +2367,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                     setNumeroBultos(String(current + 1));
                   }}
                 >
-                  <Ionicons name="add" size={24} color={colors.text.inverse} />
+                  <Ionicons name="add" size={24} color={theme.color.text.inverse} />
                 </TouchableOpacity>
               </View>
 
@@ -2383,1205 +2407,1206 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  header: {
-    backgroundColor: colors.background.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  headerTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[6],
-  },
-  backButton: {
-    marginBottom: spacing[2],
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: colors.primary[500],
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  headerInfo: {
-    marginTop: spacing[2],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  typeBadgeContainer: {
-    marginTop: spacing[2],
-  },
-  typeBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  typeBadgeTablet: {
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[1.5],
-  },
-  typeBadgeCompany: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[500],
-  },
-  typeBadgeSite: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[500],
-  },
-  typeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  typeTextTablet: {
-    fontSize: 14,
-  },
-  infoSection: {
-    backgroundColor: colors.background.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  infoSectionTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[4],
-  },
-  downloadReportButton: {
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-  },
-  downloadReportButtonTablet: {
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[4],
-  },
-  downloadReportButtonText: {
-    color: colors.text.inverse,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  downloadReportButtonTextTablet: {
-    fontSize: 16,
-  },
-  downloadButtonDisabled: {
-    opacity: 0.5,
-  },
-  consolidatedButton: {
-    backgroundColor: colors.success[500],
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.success[600],
-  },
-  consolidatedButtonTablet: {
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[4],
-  },
-  consolidatedButtonText: {
-    color: colors.text.inverse,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  consolidatedButtonTextTablet: {
-    fontSize: 17,
-  },
-  successMessage: {
-    backgroundColor: colors.success[100],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.success[500],
-  },
-  successMessageTablet: {
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[4],
-  },
-  successMessageText: {
-    color: colors.success[800],
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  successMessageTextTablet: {
-    fontSize: 16,
-  },
-  successMessageSubtext: {
-    color: colors.success[700],
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginTop: spacing[1],
-  },
-  successMessageSubtextTablet: {
-    fontSize: 14,
-    marginTop: spacing[1.5],
-  },
-  remissionGuideButton: {
-    backgroundColor: colors.accent[500],
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.accent[600],
-  },
-  remissionGuideButtonTablet: {
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[4],
-  },
-  remissionGuideButtonText: {
-    color: colors.text.inverse,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  remissionGuideButtonTextTablet: {
-    fontSize: 17,
-  },
-  downloadGuideButton: {
-    backgroundColor: colors.info[500],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    borderWidth: 2,
-    borderColor: colors.info[600],
-  },
-  downloadGuideButtonTablet: {
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[4],
-  },
-  downloadGuideButtonText: {
-    color: colors.text.inverse,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  downloadGuideButtonTextTablet: {
-    fontSize: 16,
-  },
-  guideInfoCard: {
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginTop: spacing[3],
-    borderWidth: 2,
-    borderColor: colors.success[500],
-  },
-  guideInfoCardTablet: {
-    padding: spacing[5],
-    marginTop: spacing[4],
-  },
-  guideInfoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.success[200],
-  },
-  guideInfoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.success[800],
-    marginLeft: spacing[2],
-  },
-  guideInfoTitleTablet: {
-    fontSize: 18,
-  },
-  guideInfoDetails: {
-    gap: spacing[2],
-  },
-  guideInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  guideInfoLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.success[700],
-  },
-  guideInfoLabelTablet: {
-    fontSize: 15,
-  },
-  guideInfoValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.success[800],
-    flex: 1,
-    textAlign: 'right',
-  },
-  guideInfoValueTablet: {
-    fontSize: 15,
-  },
-  guideInfoMessage: {
-    backgroundColor: colors.info[50],
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.info[500],
-  },
-  guideInfoMessageTablet: {
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[2.5],
-  },
-  guideInfoText: {
-    color: colors.info[700],
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  guideInfoTextTablet: {
-    fontSize: 15,
-  },
-  guideInfoSubtext: {
-    color: colors.info[800],
-    fontSize: 11,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginTop: spacing[1],
-  },
-  guideInfoSubtextTablet: {
-    fontSize: 13,
-    marginTop: spacing[1.5],
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing[4],
-  },
-  scrollContentTablet: {
-    padding: spacing[8],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[4],
-  },
-  sectionTitleTablet: {
-    fontSize: 22,
-  },
-  card: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    ...shadows.sm,
-  },
-  cardTablet: {
-    padding: spacing[6],
-    marginBottom: spacing[4],
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  cardHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing[3],
-    gap: spacing[3],
-  },
-  productThumbnail: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.background.secondary,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    flex: 1,
-  },
-  productNameTablet: {
-    fontSize: 20,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[1.5],
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 14,
-  },
-  cardBody: {
-    gap: spacing[2],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.text.secondary,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text.primary,
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  quantityValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary[500],
-  },
-  quantityValueTablet: {
-    fontSize: 18,
-  },
-  repartoInfo: {
-    marginTop: spacing[2],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  repartoLabel: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginBottom: spacing[1],
-  },
-  repartoLabelTablet: {
-    fontSize: 14,
-  },
-  repartoValue: {
-    fontSize: 13,
-    color: colors.primary[500],
-    fontWeight: '500',
-  },
-  repartoValueTablet: {
-    fontSize: 15,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing[14],
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.secondary,
-    marginBottom: spacing[2],
-  },
-  emptyTextTablet: {
-    fontSize: 22,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.text.tertiary,
-    textAlign: 'center',
-  },
-  emptySubtextTablet: {
-    fontSize: 16,
-  },
-  cardFooter: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  validateButton: {
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  validateButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-  detailButton: {
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  detailButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  headerSection: {
-    marginBottom: spacing[4],
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-    marginTop: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    ...shadows.xs,
-  },
-  searchContainerTablet: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3.5],
-    marginTop: spacing[4],
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: spacing[2],
-  },
-  searchIconTablet: {
-    fontSize: 22,
-    marginRight: spacing[3],
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text.primary,
-    paddingVertical: 0,
-  },
-  searchInputTablet: {
-    fontSize: 17,
-  },
-  clearButton: {
-    padding: spacing[1],
-    marginLeft: spacing[2],
-  },
-  clearButtonText: {
-    fontSize: 18,
-    color: colors.text.tertiary,
-    fontWeight: 'bold',
-  },
-  clearButtonTextTablet: {
-    fontSize: 22,
-  },
-  searchResults: {
-    fontSize: 13,
-    color: colors.text.secondary,
-    marginTop: spacing[2],
-    fontStyle: 'italic',
-  },
-  searchResultsTablet: {
-    fontSize: 15,
-    marginTop: spacing[3],
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[3],
-  },
-  filterContainerTablet: {
-    gap: spacing[3],
-    marginTop: spacing[4],
-  },
-  filterButton: {
-    flex: 1,
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    alignItems: 'center',
-  },
-  filterButtonTablet: {
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-  },
-  filterButtonActive: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  filterButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  filterButtonTextTablet: {
-    fontSize: 15,
-  },
-  filterButtonTextActive: {
-    color: colors.text.inverse,
-  },
-  closuresModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[3],
-  },
-  closuresModalContainer: {
-    width: '100%',
-    maxWidth: 720,
-    height: '92%',
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-    ...shadows.lg,
-  },
-  closuresModalContainerTablet: {
-    height: '88%',
-  },
-  closuresModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  closuresModalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.text.primary,
-  },
-  closuresModalTitleTablet: {
-    fontSize: 24,
-  },
-  closuresModalSubtitle: {
-    marginTop: spacing[1],
-    fontSize: 13,
-    color: colors.text.secondary,
-  },
-  closuresCloseButton: {
-    padding: spacing[2],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.background.secondary,
-  },
-  closuresLoadingContainer: {
-    paddingVertical: spacing[12],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closuresModalBody: {
-    flex: 1,
-    paddingHorizontal: spacing[4],
-  },
-  closuresModalBodyContent: {
-    paddingBottom: spacing[6],
-  },
-  closureSection: {
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  closureSectionTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  closureSectionHint: {
-    fontSize: 13,
-    color: colors.text.secondary,
-    marginBottom: spacing[3],
-  },
-  closureEmptyBox: {
-    padding: spacing[4],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  closureEmptyText: {
-    color: colors.text.secondary,
-    textAlign: 'center',
-    fontSize: 14,
-  },
-  productsAccordionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-    backgroundColor: colors.primary[50],
-    marginBottom: spacing[3],
-  },
-  selectAllProductsButton: {
-    marginRight: spacing[3],
-  },
-  productsAccordionContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  productsAccordionTextBox: {
-    flex: 1,
-  },
-  productsAccordionTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.primary[800],
-  },
-  productsAccordionSubtitle: {
-    marginTop: spacing[0.5],
-    fontSize: 12,
-    color: colors.primary[700],
-  },
-  pendingClosureItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.background.secondary,
-    marginBottom: spacing[2],
-  },
-  pendingClosureItemSelected: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.sm,
-    borderWidth: 2,
-    borderColor: colors.border.dark,
-    marginRight: spacing[3],
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background.primary,
-  },
-  checkboxSelected: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  checkboxPartial: {
-    backgroundColor: colors.warning[500],
-    borderColor: colors.warning[500],
-  },
-  pendingClosureInfo: {
-    flex: 1,
-  },
-  pendingClosureProductHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[2],
-  },
-  pendingClosureProductName: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  quantityPill: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.success[100],
-  },
-  quantityPillText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.success[700],
-  },
-  siteInfoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing[2],
-    padding: spacing[2],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.primary[100],
-    backgroundColor: colors.background.primary,
-  },
-  siteIconBubble: {
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[100],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing[2],
-  },
-  siteInfoTextBox: {
-    flex: 1,
-  },
-  siteInfoLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.text.tertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  siteInfoName: {
-    marginTop: spacing[0.5],
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  pendingClosureChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[1.5],
-    marginTop: spacing[2],
-  },
-  pendingClosureChip: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-  },
-  pendingClosureChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.text.secondary,
-  },
-  pendingClosureChipSuccess: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.success[100],
-  },
-  pendingClosureChipSuccessText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.success[700],
-  },
-  pendingClosureChipWarning: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.warning[100],
-  },
-  pendingClosureChipWarningText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.warning[700],
-  },
-  showMoreProductsButton: {
-    alignItems: 'center',
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.primary[300],
-    backgroundColor: colors.primary[50],
-  },
-  showMoreProductsText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.primary[700],
-  },
-  pendingClosureMeta: {
-    marginTop: spacing[1],
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-  pendingClosureQuantities: {
-    marginTop: spacing[1],
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.success[700],
-  },
-  closureNotesInput: {
-    minHeight: 72,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    color: colors.text.primary,
-    backgroundColor: colors.background.primary,
-    textAlignVertical: 'top',
-    marginTop: spacing[2],
-  },
-  createClosureButton: {
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-    marginTop: spacing[3],
-  },
-  createClosureButtonText: {
-    color: colors.text.inverse,
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  closureBatchCard: {
-    padding: spacing[4],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.background.secondary,
-    marginBottom: spacing[3],
-  },
-  closureBatchHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: spacing[2],
-  },
-  closureBatchTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.text.primary,
-  },
-  closureBatchMeta: {
-    marginTop: spacing[1],
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-  closureBatchBadge: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[100],
-  },
-  closureBatchBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.primary[700],
-  },
-  closureBatchSummary: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.success[700],
-    marginBottom: spacing[2],
-  },
-  closureSummaryGrid: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginBottom: spacing[3],
-  },
-  closureSummaryCard: {
-    flex: 1,
-    padding: spacing[2],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.primary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  closureSummaryCardWarning: {
-    flex: 1,
-    padding: spacing[2],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.warning[50],
-    borderWidth: 1,
-    borderColor: colors.warning[200],
-  },
-  closureSummaryLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.text.tertiary,
-    textTransform: 'uppercase',
-  },
-  closureSummaryValue: {
-    marginTop: spacing[0.5],
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.text.primary,
-  },
-  closureSummaryValueWarning: {
-    marginTop: spacing[0.5],
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.warning[700],
-  },
-  batchProductsAccordionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.primary,
-    borderWidth: 1,
-    borderColor: colors.primary[100],
-    marginBottom: spacing[2],
-  },
-  batchProductsAccordionText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.primary[700],
-  },
-  closureBatchProductRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[2],
-    paddingVertical: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  closureBatchItemText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-  closureBatchItemQuantity: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.success[700],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.success[100],
-  },
-  showMoreBatchProductsButton: {
-    alignItems: 'center',
-    paddingVertical: spacing[2],
-    marginTop: spacing[1],
-  },
-  showMoreBatchProductsText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.primary[700],
-  },
-  guideActionsBox: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  guideSuccessText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.success[700],
-  },
-  guideCompactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[2],
-  },
-  guideCompactInfo: {
-    flex: 1,
-  },
-  guideNumberText: {
-    marginTop: spacing[0.5],
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.text.primary,
-  },
-  guideStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    marginTop: spacing[0.5],
-  },
-  guideStatusLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.text.tertiary,
-  },
-  guideStatusValue: {
-    flex: 1,
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.info[700],
-  },
-  guideActionsRow: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[2],
-  },
-  guideDownloadButton: {
-    backgroundColor: colors.info[500],
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    minWidth: 52,
-    alignItems: 'center',
-  },
-  guideDownloadButtonText: {
-    color: colors.text.inverse,
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  generateGuideButton: {
-    marginTop: spacing[3],
-    backgroundColor: colors.accent[500],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-  },
-  generateGuideButtonText: {
-    color: colors.text.inverse,
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  // Bultos Modal Styles
-  bultosModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[4],
-  },
-  bultosModalContainer: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[6],
-    width: '100%',
-    maxWidth: 340,
-    ...shadows.lg,
-  },
-  bultosModalContainerTablet: {
-    maxWidth: 400,
-    padding: spacing[8],
-  },
-  bultosModalHeader: {
-    alignItems: 'center',
-    marginBottom: spacing[6],
-  },
-  bultosModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    marginTop: spacing[3],
-    textAlign: 'center',
-  },
-  bultosModalTitleTablet: {
-    fontSize: 24,
-  },
-  bultosModalSubtitle: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginTop: spacing[2],
-    textAlign: 'center',
-  },
-  bultosModalSubtitleTablet: {
-    fontSize: 16,
-  },
-  bultosInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing[6],
-    gap: spacing[3],
-  },
-  bultosButton: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  bultosButtonMinus: {
-    backgroundColor: colors.danger[500],
-  },
-  bultosButtonPlus: {
-    backgroundColor: colors.success[500],
-  },
-  bultosInput: {
-    width: 100,
-    height: 60,
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 2,
-    borderColor: colors.primary[500],
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    textAlign: 'center',
-  },
-  bultosInputTablet: {
-    width: 120,
-    height: 70,
-    fontSize: 32,
-  },
-  bultosModalActions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  bultosModalButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bultosModalButtonCancel: {
-    backgroundColor: colors.neutral[200],
-  },
-  bultosModalButtonConfirm: {
-    backgroundColor: colors.primary[500],
-  },
-  bultosModalButtonCancelText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  bultosModalButtonConfirmText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: spacing[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      backgroundColor: theme.color.background.canvas,
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    headerTablet: {
+      paddingHorizontal: spacing[8],
+      paddingVertical: spacing[6],
+    },
+    backButton: {
+      marginBottom: spacing[2],
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    backButtonTextTablet: {
+      fontSize: 18,
+    },
+    headerInfo: {
+      marginTop: spacing[2],
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    typeBadgeContainer: {
+      marginTop: spacing[2],
+    },
+    typeBadge: {
+      paddingHorizontal: spacing[2.5],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      alignSelf: 'flex-start',
+    },
+    typeBadgeTablet: {
+      paddingHorizontal: spacing[3.5],
+      paddingVertical: spacing[1.5],
+    },
+    typeBadgeCompany: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderColor: theme.color.brand.primary,
+    },
+    typeBadgeSite: {
+      backgroundColor: theme.color.state.success.background,
+      borderColor: theme.color.state.success.border,
+    },
+    typeText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    typeTextTablet: {
+      fontSize: 14,
+    },
+    infoSection: {
+      backgroundColor: theme.color.background.canvas,
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    infoSectionTablet: {
+      paddingHorizontal: spacing[8],
+      paddingVertical: spacing[4],
+    },
+    downloadReportButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+    },
+    downloadReportButtonTablet: {
+      paddingVertical: spacing[3.5],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[4],
+    },
+    downloadReportButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    downloadReportButtonTextTablet: {
+      fontSize: 16,
+    },
+    downloadButtonDisabled: {
+      opacity: 0.5,
+    },
+    consolidatedButton: {
+      backgroundColor: theme.color.state.success.border,
+      paddingVertical: spacing[3.5],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.color.text.success,
+    },
+    consolidatedButtonTablet: {
+      paddingVertical: spacing[4],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[4],
+    },
+    consolidatedButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    consolidatedButtonTextTablet: {
+      fontSize: 17,
+    },
+    successMessage: {
+      backgroundColor: theme.color.state.success.background,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      borderWidth: 1,
+      borderColor: theme.color.state.success.border,
+    },
+    successMessageTablet: {
+      paddingVertical: spacing[3.5],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[4],
+    },
+    successMessageText: {
+      color: theme.color.state.success.text,
+      fontSize: 14,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    successMessageTextTablet: {
+      fontSize: 16,
+    },
+    successMessageSubtext: {
+      color: theme.color.text.success,
+      fontSize: 12,
+      fontWeight: '500',
+      textAlign: 'center',
+      marginTop: spacing[1],
+    },
+    successMessageSubtextTablet: {
+      fontSize: 14,
+      marginTop: spacing[1.5],
+    },
+    remissionGuideButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: spacing[3.5],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+    },
+    remissionGuideButtonTablet: {
+      paddingVertical: spacing[4],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[4],
+    },
+    remissionGuideButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    remissionGuideButtonTextTablet: {
+      fontSize: 17,
+    },
+    downloadGuideButton: {
+      backgroundColor: theme.color.state.info.border,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      borderWidth: 2,
+      borderColor: theme.color.text.link,
+    },
+    downloadGuideButtonTablet: {
+      paddingVertical: spacing[3.5],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[4],
+    },
+    downloadGuideButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    downloadGuideButtonTextTablet: {
+      fontSize: 16,
+    },
+    guideInfoCard: {
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: borderRadius.lg,
+      padding: spacing[4],
+      marginTop: spacing[3],
+      borderWidth: 2,
+      borderColor: theme.color.state.success.border,
+    },
+    guideInfoCardTablet: {
+      padding: spacing[5],
+      marginTop: spacing[4],
+    },
+    guideInfoHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing[3],
+      paddingBottom: spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.state.success.border,
+    },
+    guideInfoTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.state.success.text,
+      marginLeft: spacing[2],
+    },
+    guideInfoTitleTablet: {
+      fontSize: 18,
+    },
+    guideInfoDetails: {
+      gap: spacing[2],
+    },
+    guideInfoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    guideInfoLabel: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.color.text.success,
+    },
+    guideInfoLabelTablet: {
+      fontSize: 15,
+    },
+    guideInfoValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.state.success.text,
+      flex: 1,
+      textAlign: 'right',
+    },
+    guideInfoValueTablet: {
+      fontSize: 15,
+    },
+    guideInfoMessage: {
+      backgroundColor: theme.color.state.info.background,
+      paddingVertical: spacing[2.5],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[2],
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
+    guideInfoMessageTablet: {
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[2.5],
+    },
+    guideInfoText: {
+      color: theme.color.state.info.text,
+      fontSize: 13,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    guideInfoTextTablet: {
+      fontSize: 15,
+    },
+    guideInfoSubtext: {
+      color: theme.color.state.info.text,
+      fontSize: 11,
+      fontWeight: '500',
+      textAlign: 'center',
+      marginTop: spacing[1],
+    },
+    guideInfoSubtextTablet: {
+      fontSize: 13,
+      marginTop: spacing[1.5],
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: spacing[4],
+    },
+    scrollContentTablet: {
+      padding: spacing[8],
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: spacing[4],
+    },
+    sectionTitleTablet: {
+      fontSize: 22,
+    },
+    card: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.lg,
+      padding: spacing[4],
+      marginBottom: spacing[3],
+      ...theme.shadow.sm,
+    },
+    cardTablet: {
+      padding: spacing[6],
+      marginBottom: spacing[4],
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing[3],
+      paddingBottom: spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    cardHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: spacing[3],
+      gap: spacing[3],
+    },
+    productThumbnail: {
+      width: 40,
+      height: 40,
+      borderRadius: borderRadius.sm,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.background.subtle,
+    },
+    productName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    productNameTablet: {
+      fontSize: 20,
+    },
+    statusBadge: {
+      paddingHorizontal: spacing[2.5],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+    },
+    statusBadgeTablet: {
+      paddingHorizontal: spacing[3.5],
+      paddingVertical: spacing[1.5],
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    statusTextTablet: {
+      fontSize: 14,
+    },
+    cardBody: {
+      gap: spacing[2],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    infoLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    infoLabelTablet: {
+      fontSize: 16,
+    },
+    infoValue: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.heading,
+    },
+    infoValueTablet: {
+      fontSize: 16,
+    },
+    quantityValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.brand.primary,
+    },
+    quantityValueTablet: {
+      fontSize: 18,
+    },
+    repartoInfo: {
+      marginTop: spacing[2],
+      paddingTop: spacing[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    repartoLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: spacing[1],
+    },
+    repartoLabelTablet: {
+      fontSize: 14,
+    },
+    repartoValue: {
+      fontSize: 13,
+      color: theme.color.brand.primary,
+      fontWeight: '500',
+    },
+    repartoValueTablet: {
+      fontSize: 15,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: spacing[14],
+    },
+    emptyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: spacing[2],
+    },
+    emptyTextTablet: {
+      fontSize: 22,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+    },
+    emptySubtextTablet: {
+      fontSize: 16,
+    },
+    cardFooter: {
+      marginTop: spacing[3],
+      paddingTop: spacing[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    validateButton: {
+      backgroundColor: theme.color.brand.primary,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    validateButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    detailButton: {
+      backgroundColor: theme.color.state.success.border,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    detailButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    headerSection: {
+      marginBottom: spacing[4],
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2.5],
+      marginTop: spacing[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      ...theme.shadow.xs,
+    },
+    searchContainerTablet: {
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[3.5],
+      marginTop: spacing[4],
+    },
+    searchIcon: {
+      fontSize: 18,
+      marginRight: spacing[2],
+    },
+    searchIconTablet: {
+      fontSize: 22,
+      marginRight: spacing[3],
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 15,
+      color: theme.color.text.heading,
+      paddingVertical: 0,
+    },
+    searchInputTablet: {
+      fontSize: 17,
+    },
+    clearButton: {
+      padding: spacing[1],
+      marginLeft: spacing[2],
+    },
+    clearButtonText: {
+      fontSize: 18,
+      color: theme.color.text.subtle,
+      fontWeight: 'bold',
+    },
+    clearButtonTextTablet: {
+      fontSize: 22,
+    },
+    searchResults: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginTop: spacing[2],
+      fontStyle: 'italic',
+    },
+    searchResultsTablet: {
+      fontSize: 15,
+      marginTop: spacing[3],
+    },
+    filterContainer: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      marginTop: spacing[3],
+    },
+    filterContainerTablet: {
+      gap: spacing[3],
+      marginTop: spacing[4],
+    },
+    filterButton: {
+      flex: 1,
+      paddingVertical: spacing[2.5],
+      paddingHorizontal: spacing[3],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      alignItems: 'center',
+    },
+    filterButtonTablet: {
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+    },
+    filterButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    filterButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    filterButtonTextTablet: {
+      fontSize: 15,
+    },
+    filterButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    closuresModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.55)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing[3],
+    },
+    closuresModalContainer: {
+      width: '100%',
+      maxWidth: 720,
+      height: '92%',
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.xl,
+      overflow: 'hidden',
+      ...theme.shadow.lg,
+    },
+    closuresModalContainerTablet: {
+      height: '88%',
+    },
+    closuresModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    closuresModalTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    closuresModalTitleTablet: {
+      fontSize: 24,
+    },
+    closuresModalSubtitle: {
+      marginTop: spacing[1],
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    closuresCloseButton: {
+      padding: spacing[2],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.background.subtle,
+    },
+    closuresLoadingContainer: {
+      paddingVertical: spacing[12],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closuresModalBody: {
+      flex: 1,
+      paddingHorizontal: spacing[4],
+    },
+    closuresModalBodyContent: {
+      paddingBottom: spacing[6],
+    },
+    closureSection: {
+      paddingVertical: spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    closureSectionTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    closureSectionHint: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: spacing[3],
+    },
+    closureEmptyBox: {
+      padding: spacing[4],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    closureEmptyText: {
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      fontSize: 14,
+    },
+    productsAccordionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing[3],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.brand.primarySoft,
+      marginBottom: spacing[3],
+    },
+    selectAllProductsButton: {
+      marginRight: spacing[3],
+    },
+    productsAccordionContent: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    productsAccordionTextBox: {
+      flex: 1,
+    },
+    productsAccordionTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    productsAccordionSubtitle: {
+      marginTop: spacing[0.5],
+      fontSize: 12,
+      color: theme.color.brand.primary,
+    },
+    pendingClosureItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: spacing[3],
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.background.subtle,
+      marginBottom: spacing[2],
+    },
+    pendingClosureItemSelected: {
+      borderColor: theme.color.brand.primary,
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: borderRadius.sm,
+      borderWidth: 2,
+      borderColor: theme.color.border.strong,
+      marginRight: spacing[3],
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.background.canvas,
+    },
+    checkboxSelected: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    checkboxPartial: {
+      backgroundColor: theme.color.icon.warning,
+      borderColor: theme.color.icon.warning,
+    },
+    pendingClosureInfo: {
+      flex: 1,
+    },
+    pendingClosureProductHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing[2],
+    },
+    pendingClosureProductName: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    quantityPill: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.state.success.background,
+    },
+    quantityPillText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.text.success,
+    },
+    siteInfoCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing[2],
+      padding: spacing[2],
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.color.brand.primarySoft,
+      backgroundColor: theme.color.background.canvas,
+    },
+    siteIconBubble: {
+      width: 28,
+      height: 28,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.brand.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing[2],
+    },
+    siteInfoTextBox: {
+      flex: 1,
+    },
+    siteInfoLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: theme.color.text.subtle,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    siteInfoName: {
+      marginTop: spacing[0.5],
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    pendingClosureChipsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing[1.5],
+      marginTop: spacing[2],
+    },
+    pendingClosureChip: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.surface.muted,
+    },
+    pendingClosureChipText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+    },
+    pendingClosureChipSuccess: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.state.success.background,
+    },
+    pendingClosureChipSuccessText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.text.success,
+    },
+    pendingClosureChipWarning: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.state.warning.background,
+    },
+    pendingClosureChipWarningText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.state.warning.text,
+    },
+    showMoreProductsButton: {
+      alignItems: 'center',
+      paddingVertical: spacing[2.5],
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    showMoreProductsText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    pendingClosureMeta: {
+      marginTop: spacing[1],
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    pendingClosureQuantities: {
+      marginTop: spacing[1],
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.success,
+    },
+    closureNotesInput: {
+      minHeight: 72,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: borderRadius.md,
+      padding: spacing[3],
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.background.canvas,
+      textAlignVertical: 'top',
+      marginTop: spacing[2],
+    },
+    createClosureButton: {
+      backgroundColor: theme.color.state.success.border,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      alignItems: 'center',
+      marginTop: spacing[3],
+    },
+    createClosureButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '800',
+      fontSize: 15,
+    },
+    closureBatchCard: {
+      padding: spacing[4],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.background.subtle,
+      marginBottom: spacing[3],
+    },
+    closureBatchHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: spacing[2],
+    },
+    closureBatchTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    closureBatchMeta: {
+      marginTop: spacing[1],
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    closureBatchBadge: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    closureBatchBadgeText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    closureBatchSummary: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.success,
+      marginBottom: spacing[2],
+    },
+    closureSummaryGrid: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      marginBottom: spacing[3],
+    },
+    closureSummaryCard: {
+      flex: 1,
+      padding: spacing[2],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.background.canvas,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    closureSummaryCardWarning: {
+      flex: 1,
+      padding: spacing[2],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.state.warning.background,
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+    },
+    closureSummaryLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: theme.color.text.subtle,
+      textTransform: 'uppercase',
+    },
+    closureSummaryValue: {
+      marginTop: spacing[0.5],
+      fontSize: 14,
+      fontWeight: '900',
+      color: theme.color.text.heading,
+    },
+    closureSummaryValueWarning: {
+      marginTop: spacing[0.5],
+      fontSize: 14,
+      fontWeight: '900',
+      color: theme.color.state.warning.text,
+    },
+    batchProductsAccordionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing[2.5],
+      paddingHorizontal: spacing[3],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.background.canvas,
+      borderWidth: 1,
+      borderColor: theme.color.brand.primarySoft,
+      marginBottom: spacing[2],
+    },
+    batchProductsAccordionText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    closureBatchProductRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing[2],
+      paddingVertical: spacing[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    closureBatchItemText: {
+      flex: 1,
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    closureBatchItemQuantity: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.text.success,
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.state.success.background,
+    },
+    showMoreBatchProductsButton: {
+      alignItems: 'center',
+      paddingVertical: spacing[2],
+      marginTop: spacing[1],
+    },
+    showMoreBatchProductsText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    guideActionsBox: {
+      marginTop: spacing[3],
+      paddingTop: spacing[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    guideSuccessText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.color.text.success,
+    },
+    guideCompactRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing[2],
+    },
+    guideCompactInfo: {
+      flex: 1,
+    },
+    guideNumberText: {
+      marginTop: spacing[0.5],
+      fontSize: 13,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    guideStatusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+      marginTop: spacing[0.5],
+    },
+    guideStatusLabel: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.text.subtle,
+    },
+    guideStatusValue: {
+      flex: 1,
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.state.info.text,
+    },
+    guideActionsRow: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      marginTop: spacing[2],
+    },
+    guideDownloadButton: {
+      backgroundColor: theme.color.state.info.border,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      minWidth: 52,
+      alignItems: 'center',
+    },
+    guideDownloadButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '800',
+      fontSize: 12,
+    },
+    generateGuideButton: {
+      marginTop: spacing[3],
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      alignItems: 'center',
+    },
+    generateGuideButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '800',
+      fontSize: 14,
+    },
+    // Bultos Modal Styles
+    bultosModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing[4],
+    },
+    bultosModalContainer: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.xl,
+      padding: spacing[6],
+      width: '100%',
+      maxWidth: 340,
+      ...theme.shadow.lg,
+    },
+    bultosModalContainerTablet: {
+      maxWidth: 400,
+      padding: spacing[8],
+    },
+    bultosModalHeader: {
+      alignItems: 'center',
+      marginBottom: spacing[6],
+    },
+    bultosModalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginTop: spacing[3],
+      textAlign: 'center',
+    },
+    bultosModalTitleTablet: {
+      fontSize: 24,
+    },
+    bultosModalSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: spacing[2],
+      textAlign: 'center',
+    },
+    bultosModalSubtitleTablet: {
+      fontSize: 16,
+    },
+    bultosInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing[6],
+      gap: spacing[3],
+    },
+    bultosButton: {
+      width: 48,
+      height: 48,
+      borderRadius: borderRadius.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...theme.shadow.sm,
+    },
+    bultosButtonMinus: {
+      backgroundColor: theme.color.icon.danger,
+    },
+    bultosButtonPlus: {
+      backgroundColor: theme.color.state.success.border,
+    },
+    bultosInput: {
+      width: 100,
+      height: 60,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.lg,
+      borderWidth: 2,
+      borderColor: theme.color.brand.primary,
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      textAlign: 'center',
+    },
+    bultosInputTablet: {
+      width: 120,
+      height: 70,
+      fontSize: 32,
+    },
+    bultosModalActions: {
+      flexDirection: 'row',
+      gap: spacing[3],
+    },
+    bultosModalButton: {
+      flex: 1,
+      paddingVertical: spacing[3.5],
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bultosModalButtonCancel: {
+      backgroundColor: theme.color.border.subtle,
+    },
+    bultosModalButtonConfirm: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    bultosModalButtonCancelText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    bultosModalButtonConfirmText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+  });
