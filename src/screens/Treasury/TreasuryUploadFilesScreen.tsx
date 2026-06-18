@@ -30,7 +30,6 @@ import { apiClient } from '@/services/api/client';
 
 // Design System Imports
 import { spacing, borderRadius } from '@/design-system/tokens/spacing';
-import { shadows } from '@/design-system/tokens/shadows';
 import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
 import { durations } from '@/design-system/tokens/animations';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -646,7 +645,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: spacing[4],
     borderRadius: borderRadius.lg,
     padding: spacing[4],
-    ...shadows.sm,
+    ...theme.shadow.sm,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -774,11 +773,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: borderRadius.lg,
     padding: spacing[4],
     gap: spacing[3],
-    ...shadows.md,
+    ...theme.shadow.md,
   },
   uploadButtonDisabled: {
     backgroundColor: theme.color.action.success.backgroundDisabled,
-    ...shadows.none,
+    ...theme.shadow.none,
   },
   uploadButtonText: {
     fontSize: fontSizes.lg,
