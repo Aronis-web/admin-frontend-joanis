@@ -18,18 +18,15 @@ import { SignatureCapture } from './SignatureCapture';
 import { filesApi } from '@/services/api/files';
 import logger from '@/utils/logger';
 import { ImageViewerModal } from '@/components/Expenses/ImageViewerModal';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   Title,
   Body,
   Label,
   Caption,
   Button,
   Input,
-  Card,
 } from '@/design-system';
 
 interface PresentationInfo {
@@ -99,6 +96,8 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
   onClose,
   onValidate,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [step, setStep] = useState<Step>('form');
   const [validatedQuantity, setValidatedQuantity] = useState('');
   const [photoUri, setPhotoUri] = useState<string | undefined>();
@@ -407,10 +406,10 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
             {/* Product Info */}
             <View style={styles.productInfo}>
-              <Body style={{ marginBottom: spacing[1], fontWeight: '600' }}>
+              <Body style={{ marginBottom: theme.space[1], fontWeight: '600' }}>
                 {producto.product?.title}
               </Body>
-              <Caption color="secondary" style={{ marginBottom: spacing[1] }}>
+              <Caption color="secondary" style={{ marginBottom: theme.space[1] }}>
                 {producto.product?.sku}
               </Caption>
               <Body color="secondary" size="small">
@@ -421,7 +420,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
             {/* Product Photo */}
             {producto.product?.photos && producto.product.photos.length > 0 && (
               <View style={styles.inputGroup}>
-                <Label style={{ marginBottom: spacing[2] }}>Foto del Producto</Label>
+                <Label style={{ marginBottom: theme.space[2] }}>Foto del Producto</Label>
                 <TouchableOpacity
                   style={styles.productPhotoContainer}
                   onPress={() => {
@@ -444,7 +443,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
             {/* Presentation Toggle */}
             {hasPresentations && (
               <View style={styles.inputGroup}>
-                <Label style={{ marginBottom: spacing[2] }}>Modo de Validación</Label>
+                <Label style={{ marginBottom: theme.space[2] }}>Modo de Validación</Label>
                 <View style={styles.presentationToggle}>
                   <TouchableOpacity
                     style={[styles.toggleOption, !usePresentation && styles.toggleOptionActive]}
@@ -458,7 +457,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                     <Body
                       size="small"
                       style={{
-                        color: !usePresentation ? colors.primary[900] : colors.text.secondary,
+                        color: !usePresentation ? theme.color.brand.primary : theme.color.text.muted,
                         fontWeight: !usePresentation ? '600' : '500',
                       }}
                     >
@@ -480,7 +479,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                     <Body
                       size="small"
                       style={{
-                        color: usePresentation ? colors.primary[900] : colors.text.secondary,
+                        color: usePresentation ? theme.color.brand.primary : theme.color.text.muted,
                         fontWeight: usePresentation ? '600' : '500',
                       }}
                     >
@@ -494,7 +493,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
             {/* Presentation Selector */}
             {hasPresentations && usePresentation && (
               <View style={styles.inputGroup}>
-                <Label style={{ marginBottom: spacing[2] }}>Selecciona Presentación *</Label>
+                <Label style={{ marginBottom: theme.space[2] }}>Selecciona Presentación *</Label>
                 <View style={styles.presentationOptions}>
                   {producto.product!.presentations!.map((pres) => (
                     <TouchableOpacity
@@ -512,8 +511,8 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                           style={{
                             color:
                               selectedPresentationId === pres.presentationId
-                                ? colors.primary[900]
-                                : colors.text.secondary,
+                                ? theme.color.brand.primary
+                                : theme.color.text.muted,
                             fontWeight: '600',
                           }}
                         >
@@ -531,7 +530,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
             {/* Validated Quantity */}
             <View style={styles.inputGroup}>
-              <Label style={{ marginBottom: spacing[2] }}>
+              <Label style={{ marginBottom: theme.space[2] }}>
                 Cantidad Validada{' '}
                 {usePresentation && selectedPresentation
                   ? `(en ${selectedPresentation.presentation.name})`
@@ -545,18 +544,18 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                 placeholder="Cantidad entregada"
               />
               {usePresentation && selectedPresentation && validatedQuantity && (
-                <Caption style={{ color: colors.primary[900], marginTop: spacing[1] }}>
+                <Caption style={{ color: theme.color.brand.primary, marginTop: theme.space[1] }}>
                   ≈ {getQuantityInBase().toFixed(2)} unidades base
                 </Caption>
               )}
-              <Caption color="tertiary" style={{ marginTop: spacing[1] }}>
+              <Caption color="tertiary" style={{ marginTop: theme.space[1] }}>
                 Ingresa la cantidad real entregada
               </Caption>
             </View>
 
             {/* Photo */}
             <View style={styles.inputGroup}>
-              <Label style={{ marginBottom: spacing[2] }}>Foto de Validación *</Label>
+              <Label style={{ marginBottom: theme.space[2] }}>Foto de Validación *</Label>
               {photoUri ? (
                 <View style={styles.capturedContainer}>
                   <Image
@@ -572,7 +571,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                       setStep('photo');
                     }}
                   >
-                    <Body size="small" style={{ color: colors.text.inverse, fontWeight: '600' }}>
+                    <Body size="small" style={{ color: theme.color.text.inverse, fontWeight: '600' }}>
                       📷 Cambiar Foto
                     </Body>
                   </TouchableOpacity>
@@ -586,14 +585,14 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                   }}
                 >
                   <Body style={styles.captureButtonIcon}>📷</Body>
-                  <Body size="small" style={{ color: colors.primary[900], fontWeight: '600' }}>
+                  <Body size="small" style={{ color: theme.color.brand.primary, fontWeight: '600' }}>
                     Tomar Foto de Validación
                   </Body>
                 </TouchableOpacity>
               )}
               {/* Debug info */}
               {__DEV__ && (
-                <Caption color="tertiary" style={{ marginTop: spacing[1] }}>
+                <Caption color="tertiary" style={{ marginTop: theme.space[1] }}>
                   Photo URI: {photoUri ? 'Set ✓' : 'Not set ✗'}
                 </Caption>
               )}
@@ -603,7 +602,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
             {/* Signature */}
             <View style={styles.inputGroup}>
-              <Label style={{ marginBottom: spacing[2] }}>Firma del Supervisor *</Label>
+              <Label style={{ marginBottom: theme.space[2] }}>Firma del Supervisor *</Label>
               {signatureUri ? (
                 <View style={styles.capturedContainer}>
                   <Image source={{ uri: signatureUri }} style={styles.capturedSignature} />
@@ -611,7 +610,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
                     style={styles.recaptureButton}
                     onPress={() => setStep('signature')}
                   >
-                    <Body size="small" style={{ color: colors.text.inverse, fontWeight: '600' }}>
+                    <Body size="small" style={{ color: theme.color.text.inverse, fontWeight: '600' }}>
                       ✍️ Cambiar Firma
                     </Body>
                   </TouchableOpacity>
@@ -619,7 +618,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
               ) : (
                 <TouchableOpacity style={styles.captureButton} onPress={() => setStep('signature')}>
                   <Body style={styles.captureButtonIcon}>✍️</Body>
-                  <Body size="small" style={{ color: colors.primary[900], fontWeight: '600' }}>
+                  <Body size="small" style={{ color: theme.color.brand.primary, fontWeight: '600' }}>
                     Capturar Firma
                   </Body>
                 </TouchableOpacity>
@@ -628,7 +627,7 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
 
             {/* Notes */}
             <View style={styles.inputGroup}>
-              <Label style={{ marginBottom: spacing[2] }}>Notas (opcional)</Label>
+              <Label style={{ marginBottom: theme.space[2] }}>Notas (opcional)</Label>
               <Input
                 value={notes}
                 onChangeText={setNotes}
@@ -674,199 +673,200 @@ export const ValidacionSalidaModal: React.FC<ValidacionSalidaModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[5],
-  },
-  modalContent: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[6],
-    width: '100%',
-    maxWidth: 600,
-    maxHeight: '90%',
-  },
-  modalContentTablet: {
-    padding: spacing[8],
-  },
-  modalTitle: {
-    marginBottom: spacing[5],
-    textAlign: 'center',
-  },
-  productInfo: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[5],
-  },
-  inputGroup: {
-    marginBottom: spacing[5],
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  inputHint: {
-    fontSize: 12,
-    color: colors.text.tertiary,
-    marginTop: spacing[1],
-  },
-  captureButton: {
-    borderWidth: 2,
-    borderColor: colors.border.light,
-    borderStyle: 'dashed',
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing[8],
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-  },
-  captureButtonIcon: {
-    fontSize: 48,
-    marginBottom: spacing[2],
-  },
-  captureButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary[900],
-  },
-  capturedContainer: {
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    backgroundColor: colors.background.secondary,
-  },
-  capturedPhoto: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'contain',
-  },
-  capturedSignature: {
-    width: '100%',
-    height: 150,
-    resizeMode: 'contain',
-    backgroundColor: colors.background.primary,
-  },
-  recaptureButton: {
-    backgroundColor: colors.primary[900],
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-  },
-  recaptureButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginTop: spacing[2],
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  modalButtonCancel: {
-    backgroundColor: colors.background.secondary,
-  },
-  modalButtonConfirm: {
-    backgroundColor: colors.primary[900],
-  },
-  modalButtonTextCancel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  modalButtonTextConfirm: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  // Presentation Toggle Styles
-  presentationToggle: {
-    flexDirection: 'row',
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.background.secondary,
-    padding: spacing[1],
-  },
-  toggleOption: {
-    flex: 1,
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  toggleOptionActive: {
-    backgroundColor: colors.background.primary,
-    ...shadows.sm,
-  },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text.secondary,
-  },
-  toggleTextActive: {
-    color: colors.primary[900],
-    fontWeight: '600',
-  },
-  // Presentation Options Styles
-  presentationOptions: {
-    gap: spacing[2],
-  },
-  presentationOption: {
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    backgroundColor: colors.background.primary,
-  },
-  presentationOptionSelected: {
-    borderColor: colors.primary[900],
-    borderWidth: 2,
-    backgroundColor: colors.primary[100],
-  },
-  presentationOptionContent: {
-    gap: spacing[1],
-  },
-  presentationOptionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  presentationOptionLabelSelected: {
-    color: colors.primary[900],
-  },
-  presentationOptionFactor: {
-    fontSize: 12,
-    color: colors.text.tertiary,
-  },
-  conversionHint: {
-    fontSize: 13,
-    color: colors.primary[900],
-    marginTop: spacing[1],
-    fontWeight: '500',
-  },
-  // Product Photo Styles
-  productPhotoContainer: {
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    backgroundColor: colors.background.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  productPhoto: {
-    width: '100%',
-    height: 150,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[6],
+      width: '100%',
+      maxWidth: 600,
+      maxHeight: '90%',
+    },
+    modalContentTablet: {
+      padding: theme.space[8],
+    },
+    modalTitle: {
+      marginBottom: theme.space[5],
+      textAlign: 'center',
+    },
+    productInfo: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[4],
+      marginBottom: theme.space[5],
+    },
+    inputGroup: {
+      marginBottom: theme.space[5],
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    inputHint: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[1],
+    },
+    captureButton: {
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      borderStyle: 'dashed',
+      borderRadius: theme.radii.lg,
+      paddingVertical: theme.space[8],
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+    },
+    captureButtonIcon: {
+      fontSize: 48,
+      marginBottom: theme.space[2],
+    },
+    captureButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    capturedContainer: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      overflow: 'hidden',
+      backgroundColor: theme.color.background.subtle,
+    },
+    capturedPhoto: {
+      width: '100%',
+      height: 200,
+      resizeMode: 'contain',
+    },
+    capturedSignature: {
+      width: '100%',
+      height: 150,
+      resizeMode: 'contain',
+      backgroundColor: theme.color.surface.base,
+    },
+    recaptureButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: theme.space[3],
+      alignItems: 'center',
+    },
+    recaptureButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    modalButton: {
+      flex: 1,
+      paddingVertical: theme.space[3.5],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    modalButtonCancel: {
+      backgroundColor: theme.color.background.subtle,
+    },
+    modalButtonConfirm: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    modalButtonTextCancel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    modalButtonTextConfirm: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    // Presentation Toggle Styles
+    presentationToggle: {
+      flexDirection: 'row',
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.background.subtle,
+      padding: theme.space[1],
+    },
+    toggleOption: {
+      flex: 1,
+      paddingVertical: theme.space[2.5],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.md,
+      alignItems: 'center',
+    },
+    toggleOptionActive: {
+      backgroundColor: theme.color.surface.base,
+      ...theme.shadow.sm,
+    },
+    toggleText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+    },
+    toggleTextActive: {
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    // Presentation Options Styles
+    presentationOptions: {
+      gap: theme.space[2],
+    },
+    presentationOption: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+    },
+    presentationOptionSelected: {
+      borderColor: theme.color.brand.primary,
+      borderWidth: 2,
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    presentationOptionContent: {
+      gap: theme.space[1],
+    },
+    presentationOptionLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    presentationOptionLabelSelected: {
+      color: theme.color.brand.primary,
+    },
+    presentationOptionFactor: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    conversionHint: {
+      fontSize: 13,
+      color: theme.color.brand.primary,
+      marginTop: theme.space[1],
+      fontWeight: '500',
+    },
+    // Product Photo Styles
+    productPhotoContainer: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      overflow: 'hidden',
+      backgroundColor: theme.color.background.subtle,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    productPhoto: {
+      width: '100%',
+      height: 150,
+    },
+  });
