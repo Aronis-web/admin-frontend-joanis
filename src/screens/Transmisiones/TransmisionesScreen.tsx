@@ -22,12 +22,16 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface TransmisionesScreenProps {
   navigation: any;
 }
 
 export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [transmisiones, setTransmisiones] = useState<Transmision[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -305,7 +309,7 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
 
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0EA5E9" />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando transmisiones...</Text>
           </View>
         ) : (
@@ -352,241 +356,242 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  headerTitleTablet: {
-    fontSize: 32,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  headerSubtitleTablet: {
-    fontSize: 16,
-  },
-  filterWrapper: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  filterContent: {
-    paddingRight: 16,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  filterButtonTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  filterButtonActive: {
-    backgroundColor: '#0EA5E9',
-    borderColor: '#0EA5E9',
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  filterButtonTextTablet: {
-    fontSize: 16,
-  },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  summaryContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  summaryText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  cardTablet: {
-    padding: 20,
-    borderRadius: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  cardHeaderLeft: {
-    flex: 1,
-    marginRight: 12,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  cardTitleTablet: {
-    fontSize: 22,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  deleteButtonText: {
-    fontSize: 20,
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  cardDescriptionTablet: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  cardFooterItem: {
-    flex: 1,
-  },
-  cardFooterLabel: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginBottom: 4,
-  },
-  cardFooterValue: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-  },
-  paginationButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#0EA5E9',
-  },
-  paginationButtonDisabled: {
-    backgroundColor: '#E5E7EB',
-  },
-  paginationButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  paginationText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      paddingHorizontal: 24,
+      paddingVertical: 20,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    headerTitleTablet: {
+      fontSize: 32,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    headerSubtitleTablet: {
+      fontSize: 16,
+    },
+    filterWrapper: {
+      backgroundColor: theme.color.surface.base,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    filterLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    filterContent: {
+      paddingRight: 16,
+    },
+    filterButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: theme.color.surface.muted,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    filterButtonTablet: {
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+    },
+    filterButtonActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    filterButtonText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    filterButtonTextTablet: {
+      fontSize: 16,
+    },
+    filterButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    summaryContainer: {
+      backgroundColor: theme.color.surface.base,
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    summaryText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    cardTablet: {
+      padding: 20,
+      borderRadius: 16,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 8,
+    },
+    cardHeaderLeft: {
+      flex: 1,
+      marginRight: 12,
+    },
+    cardTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    cardTitleTablet: {
+      fontSize: 22,
+    },
+    statusBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    deleteButton: {
+      padding: 8,
+    },
+    deleteButtonText: {
+      fontSize: 20,
+    },
+    cardDescription: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 12,
+      lineHeight: 20,
+    },
+    cardDescriptionTablet: {
+      fontSize: 16,
+      lineHeight: 24,
+    },
+    cardFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    cardFooterItem: {
+      flex: 1,
+    },
+    cardFooterLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: 4,
+    },
+    cardFooterValue: {
+      fontSize: 14,
+      color: theme.color.text.body,
+      fontWeight: '500',
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    emptyText: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    emptySubtitle: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      paddingHorizontal: 32,
+    },
+    pagination: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 8,
+    },
+    paginationButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: theme.color.brand.accent,
+    },
+    paginationButtonDisabled: {
+      backgroundColor: theme.color.surface.muted,
+    },
+    paginationButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    paginationText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+  });
