@@ -7,13 +7,8 @@ import { CategoryBadge } from './CategoryBadge';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 
 // Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-  iconSizes,
-} from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Title,
   Body,
@@ -44,6 +39,8 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
   onReconcileAmount,
   onViewPayments,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const formatDate = (dateString?: string) => {
     if (!dateString) {
       return 'N/A';
@@ -76,15 +73,30 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
   const getAccountPayableStatusStyle = (status: string) => {
     switch (status) {
       case 'PAID':
-        return { backgroundColor: colors.success[100], borderColor: colors.success[500] };
+        return {
+          backgroundColor: theme.color.state.success.background,
+          borderColor: theme.color.state.success.border,
+        };
       case 'PARTIAL':
-        return { backgroundColor: colors.warning[100], borderColor: colors.warning[500] };
+        return {
+          backgroundColor: theme.color.state.warning.background,
+          borderColor: theme.color.state.warning.border,
+        };
       case 'PENDING':
-        return { backgroundColor: colors.neutral[100], borderColor: colors.neutral[400] };
+        return {
+          backgroundColor: theme.color.surface.muted,
+          borderColor: theme.color.border.strong,
+        };
       case 'CANCELLED':
-        return { backgroundColor: colors.danger[100], borderColor: colors.danger[500] };
+        return {
+          backgroundColor: theme.color.state.danger.background,
+          borderColor: theme.color.state.danger.border,
+        };
       default:
-        return { backgroundColor: colors.neutral[100], borderColor: colors.neutral[400] };
+        return {
+          backgroundColor: theme.color.surface.muted,
+          borderColor: theme.color.border.strong,
+        };
     }
   };
 
@@ -114,8 +126,8 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
           <Title size="small" numberOfLines={1}>{expense.name}</Title>
           {expense.template && (
             <View style={styles.templateBadge}>
-              <Ionicons name="repeat-outline" size={12} color={colors.accent[600]} />
-              <Caption color={colors.accent[600]}>Plantilla</Caption>
+              <Ionicons name="repeat-outline" size={12} color={theme.color.icon.accent} />
+              <Caption color={theme.color.icon.accent}>Plantilla</Caption>
             </View>
           )}
         </View>
@@ -131,12 +143,12 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
           <View style={styles.paymentProgressContainer}>
             <View style={styles.paymentInfoRow}>
               <Caption color="secondary">Pagado:</Caption>
-              <Label size="medium" color={colors.success[600]}>{formatAmount(paidAmount)}</Label>
+              <Label size="medium" color={theme.color.text.success}>{formatAmount(paidAmount)}</Label>
             </View>
             {remainingAmount > 0 && (
               <View style={styles.paymentInfoRow}>
                 <Caption color="secondary">Pendiente:</Caption>
-                <Label size="medium" color={colors.warning[600]}>{formatAmount(remainingAmount)}</Label>
+                <Label size="medium" color={theme.color.text.warning}>{formatAmount(remainingAmount)}</Label>
               </View>
             )}
             <View style={styles.progressBar}>
@@ -163,8 +175,8 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
         {/* Show estimated amount if actual amount exists */}
         {expense.actualAmountCents && expense.estimatedAmountCents && (
           <View style={styles.estimatedAmountContainer}>
-            <Caption color={colors.warning[800]}>Monto Estimado:</Caption>
-            <Label size="medium" color={colors.warning[800]}>
+            <Caption color={theme.color.state.warning.text}>Monto Estimado:</Caption>
+            <Label size="medium" color={theme.color.state.warning.text}>
               {formatAmount(expense.estimatedAmountCents, expense.currency)}
             </Label>
           </View>
@@ -203,7 +215,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
         {/* Site and Project Info */}
         <View style={styles.metaInfoContainer}>
           <View style={styles.metaInfoItem}>
-            <Ionicons name="business" size={12} color={expense.site ? colors.accent[600] : colors.icon.disabled} />
+            <Ionicons name="business" size={12} color={expense.site ? theme.color.icon.accent : theme.color.icon.disabled} />
             <RNText
               style={[styles.metaInfoText, !expense.site && styles.metaInfoTextMuted]}
               numberOfLines={1}
@@ -213,7 +225,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
           </View>
           {expense.project && (
             <View style={styles.metaInfoItem}>
-              <Ionicons name="folder-open" size={12} color={colors.success[500]} />
+              <Ionicons name="folder-open" size={12} color={theme.color.icon.success} />
               <RNText style={styles.metaInfoText} numberOfLines={1}>
                 {expense.project.name}
               </RNText>
@@ -222,7 +234,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
 
           {expense.supplier && (
             <View style={styles.metaInfoItem}>
-              <Ionicons name="person-outline" size={12} color={colors.success[500]} />
+              <Ionicons name="person-outline" size={12} color={theme.color.icon.success} />
               <RNText style={styles.metaInfoText} numberOfLines={1}>
                 {expense.supplier.commercialName}
               </RNText>
@@ -231,7 +243,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
 
           {expense.supplierLegalEntity && (
             <View style={styles.metaInfoItem}>
-              <Ionicons name="card-outline" size={12} color={colors.icon.secondary} />
+              <Ionicons name="card-outline" size={12} color={theme.color.icon.muted} />
               <RNText style={styles.metaInfoText} numberOfLines={1}>
                 RUC: {expense.supplierLegalEntity.ruc}
               </RNText>
@@ -241,7 +253,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
 
         {expense.purchase && (
           <View style={styles.purchaseContainer}>
-            <Ionicons name="cart-outline" size={14} color={colors.icon.secondary} />
+            <Ionicons name="cart-outline" size={14} color={theme.color.icon.muted} />
             <RNText style={styles.purchaseText} numberOfLines={1}>
               Compra: {expense.purchase.code}
             </RNText>
@@ -251,7 +263,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
         {expense.accountPayable && (
           <View style={styles.accountPayableContainer}>
             <View style={styles.accountPayableHeader}>
-              <Ionicons name="document-text" size={14} color={colors.warning[500]} />
+              <Ionicons name="document-text" size={14} color={theme.color.icon.warning} />
               <RNText style={styles.accountPayableCode}>{expense.accountPayable.code}</RNText>
               <View
                 style={[
@@ -272,7 +284,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
             </View>
             {expense.accountPayable.overdueDays && expense.accountPayable.overdueDays > 0 && (
               <View style={styles.overdueWarning}>
-                <Ionicons name="warning" size={12} color={colors.danger[500]} />
+                <Ionicons name="warning" size={12} color={theme.color.icon.danger} />
                 <RNText style={styles.overdueText}>
                   Vencido hace {expense.accountPayable.overdueDays} días
                 </RNText>
@@ -301,8 +313,8 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 requiredPermissions={['expenses.payments.create']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="cash-outline" size={16} color={colors.success[500]} />
-                <RNText style={[styles.actionButtonText, { color: colors.success[500] }]}>Pagar</RNText>
+                <Ionicons name="cash-outline" size={16} color={theme.color.icon.success} />
+                <RNText style={[styles.actionButtonText, { color: theme.color.text.success }]}>Pagar</RNText>
               </ProtectedTouchableOpacity>
             )}
             {onViewPayments &&
@@ -318,8 +330,8 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                   requiredPermissions={['expenses.payments.read']}
                   hideIfNoPermission={true}
                 >
-                  <Ionicons name="list-outline" size={16} color={colors.accent[600]} />
-                  <RNText style={[styles.actionButtonText, { color: colors.accent[600] }]}>
+                  <Ionicons name="list-outline" size={16} color={theme.color.icon.accent} />
+                  <RNText style={[styles.actionButtonText, { color: theme.color.icon.accent }]}>
                     Ver Pagos {expense.paymentsCount ? `(${expense.paymentsCount})` : ''}
                   </RNText>
                 </ProtectedTouchableOpacity>
@@ -334,8 +346,8 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 requiredPermissions={['expenses.update']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="receipt-outline" size={16} color={colors.accent[600]} />
-                <RNText style={[styles.actionButtonText, { color: colors.accent[600] }]}>Monto Real</RNText>
+                <Ionicons name="receipt-outline" size={16} color={theme.color.icon.accent} />
+                <RNText style={[styles.actionButtonText, { color: theme.color.icon.accent }]}>Monto Real</RNText>
               </ProtectedTouchableOpacity>
             )}
             {onEdit && (
@@ -348,7 +360,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 requiredPermissions={['expenses.update']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="create-outline" size={16} color={colors.accent[600]} />
+                <Ionicons name="create-outline" size={16} color={theme.color.icon.accent} />
                 <RNText style={styles.actionButtonText}>Editar</RNText>
               </ProtectedTouchableOpacity>
             )}
@@ -362,7 +374,7 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
                 requiredPermissions={['expenses.delete']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="trash-outline" size={16} color={colors.danger[500]} />
+                <Ionicons name="trash-outline" size={16} color={theme.color.icon.danger} />
                 <RNText style={[styles.actionButtonText, styles.deleteButtonText]}>Eliminar</RNText>
               </ProtectedTouchableOpacity>
             )}
@@ -373,236 +385,237 @@ export const ExpenseCard: React.FC<ExpenseCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: spacing[3],
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  templateBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: colors.accent[50],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
-    gap: spacing[1],
-    marginTop: spacing[1],
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.light,
-    marginBottom: spacing[3],
-  },
-  content: {
-    gap: spacing[3],
-  },
-  paymentProgressContainer: {
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    marginBottom: spacing[3],
-  },
-  paymentInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[1],
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: colors.border.light,
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
-    marginTop: spacing[2],
-    marginBottom: spacing[1],
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.full,
-  },
-  paymentPercentage: {
-    textAlign: 'right',
-  },
-  amountContainer: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-  },
-  amountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  estimatedAmountContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[2],
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  infoItem: {
-    flex: 1,
-  },
-  label: {
-    textTransform: 'uppercase',
-    marginBottom: spacing[1],
-  },
-  purchaseContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.success[50],
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.sm,
-    gap: spacing[1.5],
-  },
-  purchaseText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.success[800],
-    flex: 1,
-  },
-  notesContainer: {
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[2.5],
-    borderLeftWidth: 3,
-    borderLeftColor: colors.warning[500],
-  },
-  notesText: {
-    fontSize: 12,
-    color: colors.warning[900],
-    lineHeight: 16,
-  },
-  metaInfoContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  metaInfoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.secondary,
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
-    gap: spacing[1],
-  },
-  metaInfoText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text.secondary,
-    maxWidth: 150,
-  },
-  metaInfoTextMuted: {
-    color: colors.text.disabled,
-    fontStyle: 'italic',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[1],
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[2],
-    gap: spacing[1],
-  },
-  actionButtonText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.accent[600],
-  },
-  deleteButton: {
-    backgroundColor: colors.danger[50],
-  },
-  deleteButtonText: {
-    color: colors.danger[600],
-  },
-  viewPaymentsButton: {
-    backgroundColor: colors.accent[50],
-    borderWidth: 1,
-    borderColor: colors.accent[200],
-  },
-  accountPayableContainer: {
-    backgroundColor: colors.warning[50],
-    borderWidth: 1,
-    borderColor: colors.warning[200],
-    borderRadius: borderRadius.md,
-    padding: spacing[2.5],
-    marginTop: spacing[2],
-  },
-  accountPayableHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[1.5],
-  },
-  accountPayableCode: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.warning[800],
-    marginLeft: spacing[1.5],
-    flex: 1,
-  },
-  accountPayableStatusBadge: {
-    borderRadius: borderRadius.xs,
-    borderWidth: 1,
-    paddingHorizontal: spacing[1.5],
-    paddingVertical: spacing[0.5],
-  },
-  accountPayableStatusText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  accountPayableDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  accountPayableLabel: {
-    fontSize: 11,
-    color: colors.text.tertiary,
-  },
-  accountPayableBalance: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.warning[600],
-  },
-  overdueWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing[1.5],
-    paddingTop: spacing[1.5],
-    borderTopWidth: 1,
-    borderTopColor: colors.warning[200],
-  },
-  overdueText: {
-    fontSize: 11,
-    color: colors.danger[600],
-    fontWeight: '600',
-    marginLeft: spacing[1],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    card: {
+      marginBottom: theme.space[3],
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    templateBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      backgroundColor: theme.color.brand.accentSoft,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.sm,
+      gap: theme.space[1],
+      marginTop: theme.space[1],
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.color.border.subtle,
+      marginBottom: theme.space[3],
+    },
+    content: {
+      gap: theme.space[3],
+    },
+    paymentProgressContainer: {
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+    },
+    paymentInfoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[1],
+    },
+    progressBar: {
+      height: 6,
+      backgroundColor: theme.color.border.subtle,
+      borderRadius: theme.radii.full,
+      overflow: 'hidden',
+      marginTop: theme.space[2],
+      marginBottom: theme.space[1],
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: theme.color.icon.success,
+      borderRadius: theme.radii.full,
+    },
+    paymentPercentage: {
+      textAlign: 'right',
+    },
+    amountContainer: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+    },
+    amountRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    estimatedAmountContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2],
+    },
+    row: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    infoItem: {
+      flex: 1,
+    },
+    label: {
+      textTransform: 'uppercase',
+      marginBottom: theme.space[1],
+    },
+    purchaseContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.state.success.background,
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.sm,
+      gap: theme.space[1.5],
+    },
+    purchaseText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.state.success.text,
+      flex: 1,
+    },
+    notesContainer: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2.5],
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.state.warning.border,
+    },
+    notesText: {
+      fontSize: 12,
+      color: theme.color.state.warning.text,
+      lineHeight: 16,
+    },
+    metaInfoContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    metaInfoItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.subtle,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.sm,
+      gap: theme.space[1],
+    },
+    metaInfoText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      maxWidth: 150,
+    },
+    metaInfoTextMuted: {
+      color: theme.color.text.disabled,
+      fontStyle: 'italic',
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      marginTop: theme.space[1],
+    },
+    actionButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.md,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[2],
+      gap: theme.space[1],
+    },
+    actionButtonText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.icon.accent,
+    },
+    deleteButton: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    deleteButtonText: {
+      color: theme.color.text.danger,
+    },
+    viewPaymentsButton: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.color.brand.accent,
+    },
+    accountPayableContainer: {
+      backgroundColor: theme.color.state.warning.background,
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2.5],
+      marginTop: theme.space[2],
+    },
+    accountPayableHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[1.5],
+    },
+    accountPayableCode: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.state.warning.text,
+      marginLeft: theme.space[1.5],
+      flex: 1,
+    },
+    accountPayableStatusBadge: {
+      borderRadius: theme.radii.xs,
+      borderWidth: 1,
+      paddingHorizontal: theme.space[1.5],
+      paddingVertical: theme.space[0.5],
+    },
+    accountPayableStatusText: {
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    accountPayableDetails: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    accountPayableLabel: {
+      fontSize: 11,
+      color: theme.color.text.subtle,
+    },
+    accountPayableBalance: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.warning,
+    },
+    overdueWarning: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: theme.space[1.5],
+      paddingTop: theme.space[1.5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.state.warning.border,
+    },
+    overdueText: {
+      fontSize: 11,
+      color: theme.color.text.danger,
+      fontWeight: '600',
+      marginLeft: theme.space[1],
+    },
+  });
 
 export default ExpenseCard;
