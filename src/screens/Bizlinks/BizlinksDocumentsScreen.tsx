@@ -33,7 +33,9 @@ import {
 } from '@/types/bizlinks';
 import { config } from '@/utils/config';
 import { formatDateToString } from '@/utils/dateHelpers';
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type Props = NativeStackScreenProps<any, 'BizlinksDocuments'>;
 
@@ -157,6 +159,8 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
   const { currentCompany, currentSite, token } = useAuthStore();
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [selectedDocumentType, setSelectedDocumentType] = useState('ALL');
   const [selectedStatusSunat, setSelectedStatusSunat] = useState('ALL');
@@ -516,11 +520,11 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         <Ionicons
           name={option.icon}
           size={14}
-          color={selectedValue === option.value ? colors.neutral[0] : colors.neutral[600]}
+          color={selectedValue === option.value ? theme.color.text.inverse : theme.color.text.muted}
         />
       ) : (
         <View
-          style={[styles.filterDot, { backgroundColor: option.color || colors.primary[600] }]}
+          style={[styles.filterDot, { backgroundColor: option.color || theme.color.brand.accent }]}
         />
       )}
       <Text
@@ -557,10 +561,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         disabled={!available || isDownloading}
       >
         {isDownloading ? (
-          <ActivityIndicator size="small" color={colors.neutral[0]} />
+          <ActivityIndicator size="small" color={theme.color.text.inverse} />
         ) : (
           <>
-            <Ionicons name={icon} size={16} color={colors.neutral[0]} />
+            <Ionicons name={icon} size={16} color={theme.color.text.inverse} />
             <Text style={styles.actionButtonText}>{label}</Text>
           </>
         )}
@@ -646,7 +650,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
           {!!sunatMessage && (
             <View style={styles.messageBox}>
-              <Ionicons name="information-circle-outline" size={16} color={colors.neutral[500]} />
+              <Ionicons name="information-circle-outline" size={16} color={theme.color.icon.muted} />
               <Text style={styles.messageText} numberOfLines={2}>
                 {sunatMessage}
               </Text>
@@ -691,10 +695,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                 disabled={retryingId === document.id}
               >
                 {retryingId === document.id ? (
-                  <ActivityIndicator size="small" color={colors.neutral[0]} />
+                  <ActivityIndicator size="small" color={theme.color.text.inverse} />
                 ) : (
                   <>
-                    <Ionicons name="refresh" size={16} color={colors.neutral[0]} />
+                    <Ionicons name="refresh" size={16} color={theme.color.text.inverse} />
                     <Text style={styles.actionButtonText}>Reintentar</Text>
                   </>
                 )}
@@ -702,7 +706,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
             )}
           </View>
 
-          <Ionicons name="chevron-forward" size={20} color={colors.neutral[300]} />
+          <Ionicons name="chevron-forward" size={20} color={theme.color.icon.disabled} />
         </View>
       </TouchableOpacity>
     );
@@ -713,7 +717,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
       <ScreenLayout navigation={navigation as any}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary[600]} />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando documentos tributarios...</Text>
           </View>
         </SafeAreaView>
@@ -725,7 +729,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
     <ScreenLayout navigation={navigation as any}>
       <SafeAreaView style={styles.container} edges={['top']}>
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -734,7 +738,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="documents" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="documents" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.title, isTablet && styles.titleTablet]}>
                   Documentos Tributarios
@@ -756,7 +760,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons
                 name="search"
                 size={20}
-                color={colors.neutral[400]}
+                color={theme.color.icon.disabled}
                 style={styles.searchIcon}
               />
               <TextInput
@@ -767,11 +771,11 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                   setPage(1);
                 }}
                 placeholder="Buscar por serie, cliente, DNI/RUC..."
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
               />
               {searchTerm.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchTerm('')} style={styles.clearButton}>
-                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="close-circle" size={20} color={theme.color.icon.disabled} />
                 </TouchableOpacity>
               )}
             </View>
@@ -782,7 +786,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons
                 name="options"
                 size={20}
-                color={showAdvancedFilters ? colors.neutral[0] : colors.neutral[600]}
+                color={showAdvancedFilters ? theme.color.text.inverse : theme.color.text.muted}
               />
               {activeFiltersCount > 0 && (
                 <View style={styles.filterCounter}>
@@ -889,7 +893,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                 <Ionicons
                   name={sortOrder === 'DESC' ? 'arrow-down' : 'arrow-up'}
                   size={16}
-                  color={colors.primary[700]}
+                  color={theme.color.brand.accent}
                 />
                 <Text style={styles.sortOrderText}>{sortOrder}</Text>
               </TouchableOpacity>
@@ -902,13 +906,13 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                   setLimit((current) => (current === 20 ? 50 : current === 50 ? 100 : 20))
                 }
               >
-                <Ionicons name="list-outline" size={16} color={colors.neutral[700]} />
+                <Ionicons name="list-outline" size={16} color={theme.color.icon.default} />
                 <Text style={styles.limitButtonText}>{limit} por página</Text>
               </TouchableOpacity>
 
               {activeFiltersCount > 0 && (
                 <TouchableOpacity style={styles.clearFiltersButton} onPress={handleClearFilters}>
-                  <Ionicons name="close-circle" size={18} color={colors.danger[500]} />
+                  <Ionicons name="close-circle" size={18} color={theme.color.icon.danger} />
                   <Text style={styles.clearFiltersText}>Limpiar filtros</Text>
                 </TouchableOpacity>
               )}
@@ -926,7 +930,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         >
           {loading && documents.length > 0 && (
             <View style={styles.inlineLoading}>
-              <ActivityIndicator size="small" color={colors.primary[600]} />
+              <ActivityIndicator size="small" color={theme.color.brand.accent} />
               <Text style={styles.inlineLoadingText}>Actualizando...</Text>
             </View>
           )}
@@ -1028,10 +1032,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -1041,7 +1045,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing[4],
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   headerGradient: {
@@ -1068,7 +1072,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing[3],
@@ -1077,7 +1081,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 22,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   titleTablet: {
@@ -1085,7 +1089,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     marginLeft: spacing[12],
   },
@@ -1094,7 +1098,7 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.lg,
@@ -1102,11 +1106,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   statLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
@@ -1118,7 +1122,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing[3],
   },
@@ -1129,7 +1133,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing[3],
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   searchInputTablet: {
     fontSize: 16,
@@ -1141,13 +1145,13 @@ const styles = StyleSheet.create({
   filterButton: {
     width: 48,
     height: 48,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: colors.accent[500],
+    backgroundColor: theme.color.brand.accent,
   },
   filterCounter: {
     position: 'absolute',
@@ -1156,7 +1160,7 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: colors.danger[500],
+    backgroundColor: theme.color.action.danger.background,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
@@ -1164,12 +1168,12 @@ const styles = StyleSheet.create({
   filterCounterText: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   quickFiltersContainer: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   quickFiltersContent: {
     paddingHorizontal: spacing[4],
@@ -1184,22 +1188,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[1.5],
     borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     gap: spacing[1.5],
   },
   filterChipActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   filterChipText: {
     fontSize: 12,
     fontWeight: '500',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   filterChipTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   filterDot: {
     width: 8,
@@ -1207,17 +1211,17 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   advancedFiltersPanel: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
     gap: spacing[3],
   },
   filterSectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
     textTransform: 'uppercase',
   },
   availabilityContent: {
@@ -1245,21 +1249,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   sortChipActive: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[600],
+    backgroundColor: theme.color.brand.accentSoft,
+    borderColor: theme.color.brand.accent,
   },
   sortChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   sortChipTextActive: {
-    color: colors.primary[800],
+    color: theme.color.brand.accent,
   },
   sortOrderButton: {
     flexDirection: 'row',
@@ -1268,12 +1272,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[50],
+    backgroundColor: theme.color.brand.accentSoft,
   },
   sortOrderText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.primary[700],
+    color: theme.color.brand.accent,
   },
   advancedFooter: {
     flexDirection: 'row',
@@ -1288,12 +1292,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
   },
   limitButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
   },
   clearFiltersButton: {
     flexDirection: 'row',
@@ -1305,7 +1309,7 @@ const styles = StyleSheet.create({
   clearFiltersText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.danger[500],
+    color: theme.color.text.danger,
   },
   content: {
     flex: 1,
@@ -1328,20 +1332,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
   },
   inlineLoadingText: {
     fontSize: 12,
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   card: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderRadius: borderRadius['2xl'],
     marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
     overflow: 'hidden',
   },
   cardTablet: {
@@ -1354,8 +1358,8 @@ const styles = StyleSheet.create({
     padding: spacing[4],
     paddingBottom: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-    backgroundColor: colors.neutral[50],
+    borderBottomColor: theme.color.background.muted,
+    backgroundColor: theme.color.background.subtle,
     gap: spacing[3],
   },
   cardHeaderLeft: {
@@ -1377,7 +1381,7 @@ const styles = StyleSheet.create({
   serieNumero: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   serieNumeroTablet: {
     fontSize: 20,
@@ -1403,7 +1407,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 13,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     fontWeight: '500',
     width: 80,
   },
@@ -1414,14 +1418,14 @@ const styles = StyleSheet.create({
   infoValue: {
     flex: 1,
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     fontWeight: '600',
   },
   infoValueTablet: {
     fontSize: 16,
   },
   totalAmount: {
-    color: colors.success[600],
+    color: theme.color.text.success,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1432,12 +1436,12 @@ const styles = StyleSheet.create({
     marginTop: spacing[2],
     padding: spacing[2.5],
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.background.subtle,
   },
   messageText: {
     flex: 1,
     fontSize: 12,
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
     lineHeight: 17,
   },
   cardFooter: {
@@ -1447,8 +1451,8 @@ const styles = StyleSheet.create({
     padding: spacing[4],
     paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-    backgroundColor: colors.neutral[50],
+    borderTopColor: theme.color.background.muted,
+    backgroundColor: theme.color.background.subtle,
   },
   cardActions: {
     flexDirection: 'row',
@@ -1470,21 +1474,21 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   pdfButton: {
-    backgroundColor: colors.danger[500],
+    backgroundColor: theme.color.action.danger.background,
   },
   xmlButton: {
-    backgroundColor: colors.warning[500],
+    backgroundColor: theme.color.icon.warning,
   },
   cdrButton: {
-    backgroundColor: colors.primary[600],
+    backgroundColor: theme.color.brand.accent,
   },
   retryButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: theme.color.action.danger.backgroundHover,
   },
   actionButtonText: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   emptyContainer: {
     flex: 1,
@@ -1501,7 +1505,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: colors.neutral[700],
+    color: theme.color.text.body,
     marginBottom: spacing[2],
     fontWeight: '600',
   },
@@ -1510,7 +1514,7 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   emptySubtextTablet: {
@@ -1520,7 +1524,7 @@ const styles = StyleSheet.create({
     height: 100,
   },
   paginationContainer: {
-    backgroundColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
     flexDirection: 'row',
@@ -1535,11 +1539,11 @@ const styles = StyleSheet.create({
   paginationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   paginationSubtext: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     marginTop: spacing[0.5],
   },
   paginationButton: {
@@ -1548,7 +1552,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[2.5],
     paddingHorizontal: spacing[4],
     borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     minWidth: 110,
     justifyContent: 'center',
   },
@@ -1558,9 +1562,9 @@ const styles = StyleSheet.create({
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   paginationButtonTextDisabled: {
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: theme.color.brand.headerBorder,
   },
 });
