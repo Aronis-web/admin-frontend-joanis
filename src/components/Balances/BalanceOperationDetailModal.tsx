@@ -13,7 +13,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   BalanceOperation,
   getOperationTypeLabel,
@@ -43,6 +44,8 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
   onDelete,
   onOperationUpdated,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null); // Changed: use fileId instead of URL
   const [selectedFileName, setSelectedFileName] = useState<string>('');
@@ -218,7 +221,7 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Detalle de Operación</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={28} color="#64748B" />
+                <Ionicons name="close" size={28} color={theme.color.icon.muted} />
               </TouchableOpacity>
             </View>
 
@@ -317,7 +320,7 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
                 <View style={styles.section}>
                   <Text style={styles.label}>Archivos Adjuntos</Text>
                   <View style={styles.loadingFilesContainer}>
-                    <ActivityIndicator size="small" color="#6366F1" />
+                    <ActivityIndicator size="small" color={theme.color.brand.primary} />
                     <Text style={styles.loadingFilesText}>Cargando archivos...</Text>
                   </View>
                 </View>
@@ -367,9 +370,9 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
                           </View>
                           <View style={styles.fileAction}>
                             {isImage ? (
-                              <Ionicons name="eye" size={24} color="#6366F1" />
+                              <Ionicons name="eye" size={24} color={theme.color.brand.primary} />
                             ) : (
-                              <Ionicons name="download" size={24} color="#6366F1" />
+                              <Ionicons name="download" size={24} color={theme.color.brand.primary} />
                             )}
                           </View>
                         </TouchableOpacity>
@@ -402,11 +405,11 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
             {/* Footer */}
             <View style={styles.footer}>
               <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-                <Ionicons name="pencil" size={20} color="#FFFFFF" />
+                <Ionicons name="pencil" size={20} color={theme.color.text.inverse} />
                 <Text style={styles.editButtonText}>Editar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                <Ionicons name="trash" size={20} color="#FFFFFF" />
+                <Ionicons name="trash" size={20} color={theme.color.text.inverse} />
                 <Text style={styles.deleteButtonText}>Eliminar</Text>
               </TouchableOpacity>
             </View>
@@ -434,230 +437,231 @@ export const BalanceOperationDetailModal: React.FC<BalanceOperationDetailModalPr
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    paddingBottom: Platform.OS === 'ios' ? spacing[5] : 0,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    padding: spacing[1],
-  },
-  section: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  operationTypeBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.xl,
-  },
-  operationTypeBadgeText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  amountLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  amountValue: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
-  },
-  value: {
-    fontSize: 16,
-    color: colors.neutral[800],
-    lineHeight: 24,
-  },
-  subValue: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-  },
-  paymentMethodBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.accent[50],
-    borderWidth: 1,
-    borderColor: colors.accent[500],
-  },
-  paymentMethodText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.accent[500],
-  },
-  filesContainer: {
-    marginTop: spacing[2],
-    gap: spacing[3],
-  },
-  fileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[3],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  fileIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  fileIcon: {
-    fontSize: 24,
-  },
-  fileInfo: {
-    flex: 1,
-    marginRight: spacing[3],
-  },
-  fileName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[0.5],
-  },
-  fileSize: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  fileDescription: {
-    fontSize: 12,
-    color: colors.neutral[400],
-    marginTop: spacing[0.5],
-  },
-  fileAction: {
-    padding: spacing[1],
-  },
-  metadataSection: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.background.secondary,
-  },
-  metadataLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[400],
-    marginBottom: spacing[3],
-    textTransform: 'uppercase',
-  },
-  metadataRow: {
-    flexDirection: 'row',
-    marginBottom: spacing[2],
-  },
-  metadataKey: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    width: 100,
-  },
-  metadataValue: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.neutral[800],
-  },
-  footer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-    gap: spacing[3],
-  },
-  footerSecondary: {
-    paddingHorizontal: spacing[6],
-    paddingBottom: spacing[4],
-  },
-  editButton: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: colors.accent[500],
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[2],
-  },
-  editButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  deleteButton: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: colors.danger[500],
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[2],
-  },
-  deleteButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  closeFooterButton: {
-    backgroundColor: colors.neutral[100],
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  closeFooterButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  loadingFilesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-  },
-  loadingFilesText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginLeft: spacing[3],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      paddingBottom: Platform.OS === 'ios' ? theme.space[5] : 0,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      padding: theme.space[1],
+    },
+    section: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    operationTypeBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.xl,
+    },
+    operationTypeBadgeText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+    amountLabel: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[1],
+    },
+    amountValue: {
+      fontSize: 32,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[2],
+    },
+    value: {
+      fontSize: 16,
+      color: theme.color.text.heading,
+      lineHeight: 24,
+    },
+    subValue: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[1],
+    },
+    paymentMethodBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.color.brand.accent,
+    },
+    paymentMethodText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    filesContainer: {
+      marginTop: theme.space[2],
+      gap: theme.space[3],
+    },
+    fileCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: theme.space[3],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    fileIconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.base,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    fileIcon: {
+      fontSize: 24,
+    },
+    fileInfo: {
+      flex: 1,
+      marginRight: theme.space[3],
+    },
+    fileName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[0.5],
+    },
+    fileSize: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    fileDescription: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+      marginTop: theme.space[0.5],
+    },
+    fileAction: {
+      padding: theme.space[1],
+    },
+    metadataSection: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.background.subtle,
+    },
+    metadataLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.placeholder,
+      marginBottom: theme.space[3],
+      textTransform: 'uppercase',
+    },
+    metadataRow: {
+      flexDirection: 'row',
+      marginBottom: theme.space[2],
+    },
+    metadataKey: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      width: 100,
+    },
+    metadataValue: {
+      flex: 1,
+      fontSize: 13,
+      color: theme.color.text.heading,
+    },
+    footer: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[4],
+      paddingBottom: theme.space[2],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+      gap: theme.space[3],
+    },
+    footerSecondary: {
+      paddingHorizontal: theme.space[6],
+      paddingBottom: theme.space[4],
+    },
+    editButton: {
+      flex: 1,
+      flexDirection: 'row',
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[3.5],
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[2],
+    },
+    editButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    deleteButton: {
+      flex: 1,
+      flexDirection: 'row',
+      backgroundColor: theme.color.action.danger.background,
+      paddingVertical: theme.space[3.5],
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[2],
+    },
+    deleteButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    closeFooterButton: {
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: theme.space[3.5],
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    closeFooterButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    loadingFilesContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+    },
+    loadingFilesText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginLeft: theme.space[3],
+    },
+  });
