@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { RoleSelector } from '@/components/users/RoleSelector';
 import { WorkerProfileFields } from '@/components/users/WorkerProfileFields';
@@ -29,6 +30,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   onClose,
   onUserUpdated,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [formData, setFormData] = useState<UpdateUserRequest>({
     username: '',
     email: '',
@@ -449,8 +452,13 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                 value={formData.is_active}
                 onValueChange={(value) => updateField('is_active', value)}
                 disabled={loading}
-                trackColor={{ false: colors.neutral[200], true: colors.primary[500] }}
-                thumbColor={formData.is_active ? colors.neutral[0] : colors.neutral[400]}
+                trackColor={{
+                  false: theme.color.border.subtle,
+                  true: theme.color.brand.primary,
+                }}
+                thumbColor={
+                  formData.is_active ? theme.color.text.onAction : theme.color.text.placeholder
+                }
               />
             </View>
 
@@ -497,7 +505,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.neutral[0]} />
+                <ActivityIndicator color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.submitButtonText}>Guardar Cambios</Text>
               )}
@@ -509,209 +517,210 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius.full,
-    borderTopRightRadius: borderRadius.full,
-    maxHeight: '90%',
-    paddingBottom: spacing[5],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  userAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius['2xl'],
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  formContainer: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
-    maxHeight: '70%',
-  },
-  infoBox: {
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[3],
-    marginBottom: spacing[5],
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-  },
-  infoText: {
-    fontSize: 14,
-    color: colors.primary[800],
-    lineHeight: 20,
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  switchLabelContainer: {
-    flex: 1,
-    marginRight: spacing[3],
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  switchDescription: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  userIdContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[3],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  userIdLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  userIdValue: {
-    fontSize: 13,
-    color: colors.neutral[800],
-    fontFamily: 'monospace',
-  },
-  rolesWarning: {
-    backgroundColor: colors.warning[100],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.warning[200],
-  },
-  rolesWarningText: {
-    fontSize: 13,
-    color: colors.warning[800],
-    lineHeight: 18,
-  },
-  passwordSection: {
-    marginBottom: spacing[4],
-  },
-  passwordToggle: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    alignItems: 'center',
-  },
-  passwordToggleText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-  passwordFields: {
-    marginTop: spacing[3],
-  },
-  passwordWarning: {
-    backgroundColor: colors.warning[100],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginTop: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.warning[200],
-  },
-  passwordWarningText: {
-    fontSize: 13,
-    color: colors.warning[800],
-    lineHeight: 18,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
-    gap: spacing[3],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  submitButton: {
-    backgroundColor: colors.primary[500],
-  },
-  submitButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii.full,
+      borderTopRightRadius: theme.radii.full,
+      maxHeight: '90%',
+      paddingBottom: theme.space[5],
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    userAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.brand.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    avatarText: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.onAction,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii['2xl'],
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    formContainer: {
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[5],
+      maxHeight: '70%',
+    },
+    infoBox: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[3],
+      marginBottom: theme.space[5],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    infoText: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      lineHeight: 20,
+    },
+    switchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: theme.space[4],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    switchLabelContainer: {
+      flex: 1,
+      marginRight: theme.space[3],
+    },
+    switchLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    switchDescription: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    userIdContainer: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[3],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    userIdLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    userIdValue: {
+      fontSize: 13,
+      color: theme.color.text.heading,
+      fontFamily: 'monospace',
+    },
+    rolesWarning: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+    },
+    rolesWarningText: {
+      fontSize: 13,
+      color: theme.color.state.warning.text,
+      lineHeight: 18,
+    },
+    passwordSection: {
+      marginBottom: theme.space[4],
+    },
+    passwordToggle: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      alignItems: 'center',
+    },
+    passwordToggleText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    passwordFields: {
+      marginTop: theme.space[3],
+    },
+    passwordWarning: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginTop: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+    },
+    passwordWarningText: {
+      fontSize: 13,
+      color: theme.color.state.warning.text,
+      lineHeight: 18,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[5],
+      gap: theme.space[3],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    submitButtonDisabled: {
+      backgroundColor: theme.color.text.placeholder,
+    },
+    submitButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+  });
 
 export default EditUserModal;

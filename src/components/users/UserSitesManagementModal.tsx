@@ -10,7 +10,8 @@ import {
   Alert,
   Switch,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
 import { Site } from '@/types/sites';
@@ -43,6 +44,8 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
   companyName,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [allSites, setAllSites] = useState<Site[]>([]);
   const [userSites, setUserSites] = useState<UserCompanySite[]>([]);
@@ -193,7 +196,7 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
           <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {loading && allSites.length === 0 ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary[500]} />
+                <ActivityIndicator size="large" color={theme.color.brand.primary} />
                 <Text style={styles.loadingText}>Cargando sedes...</Text>
               </View>
             ) : (
@@ -217,8 +220,13 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
                     <Switch
                       value={canSelect}
                       onValueChange={setCanSelect}
-                      trackColor={{ false: colors.neutral[300], true: colors.primary[500] }}
-                      thumbColor={canSelect ? colors.neutral[0] : colors.neutral[400]}
+                      trackColor={{
+                        false: theme.color.border.default,
+                        true: theme.color.brand.primary,
+                      }}
+                      thumbColor={
+                        canSelect ? theme.color.text.onAction : theme.color.text.placeholder
+                      }
                     />
                   </View>
                 </View>
@@ -265,7 +273,7 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.neutral[0]} />
+                <ActivityIndicator color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar Cambios</Text>
               )}
@@ -277,263 +285,264 @@ export const UserSitesManagementModal: React.FC<UserSitesManagementModalProps> =
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius['2xl'],
-    width: '90%',
-    maxWidth: 600,
-    height: '85%',
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: 2,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius['2xl'],
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: 'bold',
-  },
-  scrollContent: {
-    flex: 1,
-    padding: spacing[5],
-  },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  infoCard: {
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary[500],
-  },
-  infoText: {
-    fontSize: 14,
-    color: colors.primary[800],
-    lineHeight: 20,
-  },
-  switchCard: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  switchContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  switchHint: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[5],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: colors.neutral[200],
-    marginHorizontal: spacing[4],
-  },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.primary[500],
-    marginBottom: spacing[1],
-  },
-  statLabel: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: spacing[5],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  sitesList: {
-    gap: spacing[3],
-  },
-  siteCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    borderWidth: 2,
-    borderColor: colors.neutral[200],
-    marginBottom: spacing[2],
-  },
-  siteCardSelected: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
-  },
-  siteCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  siteInfo: {
-    flex: 1,
-  },
-  siteName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  siteCode: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  siteAddress: {
-    fontSize: 13,
-    color: colors.neutral[400],
-  },
-  checkboxContainer: {
-    marginLeft: spacing[3],
-  },
-  checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.md,
-    borderWidth: 2,
-    borderColor: colors.neutral[300],
-    backgroundColor: colors.neutral[0],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  checkmark: {
-    color: colors.neutral[0],
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  siteMetadata: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  metadataText: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  emptyState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyStateIcon: {
-    fontSize: 48,
-    marginBottom: spacing[4],
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: colors.neutral[500],
-    textAlign: 'center',
-  },
-  footer: {
-    flexDirection: 'row',
-    padding: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    gap: spacing[3],
-  },
-  cancelButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: colors.neutral[500],
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  saveButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[500],
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  saveButtonText: {
-    color: colors.neutral[0],
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii['2xl'],
+      width: '90%',
+      maxWidth: 600,
+      height: '85%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      padding: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    modalSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 2,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii['2xl'],
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: 'bold',
+    },
+    scrollContent: {
+      flex: 1,
+      padding: theme.space[5],
+    },
+    loadingContainer: {
+      padding: 40,
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    infoCard: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.brand.primary,
+    },
+    infoText: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      lineHeight: 20,
+    },
+    switchCard: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    switchContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    switchLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    switchHint: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    statsCard: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[5],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    statItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statDivider: {
+      width: 1,
+      backgroundColor: theme.color.border.subtle,
+      marginHorizontal: theme.space[4],
+    },
+    statNumber: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: theme.color.brand.primary,
+      marginBottom: theme.space[1],
+    },
+    statLabel: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    section: {
+      marginBottom: theme.space[5],
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    sitesList: {
+      gap: theme.space[3],
+    },
+    siteCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      marginBottom: theme.space[2],
+    },
+    siteCardSelected: {
+      borderColor: theme.color.brand.primary,
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    siteCardContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    siteInfo: {
+      flex: 1,
+    },
+    siteName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    siteCode: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    siteAddress: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+    },
+    checkboxContainer: {
+      marginLeft: theme.space[3],
+    },
+    checkbox: {
+      width: 28,
+      height: 28,
+      borderRadius: theme.radii.md,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    checkboxChecked: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    checkmark: {
+      color: theme.color.text.onAction,
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    siteMetadata: {
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    metadataText: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    emptyState: {
+      padding: 40,
+      alignItems: 'center',
+    },
+    emptyStateIcon: {
+      fontSize: 48,
+      marginBottom: theme.space[4],
+    },
+    emptyStateText: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    footer: {
+      flexDirection: 'row',
+      padding: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    cancelButton: {
+      flex: 1,
+      padding: 14,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      color: theme.color.text.muted,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    saveButton: {
+      flex: 1,
+      padding: 14,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.primary,
+      alignItems: 'center',
+    },
+    saveButtonDisabled: {
+      backgroundColor: theme.color.text.placeholder,
+    },
+    saveButtonText: {
+      color: theme.color.text.onAction,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  });
 
 export default UserSitesManagementModal;

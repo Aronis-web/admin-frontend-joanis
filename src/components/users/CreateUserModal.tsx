@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { RoleSelector } from '@/components/users/RoleSelector';
@@ -28,6 +29,8 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   onClose,
   onUserCreated,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [formData, setFormData] = useState<CreateUserRequest>({
     username: '',
     email: '',
@@ -292,8 +295,13 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 value={formData.is_active}
                 onValueChange={(value) => updateField('is_active', value)}
                 disabled={loading}
-                trackColor={{ false: colors.neutral[200], true: colors.primary[500] }}
-                thumbColor={formData.is_active ? colors.neutral[0] : colors.neutral[400]}
+                trackColor={{
+                  false: theme.color.border.subtle,
+                  true: theme.color.brand.primary,
+                }}
+                thumbColor={
+                  formData.is_active ? theme.color.text.onAction : theme.color.text.placeholder
+                }
               />
             </View>
 
@@ -331,7 +339,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.neutral[0]} />
+                <ActivityIndicator color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.submitButtonText}>Crear Usuario</Text>
               )}
@@ -343,118 +351,119 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius.full,
-    borderTopRightRadius: borderRadius.full,
-    maxHeight: '90%',
-    paddingBottom: spacing[5],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius['2xl'],
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  formContainer: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
-    maxHeight: '70%',
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  switchLabelContainer: {
-    flex: 1,
-    marginRight: spacing[3],
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  switchDescription: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  requiredNote: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    fontStyle: 'italic',
-    marginTop: spacing[2],
-    marginBottom: spacing[4],
-  },
-  modalActions: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
-    gap: spacing[3],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  submitButton: {
-    backgroundColor: colors.primary[500],
-  },
-  submitButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii.full,
+      borderTopRightRadius: theme.radii.full,
+      maxHeight: '90%',
+      paddingBottom: theme.space[5],
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii['2xl'],
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    formContainer: {
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[5],
+      maxHeight: '70%',
+    },
+    switchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: theme.space[4],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    switchLabelContainer: {
+      flex: 1,
+      marginRight: theme.space[3],
+    },
+    switchLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    switchDescription: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    requiredNote: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontStyle: 'italic',
+      marginTop: theme.space[2],
+      marginBottom: theme.space[4],
+    },
+    modalActions: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[5],
+      gap: theme.space[3],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    submitButtonDisabled: {
+      backgroundColor: theme.color.text.placeholder,
+    },
+    submitButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+  });
 
 export default CreateUserModal;

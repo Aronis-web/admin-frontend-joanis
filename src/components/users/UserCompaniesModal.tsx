@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
 import { Company } from '@/types/companies';
@@ -27,6 +28,8 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
   userId,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -123,7 +126,7 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
           {/* Content */}
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.accent[500]} />
+              <ActivityIndicator size="large" color={theme.color.brand.accent} />
               <Text style={styles.loadingText}>Cargando empresas...</Text>
             </View>
           ) : (
@@ -175,7 +178,7 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
               disabled={saving || loading}
             >
               {saving ? (
-                <ActivityIndicator color={colors.neutral[0]} />
+                <ActivityIndicator color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar</Text>
               )}
@@ -187,137 +190,138 @@ export const UserCompaniesModal: React.FC<UserCompaniesModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius.full,
-    borderTopRightRadius: borderRadius.full,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonText: {
-    fontSize: 28,
-    color: colors.neutral[500],
-    fontWeight: '300',
-  },
-  scrollContent: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  emptyContainer: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  companyItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  companyInfo: {
-    flex: 1,
-  },
-  companyName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  companyRuc: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: 2,
-  },
-  companyType: {
-    fontSize: 13,
-    color: colors.neutral[400],
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.md,
-    borderWidth: 2,
-    borderColor: colors.neutral[300],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: colors.accent[500],
-    borderColor: colors.accent[500],
-  },
-  checkmark: {
-    color: colors.neutral[0],
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    padding: spacing[5],
-    gap: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  saveButton: {
-    backgroundColor: colors.accent[500],
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii.full,
+      borderTopRightRadius: theme.radii.full,
+      maxHeight: '80%',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeButtonText: {
+      fontSize: 28,
+      color: theme.color.text.muted,
+      fontWeight: '300',
+    },
+    scrollContent: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    emptyContainer: {
+      paddingVertical: 60,
+      alignItems: 'center',
+    },
+    emptyText: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    companyItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    companyInfo: {
+      flex: 1,
+    },
+    companyName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    companyRuc: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 2,
+    },
+    companyType: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: theme.radii.md,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxChecked: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    checkmark: {
+      color: theme.color.text.onAction,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    modalActions: {
+      flexDirection: 'row',
+      padding: theme.space[5],
+      gap: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    saveButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+  });

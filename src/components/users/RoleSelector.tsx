@@ -7,7 +7,8 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { rolesApi, Role } from '@/services/api/roles';
 
 interface RoleSelectorProps {
@@ -23,6 +24,8 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
   disabled = false,
   singleSelection = true, // Default to single selection
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +87,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
       <View style={styles.container}>
         <Text style={styles.label}>Roles</Text>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={colors.primary[500]} />
+          <ActivityIndicator size="small" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando roles...</Text>
         </View>
       </View>
@@ -196,172 +199,173 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing[4],
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  description: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginBottom: spacing[3],
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[4],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  loadingText: {
-    marginLeft: spacing[3],
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  errorContainer: {
-    padding: spacing[4],
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.danger[100],
-  },
-  errorText: {
-    fontSize: 14,
-    color: colors.danger[600],
-    marginBottom: spacing[3],
-  },
-  retryButton: {
-    backgroundColor: colors.danger[500],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    alignSelf: 'flex-start',
-  },
-  retryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  emptyContainer: {
-    padding: spacing[4],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    textAlign: 'center',
-  },
-  rolesContainer: {
-    maxHeight: 300,
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    padding: spacing[2],
-  },
-  roleItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing[3],
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  roleItemSelected: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[500],
-    borderWidth: 2,
-  },
-  roleItemDisabled: {
-    opacity: 0.5,
-  },
-  roleItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.md,
-    borderWidth: 2,
-    borderColor: colors.neutral[300],
-    backgroundColor: colors.neutral[0],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  checkboxSelected: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  checkboxDisabled: {
-    backgroundColor: colors.neutral[100],
-    borderColor: colors.neutral[200],
-  },
-  checkmark: {
-    color: colors.neutral[0],
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  roleInfo: {
-    flex: 1,
-  },
-  roleName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: 2,
-  },
-  roleNameSelected: {
-    color: colors.primary[800],
-  },
-  roleNameDisabled: {
-    color: colors.neutral[400],
-  },
-  roleCode: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    fontFamily: 'monospace',
-    marginBottom: spacing[1],
-  },
-  roleCodeDisabled: {
-    color: colors.neutral[300],
-  },
-  roleDescription: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    lineHeight: 16,
-  },
-  roleDescriptionDisabled: {
-    color: colors.neutral[300],
-  },
-  hintContainer: {
-    marginTop: spacing[2],
-    padding: spacing[3],
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-  },
-  hintText: {
-    fontSize: 13,
-    color: colors.primary[800],
-    lineHeight: 18,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      marginBottom: theme.space[4],
+    },
+    label: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    description: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[3],
+    },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    loadingText: {
+      marginLeft: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    errorContainer: {
+      padding: theme.space[4],
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.state.danger.border,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.color.state.danger.text,
+      marginBottom: theme.space[3],
+    },
+    retryButton: {
+      backgroundColor: theme.color.action.danger.background,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      alignSelf: 'flex-start',
+    },
+    retryButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.action.danger.text,
+    },
+    emptyContainer: {
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    rolesContainer: {
+      maxHeight: 300,
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      padding: theme.space[2],
+    },
+    roleItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    roleItemSelected: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderColor: theme.color.brand.primary,
+      borderWidth: 2,
+    },
+    roleItemDisabled: {
+      opacity: 0.5,
+    },
+    roleItemLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: theme.radii.md,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    checkboxSelected: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    checkboxDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      borderColor: theme.color.border.subtle,
+    },
+    checkmark: {
+      color: theme.color.text.onAction,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    roleInfo: {
+      flex: 1,
+    },
+    roleName: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    roleNameSelected: {
+      color: theme.color.brand.primary,
+    },
+    roleNameDisabled: {
+      color: theme.color.text.placeholder,
+    },
+    roleCode: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontFamily: 'monospace',
+      marginBottom: theme.space[1],
+    },
+    roleCodeDisabled: {
+      color: theme.color.text.placeholder,
+    },
+    roleDescription: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      lineHeight: 16,
+    },
+    roleDescriptionDisabled: {
+      color: theme.color.text.placeholder,
+    },
+    hintContainer: {
+      marginTop: theme.space[2],
+      padding: theme.space[3],
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    hintText: {
+      fontSize: 13,
+      color: theme.color.text.heading,
+      lineHeight: 18,
+    },
+  });
 
 export default RoleSelector;
