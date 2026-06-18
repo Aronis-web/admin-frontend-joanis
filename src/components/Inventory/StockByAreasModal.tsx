@@ -12,13 +12,8 @@ import {
 import { inventoryApi, StockItemResponse } from '@/services/api/inventory';
 import { productsApi } from '@/services/api/products';
 
-// Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-} from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Text,
   Title,
@@ -47,6 +42,8 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
   productTitle,
   productSku,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [stockItems, setStockItems] = useState<StockItemResponse[]>([]);
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -236,7 +233,7 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary[900]} />
+                <ActivityIndicator size="large" color={theme.color.brand.primary} />
                 <Body color="secondary" style={styles.loadingText}>Cargando stock...</Body>
               </View>
             ) : stockItems.length === 0 ? (
@@ -249,9 +246,9 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
               <>
                 {/* Total Stock Summary */}
                 <View style={styles.summaryCard}>
-                  <Label size="medium" color={colors.neutral[0]} style={styles.summaryLabel}>Stock Disponible</Label>
-                  <Numeric size="large" color={colors.neutral[0]}>{getTotalStock().toFixed(2)} unidades</Numeric>
-                  <Caption color={colors.neutral[200]}>En {stockItems.length} ubicación(es)</Caption>
+                  <Label size="medium" color={theme.color.text.inverse} style={styles.summaryLabel}>Stock Disponible</Label>
+                  <Numeric size="large" color={theme.color.text.inverse}>{getTotalStock().toFixed(2)} unidades</Numeric>
+                  <Caption color={theme.color.text.inverse}>En {stockItems.length} ubicación(es)</Caption>
                 </View>
 
                 {/* Warehouse Sections */}
@@ -276,14 +273,14 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                           <Text variant="headingSmall">🏢</Text>
                           <View style={styles.warehouseHeaderInfo}>
                             <Title size="small">{warehouseName}</Title>
-                            <Caption color={colors.accent[600]}>Código: {warehouseCode}</Caption>
+                            <Caption color={theme.color.brand.accent}>Código: {warehouseCode}</Caption>
                           </View>
                         </View>
                         <View style={styles.warehouseTotalBadge}>
-                          <Numeric size="medium" color={colors.neutral[0]}>
+                          <Numeric size="medium" color={theme.color.text.inverse}>
                             {warehouseTotal.toFixed(2)}
                           </Numeric>
-                          <Caption color={colors.neutral[200]}>unidades</Caption>
+                          <Caption color={theme.color.text.inverse}>unidades</Caption>
                         </View>
                       </View>
 
@@ -313,7 +310,7 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                                 </View>
                               </View>
                               <View style={styles.areaQuantityBadge}>
-                                <Numeric size="small" color={colors.neutral[0]}>{quantity.toFixed(2)}</Numeric>
+                                <Numeric size="small" color={theme.color.text.inverse}>{quantity.toFixed(2)}</Numeric>
                               </View>
                             </View>
                             <View style={styles.areaCardFooter}>
@@ -353,216 +350,217 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    width: '90%',
-    maxWidth: 600,
-    height: '85%',
-    ...shadows.xl,
-    flexDirection: 'column',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    backgroundColor: colors.surface.primary,
-  },
-  headerContent: {
-    flex: 1,
-    marginRight: spacing[3],
-  },
-  headerSubtitle: {
-    marginTop: spacing[1],
-    marginBottom: spacing[0.5],
-  },
-  summaryCard: {
-    backgroundColor: colors.primary[900],
-    marginHorizontal: spacing[5],
-    marginTop: spacing[4],
-    marginBottom: spacing[4],
-    padding: spacing[6],
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    ...shadows.lg,
-  },
-  summaryLabel: {
-    marginBottom: spacing[2],
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing[16],
-  },
-  loadingText: {
-    marginTop: spacing[3],
-  },
-  warehouseSection: {
-    marginBottom: spacing[4],
-    marginHorizontal: spacing[5],
-  },
-  warehouseHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[4],
-    backgroundColor: colors.accent[50],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.accent[200],
-  },
-  warehouseHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing[3],
-    gap: spacing[3],
-  },
-  warehouseHeaderInfo: {
-    flex: 1,
-  },
-  warehouseTotalBadge: {
-    backgroundColor: colors.primary[900],
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    minWidth: 90,
-  },
-  areaCard: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    backgroundColor: colors.surface.primary,
-  },
-  areaCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[4],
-    paddingLeft: spacing[6],
-  },
-  areaCardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing[3],
-    gap: spacing[3],
-  },
-  areaCardInfo: {
-    flex: 1,
-  },
-  areaQuantityBadge: {
-    backgroundColor: colors.success[600],
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  areaCardFooter: {
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[3],
-    paddingLeft: spacing[14],
-  },
-  footer: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    padding: spacing[4],
-  },
-  imageSliderContainer: {
-    marginHorizontal: spacing[5],
-    marginTop: spacing[4],
-    marginBottom: spacing[2],
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-    backgroundColor: colors.surface.secondary,
-    borderWidth: 1,
-    borderColor: colors.accent[200],
-  },
-  imageSlider: {
-    position: 'relative',
-    width: '100%',
-    height: 250,
-    backgroundColor: colors.surface.primary,
-  },
-  productImage: {
-    width: '100%',
-    height: '100%',
-  },
-  imageNavButton: {
-    position: 'absolute',
-    top: '50%',
-    transform: [{ translateY: -25 }],
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.primary[800],
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.md,
-  },
-  imageNavButtonLeft: {
-    left: 10,
-  },
-  imageNavButtonRight: {
-    right: 10,
-  },
-  imageNavButtonText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.text.inverse,
-    lineHeight: 32,
-  },
-  imageIndicatorContainer: {
-    position: 'absolute',
-    bottom: 12,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing[1.5],
-  },
-  imageIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  imageIndicatorActive: {
-    backgroundColor: colors.neutral[0],
-    width: 24,
-  },
-  imageCounter: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: colors.overlay.medium,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.lg,
-  },
-  imageCounterText: {
-    color: colors.text.inverse,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      width: '90%',
+      maxWidth: 600,
+      height: '85%',
+      ...theme.shadow.xl,
+      flexDirection: 'column',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    headerContent: {
+      flex: 1,
+      marginRight: theme.space[3],
+    },
+    headerSubtitle: {
+      marginTop: theme.space[1],
+      marginBottom: theme.space[0.5],
+    },
+    summaryCard: {
+      backgroundColor: theme.color.brand.primary,
+      marginHorizontal: theme.space[5],
+      marginTop: theme.space[4],
+      marginBottom: theme.space[4],
+      padding: theme.space[6],
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      ...theme.shadow.lg,
+    },
+    summaryLabel: {
+      marginBottom: theme.space[2],
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    content: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: theme.space[16],
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+    },
+    warehouseSection: {
+      marginBottom: theme.space[4],
+      marginHorizontal: theme.space[5],
+    },
+    warehouseHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[4],
+      backgroundColor: theme.color.state.info.background,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.state.info.border,
+    },
+    warehouseHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: theme.space[3],
+      gap: theme.space[3],
+    },
+    warehouseHeaderInfo: {
+      flex: 1,
+    },
+    warehouseTotalBadge: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: theme.space[3.5],
+      paddingVertical: theme.space[2.5],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+      minWidth: 90,
+    },
+    areaCard: {
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    areaCardContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[4],
+      paddingLeft: theme.space[6],
+    },
+    areaCardLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: theme.space[3],
+      gap: theme.space[3],
+    },
+    areaCardInfo: {
+      flex: 1,
+    },
+    areaQuantityBadge: {
+      backgroundColor: theme.color.action.success.background,
+      paddingHorizontal: theme.space[3.5],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.md,
+      minWidth: 80,
+      alignItems: 'center',
+    },
+    areaCardFooter: {
+      paddingHorizontal: theme.space[4],
+      paddingBottom: theme.space[3],
+      paddingLeft: theme.space[14],
+    },
+    footer: {
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      padding: theme.space[4],
+    },
+    imageSliderContainer: {
+      marginHorizontal: theme.space[5],
+      marginTop: theme.space[4],
+      marginBottom: theme.space[2],
+      borderRadius: theme.radii.xl,
+      overflow: 'hidden',
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
+    imageSlider: {
+      position: 'relative',
+      width: '100%',
+      height: 250,
+      backgroundColor: theme.color.surface.base,
+    },
+    productImage: {
+      width: '100%',
+      height: '100%',
+    },
+    imageNavButton: {
+      position: 'absolute',
+      top: '50%',
+      transform: [{ translateY: -25 }],
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: theme.color.action.primary.backgroundHover,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...theme.shadow.md,
+    },
+    imageNavButtonLeft: {
+      left: 10,
+    },
+    imageNavButtonRight: {
+      right: 10,
+    },
+    imageNavButtonText: {
+      fontSize: 32,
+      fontWeight: 'bold',
+      color: theme.color.text.inverse,
+      lineHeight: 32,
+    },
+    imageIndicatorContainer: {
+      position: 'absolute',
+      bottom: 12,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: theme.space[1.5],
+    },
+    imageIndicator: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    imageIndicatorActive: {
+      backgroundColor: theme.color.text.inverse,
+      width: 24,
+    },
+    imageCounter: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      backgroundColor: theme.color.overlay.medium,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.lg,
+    },
+    imageCounterText: {
+      color: theme.color.text.inverse,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+  });
 
 export default StockByAreasModal;
