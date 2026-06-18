@@ -15,13 +15,8 @@ import { saveAndShareExcel } from '@/utils/fileDownload';
 import logger from '@/utils/logger';
 import { getDocumentAsync } from '@/utils/filePicker';
 
-// Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-} from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Text,
   Title,
@@ -49,6 +44,8 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
   campaignProducts,
   productsMap,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -291,7 +288,7 @@ Total procesado: ${result.totalRows}
                       <TextInput
                         style={styles.input}
                         placeholder="YYYY-MM-DD"
-                        placeholderTextColor={colors.text.placeholder}
+                        placeholderTextColor={theme.color.text.placeholder}
                         value={fromDate}
                         onChangeText={setFromDate}
                         editable={!loading}
@@ -302,7 +299,7 @@ Total procesado: ${result.totalRows}
                       <TextInput
                         style={styles.input}
                         placeholder="YYYY-MM-DD"
-                        placeholderTextColor={colors.text.placeholder}
+                        placeholderTextColor={theme.color.text.placeholder}
                         value={toDate}
                         onChangeText={setToDate}
                         editable={!loading}
@@ -372,10 +369,10 @@ Total procesado: ${result.totalRows}
 
             {/* Warning */}
             <View style={styles.warningContainer}>
-              <Caption color={colors.warning[800]}>
+              <Caption color={theme.color.state.warning.text}>
                 ⚠️ Los precios están en SOLES y se convierten automáticamente a céntimos
               </Caption>
-              <Caption color={colors.warning[800]} style={{ marginTop: spacing[1] }}>
+              <Caption color={theme.color.state.warning.text} style={{ marginTop: theme.space[1] }}>
                 ⚠️ Si modificas el costo, los precios NO se recalculan automáticamente
               </Caption>
             </View>
@@ -386,87 +383,88 @@ Total procesado: ${result.totalRows}
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[5],
-  },
-  modalContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    width: '100%',
-    maxWidth: 600,
-    maxHeight: '90%',
-    ...shadows.xl,
-  },
-  scrollView: {
-    padding: spacing[6],
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[5],
-  },
-  section: {
-    marginBottom: spacing[6],
-  },
-  sectionTitle: {
-    marginBottom: spacing[3],
-  },
-  filterContainer: {
-    marginBottom: spacing[4],
-  },
-  filterLabel: {
-    marginBottom: spacing[2],
-  },
-  dateInputContainer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  dateInput: {
-    flex: 1,
-  },
-  dateLabel: {
-    marginBottom: spacing[1],
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.md,
-    padding: spacing[2.5],
-    fontSize: 14,
-    color: colors.text.primary,
-    backgroundColor: colors.surface.primary,
-  },
-  helperText: {
-    marginTop: spacing[1.5],
-    fontStyle: 'italic',
-  },
-  campaignInfo: {
-    marginBottom: spacing[3],
-    fontStyle: 'italic',
-  },
-  actionButton: {
-    marginTop: spacing[3],
-  },
-  fileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface.secondary,
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[2],
-  },
-  warningContainer: {
-    backgroundColor: colors.warning[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.warning[500],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+    },
+    modalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      width: '100%',
+      maxWidth: 600,
+      maxHeight: '90%',
+      ...theme.shadow.xl,
+    },
+    scrollView: {
+      padding: theme.space[6],
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[5],
+    },
+    section: {
+      marginBottom: theme.space[6],
+    },
+    sectionTitle: {
+      marginBottom: theme.space[3],
+    },
+    filterContainer: {
+      marginBottom: theme.space[4],
+    },
+    filterLabel: {
+      marginBottom: theme.space[2],
+    },
+    dateInputContainer: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    dateInput: {
+      flex: 1,
+    },
+    dateLabel: {
+      marginBottom: theme.space[1],
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2.5],
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    helperText: {
+      marginTop: theme.space[1.5],
+      fontStyle: 'italic',
+    },
+    campaignInfo: {
+      marginBottom: theme.space[3],
+      fontStyle: 'italic',
+    },
+    actionButton: {
+      marginTop: theme.space[3],
+    },
+    fileInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.color.surface.subtle,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[2],
+    },
+    warningContainer: {
+      backgroundColor: theme.color.state.warning.background,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.state.warning.border,
+    },
+  });
