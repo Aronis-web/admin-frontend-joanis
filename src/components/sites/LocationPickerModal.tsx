@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   View,
   Text,
@@ -45,6 +46,8 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   onClose,
   onLocationSelected,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   console.log('🚀 [LocationPicker] Componente inicializado');
   console.log('🚀 [LocationPicker] Props recibidas:', { visible, initialLocation });
 
@@ -457,7 +460,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               <TextInput
                 style={styles.customSearchInput}
                 placeholder="Buscar lugares, negocios, direcciones..."
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
                 value={searchText}
                 onChangeText={handleSearchTextChange}
                 onFocus={() => {
@@ -473,7 +476,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator size="small" color={colors.primary[500]} />
+                  <ActivityIndicator size="small" color={theme.color.brand.primary} />
                 ) : (
                   <Text style={styles.currentLocationIcon}>📍</Text>
                 )}
@@ -553,7 +556,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         <View style={styles.infoContainer}>
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={colors.primary[500]} />
+              <ActivityIndicator size="small" color={theme.color.brand.primary} />
               <Text style={styles.loadingText}>Obteniendo dirección...</Text>
             </View>
           ) : addressInfo ? (
@@ -608,221 +611,222 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.neutral[0],
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.neutral[0],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-    ...Platform.select({
-      ios: {
-        paddingTop: 50,
-      },
-      android: {
-        paddingTop: 16,
-      },
-    }),
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius['2xl'],
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  locationButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius['2xl'],
-    backgroundColor: colors.primary[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  locationButtonText: {
-    fontSize: 20,
-  },
-  map: {
-    flex: 1,
-  },
-  infoContainer: {
-    backgroundColor: colors.neutral[0],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    maxHeight: 250,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing[5],
-  },
-  loadingText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginLeft: spacing[2],
-  },
-  addressContainer: {
-    padding: spacing[4],
-  },
-  addressTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  addressText: {
-    fontSize: 14,
-    color: colors.neutral[600],
-    marginBottom: 6,
-    lineHeight: 20,
-  },
-  coordinatesText: {
-    fontSize: 12,
-    color: colors.neutral[400],
-    marginTop: spacing[2],
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-  },
-  instructionsContainer: {
-    padding: spacing[5],
-    alignItems: 'center',
-  },
-  instructionsText: {
-    fontSize: 16,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    marginBottom: spacing[2],
-  },
-  instructionsSubtext: {
-    fontSize: 13,
-    color: colors.neutral[400],
-    textAlign: 'center',
-  },
-  actions: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    gap: spacing[3],
-    backgroundColor: colors.neutral[0],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  confirmButton: {
-    backgroundColor: colors.primary[500],
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  searchContainer: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.neutral[0],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  customAutocompleteContainer: {
-    position: 'relative',
-    zIndex: 1000,
-  },
-  searchInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[3],
-    height: 44,
-  },
-  customSearchInput: {
-    flex: 1,
-    height: 44,
-    fontSize: 15,
-    color: colors.neutral[800],
-    paddingVertical: 0,
-  },
-  searchIcon: {
-    fontSize: 16,
-    marginRight: spacing[2],
-  },
-  currentLocationButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: spacing[2],
-  },
-  currentLocationIcon: {
-    fontSize: 18,
-  },
-  predictionsContainer: {
-    position: 'absolute',
-    top: 48,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[1],
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
-    maxHeight: 300,
-    zIndex: 1001,
-  },
-  predictionsList: {
-    borderRadius: borderRadius.lg,
-  },
-  predictionItem: {
-    backgroundColor: colors.neutral[0],
-    padding: 13,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  predictionText: {
-    fontSize: 14,
-    color: colors.neutral[800],
-  },
-  predictionSeparator: {
-    height: 1,
-    backgroundColor: colors.neutral[100],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      ...Platform.select({
+        ios: {
+          paddingTop: 50,
+        },
+        android: {
+          paddingTop: 16,
+        },
+      }),
+    },
+    closeButton: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii['2xl'],
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    locationButton: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii['2xl'],
+      backgroundColor: theme.color.brand.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    locationButtonText: {
+      fontSize: 20,
+    },
+    map: {
+      flex: 1,
+    },
+    infoContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      maxHeight: 250,
+    },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.space[5],
+    },
+    loadingText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginLeft: theme.space[2],
+    },
+    addressContainer: {
+      padding: theme.space[4],
+    },
+    addressTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    addressText: {
+      fontSize: 14,
+      color: theme.color.text.body,
+      marginBottom: 6,
+      lineHeight: 20,
+    },
+    coordinatesText: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+      marginTop: theme.space[2],
+      fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    },
+    instructionsContainer: {
+      padding: theme.space[5],
+      alignItems: 'center',
+    },
+    instructionsText: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      marginBottom: theme.space[2],
+    },
+    instructionsSubtext: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+      textAlign: 'center',
+    },
+    actions: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      gap: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    confirmButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    confirmButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    searchContainer: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    customAutocompleteContainer: {
+      position: 'relative',
+      zIndex: 1000,
+    },
+    searchInputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[3],
+      height: 44,
+    },
+    customSearchInput: {
+      flex: 1,
+      height: 44,
+      fontSize: 15,
+      color: theme.color.text.heading,
+      paddingVertical: 0,
+    },
+    searchIcon: {
+      fontSize: 16,
+      marginRight: theme.space[2],
+    },
+    currentLocationButton: {
+      width: 32,
+      height: 32,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: theme.space[2],
+    },
+    currentLocationIcon: {
+      fontSize: 18,
+    },
+    predictionsContainer: {
+      position: 'absolute',
+      top: 48,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      marginTop: theme.space[1],
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 5,
+      maxHeight: 300,
+      zIndex: 1001,
+    },
+    predictionsList: {
+      borderRadius: theme.radii.lg,
+    },
+    predictionItem: {
+      backgroundColor: theme.color.surface.base,
+      padding: 13,
+      minHeight: 44,
+      justifyContent: 'center',
+    },
+    predictionText: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    predictionSeparator: {
+      height: 1,
+      backgroundColor: theme.color.surface.muted,
+    },
+  });
 
 export default LocationPickerModal;
