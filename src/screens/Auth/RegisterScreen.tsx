@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
-import { theme } from '@/theme';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { validators } from '@/utils/validators';
 
 interface RegisterScreenProps {
@@ -30,6 +31,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { register, isLoading } = useAuth();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const updateField = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
@@ -202,61 +205,61 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.color.background.canvas,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: theme.spacing.lg,
-    paddingTop: theme.spacing.xl,
+    padding: theme.space[6],
+    paddingTop: theme.space[8],
   },
   header: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.space[8],
   },
   title: {
-    fontSize: theme.fontSize.xxl,
+    fontSize: 32,
     fontWeight: '700',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.sm,
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
   },
   subtitle: {
-    fontSize: theme.fontSize.md,
-    color: theme.colors.text.secondary,
+    fontSize: 16,
+    color: theme.color.text.muted,
   },
   form: {
     width: '100%',
   },
   inputContainer: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.space[6],
   },
   label: {
-    fontSize: theme.fontSize.sm,
+    fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.sm,
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
   },
   input: {
     borderWidth: 1,
-    borderColor: theme.colors.border.light,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    fontSize: theme.fontSize.md,
-    color: theme.colors.text.primary,
-    backgroundColor: theme.colors.surface,
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.md,
+    padding: theme.space[4],
+    fontSize: 16,
+    color: theme.color.text.body,
+    backgroundColor: theme.color.surface.base,
   },
   inputError: {
-    borderColor: theme.colors.error,
+    borderColor: theme.color.border.error,
   },
   errorText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.error,
-    marginTop: theme.spacing.xs,
+    fontSize: 14,
+    color: theme.color.text.danger,
+    marginTop: theme.space[1],
   },
   registerButton: {
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    marginTop: theme.space[4],
+    marginBottom: theme.space[6],
   },
   loginContainer: {
     flexDirection: 'row',
@@ -264,12 +267,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loginText: {
-    fontSize: theme.fontSize.md,
-    color: theme.colors.text.secondary,
+    fontSize: 16,
+    color: theme.color.text.muted,
   },
   loginLink: {
-    fontSize: theme.fontSize.md,
-    color: theme.colors.primary,
+    fontSize: 16,
+    color: theme.color.brand.primary,
     fontWeight: '600',
   },
 });

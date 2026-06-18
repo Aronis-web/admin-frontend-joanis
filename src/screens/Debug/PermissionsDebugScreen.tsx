@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
 import { MAIN_ROUTES } from '@/constants/routes';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface PermissionsDebugScreenProps {
   navigation: any;
@@ -10,6 +12,8 @@ interface PermissionsDebugScreenProps {
 
 export const PermissionsDebugScreen: React.FC<PermissionsDebugScreenProps> = ({ navigation }) => {
   const { user } = useAuthStore();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -75,17 +79,17 @@ export const PermissionsDebugScreen: React.FC<PermissionsDebugScreenProps> = ({ 
                   </View>
                 )}
                 {permission.startsWith('users.') && (
-                  <View style={[styles.badge, { backgroundColor: '#FF6B9D' }]}>
+                  <View style={[styles.badge, { backgroundColor: theme.color.state.danger.border }]}>
                     <Text style={styles.badgeText}>USERS</Text>
                   </View>
                 )}
                 {permission.startsWith('roles.') && (
-                  <View style={[styles.badge, { backgroundColor: '#C44569' }]}>
+                  <View style={[styles.badge, { backgroundColor: theme.color.state.danger.text }]}>
                     <Text style={styles.badgeText}>ROLES</Text>
                   </View>
                 )}
                 {permission.startsWith('apps.') && (
-                  <View style={[styles.badge, { backgroundColor: '#F38181' }]}>
+                  <View style={[styles.badge, { backgroundColor: theme.color.state.warning.border }]}>
                     <Text style={styles.badgeText}>APPS</Text>
                   </View>
                 )}
@@ -140,38 +144,38 @@ export const PermissionsDebugScreen: React.FC<PermissionsDebugScreenProps> = ({ 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 20,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   placeholder: {
     width: 40,
@@ -179,136 +183,136 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: theme.space[5],
   },
   section: {
-    marginTop: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    marginTop: theme.space[5],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
+    color: theme.color.text.heading,
+    marginBottom: theme.space[3],
   },
   infoBox: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: theme.space[2],
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: theme.color.surface.muted,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '600',
   },
   itemBox: {
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: theme.color.background.subtle,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
+    marginBottom: theme.space[2],
   },
   itemText: {
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '500',
   },
   permissionBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: theme.color.background.subtle,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
+    marginBottom: theme.space[2],
   },
   permissionText: {
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '500',
     flex: 1,
   },
   badge: {
-    backgroundColor: '#4ECDC4',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: theme.color.state.info.border,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
   },
   badgeText: {
     fontSize: 10,
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontWeight: '700',
   },
   toolButton: {
-    backgroundColor: '#1E293B',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    backgroundColor: theme.color.brand.primary,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
+    borderRadius: theme.radii.md,
     alignItems: 'center',
   },
   toolButtonText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontWeight: '600',
   },
   emptyText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     fontStyle: 'italic',
     textAlign: 'center',
-    paddingVertical: 12,
+    paddingVertical: theme.space[3],
   },
   requirementBox: {
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: theme.color.background.subtle,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
+    marginBottom: theme.space[3],
   },
   requirementTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: theme.color.text.heading,
+    marginBottom: theme.space[1],
   },
   requirementPermission: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontFamily: 'monospace',
-    marginBottom: 4,
+    marginBottom: theme.space[1],
   },
   requirementStatus: {
     fontSize: 14,
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: theme.space[1],
   },
   noteBox: {
-    marginTop: 20,
-    marginBottom: 40,
-    backgroundColor: '#FEF3C7',
-    padding: 16,
-    borderRadius: 12,
+    marginTop: theme.space[5],
+    marginBottom: theme.space[10],
+    backgroundColor: theme.color.state.warning.background,
+    padding: theme.space[4],
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: theme.color.state.warning.border,
   },
   noteTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#92400E',
-    marginBottom: 8,
+    color: theme.color.state.warning.text,
+    marginBottom: theme.space[2],
   },
   noteText: {
     fontSize: 14,
-    color: '#78350F',
+    color: theme.color.state.warning.text,
     lineHeight: 20,
   },
 });

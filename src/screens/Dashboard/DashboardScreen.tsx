@@ -30,7 +30,9 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { config } from '@/utils/config';
 import { authService } from '@/services/AuthService';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
 
 interface PurchasesSummary {
   startDate: string;
@@ -83,6 +85,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
   const { currentCompany } = useAuthStore();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [selectedFilter, setSelectedFilter] = useState<DateFilter>('today');
   const [customStartDate, setCustomStartDate] = useState<Date>(new Date());
@@ -598,7 +602,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const renderChart = (
     data: GroupedData[] | undefined,
     title: string,
-    color: string = '#6366F1'
+    color: string = theme.color.chart.categorical[0]
   ) => {
     if (!data || data.length === 0) {
       return null;
@@ -650,7 +654,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     y1={y}
                     x2={totalWidth - padding.right}
                     y2={y}
-                    stroke="#E2E8F0"
+                    stroke={theme.color.chart.grid}
                     strokeWidth="1"
                     strokeDasharray="4,4"
                   />
@@ -658,7 +662,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     x={padding.left - 5}
                     y={y + 4}
                     fontSize="10"
-                    fill="#64748B"
+                    fill={theme.color.chart.axis}
                     textAnchor="end"
                   >
                     {formatCompactNumber(value)}
@@ -692,7 +696,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                   cx={point.x}
                   cy={point.y}
                   r="5"
-                  fill="#FFFFFF"
+                  fill={theme.color.surface.base}
                   stroke={color}
                   strokeWidth="2"
                 />
@@ -701,7 +705,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                   x={point.x}
                   y={chartHeight - 10}
                   fontSize="9"
-                  fill="#64748B"
+                  fill={theme.color.chart.axis}
                   textAnchor="middle"
                   transform={`rotate(-45, ${point.x}, ${chartHeight - 10})`}
                 >
@@ -716,7 +720,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               y1={padding.top + graphHeight}
               x2={totalWidth - padding.right}
               y2={padding.top + graphHeight}
-              stroke="#94A3B8"
+              stroke={theme.color.chart.axis}
               strokeWidth="2"
             />
 
@@ -726,7 +730,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               y1={padding.top}
               x2={padding.left}
               y2={padding.top + graphHeight}
-              stroke="#94A3B8"
+              stroke={theme.color.chart.axis}
               strokeWidth="2"
             />
           </Svg>
@@ -790,7 +794,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     y1={y}
                     x2={totalWidth - padding.right}
                     y2={y}
-                    stroke="#E2E8F0"
+                    stroke={theme.color.chart.grid}
                     strokeWidth="1"
                     strokeDasharray="4,4"
                   />
@@ -798,7 +802,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     x={padding.left - 5}
                     y={y + 4}
                     fontSize="10"
-                    fill="#64748B"
+                    fill={theme.color.chart.axis}
                     textAnchor="end"
                   >
                     {formatCompactNumber(value)}
@@ -810,14 +814,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             {/* Área bajo la línea */}
             <Path
               d={areaPath}
-              fill="#10B981"
+              fill={theme.color.chart.categorical[6]}
               fillOpacity="0.1"
             />
 
             {/* Línea principal */}
             <Path
               d={linePath}
-              stroke="#10B981"
+              stroke={theme.color.chart.categorical[6]}
               strokeWidth="3"
               fill="none"
               strokeLinecap="round"
@@ -831,15 +835,15 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                   cx={point.x}
                   cy={point.y}
                   r="5"
-                  fill="#FFFFFF"
-                  stroke="#10B981"
+                  fill={theme.color.surface.base}
+                  stroke={theme.color.chart.categorical[6]}
                   strokeWidth="2"
                 />
                 <SvgText
                   x={point.x}
                   y={chartHeight - 10}
                   fontSize="9"
-                  fill="#64748B"
+                  fill={theme.color.chart.axis}
                   textAnchor="middle"
                   transform={`rotate(-45, ${point.x}, ${chartHeight - 10})`}
                 >
@@ -854,7 +858,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               y1={padding.top + graphHeight}
               x2={totalWidth - padding.right}
               y2={padding.top + graphHeight}
-              stroke="#94A3B8"
+              stroke={theme.color.chart.axis}
               strokeWidth="2"
             />
 
@@ -864,7 +868,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               y1={padding.top}
               x2={padding.left}
               y2={padding.top + graphHeight}
-              stroke="#94A3B8"
+              stroke={theme.color.chart.axis}
               strokeWidth="2"
             />
           </Svg>
@@ -877,7 +881,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header con gradiente */}
       <LinearGradient
-        colors={[colors.primary[900], colors.primary[800]]}
+        colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -886,7 +890,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           <View style={styles.headerTitleContainer}>
             <View style={styles.headerIconRow}>
               <View style={styles.headerIconContainer}>
-                <Ionicons name="stats-chart" size={22} color={colors.neutral[0]} />
+                <Ionicons name="stats-chart" size={22} color={theme.color.brand.onHeader} />
               </View>
               <Text style={[styles.title, isTablet && styles.titleTablet]}>Dashboard</Text>
             </View>
@@ -903,7 +907,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               disabled={loadingSedes}
               activeOpacity={0.7}
             >
-              <Ionicons name="storefront" size={16} color={colors.neutral[0]} />
+              <Ionicons name="storefront" size={16} color={theme.color.brand.onHeader} />
               <View style={styles.sedeSelectorText}>
                 <Text style={styles.sedeSelectorLabel}>Sede</Text>
                 <Text style={styles.sedeSelectorValue} numberOfLines={1}>
@@ -912,7 +916,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     : 'Todas'}
                 </Text>
               </View>
-              <Ionicons name="chevron-down" size={14} color="rgba(255,255,255,0.6)" />
+              <Ionicons name="chevron-down" size={14} color={theme.color.brand.onHeaderMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -921,7 +925,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.accent[500]]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[theme.color.brand.accent]} />}
       >
 
         {/* Date Filters - Ahora arriba de todo */}
@@ -959,7 +963,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             {/* Loading State */}
             {loadingSales && !refreshing && (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#10B981" />
+                <ActivityIndicator size="large" color={theme.color.chart.categorical[6]} />
                 <Text style={styles.loadingText}>Cargando resumen de ventas...</Text>
               </View>
             )}
@@ -1094,7 +1098,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             {/* Loading State */}
             {loading && !refreshing && (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6366F1" />
+                <ActivityIndicator size="large" color={theme.color.chart.categorical[0]} />
                 <Text style={styles.loadingText}>Cargando resumen...</Text>
               </View>
             )}
@@ -1144,7 +1148,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 </View>
 
                 {/* Chart */}
-                {renderChart(purchasesGrouped?.groupedData, '📈 Compras en el Período', '#6366F1')}
+                {renderChart(purchasesGrouped?.groupedData, '📈 Compras en el Período', theme.color.chart.categorical[0])}
 
                 {/* Top Suppliers */}
                 {purchasesSummary.topSuppliers.length > 0 && (
@@ -1547,7 +1551,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 disabled={downloadingReport}
               >
                 {downloadingReport ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={theme.color.text.onAction} />
                 ) : (
                   <Text style={styles.modalApplyButtonText}>📄 Descargar PDF</Text>
                 )}
@@ -1575,22 +1579,22 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[5],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[5],
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[4],
-    paddingBottom: spacing[8],
+    padding: theme.space[4],
+    paddingBottom: theme.space[8],
   },
   headerTop: {
     flexDirection: 'row',
@@ -1603,21 +1607,21 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   titleTablet: {
@@ -1625,9 +1629,9 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   subtitleTablet: {
     fontSize: 15,
@@ -1635,176 +1639,176 @@ const styles = StyleSheet.create({
   sedeSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    marginLeft: spacing[3],
+    backgroundColor: theme.color.brand.headerBadge,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
+    marginLeft: theme.space[3],
     minWidth: 120,
     maxWidth: 160,
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   sedeSelectorText: {
     flex: 1,
   },
   sedeSelectorLabel: {
     fontSize: 9,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   sedeSelectorValue: {
     fontSize: 12,
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     fontWeight: '600',
   },
   section: {
-    marginBottom: spacing[6],
+    marginBottom: theme.space[6],
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   sectionTitleTablet: {
     fontSize: 20,
   },
   filtersContainer: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   filtersContent: {
-    paddingRight: spacing[4],
+    paddingRight: theme.space[4],
   },
   filterButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2.5],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    marginRight: spacing[2],
+    borderColor: theme.color.border.subtle,
+    marginRight: theme.space[2],
   },
   filterButtonTablet: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[3],
   },
   filterButtonActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   filterButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   filterButtonTextTablet: {
     fontSize: 14,
   },
   filterButtonTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
   },
   loadingContainer: {
-    padding: spacing[10],
+    padding: theme.space[10],
     alignItems: 'center',
     justifyContent: 'center',
   },
   loadingText: {
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
     fontSize: 15,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   errorContainer: {
-    padding: spacing[8],
+    padding: theme.space[8],
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.state.danger.background,
+    borderRadius: theme.radii.xl,
     borderWidth: 1,
-    borderColor: colors.danger[100],
+    borderColor: theme.color.state.danger.border,
   },
   errorIcon: {
     fontSize: 48,
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   errorText: {
     fontSize: 15,
-    color: colors.danger[600],
+    color: theme.color.text.danger,
     textAlign: 'center',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
     fontWeight: '500',
   },
   retryButton: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2.5],
-    backgroundColor: colors.danger[600],
-    borderRadius: borderRadius.lg,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[2.5],
+    backgroundColor: theme.color.action.danger.background,
+    borderRadius: theme.radii.lg,
   },
   retryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.action.danger.text,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -spacing[1.5],
-    marginBottom: spacing[5],
+    marginHorizontal: -theme.space[1.5],
+    marginBottom: theme.space[5],
   },
   statsGridTablet: {
-    marginHorizontal: -spacing[2],
+    marginHorizontal: -theme.space[2],
   },
   statCard: {
     flex: 1,
     minWidth: '30%',
-    margin: spacing[1.5],
-    padding: spacing[4],
-    borderRadius: borderRadius.xl,
+    margin: theme.space[1.5],
+    padding: theme.space[4],
+    borderRadius: theme.radii.xl,
     alignItems: 'center',
-    shadowColor: colors.neutral[950],
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
   statCardPrimary: {
-    backgroundColor: colors.accent[50],
+    backgroundColor: theme.color.brand.accentSoft,
     borderWidth: 1,
-    borderColor: colors.accent[100],
+    borderColor: theme.color.brand.accentSoft,
   },
   statCardSuccess: {
-    backgroundColor: colors.success[50],
+    backgroundColor: theme.color.state.success.background,
     borderWidth: 1,
-    borderColor: colors.success[100],
+    borderColor: theme.color.state.success.background,
   },
   statCardInfo: {
-    backgroundColor: colors.info[50],
+    backgroundColor: theme.color.state.info.background,
     borderWidth: 1,
-    borderColor: colors.info[100],
+    borderColor: theme.color.state.info.background,
   },
   statIcon: {
     fontSize: 28,
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   statLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
     textAlign: 'center',
   },
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     textAlign: 'center',
   },
   statValueTablet: {
@@ -1812,19 +1816,19 @@ const styles = StyleSheet.create({
   },
   statSubtext: {
     fontSize: 10,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
+    color: theme.color.text.muted,
+    marginTop: theme.space[1],
     fontWeight: '500',
     textAlign: 'center',
   },
   filtersSection: {
-    marginBottom: spacing[5],
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
+    marginBottom: theme.space[5],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -1833,29 +1837,29 @@ const styles = StyleSheet.create({
   filtersLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[3],
   },
   filtersLabelTablet: {
     fontSize: 16,
   },
   statCardWarning: {
-    backgroundColor: colors.warning[50],
+    backgroundColor: theme.color.state.warning.background,
     borderWidth: 1,
-    borderColor: colors.warning[100],
+    borderColor: theme.color.state.warning.background,
   },
   statCardDanger: {
-    backgroundColor: colors.danger[50],
+    backgroundColor: theme.color.state.danger.background,
     borderWidth: 1,
-    borderColor: colors.danger[100],
+    borderColor: theme.color.state.danger.background,
   },
   suppliersSection: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -1864,37 +1868,37 @@ const styles = StyleSheet.create({
   suppliersTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[1],
   },
   suppliersTitleTablet: {
     fontSize: 18,
   },
   suppliersSubtitle: {
     fontSize: 12,
-    color: colors.neutral[500],
-    marginBottom: spacing[4],
+    color: theme.color.text.muted,
+    marginBottom: theme.space[4],
   },
   supplierCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
+    borderBottomColor: theme.color.border.subtle,
   },
   supplierRank: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.primary[100],
+    backgroundColor: theme.color.brand.primarySoft,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   supplierRankText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.primary[700],
+    color: theme.color.brand.primary,
   },
   supplierInfo: {
     flex: 1,
@@ -1902,8 +1906,8 @@ const styles = StyleSheet.create({
   supplierName: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[1],
   },
   supplierNameTablet: {
     fontSize: 15,
@@ -1914,78 +1918,78 @@ const styles = StyleSheet.create({
   },
   supplierStat: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   supplierStatSeparator: {
     fontSize: 12,
-    color: colors.neutral[300],
-    marginHorizontal: spacing[1.5],
+    color: theme.color.border.default,
+    marginHorizontal: theme.space[1.5],
   },
   supplierPercentage: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.full,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[1],
+    backgroundColor: theme.color.brand.accentSoft,
+    borderRadius: theme.radii.full,
   },
   supplierPercentageText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.accent[700],
+    color: theme.color.brand.accent,
   },
   emptyState: {
-    padding: spacing[10],
+    padding: theme.space[10],
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   emptyStateIcon: {
     fontSize: 56,
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   emptyStateText: {
     fontSize: 15,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
     fontWeight: '500',
   },
   noPermissionsContainer: {
-    padding: spacing[10],
+    padding: theme.space[10],
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.state.warning.background,
+    borderRadius: theme.radii.xl,
     borderWidth: 1,
-    borderColor: colors.warning[100],
+    borderColor: theme.color.state.warning.background,
   },
   noPermissionsIcon: {
     fontSize: 56,
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   noPermissionsText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.warning[800],
+    color: theme.color.state.warning.text,
     textAlign: 'center',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   noPermissionsHint: {
     fontSize: 14,
-    color: colors.warning[700],
+    color: theme.color.state.warning.text,
     textAlign: 'center',
   },
   // Chart styles
   chartContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[5],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginBottom: theme.space[5],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -1994,8 +1998,8 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[4],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[4],
   },
   chartTitleTablet: {
     fontSize: 18,
@@ -2003,17 +2007,17 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
     width: '100%',
     maxWidth: 400,
-    shadowColor: colors.neutral[950],
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
@@ -2023,72 +2027,72 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing[5],
+    padding: theme.space[5],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
+    borderBottomColor: theme.color.border.subtle,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   modalCloseButton: {
     fontSize: 22,
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
     fontWeight: '600',
   },
   modalBody: {
-    padding: spacing[5],
+    padding: theme.space[5],
   },
   dateLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
+    color: theme.color.text.muted,
+    marginBottom: theme.space[2],
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   modalFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    padding: spacing[5],
+    padding: theme.space[5],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-    gap: spacing[3],
+    borderTopColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   modalCancelButton: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[2.5],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.surface.muted,
   },
   modalCancelButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[600],
+    color: theme.color.text.body,
   },
   modalApplyButton: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[900],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[2.5],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.primary,
   },
   modalApplyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
   },
   sedeModalItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
+    borderBottomColor: theme.color.border.subtle,
   },
   sedeModalItemSelected: {
-    backgroundColor: colors.accent[50],
+    backgroundColor: theme.color.brand.accentSoft,
   },
   sedeModalItemContent: {
     flexDirection: 'row',
@@ -2097,7 +2101,7 @@ const styles = StyleSheet.create({
   },
   sedeModalItemIcon: {
     fontSize: 22,
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   sedeModalItemText: {
     flex: 1,
@@ -2105,31 +2109,31 @@ const styles = StyleSheet.create({
   sedeModalItemName: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[0.5],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[0.5],
   },
   sedeModalItemCode: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   sedeModalItemCheck: {
     fontSize: 18,
-    color: colors.accent[600],
+    color: theme.color.brand.accent,
     fontWeight: '700',
   },
   // Reports styles
   reportsGrid: {
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   reportCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -2138,11 +2142,11 @@ const styles = StyleSheet.create({
   reportIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.success[50],
+    borderRadius: theme.radii.xl,
+    backgroundColor: theme.color.state.success.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[4],
+    marginRight: theme.space[4],
   },
   reportIcon: {
     fontSize: 24,
@@ -2153,44 +2157,44 @@ const styles = StyleSheet.create({
   reportTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[1],
   },
   reportDescription: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     lineHeight: 18,
   },
   reportArrow: {
     fontSize: 22,
-    color: colors.neutral[300],
-    marginLeft: spacing[2],
+    color: theme.color.border.default,
+    marginLeft: theme.space[2],
   },
   reportsModalContent: {
     maxHeight: '90%',
   },
   reportParamSection: {
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
   },
   reportParamLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[2],
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   reportDateInput: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3.5],
+    backgroundColor: theme.color.surface.muted,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[3.5],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   reportDateInputText: {
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     fontWeight: '500',
   },
   reportDateInputIcon: {
@@ -2198,27 +2202,27 @@ const styles = StyleSheet.create({
   },
   reportChipsContainer: {
     flexDirection: 'row',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   reportChip: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[50],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1.5,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   reportChipActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   reportChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   reportChipTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
   },
   reportCheckboxContainer: {
     flexDirection: 'row',
@@ -2227,25 +2231,25 @@ const styles = StyleSheet.create({
   reportCheckbox: {
     width: 22,
     height: 22,
-    borderRadius: borderRadius.sm,
+    borderRadius: theme.radii.sm,
     borderWidth: 2,
-    borderColor: colors.neutral[300],
+    borderColor: theme.color.border.default,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   reportCheckboxChecked: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   reportCheckboxCheck: {
     fontSize: 12,
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
     fontWeight: '700',
   },
   reportCheckboxLabel: {
     fontSize: 14,
-    color: colors.neutral[600],
+    color: theme.color.text.body,
     fontWeight: '500',
   },
   modalApplyButtonDisabled: {

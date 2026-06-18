@@ -12,7 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { companiesApi, scopesApi } from '@/services/api';
@@ -40,6 +41,8 @@ interface LegacySiteSelectionScreenProps {
 export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ navigation, route }) => {
   const { user, logout, currentCompany, setCurrentSite } = useAuthStore();
   const { setSelectedSite } = useTenantStore();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
 
@@ -295,9 +298,9 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <View style={styles.loadingIconContainer}>
-            <Ionicons name="storefront" size={48} color={colors.accent[500]} />
+            <Ionicons name="storefront" size={48} color={theme.color.brand.accent} />
           </View>
-          <ActivityIndicator size="large" color={colors.accent[500]} style={{ marginTop: spacing[4] }} />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} style={{ marginTop: theme.space[4] }} />
           <Text style={styles.loadingText}>Cargando sedes...</Text>
         </View>
       </SafeAreaView>
@@ -308,30 +311,30 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header con gradiente */}
       <LinearGradient
-        colors={[colors.primary[900], colors.primary[800]]}
+        colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
         <TouchableOpacity onPress={handleBack} style={styles.backButton} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={22} color={colors.neutral[0]} />
+          <Ionicons name="arrow-back" size={22} color={theme.color.brand.onHeader} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <View style={styles.headerIconContainer}>
-            <Ionicons name="storefront" size={24} color={colors.neutral[0]} />
+            <Ionicons name="storefront" size={24} color={theme.color.brand.onHeader} />
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
               Seleccionar Sede
             </Text>
             <View style={styles.companyBadge}>
-              <Ionicons name="business-outline" size={12} color="rgba(255, 255, 255, 0.7)" />
+              <Ionicons name="business-outline" size={12} color={theme.color.brand.onHeaderMuted} />
               <Text style={styles.headerSubtitle}>{companyName}</Text>
             </View>
           </View>
         </View>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton} activeOpacity={0.7}>
-          <Ionicons name="log-out-outline" size={20} color={colors.danger[400]} />
+          <Ionicons name="log-out-outline" size={20} color={theme.color.icon.danger} />
         </TouchableOpacity>
       </LinearGradient>
 
@@ -344,7 +347,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
         {/* Info Card */}
         <View style={styles.infoCard}>
           <View style={styles.infoIconContainer}>
-            <Ionicons name="information-circle" size={24} color={colors.info[600]} />
+            <Ionicons name="information-circle" size={24} color={theme.color.state.info.border} />
           </View>
           <Text style={styles.infoText}>
             Selecciona la sede con la que deseas trabajar
@@ -383,17 +386,17 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
                   <LinearGradient
                     colors={
                       !canSelect
-                        ? [colors.neutral[400], colors.neutral[500]]
+                        ? [theme.color.border.strong, theme.color.text.muted]
                         : selectedSiteId === siteId
-                          ? [colors.accent[500], colors.accent[600]]
-                          : [colors.success[500], colors.success[600]]
+                          ? [theme.color.brand.avatarFrom, theme.color.brand.avatarTo]
+                          : [theme.color.state.success.border, theme.color.state.success.text]
                     }
                     style={styles.siteIconContainer}
                   >
                     <Ionicons
                       name={canSelect ? 'storefront' : 'lock-closed'}
                       size={22}
-                      color={colors.neutral[0]}
+                      color={theme.color.brand.onHeader}
                     />
                   </LinearGradient>
                   <View style={styles.siteInfo}>
@@ -402,22 +405,22 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
                     </Text>
                     {siteCode && (
                       <View style={styles.codeContainer}>
-                        <Ionicons name="pricetag-outline" size={12} color={colors.neutral[400]} />
+                        <Ionicons name="pricetag-outline" size={12} color={theme.color.text.placeholder} />
                         <Text style={styles.siteCode}>{siteCode}</Text>
                       </View>
                     )}
                     {!canSelect && (
                       <View style={styles.restrictedBadge}>
-                        <Ionicons name="lock-closed" size={10} color={colors.warning[700]} />
+                        <Ionicons name="lock-closed" size={10} color={theme.color.state.warning.text} />
                         <Text style={styles.restrictedText}>Acceso Restringido</Text>
                       </View>
                     )}
                   </View>
                   {selectedSiteId === siteId ? (
-                    <ActivityIndicator size="small" color={colors.accent[500]} />
+                    <ActivityIndicator size="small" color={theme.color.brand.accent} />
                   ) : canSelect ? (
                     <View style={styles.arrowContainer}>
-                      <Ionicons name="chevron-forward" size={24} color={colors.neutral[400]} />
+                      <Ionicons name="chevron-forward" size={24} color={theme.color.text.placeholder} />
                     </View>
                   ) : null}
                 </View>
@@ -430,7 +433,7 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
         <View style={styles.footer}>
           <View style={styles.footerDivider} />
           <View style={styles.footerContent}>
-            <Ionicons name="location-outline" size={16} color={colors.neutral[400]} />
+            <Ionicons name="location-outline" size={16} color={theme.color.text.placeholder} />
             <Text style={styles.footerText}>
               {sites.filter((s) => s.canSelect !== false).length} de {sites.length}{' '}
               {sites.length === 1 ? 'sede disponible' : 'sedes disponibles'}
@@ -442,25 +445,25 @@ export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[5],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[5],
     flexDirection: 'row',
     alignItems: 'center',
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerContent: {
     flex: 1,
@@ -470,11 +473,11 @@ const styles = StyleSheet.create({
   headerIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerTextContainer: {
     flex: 1,
@@ -482,8 +485,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
-    marginBottom: spacing[0.5],
+    color: theme.color.brand.onHeader,
+    marginBottom: theme.space[0.5],
     letterSpacing: 0.3,
   },
   headerTitleTablet: {
@@ -492,18 +495,18 @@ const styles = StyleSheet.create({
   companyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   headerSubtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
   },
   logoutButton: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -511,76 +514,76 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   loadingIconContainer: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: colors.accent[50],
+    backgroundColor: theme.color.brand.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[5],
-    paddingBottom: spacing[10],
+    padding: theme.space[5],
+    paddingBottom: theme.space[10],
   },
   contentContainerTablet: {
-    paddingHorizontal: spacing[8],
+    paddingHorizontal: theme.space[8],
     maxWidth: 900,
     alignSelf: 'center',
     width: '100%',
   },
   infoCard: {
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[6],
+    backgroundColor: theme.color.state.info.background,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginBottom: theme.space[6],
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.info[100],
+    borderColor: theme.color.state.info.background,
   },
   infoIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.info[100],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.state.info.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: colors.info[800],
+    color: theme.color.state.info.text,
     lineHeight: 20,
     fontWeight: '500',
   },
   sitesContainer: {
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   sitesContainerTablet: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[4],
+    gap: theme.space[4],
   },
   siteCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    padding: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
+    padding: theme.space[4],
     borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -592,14 +595,14 @@ const styles = StyleSheet.create({
     maxWidth: '48%',
   },
   siteCardSelected: {
-    borderColor: colors.accent[500],
-    backgroundColor: colors.accent[50],
-    shadowColor: colors.accent[500],
+    borderColor: theme.color.brand.accent,
+    backgroundColor: theme.color.brand.accentSoft,
+    shadowColor: theme.color.brand.accent,
     shadowOpacity: 0.15,
   },
   siteCardDisabled: {
     opacity: 0.7,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.surface.subtle,
   },
   siteCardContent: {
     flexDirection: 'row',
@@ -608,10 +611,10 @@ const styles = StyleSheet.create({
   siteIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: borderRadius.lg,
+    borderRadius: theme.radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[4],
+    marginRight: theme.space[4],
   },
   siteInfo: {
     flex: 1,
@@ -619,42 +622,42 @@ const styles = StyleSheet.create({
   siteName: {
     fontSize: 17,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[1],
     letterSpacing: 0.2,
   },
   siteNameTablet: {
     fontSize: 18,
   },
   siteNameDisabled: {
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   codeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
-    marginBottom: spacing[1],
+    gap: theme.space[1],
+    marginBottom: theme.space[1],
   },
   siteCode: {
     fontSize: 13,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontFamily: 'monospace',
   },
   restrictedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.warning[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    gap: spacing[1],
+    backgroundColor: theme.color.state.warning.background,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.full,
+    gap: theme.space[1],
     alignSelf: 'flex-start',
-    marginTop: spacing[1],
+    marginTop: theme.space[1],
   },
   restrictedText: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.warning[700],
+    color: theme.color.state.warning.text,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
@@ -662,29 +665,29 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   footer: {
-    marginTop: spacing[8],
+    marginTop: theme.space[8],
     alignItems: 'center',
   },
   footerDivider: {
     width: 60,
     height: 3,
-    backgroundColor: colors.neutral[200],
-    borderRadius: borderRadius.full,
-    marginBottom: spacing[4],
+    backgroundColor: theme.color.border.subtle,
+    borderRadius: theme.radii.full,
+    marginBottom: theme.space[4],
   },
   footerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   footerText: {
     fontSize: 13,
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
     fontWeight: '500',
   },
 });
