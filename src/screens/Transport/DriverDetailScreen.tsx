@@ -15,6 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { transportService } from '@/services/api';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Driver,
   CreateDriverRequest,
@@ -24,6 +26,8 @@ import {
 } from '@/types/transport';
 
 export const DriverDetailScreen = ({ navigation, route }: any) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const driverId = route?.params?.driverId;
   const isCreateMode = !driverId;
 
@@ -223,7 +227,7 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando conductor...</Text>
         </View>
       </SafeAreaView>
@@ -235,7 +239,7 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.text.heading} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {isCreateMode ? 'Nuevo Conductor' : isEditing ? 'Editar Conductor' : 'Detalle de Conductor'}
@@ -243,12 +247,12 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
         <View style={styles.headerActions}>
           {!isCreateMode && !isEditing && (
             <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.editButton}>
-              <Ionicons name="create-outline" size={24} color="#6366F1" />
+              <Ionicons name="create-outline" size={24} color={theme.color.brand.accent} />
             </TouchableOpacity>
           )}
           {!isCreateMode && isEditing && (
             <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.cancelButton}>
-              <Ionicons name="close" size={24} color="#EF4444" />
+              <Ionicons name="close" size={24} color={theme.color.text.danger} />
             </TouchableOpacity>
           )}
         </View>
@@ -267,7 +271,7 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
               disabled={!isEditing}
             >
               <Text style={styles.selectText}>{getTipoDocumentoLabel(formData.tipoDocumento)}</Text>
-              {isEditing && <Ionicons name="chevron-down" size={20} color="#6B7280" />}
+              {isEditing && <Ionicons name="chevron-down" size={20} color={theme.color.text.muted} />}
             </TouchableOpacity>
           </View>
 
@@ -428,7 +432,7 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
               disabled={!isEditing}
             >
               <Text style={styles.selectText}>{getStatusLabel(formData.status)}</Text>
-              {isEditing && <Ionicons name="chevron-down" size={20} color="#6B7280" />}
+              {isEditing && <Ionicons name="chevron-down" size={20} color={theme.color.text.muted} />}
             </TouchableOpacity>
           </View>
 
@@ -438,8 +442,8 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
               value={formData.isActive}
               onValueChange={(value) => setFormData({ ...formData, isActive: value })}
               disabled={!isEditing}
-              trackColor={{ false: '#D1D5DB', true: '#10B981' }}
-              thumbColor={formData.isActive ? '#FFFFFF' : '#F3F4F6'}
+              trackColor={{ false: theme.color.border.default, true: theme.color.action.success.background }}
+              thumbColor={formData.isActive ? theme.color.text.inverse : theme.color.surface.muted}
             />
           </View>
         </View>
@@ -470,10 +474,10 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.color.text.inverse} />
               ) : (
                 <>
-                  <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                  <Ionicons name="checkmark" size={20} color={theme.color.text.inverse} />
                   <Text style={styles.buttonText}>{isCreateMode ? 'Crear Conductor' : 'Guardar Cambios'}</Text>
                 </>
               )}
@@ -481,7 +485,7 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
 
             {!isCreateMode && (
               <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={handleDelete}>
-                <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+                <Ionicons name="trash-outline" size={20} color={theme.color.text.inverse} />
                 <Text style={styles.buttonText}>Eliminar</Text>
               </TouchableOpacity>
             )}
@@ -504,7 +508,7 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
                 }}
               >
                 <Text style={styles.modalOptionText}>{getTipoDocumentoLabel(tipo)}</Text>
-                {formData.tipoDocumento === tipo && <Ionicons name="checkmark" size={20} color="#6366F1" />}
+                {formData.tipoDocumento === tipo && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
               </TouchableOpacity>
             ))}
           </View>
@@ -526,7 +530,7 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
                 }}
               >
                 <Text style={styles.modalOptionText}>{getStatusLabel(status)}</Text>
-                {formData.status === status && <Ionicons name="checkmark" size={20} color="#6366F1" />}
+                {formData.status === status && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
               </TouchableOpacity>
             ))}
           </View>
@@ -536,182 +540,183 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  editButton: {
-    padding: 8,
-  },
-  cancelButton: {
-    padding: 8,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 16,
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#1F2937',
-    backgroundColor: '#FFFFFF',
-  },
-  inputDisabled: {
-    backgroundColor: '#F3F4F6',
-    color: '#6B7280',
-  },
-  selectInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  selectText: {
-    fontSize: 16,
-    color: '#1F2937',
-  },
-  textArea: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  hint: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  switchLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  buttonContainer: {
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 32,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 8,
-    gap: 8,
-  },
-  saveButton: {
-    backgroundColor: '#6366F1',
-  },
-  deleteButton: {
-    backgroundColor: '#EF4444',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    width: '80%',
-    maxHeight: '70%',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 16,
-  },
-  modalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalOptionText: {
-    fontSize: 16,
-    color: '#1F2937',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    backButton: {
+      padding: 8,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      flex: 1,
+      textAlign: 'center',
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    editButton: {
+      padding: 8,
+    },
+    cancelButton: {
+      padding: 8,
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: 16,
+    },
+    section: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: 16,
+    },
+    formGroup: {
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    inputDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      color: theme.color.text.muted,
+    },
+    selectInput: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    selectText: {
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    textArea: {
+      minHeight: 100,
+      textAlignVertical: 'top',
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    switchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+    },
+    switchLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    buttonContainer: {
+      gap: 12,
+      marginTop: 8,
+      marginBottom: 32,
+    },
+    button: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      borderRadius: 8,
+      gap: 8,
+    },
+    saveButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    deleteButton: {
+      backgroundColor: theme.color.action.danger.background,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    buttonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.elevated,
+      borderRadius: 12,
+      padding: 20,
+      width: '80%',
+      maxHeight: '70%',
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: 16,
+    },
+    modalOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalOptionText: {
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+  });
