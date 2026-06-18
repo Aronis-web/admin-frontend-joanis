@@ -12,7 +12,8 @@ import {
   Switch,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { userAppRolesApi, AppUser, AssignUserRoleDto } from '@/services/api/apps';
 import { usersApi, User } from '@/services/api/users';
 import { rolesApi, Role } from '@/services/api/roles';
@@ -37,6 +38,8 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
   appName,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { selectedCompany: tenantCompany } = useTenantStore();
   const [appUsers, setAppUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -409,8 +412,13 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
                     <Switch
                       value={enableScope}
                       onValueChange={setEnableScope}
-                      trackColor={{ false: colors.neutral[200], true: colors.accent[500] }}
-                      thumbColor={enableScope ? colors.neutral[0] : colors.neutral[400]}
+                      trackColor={{
+                        false: theme.color.border.subtle,
+                        true: theme.color.brand.accent,
+                      }}
+                      thumbColor={
+                        enableScope ? theme.color.text.onAction : theme.color.text.placeholder
+                      }
                     />
                   </View>
                 </View>
@@ -584,7 +592,7 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
                     disabled={assigning}
                   >
                     {assigning ? (
-                      <ActivityIndicator color={colors.neutral[0]} />
+                      <ActivityIndicator color={theme.color.text.onAction} />
                     ) : (
                       <Text style={styles.saveButtonText}>Asignar</Text>
                     )}
@@ -602,7 +610,7 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
                   placeholder="Buscar usuarios..."
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  placeholderTextColor={colors.neutral[400]}
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="default"
                 />
                 {searchQuery.length > 0 && (
@@ -619,7 +627,7 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
 
               {loading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={colors.accent[500]} />
+                  <ActivityIndicator size="large" color={theme.color.brand.accent} />
                 </View>
               ) : filteredUsers.length === 0 ? (
                 <View style={styles.emptyContainer}>
@@ -651,381 +659,382 @@ export const UsersManagementModal: React.FC<UsersManagementModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    shadowColor: colors.neutral[900],
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  content: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-  },
-  infoCard: {
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.accent[100],
-  },
-  infoText: {
-    fontSize: 14,
-    color: colors.primary[600],
-    lineHeight: 20,
-  },
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.accent[500],
-    marginBottom: spacing[1],
-  },
-  statLabel: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    fontWeight: '500',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: colors.neutral[200],
-    marginHorizontal: spacing[4],
-  },
-  addButton: {
-    backgroundColor: colors.accent[500],
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    marginBottom: spacing[5],
-    shadowColor: colors.accent[500],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  addForm: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[5],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  formTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[4],
-  },
-  formGroup: {
-    marginBottom: spacing[4],
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  pickerContainer: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-    color: colors.neutral[800],
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  switchLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  switchHint: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: 2,
-  },
-  typeButtons: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    backgroundColor: colors.neutral[0],
-    alignItems: 'center',
-  },
-  typeButtonActive: {
-    borderColor: colors.accent[500],
-    backgroundColor: colors.accent[50],
-  },
-  typeButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  typeButtonTextActive: {
-    color: colors.accent[500],
-  },
-  hint: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-    fontStyle: 'italic',
-  },
-  formActions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginTop: spacing[2],
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    backgroundColor: colors.neutral[0],
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  saveButton: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.success[500],
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  saveButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: spacing[2],
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.neutral[800],
-  },
-  clearIcon: {
-    fontSize: 16,
-    color: colors.neutral[400],
-    paddingHorizontal: spacing[2],
-  },
-  usersList: {
-    marginTop: spacing[2],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    textAlign: 'center',
-  },
-  userCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  userHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  userAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.accent[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  userAvatarText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: 2,
-  },
-  userEmail: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  removeButton: {
-    padding: 8,
-  },
-  removeButtonText: {
-    fontSize: 18,
-  },
-  userFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  roleBadge: {
-    backgroundColor: colors.accent[50],
-    paddingHorizontal: spacing[3],
-    paddingVertical: 6,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.accent[100],
-  },
-  roleText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.accent[500],
-  },
-  assignedDate: {
-    fontSize: 12,
-    color: colors.neutral[400],
-  },
-  footer: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  closeFooterButton: {
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.neutral[100],
-    alignItems: 'center',
-  },
-  closeFooterButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 5,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    content: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+    },
+    infoCard: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.brand.accentSoft,
+    },
+    infoText: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      lineHeight: 20,
+    },
+    statsCard: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    statItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statNumber: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+      marginBottom: theme.space[1],
+    },
+    statLabel: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    statDivider: {
+      width: 1,
+      backgroundColor: theme.color.border.subtle,
+      marginHorizontal: theme.space[4],
+    },
+    addButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      marginBottom: theme.space[5],
+      shadowColor: theme.color.brand.accent,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    addButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    addForm: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[5],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    formTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[4],
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+    label: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      overflow: 'hidden',
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    switchLabel: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    switchHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    typeButtons: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    typeButton: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+    },
+    typeButtonActive: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    typeButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    typeButtonTextActive: {
+      color: theme.color.brand.accent,
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
+    },
+    formActions: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.xl,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    saveButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.action.success.background,
+      alignItems: 'center',
+    },
+    saveButtonDisabled: {
+      backgroundColor: theme.color.text.placeholder,
+    },
+    saveButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.action.success.text,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    searchIcon: {
+      fontSize: 18,
+      marginRight: theme.space[2],
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 15,
+      color: theme.color.text.heading,
+    },
+    clearIcon: {
+      fontSize: 16,
+      color: theme.color.text.placeholder,
+      paddingHorizontal: theme.space[2],
+    },
+    usersList: {
+      marginTop: theme.space[2],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    loadingContainer: {
+      paddingVertical: 40,
+      alignItems: 'center',
+    },
+    emptyContainer: {
+      paddingVertical: 40,
+      alignItems: 'center',
+    },
+    emptyIcon: {
+      fontSize: 48,
+      marginBottom: 12,
+    },
+    emptyText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+      textAlign: 'center',
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    userCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    userHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    userAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    userAvatarText: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.onAction,
+    },
+    userInfo: {
+      flex: 1,
+    },
+    userName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    userEmail: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    removeButton: {
+      padding: 8,
+    },
+    removeButtonText: {
+      fontSize: 18,
+    },
+    userFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    roleBadge: {
+      backgroundColor: theme.color.brand.accentSoft,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: 6,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.brand.accentSoft,
+    },
+    roleText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    assignedDate: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+    },
+    footer: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    closeFooterButton: {
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+    },
+    closeFooterButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+  });
 
 export default UsersManagementModal;

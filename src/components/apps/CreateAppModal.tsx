@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { appsApi, CreateAppDto, AppType } from '@/services/api/apps';
 
@@ -36,6 +37,8 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
   onClose,
   onAppCreated,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [formData, setFormData] = useState<CreateAppDto>({
     code: '',
     name: '',
@@ -220,8 +223,13 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
                 <Switch
                   value={formData.isActive}
                   onValueChange={(value) => updateField('isActive', value)}
-                  trackColor={{ false: colors.neutral[200], true: colors.success[500] }}
-                  thumbColor={formData.isActive ? colors.neutral[0] : colors.neutral[400]}
+                  trackColor={{
+                    false: theme.color.border.subtle,
+                    true: theme.color.icon.success,
+                  }}
+                  thumbColor={
+                    formData.isActive ? theme.color.text.onAction : theme.color.text.placeholder
+                  }
                 />
               </View>
             </View>
@@ -239,7 +247,7 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.neutral[0]} />
+                <ActivityIndicator color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.submitButtonText}>Crear App</Text>
               )}
@@ -251,150 +259,151 @@ export const CreateAppModal: React.FC<CreateAppModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    shadowColor: colors.neutral[900],
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  form: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-  },
-  formGroup: {
-    marginBottom: spacing[5],
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  required: {
-    color: colors.danger[500],
-  },
-  hint: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginTop: 6,
-  },
-  appTypeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  appTypeButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: 10,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    backgroundColor: colors.neutral[0],
-    marginRight: spacing[2],
-    marginBottom: spacing[2],
-  },
-  appTypeButtonActive: {
-    borderColor: colors.accent[500],
-    backgroundColor: colors.accent[50],
-  },
-  appTypeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  appTypeButtonTextActive: {
-    color: colors.accent[500],
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[2],
-  },
-  switchLabel: {
-    flex: 1,
-  },
-  footer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    gap: spacing[3],
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    backgroundColor: colors.neutral[0],
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  submitButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.accent[500],
-    alignItems: 'center',
-    shadowColor: colors.accent[500],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  submitButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-    shadowOpacity: 0,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 5,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    form: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+    },
+    formGroup: {
+      marginBottom: theme.space[5],
+    },
+    label: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    hint: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginTop: 6,
+    },
+    appTypeContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    appTypeButton: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: 10,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+      marginRight: theme.space[2],
+      marginBottom: theme.space[2],
+    },
+    appTypeButtonActive: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    appTypeButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    appTypeButtonTextActive: {
+      color: theme.color.brand.accent,
+    },
+    switchContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[2],
+    },
+    switchLabel: {
+      flex: 1,
+    },
+    footer: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    submitButton: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+      shadowColor: theme.color.brand.accent,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    submitButtonDisabled: {
+      backgroundColor: theme.color.text.placeholder,
+      shadowOpacity: 0,
+    },
+    submitButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+  });
 
 export default CreateAppModal;

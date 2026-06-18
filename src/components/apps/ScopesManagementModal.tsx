@@ -11,7 +11,8 @@ import {
   Switch,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { scopesApi, Scope, CreateScopeDto, ScopesPaginatedResponse } from '@/services/api/scopes';
 import { warehousesApi } from '@/services/api/warehouses';
 import { sitesApi } from '@/services/api/sites';
@@ -49,6 +50,8 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
   appName,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { selectedCompany: tenantCompany } = useTenantStore();
   const [scopes, setScopes] = useState<Scope[]>([]);
   const [loading, setLoading] = useState(false);
@@ -709,8 +712,13 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
                     <Switch
                       value={canRead}
                       onValueChange={setCanRead}
-                      trackColor={{ false: colors.neutral[200], true: colors.success[500] }}
-                      thumbColor={canRead ? colors.neutral[0] : colors.neutral[400]}
+                      trackColor={{
+                        false: theme.color.border.subtle,
+                        true: theme.color.icon.success,
+                      }}
+                      thumbColor={
+                        canRead ? theme.color.text.onAction : theme.color.text.placeholder
+                      }
                     />
                   </View>
 
@@ -719,8 +727,13 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
                     <Switch
                       value={canWrite}
                       onValueChange={setCanWrite}
-                      trackColor={{ false: colors.neutral[200], true: colors.success[500] }}
-                      thumbColor={canWrite ? colors.neutral[0] : colors.neutral[400]}
+                      trackColor={{
+                        false: theme.color.border.subtle,
+                        true: theme.color.icon.success,
+                      }}
+                      thumbColor={
+                        canWrite ? theme.color.text.onAction : theme.color.text.placeholder
+                      }
                     />
                   </View>
                 </View>
@@ -749,7 +762,7 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
 
               {loading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={colors.accent[500]} />
+                  <ActivityIndicator size="large" color={theme.color.brand.accent} />
                 </View>
               ) : scopes.length === 0 ? (
                 <View style={styles.emptyContainer}>
@@ -777,294 +790,295 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    shadowColor: colors.neutral[900],
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  content: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-  },
-  infoCard: {
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[5],
-    borderWidth: 1,
-    borderColor: colors.accent[100],
-  },
-  infoText: {
-    fontSize: 14,
-    color: colors.primary[600],
-    lineHeight: 20,
-  },
-  addButton: {
-    backgroundColor: colors.accent[500],
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    marginBottom: spacing[5],
-    shadowColor: colors.accent[500],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  addForm: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[5],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  formTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[4],
-  },
-  formGroup: {
-    marginBottom: spacing[4],
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  typeButtons: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    backgroundColor: colors.neutral[0],
-    alignItems: 'center',
-  },
-  typeButtonActive: {
-    borderColor: colors.accent[500],
-    backgroundColor: colors.accent[50],
-  },
-  typeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  typeButtonTextActive: {
-    color: colors.accent[500],
-  },
-  pickerContainer: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-    color: colors.neutral[800],
-  },
-  hint: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-    fontStyle: 'italic',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  switchLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.neutral[800],
-  },
-  formActions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginTop: spacing[2],
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    backgroundColor: colors.neutral[0],
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  saveButton: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.success[500],
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  scopesList: {
-    marginTop: spacing[2],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  scopeCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  scopeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  scopeLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    flex: 1,
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  deleteButtonText: {
-    fontSize: 18,
-  },
-  scopePermissions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  permissionBadge: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: 6,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-  },
-  permissionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[400],
-  },
-  permissionActive: {
-    color: colors.success[500],
-  },
-  footer: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  closeFooterButton: {
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.neutral[100],
-    alignItems: 'center',
-  },
-  closeFooterButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 5,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    content: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+    },
+    infoCard: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[5],
+      borderWidth: 1,
+      borderColor: theme.color.brand.accentSoft,
+    },
+    infoText: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      lineHeight: 20,
+    },
+    addButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      marginBottom: theme.space[5],
+      shadowColor: theme.color.brand.accent,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    addButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    addForm: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[5],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    formTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[4],
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+    label: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    typeButtons: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    typeButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.xl,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+    },
+    typeButtonActive: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    typeButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    typeButtonTextActive: {
+      color: theme.color.brand.accent,
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      overflow: 'hidden',
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    hint: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
+    },
+    switchRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      marginBottom: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    switchLabel: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: theme.color.text.heading,
+    },
+    formActions: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.xl,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    saveButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.action.success.background,
+      alignItems: 'center',
+    },
+    saveButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.action.success.text,
+    },
+    scopesList: {
+      marginTop: theme.space[2],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    loadingContainer: {
+      paddingVertical: 40,
+      alignItems: 'center',
+    },
+    emptyContainer: {
+      paddingVertical: 40,
+      alignItems: 'center',
+    },
+    emptyIcon: {
+      fontSize: 48,
+      marginBottom: 12,
+    },
+    emptyText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    scopeCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    scopeHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    scopeLabel: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    deleteButton: {
+      padding: 8,
+    },
+    deleteButtonText: {
+      fontSize: 18,
+    },
+    scopePermissions: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    permissionBadge: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: 6,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+    },
+    permissionText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.placeholder,
+    },
+    permissionActive: {
+      color: theme.color.icon.success,
+    },
+    footer: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    closeFooterButton: {
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+    },
+    closeFooterButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+  });
 
 export default ScopesManagementModal;
