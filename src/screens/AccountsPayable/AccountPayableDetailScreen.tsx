@@ -23,6 +23,8 @@ import {
   SOURCE_TYPE_ICONS,
   CURRENCY_SYMBOLS,
 } from '@/constants/accountsPayable';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface AccountPayableDetailScreenProps {
   navigation: any;
@@ -39,6 +41,8 @@ export const AccountPayableDetailScreen: React.FC<AccountPayableDetailScreenProp
 }) => {
   const { accountPayableId } = route.params;
   const { hasPermission } = usePermissions();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   // Verificar permisos
   const canReadDetails = hasPermission(PERMISSIONS.ACCOUNTS_PAYABLE.READ_DETAILS);
@@ -112,7 +116,7 @@ export const AccountPayableDetailScreen: React.FC<AccountPayableDetailScreenProp
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#667eea" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando detalles...</Text>
         </View>
       </SafeAreaView>
@@ -422,10 +426,10 @@ export const AccountPayableDetailScreen: React.FC<AccountPayableDetailScreenProp
                         {
                           backgroundColor:
                             schedule.status === 'PAID'
-                              ? '#10B981'
+                              ? theme.color.icon.success
                               : schedule.status === 'OVERDUE'
-                              ? '#EF4444'
-                              : '#F59E0B',
+                              ? theme.color.icon.danger
+                              : theme.color.icon.warning,
                         },
                       ]}
                     >
@@ -515,19 +519,19 @@ export const AccountPayableDetailScreen: React.FC<AccountPayableDetailScreenProp
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     paddingHorizontal: 32,
@@ -537,13 +541,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   backIconTablet: {
     fontSize: 28,
@@ -555,14 +559,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   headerTitleTablet: {
     fontSize: 22,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginTop: 2,
   },
   headerSubtitleTablet: {
@@ -590,10 +594,10 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 15,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   statusCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -610,12 +614,12 @@ const styles = StyleSheet.create({
   },
   statusIcon: {
     fontSize: 20,
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   statusText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   overdueWarning: {
     flexDirection: 'row',
@@ -623,7 +627,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: theme.color.state.danger.background,
     borderRadius: 12,
     gap: 8,
   },
@@ -633,7 +637,7 @@ const styles = StyleSheet.create({
   overdueText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#EF4444',
+    color: theme.color.text.danger,
   },
   section: {
     marginBottom: 20,
@@ -641,15 +645,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   infoRow: {
     flexDirection: 'row',
@@ -666,22 +670,22 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginBottom: 4,
     fontWeight: '600',
   },
   infoValue: {
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '500',
   },
   infoValueSmall: {
     fontSize: 12,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '400',
   },
   infoValueOverdue: {
-    color: '#EF4444',
+    color: theme.color.text.danger,
   },
   amountRow: {
     flexDirection: 'row',
@@ -691,31 +695,31 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontWeight: '600',
   },
   amountTotal: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   amountValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   amountPaid: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.color.text.success,
   },
   amountRemaining: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F59E0B',
+    color: theme.color.text.warning,
   },
   amountOverdue: {
-    color: '#EF4444',
+    color: theme.color.text.danger,
   },
   progressSection: {
     marginTop: 8,
@@ -723,7 +727,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -733,7 +737,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontWeight: '600',
     textAlign: 'right',
   },
@@ -742,7 +746,7 @@ const styles = StyleSheet.create({
   },
   paymentItemBorder: {
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: theme.color.surface.subtle,
   },
   paymentHeader: {
     flexDirection: 'row',
@@ -753,11 +757,11 @@ const styles = StyleSheet.create({
   paymentAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.color.text.success,
   },
   paymentDate: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontWeight: '500',
   },
   paymentDetails: {
@@ -767,15 +771,15 @@ const styles = StyleSheet.create({
   },
   paymentMethod: {
     fontSize: 13,
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   paymentReference: {
     fontSize: 13,
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   paymentNotes: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontStyle: 'italic',
     marginTop: 4,
   },
@@ -784,7 +788,7 @@ const styles = StyleSheet.create({
   },
   scheduleItemBorder: {
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: theme.color.surface.subtle,
   },
   scheduleHeader: {
     flexDirection: 'row',
@@ -795,7 +799,7 @@ const styles = StyleSheet.create({
   scheduleNumber: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   scheduleStatusBadge: {
     paddingHorizontal: 10,
@@ -805,7 +809,7 @@ const styles = StyleSheet.create({
   scheduleStatusText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   scheduleDetails: {
     flexDirection: 'row',
@@ -815,15 +819,15 @@ const styles = StyleSheet.create({
   scheduleAmount: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   scheduleDueDate: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   schedulePaidDate: {
     fontSize: 12,
-    color: '#10B981',
+    color: theme.color.text.success,
     marginTop: 4,
   },
   historyItem: {
@@ -831,7 +835,7 @@ const styles = StyleSheet.create({
   },
   historyItemBorder: {
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: theme.color.surface.subtle,
   },
   historyHeader: {
     flexDirection: 'row',
@@ -844,15 +848,15 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   historyDate: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   historyReason: {
     fontSize: 13,
-    color: '#475569',
+    color: theme.color.text.muted,
     fontStyle: 'italic',
   },
 });
