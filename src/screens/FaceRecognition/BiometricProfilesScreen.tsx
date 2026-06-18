@@ -12,11 +12,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { biometricApi, BiometricProfile } from '@/services/api/biometric';
 
 export const BiometricProfilesScreen: React.FC = () => {
   const navigation = useNavigation();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [profiles, setProfiles] = useState<BiometricProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -117,13 +121,13 @@ export const BiometricProfilesScreen: React.FC = () => {
             <Text style={styles.profileType}>{item.entity_type || 'Sin tipo'}</Text>
             <View style={styles.profileStats}>
               <View style={styles.statBadge}>
-                <MaterialIcons name="photo-camera" size={14} color={colors.neutral[500]} />
+                <MaterialIcons name="photo-camera" size={14} color={theme.color.icon.muted} />
                 <Text style={styles.statText}>
                   {item.registration_frames_count || 0} frames
                 </Text>
               </View>
               <View style={styles.statBadge}>
-                <MaterialIcons name="verified" size={14} color={colors.success[500]} />
+                <MaterialIcons name="verified" size={14} color={theme.color.icon.success} />
                 <Text style={styles.statText}>
                   {registrationQuality ? (registrationQuality * 100).toFixed(0) : '0'}%
                 </Text>
@@ -135,14 +139,14 @@ export const BiometricProfilesScreen: React.FC = () => {
               style={[styles.actionButton, styles.verifyButton]}
               onPress={() => handleVerifyProfile(item)}
             >
-              <MaterialIcons name="face" size={24} color={colors.neutral[0]} />
+              <MaterialIcons name="face" size={24} color={theme.color.text.inverse} />
               <Text style={styles.actionButtonText}>Verificar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.deleteButton]}
               onPress={() => handleDeleteProfile(item)}
             >
-              <MaterialIcons name="delete" size={24} color={colors.neutral[0]} />
+              <MaterialIcons name="delete" size={24} color={theme.color.text.inverse} />
             </TouchableOpacity>
           </View>
         </View>
@@ -163,7 +167,11 @@ export const BiometricProfilesScreen: React.FC = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <MaterialIcons name="face-retouching-off" size={64} color={colors.neutral[300]} />
+      <MaterialIcons
+        name="face-retouching-off"
+        size={64}
+        color={theme.color.icon.disabled}
+      />
       <Text style={styles.emptyTitle}>No hay perfiles registrados</Text>
       <Text style={styles.emptyText}>
         Registra un nuevo rostro para comenzar
@@ -172,7 +180,7 @@ export const BiometricProfilesScreen: React.FC = () => {
         style={styles.registerButton}
         onPress={() => navigation.navigate('RegisterFace' as never)}
       >
-        <MaterialIcons name="add-a-photo" size={24} color={colors.neutral[0]} />
+        <MaterialIcons name="add-a-photo" size={24} color={theme.color.text.inverse} />
         <Text style={styles.registerButtonText}>Registrar Rostro</Text>
       </TouchableOpacity>
     </View>
@@ -186,7 +194,7 @@ export const BiometricProfilesScreen: React.FC = () => {
           style={styles.addButton}
           onPress={() => navigation.navigate('RegisterFace' as never)}
         >
-          <MaterialIcons name="add" size={24} color={colors.primary[500]} />
+          <MaterialIcons name="add" size={24} color={theme.color.brand.accent} />
         </TouchableOpacity>
       </View>
 
@@ -219,7 +227,7 @@ export const BiometricProfilesScreen: React.FC = () => {
 
       {isLoading && !isRefreshing ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[500]} />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando perfiles...</Text>
         </View>
       ) : (
@@ -238,199 +246,200 @@ export const BiometricProfilesScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-  },
-  addButton: {
-    padding: spacing[2],
-  },
-  filterContainer: {
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
-  },
-  filterButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  filterButtonActive: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  filterIcon: {
-    fontSize: 16,
-  },
-  filterButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  filterButtonTextActive: {
-    color: colors.neutral[0],
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  listContent: {
-    padding: spacing[4],
-  },
-  profileCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileId: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  profileType: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
-  },
-  profileStats: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  statBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.xl,
-  },
-  statText: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  profileActions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
-  },
-  verifyButton: {
-    backgroundColor: colors.primary[500],
-  },
-  deleteButton: {
-    backgroundColor: colors.danger[500],
-    paddingHorizontal: spacing[3],
-  },
-  actionButtonText: {
-    color: colors.neutral[0],
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  profileDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-  },
-  detailText: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginTop: spacing[4],
-    marginBottom: spacing[2],
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[6],
-    textAlign: 'center',
-  },
-  registerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-  },
-  registerButtonText: {
-    color: colors.neutral[0],
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing[5],
+      paddingVertical: spacing[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    addButton: {
+      padding: spacing[2],
+    },
+    filterContainer: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: spacing[5],
+      paddingVertical: spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    filterLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: spacing[2],
+    },
+    filterButtons: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing[2],
+    },
+    filterButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[1.5],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    filterButtonActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    filterIcon: {
+      fontSize: 16,
+    },
+    filterButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    filterButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: spacing[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    listContent: {
+      padding: spacing[4],
+    },
+    profileCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: borderRadius.xl,
+      padding: spacing[4],
+      marginBottom: spacing[3],
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    profileHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    profileInfo: {
+      flex: 1,
+    },
+    profileId: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    profileType: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: spacing[2],
+    },
+    profileStats: {
+      flexDirection: 'row',
+      gap: spacing[2],
+    },
+    statBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: borderRadius.xl,
+    },
+    statText: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    profileActions: {
+      flexDirection: 'row',
+      gap: spacing[2],
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      borderRadius: borderRadius.lg,
+    },
+    verifyButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    deleteButton: {
+      backgroundColor: theme.color.action.danger.background,
+      paddingHorizontal: spacing[3],
+    },
+    actionButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    profileDetails: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: spacing[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.background.muted,
+    },
+    detailText: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginTop: spacing[4],
+      marginBottom: spacing[2],
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: spacing[6],
+      textAlign: 'center',
+    },
+    registerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: spacing[6],
+      paddingVertical: spacing[3],
+      borderRadius: borderRadius.lg,
+    },
+    registerButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  });
