@@ -15,13 +15,8 @@ import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 
-// Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-} from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Text,
   Title,
@@ -51,6 +46,8 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   productTitle,
   productSku,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { currentSite, currentCompany } = useAuthStore();
   const { selectedSite, selectedCompany } = useTenantStore();
 
@@ -274,25 +271,25 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
             {!productId && (
               <View style={styles.formGroup}>
                 <Label size="medium" color="secondary">
-                  ID del Producto <Text variant="labelMedium" color={colors.danger[500]}>*</Text>
+                  ID del Producto <Text variant="labelMedium" color={theme.color.text.danger}>*</Text>
                 </Label>
                 <TextInput
                   style={styles.input}
                   value={formData.productId}
                   onChangeText={(text) => setFormData({ ...formData, productId: text })}
                   placeholder="UUID del producto"
-                  placeholderTextColor={colors.text.placeholder}
+                  placeholderTextColor={theme.color.text.placeholder}
                 />
               </View>
             )}
 
             <View style={styles.formGroup}>
               <Label size="medium" color="secondary">
-                Almacén <Text variant="labelMedium" color={colors.danger[500]}>*</Text>
+                Almacén <Text variant="labelMedium" color={theme.color.text.danger}>*</Text>
               </Label>
               {loadingWarehouses ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={colors.primary[900]} />
+                  <ActivityIndicator size="small" color={theme.color.brand.primary} />
                   <Body size="small" color="secondary">Cargando almacenes...</Body>
                 </View>
               ) : (
@@ -345,11 +342,11 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
             {formData.warehouseId && (
               <View style={styles.formGroup}>
                 <Label size="medium" color="secondary">
-                  Área <Text variant="labelMedium" color={colors.danger[500]}>*</Text>
+                  Área <Text variant="labelMedium" color={theme.color.text.danger}>*</Text>
                 </Label>
                 {loadingAreas ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color={colors.primary[900]} />
+                    <ActivityIndicator size="small" color={theme.color.brand.primary} />
                     <Body size="small" color="secondary">Cargando áreas...</Body>
                   </View>
                 ) : (
@@ -400,14 +397,14 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 
             <View style={styles.formGroup}>
               <Label size="medium" color="secondary">
-                Cantidad (Unidades Base) <Text variant="labelMedium" color={colors.danger[500]}>*</Text>
+                Cantidad (Unidades Base) <Text variant="labelMedium" color={theme.color.text.danger}>*</Text>
               </Label>
               <TextInput
                 style={styles.input}
                 value={formData.deltaBase}
                 onChangeText={(text) => setFormData({ ...formData, deltaBase: text })}
                 placeholder="Ej: 100 (positivo) o -50 (negativo)"
-                placeholderTextColor={colors.text.placeholder}
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="numeric"
               />
               <Caption color="tertiary" style={styles.helpText}>
@@ -417,7 +414,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 
             <View style={styles.formGroup}>
               <Label size="medium" color="secondary">
-                Razón del Ajuste <Text variant="labelMedium" color={colors.danger[500]}>*</Text>
+                Razón del Ajuste <Text variant="labelMedium" color={theme.color.text.danger}>*</Text>
               </Label>
               <TouchableOpacity
                 style={styles.picker}
@@ -457,7 +454,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                 value={formData.clientOperationId}
                 onChangeText={(text) => setFormData({ ...formData, clientOperationId: text })}
                 placeholder="COMPRA-2024-001"
-                placeholderTextColor={colors.text.placeholder}
+                placeholderTextColor={theme.color.text.placeholder}
               />
               <Caption color="tertiary" style={styles.helpText}>
                 Para idempotencia y trazabilidad de la operación
@@ -499,7 +496,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
               <Body size="small" color="secondary">Ajuste:</Body>
               <Text
                 variant="titleSmall"
-                color={parseFloat(formData.deltaBase) > 0 ? colors.success[600] : colors.danger[600]}
+                color={parseFloat(formData.deltaBase) > 0 ? theme.color.text.success : theme.color.text.danger}
                 style={styles.summaryValue}
               >
                 {formData.deltaBase
@@ -542,98 +539,99 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  content: {
-    flex: 1,
-    padding: spacing[4],
-  },
-  productInfo: {
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.accent[200],
-  },
-  section: {
-    marginBottom: spacing[4],
-  },
-  sectionTitle: {
-    marginBottom: spacing[4],
-  },
-  formGroup: {
-    marginBottom: spacing[4],
-  },
-  input: {
-    backgroundColor: colors.surface.secondary,
-    borderWidth: 1.5,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-    fontSize: 15,
-    color: colors.text.primary,
-    marginTop: spacing[2],
-  },
-  picker: {
-    backgroundColor: colors.surface.secondary,
-    borderWidth: 1.5,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[3],
-    marginTop: spacing[2],
-  },
-  helpText: {
-    marginTop: spacing[1],
-  },
-  summarySection: {
-    marginBottom: spacing[4],
-    backgroundColor: colors.success[50],
-    borderWidth: 1,
-    borderColor: colors.success[200],
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[2],
-  },
-  summaryValue: {
-    flex: 1,
-    textAlign: 'right',
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[3],
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
-    gap: spacing[2],
-    marginTop: spacing[2],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    content: {
+      flex: 1,
+      padding: theme.space[4],
+    },
+    productInfo: {
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
+    section: {
+      marginBottom: theme.space[4],
+    },
+    sectionTitle: {
+      marginBottom: theme.space[4],
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+    input: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+      fontSize: 15,
+      color: theme.color.text.body,
+      marginTop: theme.space[2],
+    },
+    picker: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    helpText: {
+      marginTop: theme.space[1],
+    },
+    summarySection: {
+      marginBottom: theme.space[4],
+      backgroundColor: theme.color.state.success.background,
+      borderWidth: 1,
+      borderColor: theme.color.state.success.border,
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[2],
+    },
+    summaryValue: {
+      flex: 1,
+      textAlign: 'right',
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: theme.space[3],
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.md,
+      gap: theme.space[2],
+      marginTop: theme.space[2],
+    },
+  });
 
 export default StockAdjustmentModal;
