@@ -15,6 +15,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { emissionPointsApi, DocumentSeries } from '@/services/api/emission-points';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 
 interface EmissionPointSeriesScreenProps {
@@ -32,6 +34,8 @@ export const EmissionPointSeriesScreen: React.FC<EmissionPointSeriesScreenProps>
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { emissionPointId, emissionPointName, emissionPointCode } = route.params;
   const [series, setSeries] = useState<DocumentSeries[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,10 +167,23 @@ export const EmissionPointSeriesScreen: React.FC<EmissionPointSeriesScreenProps>
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: seriesItem.isActive ? '#10B98120' : '#EF444420' },
+              {
+                backgroundColor: seriesItem.isActive
+                  ? theme.color.state.success.background
+                  : theme.color.state.danger.background,
+              },
             ]}
           >
-            <Text style={[styles.statusText, { color: seriesItem.isActive ? '#10B981' : '#EF4444' }]}>
+            <Text
+              style={[
+                styles.statusText,
+                {
+                  color: seriesItem.isActive
+                    ? theme.color.text.success
+                    : theme.color.text.danger,
+                },
+              ]}
+            >
               {seriesItem.isActive ? '✅ Activa' : '❌ Inactiva'}
             </Text>
           </View>
@@ -197,7 +214,7 @@ export const EmissionPointSeriesScreen: React.FC<EmissionPointSeriesScreenProps>
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366F1" />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando series...</Text>
           </View>
         </SafeAreaView>
@@ -252,226 +269,227 @@ export const EmissionPointSeriesScreen: React.FC<EmissionPointSeriesScreenProps>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTablet: {
-    padding: 24,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  headerTitleTablet: {
-    fontSize: 32,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  headerSubtitleTablet: {
-    fontSize: 16,
-  },
-  createButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  createButtonTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-  },
-  createButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  createButtonTextTablet: {
-    fontSize: 16,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  cardsContainer: {
-    gap: 16,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardTablet: {
-    padding: 20,
-  },
-  cardHeader: {
-    marginBottom: 16,
-  },
-  seriesInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  seriesIcon: {
-    fontSize: 32,
-  },
-  seriesTitleContainer: {
-    flex: 1,
-  },
-  seriesTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  seriesTitleTablet: {
-    fontSize: 20,
-  },
-  seriesDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  seriesDescriptionTablet: {
-    fontSize: 16,
-  },
-  seriesDetails: {
-    gap: 12,
-    marginBottom: 16,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  highlightValue: {
-    color: '#6366F1',
-    fontSize: 16,
-  },
-  badgesContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-    marginTop: 8,
-  },
-  defaultBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  defaultBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#92400E',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingTop: 12,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  secondaryButton: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  secondaryButtonText: {
-    color: '#374151',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 32,
-  },
-  emptyButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      padding: 24,
+    },
+    headerInfo: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    headerTitleTablet: {
+      fontSize: 32,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    headerSubtitleTablet: {
+      fontSize: 16,
+    },
+    createButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 8,
+    },
+    createButtonTablet: {
+      paddingHorizontal: 24,
+      paddingVertical: 14,
+    },
+    createButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    createButtonTextTablet: {
+      fontSize: 16,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    cardsContainer: {
+      gap: 16,
+    },
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    cardTablet: {
+      padding: 20,
+    },
+    cardHeader: {
+      marginBottom: 16,
+    },
+    seriesInfo: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+    },
+    seriesIcon: {
+      fontSize: 32,
+    },
+    seriesTitleContainer: {
+      flex: 1,
+    },
+    seriesTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    seriesTitleTablet: {
+      fontSize: 20,
+    },
+    seriesDescription: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    seriesDescriptionTablet: {
+      fontSize: 16,
+    },
+    seriesDetails: {
+      gap: 12,
+      marginBottom: 16,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    detailLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    detailValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    highlightValue: {
+      color: theme.color.brand.accent,
+      fontSize: 16,
+    },
+    badgesContainer: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+      marginTop: 8,
+    },
+    defaultBadge: {
+      backgroundColor: theme.color.state.warning.background,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    defaultBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.state.warning.text,
+    },
+    statusBadge: {
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    cardActions: {
+      flexDirection: 'row',
+      gap: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      paddingTop: 12,
+    },
+    actionButton: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    secondaryButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    secondaryButtonText: {
+      color: theme.color.text.body,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    emptyContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 60,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      marginBottom: 24,
+      paddingHorizontal: 32,
+    },
+    emptyButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    emptyButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  });
