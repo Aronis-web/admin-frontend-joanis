@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { emissionPointsApi, EmissionType } from '@/services/api/emission-points';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 
 interface CreateEmissionPointScreenProps {
@@ -23,6 +25,8 @@ interface CreateEmissionPointScreenProps {
 export const CreateEmissionPointScreen: React.FC<CreateEmissionPointScreenProps> = ({
   navigation,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -355,7 +359,7 @@ export const CreateEmissionPointScreen: React.FC<CreateEmissionPointScreenProps>
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={theme.color.text.inverse} />
                 ) : (
                   <Text style={styles.submitButtonText}>Crear Punto</Text>
                 )}
@@ -368,156 +372,157 @@ export const CreateEmissionPointScreen: React.FC<CreateEmissionPointScreenProps>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
-  header: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTablet: {
-    padding: 24,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  headerTitleTablet: {
-    fontSize: 32,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  form: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  hint: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  radioGroup: {
-    gap: 12,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 8,
-  },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#6366F1',
-  },
-  radioLabel: {
-    fontSize: 14,
-    color: '#111827',
-  },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  checkboxBox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxCheck: {
-    fontSize: 14,
-    color: '#6366F1',
-    fontWeight: 'bold',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#111827',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  cancelButtonText: {
-    color: '#374151',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: '#6366F1',
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      padding: 24,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    headerTitleTablet: {
+      fontSize: 32,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    form: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.body,
+      marginBottom: 8,
+      marginTop: 12,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    radioGroup: {
+      gap: 12,
+    },
+    radioOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 8,
+    },
+    radio: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    radioSelected: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: theme.color.brand.accent,
+    },
+    radioLabel: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    checkbox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 12,
+    },
+    checkboxBox: {
+      width: 20,
+      height: 20,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    checkboxCheck: {
+      fontSize: 14,
+      color: theme.color.brand.accent,
+      fontWeight: 'bold',
+    },
+    checkboxLabel: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 24,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    cancelButtonText: {
+      color: theme.color.text.body,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    submitButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+  });
