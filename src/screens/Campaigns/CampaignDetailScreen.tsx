@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+﻿import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -53,6 +53,8 @@ import { AddButton } from '@/components/Navigation/AddButton';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CampaignDetailScreenProps {
   navigation: any;
@@ -74,6 +76,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { campaignId } = route.params;
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -107,13 +111,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   >('all');
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
   // Filtro por estado del producto subyacente (PurchaseProduct):
-  //  - 'preliminary' = compra aún no validada (ProductStatus.PRELIMINARY)
+  //  - 'preliminary' = compra aÃºn no validada (ProductStatus.PRELIMINARY)
   //  - 'active'      = compra validada (ProductStatus.ACTIVE)
   const [productStatusFilter, setProductStatusFilter] = useState<'all' | 'preliminary' | 'active'>(
     'all'
   );
-  // Set de campaignProductIds que están actualmente cerrando validación
-  // (para mostrar spinner en el botón "Activar").
+  // Set de campaignProductIds que estÃ¡n actualmente cerrando validaciÃ³n
+  // (para mostrar spinner en el botÃ³n "Activar").
   const [activatingProductIds, setActivatingProductIds] = useState<Set<string>>(new Set());
   const [participantTotals, setParticipantTotals] = useState<ParticipantTotalsResponse | null>(
     null
@@ -153,8 +157,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
   const isTablet = width >= 768 || height >= 768;
 
-  // ✅ Nuevo endpoint compacto: trae todos los datos de productos de la
-  // campaña (stock site, costo, precios, proveedor, fotos) en un único
+  // âœ… Nuevo endpoint compacto: trae todos los datos de productos de la
+  // campaÃ±a (stock site, costo, precios, proveedor, fotos) en un Ãºnico
   // request. Reemplaza el flujo de "getCampaign embed + batch products
   // + sale prices".
   const { data: productsDetailData, refetch: refetchProductsDetail } =
@@ -235,12 +239,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       }
 
       // Load products for campaign products
-      // ⚡ [PERF] Solo poblamos el map con datos embebidos. El endpoint
+      // âš¡ [PERF] Solo poblamos el map con datos embebidos. El endpoint
       // compacto `useCampaignProductsDetail` ya trae fotos, stock, precios
-      // y proveedor en un único request, así que NO disparamos el batch
+      // y proveedor en un Ãºnico request, asÃ­ que NO disparamos el batch
       // `getProductsByIds` ni las N llamadas paralelas a
-      // `getProductSalePrices`. En campañas con muchos productos eso
-      // saturaba memoria/red y crasheaba el build Electron en producción.
+      // `getProductSalePrices`. En campaÃ±as con muchos productos eso
+      // saturaba memoria/red y crasheaba el build Electron en producciÃ³n.
       if (data.products && data.products.length > 0) {
         const productsMap: Record<string, Product> = {};
         data.products.forEach((campaignProduct) => {
@@ -250,12 +254,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         });
         setProducts(productsMap);
         logger.info(
-          `📦 Campaign products: ${data.products.length} (detalle compacto vía useCampaignProductsDetail)`
+          `ðŸ“¦ Campaign products: ${data.products.length} (detalle compacto vÃ­a useCampaignProductsDetail)`
         );
       }
     } catch (error: any) {
       logger.error('Error loading campaign:', error);
-      Alert.alert('Error', 'No se pudo cargar la campaña');
+      Alert.alert('Error', 'No se pudo cargar la campaÃ±a');
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -279,7 +283,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const updatedProductId = params?.updatedProductId;
       const forceReload = params?.forceReload;
 
-      logger.debug('≡ƒöä [CAMPAIGN] useFocusEffect triggered:', {
+      logger.debug('â‰¡Æ’Ã¶Ã¤ [CAMPAIGN] useFocusEffect triggered:', {
         shouldReload,
         skipReloadOnce,
         updatedProductId,
@@ -288,11 +292,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       });
 
       if (updatedProductId) {
-        // OPTIMIZATION: Solo actualizar el producto específico sin recargar toda la campaña
-        logger.debug('⚡ [CAMPAIGN] Actualizando solo producto:', updatedProductId);
+        // OPTIMIZATION: Solo actualizar el producto especÃ­fico sin recargar toda la campaÃ±a
+        logger.debug('âš¡ [CAMPAIGN] Actualizando solo producto:', updatedProductId);
         navigation.setParams({ updatedProductId: undefined } as any);
 
-        // Actualizar solo el producto específico en el estado
+        // Actualizar solo el producto especÃ­fico en el estado
         campaignsService
           .getProduct(campaignId, updatedProductId)
           .then((updatedProduct) => {
@@ -306,14 +310,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 ),
               };
             });
-            logger.debug('✅ [CAMPAIGN] Producto actualizado en estado local');
+            logger.debug('âœ… [CAMPAIGN] Producto actualizado en estado local');
           })
           .catch((error) => {
-            logger.error('❌ [CAMPAIGN] Error actualizando producto:', error);
+            logger.error('âŒ [CAMPAIGN] Error actualizando producto:', error);
           });
       } else if (shouldReload || forceReload) {
         // Clear the param to avoid reloading again
-        logger.debug('≡ƒöä [CAMPAIGN] Reloading due to shouldReload/forceReload param');
+        logger.debug('â‰¡Æ’Ã¶Ã¤ [CAMPAIGN] Reloading due to shouldReload/forceReload param');
         navigation.setParams({
           shouldReload: undefined,
           forceReload: undefined,
@@ -323,17 +327,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         loadCampaign();
       } else if (skipReloadOnce) {
         // Skip reload this time (coming back from product detail)
-        logger.debug('⭕ [CAMPAIGN] Skipping reload due to skipReloadOnce param');
+        logger.debug('â­• [CAMPAIGN] Skipping reload due to skipReloadOnce param');
         navigation.setParams({ skipReloadOnce: undefined } as any);
         // Don't reload, just mark as loaded
         hasLoadedRef.current = true;
       } else if (!hasLoadedRef.current) {
         // Only load on first mount, not on every focus
-        logger.debug('≡ƒôÑ [CAMPAIGN] Loading campaign (first time)');
+        logger.debug('â‰¡Æ’Ã´Ã‘ [CAMPAIGN] Loading campaign (first time)');
         hasLoadedRef.current = true;
         loadCampaign();
       } else {
-        logger.debug('✅ [CAMPAIGN] Already loaded, skipping reload');
+        logger.debug('âœ… [CAMPAIGN] Already loaded, skipping reload');
       }
 
       // OPTIMIZATION: Don't reset hasLoadedRef on cleanup
@@ -429,7 +433,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
     try {
       setIsGlobalSearching(true);
-      console.log('≡ƒöì Global search:', query);
+      console.log('â‰¡Æ’Ã¶Ã¬ Global search:', query);
 
       try {
         const response = await productsApi.searchProductsV2({
@@ -439,18 +443,18 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           includePhotos: true,
         });
 
-        console.log('≡ƒöì Search results:', response.results.length, 'products found');
-        console.log('⚡ Search time:', response.searchTime, 'ms');
-        console.log('≡ƒÆ╛ Cached:', response.cached);
+        console.log('â‰¡Æ’Ã¶Ã¬ Search results:', response.results.length, 'products found');
+        console.log('âš¡ Search time:', response.searchTime, 'ms');
+        console.log('â‰¡Æ’Ã†â•› Cached:', response.cached);
 
         // Log product statuses for debugging
         const statusCounts = response.results.reduce((acc: any, p: any) => {
           acc[p.status] = (acc[p.status] || 0) + 1;
           return acc;
         }, {});
-        console.log('≡ƒôè Products by status:', statusCounts);
+        console.log('â‰¡Æ’Ã´Ã¨ Products by status:', statusCounts);
         console.log(
-          '📦 Sample products:',
+          'ðŸ“¦ Sample products:',
           response.results.slice(0, 5).map((p: any) => ({
             id: p.id,
             sku: p.sku,
@@ -462,12 +466,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         setGlobalSearchResults(response.results);
         setShowGlobalSearchSuggestions(response.results.length > 0);
       } catch (v2Error) {
-        console.warn('⚠️ V2 endpoint failed, falling back to v1:', v2Error);
+        console.warn('âš ï¸ V2 endpoint failed, falling back to v1:', v2Error);
         const response = await productsApi.getProducts({
           q: query.trim(),
           limit: 20,
         });
-        console.log('≡ƒöì Search results (v1):', response.products.length, 'products found');
+        console.log('â‰¡Æ’Ã¶Ã¬ Search results (v1):', response.products.length, 'products found');
         setGlobalSearchResults(response.products);
         setShowGlobalSearchSuggestions(response.products.length > 0);
       }
@@ -479,10 +483,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   }, []);
 
   /**
-   * Cuando el usuario escanea con un lector de código de barras, el
-   * dispositivo envía todo el código rápido seguido de Enter. Capturamos
+   * Cuando el usuario escanea con un lector de cÃ³digo de barras, el
+   * dispositivo envÃ­a todo el cÃ³digo rÃ¡pido seguido de Enter. Capturamos
    * `onSubmitEditing`: si el texto coincide exactamente con el barcode de
-   * algún producto de la campaña, abrimos directamente su banner.
+   * algÃºn producto de la campaÃ±a, abrimos directamente su banner.
    */
   const handleSearchSubmit = useCallback(() => {
     const raw = searchQuery.trim();
@@ -568,7 +572,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         await campaignsService.addProduct(campaignId, data);
 
-        Alert.alert('Éxito', `Producto agregado con ${stockInfo.available} unidades disponibles`);
+        Alert.alert('Ã‰xito', `Producto agregado con ${stockInfo.available} unidades disponibles`);
 
         // Don't clear search - keep it to allow adding multiple products
         // Just reload campaign to update the list
@@ -598,12 +602,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const handleOpenBannerFromSearch = useCallback(
     async (product: any) => {
       try {
-        console.log('🎯 Opening banner from search for product:', product.sku);
+        console.log('ðŸŽ¯ Opening banner from search for product:', product.sku);
 
         // Fetch full product details to get costCents and other info
         const fullProductDetails = await productsApi.getProduct(product.id);
-        console.log('📦 Full product details:', fullProductDetails);
-        console.log('💰 Cost from API:', (fullProductDetails as any).costCents);
+        console.log('ðŸ“¦ Full product details:', fullProductDetails);
+        console.log('ðŸ’° Cost from API:', (fullProductDetails as any).costCents);
 
         // Create a mock campaign product structure for the banner modal
         const mockCampaignProduct = {
@@ -635,7 +639,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     const stockInfo = getProductStock(selectedProductForCustomAdd);
 
     if (isNaN(quantity) || quantity <= 0) {
-      Alert.alert('Error', 'Por favor ingresa una cantidad válida');
+      Alert.alert('Error', 'Por favor ingresa una cantidad vÃ¡lida');
       return;
     }
 
@@ -664,7 +668,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
       await campaignsService.addProduct(campaignId, data);
 
-      Alert.alert('Éxito', `Producto agregado con ${quantity} unidades`);
+      Alert.alert('Ã‰xito', `Producto agregado con ${quantity} unidades`);
 
       // Close modal and reset
       setShowCustomAddModal(false);
@@ -702,8 +706,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
 
     Alert.alert(
-      'Activar Campaña',
-      '¿Estás seguro de activar esta campaña? Podrás seguir editando y eliminando participantes y productos hasta que cierres la campaña.',
+      'Activar CampaÃ±a',
+      'Â¿EstÃ¡s seguro de activar esta campaÃ±a? PodrÃ¡s seguir editando y eliminando participantes y productos hasta que cierres la campaÃ±a.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -713,12 +717,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             setActionLoading(true);
             try {
               await campaignsService.activateCampaign(campaignId);
-              Alert.alert('Éxito', 'Campaña activada exitosamente');
+              Alert.alert('Ã‰xito', 'CampaÃ±a activada exitosamente');
               loadCampaign();
             } catch (error: any) {
               Alert.alert(
                 'Error',
-                error.response?.data?.message || 'No se pudo activar la campaña'
+                error.response?.data?.message || 'No se pudo activar la campaÃ±a'
               );
             } finally {
               setActionLoading(false);
@@ -735,8 +739,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
 
     Alert.alert(
-      'Cerrar Campaña',
-      '¿Estás seguro de cerrar esta campaña? Esta acción no se puede deshacer.',
+      'Cerrar CampaÃ±a',
+      'Â¿EstÃ¡s seguro de cerrar esta campaÃ±a? Esta acciÃ³n no se puede deshacer.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -746,10 +750,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             setActionLoading(true);
             try {
               await campaignsService.closeCampaign(campaignId);
-              Alert.alert('Éxito', 'Campaña cerrada exitosamente');
+              Alert.alert('Ã‰xito', 'CampaÃ±a cerrada exitosamente');
               loadCampaign();
             } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'No se pudo cerrar la campaña');
+              Alert.alert(
+                'Error',
+                error.response?.data?.message || 'No se pudo cerrar la campaÃ±a'
+              );
             } finally {
               setActionLoading(false);
             }
@@ -764,19 +771,22 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       return;
     }
 
-    Alert.alert('Cancelar Campaña', '¿Estás seguro de cancelar esta campaña?', [
+    Alert.alert('Cancelar CampaÃ±a', 'Â¿EstÃ¡s seguro de cancelar esta campaÃ±a?', [
       { text: 'No', style: 'cancel' },
       {
-        text: 'Sí, Cancelar',
+        text: 'SÃ­, Cancelar',
         style: 'destructive',
         onPress: async () => {
           setActionLoading(true);
           try {
             await campaignsService.cancelCampaign(campaignId);
-            Alert.alert('Éxito', 'Campaña cancelada exitosamente');
+            Alert.alert('Ã‰xito', 'CampaÃ±a cancelada exitosamente');
             loadCampaign();
           } catch (error: any) {
-            Alert.alert('Error', error.response?.data?.message || 'No se pudo cancelar la campaña');
+            Alert.alert(
+              'Error',
+              error.response?.data?.message || 'No se pudo cancelar la campaÃ±a'
+            );
           } finally {
             setActionLoading(false);
           }
@@ -864,11 +874,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         {/* Campaign Info */}
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            Información General
+            InformaciÃ³n General
           </Text>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Código:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>CÃ³digo:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {campaign.code}
             </Text>
@@ -884,7 +894,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           {campaign.description && (
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Descripción:
+                DescripciÃ³n:
               </Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {campaign.description}
@@ -953,7 +963,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         {/* Statistics */}
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            Estadísticas
+            EstadÃ­sticas
           </Text>
 
           <View style={styles.statsGrid}>
@@ -1006,16 +1016,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     try {
       setDownloadingReport(true);
 
-      logger.info('≡ƒöä Descargando reporte general de totales de participantes...');
+      logger.info('â‰¡Æ’Ã¶Ã¤ Descargando reporte general de totales de participantes...');
       const startTime = new Date().getTime();
 
       // Call the campaigns API to get the participant totals PDF (uses VALIDATED quantities)
       const pdfBlob = await campaignsService.exportParticipantTotalsPdf(campaignId);
 
       const endTime = new Date().getTime();
-      logger.info('✅ PDF descargado del servidor');
-      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
+      logger.info('âœ… PDF descargado del servidor');
+      logger.info('ðŸ“¦ TamaÃ±o del PDF:', pdfBlob.size, 'bytes');
+      logger.info('â±ï¸ Tiempo de descarga:', endTime - startTime, 'ms');
 
       const timestamp = new Date().getTime();
       const fileName = `reporte-totales-participantes-${campaign?.code || campaignId}-${timestamp}.pdf`;
@@ -1023,7 +1033,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       await saveAndSharePdf(pdfBlob, fileName, 'Reporte de Totales de Participantes');
 
       if (Platform.OS === 'web') {
-        Alert.alert('Éxito', 'El reporte se está descargando');
+        Alert.alert('Ã‰xito', 'El reporte se estÃ¡ descargando');
       }
     } catch (error: any) {
       logger.error('Error downloading report:', error);
@@ -1041,7 +1051,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     async (sourceCampaign: Campaign) => {
       try {
         if (!sourceCampaign || !sourceCampaign.participants) {
-          Alert.alert('Error', 'No se encontraron participantes en la campaña seleccionada');
+          Alert.alert('Error', 'No se encontraron participantes en la campaÃ±a seleccionada');
           setActionLoading(false);
           return;
         }
@@ -1078,12 +1088,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         if (successCount > 0) {
           Alert.alert(
-            'Éxito',
+            'Ã‰xito',
             `Se copiaron ${successCount} participante(s) correctamente${errorCount > 0 ? `. ${errorCount} fallaron.` : ''}`,
             [{ text: 'OK', onPress: () => loadCampaign() }]
           );
         } else {
-          Alert.alert('Error', 'No se pudo copiar ningún participante');
+          Alert.alert('Error', 'No se pudo copiar ningÃºn participante');
         }
       } catch (error: any) {
         Alert.alert('Error', error.message || 'No se pudieron copiar los participantes');
@@ -1109,7 +1119,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const otherCampaigns = response.data.filter((c) => c.id !== campaignId);
 
       if (otherCampaigns.length === 0) {
-        Alert.alert('Error', 'No hay otras campañas disponibles para copiar participantes');
+        Alert.alert('Error', 'No hay otras campaÃ±as disponibles para copiar participantes');
         setActionLoading(false);
         return;
       }
@@ -1118,13 +1128,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const latestCampaign = otherCampaigns[0];
 
       // Load the full campaign details with participants
-      logger.info('≡ƒôÑ Cargando participantes de la campaña:', latestCampaign.code);
+      logger.info('â‰¡Æ’Ã´Ã‘ Cargando participantes de la campaÃ±a:', latestCampaign.code);
       const fullCampaign = await campaignsService.getCampaign(latestCampaign.id);
 
       if (!fullCampaign.participants || fullCampaign.participants.length === 0) {
         Alert.alert(
           'Error',
-          `La campaña "${latestCampaign.code} - ${latestCampaign.name}" no tiene participantes para copiar`
+          `La campaÃ±a "${latestCampaign.code} - ${latestCampaign.name}" no tiene participantes para copiar`
         );
         setActionLoading(false);
         return;
@@ -1133,7 +1143,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // Show confirmation dialog
       Alert.alert(
         'Copiar Participantes',
-        `¿Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campaña "${latestCampaign.code} - ${latestCampaign.name}"?`,
+        `Â¿Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campaÃ±a "${latestCampaign.code} - ${latestCampaign.name}"?`,
         [
           {
             text: 'Cancelar',
@@ -1148,7 +1158,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       );
     } catch (error: any) {
       logger.error('Error loading campaigns for copy:', error);
-      Alert.alert('Error', error.message || 'No se pudieron cargar las campañas');
+      Alert.alert('Error', error.message || 'No se pudieron cargar las campaÃ±as');
       setActionLoading(false);
     }
   }, [campaignId, handleCopyParticipantsFromCampaign]);
@@ -1161,7 +1171,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
     Alert.alert(
       'Eliminar Todos los Participantes',
-      `¿Estás seguro de eliminar los ${campaign.participants.length} participante(s)? Esta acción no se puede deshacer.`,
+      `Â¿EstÃ¡s seguro de eliminar los ${campaign.participants.length} participante(s)? Esta acciÃ³n no se puede deshacer.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -1170,7 +1180,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           onPress: async () => {
             try {
               setActionLoading(true);
-              logger.info('🗑️ Eliminando todos los participantes...');
+              logger.info('ðŸ—‘ï¸ Eliminando todos los participantes...');
 
               let successCount = 0;
               let errorCount = 0;
@@ -1187,12 +1197,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
               if (successCount > 0) {
                 Alert.alert(
-                  'Éxito',
+                  'Ã‰xito',
                   `Se eliminaron ${successCount} participante(s)${errorCount > 0 ? `. ${errorCount} fallaron.` : ''}`,
                   [{ text: 'OK', onPress: () => loadCampaign() }]
                 );
               } else {
-                Alert.alert('Error', 'No se pudo eliminar ningún participante');
+                Alert.alert('Error', 'No se pudo eliminar ningÃºn participante');
               }
             } catch (error: any) {
               logger.error('Error deleting participants:', error);
@@ -1239,7 +1249,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         isTablet && styles.deleteAllButtonTextTablet,
                       ]}
                     >
-                      🗑️ Eliminar Todos
+                      ðŸ—‘ï¸ Eliminar Todos
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1248,7 +1258,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   onPress={() => setIsCopyParticipantsModalVisible(true)}
                 >
                   <Text style={[styles.copyButtonText, isTablet && styles.copyButtonTextTablet]}>
-                    📋 Copiar
+                    ðŸ“‹ Copiar
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1341,8 +1351,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   ]}
                 >
                   {downloadingReport
-                    ? '📄 Generando...'
-                    : '📄 Descargar Reporte General de Totales de Participantes'}
+                    ? 'ðŸ“„ Generando...'
+                    : 'ðŸ“„ Descargar Reporte General de Totales de Participantes'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -1393,7 +1403,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 );
 
                 // Debug: Log participant data to identify the issue
-                logger.debug(`🔍 Participant ${participant.id}:`, {
+                logger.debug(`ðŸ” Participant ${participant.id}:`, {
                   participantId: participant.id,
                   participantType: participant.participantType,
                   companyId: participant.companyId,
@@ -1413,7 +1423,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 // Debug: Log all available participant totals
                 if (participantTotals?.participants) {
                   logger.debug(
-                    `📊 Available participant totals (${participantTotals.participants.length}):`,
+                    `ðŸ“Š Available participant totals (${participantTotals.participants.length}):`,
                     participantTotals.participants.map((pt) => ({
                       participantId: pt.participantId,
                       participantName: pt.participantName,
@@ -1487,7 +1497,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                                   isTablet && styles.editParticipantButtonTextTablet,
                                 ]}
                               >
-                                ✏️ Editar
+                                âœï¸ Editar
                               </Text>
                             </TouchableOpacity>
                           )}
@@ -1567,7 +1577,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         )}
                       </View>
                       <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>
-                        ΓÇ║
+                        Î“Ã‡â•‘
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -1593,7 +1603,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     async (product: CampaignProduct) => {
       Alert.alert(
         'Eliminar Producto',
-        `¿Estás seguro de eliminar "${product.product?.title || 'este producto'}" de la campaña?`,
+        `Â¿EstÃ¡s seguro de eliminar "${product.product?.title || 'este producto'}" de la campaÃ±a?`,
         [
           { text: 'Cancelar', style: 'cancel' },
           {
@@ -1621,7 +1631,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   return rest;
                 });
 
-                Alert.alert('Éxito', 'Producto eliminado de la campaña');
+                Alert.alert('Ã‰xito', 'Producto eliminado de la campaÃ±a');
               } catch (error: any) {
                 logger.error('Error deleting product:', error);
                 Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
@@ -1653,22 +1663,22 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         return;
       }
 
-      logger.debug('≡ƒöä [BANNER] Actualizando producto específico:', selectedProduct.id);
+      logger.debug('â‰¡Æ’Ã¶Ã¤ [BANNER] Actualizando producto especÃ­fico:', selectedProduct.id);
 
       try {
         // Use provided updated product or fetch it
         let updatedProduct: CampaignProduct;
 
         if (updatedProductParam) {
-          logger.debug('✅ [BANNER] Usando producto actualizado proporcionado');
+          logger.debug('âœ… [BANNER] Usando producto actualizado proporcionado');
           updatedProduct = updatedProductParam;
         } else {
-          logger.debug('≡ƒöä [BANNER] Obteniendo producto actualizado del servidor');
+          logger.debug('â‰¡Æ’Ã¶Ã¤ [BANNER] Obteniendo producto actualizado del servidor');
           // Fetch only the updated product
           updatedProduct = await campaignsService.getProduct(campaignId, selectedProduct.productId);
         }
 
-        logger.debug('✅ [BANNER] Producto actualizado:', {
+        logger.debug('âœ… [BANNER] Producto actualizado:', {
           productId: updatedProduct.id,
           distributionGenerated: updatedProduct.distributionGenerated,
           productStatus: updatedProduct.productStatus,
@@ -1687,11 +1697,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         // Update selected product
         setSelectedProduct(updatedProduct);
 
-        logger.debug('✅ [BANNER] Producto actualizado en la lista sin recargar toda la campaña');
+        logger.debug('âœ… [BANNER] Producto actualizado en la lista sin recargar toda la campaÃ±a');
       } catch (error: any) {
-        logger.error('❌ [BANNER] Error actualizando producto:', error);
+        logger.error('âŒ [BANNER] Error actualizando producto:', error);
         // Fallback: reload entire campaign
-        logger.debug('⚠️ [BANNER] Fallback: recargando toda la campaña');
+        logger.debug('âš ï¸ [BANNER] Fallback: recargando toda la campaÃ±a');
         loadCampaign();
       }
     },
@@ -1708,14 +1718,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           newSet.add(productId);
 
           // OPTIMIZATION: Cargar precios solo cuando se expande por primera vez
-          // Solo si no están ya cargados y el producto existe en el catálogo
+          // Solo si no estÃ¡n ya cargados y el producto existe en el catÃ¡logo
           if (!productSalePrices[productId]) {
             const productDetails = products[productId];
             const isPreliminary =
               productDetails && (productDetails as any).status === 'preliminary';
 
             if (productDetails && !isPreliminary) {
-              logger.debug('⚡ [PERF] Cargando precios para producto expandido:', productId);
+              logger.debug('âš¡ [PERF] Cargando precios para producto expandido:', productId);
 
               // Cargar precios en background
               priceProfilesApi
@@ -1728,15 +1738,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     [productId]: salePricesArray,
                   }));
 
-                  logger.debug('✅ [PERF] Precios cargados para producto:', productId);
+                  logger.debug('âœ… [PERF] Precios cargados para producto:', productId);
                 })
                 .catch((error) => {
                   logger.debug(
-                    '⚠️ [PERF] No se pudieron cargar precios para producto (puede ser preliminar o no existir)'
+                    'âš ï¸ [PERF] No se pudieron cargar precios para producto (puede ser preliminar o no existir)'
                   );
                 });
             } else {
-              logger.debug('⚠️ [PERF] Producto preliminar o no existe, no se cargan precios');
+              logger.debug('âš ï¸ [PERF] Producto preliminar o no existe, no se cargan precios');
             }
           }
         }
@@ -1776,13 +1786,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         await productsApi.updateProduct(productId, { costCents });
 
-        // ✅ Invalidar caché V2 para reflejar cambios inmediatamente en búsquedas
+        // âœ… Invalidar cachÃ© V2 para reflejar cambios inmediatamente en bÃºsquedas
         try {
           await productsApi.invalidateProductsCacheV2();
-          logger.info('✅ Caché V2 invalidado después de actualizar costo');
+          logger.info('âœ… CachÃ© V2 invalidado despuÃ©s de actualizar costo');
         } catch (cacheError) {
-          logger.warn('⚠️ No se pudo invalidar caché V2:', cacheError);
-          // No bloqueamos la operación si falla la invalidación
+          logger.warn('âš ï¸ No se pudo invalidar cachÃ© V2:', cacheError);
+          // No bloqueamos la operaciÃ³n si falla la invalidaciÃ³n
         }
 
         // Update local state instead of reloading everything
@@ -1800,7 +1810,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         });
 
         setEditingCost(null);
-        Alert.alert('Éxito', 'Costo actualizado correctamente');
+        Alert.alert('Ã‰xito', 'Costo actualizado correctamente');
       } catch (error: any) {
         logger.error('Error saving cost:', error);
         Alert.alert('Error', error.message || 'No se pudo actualizar el costo');
@@ -1867,7 +1877,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         });
 
         setEditingPrice(null);
-        Alert.alert('Éxito', 'Precio actualizado correctamente');
+        Alert.alert('Ã‰xito', 'Precio actualizado correctamente');
       } catch (error: any) {
         logger.error('Error saving price:', error);
         Alert.alert('Error', error.message || 'No se pudo actualizar el precio');
@@ -1992,7 +2002,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     // Apply product status filter (preliminar / activo del producto subyacente).
     // Prioridad: `detail.productStatus` (endpoint fresco products-detail) >
     // `product.productStatus` (CampaignProduct). NO usar `productDetails.status`
-    // porque ése es el status del Product maestro (típicamente 'active')
+    // porque Ã©se es el status del Product maestro (tÃ­picamente 'active')
     // y enmascaraba campaign products realmente preliminares.
     if (productStatusFilter !== 'all') {
       filtered = filtered.filter((product) => {
@@ -2052,9 +2062,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     productStatusFilter,
   ]);
 
-  // Lista única de proveedores presentes entre los productos de la campaña.
+  // Lista Ãºnica de proveedores presentes entre los productos de la campaÃ±a.
   // Usa el endpoint compacto (preferido) con fallback al `purchase.code` del
-  // producto cuando todavía no se hidrató.
+  // producto cuando todavÃ­a no se hidratÃ³.
   const availableSuppliers = useMemo(() => {
     if (!campaign?.products) return [] as Array<{ key: string; label: string }>;
     const map = new Map<string, string>();
@@ -2072,7 +2082,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       }
       const label = detail?.supplier?.name
         ? detail.supplier.purchaseCode
-          ? `${detail.supplier.name} · ${detail.supplier.purchaseCode}`
+          ? `${detail.supplier.name} Â· ${detail.supplier.purchaseCode}`
           : detail.supplier.name
         : key;
       if (!map.has(key)) {
@@ -2089,15 +2099,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return filteredProducts.slice(0, displayedItemsCount);
   }, [filteredProducts, displayedItemsCount]);
 
-  // Activar un producto preliminar dentro de la campaña: simplemente
+  // Activar un producto preliminar dentro de la campaÃ±a: simplemente
   // cambia el `productStatus` del CampaignProduct de PRELIMINARY a ACTIVE.
-  // No toca la compra ni dispara validaciones — sólo es un toggle de
-  // estado en la campaña.
+  // No toca la compra ni dispara validaciones â€” sÃ³lo es un toggle de
+  // estado en la campaÃ±a.
   const handleActivatePreliminary = useCallback(
     async (product: CampaignProduct) => {
       Alert.alert(
         'Activar producto',
-        '¿Pasar este producto de preliminar a activo en la campaña?',
+        'Â¿Pasar este producto de preliminar a activo en la campaÃ±a?',
         [
           { text: 'Cancelar', style: 'cancel' },
           {
@@ -2113,9 +2123,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 // pase a 'ACTIVE') y el endpoint compacto (para que
                 // `detail.productStatus` no quede stale en 'PRELIMINARY').
                 await Promise.all([loadCampaign(), refetchProductsDetail()]);
-                Alert.alert('Producto activado', 'El producto ahora está activo en la campaña.');
+                Alert.alert('Producto activado', 'El producto ahora estÃ¡ activo en la campaÃ±a.');
               } catch (e: any) {
-                logger.error('Error activando producto en campaña', e);
+                logger.error('Error activando producto en campaÃ±a', e);
                 Alert.alert(
                   'Error',
                   e?.response?.data?.message ||
@@ -2152,17 +2162,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   // Memoized render function for product items
   const renderProductItem = useCallback(
     ({ item: product }: { item: CampaignProduct }) => {
-      // ✅ Priorizar datos del nuevo endpoint compacto `products-detail`.
-      // Hace fallback a los datos embebidos / batch endpoint si todavía
-      // no se cargó el detalle (primer render).
+      // âœ… Priorizar datos del nuevo endpoint compacto `products-detail`.
+      // Hace fallback a los datos embebidos / batch endpoint si todavÃ­a
+      // no se cargÃ³ el detalle (primer render).
       const detail = productsDetailMap[product.id];
       const productDetails = products[product.productId] || product.product;
       const costCents = detail?.costCents ?? productDetails?.costCents ?? 0;
       const isExpanded = expandedProducts.has(product.id);
-      // Fuentes válidas para saber si el campaign product es preliminar:
-      //   1) `detail.productStatus` — endpoint products-detail (fresco)
-      //   2) `product.productStatus` — campo del CampaignProduct
-      // NO usar `productDetails.status`: ése es el status del Product
+      // Fuentes vÃ¡lidas para saber si el campaign product es preliminar:
+      //   1) `detail.productStatus` â€” endpoint products-detail (fresco)
+      //   2) `product.productStatus` â€” campo del CampaignProduct
+      // NO usar `productDetails.status`: Ã©se es el status del Product
       // maestro (siempre 'active'), no del campaign product, y enmascaraba
       // productos realmente preliminares.
       const productStatusRaw = (detail?.productStatus || product.productStatus || '').toString();
@@ -2173,10 +2183,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const totalQty = detail
         ? parseFloat(detail.campaignQuantityBase || '0')
         : product.totalQuantityBase;
-      // Sum from customDistributions (sólo disponible para distribuciones
+      // Sum from customDistributions (sÃ³lo disponible para distribuciones
       // CUSTOM). Para distribuciones generadas (ALL / INTERNAL_* /
       // EXTERNAL_*) el desglose vive en `repartos` y no se trae en este
-      // request, así que asumimos que se repartió el total cuando el
+      // request, asÃ­ que asumimos que se repartiÃ³ el total cuando el
       // backend marca `distributionGenerated=true`.
       const customDistributedQty =
         product.customDistributions?.[0]?.items?.reduce(
@@ -2197,7 +2207,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const availableStock = stock ? parseFloat(stock.availableQuantityBase || '0') : null;
       const reservedStock = stock ? parseFloat(stock.reservedQuantityBase || '0') : 0;
       const totalStock = stock ? parseFloat(stock.quantityBase || '0') : 0;
-      // ⚠️ Las fotos del endpoint compacto pueden venir como string o como
+      // âš ï¸ Las fotos del endpoint compacto pueden venir como string o como
       // { type, url }. Las del producto embebido pueden ser string o el
       // mismo objeto. Normalizamos a string para no romper <Image>.
       // Preferencia: design > reference > primera disponible.
@@ -2242,8 +2252,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const currencyPrefix = currencyCode === 'PEN' ? 'S/' : currencyCode;
       const fmt = (cents: number) => `${currencyPrefix} ${(cents / 100).toFixed(2)}`;
 
-      // Precios: priorizar los del endpoint compacto. Mostramos sólo
-      // precios base (sin presentación) — los precios por presentación
+      // Precios: priorizar los del endpoint compacto. Mostramos sÃ³lo
+      // precios base (sin presentaciÃ³n) â€” los precios por presentaciÃ³n
       // se ven al entrar al detalle del producto.
       type DisplayPrice = { profileId: string; profileName: string; priceCents: number };
       const detailPrices: DisplayPrice[] =
@@ -2259,7 +2269,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         profileName: profile.name,
         priceCents: getSalePriceForProfile(product.productId, profile.id),
       }));
-      // El usuario pidió invertir el orden de los perfiles en la lista
+      // El usuario pidiÃ³ invertir el orden de los perfiles en la lista
       // (lo que el backend devuelve primero, mostrarlo al final).
       const orderedDetailPrices = [...detailPrices].reverse();
       const orderedFallbackPrices = [...fallbackPrices].reverse();
@@ -2290,17 +2300,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               </TouchableOpacity>
             ) : (
               <View style={styles.productImageCompactPlaceholder}>
-                <Text style={styles.productImagePlaceholderText}>📦</Text>
+                <Text style={styles.productImagePlaceholderText}>ðŸ“¦</Text>
               </View>
             )}
 
             <View style={styles.productCompactContent}>
-              {/* Línea 1: SKU + título + badges */}
+              {/* LÃ­nea 1: SKU + tÃ­tulo + badges */}
               <View style={styles.productCompactHeader}>
                 <Text style={styles.productCompactSku}>{sku}</Text>
                 {barcode ? (
                   <Text style={styles.productCompactBarcode} numberOfLines={1}>
-                    🔖 {barcode}
+                    ðŸ”– {barcode}
                   </Text>
                 ) : null}
                 <Text
@@ -2313,8 +2323,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   {/* Badge Activo/Preliminar: usamos `isPreliminary` (que
                       prioriza `detail.productStatus` del endpoint compacto
                       products-detail) en vez de `product.productStatus`,
-                      porque éste último puede quedar stale cuando la compra
-                      asociada se valida fuera del flujo de la campaña. */}
+                      porque Ã©ste Ãºltimo puede quedar stale cuando la compra
+                      asociada se valida fuera del flujo de la campaÃ±a. */}
                   <View
                     style={[
                       styles.badgeSmall,
@@ -2327,7 +2337,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   </View>
                   {product.distributionGenerated && (
                     <View style={[styles.badgeSmall, styles.badgeGenerated]}>
-                      <Text style={styles.badgeSmallText}>✓ Gen</Text>
+                      <Text style={styles.badgeSmallText}>âœ“ Gen</Text>
                     </View>
                   )}
                   {isPreliminary && (
@@ -2340,16 +2350,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       disabled={activatingProductIds.has(product.id)}
                     >
                       {activatingProductIds.has(product.id) ? (
-                        <ActivityIndicator size="small" color="#fff" />
+                        <ActivityIndicator size="small" color={theme.color.surface.base} />
                       ) : (
-                        <Text style={styles.badgeSmallText}>✅ Activar</Text>
+                        <Text style={styles.badgeSmallText}>âœ… Activar</Text>
                       )}
                     </TouchableOpacity>
                   )}
                 </View>
               </View>
 
-              {/* Línea 2: cantidades */}
+              {/* LÃ­nea 2: cantidades */}
               <View style={styles.productCompactMetricsRow}>
                 <View style={styles.productCompactMetric}>
                   <Text style={styles.productCompactMetricLabel}>Camp.</Text>
@@ -2363,7 +2373,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       distributedQty > 0 && styles.productCompactMetricValueOk,
                     ]}
                   >
-                    {hasDistributedInfo ? Math.floor(distributedQty) : '—'}
+                    {hasDistributedInfo ? Math.floor(distributedQty) : 'â€”'}
                   </Text>
                 </View>
                 <View style={styles.productCompactMetric}>
@@ -2374,7 +2384,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       pendingQty > 0 && styles.productCompactMetricValueWarn,
                     ]}
                   >
-                    {hasDistributedInfo ? Math.floor(pendingQty) : '—'}
+                    {hasDistributedInfo ? Math.floor(pendingQty) : 'â€”'}
                   </Text>
                 </View>
                 <View style={styles.productCompactDivider} />
@@ -2388,7 +2398,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         : styles.productCompactMetricValueWarn,
                     ]}
                   >
-                    {availableStock !== null ? Math.floor(availableStock) : '—'}
+                    {availableStock !== null ? Math.floor(availableStock) : 'â€”'}
                   </Text>
                 </View>
                 {reservedStock > 0 && (
@@ -2409,7 +2419,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 )}
               </View>
 
-              {/* Línea 3: precios */}
+              {/* LÃ­nea 3: precios */}
               <View style={styles.productCompactPricesRow}>
                 <View style={styles.productCompactPriceChip}>
                   <Text style={styles.productCompactPriceLabel}>Costo</Text>
@@ -2441,7 +2451,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         ]}
                       >
                         {fmt(p.priceCents)}
-                        {lower ? ' ⚠️' : ''}
+                        {lower ? ' âš ï¸' : ''}
                       </Text>
                     </View>
                   );
@@ -2455,9 +2465,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 )}
               </View>
 
-              {/* Línea 4: proveedor / compra (siempre visible) */}
+              {/* LÃ­nea 4: proveedor / compra (siempre visible) */}
               <View style={styles.productCompactSupplierRow}>
-                <Text style={styles.productCompactSupplierIcon}>🏢</Text>
+                <Text style={styles.productCompactSupplierIcon}>ðŸ¢</Text>
                 <Text
                   style={[
                     styles.productCompactSupplierText,
@@ -2469,7 +2479,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 >
                   {detail?.supplier
                     ? `${detail.supplier.name}${
-                        detail.supplier.purchaseCode ? ` · ${detail.supplier.purchaseCode}` : ''
+                        detail.supplier.purchaseCode ? ` Â· ${detail.supplier.purchaseCode}` : ''
                       }`
                     : product.purchase?.code
                       ? `Compra: ${product.purchase.code}`
@@ -2479,7 +2489,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </View>
 
             <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>
-              {isExpanded ? '▾' : '▸'}
+              {isExpanded ? 'â–¾' : 'â–¸'}
             </Text>
           </TouchableOpacity>
 
@@ -2489,7 +2499,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               style={[styles.productActionButton, styles.productBannerButton]}
               onPress={() => handleShowBanner(product)}
             >
-              <Text style={styles.productActionButtonText}>📸 Banner</Text>
+              <Text style={styles.productActionButtonText}>ðŸ“¸ Banner</Text>
             </TouchableOpacity>
 
             {(campaign!.status === CampaignStatus.DRAFT ||
@@ -2498,7 +2508,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 style={[styles.productActionButton, styles.productDeleteButton]}
                 onPress={() => handleDeleteProduct(product)}
               >
-                <Text style={styles.productDeleteButtonText}>🗑️ Eliminar</Text>
+                <Text style={styles.productDeleteButtonText}>ðŸ—‘ï¸ Eliminar</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -2526,16 +2536,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       disabled={savingPrice}
                     >
                       {savingPrice ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <ActivityIndicator size="small" color={theme.color.surface.base} />
                       ) : (
-                        <Text style={styles.saveButtonText}>✔</Text>
+                        <Text style={styles.saveButtonText}>âœ”</Text>
                       )}
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.cancelEditButton}
                       onPress={() => setEditingCost(null)}
                     >
-                      <Text style={styles.cancelEditButtonText}>✕</Text>
+                      <Text style={styles.cancelEditButtonText}>âœ•</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -2545,7 +2555,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       style={styles.editButton}
                       onPress={() => handleStartEditCost(product.productId, costCents)}
                     >
-                      <Text style={styles.editButtonText}>✏️</Text>
+                      <Text style={styles.editButtonText}>âœï¸</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -2576,13 +2586,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           onPress={() => handleSavePrice(product.productId, profile.id)}
                           disabled={savingPrice}
                         >
-                          <Text style={styles.savePriceIcon}>{savingPrice ? '⏳' : '✔'}</Text>
+                          <Text style={styles.savePriceIcon}>{savingPrice ? 'â³' : 'âœ”'}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.cancelPriceIconButton}
                           onPress={() => setEditingPrice(null)}
                         >
-                          <Text style={styles.cancelPriceIcon}>✕</Text>
+                          <Text style={styles.cancelPriceIcon}>âœ•</Text>
                         </TouchableOpacity>
                       </View>
                     ) : (
@@ -2594,7 +2604,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                             handleStartEditPrice(product.productId, profile.id, salePriceCents)
                           }
                         >
-                          <Text style={styles.editPriceIcon}>✏️</Text>
+                          <Text style={styles.editPriceIcon}>âœï¸</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -2613,12 +2623,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     disabled={savingPrice}
                   >
                     <Text style={styles.calculateFranquiciaButtonText}>
-                      🧮 Calcular Precio Franquicia (/1.15)
+                      ðŸ§® Calcular Precio Franquicia (/1.15)
                     </Text>
                   </TouchableOpacity>
                   {calculatedFranquicia.has(product.productId) && (
                     <View style={styles.calculatedBadge}>
-                      <Text style={styles.calculatedBadgeText}>✔ Calculado</Text>
+                      <Text style={styles.calculatedBadgeText}>âœ” Calculado</Text>
                     </View>
                   )}
                 </View>
@@ -2691,7 +2701,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               {/* Estimated Total Purchase in Header */}
               {campaign.products && campaign.products.length > 0 && (
                 <View style={styles.estimatedTotalHeaderCard}>
-                  <Text style={styles.estimatedTotalHeaderLabel}>≡ƒÆ░ Compra Total:</Text>
+                  <Text style={styles.estimatedTotalHeaderLabel}>â‰¡Æ’Ã†â–‘ Compra Total:</Text>
                   <Text style={styles.estimatedTotalHeaderValue}>
                     {formatCurrency(estimatedTotalPurchase)}
                   </Text>
@@ -2706,7 +2716,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   onPress={() => setIsBulkDistributionModalVisible(true)}
                 >
                   <Text style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}>
-                    📦 Masivo
+                    ðŸ“¦ Masivo
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -2726,13 +2736,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             <View style={styles.searchInputWrap}>
               <TextInput
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-                placeholder="Buscar por nombre, SKU, cantidad o escanear código..."
+                placeholder="Buscar por nombre, SKU, cantidad o escanear cÃ³digo..."
                 value={searchQuery}
                 onChangeText={handleSearchQueryChange}
                 onSubmitEditing={handleSearchSubmit}
                 returnKeyType="search"
                 blurOnSubmit={false}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.subtle}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
@@ -2743,7 +2753,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     setShowGlobalSearchSuggestions(false);
                   }}
                 >
-                  <Text style={styles.clearSearchText}>✕</Text>
+                  <Text style={styles.clearSearchText}>âœ•</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -2756,7 +2766,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   onValueChange={(v) => setSupplierFilter(String(v))}
                   style={styles.supplierPicker}
                   mode="dropdown"
-                  dropdownIconColor="#475569"
+                  dropdownIconColor={theme.color.text.muted}
                 >
                   <Picker.Item
                     label={`Todos los proveedores (${availableSuppliers.length})`}
@@ -2804,7 +2814,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       distributionFilter === 'generated' && styles.filterButtonTextActive,
                     ]}
                   >
-                    ✔ Generado ({campaign.products.filter((p) => p.distributionGenerated).length})
+                    âœ” Generado ({campaign.products.filter((p) => p.distributionGenerated).length})
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -2820,7 +2830,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       distributionFilter === 'not-generated' && styles.filterButtonTextActive,
                     ]}
                   >
-                    ✕ Sin generar (
+                    âœ• Sin generar (
                     {campaign.products.filter((p) => !p.distributionGenerated).length})
                   </Text>
                 </TouchableOpacity>
@@ -2836,8 +2846,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 {(
                   [
                     { key: 'all', label: 'Todos' },
-                    { key: 'active', label: '✅ Activos' },
-                    { key: 'preliminary', label: '⚠️ Preliminares' },
+                    { key: 'active', label: 'âœ… Activos' },
+                    { key: 'preliminary', label: 'âš ï¸ Preliminares' },
                   ] as const
                 ).map((opt) => {
                   const count =
@@ -2881,21 +2891,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </View>
           )}
 
-          {/* Mensaje vacío: solo cuando NO hay productos en campaña Y el usuario no está buscando.
-              Si está buscando, dejamos que el buscador global muestre sugerencias debajo. */}
+          {/* Mensaje vacÃ­o: solo cuando NO hay productos en campaÃ±a Y el usuario no estÃ¡ buscando.
+              Si estÃ¡ buscando, dejamos que el buscador global muestre sugerencias debajo. */}
           {(!campaign.products || campaign.products.length === 0) && !searchQuery.trim() && (
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
               No hay productos agregados
             </Text>
           )}
 
-          {/* Productos filtrados de la campaña (vacío si la campaña aún no tiene productos) */}
+          {/* Productos filtrados de la campaÃ±a (vacÃ­o si la campaÃ±a aÃºn no tiene productos) */}
           {filteredProducts.length === 0 &&
           searchQuery.trim() &&
           campaign.products &&
           campaign.products.length > 0 ? (
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-              No se encontraron productos en la campaña que coincidan con "{searchQuery}"
+              No se encontraron productos en la campaÃ±a que coincidan con "{searchQuery}"
             </Text>
           ) : (
             <>
@@ -2905,7 +2915,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               {displayedItemsCount < filteredProducts.length && (
                 <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
                   <Text style={styles.loadMoreButtonText}>
-                    Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
+                    Cargar mÃ¡s productos ({displayedItemsCount} de {filteredProducts.length})
                   </Text>
                 </TouchableOpacity>
               )}
@@ -2913,7 +2923,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 filteredProducts.length > ITEMS_PER_PAGE && (
                   <View style={styles.endOfListContainer}>
                     <Text style={styles.endOfListText}>
-                      ✓ Mostrando todos los productos ({filteredProducts.length})
+                      âœ“ Mostrando todos los productos ({filteredProducts.length})
                     </Text>
                   </View>
                 )}
@@ -2923,7 +2933,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           {/* Loading indicator for global search */}
           {searchQuery.trim() && isGlobalSearching && (
             <View style={styles.globalSearchLoading}>
-              <ActivityIndicator size="small" color="#6366F1" />
+              <ActivityIndicator size="small" color={theme.color.brand.primary} />
               <Text style={styles.globalSearchLoadingText}>Buscando en todos los productos...</Text>
             </View>
           )}
@@ -2935,7 +2945,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             globalSearchResults.length > 0 && (
               <View style={styles.globalSearchContainer}>
                 <Text style={styles.globalSearchTitle}>
-                  ≡ƒÆí Productos disponibles para agregar ({globalSearchResults.length})
+                  â‰¡Æ’Ã†Ã­ Productos disponibles para agregar ({globalSearchResults.length})
                 </Text>
                 <Text style={styles.globalSearchHint}>
                   Usa "Agregar Todo" para agregar con todo el stock o "Personalizado" para elegir la
@@ -2964,7 +2974,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           onPress={() => handleOpenBannerFromSearch(product)}
                           activeOpacity={0.7}
                         >
-                          <Text style={styles.globalSearchBannerButtonLeftText}>📋</Text>
+                          <Text style={styles.globalSearchBannerButtonLeftText}>ðŸ“‹</Text>
                         </TouchableOpacity>
 
                         {(() => {
@@ -2994,7 +3004,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           </Text>
                           {isPreliminary && (
                             <Text style={styles.globalSearchWarning}>
-                              ⚠️ Producto por validar Ingreso
+                              âš ï¸ Producto por validar Ingreso
                             </Text>
                           )}
                           <View style={styles.globalSearchMeta}>
@@ -3007,20 +3017,22 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                                     : styles.stockUnavailable,
                                 ]}
                               >
-                                {isPreliminary ? '📦 Stock preliminar: ' : '✅ Disponible: '}
+                                {isPreliminary ? 'ðŸ“¦ Stock preliminar: ' : 'âœ… Disponible: '}
                                 {stockInfo.available}
                               </Text>
                               {!isPreliminary && stockInfo.reserved > 0 && (
                                 <Text style={styles.stockReserved}>
-                                  ≡ƒöÆ Reservado: {stockInfo.reserved}
+                                  â‰¡Æ’Ã¶Ã† Reservado: {stockInfo.reserved}
                                 </Text>
                               )}
                               {!isPreliminary && stockInfo.total !== stockInfo.available && (
-                                <Text style={styles.stockTotal}>≡ƒôè Total: {stockInfo.total}</Text>
+                                <Text style={styles.stockTotal}>
+                                  â‰¡Æ’Ã´Ã¨ Total: {stockInfo.total}
+                                </Text>
                               )}
                             </View>
                             <Text style={styles.globalSearchStatus}>
-                              {product.status === 'active' ? '✔ Activo' : 'ΓÜá Preliminar'}
+                              {product.status === 'active' ? 'âœ” Activo' : 'Î“ÃœÃ¡ Preliminar'}
                             </Text>
                           </View>
                         </View>
@@ -3039,7 +3051,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               disabled={addingQuickProduct}
                             >
                               <Text style={styles.globalSearchActionButtonSecondaryText}>
-                                ⚙️ Personalizado
+                                âš™ï¸ Personalizado
                               </Text>
                             </TouchableOpacity>
                           </View>
@@ -3059,8 +3071,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Cargando campaña...</Text>
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
+          <Text style={styles.loadingText}>Cargando campaÃ±a...</Text>
         </View>
       </SafeAreaView>
     );
@@ -3077,7 +3089,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ΓåÉ Volver
+              Î“Ã¥Ã‰ Volver
             </Text>
           </TouchableOpacity>
           <Text style={[styles.title, isTablet && styles.titleTablet]}>{campaign.code}</Text>
@@ -3111,7 +3123,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   isTablet && styles.cancelCampaignButtonTextTablet,
                 ]}
               >
-                Cancelar Campaña
+                Cancelar CampaÃ±a
               </Text>
             </TouchableOpacity>
 
@@ -3121,12 +3133,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               disabled={actionLoading}
             >
               {actionLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.color.surface.base} />
               ) : (
                 <Text
                   style={[styles.activateButtonText, isTablet && styles.activateButtonTextTablet]}
                 >
-                  Activar Campaña
+                  Activar CampaÃ±a
                 </Text>
               )}
             </TouchableOpacity>
@@ -3141,10 +3153,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               disabled={actionLoading}
             >
               {actionLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.color.surface.base} />
               ) : (
                 <Text style={[styles.closeButtonText, isTablet && styles.closeButtonTextTablet]}>
-                  Cerrar Campaña
+                  Cerrar CampaÃ±a
                 </Text>
               )}
             </TouchableOpacity>
@@ -3299,7 +3311,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   style={styles.imageModalCloseButton}
                   onPress={handleCloseImageModal}
                 >
-                  <Text style={styles.imageModalCloseText}>✕</Text>
+                  <Text style={styles.imageModalCloseText}>âœ•</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -3337,7 +3349,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     setCustomQuantity('');
                   }}
                 >
-                  <Text style={styles.customAddModalCloseButton}>✕</Text>
+                  <Text style={styles.customAddModalCloseButton}>âœ•</Text>
                 </TouchableOpacity>
               </View>
 
@@ -3351,13 +3363,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     </Text>
                     {selectedProductForCustomAdd.status === 'preliminary' && (
                       <Text style={styles.customAddModalWarning}>
-                        ⚠️ Producto por validar Ingreso
+                        âš ï¸ Producto por validar Ingreso
                       </Text>
                     )}
                   </View>
 
                   <View style={styles.customAddModalStockInfo}>
-                    <Text style={styles.customAddModalStockTitle}>Información de Stock:</Text>
+                    <Text style={styles.customAddModalStockTitle}>InformaciÃ³n de Stock:</Text>
                     {(() => {
                       const stockInfo = getProductStock(selectedProductForCustomAdd);
                       const isPreliminary = selectedProductForCustomAdd.status === 'preliminary';
@@ -3365,7 +3377,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         <>
                           <View style={styles.customAddModalStockRow}>
                             <Text style={styles.customAddModalStockLabel}>
-                              {isPreliminary ? '📦 Stock preliminar:' : '✅ Disponible:'}
+                              {isPreliminary ? 'ðŸ“¦ Stock preliminar:' : 'âœ… Disponible:'}
                             </Text>
                             <Text style={styles.customAddModalStockValue}>
                               {stockInfo.available}
@@ -3373,7 +3385,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           </View>
                           {!isPreliminary && stockInfo.reserved > 0 && (
                             <View style={styles.customAddModalStockRow}>
-                              <Text style={styles.customAddModalStockLabel}>≡ƒöÆ Reservado:</Text>
+                              <Text style={styles.customAddModalStockLabel}>
+                                â‰¡Æ’Ã¶Ã† Reservado:
+                              </Text>
                               <Text style={styles.customAddModalStockValue}>
                                 {stockInfo.reserved}
                               </Text>
@@ -3381,7 +3395,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           )}
                           {!isPreliminary && (
                             <View style={styles.customAddModalStockRow}>
-                              <Text style={styles.customAddModalStockLabel}>≡ƒôè Total:</Text>
+                              <Text style={styles.customAddModalStockLabel}>â‰¡Æ’Ã´Ã¨ Total:</Text>
                               <Text style={styles.customAddModalStockValue}>{stockInfo.total}</Text>
                             </View>
                           )}
@@ -3420,7 +3434,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       disabled={addingQuickProduct}
                     >
                       {addingQuickProduct ? (
-                        <ActivityIndicator color="#FFFFFF" />
+                        <ActivityIndicator color={theme.color.surface.base} />
                       ) : (
                         <Text style={styles.customAddModalConfirmButtonText}>Agregar</Text>
                       )}
@@ -3445,7 +3459,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             <View style={styles.floatingButtonContainer} pointerEvents="box-none">
               <AddButton
                 onPress={() => setIsBulkUpdateModalVisible(true)}
-                icon="💵"
+                icon="ðŸ’µ"
                 label="Precios"
               />
             </View>
@@ -3456,1715 +3470,1716 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#64748B',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  backButton: {
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabTablet: {
-    paddingVertical: 16,
-  },
-  tabActive: {
-    borderBottomColor: '#6366F1',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748B',
-  },
-  tabTextTablet: {
-    fontSize: 16,
-  },
-  tabTextActive: {
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  scrollContentTablet: {
-    padding: 32,
-  },
-  overviewContainer: {
-    gap: 16,
-  },
-  tabContent: {
-    gap: 16,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sectionTablet: {
-    padding: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  sectionHeaderLeft: {
-    flex: 1,
-    gap: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 16,
-  },
-  sectionTitleTablet: {
-    fontSize: 22,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  infoLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748B',
-    minWidth: 120,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
-    minWidth: 150,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    flex: 1,
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 14,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-  },
-  statCardTablet: {
-    padding: 20,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#6366F1',
-    marginBottom: 4,
-  },
-  statValueTablet: {
-    fontSize: 28,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  statLabelTablet: {
-    fontSize: 14,
-  },
-  notesText: {
-    fontSize: 14,
-    color: '#64748B',
-    lineHeight: 20,
-  },
-  notesTextTablet: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  headerButtonsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  bulkButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  bulkButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  bulkButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  bulkButtonTextTablet: {
-    fontSize: 14,
-  },
-  addButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  addButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  addButtonTextTablet: {
-    fontSize: 14,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  emptyTextTablet: {
-    fontSize: 16,
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  listItemTablet: {
-    paddingVertical: 16,
-  },
-  listItemContent: {
-    flex: 1,
-  },
-  listItemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  listItemTitleTablet: {
-    fontSize: 18,
-  },
-  listItemSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  listItemSubtitleTablet: {
-    fontSize: 15,
-  },
-  listItemAmount: {
-    fontSize: 14,
-    color: '#10B981',
-    fontWeight: '500',
-  },
-  listItemAmountTablet: {
-    fontSize: 16,
-  },
-  participantCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    overflow: 'hidden',
-  },
-  participantCardTablet: {
-    borderRadius: 12,
-  },
-  participantCardMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-  },
-  participantHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-    gap: 8,
-  },
-  editParticipantButton: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  editParticipantButtonTablet: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  editParticipantButtonText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  editParticipantButtonTextTablet: {
-    fontSize: 13,
-  },
-  totalsContainer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 6,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  totalLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  totalLabelTablet: {
-    fontSize: 15,
-  },
-  totalValuePurchase: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#F59E0B',
-  },
-  totalValueSale: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#10B981',
-  },
-  totalValueMargin: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  totalValueExpected: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#8B5CF6',
-  },
-  totalValueTablet: {
-    fontSize: 16,
-  },
-  marginValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  marginPercentage: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6366F1',
-    opacity: 0.8,
-  },
-  marginPercentageTablet: {
-    fontSize: 14,
-  },
-  summaryCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#6366F1',
-  },
-  summaryCardTablet: {
-    padding: 24,
-    marginBottom: 20,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  summaryTitleTablet: {
-    fontSize: 22,
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  summaryItem: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  summaryLabelTablet: {
-    fontSize: 14,
-  },
-  summaryValuePurchase: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#F59E0B',
-    textAlign: 'center',
-  },
-  summaryValueSale: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#10B981',
-    textAlign: 'center',
-  },
-  summaryValueMargin: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#6366F1',
-    textAlign: 'center',
-  },
-  summaryValueExpected: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#8B5CF6',
-    textAlign: 'center',
-  },
-  summaryValueTablet: {
-    fontSize: 22,
-  },
-  summaryPercentage: {
-    fontSize: 12,
-    color: '#6366F1',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  summaryPercentageTablet: {
-    fontSize: 14,
-  },
-  downloadGeneralReportButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  downloadGeneralReportButtonTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    marginBottom: 20,
-  },
-  downloadGeneralReportButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  downloadGeneralReportButtonTextTablet: {
-    fontSize: 16,
-  },
-  downloadButtonDisabled: {
-    opacity: 0.5,
-  },
-  quickPriceValue: {
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  productBadges: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  badgeActive: {
-    backgroundColor: '#10B98120',
-  },
-  badgePreliminary: {
-    backgroundColor: '#F59E0B40',
-    borderWidth: 1,
-    borderColor: '#F59E0B',
-  },
-  badgeActivate: {
-    backgroundColor: '#10B981',
-    borderWidth: 1,
-    borderColor: '#059669',
-    minHeight: 22,
-    justifyContent: 'center',
-  },
-  badgeGenerated: {
-    backgroundColor: '#6366F120',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  productTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  preliminaryIndicator: {
-    backgroundColor: '#FEF3C7',
-    borderWidth: 1,
-    borderColor: '#F59E0B',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  preliminaryIndicatorText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#D97706',
-    letterSpacing: 0.5,
-  },
-  arrowIcon: {
-    fontSize: 24,
-    color: '#CBD5E1',
-    fontWeight: 'bold',
-  },
-  arrowIconTablet: {
-    fontSize: 32,
-  },
-  productCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    overflow: 'hidden',
-  },
-  // ============================================
-  // Compact product card (new endpoint design)
-  // ============================================
-  productCardCompact: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    overflow: 'hidden',
-  },
-  productCardCompactMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    gap: 10,
-  },
-  productImageCompact: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-  },
-  productImageCompactPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  productCompactContent: {
-    flex: 1,
-    gap: 6,
-  },
-  productCompactHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  productCompactSku: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    letterSpacing: 0.3,
-  },
-  productCompactBarcode: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#0F766E',
-    backgroundColor: '#CCFBF1',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    letterSpacing: 0.3,
-    maxWidth: 160,
-  },
-  productCompactTitle: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
-    minWidth: 120,
-  },
-  productCompactTitleTablet: {
-    fontSize: 15,
-  },
-  productCompactBadges: {
-    flexDirection: 'row',
-    gap: 4,
-    flexShrink: 0,
-  },
-  badgeSmall: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  badgeSmallText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#1E293B',
-    letterSpacing: 0.2,
-  },
-  productCompactMetricsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  productCompactMetric: {
-    flexDirection: 'column',
-  },
-  productCompactDivider: {
-    width: 1,
-    height: 18,
-    backgroundColor: '#E2E8F0',
-  },
-  productCompactMetricLabel: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#94A3B8',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  productCompactMetricValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
-    lineHeight: 16,
-  },
-  productCompactMetricValueOk: {
-    color: '#059669',
-  },
-  productCompactMetricValueWarn: {
-    color: '#D97706',
-  },
-  productCompactMetricValueMuted: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    lineHeight: 16,
-  },
-  productCompactPricesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  productCompactPriceChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  productCompactPriceChipMuted: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  productCompactPriceChipWarn: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-  },
-  productCompactPriceLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#475569',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  productCompactPriceLabelWarn: {
-    color: '#B91C1C',
-  },
-  productCompactPriceValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1E40AF',
-  },
-  productCompactPriceValueWarn: {
-    color: '#B91C1C',
-  },
-  productCompactSupplierRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  productCompactSupplierIcon: {
-    fontSize: 12,
-  },
-  productCompactSupplierText: {
-    flex: 1,
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#64748B',
-  },
-  productCompactSupplierTextEmpty: {
-    color: '#CBD5E1',
-    fontStyle: 'italic',
-  },
-  productCardPreliminary: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 2,
-    borderColor: '#F59E0B',
-    borderLeftWidth: 4,
-  },
-  productCardTablet: {
-    borderRadius: 12,
-  },
-  productCardMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-  },
-  productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
-  },
-  productImagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  productImagePlaceholderText: {
-    fontSize: 28,
-  },
-  productCardActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-  },
-  productActionButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  productBannerButton: {
-    borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
-  },
-  productActionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  productDeleteButton: {
-    backgroundColor: '#FEF2F2',
-  },
-  productDeleteButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#EF4444',
-  },
-  productExpandButton: {
-    borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
-  },
-  priceDetailsContainer: {
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  priceLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-    flex: 1,
-  },
-  priceDisplayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  priceValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  priceLowerThanCost: {
-    color: '#DC2626',
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  priceEditRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  currencySymbol: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  priceInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#6366F1',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    minWidth: 80,
-  },
-  editButton: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  editButtonText: {
-    fontSize: 14,
-    color: '#3B82F6',
-  },
-  saveButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
-    minWidth: 32,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  cancelEditButton: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
-    minWidth: 32,
-    alignItems: 'center',
-  },
-  cancelEditButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  calculateButton: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginLeft: 4,
-  },
-  calculateButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  searchContainer: {
-    marginBottom: 16,
-    position: 'relative',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-    flexWrap: 'wrap',
-  },
-  searchInputWrap: {
-    flex: 1,
-    minWidth: 220,
-    position: 'relative',
-  },
-  supplierPickerWrap: {
-    minWidth: 220,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  supplierPickerWrapTablet: {
-    minWidth: 280,
-  },
-  supplierPicker: {
-    height: 44,
-    color: '#1E293B',
-  },
-  searchInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1E293B',
-  },
-  searchInputTablet: {
-    fontSize: 16,
-    paddingVertical: 12,
-  },
-  clearSearchButton: {
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    transform: [{ translateY: -12 }],
-    backgroundColor: '#94A3B8',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clearSearchText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  filterContainer: {
-    marginBottom: 16,
-  },
-  filterLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 8,
-  },
-  filterButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  filterButtonActive: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
-  },
-  filterButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  estimatedTotalHeaderCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F0F9FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-  },
-  estimatedTotalHeaderLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E40AF',
-  },
-  estimatedTotalHeaderValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1E40AF',
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  footerTablet: {
-    padding: 24,
-    gap: 16,
-  },
-  cancelCampaignButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EF4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelCampaignButtonTablet: {
-    paddingVertical: 16,
-  },
-  cancelCampaignButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#EF4444',
-  },
-  cancelCampaignButtonTextTablet: {
-    fontSize: 18,
-  },
-  activateButton: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activateButtonTablet: {
-    paddingVertical: 16,
-  },
-  activateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  activateButtonTextTablet: {
-    fontSize: 18,
-  },
-  closeButton: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonTablet: {
-    paddingVertical: 16,
-  },
-  closeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  closeButtonTextTablet: {
-    fontSize: 18,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  copyButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  copyButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  copyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  copyButtonTextTablet: {
-    fontSize: 14,
-  },
-  deleteAllButton: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  deleteAllButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  deleteAllButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  deleteAllButtonTextTablet: {
-    fontSize: 14,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 24,
-    width: '100%',
-    maxWidth: 500,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  modalContentTablet: {
-    padding: 32,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
-  },
-  modalTitleTablet: {
-    fontSize: 24,
-  },
-  modalDescription: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 20,
-  },
-  modalDescriptionTablet: {
-    fontSize: 16,
-  },
-  pickerContainer: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 24,
-  },
-  pickerContainerTablet: {
-    borderRadius: 10,
-  },
-  picker: {
-    height: 50,
-    color: '#1F2937',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalCancelButton: {
-    flex: 1,
-    backgroundColor: '#E2E8F0',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalConfirmButton: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalButtonTablet: {
-    paddingVertical: 16,
-  },
-  modalButtonDisabled: {
-    opacity: 0.5,
-  },
-  modalCancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  modalConfirmButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  modalButtonTextTablet: {
-    fontSize: 16,
-  },
-  floatingButtonContainer: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    zIndex: 9998,
-    pointerEvents: 'box-none',
-  },
-  imageModalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageModalBackdrop: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageModalContent: {
-    width: '90%',
-    height: '80%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageModalImage: {
-    width: '100%',
-    height: '100%',
-  },
-  imageModalCloseButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  imageModalCloseText: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  // Global search styles
-  globalSearchLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 12,
-  },
-  globalSearchLoadingText: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  globalSearchContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  globalSearchTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  globalSearchHint: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 12,
-  },
-  globalSearchList: {
-    maxHeight: 400,
-  },
-  globalSearchItem: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  globalSearchItemPreliminary: {
-    backgroundColor: '#FEF3C7',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  globalSearchItemDisabled: {
-    backgroundColor: '#F1F5F9',
-    opacity: 0.6,
-  },
-  globalSearchImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
-  },
-  globalSearchContent: {
-    flex: 1,
-  },
-  globalSearchItemTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  globalSearchItemTitleDisabled: {
-    color: '#94A3B8',
-  },
-  globalSearchWarning: {
-    fontSize: 12,
-    color: '#F59E0B',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  globalSearchMeta: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  globalSearchStock: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  stockInfoContainer: {
-    flexDirection: 'column',
-    gap: 2,
-  },
-  stockReserved: {
-    fontSize: 11,
-    color: '#F59E0B',
-    fontWeight: '500',
-  },
-  stockTotal: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  globalSearchStatus: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  globalSearchActions: {
-    flexDirection: 'column',
-    gap: 6,
-    minWidth: 100,
-  },
-  globalSearchActionButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  globalSearchActionButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  globalSearchActionButtonSecondary: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#6366F1',
-    alignItems: 'center',
-  },
-  globalSearchActionButtonSecondaryText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  globalSearchBannerButtonLeft: {
-    backgroundColor: '#8B5CF6',
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  globalSearchBannerButtonLeftText: {
-    fontSize: 20,
-  },
-  stockAvailable: {
-    color: '#10B981',
-  },
-  stockUnavailable: {
-    color: '#EF4444',
-  },
-  editPriceIconButton: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  editPriceIcon: {
-    fontSize: 14,
-  },
-  savePriceIconButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
-    minWidth: 32,
-    alignItems: 'center',
-  },
-  savePriceIcon: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  cancelPriceIconButton: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
-    minWidth: 32,
-    alignItems: 'center',
-  },
-  cancelPriceIcon: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  calculateFranquiciaContainer: {
-    marginTop: 8,
-  },
-  calculateFranquiciaButton: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  calculateFranquiciaButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  calculatedBadge: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  calculatedBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  // Custom Add Modal Styles
-  customAddModalContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  customAddModalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  customAddModalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    maxHeight: '80%',
-  },
-  customAddModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  customAddModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    flex: 1,
-  },
-  customAddModalCloseButton: {
-    fontSize: 28,
-    color: '#64748B',
-    fontWeight: '300',
-    paddingHorizontal: 8,
-  },
-  customAddModalProductInfo: {
-    backgroundColor: '#F8FAFC',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  customAddModalProductTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  customAddModalWarning: {
-    fontSize: 13,
-    color: '#F59E0B',
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  customAddModalStockInfo: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  customAddModalStockTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 12,
-  },
-  customAddModalStockRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  customAddModalStockLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  customAddModalStockValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  customAddModalQuantitySection: {
-    marginBottom: 24,
-  },
-  customAddModalQuantityLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  customAddModalQuantityInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 16,
-    color: '#1E293B',
-  },
-  customAddModalActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  customAddModalCancelButton: {
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  customAddModalCancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  customAddModalConfirmButton: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  customAddModalConfirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  // Pagination styles
-  loadMoreButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginVertical: 16,
-    marginHorizontal: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  loadMoreButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  loadingMoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 12,
-  },
-  loadingMoreText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  endOfListContainer: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  endOfListText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      paddingHorizontal: 32,
+      paddingVertical: 24,
+    },
+    backButton: {
+      marginBottom: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    backButtonTextTablet: {
+      fontSize: 18,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: 12,
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabTablet: {
+      paddingVertical: 16,
+    },
+    tabActive: {
+      borderBottomColor: theme.color.brand.primary,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+    },
+    tabTextTablet: {
+      fontSize: 16,
+    },
+    tabTextActive: {
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    scrollContentTablet: {
+      padding: 32,
+    },
+    overviewContainer: {
+      gap: 16,
+    },
+    tabContent: {
+      gap: 16,
+    },
+    section: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    sectionTablet: {
+      padding: 24,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    sectionHeaderLeft: {
+      flex: 1,
+      gap: 8,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 16,
+    },
+    sectionTitleTablet: {
+      fontSize: 22,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      gap: 8,
+    },
+    infoLabel: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+      minWidth: 120,
+    },
+    infoLabelTablet: {
+      fontSize: 16,
+      minWidth: 150,
+    },
+    infoValue: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    infoValueTablet: {
+      fontSize: 16,
+    },
+    statusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    statusBadgeTablet: {
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    statusTextTablet: {
+      fontSize: 14,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    statCard: {
+      flex: 1,
+      minWidth: '45%',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 8,
+      padding: 16,
+      alignItems: 'center',
+    },
+    statCardTablet: {
+      padding: 20,
+    },
+    statValue: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.brand.primary,
+      marginBottom: 4,
+    },
+    statValueTablet: {
+      fontSize: 28,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    statLabelTablet: {
+      fontSize: 14,
+    },
+    notesText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      lineHeight: 20,
+    },
+    notesTextTablet: {
+      fontSize: 16,
+      lineHeight: 24,
+    },
+    headerButtonsContainer: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    bulkButton: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    bulkButtonTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    bulkButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    bulkButtonTextTablet: {
+      fontSize: 14,
+    },
+    addButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    addButtonTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    addButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    addButtonTextTablet: {
+      fontSize: 14,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+      paddingVertical: 20,
+    },
+    emptyTextTablet: {
+      fontSize: 16,
+    },
+    listItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    listItemTablet: {
+      paddingVertical: 16,
+    },
+    listItemContent: {
+      flex: 1,
+    },
+    listItemTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    listItemTitleTablet: {
+      fontSize: 18,
+    },
+    listItemSubtitle: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: 4,
+    },
+    listItemSubtitleTablet: {
+      fontSize: 15,
+    },
+    listItemAmount: {
+      fontSize: 14,
+      color: theme.color.icon.success,
+      fontWeight: '500',
+    },
+    listItemAmountTablet: {
+      fontSize: 16,
+    },
+    participantCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      overflow: 'hidden',
+    },
+    participantCardTablet: {
+      borderRadius: 12,
+    },
+    participantCardMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 12,
+    },
+    participantHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+      gap: 8,
+    },
+    editParticipantButton: {
+      backgroundColor: theme.color.icon.warning,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 6,
+      alignSelf: 'flex-start',
+    },
+    editParticipantButtonTablet: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    editParticipantButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    editParticipantButtonTextTablet: {
+      fontSize: 13,
+    },
+    totalsContainer: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: 6,
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    totalLabel: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    totalLabelTablet: {
+      fontSize: 15,
+    },
+    totalValuePurchase: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.icon.warning,
+    },
+    totalValueSale: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.icon.success,
+    },
+    totalValueMargin: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    totalValueExpected: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    totalValueTablet: {
+      fontSize: 16,
+    },
+    marginValueContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    marginPercentage: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+      opacity: 0.8,
+    },
+    marginPercentageTablet: {
+      fontSize: 14,
+    },
+    summaryCard: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 2,
+      borderColor: theme.color.brand.primary,
+    },
+    summaryCardTablet: {
+      padding: 24,
+      marginBottom: 20,
+    },
+    summaryTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 16,
+      textAlign: 'center',
+    },
+    summaryTitleTablet: {
+      fontSize: 22,
+    },
+    summaryGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    summaryItem: {
+      flex: 1,
+      minWidth: '45%',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 12,
+      alignItems: 'center',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    summaryLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+      marginBottom: 6,
+      textAlign: 'center',
+    },
+    summaryLabelTablet: {
+      fontSize: 14,
+    },
+    summaryValuePurchase: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.icon.warning,
+      textAlign: 'center',
+    },
+    summaryValueSale: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.icon.success,
+      textAlign: 'center',
+    },
+    summaryValueMargin: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.brand.primary,
+      textAlign: 'center',
+    },
+    summaryValueExpected: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+      textAlign: 'center',
+    },
+    summaryValueTablet: {
+      fontSize: 22,
+    },
+    summaryPercentage: {
+      fontSize: 12,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    summaryPercentageTablet: {
+      fontSize: 14,
+    },
+    downloadGeneralReportButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginBottom: 16,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    downloadGeneralReportButtonTablet: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+      marginBottom: 20,
+    },
+    downloadGeneralReportButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    downloadGeneralReportButtonTextTablet: {
+      fontSize: 16,
+    },
+    downloadButtonDisabled: {
+      opacity: 0.5,
+    },
+    quickPriceValue: {
+      fontWeight: '700',
+      color: theme.color.icon.success,
+    },
+    productBadges: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 4,
+    },
+    badge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 10,
+    },
+    badgeActive: {
+      backgroundColor: theme.color.state.success.background,
+    },
+    badgePreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderWidth: 1,
+      borderColor: theme.color.icon.warning,
+    },
+    badgeActivate: {
+      backgroundColor: theme.color.icon.success,
+      borderWidth: 1,
+      borderColor: theme.color.text.success,
+      minHeight: 22,
+      justifyContent: 'center',
+    },
+    badgeGenerated: {
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    productTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    preliminaryIndicator: {
+      backgroundColor: theme.color.state.warning.background,
+      borderWidth: 1,
+      borderColor: theme.color.icon.warning,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    preliminaryIndicatorText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.color.text.warning,
+      letterSpacing: 0.5,
+    },
+    arrowIcon: {
+      fontSize: 24,
+      color: theme.color.border.default,
+      fontWeight: 'bold',
+    },
+    arrowIconTablet: {
+      fontSize: 32,
+    },
+    productCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      overflow: 'hidden',
+    },
+    // ============================================
+    // Compact product card (new endpoint design)
+    // ============================================
+    productCardCompact: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 10,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      overflow: 'hidden',
+    },
+    productCardCompactMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 10,
+      gap: 10,
+    },
+    productImageCompact: {
+      width: 56,
+      height: 56,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+    },
+    productImageCompactPlaceholder: {
+      width: 56,
+      height: 56,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    productCompactContent: {
+      flex: 1,
+      gap: 6,
+    },
+    productCompactHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    productCompactSku: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+      backgroundColor: theme.color.surface.muted,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      letterSpacing: 0.3,
+    },
+    productCompactBarcode: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.color.text.success,
+      backgroundColor: theme.color.state.success.background,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      letterSpacing: 0.3,
+      maxWidth: 160,
+    },
+    productCompactTitle: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      minWidth: 120,
+    },
+    productCompactTitleTablet: {
+      fontSize: 15,
+    },
+    productCompactBadges: {
+      flexDirection: 'row',
+      gap: 4,
+      flexShrink: 0,
+    },
+    badgeSmall: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    badgeSmallText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      letterSpacing: 0.2,
+    },
+    productCompactMetricsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flexWrap: 'wrap',
+    },
+    productCompactMetric: {
+      flexDirection: 'column',
+    },
+    productCompactDivider: {
+      width: 1,
+      height: 18,
+      backgroundColor: theme.color.border.subtle,
+    },
+    productCompactMetricLabel: {
+      fontSize: 9,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    productCompactMetricValue: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      lineHeight: 16,
+    },
+    productCompactMetricValueOk: {
+      color: theme.color.text.success,
+    },
+    productCompactMetricValueWarn: {
+      color: theme.color.text.warning,
+    },
+    productCompactMetricValueMuted: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      lineHeight: 16,
+    },
+    productCompactPricesRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    productCompactPriceChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: theme.color.state.info.background,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.background,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+    },
+    productCompactPriceChipMuted: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.muted,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+    },
+    productCompactPriceChipWarn: {
+      backgroundColor: theme.color.state.danger.background,
+      borderColor: theme.color.state.danger.border,
+    },
+    productCompactPriceLabel: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
+    },
+    productCompactPriceLabelWarn: {
+      color: theme.color.state.danger.text,
+    },
+    productCompactPriceValue: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.state.info.text,
+    },
+    productCompactPriceValueWarn: {
+      color: theme.color.state.danger.text,
+    },
+    productCompactSupplierRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    productCompactSupplierIcon: {
+      fontSize: 12,
+    },
+    productCompactSupplierText: {
+      flex: 1,
+      fontSize: 11,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+    },
+    productCompactSupplierTextEmpty: {
+      color: theme.color.border.default,
+      fontStyle: 'italic',
+    },
+    productCardPreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderWidth: 2,
+      borderColor: theme.color.icon.warning,
+      borderLeftWidth: 4,
+    },
+    productCardTablet: {
+      borderRadius: 12,
+    },
+    productCardMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+    },
+    productImage: {
+      width: 60,
+      height: 60,
+      borderRadius: 8,
+      marginRight: 12,
+      backgroundColor: theme.color.surface.muted,
+    },
+    productImagePlaceholder: {
+      width: 60,
+      height: 60,
+      borderRadius: 8,
+      marginRight: 12,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    productImagePlaceholderText: {
+      fontSize: 28,
+    },
+    productCardActions: {
+      flexDirection: 'row',
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      backgroundColor: theme.color.background.subtle,
+    },
+    productActionButton: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    productBannerButton: {
+      borderRightWidth: 1,
+      borderRightColor: theme.color.border.subtle,
+    },
+    productActionButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    productDeleteButton: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    productDeleteButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.icon.danger,
+    },
+    productExpandButton: {
+      borderRightWidth: 1,
+      borderRightColor: theme.color.border.subtle,
+    },
+    priceDetailsContainer: {
+      backgroundColor: theme.color.background.subtle,
+      padding: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    priceLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      flex: 1,
+    },
+    priceDisplayRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    priceValue: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    priceLowerThanCost: {
+      color: theme.color.text.danger,
+      backgroundColor: theme.color.state.danger.background,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    priceEditRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    currencySymbol: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    priceInput: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.brand.primary,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      minWidth: 80,
+    },
+    editButton: {
+      backgroundColor: theme.color.state.info.background,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    editButtonText: {
+      fontSize: 14,
+      color: theme.color.text.link,
+    },
+    saveButton: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 4,
+      minWidth: 32,
+      alignItems: 'center',
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    cancelEditButton: {
+      backgroundColor: theme.color.icon.danger,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 4,
+      minWidth: 32,
+      alignItems: 'center',
+    },
+    cancelEditButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    calculateButton: {
+      backgroundColor: theme.color.icon.warning,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      marginLeft: 4,
+    },
+    calculateButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    searchContainer: {
+      marginBottom: 16,
+      position: 'relative',
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 16,
+      flexWrap: 'wrap',
+    },
+    searchInputWrap: {
+      flex: 1,
+      minWidth: 220,
+      position: 'relative',
+    },
+    supplierPickerWrap: {
+      minWidth: 220,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    supplierPickerWrapTablet: {
+      minWidth: 280,
+    },
+    supplierPicker: {
+      height: 44,
+      color: theme.color.text.heading,
+    },
+    searchInput: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    searchInputTablet: {
+      fontSize: 16,
+      paddingVertical: 12,
+    },
+    clearSearchButton: {
+      position: 'absolute',
+      right: 12,
+      top: '50%',
+      transform: [{ translateY: -12 }],
+      backgroundColor: theme.color.text.subtle,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    clearSearchText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    filterContainer: {
+      marginBottom: 16,
+    },
+    filterLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 8,
+    },
+    filterButtons: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    filterButton: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      alignItems: 'center',
+    },
+    filterButtonActive: {
+      backgroundColor: theme.color.icon.success,
+      borderColor: theme.color.icon.success,
+    },
+    filterButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    filterButtonTextActive: {
+      color: theme.color.surface.base,
+    },
+    estimatedTotalHeaderCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: theme.color.state.info.background,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.text.link,
+    },
+    estimatedTotalHeaderLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.state.info.text,
+    },
+    estimatedTotalHeaderValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.state.info.text,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: 12,
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    footerTablet: {
+      padding: 24,
+      gap: 16,
+    },
+    cancelCampaignButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.icon.danger,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelCampaignButtonTablet: {
+      paddingVertical: 16,
+    },
+    cancelCampaignButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.icon.danger,
+    },
+    cancelCampaignButtonTextTablet: {
+      fontSize: 18,
+    },
+    activateButton: {
+      flex: 1,
+      backgroundColor: theme.color.icon.success,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    activateButtonTablet: {
+      paddingVertical: 16,
+    },
+    activateButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    activateButtonTextTablet: {
+      fontSize: 18,
+    },
+    closeButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeButtonTablet: {
+      paddingVertical: 16,
+    },
+    closeButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    closeButtonTextTablet: {
+      fontSize: 18,
+    },
+    headerButtons: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    copyButton: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    copyButtonTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    copyButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    copyButtonTextTablet: {
+      fontSize: 14,
+    },
+    deleteAllButton: {
+      backgroundColor: theme.color.icon.danger,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    deleteAllButtonTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    deleteAllButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    deleteAllButtonTextTablet: {
+      fontSize: 14,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 16,
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 24,
+      width: '100%',
+      maxWidth: 500,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    modalContentTablet: {
+      padding: 32,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    modalTitleTablet: {
+      fontSize: 24,
+    },
+    modalDescription: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 20,
+    },
+    modalDescriptionTablet: {
+      fontSize: 16,
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      overflow: 'hidden',
+      marginBottom: 24,
+    },
+    pickerContainerTablet: {
+      borderRadius: 10,
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    modalCancelButton: {
+      flex: 1,
+      backgroundColor: theme.color.border.subtle,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    modalConfirmButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    modalButtonTablet: {
+      paddingVertical: 16,
+    },
+    modalButtonDisabled: {
+      opacity: 0.5,
+    },
+    modalCancelButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    modalConfirmButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    modalButtonTextTablet: {
+      fontSize: 16,
+    },
+    floatingButtonContainer: {
+      position: 'absolute',
+      right: 20,
+      bottom: 20,
+      zIndex: 9998,
+      pointerEvents: 'box-none',
+    },
+    imageModalContainer: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.9)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    imageModalBackdrop: {
+      flex: 1,
+      width: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    imageModalContent: {
+      width: '90%',
+      height: '80%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    imageModalImage: {
+      width: '100%',
+      height: '100%',
+    },
+    imageModalCloseButton: {
+      position: 'absolute',
+      top: 20,
+      right: 20,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 10,
+    },
+    imageModalCloseText: {
+      fontSize: 24,
+      color: theme.color.surface.base,
+      fontWeight: 'bold',
+    },
+    // Global search styles
+    globalSearchLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 20,
+      gap: 12,
+    },
+    globalSearchLoadingText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    globalSearchContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    globalSearchTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    globalSearchHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: 12,
+    },
+    globalSearchList: {
+      maxHeight: 400,
+    },
+    globalSearchItem: {
+      flexDirection: 'row',
+      padding: 12,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      alignItems: 'center',
+    },
+    globalSearchItemPreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    globalSearchItemDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      opacity: 0.6,
+    },
+    globalSearchImage: {
+      width: 50,
+      height: 50,
+      borderRadius: 8,
+      marginRight: 12,
+      backgroundColor: theme.color.surface.muted,
+    },
+    globalSearchContent: {
+      flex: 1,
+    },
+    globalSearchItemTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    globalSearchItemTitleDisabled: {
+      color: theme.color.text.subtle,
+    },
+    globalSearchWarning: {
+      fontSize: 12,
+      color: theme.color.icon.warning,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    globalSearchMeta: {
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+    },
+    globalSearchStock: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    stockInfoContainer: {
+      flexDirection: 'column',
+      gap: 2,
+    },
+    stockReserved: {
+      fontSize: 11,
+      color: theme.color.icon.warning,
+      fontWeight: '500',
+    },
+    stockTotal: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    globalSearchStatus: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    globalSearchActions: {
+      flexDirection: 'column',
+      gap: 6,
+      minWidth: 100,
+    },
+    globalSearchActionButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      alignItems: 'center',
+    },
+    globalSearchActionButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    globalSearchActionButtonSecondary: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: theme.color.brand.primary,
+      alignItems: 'center',
+    },
+    globalSearchActionButtonSecondaryText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    globalSearchBannerButtonLeft: {
+      backgroundColor: theme.color.brand.accent,
+      width: 40,
+      height: 40,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+    },
+    globalSearchBannerButtonLeftText: {
+      fontSize: 20,
+    },
+    stockAvailable: {
+      color: theme.color.icon.success,
+    },
+    stockUnavailable: {
+      color: theme.color.icon.danger,
+    },
+    editPriceIconButton: {
+      backgroundColor: theme.color.state.info.background,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    editPriceIcon: {
+      fontSize: 14,
+    },
+    savePriceIconButton: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 4,
+      minWidth: 32,
+      alignItems: 'center',
+    },
+    savePriceIcon: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    cancelPriceIconButton: {
+      backgroundColor: theme.color.icon.danger,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 4,
+      minWidth: 32,
+      alignItems: 'center',
+    },
+    cancelPriceIcon: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    calculateFranquiciaContainer: {
+      marginTop: 8,
+    },
+    calculateFranquiciaButton: {
+      backgroundColor: theme.color.icon.warning,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      alignItems: 'center',
+    },
+    calculateFranquiciaButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    calculatedBadge: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      alignItems: 'center',
+      marginTop: 4,
+    },
+    calculatedBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    // Custom Add Modal Styles
+    customAddModalContainer: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    customAddModalBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    customAddModalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 24,
+      maxHeight: '80%',
+    },
+    customAddModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    customAddModalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    customAddModalCloseButton: {
+      fontSize: 28,
+      color: theme.color.text.muted,
+      fontWeight: '300',
+      paddingHorizontal: 8,
+    },
+    customAddModalProductInfo: {
+      backgroundColor: theme.color.background.subtle,
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 16,
+    },
+    customAddModalProductTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    customAddModalWarning: {
+      fontSize: 13,
+      color: theme.color.icon.warning,
+      fontWeight: '500',
+      marginTop: 4,
+    },
+    customAddModalStockInfo: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 20,
+    },
+    customAddModalStockTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    customAddModalStockRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    customAddModalStockLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    customAddModalStockValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    customAddModalQuantitySection: {
+      marginBottom: 24,
+    },
+    customAddModalQuantityLabel: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    customAddModalQuantityInput: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      padding: 14,
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    customAddModalActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    customAddModalCancelButton: {
+      flex: 1,
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    customAddModalCancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    customAddModalConfirmButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    customAddModalConfirmButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    // Pagination styles
+    loadMoreButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      borderRadius: 8,
+      marginVertical: 16,
+      marginHorizontal: 16,
+      alignItems: 'center',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    loadMoreButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    loadingMoreContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 20,
+      gap: 12,
+    },
+    loadingMoreText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    endOfListContainer: {
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      alignItems: 'center',
+    },
+    endOfListText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+  });
