@@ -30,6 +30,8 @@ import {
   CURRENCY_SYMBOLS,
   BANK_ACCOUNT_COLORS,
 } from '@/types/treasury';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type FormMode = 'create' | 'edit' | 'view';
 
@@ -83,6 +85,8 @@ const initialFormData: FormData = {
 };
 
 export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { companyId, companyName, accountId, mode: initialMode } = route.params;
 
   const [mode, setMode] = useState<FormMode>(initialMode || 'create');
@@ -245,7 +249,7 @@ export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ na
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={theme.color.brand.accent} />
         <Text style={styles.loadingText}>Cargando cuenta...</Text>
       </View>
     );
@@ -276,7 +280,7 @@ export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ na
         {/* Account Info (View Mode) */}
         {isViewMode && account && (
           <View style={styles.accountInfoCard}>
-            <View style={[styles.colorBar, { backgroundColor: account.color || '#3B82F6' }]} />
+            <View style={[styles.colorBar, { backgroundColor: account.color || theme.color.brand.accent }]} />
             <View style={styles.accountInfoContent}>
               <View style={styles.accountInfoHeader}>
                 <View style={styles.bankBadgeLarge}>
@@ -508,8 +512,8 @@ export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ na
             <Text style={styles.label}>Color de identificación</Text>
             {isViewMode ? (
               <View style={styles.colorPreviewRow}>
-                <View style={[styles.colorPreview, { backgroundColor: account?.color || '#3B82F6' }]} />
-                <Text style={styles.colorPreviewText}>{account?.color || '#3B82F6'}</Text>
+                <View style={[styles.colorPreview, { backgroundColor: account?.color || theme.color.brand.accent }]} />
+                <Text style={styles.colorPreviewText}>{account?.color || theme.color.brand.accent}</Text>
               </View>
             ) : (
               <>
@@ -640,7 +644,7 @@ export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ na
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.color.text.inverse} />
               ) : (
                 <Text style={styles.saveButtonText}>
                   {isCreateMode ? '✓ Crear Cuenta' : '✓ Guardar Cambios'}
@@ -670,29 +674,29 @@ export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ na
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.color.background.subtle,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 8,
@@ -700,7 +704,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 24,
-    color: '#007AFF',
+    color: theme.color.brand.accent,
   },
   headerTitleContainer: {
     flex: 1,
@@ -708,21 +712,21 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   editButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   editButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -730,11 +734,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   accountInfoCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     margin: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -752,14 +756,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   bankBadgeLarge: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
     marginRight: 16,
   },
   bankBadgeLargeText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -769,22 +773,22 @@ const styles = StyleSheet.create({
   accountInfoTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
   },
   accountInfoCode: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     marginTop: 4,
   },
   balanceContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.surface.subtle,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   balanceLabel: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   balanceAmount: {
@@ -792,23 +796,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   balancePositive: {
-    color: '#10B981',
+    color: theme.color.state.success.border,
   },
   balanceNegative: {
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
   },
   balanceDate: {
     fontSize: 12,
-    color: '#999',
+    color: theme.color.text.placeholder,
     marginTop: 4,
   },
   formSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     margin: 16,
     marginTop: 0,
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -817,7 +821,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   formGroup: {
@@ -826,20 +830,20 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   required: {
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#333',
+    color: theme.color.text.heading,
   },
   textArea: {
     height: 80,
@@ -847,36 +851,36 @@ const styles = StyleSheet.create({
   },
   readOnlyValue: {
     fontSize: 16,
-    color: '#333',
+    color: theme.color.text.heading,
     padding: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: 8,
   },
   selectButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     padding: 12,
   },
   selectButtonText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.color.text.heading,
   },
   selectPlaceholder: {
-    color: '#999',
+    color: theme.color.text.placeholder,
   },
   selectArrow: {
     fontSize: 12,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   pickerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     marginTop: 8,
     maxHeight: 200,
@@ -884,17 +888,17 @@ const styles = StyleSheet.create({
   pickerItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   pickerItemSelected: {
-    backgroundColor: '#EBF5FF',
+    backgroundColor: theme.color.state.info.background,
   },
   pickerItemText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.color.text.heading,
   },
   pickerItemTextSelected: {
-    color: '#007AFF',
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
   colorPreviewRow: {
@@ -909,7 +913,7 @@ const styles = StyleSheet.create({
   },
   colorPreviewText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   colorPickerContainer: {
     flexDirection: 'row',
@@ -917,7 +921,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: 8,
   },
   colorOption: {
@@ -927,7 +931,7 @@ const styles = StyleSheet.create({
   },
   colorOptionSelected: {
     borderWidth: 3,
-    borderColor: '#333',
+    borderColor: theme.color.text.heading,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -937,29 +941,29 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
     borderRadius: 4,
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   checkboxIcon: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: 'bold',
   },
   checkboxLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.color.text.heading,
   },
   checkboxHint: {
     fontSize: 12,
-    color: '#666',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   statusRow: {
@@ -968,7 +972,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.color.state.warning.background,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -976,13 +980,13 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#92400E',
+    color: theme.color.state.warning.text,
   },
   statusActive: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.color.state.success.background,
   },
   statusInactive: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
   },
   infoRow: {
     flexDirection: 'row',
@@ -990,13 +994,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     width: 140,
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 14,
-    color: '#333',
+    color: theme.color.text.heading,
     flex: 1,
   },
   buttonContainer: {
@@ -1004,27 +1008,27 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   saveButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: theme.color.state.success.border,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: theme.color.text.placeholder,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: 'bold',
   },
   cancelButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#666',
+    color: theme.color.text.muted,
     fontSize: 16,
     fontWeight: '600',
   },
