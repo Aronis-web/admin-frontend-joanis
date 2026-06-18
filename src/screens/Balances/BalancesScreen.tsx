@@ -29,12 +29,16 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { BalanceOperationsModal } from '@/components/Balances/BalanceOperationsModal';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface BalancesScreenProps {
   navigation: any;
 }
 
 export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -304,7 +308,7 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando balances...</Text>
         </View>
       </SafeAreaView>
@@ -378,10 +382,10 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -391,14 +395,14 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 24,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     paddingHorizontal: 32,
@@ -407,7 +411,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   titleTablet: {
@@ -415,20 +419,20 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   subtitleTablet: {
     fontSize: 16,
   },
   filterWrapper: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   filterLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
     paddingHorizontal: 24,
     paddingTop: 12,
     marginBottom: 8,
@@ -443,9 +447,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     marginRight: 8,
   },
   filterButtonTablet: {
@@ -453,19 +457,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   filterButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   filterButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   filterButtonTextTablet: {
     fontSize: 15,
   },
   filterButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   content: {
     flex: 1,
@@ -480,21 +484,21 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
   cardExternal: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.background,
+    borderColor: theme.color.state.warning.border,
     borderWidth: 2,
   },
   cardTablet: {
@@ -514,7 +518,7 @@ const styles = StyleSheet.create({
   receiverName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   receiverNameTablet: {
@@ -523,7 +527,7 @@ const styles = StyleSheet.create({
   cardCode: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   cardCodeTablet: {
     fontSize: 16,
@@ -555,10 +559,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
   },
   typeBadgeExternal: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.border,
   },
   typeBadgeTablet: {
     paddingHorizontal: 14,
@@ -567,10 +571,10 @@ const styles = StyleSheet.create({
   typeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   typeTextExternal: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   typeTextTablet: {
     fontSize: 13,
@@ -585,7 +589,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '500',
     width: 90,
   },
@@ -596,7 +600,7 @@ const styles = StyleSheet.create({
   infoValue: {
     flex: 1,
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '600',
   },
   infoValueTablet: {
@@ -608,28 +612,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: theme.color.surface.subtle,
   },
   footerButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   viewOperationsButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   footerButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   footerButtonTextTablet: {
     fontSize: 15,
   },
   arrowIcon: {
     fontSize: 24,
-    color: '#CBD5E1',
+    color: theme.color.text.placeholder,
     fontWeight: '300',
   },
   arrowIconTablet: {
@@ -651,7 +655,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   emptyTextTablet: {
@@ -659,7 +663,7 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   emptySubtextTablet: {
     fontSize: 16,

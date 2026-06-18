@@ -24,6 +24,8 @@ import {
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { BalanceOperationsModal } from '@/components/Balances/BalanceOperationsModal';
 import { MAIN_ROUTES } from '@/constants/routes';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface BalanceDetailScreenProps {
   navigation: any;
@@ -35,6 +37,8 @@ interface BalanceDetailScreenProps {
 }
 
 export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { balanceId } = route.params;
   const [balance, setBalance] = useState<Balance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -206,7 +210,7 @@ export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({ naviga
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando balance...</Text>
         </View>
       </SafeAreaView>
@@ -408,10 +412,10 @@ export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -421,7 +425,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   errorContainer: {
     flex: 1,
@@ -430,16 +434,16 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    color: '#EF4444',
+    color: theme.color.state.danger.text,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     paddingHorizontal: 32,
@@ -450,7 +454,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
   backButtonTextTablet: {
@@ -459,7 +463,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   titleTablet: {
     fontSize: 24,
@@ -477,12 +481,12 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   cardTablet: {
     padding: 24,
@@ -501,7 +505,7 @@ const styles = StyleSheet.create({
   balanceCode: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   balanceCodeTablet: {
     fontSize: 28,
@@ -527,12 +531,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
   },
   typeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   typeTextTablet: {
     fontSize: 14,
@@ -546,7 +550,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '500',
     width: 100,
   },
@@ -557,7 +561,7 @@ const styles = StyleSheet.create({
   infoValue: {
     flex: 1,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '600',
   },
   infoValueTablet: {
@@ -566,7 +570,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   cardTitleTablet: {
@@ -581,25 +585,25 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   actionButtonTextTablet: {
     fontSize: 17,
   },
   viewOperationsButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   activateButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.color.state.success.border,
   },
   deactivateButton: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.border,
   },
   closeButton: {
-    backgroundColor: '#6B7280',
+    backgroundColor: theme.color.text.muted,
   },
   deleteButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.color.state.danger.border,
   },
   bottomSpacer: {
     height: 40,

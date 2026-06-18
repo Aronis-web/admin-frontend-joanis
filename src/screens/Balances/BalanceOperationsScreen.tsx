@@ -35,6 +35,8 @@ import {
   requestCameraPermissionsAsync,
   MediaTypeOptions
 } from '@/utils/filePicker';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface BalanceOperationsScreenProps {
   navigation: any;
@@ -45,6 +47,8 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { balanceId, balance } = route.params || {};
   const { currentSite } = useAuthStore();
 
@@ -785,7 +789,7 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#38BDF8" />
+              <ActivityIndicator size="large" color={theme.color.brand.accent} />
               <Text style={styles.loadingText}>Cargando operaciones...</Text>
             </View>
           ) : (
@@ -894,10 +898,10 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -905,54 +909,54 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     paddingVertical: 8,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#38BDF8',
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
   addButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.color.state.success.border,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: '600',
   },
   searchContainer: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   searchInput: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   filtersContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     gap: 8,
     flexWrap: 'wrap',
   },
@@ -960,21 +964,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   filterButtonActive: {
-    backgroundColor: '#38BDF8',
-    borderColor: '#38BDF8',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   filterButtonText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   filterButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   loadingContainer: {
     flex: 1,
@@ -984,18 +988,18 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   listContent: {
     padding: 20,
   },
   operationItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   operationHeader: {
     flexDirection: 'row',
@@ -1017,30 +1021,30 @@ const styles = StyleSheet.create({
   typeBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   operationDate: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   operationAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   operationEmitter: {
     fontSize: 14,
-    color: '#374151',
+    color: theme.color.text.body,
     marginBottom: 4,
   },
   operationDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   operationReference: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: theme.color.text.subtle,
     fontStyle: 'italic',
   },
 
@@ -1052,7 +1056,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   errorContainer: {
     flex: 1,
@@ -1063,24 +1067,24 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
     textAlign: 'center',
     marginBottom: 8,
   },
   errorSubtext: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     width: '100%',
     maxHeight: '90%',
@@ -1088,10 +1092,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   modalForm: {
     padding: 20,
@@ -1100,16 +1104,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   textArea: {
@@ -1126,28 +1130,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     alignItems: 'center',
   },
   typeButtonActive: {
-    backgroundColor: '#38BDF8',
-    borderColor: '#38BDF8',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   typeButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   typeButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   modalActions: {
     flexDirection: 'row',
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: theme.color.border.subtle,
     gap: 12,
   },
   modalButton: {
@@ -1159,17 +1163,17 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   cancelButton: {
-    backgroundColor: '#6B7280',
+    backgroundColor: theme.color.text.muted,
   },
   confirmButton: {
-    backgroundColor: '#38BDF8',
+    backgroundColor: theme.color.brand.accent,
   },
   // Detail Modal Styles
   detailModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
@@ -1182,7 +1186,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -1200,7 +1204,7 @@ const styles = StyleSheet.create({
   operationBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     textAlign: 'center',
   },
   headerInfo: {
@@ -1209,25 +1213,25 @@ const styles = StyleSheet.create({
   detailModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 6,
   },
   detailModalAmount: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.color.state.success.border,
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   scrollContent: {
@@ -1241,15 +1245,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   sectionContent: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   infoRow: {
     marginBottom: 12,
@@ -1257,14 +1261,14 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   infoValue: {
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '500',
   },
   detailModalActions: {
@@ -1281,14 +1285,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeActionButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   closeActionButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   // File upload styles
   formGroup: {
@@ -1296,14 +1300,14 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 12,
     lineHeight: 18,
   },
   fileUploadButton: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.accentSoft,
     borderWidth: 1,
-    borderColor: '#6366F1',
+    borderColor: theme.color.brand.accent,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -1313,7 +1317,7 @@ const styles = StyleSheet.create({
   fileUploadButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
   },
   filesContainer: {
     gap: 8,
@@ -1321,11 +1325,11 @@ const styles = StyleSheet.create({
   fileItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   fileInfo: {
     flex: 1,
@@ -1334,23 +1338,23 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   fileType: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   fileRemove: {
     fontSize: 20,
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
     fontWeight: '600',
     paddingHorizontal: 8,
   },
   paginationContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
     paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
@@ -1365,30 +1369,30 @@ const styles = StyleSheet.create({
   paginationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   paginationSubtext: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     marginTop: 2,
   },
   paginationButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     minWidth: 110,
     alignItems: 'center',
   },
   paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.surface.disabled,
   },
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   paginationButtonTextDisabled: {
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
   },
 });
